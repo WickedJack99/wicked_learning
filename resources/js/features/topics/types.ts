@@ -17,6 +17,12 @@ export type TopicArea = {
     topics: TopicSummary[];
 };
 
+export type TopicAreaOption = {
+    id: number;
+    slug: string;
+    title: string;
+};
+
 export type TopicDetail = TopicSummary & {
     area: {
         id: number;

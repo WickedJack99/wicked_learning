@@ -8,6 +8,7 @@
     "topics.eyebrow": "Knowledge directory",
     "topics.title": "Topics",
     "topics.description": "Browse broad areas and open a topic to continue into its subtopics and learning material.",
+    "topics.area.label": "Topic area",
     "topics.directory.map_count.one": "1 map available",
     "topics.directory.map_count.many": ":count maps available",
     "topics.manage": "Manage topics",

@@ -32,8 +32,41 @@ class LearningTopicController extends Controller
 
     public function index(Request $request): Response
     {
+        $areas = $this->topics->overviewAreas();
+        $selectedAreaSlug = $request->query('area');
+        $selectedArea = $areas->firstWhere(
+            'slug',
+            is_string($selectedAreaSlug) ? $selectedAreaSlug : '',
+        ) ?? $areas->first();
+        $topicPage = $selectedArea
+            ? $this->topics->overviewTopics(
+                $selectedArea,
+                $request->user(),
+                page: max(1, (int) $request->query('page', 1)),
+            )
+            : null;
+
         return Inertia::render('topics/index', [
-            'areas' => $this->serializer->overview($this->topics->overview($request->user())),
+            'areaOptions' => $this->serializer->overviewAreas($areas),
+            'selectedArea' => $selectedArea && $topicPage
+                ? $this->serializer->overviewArea(
+                    $selectedArea,
+                    $topicPage->getCollection(),
+                )
+                : null,
+            'pagination' => $topicPage
+                ? [
+                    'currentPage' => $topicPage->currentPage(),
+                    'lastPage' => max(1, $topicPage->lastPage()),
+                    'perPage' => $topicPage->perPage(),
+                    'total' => $topicPage->total(),
+                ]
+                : [
+                    'currentPage' => 1,
+                    'lastPage' => 1,
+                    'perPage' => 6,
+                    'total' => 0,
+                ],
             'canManageTopics' => $request->user()?->hasAccess(
                 PermissionCatalog::CONTENT_TOPICS,
                 AccessLevel::READ,

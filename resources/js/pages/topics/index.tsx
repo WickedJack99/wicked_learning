@@ -1,21 +1,37 @@
 import { Head } from '@inertiajs/react';
 import { TopicDirectory } from '@/features/topics/topic-directory';
-import type { TopicArea } from '@/features/topics/types';
+import type { TopicArea, TopicAreaOption } from '@/features/topics/types';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
+type TopicsPagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
+
 export default function Topics({
-    areas,
+    areaOptions,
     canManageTopics,
+    pagination,
+    selectedArea,
 }: {
-    areas: TopicArea[];
+    areaOptions: TopicAreaOption[];
     canManageTopics: boolean;
+    pagination: TopicsPagination;
+    selectedArea: TopicArea | null;
 }) {
     const t = usePlatformTranslation();
 
     return (
         <>
             <Head title={t('topics.title', 'Topics')} />
-            <TopicDirectory areas={areas} canManageTopics={canManageTopics} />
+            <TopicDirectory
+                areaOptions={areaOptions}
+                canManageTopics={canManageTopics}
+                pagination={pagination}
+                selectedArea={selectedArea}
+            />
         </>
     );
 }

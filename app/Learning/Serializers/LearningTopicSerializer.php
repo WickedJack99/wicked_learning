@@ -11,26 +11,39 @@ class LearningTopicSerializer
 {
     /**
      * @param  Collection<int, LearningTopicArea>  $areas
-     * @return list<array<string, mixed>>
+     * @return list<array{id: int, slug: string, title: string}>
      */
-    public function overview(Collection $areas): array
+    public function overviewAreas(Collection $areas): array
     {
         return array_values($areas
             ->map(fn (LearningTopicArea $area): array => [
-                'description' => $area->description,
                 'id' => $area->id,
                 'slug' => $area->slug,
                 'title' => $area->title,
-                'topics' => $area->rootTopics
-                    ->map(fn (LearningTopic $topic): array => [
-                        ...$this->summary($topic),
-                        'mapCount' => $topic->maps->count(),
-                    ])
-                    ->values()
-                    ->all(),
             ])
             ->values()
             ->all());
+    }
+
+    /**
+     * @param  Collection<int, LearningTopic>  $topics
+     * @return array<string, mixed>
+     */
+    public function overviewArea(LearningTopicArea $area, Collection $topics): array
+    {
+        return [
+            'description' => $area->description,
+            'id' => $area->id,
+            'slug' => $area->slug,
+            'title' => $area->title,
+            'topics' => $topics
+                ->map(fn (LearningTopic $topic): array => [
+                    ...$this->summary($topic),
+                    'mapCount' => (int) ($topic->visible_map_count ?? 0),
+                ])
+                ->values()
+                ->all(),
+        ];
     }
 
     /**

@@ -1,18 +1,40 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { ArrowRight, FolderTree, Settings2 } from 'lucide-react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import type { TopicArea } from './types';
+import type { TopicArea, TopicAreaOption } from './types';
 
 export function TopicDirectory({
-    areas,
+    areaOptions,
     canManageTopics,
+    pagination,
+    selectedArea,
 }: {
-    areas: TopicArea[];
+    areaOptions: TopicAreaOption[];
     canManageTopics: boolean;
+    pagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+    selectedArea: TopicArea | null;
 }) {
     const t = usePlatformTranslation();
+
+    function visitTopics(area: string, page = 1) {
+        const params = new URLSearchParams({ area });
+
+        if (page > 1) {
+            params.set('page', String(page));
+        }
+
+        router.visit(`/topics?${params.toString()}`, {
+            preserveScroll: true,
+            replace: true,
+        });
+    }
 
     return (
         <LearnerDocumentSurface>
@@ -43,61 +65,84 @@ export function TopicDirectory({
                     ) : null}
                 </header>
 
-                {areas.length > 0 ? (
-                    <LearnerPaginatedItems
-                        className="mx-auto mt-9 grid max-w-7xl grid-cols-1 gap-x-20 lg:grid-cols-2"
-                        items={areas}
-                        pageSize={4}
-                        paginationLabel="Topic areas"
-                        renderItem={(area) => (
-                            <section className="mb-10 min-w-0" key={area.id}>
-                                <div className="border-b border-[var(--learner-border-color)] pb-3">
-                                    <h2 className="text-sm font-semibold">
+                {selectedArea ? (
+                    <section
+                        className="mx-auto mt-9 max-w-3xl"
+                        data-wl-id="topics-directory"
+                    >
+                        <div className="max-w-xl">
+                            <label
+                                className="text-sm font-medium text-[var(--learner-body-text)]"
+                                htmlFor="topics-area"
+                            >
+                                {t('topics.area.label', 'Topic area')}
+                            </label>
+                            <select
+                                className="mt-2 h-10 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-3 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                data-wl-id="topics-area-selector"
+                                id="topics-area"
+                                onChange={(event) =>
+                                    visitTopics(event.target.value)
+                                }
+                                value={selectedArea.slug}
+                            >
+                                {areaOptions.map((area) => (
+                                    <option key={area.id} value={area.slug}>
                                         {area.title}
-                                    </h2>
-                                    {area.description ? (
-                                        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                                            {area.description}
-                                        </p>
-                                    ) : null}
-                                </div>
-                                <LearnerPaginatedItems
-                                    className="divide-y divide-[color-mix(in_srgb,var(--learner-border-color)_70%,transparent)]"
-                                    items={area.topics}
-                                    pageSize={6}
-                                    paginationLabel={`${area.title} topics`}
-                                    renderItem={(topic) => (
-                                        <Link
-                                            className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-[var(--learner-body-text)] transition hover:text-[var(--learner-accent)]"
-                                            href={topic.href}
-                                            key={topic.id}
-                                        >
-                                            <span>
-                                                <span>{topic.title}</span>
-                                                {topic.mapCount ? (
-                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
-                                                        {topic.mapCount === 1
-                                                            ? t(
-                                                                  'topics.directory.map_count.one',
-                                                                  '1 map available',
-                                                              )
-                                                            : t(
-                                                                  'topics.directory.map_count.many',
-                                                                  ':count maps available',
-                                                                  {
-                                                                      count: topic.mapCount,
-                                                                  },
-                                                              )}
-                                                    </span>
-                                                ) : null}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="mt-10 border-b border-[var(--learner-border-color)] pb-3">
+                            <h2 className="text-sm font-semibold">
+                                {selectedArea.title}
+                            </h2>
+                            {selectedArea.description ? (
+                                <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                                    {selectedArea.description}
+                                </p>
+                            ) : null}
+                        </div>
+                        <LearnerPaginatedItems
+                            className="divide-y divide-[color-mix(in_srgb,var(--learner-border-color)_70%,transparent)]"
+                            items={selectedArea.topics}
+                            onPageChange={(page) =>
+                                visitTopics(selectedArea.slug, page)
+                            }
+                            pageSize={pagination.perPage}
+                            pagination={pagination}
+                            paginationLabel={`${selectedArea.title} topics`}
+                            renderItem={(topic) => (
+                                <Link
+                                    className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-[var(--learner-body-text)] transition hover:text-[var(--learner-accent)]"
+                                    href={topic.href}
+                                    key={topic.id}
+                                >
+                                    <span>
+                                        <span>{topic.title}</span>
+                                        {topic.mapCount ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
+                                                {topic.mapCount === 1
+                                                    ? t(
+                                                          'topics.directory.map_count.one',
+                                                          '1 map available',
+                                                      )
+                                                    : t(
+                                                          'topics.directory.map_count.many',
+                                                          ':count maps available',
+                                                          {
+                                                              count: topic.mapCount,
+                                                          },
+                                                      )}
                                             </span>
-                                            <ArrowRight className="size-4 shrink-0 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" />
-                                        </Link>
-                                    )}
-                                />
-                            </section>
-                        )}
-                    />
+                                        ) : null}
+                                    </span>
+                                    <ArrowRight className="size-4 shrink-0 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" />
+                                </Link>
+                            )}
+                        />
+                    </section>
                 ) : (
                     <div className="mx-auto grid min-h-[50svh] max-w-lg place-items-center text-center">
                         <div>

@@ -9,7 +9,6 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -17,34 +16,51 @@ class LoadLearningTopics
 {
     private const int MAP_PAGE_SIZE = 4;
 
+    private const int TOPIC_PAGE_SIZE = 6;
+
     private const int SUBTOPIC_PAGE_SIZE = 4;
 
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
 
     /** @return Collection<int, LearningTopicArea> */
-    public function overview(?User $user = null): Collection
+    public function overviewAreas(): Collection
     {
-        $areas = LearningTopicArea::query()
-            ->with(['rootTopics' => fn ($query) => $query
-                ->where('is_published', true)
-                ->orderBy('title')
-                ->with(['maps' => /** @param Relation<LearningMap, LearningTopic, mixed> $relation */
-                function (Relation $relation) use ($user): void {
-                    $this->mapAccess->constrainVisibleQuery($relation->getQuery(), $user);
-                }])])
+        return LearningTopicArea::query()
+            ->select(['id', 'slug', 'title', 'description'])
             ->whereHas('rootTopics', fn ($query) => $query->where('is_published', true))
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get();
+    }
 
-        $areas->each(fn (LearningTopicArea $area) => $area->rootTopics->each(
-            fn (LearningTopic $topic) => $topic->setRelation(
-                'maps',
-                $this->mapAccess->visibleMaps($topic->maps, $user),
-            ),
-        ));
+    /**
+     * @return LengthAwarePaginator<int, LearningTopic>
+     */
+    public function overviewTopics(
+        LearningTopicArea $area,
+        ?User $user = null,
+        int $page = 1,
+    ): LengthAwarePaginator {
+        $query = $area->rootTopics()
+            ->where('is_published', true)
+            ->withCount([
+                'maps as visible_map_count' => fn (Builder $query): Builder => $this->mapAccess
+                    ->constrainVisibleQuery($query, $user),
+            ])
+            ->orderBy('title');
+        $page = max(1, $page);
+        $topics = $query->paginate(self::TOPIC_PAGE_SIZE, ['*'], 'page', $page);
 
-        return $areas;
+        if ($topics->currentPage() > $topics->lastPage() && $topics->total() > 0) {
+            return $query->paginate(
+                self::TOPIC_PAGE_SIZE,
+                ['*'],
+                'page',
+                $topics->lastPage(),
+            );
+        }
+
+        return $topics;
     }
 
     public function publishedDetail(LearningTopic $topic, ?User $user = null): LearningTopic

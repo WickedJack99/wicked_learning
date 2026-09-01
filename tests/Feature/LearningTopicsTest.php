@@ -84,14 +84,67 @@ test('learners see published topic areas in manual order and topics alphabetical
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('topics/index')
             ->where('canManageTopics', false)
-            ->has('areas', 2)
-            ->where('areas.0.title', 'Medicine')
-            ->where('areas.0.topics.0.title', 'Anatomy')
-            ->where('areas.0.topics.0.mapCount', 1)
-            ->where('areas.0.topics.1.title', 'Circulation')
-            ->where('areas.0.topics.1.mapCount', 0)
-            ->has('areas.0.topics', 2)
-            ->where('areas.1.title', 'Technology')
+            ->has('areaOptions', 2)
+            ->where('areaOptions.0.title', 'Medicine')
+            ->where('areaOptions.1.title', 'Technology')
+            ->where('selectedArea.title', 'Medicine')
+            ->where('selectedArea.topics.0.title', 'Anatomy')
+            ->where('selectedArea.topics.0.mapCount', 1)
+            ->where('selectedArea.topics.1.title', 'Circulation')
+            ->where('selectedArea.topics.1.mapCount', 0)
+            ->has('selectedArea.topics', 2)
+            ->where('pagination.total', 2)
+        );
+});
+
+test('the topic directory paginates topics in the database for the selected area', function () {
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+        'sort_order' => 10,
+    ]);
+
+    foreach (range(1, 13) as $number) {
+        LearningTopic::query()->create([
+            'learning_topic_area_id' => $area->id,
+            'slug' => 'topic-'.$number,
+            'title' => 'Topic '.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
+            'is_published' => true,
+        ]);
+    }
+
+    $this->actingAs($learner)
+        ->get(route('topics.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('areaOptions', 1)
+            ->where('selectedArea.slug', 'science')
+            ->has('selectedArea.topics', 6)
+            ->where('selectedArea.topics.0.title', 'Topic 01')
+            ->where('selectedArea.topics.5.title', 'Topic 06')
+            ->where('pagination.currentPage', 1)
+            ->where('pagination.lastPage', 3)
+            ->where('pagination.total', 13)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.index', ['area' => 'science', 'page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('selectedArea.topics', 6)
+            ->where('selectedArea.topics.0.title', 'Topic 07')
+            ->where('selectedArea.topics.5.title', 'Topic 12')
+            ->where('pagination.currentPage', 2)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.index', ['area' => 'science', 'page' => 99]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('selectedArea.topics', 1)
+            ->where('selectedArea.topics.0.title', 'Topic 13')
+            ->where('pagination.currentPage', 3)
         );
 });
 
@@ -138,8 +191,8 @@ test('the topic overview scopes inaccessible maps before hydrating topic cards',
         ->get(route('topics.index'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('areas.0.topics.0.title', 'Astronomy')
-            ->where('areas.0.topics.0.mapCount', 1)
+            ->where('selectedArea.topics.0.title', 'Astronomy')
+            ->where('selectedArea.topics.0.mapCount', 1)
         );
 
     expect($mapQueries)->not->toBeEmpty()
