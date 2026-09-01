@@ -24,6 +24,10 @@ export type MapExportValidationResult = {
         portalTargets: number;
     };
     errors: string[];
+    mediaReferenceDetails: Array<{
+        available: boolean;
+        url: string;
+    }>;
     map?: { exists: boolean; slug: string | null };
     summary: string;
     valid: boolean;
@@ -290,6 +294,13 @@ export function ValidationSummary({
                 />
             </dl>
 
+            {result.mediaReferenceDetails.length > 0 ? (
+                <MediaReferenceDetails
+                    details={result.mediaReferenceDetails}
+                    total={result.counts.mediaReferences}
+                />
+            ) : null}
+
             {result.errors.length > 0 ? (
                 <ValidationMessages
                     heading={t(
@@ -307,6 +318,62 @@ export function ValidationSummary({
                     )}
                     messages={result.warnings}
                 />
+            ) : null}
+        </div>
+    );
+}
+
+function MediaReferenceDetails({
+    details,
+    total,
+}: {
+    details: MapExportValidationResult['mediaReferenceDetails'];
+    total: number;
+}) {
+    const t = usePlatformTranslation();
+    const visibleDetails = details.slice(0, 6);
+    const availableCount = details.filter((detail) => detail.available).length;
+
+    return (
+        <div className="grid gap-2 rounded-lg border border-[var(--settings-border-color)] p-3">
+            <div>
+                <h3 className="text-sm font-semibold">
+                    {t(
+                        'settings.world_builder.export_validation.media_details',
+                        'Referenced media',
+                    )}
+                </h3>
+                <p className="text-sm text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.world_builder.export_validation.media_availability',
+                        ':available of :total referenced media files are available in this workspace.',
+                        { available: availableCount, total },
+                    )}
+                </p>
+            </div>
+            <ul className="grid gap-1 text-sm text-[var(--settings-muted-text)]">
+                {visibleDetails.map((detail) => (
+                    <li
+                        className="flex min-w-0 items-start gap-2"
+                        key={detail.url}
+                    >
+                        {detail.available ? (
+                            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-400" />
+                        ) : (
+                            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-300" />
+                        )}
+                        <span className="min-w-0 break-all">{detail.url}</span>
+                    </li>
+                ))}
+            </ul>
+            {details.length > visibleDetails.length ? (
+                <p className="text-sm text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.world_builder.export_validation.more_media',
+                        ':count more media references not shown.',
+                        { count: details.length - visibleDetails.length },
+                    )}
+                </p>
             ) : null}
         </div>
     );

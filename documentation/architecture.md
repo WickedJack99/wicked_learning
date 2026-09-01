@@ -249,7 +249,9 @@ values are collected into a separate reference list. Learner progress, private
 revision history, local editing-group assignments and AI review state are not part
 of the export contract. The matching readiness validator caps collection sizes,
 checks slugs and graph links in memory, and performs only bounded workspace
-lookups; it never imports or mutates the submitted manifest. The author import
+lookups; it never imports or mutates the submitted manifest. Its response also
+contains a bounded availability detail list for declared media references; it
+does not transfer media bytes. The author import
 dialogs can preflight either a single-map or world manifest through this same
 server-side boundary, while the mutating import action validates again.
 

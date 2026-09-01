@@ -12,10 +12,12 @@ class LearningWorldExportValidator
 
     private const MAX_MAPS = 12;
 
+    private const MAX_MEDIA_REFERENCES = 2000;
+
     public function __construct(private readonly LearningMapExportValidator $mapValidator) {}
 
     /**
-     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{maps: int, nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}}
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{maps: int, nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: string|null, exists: bool}}
      */
     public function validate(UploadedFile $manifest, LearningWorld $world): array
     {
@@ -40,7 +42,7 @@ class LearningWorldExportValidator
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{maps: int, nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}}
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{maps: int, nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: string|null, exists: bool}}
      */
     public function validatePayload(array $payload, LearningWorld $world): array
     {
@@ -82,6 +84,7 @@ class LearningWorldExportValidator
             'portalTargets' => 0,
             'mediaReferences' => 0,
         ];
+        $mediaReferenceDetails = [];
 
         foreach (array_slice($maps, 0, self::MAX_MAPS) as $index => $map) {
             if (! is_array($map)) {
@@ -103,6 +106,9 @@ class LearningWorldExportValidator
             foreach (['nodes', 'activities', 'mapAssets', 'portalTargets', 'mediaReferences'] as $key) {
                 $counts[$key] += $mapResult['counts'][$key];
             }
+            foreach ($mapResult['mediaReferenceDetails'] as $detail) {
+                $mediaReferenceDetails[$detail['url']] = $detail;
+            }
             foreach ($mapResult['errors'] as $error) {
                 $this->addError($errors, "maps.{$index}: {$error}");
             }
@@ -119,6 +125,7 @@ class LearningWorldExportValidator
             'errors' => $errors,
             'warnings' => array_values(array_unique($warnings)),
             'counts' => $counts,
+            'mediaReferenceDetails' => array_values(array_slice($mediaReferenceDetails, 0, self::MAX_MEDIA_REFERENCES)),
             'world' => [
                 'slug' => $worldSlug,
                 'exists' => $worldSlug === $world->slug,
@@ -135,7 +142,7 @@ class LearningWorldExportValidator
     }
 
     /**
-     * @return array{valid: false, summary: string, errors: list<string>, warnings: list<string>, counts: array{maps: int, nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: null, exists: false}}
+     * @return array{valid: false, summary: string, errors: list<string>, warnings: list<string>, counts: array{maps: int, nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: null, exists: false}}
      */
     private function invalid(string $message): array
     {
@@ -152,6 +159,7 @@ class LearningWorldExportValidator
                 'portalTargets' => 0,
                 'mediaReferences' => 0,
             ],
+            'mediaReferenceDetails' => [],
             'world' => ['slug' => null, 'exists' => false],
         ];
     }

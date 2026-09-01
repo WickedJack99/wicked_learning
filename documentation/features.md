@@ -822,6 +822,8 @@ carry learner history, map history, review runs or editor groups. Authors can
 upload a manifest to
 run a bounded structural readiness check; it reports malformed links, missing
 workspace references and map-slug conflicts without creating or changing content.
+The same preflight also shows a bounded availability list for declared media
+references, so missing local files are visible before an import is attempted.
 
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the

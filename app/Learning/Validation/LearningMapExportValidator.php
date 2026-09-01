@@ -20,7 +20,7 @@ class LearningMapExportValidator
     public function __construct(private readonly ReusableMediaAssetManager $mediaAssetManager) {}
 
     /**
-     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
      */
     public function validate(UploadedFile $manifest): array
     {
@@ -51,7 +51,7 @@ class LearningMapExportValidator
     /**
      * Validate a standalone MapAsset export before it is added to a map.
      *
-     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
      */
     public function validateAsset(UploadedFile $manifest): array
     {
@@ -84,7 +84,7 @@ class LearningMapExportValidator
      * single-map graph checks.
      *
      * @param  array<string, mixed>  $payload
-     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
      */
     public function validateAssetPayload(array $payload): array
     {
@@ -337,10 +337,12 @@ class LearningMapExportValidator
 
         $references = $this->object($payload['references'] ?? null, 'references', $errors);
         $mediaReferences = $this->values($references['mediaUrls'] ?? null, 'references.mediaUrls', self::MAX_ASSETS, $errors);
+        $mediaReferenceDetails = $this->mediaReferenceDetails($mediaReferences);
+        $mediaAvailability = array_column($mediaReferenceDetails, 'available', 'url');
         foreach ($mediaReferences as $index => $reference) {
             if (! is_string($reference) || trim($reference) === '') {
                 $this->addError($errors, "references.mediaUrls.{$index} must be a non-empty string.");
-            } elseif (! $this->mediaAssetManager->isImportableReference($reference)) {
+            } elseif (! ($mediaAvailability[$reference] ?? false)) {
                 $this->addError($errors, "references.mediaUrls.{$index} must point to an available local media asset.");
             }
         }
@@ -373,9 +375,36 @@ class LearningMapExportValidator
             'errors' => $errors,
             'warnings' => array_values(array_unique($warnings)),
             'counts' => $counts,
+            'mediaReferenceDetails' => $mediaReferenceDetails,
             'world' => ['slug' => $worldSlug, 'exists' => $worldExists],
             'map' => ['slug' => $mapSlug, 'exists' => $mapExists],
         ];
+    }
+
+    /**
+     * @param  list<mixed>  $mediaReferences
+     * @return list<array{available: bool, url: string}>
+     */
+    private function mediaReferenceDetails(array $mediaReferences): array
+    {
+        $details = [];
+
+        foreach ($mediaReferences as $reference) {
+            if (! is_string($reference) || trim($reference) === '' || isset($details[$reference])) {
+                continue;
+            }
+
+            $details[$reference] = [
+                'available' => $this->mediaAssetManager->isImportableReference($reference),
+                'url' => $reference,
+            ];
+
+            if (count($details) >= self::MAX_ASSETS) {
+                break;
+            }
+        }
+
+        return array_values($details);
     }
 
     /**
@@ -523,7 +552,7 @@ class LearningMapExportValidator
     }
 
     /**
-     * @return array{valid: false, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: null, exists: false}, map: array{slug: null, exists: false}}
+     * @return array{valid: false, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: null, exists: false}, map: array{slug: null, exists: false}}
      */
     private function invalid(string $message): array
     {
@@ -539,6 +568,7 @@ class LearningMapExportValidator
                 'portalTargets' => 0,
                 'mediaReferences' => 0,
             ],
+            'mediaReferenceDetails' => [],
             'world' => ['slug' => null, 'exists' => false],
             'map' => ['slug' => null, 'exists' => false],
         ];

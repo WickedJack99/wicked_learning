@@ -563,7 +563,8 @@ test('map authors can validate an export manifest without changing content', fun
         ->assertJsonPath('map.slug', 'first-sector')
         ->assertJsonPath('map.exists', true)
         ->assertJsonPath('counts.nodes', 4)
-        ->assertJsonPath('counts.mediaReferences', count($exportPayload['references']['mediaUrls']));
+        ->assertJsonPath('counts.mediaReferences', count($exportPayload['references']['mediaUrls']))
+        ->assertJsonPath('mediaReferenceDetails.0.available', true);
 
     expect(LearningMap::query()->count())->toBe($mapCount);
 });
@@ -584,6 +585,47 @@ test('map export validation reports malformed manifests', function () {
         ->assertOk()
         ->assertJsonPath('valid', false)
         ->assertJsonPath('errors.0', 'format must be "wicked-learning-map".');
+});
+
+test('map export preflight reports missing media references without changing content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $available = '/images/tools/pattern-lens-dark.svg';
+    $missing = '/images/does-not-exist.png';
+    $manifest = [
+        'format' => 'wicked-learning-map',
+        'formatVersion' => 1,
+        'world' => ['slug' => 'demo-learning-world', 'title' => 'Demo learning world'],
+        'map' => [
+            'slug' => 'preflight-media-map',
+            'title' => 'Preflight media map',
+            'backgroundConfig' => [
+                'dark' => ['imageUrl' => $available],
+                'light' => ['imageUrl' => $missing],
+            ],
+        ],
+        'nodes' => [],
+        'mapAssets' => [],
+        'portalTargets' => [],
+        'references' => ['mediaUrls' => [$available, $missing]],
+    ];
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.exports.validate'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'preflight-media.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+        ])
+        ->assertOk()
+        ->assertJsonPath('valid', false)
+        ->assertJsonPath('counts.mediaReferences', 2)
+        ->assertJsonPath('mediaReferenceDetails.0.url', $available)
+        ->assertJsonPath('mediaReferenceDetails.0.available', true)
+        ->assertJsonPath('mediaReferenceDetails.1.url', $missing)
+        ->assertJsonPath('mediaReferenceDetails.1.available', false);
 });
 
 test('authors can preflight a world export without changing content', function () {
@@ -609,7 +651,8 @@ test('authors can preflight a world export without changing content', function (
         ->assertJsonPath('valid', true)
         ->assertJsonPath('world.slug', $world->slug)
         ->assertJsonPath('world.exists', true)
-        ->assertJsonPath('counts.maps', $world->maps()->count());
+        ->assertJsonPath('counts.maps', $world->maps()->count())
+        ->assertJsonPath('mediaReferenceDetails.0.available', true);
 
     expect(LearningMap::query()->count())->toBe($mapCount);
 });
