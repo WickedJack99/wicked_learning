@@ -232,6 +232,59 @@ test('organization member lists paginate in the database and preserve the leader
             ->where('organization.leaderCount', 1));
 });
 
+test('leaders receive only pending join requests for the requested server page', function () {
+    $leader = User::factory()->create();
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $leader->id,
+        'name' => 'Request Lab',
+        'slug' => 'request-lab',
+    ]);
+    $organization->memberships()->create([
+        'user_id' => $leader->id,
+        'role' => OrganizationMembership::ROLE_LEADER,
+        'joined_at' => now(),
+    ]);
+    $organization->joinRequests()->create([
+        'user_id' => User::factory()->create()->id,
+        'status' => OrganizationJoinRequest::STATUS_APPROVED,
+    ]);
+
+    foreach (range(1, 5) as $index) {
+        $organization->joinRequests()->create([
+            'user_id' => User::factory()->create()->id,
+            'status' => OrganizationJoinRequest::STATUS_PENDING,
+            'message' => 'Request '.$index,
+        ]);
+    }
+
+    $joinRequestPageQuery = null;
+    DB::listen(function (QueryExecuted $query) use (&$joinRequestPageQuery): void {
+        if (str_contains($query->sql, 'from "organization_join_requests"')
+            && preg_match('/limit 4 offset 4/i', $query->sql) === 1) {
+            $joinRequestPageQuery = $query;
+        }
+    });
+
+    $this->actingAs($leader)
+        ->get(route('organizations.show', [
+            'organization' => $organization,
+            'join_requests_page' => 2,
+            'section' => 'join-requests',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('organizations/show')
+            ->where('organization.joinRequestsPagination.currentPage', 2)
+            ->where('organization.joinRequestsPagination.lastPage', 2)
+            ->where('organization.joinRequestsPagination.perPage', 4)
+            ->where('organization.joinRequestsPagination.total', 5)
+            ->has('organization.joinRequests', 1)
+            ->where('organization.joinRequests.0.status', OrganizationJoinRequest::STATUS_PENDING)
+            ->where('organization.joinRequests.0.message', 'Request 5'));
+
+    expect($joinRequestPageQuery)->toBeInstanceOf(QueryExecuted::class);
+});
+
 test('organization chat stays private from non-members', function () {
     $leader = User::factory()->create();
     $outsider = User::factory()->create();

@@ -19,7 +19,6 @@ import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import InputError from '@/components/input-error';
-import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { PaginationControls } from '@/components/pagination-controls';
 import {
     SettingsSectionNavigation,
@@ -104,7 +103,7 @@ export default function OrganizationShow({
         canReportIcon: Boolean(organization.iconUrl) && !organization.isLeader,
         isLeader: organization.isLeader,
         canViewChat,
-        joinRequestCount: organization.joinRequests.length,
+        joinRequestCount: organization.joinRequestsPagination?.total ?? 0,
         memberCount: organization.memberCount,
     });
     const activeSection = sectionItems.some(
@@ -349,6 +348,32 @@ export default function OrganizationShow({
                                 {activeSection === 'join-requests' &&
                                 organization.isLeader ? (
                                     <JoinRequestPanel
+                                        onPageChange={(page) => {
+                                            const nextUrl = new URL(
+                                                window.location.href,
+                                            );
+                                            nextUrl.searchParams.set(
+                                                'section',
+                                                'join-requests',
+                                            );
+                                            nextUrl.searchParams.set(
+                                                'join_requests_page',
+                                                String(page),
+                                            );
+                                            router.visit(
+                                                nextUrl.pathname +
+                                                    '?' +
+                                                    nextUrl.searchParams.toString(),
+                                                {
+                                                    preserveScroll: true,
+                                                    preserveState: true,
+                                                    replace: true,
+                                                },
+                                            );
+                                        }}
+                                        pagination={
+                                            organization.joinRequestsPagination
+                                        }
                                         requests={organization.joinRequests}
                                     />
                                 ) : null}
@@ -760,8 +785,12 @@ function MembershipPanel({
 }
 
 function JoinRequestPanel({
+    onPageChange,
+    pagination,
     requests,
 }: {
+    onPageChange: (page: number) => void;
+    pagination: OrganizationDetail['joinRequestsPagination'];
     requests: OrganizationJoinRequest[];
 }) {
     function respond(request: OrganizationJoinRequest, approved: boolean) {
@@ -773,19 +802,18 @@ function JoinRequestPanel({
     }
 
     return (
-        <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#111820]">
+        <section
+            className="grid gap-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#111820]"
+            data-wl-id="organizations.join-requests.panel"
+        >
             <h2 className="text-lg font-semibold">Join requests</h2>
-            <LearnerPaginatedItems
-                className="grid gap-3"
-                emptyState={
+            <div className="grid gap-3">
+                {requests.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                         No pending requests.
                     </p>
-                }
-                items={requests}
-                pageSize={4}
-                paginationLabel="Join requests"
-                renderItem={(request) => (
+                ) : null}
+                {requests.map((request) => (
                     <article
                         className="rounded-lg border border-slate-200 p-3 dark:border-white/10"
                         key={request.id}
@@ -819,8 +847,18 @@ function JoinRequestPanel({
                             </Button>
                         </div>
                     </article>
-                )}
-            />
+                ))}
+            </div>
+            {pagination ? (
+                <PaginationControls
+                    className="border-t border-slate-200 pt-3 dark:border-white/10"
+                    currentPage={pagination.currentPage}
+                    label="Join requests"
+                    onPageChange={onPageChange}
+                    pageCount={pagination.lastPage}
+                    textClassName="text-xs text-slate-500 dark:text-slate-400"
+                />
+            ) : null}
         </section>
     );
 }

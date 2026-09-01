@@ -59,6 +59,7 @@ export type OrganizationDetail = OrganizationSummary & {
     leaderCount: number;
     isLeader: boolean;
     joinRequests: OrganizationJoinRequest[];
+    joinRequestsPagination: OrganizationPagination | null;
     members: OrganizationMembership[];
     membersPagination: OrganizationPagination;
     messages: OrganizationMessage[];

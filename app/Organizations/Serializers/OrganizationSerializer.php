@@ -31,12 +31,9 @@ class OrganizationSerializer
         Organization $organization,
         User $viewer,
         LengthAwarePaginator $members,
+        ?LengthAwarePaginator $joinRequests = null,
         ?LengthAwarePaginator $messages = null,
     ): array {
-        $organization->loadMissing([
-            'joinRequests.requester:id,name,email',
-        ]);
-
         $isLeader = $organization->isLeader($viewer);
         $canViewMessages = $organization->isMember($viewer) || $viewer->isAdmin();
 
@@ -74,13 +71,20 @@ class OrganizationSerializer
                     'total' => $messages->total(),
                 ]
                 : null,
-            'joinRequests' => $isLeader
-                ? $organization->joinRequests
-                    ->where('status', OrganizationJoinRequest::STATUS_PENDING)
+            'joinRequests' => $isLeader && $joinRequests
+                ? $joinRequests->getCollection()
                     ->map(fn (OrganizationJoinRequest $request): array => $this->joinRequest($request))
                     ->values()
                     ->all()
                 : [],
+            'joinRequestsPagination' => $isLeader && $joinRequests
+                ? [
+                    'currentPage' => $joinRequests->currentPage(),
+                    'lastPage' => max(1, $joinRequests->lastPage()),
+                    'perPage' => $joinRequests->perPage(),
+                    'total' => $joinRequests->total(),
+                ]
+                : null,
         ];
     }
 

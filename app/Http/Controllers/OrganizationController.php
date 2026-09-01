@@ -17,6 +17,7 @@ use App\Organizations\Actions\SaveOrganization;
 use App\Organizations\Actions\SendOrganizationMessage;
 use App\Organizations\Actions\UpdateOrganizationIcon;
 use App\Organizations\OrganizationGovernance;
+use App\Organizations\Queries\LoadOrganizationJoinRequests;
 use App\Organizations\Queries\LoadOrganizationMembers;
 use App\Organizations\Queries\LoadOrganizationMessages;
 use App\Organizations\Queries\LoadOrganizations;
@@ -32,6 +33,7 @@ class OrganizationController extends Controller
 {
     public function __construct(
         private readonly OrganizationGovernance $governance,
+        private readonly LoadOrganizationJoinRequests $joinRequests,
         private readonly LoadOrganizationMembers $members,
         private readonly LoadOrganizationMessages $messages,
         private readonly LoadOrganizations $organizations,
@@ -75,6 +77,12 @@ class OrganizationController extends Controller
             $organization,
             $request->integer('members_page') ?: 1,
         );
+        $joinRequests = $organization->isLeader($viewer)
+            ? $this->joinRequests->handle(
+                $organization,
+                $request->integer('join_requests_page') ?: 1,
+            )
+            : null;
         $messages = $organization->isMember($viewer) || $viewer->isAdmin()
             ? $this->messages->handle(
                 $organization,
@@ -88,6 +96,7 @@ class OrganizationController extends Controller
                 $organization,
                 $viewer,
                 $members,
+                $joinRequests,
                 $messages,
             ),
         ]);
