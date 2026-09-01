@@ -2,7 +2,8 @@
 	frankenphp
 }
 
-:{$SERVER_NAME} {
+# Coolify terminates TLS before forwarding requests to the application.
+:80 {
 	root * /app/public
 	encode zstd gzip
 

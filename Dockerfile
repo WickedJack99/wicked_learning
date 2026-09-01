@@ -53,8 +53,7 @@ RUN mkdir -p \
 FROM base AS runtime
 
 ENV APP_ENV=production \
-    APP_DEBUG=false \
-    SERVER_NAME=:80
+    APP_DEBUG=false
 
 COPY --from=build /app /app
 
