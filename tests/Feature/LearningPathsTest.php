@@ -414,5 +414,5 @@ test('learning paths reuse node visibility checks for repeated starts', function
             ->where('paths.0.label', 'Repeated route 1')
             ->where('paths.1.label', 'Repeated route 2'));
 
-    expect($toolExistenceQueries)->toBe(2);
+    expect($toolExistenceQueries)->toBe(1);
 });

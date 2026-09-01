@@ -10,6 +10,9 @@ use Illuminate\Validation\ValidationException;
 
 class NodeRevealService
 {
+    /** @var array<int, int|null> */
+    private array $configuredToolIds = [];
+
     /**
      * @return array<string, mixed>
      */
@@ -96,11 +99,17 @@ class NodeRevealService
 
     private function configuredToolId(LearningNode $node): ?int
     {
+        $nodeId = (int) $node->getKey();
+
+        if (array_key_exists($nodeId, $this->configuredToolIds)) {
+            return $this->configuredToolIds[$nodeId];
+        }
+
         $config = is_array($node->visual_config) ? $node->visual_config : [];
         $reveal = is_array($config['reveal'] ?? null) ? $config['reveal'] : [];
         $toolId = (int) ($reveal['toolId'] ?? 0);
 
-        return $toolId > 0 && LearningTool::query()->whereKey($toolId)->exists()
+        return $this->configuredToolIds[$nodeId] = $toolId > 0 && LearningTool::query()->whereKey($toolId)->exists()
             ? $toolId
             : null;
     }
