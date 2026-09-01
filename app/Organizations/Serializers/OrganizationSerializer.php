@@ -30,10 +30,10 @@ class OrganizationSerializer
     public function detail(
         Organization $organization,
         User $viewer,
+        LengthAwarePaginator $members,
         ?LengthAwarePaginator $messages = null,
     ): array {
         $organization->loadMissing([
-            'memberships.user:id,name,email',
             'joinRequests.requester:id,name,email',
         ]);
 
@@ -45,10 +45,20 @@ class OrganizationSerializer
             'canModerateMessages' => $viewer->isAdmin(),
             'canSendMessages' => $organization->isMember($viewer),
             'isLeader' => $isLeader,
-            'members' => $organization->memberships
+            'leaderCount' => $organization->leader_memberships_count
+                ?? $organization->memberships()
+                    ->where('role', OrganizationMembership::ROLE_LEADER)
+                    ->count(),
+            'members' => $members->getCollection()
                 ->map(fn (OrganizationMembership $membership): array => $this->membership($membership))
                 ->values()
                 ->all(),
+            'membersPagination' => [
+                'currentPage' => $members->currentPage(),
+                'lastPage' => max(1, $members->lastPage()),
+                'perPage' => $members->perPage(),
+                'total' => $members->total(),
+            ],
             'messages' => $canViewMessages && $messages
                 ? $messages->getCollection()
                     ->reverse()

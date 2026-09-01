@@ -56,9 +56,11 @@ export type OrganizationSummary = {
 export type OrganizationDetail = OrganizationSummary & {
     canModerateMessages: boolean;
     canSendMessages: boolean;
+    leaderCount: number;
     isLeader: boolean;
     joinRequests: OrganizationJoinRequest[];
     members: OrganizationMembership[];
+    membersPagination: OrganizationPagination;
     messages: OrganizationMessage[];
     messagesPagination: OrganizationPagination | null;
 };

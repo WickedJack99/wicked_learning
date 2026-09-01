@@ -172,6 +172,66 @@ test('organization chat paginates recent messages in the database', function () 
             ->where('organization.messages.0.body', 'Message 1'));
 });
 
+test('organization member lists paginate in the database and preserve the leader count', function () {
+    $leader = User::factory()->create();
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $leader->id,
+        'name' => 'Member Lab',
+        'slug' => 'member-lab',
+    ]);
+    $organization->memberships()->create([
+        'user_id' => $leader->id,
+        'role' => OrganizationMembership::ROLE_LEADER,
+        'joined_at' => now(),
+    ]);
+
+    foreach (range(1, 8) as $index) {
+        $organization->memberships()->create([
+            'user_id' => User::factory()->create()->id,
+            'role' => OrganizationMembership::ROLE_MEMBER,
+            'joined_at' => now(),
+        ]);
+    }
+
+    $memberPageQuery = null;
+    DB::listen(function (QueryExecuted $query) use (&$memberPageQuery): void {
+        if (str_contains($query->sql, 'from "organization_memberships"')
+            && preg_match('/limit 8 offset 8/i', $query->sql) === 1) {
+            $memberPageQuery = $query;
+        }
+    });
+
+    $this->actingAs($leader)
+        ->get(route('organizations.show', [
+            'organization' => $organization,
+            'members_page' => 2,
+            'section' => 'members',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('organizations/show')
+            ->where('organization.membersPagination.currentPage', 2)
+            ->where('organization.membersPagination.lastPage', 2)
+            ->where('organization.membersPagination.perPage', 8)
+            ->where('organization.membersPagination.total', 9)
+            ->where('organization.leaderCount', 1)
+            ->has('organization.members', 1));
+
+    expect($memberPageQuery)->toBeInstanceOf(QueryExecuted::class);
+
+    $this->actingAs($leader)
+        ->get(route('organizations.show', [
+            'organization' => $organization,
+            'members_page' => 99,
+            'section' => 'members',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('organization.membersPagination.currentPage', 2)
+            ->has('organization.members', 1)
+            ->where('organization.leaderCount', 1));
+});
+
 test('organization chat stays private from non-members', function () {
     $leader = User::factory()->create();
     $outsider = User::factory()->create();

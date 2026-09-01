@@ -17,6 +17,7 @@ use App\Organizations\Actions\SaveOrganization;
 use App\Organizations\Actions\SendOrganizationMessage;
 use App\Organizations\Actions\UpdateOrganizationIcon;
 use App\Organizations\OrganizationGovernance;
+use App\Organizations\Queries\LoadOrganizationMembers;
 use App\Organizations\Queries\LoadOrganizationMessages;
 use App\Organizations\Queries\LoadOrganizations;
 use App\Organizations\Serializers\OrganizationSerializer;
@@ -31,6 +32,7 @@ class OrganizationController extends Controller
 {
     public function __construct(
         private readonly OrganizationGovernance $governance,
+        private readonly LoadOrganizationMembers $members,
         private readonly LoadOrganizationMessages $messages,
         private readonly LoadOrganizations $organizations,
         private readonly OrganizationSerializer $serializer,
@@ -62,6 +64,17 @@ class OrganizationController extends Controller
     {
         $this->governance->ensureCurrentLeadership($organization);
         $viewer = $request->user();
+        $organization->loadCount([
+            'memberships',
+            'memberships as leader_memberships_count' => fn ($query) => $query->where(
+                'role',
+                OrganizationMembership::ROLE_LEADER,
+            ),
+        ]);
+        $members = $this->members->handle(
+            $organization,
+            $request->integer('members_page') ?: 1,
+        );
         $messages = $organization->isMember($viewer) || $viewer->isAdmin()
             ? $this->messages->handle(
                 $organization,
@@ -71,7 +84,12 @@ class OrganizationController extends Controller
             : null;
 
         return Inertia::render('organizations/show', [
-            'organization' => $this->serializer->detail($organization, $viewer, $messages),
+            'organization' => $this->serializer->detail(
+                $organization,
+                $viewer,
+                $members,
+                $messages,
+            ),
         ]);
     }
 

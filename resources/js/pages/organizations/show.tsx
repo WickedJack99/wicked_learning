@@ -60,11 +60,9 @@ export default function OrganizationShow({
     const { url } = usePage();
     const isMember = Boolean(organization.viewerMembership);
     const canViewChat = isMember || organization.canModerateMessages;
-    const leaderCount = organization.members.filter(
-        (member) => member.role === 'leader',
-    ).length;
     const isOnlyLeader =
-        organization.viewerMembership?.role === 'leader' && leaderCount <= 1;
+        organization.viewerMembership?.role === 'leader' &&
+        organization.leaderCount <= 1;
     const canLeave =
         !isOnlyLeader ||
         (organization.governanceType === 'random' &&
@@ -364,7 +362,33 @@ export default function OrganizationShow({
                                         }
                                         errors={errors}
                                         members={organization.members}
+                                        onPageChange={(page) => {
+                                            const nextUrl = new URL(
+                                                window.location.href,
+                                            );
+                                            nextUrl.searchParams.set(
+                                                'section',
+                                                'members',
+                                            );
+                                            nextUrl.searchParams.set(
+                                                'members_page',
+                                                String(page),
+                                            );
+                                            router.visit(
+                                                nextUrl.pathname +
+                                                    '?' +
+                                                    nextUrl.searchParams.toString(),
+                                                {
+                                                    preserveScroll: true,
+                                                    preserveState: true,
+                                                    replace: true,
+                                                },
+                                            );
+                                        }}
                                         onPromote={promoteMember}
+                                        pagination={
+                                            organization.membersPagination
+                                        }
                                     />
                                 ) : null}
 
@@ -940,27 +964,30 @@ function MemberList({
     canPromote,
     errors,
     members,
+    onPageChange,
     onPromote,
+    pagination,
 }: {
     canPromote: boolean;
     errors: Record<string, string>;
     members: OrganizationDetail['members'];
+    onPageChange: (page: number) => void;
     onPromote: (membershipId: number) => void;
+    pagination: OrganizationDetail['membersPagination'];
 }) {
     return (
-        <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#111820]">
+        <section
+            className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#111820]"
+            data-wl-id="organizations.members.panel"
+        >
             <h2 className="text-sm font-semibold">Members</h2>
-            <LearnerPaginatedItems
-                className="grid gap-3"
-                emptyState={
+            <div className="grid gap-3">
+                {members.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                         No members yet.
                     </p>
-                }
-                items={members}
-                pageSize={8}
-                paginationLabel="Organization members"
-                renderItem={(member) => (
+                ) : null}
+                {members.map((member) => (
                     <div
                         className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
                         key={member.id}
@@ -983,8 +1010,18 @@ function MemberList({
                             </Button>
                         ) : null}
                     </div>
-                )}
-            />
+                ))}
+            </div>
+            {pagination ? (
+                <PaginationControls
+                    className="border-t border-slate-200 pt-3 dark:border-white/10"
+                    currentPage={pagination.currentPage}
+                    label="Organization members"
+                    onPageChange={onPageChange}
+                    pageCount={pagination.lastPage}
+                    textClassName="text-xs text-slate-500 dark:text-slate-400"
+                />
+            ) : null}
             <InputError message={errors.organization} />
         </section>
     );
