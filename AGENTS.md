@@ -32,6 +32,11 @@ conversations as if they were current requirements.
 Scoped `AGENTS.md` files add path-specific engineering guidance. They do not
 override the product/documentation ownership above.
 
+Use `behavior-preservation-review` for changes to existing shared workflows or
+reusable controls, and `runtime-smoke-review` for startup, build, migration,
+deployment, asset or timeout reports. These are procedural complements to the
+existing audit, regression and verification skills.
+
 ## Repository Git workflow
 
 - Use the Git CLI for repository operations. Do not depend on the optional GitHub CLI or another Git-specific tool.
