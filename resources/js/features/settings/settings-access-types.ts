@@ -42,6 +42,30 @@ export type RegistrationTokenSummary = {
     used_by: UserReference | null;
 };
 
+export type AccessLinkPurpose =
+    | 'grant_items'
+    | 'grant_tool'
+    | 'registration'
+    | 'temporary_login';
+
+export type AccessLinkSummary = {
+    createdAt: string | null;
+    createdBy: UserReference | null;
+    expiresAt: string | null;
+    id: number;
+    isExpired: boolean;
+    isRedeemed: boolean;
+    note: string | null;
+    purpose: AccessLinkPurpose;
+    redeemedAt: string | null;
+    redeemedBy: UserReference | null;
+};
+
+export type AccessLinkOption = {
+    id: number;
+    title: string;
+};
+
 export type AdminUser = {
     access_history: AccessChangeEvent[];
     banned_until: string | null;

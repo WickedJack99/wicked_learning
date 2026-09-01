@@ -12,9 +12,10 @@ import { store } from '@/routes/register';
 
 type Props = {
     passwordRules: string;
+    registrationToken?: string | null;
 };
 
-export default function Register({ passwordRules }: Props) {
+export default function Register({ passwordRules, registrationToken }: Props) {
     const { resolvedAppearance } = useAppearance();
 
     return (
@@ -78,6 +79,7 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="off"
                                     name="registration_token"
                                     placeholder="Paste your invite token"
+                                    defaultValue={registrationToken ?? ''}
                                 />
                                 <InputError
                                     message={errors.registration_token}

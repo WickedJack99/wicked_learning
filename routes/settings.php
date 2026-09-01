@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\Settings\AdminAccessController;
+use App\Http\Controllers\Settings\AdminAccessLinkController;
 use App\Http\Controllers\Settings\AdminActivityController;
 use App\Http\Controllers\Settings\AdminAiContentAuthoringController;
 use App\Http\Controllers\Settings\AdminAiController;
@@ -78,6 +79,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/admin-panel', [AdminPanelController::class, 'index'])
         ->name('settings.admin-panel.index');
+});
+
+Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {
+    Route::post('settings/access-links', [AdminAccessLinkController::class, 'store'])
+        ->name('settings.access-links.store');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

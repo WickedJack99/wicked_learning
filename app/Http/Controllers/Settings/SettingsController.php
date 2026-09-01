@@ -30,6 +30,7 @@ class SettingsController extends Controller
                 $request->user(),
                 $request->session()->get('status'),
                 $request->session()->get('created_registration_token'),
+                $request->session()->get('created_access_link'),
                 $request->integer('map') ?: null,
                 $request->integer('node') ?: null,
                 $panel,

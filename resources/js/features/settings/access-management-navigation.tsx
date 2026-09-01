@@ -1,11 +1,9 @@
 import { router } from '@inertiajs/react';
-import { KeyRound, Shield, Users } from 'lucide-react';
-import {
-    SettingsSectionNavigation,
-    type SettingsNavigationItem,
-} from '@/components/settings-configuration-shell';
+import { KeyRound, Link, Shield, Users } from 'lucide-react';
+import { SettingsSectionNavigation } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 
-export type AccessManagementSection = 'groups' | 'roles' | 'users';
+export type AccessManagementSection = 'groups' | 'links' | 'roles' | 'users';
 
 export const accessManagementSections = [
     {
@@ -26,17 +24,25 @@ export const accessManagementSections = [
         key: 'groups',
         label: 'Groups',
     },
+    {
+        description: 'Create limited, expiring links for access and grants.',
+        icon: Link,
+        key: 'links',
+        label: 'Access links',
+    },
 ] satisfies SettingsNavigationItem<AccessManagementSection>[];
 
 export function AccessManagementNavigation({
     activeSection,
     canViewGroups = true,
+    canViewLinks = true,
     canViewRoles = true,
     canViewUsers = true,
     onSelect,
 }: {
     activeSection: AccessManagementSection;
     canViewGroups?: boolean;
+    canViewLinks?: boolean;
     canViewRoles?: boolean;
     canViewUsers?: boolean;
     onSelect?: (section: AccessManagementSection) => void;
@@ -55,7 +61,9 @@ export function AccessManagementNavigation({
             ? canViewUsers
             : section.key === 'roles'
               ? canViewRoles
-              : canViewGroups,
+              : section.key === 'groups'
+                ? canViewGroups
+                : canViewLinks,
     );
 
     return (

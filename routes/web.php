@@ -20,6 +20,7 @@ use App\Http\Controllers\LearningWorldController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\ProtectedMapMediaController;
+use App\Http\Controllers\Settings\AdminAccessLinkController;
 use App\Http\Controllers\SourceCodePageController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +37,9 @@ Route::get('data-protection', [PlatformInfoPageController::class, 'show'])
 Route::get('info/{page}', [PlatformInfoPageController::class, 'showConfigured'])
     ->name('info.show');
 Route::get('source', SourceCodePageController::class)->name('source');
+
+Route::get('access-links/{token}', [AdminAccessLinkController::class, 'show'])
+    ->name('access-links.show');
 
 Route::get('world', [LearningWorldController::class, 'show'])->name('world');
 Route::get('learning/search', [LearningWorldController::class, 'search'])
@@ -86,6 +90,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('organizations.messages.destroy');
     Route::patch('organization-messages/{message}/hide', [OrganizationController::class, 'hideMessage'])
         ->name('organizations.messages.hide');
+    Route::post('access-links/{token}/redeem', [AdminAccessLinkController::class, 'redeem'])
+        ->name('access-links.redeem');
     Route::get('learning/groups', [LearningGroupController::class, 'index'])
         ->name('learning.groups.index');
     Route::post('learning/groups/{group}/messages', [LearningGroupController::class, 'storeMessage'])

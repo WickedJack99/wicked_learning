@@ -31,6 +31,7 @@ import type {
     AccessGroupUser,
     AccessLearningGroup,
 } from '@/features/settings/access-group-management-panel';
+import { AccessLinksPanel } from '@/features/settings/access-links-panel';
 import {
     AccessManagementNavigation,
     accessManagementSections,
@@ -55,6 +56,8 @@ import {
 } from '@/features/settings/settings-access-navigation-state';
 import type {
     AccessFormState,
+    AccessLinkOption,
+    AccessLinkSummary,
     AccessRoleSummary,
     AdminUser,
     PermissionLevel,
@@ -128,6 +131,11 @@ import type { LearningTool, User as AuthUser } from '@/types';
 
 type SettingsIndexProps = {
     accessCapabilities: Record<string, AccessCapability>;
+    accessLinkOptions: {
+        items: AccessLinkOption[];
+        tools: AccessLinkOption[];
+    };
+    accessLinks: AccessLinkSummary[];
     accessGroupUsers: AccessGroupUser[];
     accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
@@ -140,6 +148,7 @@ type SettingsIndexProps = {
     canManageUsers: boolean;
     colorPaletteSettings: ColorPaletteProps | null;
     createdRegistrationToken?: string | null;
+    createdAccessLink?: string | null;
     languages: Language[];
     learningSupportSettings: LearningSupportSettings;
     personalSettings: PersonalSettingsProps;
@@ -475,6 +484,8 @@ function hasWorldBuilderDetailSelectionInUrl(): boolean {
 
 export default function SettingsIndex({
     accessCapabilities,
+    accessLinkOptions,
+    accessLinks,
     accessGroupUsers,
     accessGroups,
     adminRoles,
@@ -486,6 +497,7 @@ export default function SettingsIndex({
     canAccessAdministration,
     colorPaletteSettings,
     createdRegistrationToken = null,
+    createdAccessLink = null,
     languages,
     learningSupportSettings,
     personalSettings,
@@ -609,6 +621,8 @@ export default function SettingsIndex({
                             {selectedPanel ? (
                                 <SettingsDetail
                                     accessCapabilities={accessCapabilities}
+                                    accessLinkOptions={accessLinkOptions}
+                                    accessLinks={accessLinks}
                                     accessGroupUsers={accessGroupUsers}
                                     accessGroups={accessGroups}
                                     adminRoles={adminRoles}
@@ -620,6 +634,7 @@ export default function SettingsIndex({
                                     createdRegistrationToken={
                                         createdRegistrationToken
                                     }
+                                    createdAccessLink={createdAccessLink}
                                     languages={languages}
                                     learningSupportSettings={
                                         learningSupportSettings
@@ -684,6 +699,8 @@ SettingsIndex.layout = {
 
 function SettingsDetail({
     accessCapabilities,
+    accessLinkOptions,
+    accessLinks,
     accessGroupUsers,
     accessGroups,
     adminRoles,
@@ -696,6 +713,7 @@ function SettingsDetail({
     assignableRegistrationRoles,
     colorPaletteSettings,
     createdRegistrationToken,
+    createdAccessLink,
     languages,
     learningSupportSettings,
     learningSupportView,
@@ -720,6 +738,11 @@ function SettingsDetail({
     worldGraph,
 }: {
     accessCapabilities: Record<string, AccessCapability>;
+    accessLinkOptions: {
+        items: AccessLinkOption[];
+        tools: AccessLinkOption[];
+    };
+    accessLinks: AccessLinkSummary[];
     accessGroupUsers: AccessGroupUser[];
     accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
@@ -732,6 +755,7 @@ function SettingsDetail({
     assignableRegistrationRoles: UserRole[];
     colorPaletteSettings: ColorPaletteProps | null;
     createdRegistrationToken: string | null;
+    createdAccessLink: string | null;
     languages: Language[];
     learningSupportSettings: LearningSupportSettings;
     learningSupportView: LearningSupportView;
@@ -955,11 +979,14 @@ function SettingsDetail({
                   accessCapabilities.roles?.read) ? (
                 <AccessManagementPanel
                     accessCapabilities={accessCapabilities}
+                    accessLinkOptions={accessLinkOptions}
+                    accessLinks={accessLinks}
                     accessGroupUsers={accessGroupUsers}
                     accessGroups={accessGroups}
                     roles={adminRoles}
                     assignableRegistrationRoles={assignableRegistrationRoles}
                     createdRegistrationToken={createdRegistrationToken}
+                    createdAccessLink={createdAccessLink}
                     permissionResources={permissionResources}
                     registrationTokens={registrationTokens}
                     users={adminUsers}
@@ -985,21 +1012,30 @@ function SettingsUnavailablePanel({ label }: { label: string }) {
 }
 
 function AccessManagementPanel({
+    accessLinkOptions,
+    accessLinks,
     accessCapabilities,
     accessGroupUsers,
     accessGroups,
     assignableRegistrationRoles,
     createdRegistrationToken,
+    createdAccessLink,
     permissionResources,
     registrationTokens,
     roles,
     users,
 }: {
+    accessLinkOptions: {
+        items: AccessLinkOption[];
+        tools: AccessLinkOption[];
+    };
+    accessLinks: AccessLinkSummary[];
     accessCapabilities: Record<string, AccessCapability>;
     accessGroupUsers: AccessGroupUser[];
     accessGroups: AccessLearningGroup[];
     assignableRegistrationRoles: UserRole[];
     createdRegistrationToken: string | null;
+    createdAccessLink: string | null;
     permissionResources: PermissionResource[];
     registrationTokens: RegistrationTokenSummary[];
     roles: AccessRoleSummary[];
@@ -1053,6 +1089,7 @@ function AccessManagementPanel({
                 <AccessManagementNavigation
                     activeSection={section}
                     canViewGroups={accessCapabilities.groups?.read ?? false}
+                    canViewLinks={accessCapabilities.users?.read ?? false}
                     canViewRoles={accessCapabilities.roles?.read ?? false}
                     canViewUsers={accessCapabilities.users?.read ?? false}
                     onSelect={selectSection}
@@ -1060,6 +1097,17 @@ function AccessManagementPanel({
             }
         >
             <div className="h-full min-h-0 overflow-hidden">
+                {section === 'links' && accessCapabilities.users?.read ? (
+                    <AccessLinksPanel
+                        accessLinkOptions={accessLinkOptions}
+                        accessLinks={accessLinks}
+                        assignableRoles={assignableRegistrationRoles}
+                        canCreate={accessCapabilities.users?.update ?? false}
+                        createdAccessLink={createdAccessLink}
+                        roles={roles}
+                    />
+                ) : null}
+
                 {section === 'users' && accessCapabilities.users?.read ? (
                     <div className="h-full overflow-hidden">
                         <AdminUsersPanel

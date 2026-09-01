@@ -4,6 +4,7 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\AccessLink;
 use App\Models\RegistrationToken;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -35,31 +36,48 @@ class CreateNewUser implements CreatesNewUsers
                 ->where('token_hash', RegistrationToken::hashToken($input['registration_token']))
                 ->lockForUpdate()
                 ->first();
+            $accessLink = AccessLink::query()
+                ->where('token_hash', AccessLink::hashToken($input['registration_token']))
+                ->where('purpose', AccessLink::PURPOSE_REGISTRATION)
+                ->lockForUpdate()
+                ->first();
 
-            if (! $registrationToken || ! $registrationToken->canBeUsed()) {
+            if ((! $registrationToken || ! $registrationToken->canBeUsed())
+                && (! $accessLink || ! $accessLink->canBeRedeemed())) {
                 throw ValidationException::withMessages([
                     'registration_token' => 'This registration token is invalid, expired or has already been used.',
                 ]);
             }
 
+            $roles = $registrationToken && $registrationToken->canBeUsed()
+                ? $registrationToken->grantedRoles()
+                : User::normalizeRoles($accessLink?->payload['roles'] ?? [User::ROLE_USER]);
+
             $user = User::create([
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'password' => $input['password'],
-                'role' => $registrationToken->role,
-                'roles' => $registrationToken->grantedRoles(),
+                'role' => $roles[0],
+                'roles' => $roles,
             ]);
-            $user->setAssignedRoles($registrationToken->grantedRoles());
+            $user->setAssignedRoles($roles);
             $user->save();
 
             $user->preference()->create([
                 'appearance' => $input['appearance'] ?? 'light',
             ]);
 
-            $registrationToken->forceFill([
-                'used_by_user_id' => $user->id,
-                'used_at' => now(),
-            ])->save();
+            if ($registrationToken && $registrationToken->canBeUsed()) {
+                $registrationToken->forceFill([
+                    'used_by_user_id' => $user->id,
+                    'used_at' => now(),
+                ])->save();
+            } else {
+                $accessLink?->forceFill([
+                    'redeemed_by_user_id' => $user->id,
+                    'redeemed_at' => now(),
+                ])->save();
+            }
 
             return $user;
         });

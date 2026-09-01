@@ -33,6 +33,7 @@ use App\Learning\Services\LearningCompanionConfigurationResolver;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Localization\Queries\LoadLanguageAdministration;
 use App\Models\AccessChangeEvent;
+use App\Models\AccessLink;
 use App\Models\AccessRole;
 use App\Models\AiAgentTemplate;
 use App\Models\LearnerJournalFeedbackRequest;
@@ -94,6 +95,7 @@ class LoadSettingsIndex
         User $user,
         ?string $status,
         ?string $createdRegistrationToken,
+        ?string $createdAccessLink = null,
         ?int $selectedMapId = null,
         ?int $selectedNodeId = null,
         ?string $panel = null,
@@ -140,6 +142,8 @@ class LoadSettingsIndex
                 ? $this->companionSettings()
                 : null,
             'registrationTokens' => $loadsAccess && $canManageUsers ? $this->registrationTokens() : [],
+            'accessLinks' => $panel === 'admin-access' && $canManageUsers ? $this->accessLinks() : [],
+            'accessLinkOptions' => $panel === 'admin-access' && $canManageUsers ? $this->accessLinkOptions() : ['items' => [], 'tools' => []],
             'adminRoles' => $loadsAccess && $canManageRoles ? $this->accessRoles() : [],
             'permissionResources' => $loadsAccess ? $this->permissionResources() : [],
             'colorPaletteSettings' => $loadsColorPalettes
@@ -154,6 +158,7 @@ class LoadSettingsIndex
                 : [],
             'publicPresentation' => PlatformPresentationSetting::current(),
             'createdRegistrationToken' => $createdRegistrationToken,
+            'createdAccessLink' => $createdAccessLink,
             'settingsNotifications' => $this->settingsNotifications($accessCapabilities),
             'worldGraph' => $loadsWorldGraph
                 ? $this->worldGraph($user, $accessCapabilities)
@@ -503,6 +508,48 @@ class LoadSettingsIndex
             ->get()
             ->map(fn (RegistrationToken $token): array => $this->tokenSummary($token))
             ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function accessLinks(): array
+    {
+        return AccessLink::query()
+            ->with(['createdBy:id,name,email', 'redeemedBy:id,name,email'])
+            ->latest()
+            ->limit(25)
+            ->get()
+            ->map(fn (AccessLink $link): array => [
+                'createdAt' => $this->dateForFrontend($link->created_at),
+                'createdBy' => $link->createdBy ? $this->userReference($link->createdBy) : null,
+                'expiresAt' => $this->dateForFrontend($link->expires_at),
+                'id' => $link->id,
+                'isExpired' => $link->expires_at?->isPast() ?? false,
+                'isRedeemed' => $link->redeemed_at !== null,
+                'note' => $link->note,
+                'purpose' => $link->purpose,
+                'redeemedAt' => $this->dateForFrontend($link->redeemed_at),
+                'redeemedBy' => $link->redeemedBy ? $this->userReference($link->redeemedBy) : null,
+            ])
+            ->all();
+    }
+
+    /** @return array{items: array<int, array{id: int, title: string}>, tools: array<int, array{id: int, title: string}>} */
+    private function accessLinkOptions(): array
+    {
+        return [
+            'items' => LearningItem::query()
+                ->orderBy('title')
+                ->get(['id', 'title'])
+                ->map(fn (LearningItem $item): array => ['id' => $item->id, 'title' => $item->title])
+                ->all(),
+            'tools' => LearningTool::query()
+                ->orderBy('title')
+                ->get(['id', 'title'])
+                ->map(fn (LearningTool $tool): array => ['id' => $tool->id, 'title' => $tool->title])
+                ->all(),
+        ];
     }
 
     /**

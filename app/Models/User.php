@@ -53,6 +53,8 @@ class User extends Authenticatable implements PasskeyUser
 
     public const ROLE_USER = 'user';
 
+    public const ROLE_TEMPORARY = 'temporary';
+
     /** @var list<string>|null */
     private ?array $assignedRolesCache = null;
 

@@ -40,7 +40,12 @@ export function writeAccessSectionToUrl(
 function isAccessManagementSection(
     value: string | null,
 ): value is AccessManagementSection {
-    return value === 'groups' || value === 'roles' || value === 'users';
+    return (
+        value === 'groups' ||
+        value === 'links' ||
+        value === 'roles' ||
+        value === 'users'
+    );
 }
 
 function canOpenAccessSection(
@@ -53,6 +58,10 @@ function canOpenAccessSection(
 
     if (section === 'groups') {
         return accessCapabilities.groups?.read ?? false;
+    }
+
+    if (section === 'links') {
+        return accessCapabilities.users?.read ?? false;
     }
 
     return accessCapabilities.users?.read ?? false;
