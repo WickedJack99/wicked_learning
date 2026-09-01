@@ -806,21 +806,24 @@ references are explicit: bundled `/images` paths remain reusable, uploaded
 `/storage` paths must exist on the destination public disk, and undeclared or
 external media references are rejected before content is created. Media bytes,
 learner state, revision history, permissions and editor groups remain outside
-the world import contract. World bundles remain JSON-only; cross-workspace
-media transfer for world and standalone MapAsset bundles remains future
-authoring work. Both import dialogs preflight their selected bundle through the same
+the world import contract. World bundles remain JSON-only, so their uploaded
+media still has to be available in the destination workspace. Both import dialogs preflight their selected bundle through the same
 server-side validator and keep the import action unavailable until the bundle
 is structurally ready; the import endpoint validates again before mutation.
-Authors can also export one MapAsset as a standalone JSON bundle. It includes
+Authors can also export one MapAsset as a standalone JSON bundle or portable
+package. The package includes explicitly referenced uploaded media and
+remaps it to fresh media-library paths on import; bundled `/images` references
+remain unchanged. The JSON form keeps media as explicit references, while the
+portable package carries only the referenced uploaded files. Both forms include
 the asset, its authored learning place and that place's activities, routes,
 dialogue, questions, translations and asset-scoped message topics. Media remain
-explicit references rather than embedded bytes; learner state, map portals and
-revision history are not included. Authors can import that bundle into an
+explicit references rather than embedded bytes in the JSON form; learner state,
+map portals and revision history are not included. Authors can import that bundle into an
 existing editable map in the same workspace. The import creates fresh authored
 records, chooses a collision-safe place slug, preserves the included activity
 graph and remaps internal message-topic references. Media references follow the
-same local-path checks as map imports; learner state, permissions, portals,
-revision history and media bytes remain outside the transfer.
+same local-path checks as map imports; learner state, permissions, portals and
+revision history remain outside the transfer.
 Within the current world, authors can also duplicate a map as a new
 authored copy, including its activities,
 routes, assets, questions, dialogue graphs and companion assignments. The copy

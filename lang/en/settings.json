@@ -688,6 +688,7 @@
     "settings.navigation.learning_support.admin_panel": "Feedback",
     "settings.world_builder.map.export": "Export map",
     "settings.world_builder.map.export_package": "Export map with media",
+    "settings.world_builder.map_asset.export_package": "Export with media",
     "settings.world_builder.import.package_file": "JSON export or portable map package",
     "settings.world_builder.import.package_description": "A portable package includes the authored map and its explicitly referenced uploaded media. Learner history, permissions and revisions are not included.",
     "settings.world_builder.map_asset.add": "Add Asset",

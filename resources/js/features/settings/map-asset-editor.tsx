@@ -140,7 +140,7 @@ export function MapAssetEditor({
                 <div className="absolute top-4 right-4 z-30 flex flex-wrap justify-end gap-2">
                     {toolbarAction}
                     <input
-                        accept=".json,.txt,application/json,text/plain"
+                        accept=".json,.zip,application/json,application/zip,text/plain"
                         className="hidden"
                         onChange={importAsset}
                         ref={manifestInputRef}

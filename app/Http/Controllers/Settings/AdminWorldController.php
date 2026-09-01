@@ -232,6 +232,20 @@ class AdminWorldController extends Controller
         );
     }
 
+    public function exportMapAssetPackage(Request $request, LearningMapAsset $asset): BinaryFileResponse
+    {
+        $asset->loadMissing(['map', 'node']);
+        $this->authorizeMapEdit($request, $asset->map);
+        $package = $this->mapTransferPackage->exportAsset($asset);
+        $filename = ($asset->node?->slug ?: "map-asset-{$asset->id}").'-wicked-learning-asset.zip';
+
+        return response()
+            ->download($package['path'], $filename, [
+                'Content-Type' => 'application/zip',
+            ])
+            ->deleteFileAfterSend(true);
+    }
+
     public function importMapAsset(Request $request, LearningMap $map): RedirectResponse
     {
         $this->authorizeMapEdit($request, $map);
@@ -239,29 +253,62 @@ class AdminWorldController extends Controller
         abort_unless($world !== null, 422, 'The map must belong to a world.');
 
         $data = $request->validate($this->rules->importMapAsset());
-        $validation = $this->mapExportValidator->validateAsset($data['manifest']);
+        $prepared = $this->mapTransferPackage->isPackage($data['manifest'])
+            ? $this->mapTransferPackage->prepare($data['manifest'])
+            : null;
+        $payload = $prepared['payload'] ?? null;
+
+        try {
+            $validation = $prepared === null
+                ? $this->mapExportValidator->validateAsset($data['manifest'])
+                : $this->mapExportValidator->validateAssetPayload($payload);
+        } catch (\Throwable $exception) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
+            throw $exception;
+        }
 
         if (! $validation['valid']) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
             throw ValidationException::withMessages([
                 'manifest' => $validation['summary'].' '.implode(' ', $validation['errors']),
             ]);
         }
 
-        try {
-            $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw ValidationException::withMessages([
-                'manifest' => 'The selected file is not valid JSON.',
-            ]);
+        if ($payload === null) {
+            try {
+                $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
+            } catch (JsonException) {
+                throw ValidationException::withMessages([
+                    'manifest' => 'The selected file is not valid JSON.',
+                ]);
+            }
         }
 
         if (! is_array($payload) || data_get($payload, 'source.world.slug') !== $world->slug) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
             throw ValidationException::withMessages([
                 'manifest' => 'Import an asset exported from the current workspace.',
             ]);
         }
 
-        $this->importLearningMapAsset->handle($payload, $world, $map);
+        try {
+            $this->importLearningMapAsset->handle($payload, $world, $map);
+        } catch (\Throwable $exception) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
+            throw $exception;
+        }
 
         return $this->redirectBackToMap($map);
     }

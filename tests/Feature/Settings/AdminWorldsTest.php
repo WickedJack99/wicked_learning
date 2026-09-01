@@ -488,6 +488,74 @@ test('map authors can import a standalone asset bundle into an existing map', fu
         ->exists())->toBeTrue();
 });
 
+test('map authors can transfer a standalone asset with explicitly referenced uploaded media', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('learning/media/portable-asset.svg', '<svg>portable asset</svg>');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $sourceAsset = LearningMapAsset::query()
+        ->whereHas('node', fn ($query) => $query->where('slug', 'signal-gate'))
+        ->firstOrFail();
+    $mediaUrl = '/storage/learning/media/portable-asset.svg';
+    $sourceAsset->forceFill(['image_url' => $mediaUrl])->save();
+    $destination = LearningMap::query()->where('slug', 'signal-archive')->firstOrFail();
+
+    $export = $this->actingAs($admin)
+        ->get(route('settings.worlds.assets.export-package', $sourceAsset));
+
+    $export
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/zip')
+        ->assertHeader(
+            'Content-Disposition',
+            'attachment; filename=signal-gate-wicked-learning-asset.zip',
+        );
+
+    $packagePath = tempnam(sys_get_temp_dir(), 'wicked-asset-package-test-');
+    expect($packagePath)->not->toBeFalse();
+    file_put_contents($packagePath, file_get_contents($export->getFile()->getPathname()));
+    $archive = new ZipArchive;
+    expect($archive->open($packagePath))->toBeTrue();
+    $manifestContents = $archive->getFromName('manifest.json');
+    expect($manifestContents)->toBeString()->toContain($mediaUrl);
+    $mediaIndex = json_decode(
+        (string) $archive->getFromName('media.json'),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+    $mediaEntry = $mediaIndex['media'][0];
+    expect($mediaEntry['sourceUrl'])->toBe($mediaUrl);
+    expect($archive->getFromName($mediaEntry['archivePath']))->toBe('<svg>portable asset</svg>');
+    $archive->close();
+
+    $response = $this->actingAs($admin)
+        ->withHeaders([
+            'referer' => route('settings.worlds.maps.edit', $destination),
+        ])
+        ->post(route('settings.worlds.maps.assets.import', $destination), [
+            'manifest' => new UploadedFile($packagePath, 'asset.zip', 'application/zip', null, true),
+        ]);
+
+    $response->assertRedirect(route('settings.worlds.maps.edit', $destination));
+    $importedAsset = LearningMapAsset::query()
+        ->where('learning_map_id', $destination->id)
+        ->where('image_url', 'like', '/storage/learning/media/%')
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($importedAsset->image_url)
+        ->not->toBe($mediaUrl)
+        ->toStartWith('/storage/learning/media/');
+    Storage::disk('public')->assertExists(substr(
+        parse_url($importedAsset->image_url, PHP_URL_PATH),
+        strlen('/storage/'),
+    ));
+    @unlink($packagePath);
+});
+
 test('standalone map asset imports reject invalid bundles before creating records', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
@@ -511,6 +579,58 @@ test('standalone map asset imports reject invalid bundles before creating record
         ->toBe($nodeCount)
         ->and(LearningMapAsset::query()->where('learning_map_id', $destination->id)->count())
         ->toBe($assetCount);
+});
+
+test('standalone map asset package failures remove materialized media', function () {
+    Storage::fake('public');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $sourceAsset = LearningMapAsset::query()
+        ->whereHas('node', fn ($query) => $query->where('slug', 'signal-gate'))
+        ->firstOrFail();
+    $destination = LearningMap::query()->where('slug', 'signal-archive')->firstOrFail();
+    $mediaUrl = '/storage/learning/media/invalid-asset.svg';
+    $payload = json_decode(
+        $this->actingAs($admin)
+            ->get(route('settings.worlds.assets.export', $sourceAsset))
+            ->streamedContent(),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+    $payload['formatVersion'] = 999;
+    $payload['mapAsset']['imageUrl'] = $mediaUrl;
+    $payload['references']['mediaUrls'] = [$mediaUrl];
+    $packagePath = tempnam(sys_get_temp_dir(), 'wicked-invalid-asset-package-');
+    expect($packagePath)->not->toBeFalse();
+
+    $archive = new ZipArchive;
+    expect($archive->open($packagePath, ZipArchive::CREATE | ZipArchive::OVERWRITE))->toBeTrue();
+    $archive->addFromString('manifest.json', json_encode($payload, JSON_THROW_ON_ERROR));
+    $archive->addFromString('media.json', json_encode([
+        'format' => 'wicked-learning-map-media',
+        'formatVersion' => 1,
+        'media' => [[
+            'sourceUrl' => $mediaUrl,
+            'archivePath' => 'media/invalid-asset.svg',
+        ]],
+    ], JSON_THROW_ON_ERROR));
+    $archive->addFromString('media/invalid-asset.svg', '<svg>invalid asset</svg>');
+    $archive->close();
+
+    $this->actingAs($admin)
+        ->withHeaders([
+            'referer' => route('settings.worlds.maps.edit', $destination),
+        ])
+        ->post(route('settings.worlds.maps.assets.import', $destination), [
+            'manifest' => new UploadedFile($packagePath, 'invalid-asset.zip', 'application/zip', null, true),
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(Storage::disk('public')->allFiles('learning/media'))->toBeEmpty();
+    @unlink($packagePath);
 });
 
 test('standalone map asset imports reject bundles from another workspace', function () {

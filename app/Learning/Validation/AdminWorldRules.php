@@ -73,7 +73,7 @@ class AdminWorldRules
     public function importMapAsset(): array
     {
         return [
-            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:10240'],
+            'manifest' => ['required', 'file', 'mimes:json,txt,zip', 'max:51200'],
         ];
     }
 

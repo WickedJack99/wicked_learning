@@ -1512,45 +1512,54 @@ export default function EditWorldMap({
                         </DialogDescription>
                         {selectedMapAsset ? (
                             <>
-                                <Button
-                                    asChild
-                                    className="absolute top-4 right-28"
-                                    size="sm"
-                                    variant="outline"
-                                >
-                                    <a
-                                        download
-                                        href={`/settings/worlds/assets/${selectedMapAsset.id}/export`}
-                                    >
-                                        <Download className="size-4" />
-                                        Export asset
-                                    </a>
-                                </Button>
-                                <MapAssetHistoryDialog
-                                    assetId={selectedMapAsset.id}
-                                    onOpenChange={setMapAssetHistoryOpen}
-                                    onRestored={(asset) => {
-                                        setSelectedMapAsset(asset);
-                                        setMapAssetForm(assetForm(asset));
-
-                                        if (!selectedNode) {
-                                            setForm(
-                                                nodeFormFromMapAsset(asset),
-                                            );
-                                        }
-                                    }}
-                                    open={mapAssetHistoryOpen}
-                                >
-                                    <Button
-                                        className="absolute top-4 right-12"
-                                        size="sm"
-                                        type="button"
-                                        variant="outline"
-                                    >
-                                        <History className="size-4" />
-                                        History
+                                <div className="absolute top-4 right-4 flex items-center gap-2">
+                                    <Button asChild size="sm" variant="outline">
+                                        <a
+                                            download
+                                            href={`/settings/worlds/assets/${selectedMapAsset.id}/export`}
+                                        >
+                                            <Download className="size-4" />
+                                            Export asset
+                                        </a>
                                     </Button>
-                                </MapAssetHistoryDialog>
+                                    <Button asChild size="sm" variant="outline">
+                                        <a
+                                            data-wl-id="settings.world-builder.map-asset.export-package"
+                                            download
+                                            href={`/settings/worlds/assets/${selectedMapAsset.id}/export-package`}
+                                        >
+                                            <Download className="size-4" />
+                                            {t(
+                                                'settings.world_builder.map_asset.export_package',
+                                                'Export with media',
+                                            )}
+                                        </a>
+                                    </Button>
+                                    <MapAssetHistoryDialog
+                                        assetId={selectedMapAsset.id}
+                                        onOpenChange={setMapAssetHistoryOpen}
+                                        onRestored={(asset) => {
+                                            setSelectedMapAsset(asset);
+                                            setMapAssetForm(assetForm(asset));
+
+                                            if (!selectedNode) {
+                                                setForm(
+                                                    nodeFormFromMapAsset(asset),
+                                                );
+                                            }
+                                        }}
+                                        open={mapAssetHistoryOpen}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            <History className="size-4" />
+                                            History
+                                        </Button>
+                                    </MapAssetHistoryDialog>
+                                </div>
                             </>
                         ) : null}
                     </DialogHeader>

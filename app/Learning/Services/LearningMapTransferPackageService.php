@@ -4,6 +4,7 @@ namespace App\Learning\Services;
 
 use App\Learning\Serializers\LearningMapExportSerializer;
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -36,7 +37,23 @@ class LearningMapTransferPackageService
      */
     public function export(LearningMap $map): array
     {
-        $payload = $this->serializer->serialize($map);
+        return $this->exportPayload($this->serializer->serialize($map));
+    }
+
+    /**
+     * @return array{path: string, mediaCount: int}
+     */
+    public function exportAsset(LearningMapAsset $asset): array
+    {
+        return $this->exportPayload($this->serializer->serializeAsset($asset));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{path: string, mediaCount: int}
+     */
+    private function exportPayload(array $payload): array
+    {
         $references = $this->mediaReferences($payload);
         $mediaEntries = [];
         $totalBytes = 0;
