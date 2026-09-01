@@ -936,9 +936,13 @@ test('world import restores route records from legacy start activity fields', fu
         );
 
     $this->actingAs($admin)
-        ->get(route('topics.show', 'pattern-investigation'))
+        ->get(route('topics.show', [
+            'topic' => 'pattern-investigation',
+            'section' => 'routes',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.loadedSection', 'routes')
             ->where('topic.pathsPagination.total', 7)
             ->has('topic.paths', 6)
         );

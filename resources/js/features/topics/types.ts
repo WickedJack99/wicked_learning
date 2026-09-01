@@ -30,6 +30,7 @@ export type TopicDetail = TopicSummary & {
         title: string;
     };
     content: string | null;
+    loadedSection: 'maps' | 'overview' | 'routes' | 'trail';
     competence: TopicCompetence | null;
     learningAreas: TopicLearningArea[];
     learningPulse: TopicLearningPulse[];

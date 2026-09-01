@@ -70,6 +70,7 @@ class LearningTopicSerializer
         array $mapsPagination = [],
         ?string $pathsPurpose = null,
         ?int $pathsTimeBudget = null,
+        string $loadedSection = 'trail',
     ): array {
         return [
             ...$this->summary($topic),
@@ -79,6 +80,7 @@ class LearningTopicSerializer
                 'title' => $topic->area->title,
             ],
             'content' => $topic->content,
+            'loadedSection' => $loadedSection,
             'competence' => $this->competence($competence),
             'learningAreas' => $learningAreas,
             'learningPulse' => $learningPulse,

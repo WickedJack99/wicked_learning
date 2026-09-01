@@ -3,6 +3,7 @@ import {
     ArrowLeft,
     ArrowRight,
     BookOpenText,
+    LoaderCircle,
     Map as MapIcon,
     Route,
 } from 'lucide-react';
@@ -59,6 +60,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     }, []);
 
     function selectSection(section: TopicSection) {
+        const previousSection = activeSection;
         setActiveSection(section);
 
         const url = new URL(window.location.href);
@@ -83,7 +85,10 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
             url.searchParams.delete('maps_page');
         }
 
-        window.history.pushState(window.history.state, '', url);
+        router.visit(`${url.pathname}${url.search}`, {
+            onError: () => setActiveSection(previousSection),
+            preserveScroll: true,
+        });
     }
 
     function visitRoutePage(page: number) {
@@ -188,6 +193,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         'Topic sections',
                     )}
                     className="mt-5 flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--learner-border-color)] pb-px"
+                    data-wl-id="learner.topic.sections"
                     role="tablist"
                 >
                     {sections.map((section, index) => (
@@ -246,7 +252,25 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                 </nav>
 
                 <div className="pt-5">
-                    {activeSection === 'trail' ? (
+                    {topic.loadedSection !== activeSection ? (
+                        <section
+                            className="grid min-h-64 place-items-center border-b border-[var(--learner-border-color)] py-10 text-center"
+                            data-wl-id="learner.topic.sections.loading"
+                        >
+                            <div>
+                                <LoaderCircle className="mx-auto size-5 animate-spin text-[var(--learner-action-accent)]" />
+                                <p className="mt-3 text-sm text-[var(--learner-muted-text)]">
+                                    {t(
+                                        'topics.detail.navigation.loading',
+                                        'Loading this section…',
+                                    )}
+                                </p>
+                            </div>
+                        </section>
+                    ) : null}
+
+                    {topic.loadedSection === activeSection &&
+                    activeSection === 'trail' ? (
                         <TopicPanel id="trail">
                             <TopicCompetenceCard
                                 competence={topic.competence}
@@ -269,7 +293,8 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         </TopicPanel>
                     ) : null}
 
-                    {activeSection === 'routes' ? (
+                    {topic.loadedSection === activeSection &&
+                    activeSection === 'routes' ? (
                         <TopicPanel id="routes">
                             <section
                                 aria-labelledby="topic-paths-heading"
@@ -451,7 +476,8 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         </TopicPanel>
                     ) : null}
 
-                    {activeSection === 'maps' ? (
+                    {topic.loadedSection === activeSection &&
+                    activeSection === 'maps' ? (
                         <TopicPanel id="maps">
                             {topic.maps.length > 0 ? (
                                 <section
@@ -512,7 +538,8 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         </TopicPanel>
                     ) : null}
 
-                    {activeSection === 'overview' ? (
+                    {topic.loadedSection === activeSection &&
+                    activeSection === 'overview' ? (
                         <TopicPanel id="overview">
                             <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
                                 <article className="min-w-0">

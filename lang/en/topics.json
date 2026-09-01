@@ -13,6 +13,7 @@
     "topics.search.placeholder": "Search topic titles or descriptions",
     "topics.search.clear": "Clear topic search",
     "topics.search.summary": "Showing topics matching: :search",
+    "topics.detail.navigation.loading": "Loading this section…",
     "topics.directory.map_count.one": "1 map available",
     "topics.directory.map_count.many": ":count maps available",
     "topics.manage": "Manage topics",

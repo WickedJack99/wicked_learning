@@ -20,6 +20,8 @@ use Inertia\Response;
 
 class LearningTopicController extends Controller
 {
+    private const array TOPIC_SECTIONS = ['trail', 'routes', 'maps', 'overview'];
+
     public function __construct(
         private readonly LoadLearningTopics $topics,
         private readonly LoadLearningPaths $paths,
@@ -79,6 +81,7 @@ class LearningTopicController extends Controller
 
     public function show(Request $request, LearningTopic $topic): Response
     {
+        $section = $this->topicSection($request->query('section'));
         $purpose = $request->query('purpose');
         $purpose = is_string($purpose)
             && in_array($purpose, ActivityCompetenceConfiguration::LEARNING_INTENTS, true)
@@ -89,27 +92,40 @@ class LearningTopicController extends Controller
             && in_array((int) $timeBudget, [15, 30], true)
             ? (int) $timeBudget
             : null;
-        $paths = $this->paths->handle(
-            $request->user(),
-            $topic,
-            page: max(1, (int) $request->query('page', 1)),
-            purpose: $purpose,
-            timeBudget: $timeBudget,
-        );
-        $competenceMap = $this->competenceMap->handle($request->user());
         $topic = $this->topics->publishedDetail($topic, $request->user());
-        $maps = $this->topics->publishedMaps(
-            $topic,
-            $request->user(),
-            page: max(1, (int) $request->query('maps_page', 1)),
-        );
-        $subtopics = $this->topics->publishedSubtopics(
-            $topic,
-            $request->user(),
-            page: max(1, (int) $request->query('subtopics_page', 1)),
-        );
-        $activities = $this->topics->publishedActivitiesForTopic($topic, $request->user());
-        $topicSlugs = collect($this->topics->publishedDescendantSlugs($topic));
+        $paths = $section === 'routes'
+            ? $this->paths->handle(
+                $request->user(),
+                $topic,
+                page: max(1, (int) $request->query('page', 1)),
+                purpose: $purpose,
+                timeBudget: $timeBudget,
+            )
+            : null;
+        $maps = $section === 'maps'
+            ? $this->topics->publishedMaps(
+                $topic,
+                $request->user(),
+                page: max(1, (int) $request->query('maps_page', 1)),
+            )
+            : null;
+        $subtopics = $section === 'overview'
+            ? $this->topics->publishedSubtopics(
+                $topic,
+                $request->user(),
+                page: max(1, (int) $request->query('subtopics_page', 1)),
+            )
+            : null;
+
+        $competenceMap = $section === 'trail'
+            ? $this->competenceMap->handle($request->user())
+            : ['topics' => [], 'checkIns' => []];
+        $activities = $section === 'trail'
+            ? $this->topics->publishedActivitiesForTopic($topic, $request->user())
+            : collect();
+        $topicSlugs = $section === 'trail'
+            ? collect($this->topics->publishedDescendantSlugs($topic))
+            : collect();
         $competenceTopics = collect($competenceMap['topics'])
             ->filter(function (array $entry) use ($topicSlugs): bool {
                 if ($topicSlugs->contains($entry['slug'] ?? null)) {
@@ -128,41 +144,68 @@ class LearningTopicController extends Controller
             $competenceMap['checkIns'] ?? [],
             $learningAreas,
         );
-        $reflectionNarrative = $this->reflectionNarrative->handle(
-            $request->user(),
-            $topicSlugs->all(),
-        );
+        $reflectionNarrative = $section === 'trail'
+            ? $this->reflectionNarrative->handle(
+                $request->user(),
+                $topicSlugs->all(),
+            )
+            : null;
 
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
                 $topic,
-                $this->pathSerializer->serialize($paths),
-                $paths['pagination'],
-                $competence,
-                $competenceTopics
+                paths: $paths ? $this->pathSerializer->serialize($paths) : [],
+                pathsPagination: $paths['pagination'] ?? $this->emptyPagination(6),
+                competence: $competence,
+                subtopicCompetence: $competenceTopics
                     ->reject(fn (array $entry): bool => $entry['slug'] === $topic->slug)
                     ->all(),
-                $learningAreas,
-                $learningPulse,
-                $reflectionNarrative,
-                subtopics: $this->serializer->subtopics($subtopics->getCollection()),
-                subtopicsPagination: [
-                    'currentPage' => $subtopics->currentPage(),
-                    'lastPage' => max(1, $subtopics->lastPage()),
-                    'perPage' => $subtopics->perPage(),
-                    'total' => $subtopics->total(),
-                ],
-                maps: $this->serializer->maps($maps->getCollection()),
-                mapsPagination: [
-                    'currentPage' => $maps->currentPage(),
-                    'lastPage' => max(1, $maps->lastPage()),
-                    'perPage' => $maps->perPage(),
-                    'total' => $maps->total(),
-                ],
-                pathsPurpose: $paths['purpose'],
-                pathsTimeBudget: $paths['timeBudget'],
+                learningAreas: $learningAreas,
+                learningPulse: $learningPulse,
+                reflectionNarrative: $reflectionNarrative,
+                loadedSection: $section,
+                subtopics: $subtopics
+                    ? $this->serializer->subtopics($subtopics->getCollection())
+                    : [],
+                subtopicsPagination: $subtopics
+                    ? [
+                        'currentPage' => $subtopics->currentPage(),
+                        'lastPage' => max(1, $subtopics->lastPage()),
+                        'perPage' => $subtopics->perPage(),
+                        'total' => $subtopics->total(),
+                    ]
+                    : $this->emptyPagination(4),
+                maps: $maps ? $this->serializer->maps($maps->getCollection()) : [],
+                mapsPagination: $maps
+                    ? [
+                        'currentPage' => $maps->currentPage(),
+                        'lastPage' => max(1, $maps->lastPage()),
+                        'perPage' => $maps->perPage(),
+                        'total' => $maps->total(),
+                    ]
+                    : $this->emptyPagination(4),
+                pathsPurpose: $paths['purpose'] ?? null,
+                pathsTimeBudget: $paths['timeBudget'] ?? null,
             ),
         ]);
+    }
+
+    private function topicSection(mixed $section): string
+    {
+        return is_string($section) && in_array($section, self::TOPIC_SECTIONS, true)
+            ? $section
+            : 'trail';
+    }
+
+    /** @return array{currentPage: int, lastPage: int, perPage: int, total: int} */
+    private function emptyPagination(int $perPage): array
+    {
+        return [
+            'currentPage' => 1,
+            'lastPage' => 1,
+            'perPage' => $perPage,
+            'total' => 0,
+        ];
     }
 
     /**

@@ -271,10 +271,11 @@ test('a published topic page exposes its published subtopics alphabetically', fu
     ]);
 
     $this->actingAs($user)
-        ->get(route('topics.show', $topic))
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'overview']))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('topics/show')
+            ->where('topic.loadedSection', 'overview')
             ->where('topic.title', 'Physics')
             ->where('topic.href', '/topics/physics')
             ->where('topic.content', '# Motion')
@@ -331,9 +332,10 @@ test('a topic page exposes assigned maps that the learner can access', function 
     expect($map->refresh()->learning_topic_id)->toBe($topic->id);
 
     $this->actingAs($learner)
-        ->get(route('topics.show', $topic))
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'maps']))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.loadedSection', 'maps')
             ->where('topic.maps.0.title', 'Night Sky')
             ->where('topic.maps.0.href', '/world?map=night-sky')
             ->has('topic.maps', 1)
@@ -388,9 +390,10 @@ test('a topic page exposes playable routes from its assigned maps', function () 
     ]);
 
     $this->actingAs($learner)
-        ->get(route('topics.show', $topic))
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'routes']))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.loadedSection', 'routes')
             ->has('topic.paths', 1)
             ->where('topic.paths.0.label', 'Begin observing')
             ->where('topic.paths.0.routeDescription', 'Start with a close observation, then compare what changes.')
@@ -398,7 +401,6 @@ test('a topic page exposes playable routes from its assigned maps', function () 
             ->where('topic.paths.0.mapHref', '/world?map=night-sky')
             ->where('topic.paths.0.mapTitle', 'Night Sky')
             ->where('topic.paths.0.nodeHref', '/world?map=night-sky&focused=constellations')
-            ->where('topic.maps.0.nodeCount', 1)
             ->where('topic.paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
 });
@@ -466,9 +468,10 @@ test('a topic page exposes routes from assigned maps outside the current world',
     ]);
 
     $this->actingAs($learner)
-        ->get(route('topics.show', $topic))
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'routes']))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.loadedSection', 'routes')
             ->has('topic.paths', 2)
             ->where('topic.paths.0.id', $start->id)
             ->where('topic.paths.0.mapTitle', 'Night Sky')
@@ -478,6 +481,7 @@ test('a topic page exposes routes from assigned maps outside the current world',
     $this->actingAs($learner)
         ->get(route('topics.show', [
             'topic' => $topic,
+            'section' => 'routes',
             'purpose' => 'apply',
             'time' => 30,
         ]))
@@ -493,6 +497,7 @@ test('a topic page exposes routes from assigned maps outside the current world',
     $this->actingAs($learner)
         ->get(route('topics.show', [
             'topic' => $topic,
+            'section' => 'routes',
             'purpose' => 'apply',
             'time' => 15,
         ]))
@@ -507,6 +512,7 @@ test('a topic page exposes routes from assigned maps outside the current world',
     $this->actingAs($learner)
         ->get(route('topics.show', [
             'topic' => $topic,
+            'section' => 'routes',
             'purpose' => 'transfer',
         ]))
         ->assertOk()
@@ -574,27 +580,20 @@ test('a topic detail bounds route collections with server pagination', function 
     }
 
     $this->actingAs($learner)
-        ->get(route('topics.show', $topic))
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'routes']))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('topic.maps', 4)
-            ->where('topic.maps.3.title', 'Many Paths Map 12')
-            ->where('topic.mapsPagination.currentPage', 1)
-            ->where('topic.mapsPagination.lastPage', 4)
-            ->where('topic.mapsPagination.total', 13)
             ->has('topic.paths', 6)
             ->where('topic.pathsPagination.currentPage', 1)
             ->where('topic.pathsPagination.lastPage', 3)
             ->where('topic.pathsPagination.total', 13)
-            ->has('topic.subtopics', 4)
-            ->where('topic.subtopics.3.title', $subtopics[3]->title)
-            ->where('topic.subtopicsPagination.currentPage', 1)
-            ->where('topic.subtopicsPagination.lastPage', 2)
-            ->where('topic.subtopicsPagination.total', 5)
+            ->where('topic.loadedSection', 'routes')
+            ->has('topic.maps', 0)
+            ->has('topic.subtopics', 0)
         );
 
     $this->actingAs($learner)
-        ->get(route('topics.show', ['topic' => $topic, 'page' => 2]))
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'routes', 'page' => 2]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('topic.paths', 6)
@@ -645,7 +644,21 @@ test('the learner journey keeps topic, competence, map and activity context conn
         ->get(route('topics.show', $topic))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.loadedSection', 'trail')
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'maps']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('topic.maps.0.href', '/world?map=first-sector')
+            ->where('topic.loadedSection', 'maps')
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'routes']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('topic.paths.0.mapHref', '/world?map=first-sector')
             ->where('topic.paths.0.nodeHref', '/world?map=first-sector&focused=signal-gate')
             ->where('topic.paths.0.href', route('learning.nodes.play', [
