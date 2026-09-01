@@ -91,6 +91,43 @@ test('own scoped map deletion does not allow deleting another users map', functi
         ->and(LearningMap::query()->whereKey($otherMap->id)->exists())->toBeTrue();
 });
 
+test('scoped world exports include only maps in the authors map editing scope', function () {
+    $author = userWithRole('scoped-map-exporter', [
+        PermissionCatalog::WORLD_MAPS => [AccessLevel::UPDATE, AccessScope::OWN],
+    ]);
+    $otherUser = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'title' => 'Scoped World',
+        'slug' => 'demo-learning-world',
+    ]);
+    $ownMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $author->id,
+        'title' => 'Own Map',
+        'slug' => 'own-map',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $otherUser->id,
+        'title' => 'Other Map',
+        'slug' => 'other-map',
+    ]);
+
+    $response = $this->actingAs($author)
+        ->get(route('settings.worlds.export'));
+
+    $response->assertOk();
+    $payload = json_decode(
+        $response->streamedContent(),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+
+    expect(collect($payload['maps'])->pluck('map.slug')->all())
+        ->toBe([$ownMap->slug]);
+});
+
 test('scoped group readers only hydrate groups in their management scope', function () {
     $manager = userWithRole('group-reader', [
         PermissionCatalog::GROUPS => [AccessLevel::READ, AccessScope::ASSIGNED],

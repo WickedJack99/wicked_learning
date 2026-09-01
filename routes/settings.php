@@ -145,6 +145,9 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::get('settings/worlds/maps/{map}/export', [AdminWorldController::class, 'exportMap'])
         ->name('settings.worlds.maps.export');
 
+    Route::get('settings/worlds/export', [AdminWorldController::class, 'exportWorld'])
+        ->name('settings.worlds.export');
+
     Route::post('settings/worlds/maps/exports/validate', [AdminWorldController::class, 'validateMapExport'])
         ->name('settings.worlds.maps.exports.validate');
 

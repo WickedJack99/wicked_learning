@@ -783,12 +783,17 @@ authored map, node, MapAsset, activity-route, question, dialogue, translation
 and message-topic data, plus explicit media/portal reference data. Exported
 database IDs are used only to remap internal JSON references during import. The
 manifest excludes learner progress, revision history, local editing-group
-assignments and AI review internals. Authorized authors can import one validated
-manifest into the current workspace as a new authored map with a fresh slug;
+assignments and AI review internals. Authorized authors can also download an
+editable-world JSON bundle containing the maps in their current map-editing
+scope. Each map reuses the single-map manifest format, and the bundle includes
+a deduplicated media reference list. The bundle does not transfer media or
+include learner state, revision history, permissions or editing groups.
+Authorized authors can import one validated manifest into the current workspace
+as a new authored map with a fresh slug;
 the import is transactional and sends imported activities back to authoring
 review. Imported maps start with the workspace's default access roles; map
 access restrictions and companion dialogue assignments are not imported.
-Multi-map bundles and cross-workspace media transfer remain future authoring
+Cross-workspace media transfer and world-bundle import remain future authoring
 work. Within the current world, authors can also duplicate a map as a new
 authored copy, including its activities,
 routes, assets, questions, dialogue graphs and companion assignments. The copy

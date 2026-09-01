@@ -251,6 +251,14 @@ of the export contract. The matching readiness validator caps collection sizes,
 checks slugs and graph links in memory, and performs only bounded workspace
 lookups; it never imports or mutates the submitted manifest.
 
+The World Builder also exposes a world export that resolves the current world,
+scopes its maps with the server-side map-edit boundary, batch-loads the shared
+map relationships and batches portal references across the selected maps. It
+reuses the single-map serializer for each entry and adds only world metadata and
+a deduplicated media reference list. It does not expand access to maps outside
+the author's scope or include learner state, history, permissions or media
+bytes.
+
 Same-workspace map duplication is a separate transactional authoring action from
 portable import. It remaps internal node, activity, MapAsset message-topic,
 question, dialogue-node, route and companion-assignment references while keeping

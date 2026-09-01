@@ -15,13 +15,15 @@ use App\Models\LearningQuestionOption;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class LearningMapExportSerializer
 {
     /**
+     * @param  list<array<string, mixed>>|null  $portalTargets
      * @return array<string, mixed>
      */
-    public function serialize(LearningMap $map): array
+    public function serialize(LearningMap $map, ?array $portalTargets = null): array
     {
         $map->loadMissing([
             'world',
@@ -38,7 +40,7 @@ class LearningMapExportSerializer
 
         $nodes = $map->nodes->sortBy('id')->values();
         $nodeSlugs = $nodes->pluck('slug', 'id')->all();
-        $portalTargets = $this->loadPortalTargets($map);
+        $portalTargets ??= $this->loadPortalTargets($map);
 
         $nodeExports = $nodes->map(function (LearningNode $node): array {
             $activities = $node->activities->values();
@@ -201,7 +203,7 @@ class LearningMapExportSerializer
      */
     private function loadPortalTargets(LearningMap $map): array
     {
-        return array_values(LearningPortalLink::query()
+        return $this->serializePortalTargets(LearningPortalLink::query()
             ->with([
                 'sourceActivity',
                 'sourceNode',
@@ -212,18 +214,25 @@ class LearningMapExportSerializer
                 $query->where('learning_map_id', $map->id);
             })
             ->orderBy('id')
-            ->get()
-            ->map(fn (LearningPortalLink $link): array => [
-                'sourceNodeSlug' => $link->sourceNode?->slug,
-                'sourceActivitySlug' => $link->sourceActivity?->slug,
-                'targetMapSlug' => $link->targetNode?->map?->slug,
-                'targetNodeSlug' => $link->targetNode?->slug,
-                'targetActivitySlug' => $link->targetActivity?->slug,
-                'label' => $link->label,
-                'description' => $link->description,
-                'config' => $link->config ?? [],
-            ])
-            ->values()
+            ->get());
+    }
+
+    /**
+     * @param  Collection<int, LearningPortalLink>  $links
+     * @return list<array<string, mixed>>
+     */
+    public function serializePortalTargets(Collection $links): array
+    {
+        return array_values($links->map(fn (LearningPortalLink $link): array => [
+            'sourceNodeSlug' => $link->sourceNode?->slug,
+            'sourceActivitySlug' => $link->sourceActivity?->slug,
+            'targetMapSlug' => $link->targetNode?->map?->slug,
+            'targetNodeSlug' => $link->targetNode?->slug,
+            'targetActivitySlug' => $link->targetActivity?->slug,
+            'label' => $link->label,
+            'description' => $link->description,
+            'config' => $link->config ?? [],
+        ])
             ->all());
     }
 

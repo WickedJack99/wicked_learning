@@ -251,6 +251,45 @@ test('map authors can download an author-only map export manifest', function () 
         ->and($payload)->not->toHaveKey('learnerProgress');
 });
 
+test('map authors can download an editable world export bundle', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $portalQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$portalQueries): void {
+        if (str_contains($query->sql, 'learning_portal_links')) {
+            $portalQueries[] = $query;
+        }
+    });
+
+    $response = $this->actingAs($admin)
+        ->get(route('settings.worlds.export'));
+
+    $response
+        ->assertOk()
+        ->assertHeader(
+            'Content-Disposition',
+            'attachment; filename=demo-learning-world-wicked-learning-world.json',
+        )
+        ->assertHeader('Content-Type', 'application/json');
+
+    $payload = json_decode(
+        $response->streamedContent(),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+
+    expect($payload['format'])->toBe('wicked-learning-world')
+        ->and($payload['formatVersion'])->toBe(1)
+        ->and($payload['world']['slug'])->toBe('demo-learning-world')
+        ->and(collect($payload['maps'])->pluck('map.slug')->all())
+        ->toBe(['first-sector', 'signal-archive'])
+        ->and($payload['references']['mediaUrls'])->not->toBeEmpty()
+        ->and($portalQueries)->toHaveCount(1);
+});
+
 test('map authors can validate an export manifest without changing content', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

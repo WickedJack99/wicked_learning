@@ -846,5 +846,6 @@
     "settings.world_builder.activity.feedback.independent_check_description": "After the feedback pause, invite a fresh response. Learners can skip it; the response is recorded separately from the first attempt.",
     "settings.world_builder.activity.feedback.independent_check_feedback_label": "Independent check feedback (optional)",
     "settings.world_builder.activity.feedback.independent_check_feedback_placeholder": "e.g. Compare the new example with the original observation and notice what stayed true.",
-    "settings.world_builder.activity.feedback.independent_check_feedback_description": "Shown after a learner saves the fresh response. This is explanatory guidance, not automated critique or a grade."
+    "settings.world_builder.activity.feedback.independent_check_feedback_description": "Shown after a learner saves the fresh response. This is explanatory guidance, not automated critique or a grade.",
+    "settings.world_builder.world.export": "Export world"
 }

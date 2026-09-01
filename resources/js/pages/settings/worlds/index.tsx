@@ -171,6 +171,7 @@ export default function AdminWorldIndex({
 
 export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
     const initialNodes = useMemo(
         () => buildGraphNodes(worldGraph.maps),
         [worldGraph.maps],
@@ -324,6 +325,19 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                         >
                             <MapIcon className="size-4" />
                             Create world node
+                        </Button>
+                        <Button asChild className="mt-2 w-full" variant="outline">
+                            <a
+                                data-wl-id="settings.world-builder.world.export"
+                                download
+                                href="/settings/worlds/export"
+                            >
+                                <Download className="size-4" />
+                                {t(
+                                    'settings.world_builder.world.export',
+                                    'Export world',
+                                )}
+                            </a>
                         </Button>
                         <MapExportValidationDialog endpoint="/settings/worlds/maps/exports/validate" />
                         <MapImportDialog endpoint="/settings/worlds/maps/import" />

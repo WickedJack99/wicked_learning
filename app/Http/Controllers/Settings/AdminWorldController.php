@@ -24,6 +24,7 @@ use App\Learning\Actions\UpdateLearningMapDetails;
 use App\Learning\Actions\UpdateLearningMapEditingGroups;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
+use App\Learning\CurrentWorldResolver;
 use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Queries\LoadLearningMapAssetVersions;
@@ -35,6 +36,7 @@ use App\Learning\Serializers\LearningMapAssetVersionSerializer;
 use App\Learning\Serializers\LearningMapExportSerializer;
 use App\Learning\Serializers\LearningMapLayoutVersionSerializer;
 use App\Learning\Serializers\LearningMapVersionSerializer;
+use App\Learning\Serializers\LearningWorldExportSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
@@ -66,6 +68,7 @@ class AdminWorldController extends Controller
         private readonly LearningMapAssetSerializer $mapAssetSerializer,
         private readonly LearningMapAssetVersionSerializer $mapAssetVersionSerializer,
         private readonly LearningMapExportSerializer $mapExportSerializer,
+        private readonly LearningWorldExportSerializer $worldExportSerializer,
         private readonly LearningMapVersionSerializer $mapVersionSerializer,
         private readonly LearningMapLayoutVersionSerializer $mapLayoutVersionSerializer,
         private readonly AdminWorldRules $rules,
@@ -94,6 +97,7 @@ class AdminWorldController extends Controller
         private readonly LearningMapEditAccessService $mapEditAccess,
         private readonly LoadLearnerSupportSignals $learnerSupportSignals,
         private readonly LoadWorldBuilderReviewQueue $reviewQueue,
+        private readonly CurrentWorldResolver $worldResolver,
     ) {}
 
     public function index(Request $request): RedirectResponse
@@ -183,6 +187,29 @@ class AdminWorldController extends Controller
                 ).PHP_EOL;
             },
             "{$map->slug}-wicked-learning-map.json",
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    public function exportWorld(Request $request): StreamedResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $world = $this->worldResolver->query()->firstOrFail();
+        $mapsQuery = $world->maps();
+        $this->mapEditAccess->scopeMapsUserCanEdit($mapsQuery->getQuery(), $user);
+        $maps = $mapsQuery->get();
+        $payload = $this->worldExportSerializer->serialize($world, $maps);
+
+        return response()->streamDownload(
+            static function () use ($payload): void {
+                echo json_encode(
+                    $payload,
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+                ).PHP_EOL;
+            },
+            "{$world->slug}-wicked-learning-world.json",
             ['Content-Type' => 'application/json'],
         );
     }
