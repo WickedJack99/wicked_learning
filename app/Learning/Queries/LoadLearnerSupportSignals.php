@@ -35,19 +35,17 @@ class LoadLearnerSupportSignals
             ->map(fn (mixed $id): int => (int) $id)
             ->values()
             ->all();
+        /** @var list<int> $learnerIds */
         $lastActivityByUser = $this->lastActivityByUser($learnerIds);
-        $eventsByUser = LearnerEvidenceEvent::query()
-            ->whereIn('user_id', $learnerIds)
-            ->get()
+        $eventsByUser = $this->topicEvidenceByUser($learnerIds, $now)
             ->groupBy('user_id');
         $manualUnlocksByUser = $this->manualUnlocksByUser($learnerIds);
         $supportLearners = $learners
             ->map(fn (User $learner): array => $this->learnerSignals(
                 $learner,
                 $eventsByUser->get($learner->id, collect()),
-                $monthKey,
                 $lastActivityByUser->get($learner->id),
-                $manualUnlocksByUser->get($learner->id, collect()),
+                $manualUnlocksByUser[$learner->id] ?? collect(),
             ))
             ->values()
             ->all();
@@ -115,18 +113,18 @@ class LoadLearnerSupportSignals
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
+     * @param  Collection<int, LearnerNodeDiscovery>  $manualUnlocks
      * @return array<string, mixed>
      */
     private function learnerSignals(
         User $learner,
         Collection $events,
-        string $monthKey,
         mixed $lastActivityAt,
         Collection $manualUnlocks,
     ): array {
         $topicSignals = $events
             ->groupBy('topic_slug')
-            ->map(fn (Collection $topicEvents): array => $this->topicSignal($topicEvents, $monthKey))
+            ->map(fn (Collection $topicEvents): array => $this->topicSignal($topicEvents))
             ->sortByDesc('totalContribution')
             ->values()
             ->all();
@@ -162,15 +160,15 @@ class LoadLearnerSupportSignals
 
     /**
      * @param  list<int>  $learnerIds
-     * @return Collection<int, Collection<int, LearnerNodeDiscovery>>
+     * @return array<int, Collection<int, LearnerNodeDiscovery>>
      */
-    private function manualUnlocksByUser(array $learnerIds): Collection
+    private function manualUnlocksByUser(array $learnerIds): array
     {
         if ($learnerIds === []) {
-            return collect();
+            return [];
         }
 
-        return LearnerNodeDiscovery::query()
+        $grouped = LearnerNodeDiscovery::query()
             ->with(['node:id,learning_map_id,title', 'node.map:id,title'])
             ->whereIn('user_id', $learnerIds)
             ->get()
@@ -178,13 +176,21 @@ class LoadLearnerSupportSignals
                 && is_array($discovery->metadata['manualUnlock'] ?? null)
                 && isset($discovery->metadata['manualUnlock']['grantedAt']))
             ->groupBy('user_id');
+
+        $unlockLists = [];
+
+        foreach ($grouped as $userId => $discoveries) {
+            $unlockLists[(int) $userId] = new Collection($discoveries->all());
+        }
+
+        return $unlockLists;
     }
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
      * @return array{slug: string, name: string, totalContribution: float, monthlyContribution: float, evidenceTypes: list<string>}
      */
-    private function topicSignal(Collection $events, string $monthKey): array
+    private function topicSignal(Collection $events): array
     {
         /** @var LearnerEvidenceEvent $firstEvent */
         $firstEvent = $events->first();
@@ -192,12 +198,40 @@ class LoadLearnerSupportSignals
         return [
             'slug' => $firstEvent->topic_slug,
             'name' => $firstEvent->topic_name,
-            'totalContribution' => round((float) $events->sum('contribution'), 2),
-            'monthlyContribution' => round((float) $events
-                ->filter(fn (LearnerEvidenceEvent $event): bool => $event->created_at?->format('Y-m') === $monthKey)
-                ->sum('contribution'), 2),
+            'totalContribution' => round((float) $events->sum('total_contribution'), 2),
+            'monthlyContribution' => round((float) $events->sum('monthly_contribution'), 2),
             'evidenceTypes' => $this->evidenceTypes($events),
         ];
+    }
+
+    /**
+     * Aggregate the evidence dimensions needed by the support view before
+     * hydrating models. One row represents one learner, topic and evidence
+     * type, regardless of how many events contributed to that combination.
+     *
+     * @param  list<int>  $learnerIds
+     * @return Collection<int, LearnerEvidenceEvent>
+     */
+    private function topicEvidenceByUser(array $learnerIds, Carbon $now): Collection
+    {
+        if ($learnerIds === []) {
+            return collect();
+        }
+
+        $monthStart = $now->copy()->startOfMonth();
+        $monthEnd = $now->copy()->endOfMonth();
+
+        return LearnerEvidenceEvent::query()
+            ->whereIn('user_id', $learnerIds)
+            ->select(['user_id', 'topic_slug', 'evidence_type'])
+            ->selectRaw('MAX(topic_name) as topic_name')
+            ->selectRaw('SUM(contribution) as total_contribution')
+            ->selectRaw(
+                'SUM(CASE WHEN created_at BETWEEN ? AND ? THEN contribution ELSE 0 END) as monthly_contribution',
+                [$monthStart, $monthEnd],
+            )
+            ->groupBy('user_id', 'topic_slug', 'evidence_type')
+            ->get();
     }
 
     /**
@@ -303,17 +337,21 @@ class LoadLearnerSupportSignals
                 $now->copy()->subDays(29)->startOfDay(),
                 $now->copy()->endOfDay(),
             ])
-            ->get(['user_id', 'contribution', 'created_at'])
+            ->selectRaw('DATE(created_at) as activity_date, user_id')
+            ->selectRaw('SUM(contribution) as contribution_recorded')
+            ->selectRaw('COUNT(*) as evidence_events')
+            ->groupByRaw('DATE(created_at), user_id')
+            ->get()
             ->each(function (LearnerEvidenceEvent $event) use (&$buckets): void {
-                $date = $this->dateKey($event->created_at);
+                $date = $this->dateKey($event->getAttribute('activity_date'));
 
                 if (! isset($buckets[$date])) {
                     return;
                 }
 
                 $buckets[$date]['activeLearnerIds'][(int) $event->user_id] = true;
-                $buckets[$date]['contributionRecorded'] = round($buckets[$date]['contributionRecorded'] + (float) $event->contribution, 2);
-                $buckets[$date]['evidenceEvents']++;
+                $buckets[$date]['contributionRecorded'] = round($buckets[$date]['contributionRecorded'] + (float) $event->getAttribute('contribution_recorded'), 2);
+                $buckets[$date]['evidenceEvents'] += (int) $event->getAttribute('evidence_events');
             });
 
         return $this->activityBucketList($buckets);

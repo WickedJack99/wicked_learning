@@ -27,7 +27,9 @@ use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
@@ -1636,6 +1638,65 @@ test('learning support signals show scoped competence values without ranking lea
         ->and($learnerSignals['topics'][0]['totalContribution'])->toBe(16.0)
         ->and($learnerSignals['topics'][0]['monthlyContribution'])->toBe(16.0)
         ->and($learnerSignals)->not->toHaveKey('rank');
+});
+
+test('learning support aggregates evidence rows before hydrating support signals', function () {
+    Carbon::setTestNow('2026-07-21 10:00:00');
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    [, $activity] = competenceRoute([]);
+
+    foreach (range(1, 12) as $attempt) {
+        LearnerEvidenceEvent::query()->create([
+            'user_id' => $learner->id,
+            'learning_activity_id' => $activity->id,
+            'play_run_id' => (string) Str::uuid(),
+            'topic_slug' => 'systems-thinking',
+            'topic_name' => 'Systems Thinking',
+            'evidence_type' => $attempt % 2 === 0 ? 'retrieve' : 'explain',
+            'contribution' => 1,
+            'created_at' => Carbon::parse('2026-07-20 11:00:00'),
+        ]);
+    }
+    $historicalEvent = LearnerEvidenceEvent::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
+        'topic_slug' => 'systems-thinking',
+        'topic_name' => 'Systems Thinking',
+        'evidence_type' => 'explain',
+        'contribution' => 5,
+    ]);
+    $historicalEvent->forceFill([
+        'created_at' => Carbon::parse('2026-06-20 11:00:00'),
+        'updated_at' => Carbon::parse('2026-06-20 11:00:00'),
+    ])->save();
+
+    $evidenceQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$evidenceQueries): void {
+        if (str_contains($query->sql, 'learner_evidence_events')) {
+            $evidenceQueries[] = $query;
+        }
+    });
+
+    $signals = app(LoadLearnerSupportSignals::class)->handle($admin);
+    $learnerSignals = collect($signals['learners'])->firstWhere('id', $learner->id);
+
+    expect($learnerSignals['topics'][0]['totalContribution'])->toBe(17.0)
+        ->and($learnerSignals['topics'][0]['monthlyContribution'])->toBe(12.0)
+        ->and($learnerSignals['topics'][0]['evidenceTypes'])->toBe(['explain', 'retrieve'])
+        ->and($evidenceQueries)->not->toBeEmpty()
+        ->and(collect($evidenceQueries)->contains(
+            fn (QueryExecuted $query): bool => str_contains(strtolower($query->sql), 'group by')
+                && str_contains(strtolower($query->sql), 'sum('),
+        ))->toBeTrue()
+        ->and(collect($evidenceQueries)->contains(
+            fn (QueryExecuted $query): bool => str_contains(strtolower($query->sql), 'count(*)')
+                && str_contains(strtolower($query->sql), 'activity_date'),
+        ))->toBeTrue();
 });
 
 test('learning support exposes only unresolved shared task review aggregates', function () {
