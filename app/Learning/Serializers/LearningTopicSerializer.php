@@ -55,6 +55,8 @@ class LearningTopicSerializer
         array $subtopicsPagination = [],
         array $maps = [],
         array $mapsPagination = [],
+        ?string $pathsPurpose = null,
+        ?int $pathsTimeBudget = null,
     ): array {
         return [
             ...$this->summary($topic),
@@ -74,6 +76,8 @@ class LearningTopicSerializer
             'parent' => $topic->parent ? $this->summary($topic->parent) : null,
             'paths' => $paths,
             'pathsPagination' => $pathsPagination,
+            'pathsPurpose' => $pathsPurpose,
+            'pathsTimeBudget' => $pathsTimeBudget,
             'subtopics' => $subtopics,
             'subtopicsPagination' => $subtopicsPagination,
             'maps' => $maps,

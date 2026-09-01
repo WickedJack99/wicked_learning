@@ -43,10 +43,22 @@ class LearningTopicController extends Controller
 
     public function show(Request $request, LearningTopic $topic): Response
     {
+        $purpose = $request->query('purpose');
+        $purpose = is_string($purpose)
+            && in_array($purpose, ActivityCompetenceConfiguration::LEARNING_INTENTS, true)
+            ? $purpose
+            : null;
+        $timeBudget = $request->query('time');
+        $timeBudget = is_numeric($timeBudget)
+            && in_array((int) $timeBudget, [15, 30], true)
+            ? (int) $timeBudget
+            : null;
         $paths = $this->paths->handle(
             $request->user(),
             $topic,
             page: max(1, (int) $request->query('page', 1)),
+            purpose: $purpose,
+            timeBudget: $timeBudget,
         );
         $competenceMap = $this->competenceMap->handle($request->user());
         $topic = $this->topics->publishedDetail($topic, $request->user());
@@ -111,6 +123,8 @@ class LearningTopicController extends Controller
                     'perPage' => $maps->perPage(),
                     'total' => $maps->total(),
                 ],
+                pathsPurpose: $paths['purpose'],
+                pathsTimeBudget: $paths['timeBudget'],
             ),
         ]);
     }

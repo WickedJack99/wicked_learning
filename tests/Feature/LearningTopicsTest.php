@@ -369,15 +369,71 @@ test('a topic page exposes routes from assigned maps outside the current world',
         'learning_activity_id' => $activity->id,
         'label' => 'Begin observing',
     ]);
+    $appliedActivity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'apply-observation',
+        'title' => 'Apply observation',
+        'type' => 'markdown',
+        'config' => [
+            'learningIntent' => 'apply',
+            'timeGuideMinutes' => 30,
+        ],
+    ]);
+    LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $appliedActivity->id,
+        'label' => 'Try applying the idea',
+    ]);
 
     $this->actingAs($learner)
         ->get(route('topics.show', $topic))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('topic.paths', 1)
+            ->has('topic.paths', 2)
             ->where('topic.paths.0.id', $start->id)
             ->where('topic.paths.0.mapTitle', 'Night Sky')
+            ->where('topic.pathsPagination.total', 2)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', [
+            'topic' => $topic,
+            'purpose' => 'apply',
+            'time' => 30,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.paths', 1)
+            ->where('topic.paths.0.label', 'Try applying the idea')
+            ->where('topic.pathsPurpose', 'apply')
+            ->where('topic.pathsTimeBudget', 30)
             ->where('topic.pathsPagination.total', 1)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', [
+            'topic' => $topic,
+            'purpose' => 'apply',
+            'time' => 15,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.paths', 0)
+            ->where('topic.pathsPurpose', 'apply')
+            ->where('topic.pathsTimeBudget', 15)
+            ->where('topic.pathsPagination.total', 0)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', [
+            'topic' => $topic,
+            'purpose' => 'transfer',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.paths', 0)
+            ->where('topic.pathsPurpose', 'transfer')
+            ->where('topic.pathsPagination.total', 0)
         );
 });
 

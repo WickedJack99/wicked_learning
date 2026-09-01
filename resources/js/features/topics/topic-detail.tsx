@@ -19,7 +19,10 @@ import {
     reviewOutcomeLabel,
 } from '@/features/learning/review-outcomes';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
-import { learningIntentLabel } from '@/features/world/activity-utils';
+import {
+    LEARNING_INTENTS,
+    learningIntentLabel,
+} from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     TopicCompetence,
@@ -68,6 +71,8 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
 
         if (section !== 'routes') {
             url.searchParams.delete('page');
+            url.searchParams.delete('purpose');
+            url.searchParams.delete('time');
         }
 
         if (section !== 'overview') {
@@ -82,6 +87,14 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     }
 
     function visitRoutePage(page: number) {
+        visitRoutes(page, topic.pathsPurpose, topic.pathsTimeBudget);
+    }
+
+    function visitRoutes(
+        page: number,
+        purpose: string | null,
+        timeBudget: number | null,
+    ) {
         const url = new URL(window.location.href);
 
         if (page === 1) {
@@ -91,6 +104,18 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
         }
 
         url.searchParams.set('section', 'routes');
+
+        if (purpose === null) {
+            url.searchParams.delete('purpose');
+        } else {
+            url.searchParams.set('purpose', purpose);
+        }
+
+        if (timeBudget === null) {
+            url.searchParams.delete('time');
+        } else {
+            url.searchParams.set('time', String(timeBudget));
+        }
 
         router.visit(`${url.pathname}${url.search}`, {
             preserveScroll: true,
@@ -246,37 +271,133 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
 
                     {activeSection === 'routes' ? (
                         <TopicPanel id="routes">
-                            {topic.paths.length > 0 ? (
-                                <section
-                                    aria-labelledby="topic-paths-heading"
-                                    className="mt-10 border-b border-[var(--learner-border-color)] py-7"
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
-                                        <div>
-                                            <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
-                                                {t(
-                                                    'topics.detail.paths.eyebrow',
-                                                    'Optional ways in',
-                                                )}
-                                            </p>
-                                            <h2
-                                                className="mt-2 text-sm font-semibold"
-                                                id="topic-paths-heading"
-                                            >
-                                                {t(
-                                                    'topics.detail.paths.title',
-                                                    'Start with a route',
-                                                )}
-                                            </h2>
-                                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                                                {t(
-                                                    'topics.detail.paths.description',
-                                                    'A route is a suggested beginning. You can follow it, pause, or explore the map in your own direction.',
-                                                )}
-                                            </p>
-                                        </div>
+                            <section
+                                aria-labelledby="topic-paths-heading"
+                                className="mt-10 border-b border-[var(--learner-border-color)] py-7"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
+                                    <div>
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
+                                            {t(
+                                                'topics.detail.paths.eyebrow',
+                                                'Optional ways in',
+                                            )}
+                                        </p>
+                                        <h2
+                                            className="mt-2 text-sm font-semibold"
+                                            id="topic-paths-heading"
+                                        >
+                                            {t(
+                                                'topics.detail.paths.title',
+                                                'Start with a route',
+                                            )}
+                                        </h2>
+                                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                                            {t(
+                                                'topics.detail.paths.description',
+                                                'A route is a suggested beginning. You can follow it, pause, or explore the map in your own direction.',
+                                            )}
+                                        </p>
                                     </div>
+                                </div>
+                                <div className="mt-5 grid gap-3 sm:max-w-xl sm:grid-cols-2">
+                                    <div>
+                                        <label
+                                            className="text-xs font-medium text-[var(--learner-muted-text)]"
+                                            htmlFor="topic-paths-purpose"
+                                        >
+                                            {t(
+                                                'topics.detail.paths.filters.purpose.label',
+                                                'Learning purpose',
+                                            )}
+                                        </label>
+                                        <select
+                                            className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                            id="topic-paths-purpose"
+                                            onChange={(event) =>
+                                                visitRoutes(
+                                                    1,
+                                                    event.target.value || null,
+                                                    topic.pathsTimeBudget,
+                                                )
+                                            }
+                                            value={topic.pathsPurpose ?? ''}
+                                        >
+                                            <option value="">
+                                                {t(
+                                                    'topics.detail.paths.filters.purpose.any',
+                                                    'Any purpose',
+                                                )}
+                                            </option>
+                                            {LEARNING_INTENTS.map((intent) => (
+                                                <option
+                                                    key={intent}
+                                                    value={intent}
+                                                >
+                                                    {learningIntentLabel(
+                                                        intent,
+                                                        t,
+                                                    ) ?? intent}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            className="text-xs font-medium text-[var(--learner-muted-text)]"
+                                            htmlFor="topic-paths-time"
+                                        >
+                                            {t(
+                                                'topics.detail.paths.filters.time.label',
+                                                'Available time',
+                                            )}
+                                        </label>
+                                        <select
+                                            className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                            id="topic-paths-time"
+                                            onChange={(event) =>
+                                                visitRoutes(
+                                                    1,
+                                                    topic.pathsPurpose,
+                                                    event.target.value
+                                                        ? Number(
+                                                              event.target
+                                                                  .value,
+                                                          )
+                                                        : null,
+                                                )
+                                            }
+                                            value={topic.pathsTimeBudget ?? ''}
+                                        >
+                                            <option value="">
+                                                {t(
+                                                    'topics.detail.paths.filters.time.any',
+                                                    'Any time',
+                                                )}
+                                            </option>
+                                            <option value="15">
+                                                {t(
+                                                    'topics.detail.paths.filters.time.short',
+                                                    'Up to 15 minutes',
+                                                )}
+                                            </option>
+                                            <option value="30">
+                                                {t(
+                                                    'topics.detail.paths.filters.time.medium',
+                                                    'Up to 30 minutes',
+                                                )}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p className="mt-3 text-xs text-[var(--learner-muted-text)]">
+                                    {t(
+                                        'topics.detail.paths.filters.description',
+                                        'Narrow these starting points by purpose or the time you have available.',
+                                    )}
+                                </p>
+                                {topic.paths.length > 0 ? (
                                     <div className="mt-5">
                                         <LearnerPaginatedItems
                                             items={topic.paths}
@@ -297,16 +418,36 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                             )}
                                         />
                                     </div>
-                                </section>
-                            ) : null}
-                            {topic.paths.length === 0 ? (
-                                <p className="mt-8 border-b border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                    {t(
-                                        'topics.detail.paths.empty',
-                                        'No routes are available yet.',
-                                    )}
-                                </p>
-                            ) : null}
+                                ) : (
+                                    <div className="mt-8 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                        {topic.pathsPurpose !== null ||
+                                        topic.pathsTimeBudget !== null
+                                            ? t(
+                                                  'topics.detail.paths.filtered_empty',
+                                                  'No routes match these filters yet.',
+                                              )
+                                            : t(
+                                                  'topics.detail.paths.empty',
+                                                  'No routes are available yet.',
+                                              )}
+                                        {topic.pathsPurpose !== null ||
+                                        topic.pathsTimeBudget !== null ? (
+                                            <button
+                                                className="mt-3 block text-sm font-medium text-[var(--learner-action-accent)] underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]"
+                                                onClick={() =>
+                                                    visitRoutes(1, null, null)
+                                                }
+                                                type="button"
+                                            >
+                                                {t(
+                                                    'topics.detail.paths.filtered_empty.clear',
+                                                    'Show all routes',
+                                                )}
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                )}
+                            </section>
                         </TopicPanel>
                     ) : null}
 

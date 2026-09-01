@@ -43,6 +43,8 @@ export type TopicDetail = TopicSummary & {
         perPage: number;
         total: number;
     };
+    pathsPurpose: string | null;
+    pathsTimeBudget: number | null;
     subtopics: TopicSummary[];
     subtopicsPagination: {
         currentPage: number;

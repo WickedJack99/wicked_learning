@@ -545,7 +545,9 @@ route starts from the server. Its pagination controls keep the route directory
 usable as a topic grows without sending the full route collection to the
 browser. It includes routes from every accessible map assigned to that topic,
 not only maps in the current world. The standalone Paths directory remains
-scoped to the current world.
+scoped to the current world. Learners can narrow the topic's route starts by
+the authored learning purpose or available time without changing route order or
+progress.
 The Overview section applies the same bounded behavior to published subtopics;
 their accessible map counts are calculated in the database, and only the
 visible page is sent to the browser.
