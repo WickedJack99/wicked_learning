@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Alternate-language learner copy for a single activity.
  * It is never shared in global Inertia props or generic language catalogs.
+ *
+ * @property array<string, mixed> $content
  */
 #[Fillable(['learning_activity_id', 'locale', 'content'])]
 class LearningActivityTranslation extends Model

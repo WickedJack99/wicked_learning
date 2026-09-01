@@ -9,6 +9,7 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningActivityTranslation;
 use App\Models\LearningActivityVersion;
 use App\Models\LearningCompanionDialogue;
 use App\Models\LearningCompanionDialogueAssignment;
@@ -19,6 +20,8 @@ use App\Models\LearningMapLayoutVersion;
 use App\Models\LearningMessageTopic;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\LearningQuestion;
+use App\Models\LearningQuestionOption;
 use App\Models\LearningTool;
 use App\Models\NpcDialogueAnswer;
 use App\Models\NpcDialogueNode;
@@ -293,6 +296,165 @@ test('map export validation reports malformed manifests', function () {
         ->assertOk()
         ->assertJsonPath('valid', false)
         ->assertJsonPath('errors.0', 'format must be "wicked-learning-map".');
+});
+
+test('map authors can import a validated export as a new authored map', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $source = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $sourceNodeIds = $source->nodes()->pluck('id');
+    $sourceActivityIds = LearningActivity::query()
+        ->whereIn('learning_node_id', $sourceNodeIds)
+        ->pluck('id');
+    $sourceActivity = LearningActivity::query()
+        ->whereIn('id', $sourceActivityIds)
+        ->whereDoesntHave('question')
+        ->firstOrFail();
+    $sourceAsset = LearningMapAsset::query()
+        ->where('learning_map_id', $source->id)
+        ->firstOrFail();
+    $messageTopic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $sourceAsset->id,
+        'slug' => 'import-topic',
+        'title' => 'Import topic',
+    ]);
+    $sourceActivity->update([
+        'config' => ['messageTopicId' => $messageTopic->id],
+    ]);
+    $question = LearningQuestion::query()->create([
+        'learning_activity_id' => $sourceActivity->id,
+        'prompt' => 'What changed?',
+        'feedback_correct' => 'Good observation.',
+        'feedback_incorrect' => 'Look again.',
+        'explanation' => 'The useful clue changed.',
+        'allow_multiple' => false,
+    ]);
+    LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'The clue',
+        'body' => 'The clue changed.',
+        'is_correct' => true,
+        'outcome_key' => 'noticed',
+        'feedback' => 'Exactly.',
+        'weights' => ['pattern-recognition' => 1],
+        'sort_order' => 0,
+    ]);
+    $dialogueNode = NpcDialogueNode::query()->create([
+        'learning_activity_id' => $sourceActivity->id,
+        'type' => 'npc_monologue',
+        'title' => 'Guide',
+        'body' => 'Notice the clue.',
+        'config' => ['portraitUrl' => '/images/characters/mentor-calm.png'],
+        'sort_order' => 0,
+        'graph_position_x' => 100,
+        'graph_position_y' => 100,
+    ]);
+    NpcDialogueNode::query()->create([
+        'learning_activity_id' => $sourceActivity->id,
+        'type' => 'end',
+        'title' => 'End',
+        'body' => 'Keep looking.',
+        'config' => [],
+        'sort_order' => 1,
+        'graph_position_x' => 400,
+        'graph_position_y' => 100,
+    ]);
+    $dialogueEnd = NpcDialogueNode::query()->latest('id')->firstOrFail();
+    NpcDialogueTransition::query()->create([
+        'learning_activity_id' => $sourceActivity->id,
+        'from_dialogue_node_id' => $dialogueNode->id,
+        'to_dialogue_node_id' => $dialogueEnd->id,
+        'from_connector' => 'out',
+        'to_connector' => 'in',
+    ]);
+    LearningActivityTranslation::query()->create([
+        'learning_activity_id' => $sourceActivity->id,
+        'locale' => 'de',
+        'content' => ['title' => 'Beobachtung'],
+    ]);
+    $export = $this->actingAs($admin)
+        ->get(route('settings.worlds.maps.export', $source));
+
+    $response = $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'first-sector.json',
+                $export->streamedContent(),
+            ),
+            'slug' => 'first-sector-imported',
+            'title' => 'First Sector Imported',
+        ]);
+
+    $imported = LearningMap::query()
+        ->where('slug', 'first-sector-imported')
+        ->firstOrFail();
+    $importedNodeIds = $imported->nodes()->pluck('id');
+    $importedActivityIds = LearningActivity::query()
+        ->whereIn('learning_node_id', $importedNodeIds)
+        ->pluck('id');
+    $importedPortal = LearningPortalLink::query()
+        ->whereIn('source_learning_node_id', $importedNodeIds)
+        ->firstOrFail();
+    $returnNode = LearningNode::query()->where('slug', 'return-gate')->firstOrFail();
+
+    $response->assertRedirect(route('settings.worlds.maps.edit', $imported));
+
+    expect($imported->id)->not->toBe($source->id)
+        ->and($importedNodeIds->intersect($sourceNodeIds))->toBeEmpty()
+        ->and($importedActivityIds->intersect($sourceActivityIds))->toBeEmpty()
+        ->and($importedNodeIds)->toHaveCount($sourceNodeIds->count())
+        ->and($importedActivityIds)->toHaveCount($sourceActivityIds->count())
+        ->and(LearningMapAsset::query()->where('learning_map_id', $imported->id)->count())
+        ->toBe(LearningMapAsset::query()->where('learning_map_id', $source->id)->count())
+        ->and(LearningMessageTopic::query()->whereHas('mapAsset', fn ($query) => $query->where('learning_map_id', $imported->id))->count())
+        ->toBe(LearningMessageTopic::query()->whereHas('mapAsset', fn ($query) => $query->where('learning_map_id', $source->id))->count())
+        ->and(LearningQuestion::query()->whereIn('learning_activity_id', $importedActivityIds)->count())
+        ->toBe(LearningQuestion::query()->whereIn('learning_activity_id', $sourceActivityIds)->count())
+        ->and(NpcDialogueNode::query()->whereIn('learning_activity_id', $importedActivityIds)->count())
+        ->toBe(NpcDialogueNode::query()->whereIn('learning_activity_id', $sourceActivityIds)->count())
+        ->and(LearningActivityTranslation::query()->whereIn('learning_activity_id', $importedActivityIds)->count())
+        ->toBe(LearningActivityTranslation::query()->whereIn('learning_activity_id', $sourceActivityIds)->count())
+        ->and(ActivityTransition::query()->whereIn('from_activity_id', $importedActivityIds)->count())
+        ->toBe(ActivityTransition::query()->whereIn('from_activity_id', $sourceActivityIds)->count())
+        ->and($importedPortal->target_learning_node_id)->toBe($returnNode->id)
+        ->and($importedPortal->label)->toBe('First Clearing to Quiet Library')
+        ->and($imported->access_roles)->toBeNull()
+        ->and(LearningActivity::query()->whereIn('learning_node_id', $importedNodeIds)->pluck('ai_review_status')->unique()->all())
+        ->toBe([LearningActivity::AI_REVIEW_STATUS_NEEDS_REVIEW]);
+});
+
+test('map import rejects a manifest from another workspace before creating content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $mapCount = LearningMap::query()->count();
+
+    $manifest = [
+        'format' => 'wicked-learning-map',
+        'formatVersion' => 1,
+        'world' => ['slug' => 'another-workspace', 'title' => 'Another workspace'],
+        'map' => ['slug' => 'portable-map', 'title' => 'Portable map'],
+        'nodes' => [],
+        'mapAssets' => [],
+        'portalTargets' => [],
+        'references' => ['mediaUrls' => []],
+    ];
+
+    $this->actingAs($admin)
+        ->from(route('settings.index', ['panel' => 'admin-world-builder']))
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'another-workspace.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+            'title' => 'Should not be created',
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
 });
 
 test('map authors can duplicate a complete authored map without learner state', function () {

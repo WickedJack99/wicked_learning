@@ -12,6 +12,7 @@ use App\Learning\Actions\DeleteLearningMap;
 use App\Learning\Actions\DeleteLearningMapAsset;
 use App\Learning\Actions\DeleteLearningNode;
 use App\Learning\Actions\DuplicateLearningMap;
+use App\Learning\Actions\ImportLearningMap;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
 use App\Learning\Actions\ResetLearningNodeUnlocks;
 use App\Learning\Actions\RestoreLearningMapLayoutVersion;
@@ -51,6 +52,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use JsonException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminWorldController extends Controller
@@ -69,6 +72,7 @@ class AdminWorldController extends Controller
         private readonly LearningMapExportValidator $mapExportValidator,
         private readonly CreateLearningMap $createLearningMap,
         private readonly DuplicateLearningMap $duplicateLearningMap,
+        private readonly ImportLearningMap $importLearningMap,
         private readonly CreateLearningMapAsset $createLearningMapAsset,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
         private readonly UpdateLearningMapEditingGroups $updateLearningMapEditingGroups,
@@ -192,6 +196,41 @@ class AdminWorldController extends Controller
         return response()->json(
             $this->mapExportValidator->validate($data['manifest']),
         );
+    }
+
+    public function importMap(Request $request): RedirectResponse
+    {
+        $this->authorizeMapCreate($request);
+        $world = $this->loadEditableWorldGraph->handle($request->user());
+        $data = $request->validate($this->rules->importMap($world));
+        $validation = $this->mapExportValidator->validate($data['manifest']);
+
+        if (! $validation['valid']) {
+            throw ValidationException::withMessages([
+                'manifest' => $validation['summary'].' '.implode(' ', $validation['errors']),
+            ]);
+        }
+
+        try {
+            $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw ValidationException::withMessages([
+                'manifest' => 'The selected file is not valid JSON.',
+            ]);
+        }
+
+        if (($payload['world']['slug'] ?? null) !== $world->slug) {
+            throw ValidationException::withMessages([
+                'manifest' => 'Import a manifest exported from the current workspace.',
+            ]);
+        }
+
+        $creator = $request->user();
+        abort_unless($creator instanceof User, 401);
+
+        $map = $this->importLearningMap->handle($payload, $world, $data, $creator);
+
+        return $this->redirectToMap($map);
     }
 
     public function storeMap(Request $request): RedirectResponse

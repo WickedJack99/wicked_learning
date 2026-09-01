@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * @property array<string, mixed>|null $visual_config
  * @property array<string, mixed>|null $activity_graph_layout
+ * @property array<string, mixed>|null $companion_config
  * @property-read LearningMap|null $map
  */
 #[Fillable([

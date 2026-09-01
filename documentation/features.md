@@ -779,11 +779,18 @@ visual preview columns stack at the same breakpoint so map fields and actions
 remain usable instead of being squeezed by nested sidebars.
 
 Authorized authors can download a single-map JSON export manifest containing
-authored map, node, MapAsset, activity-route and explicit media/portal reference
-data. The manifest uses portable slugs and excludes learner progress, revision
-history, local editing-group assignments and AI review internals. Importing and
-multi-map bundles remain future authoring work. Within the current world,
-authors can duplicate a map as a new authored copy, including its activities,
+authored map, node, MapAsset, activity-route, question, dialogue, translation
+and message-topic data, plus explicit media/portal reference data. Exported
+database IDs are used only to remap internal JSON references during import. The
+manifest excludes learner progress, revision history, local editing-group
+assignments and AI review internals. Authorized authors can import one validated
+manifest into the current workspace as a new authored map with a fresh slug;
+the import is transactional and sends imported activities back to authoring
+review. Imported maps start with the workspace's default access roles; map
+access restrictions and companion dialogue assignments are not imported.
+Multi-map bundles and cross-workspace media transfer remain future authoring
+work. Within the current world, authors can also duplicate a map as a new
+authored copy, including its activities,
 routes, assets, questions, dialogue graphs and companion assignments. The copy
 gets fresh content IDs, starts activities in authoring review, and does not
 carry learner history, map history, review runs or editor groups. Authors can

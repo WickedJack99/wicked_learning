@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property array<string, mixed>|null $background_config
  * @property array<string, mixed>|null $grid_config
  * @property array<int, string>|null $access_roles
+ * @property array<string, mixed>|null $companion_config
  */
 #[Fillable([
     'learning_world_id',

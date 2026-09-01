@@ -44,6 +44,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { DuplicateMapDialog } from '@/features/settings/duplicate-map-dialog';
 import { MapExportValidationDialog } from '@/features/settings/map-export-validation-dialog';
+import { MapImportDialog } from '@/features/settings/map-import-dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -324,6 +325,7 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                             Create world node
                         </Button>
                         <MapExportValidationDialog endpoint="/settings/worlds/maps/exports/validate" />
+                        <MapImportDialog endpoint="/settings/worlds/maps/import" />
                     </div>
 
                     <div className="shrink-0 p-5">

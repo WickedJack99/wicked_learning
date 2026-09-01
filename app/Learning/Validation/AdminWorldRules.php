@@ -53,6 +53,23 @@ class AdminWorldRules
     /**
      * @return array<string, mixed>
      */
+    public function importMap(LearningWorld $world): array
+    {
+        return [
+            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:10240'],
+            'title' => ['required', 'string', 'max:120'],
+            'slug' => [
+                'nullable',
+                'string',
+                'max:140',
+                Rule::unique('learning_maps', 'slug')->where('learning_world_id', $world->id),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function portalLink(): array
     {
         return [

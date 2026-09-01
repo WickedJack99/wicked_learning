@@ -5,10 +5,15 @@ namespace App\Learning\Serializers;
 use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningActivityTranslation;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningMessageTopic;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\LearningQuestionOption;
+use App\Models\NpcDialogueNode;
+use App\Models\NpcDialogueTransition;
 use Illuminate\Database\Eloquent\Builder;
 
 class LearningMapExportSerializer
@@ -23,7 +28,12 @@ class LearningMapExportSerializer
             'topic',
             'nodes.activities.transitions.toActivity',
             'nodes.activityStarts.activity',
+            'nodes.activities.question.options',
+            'nodes.activities.npcDialogueNodes',
+            'nodes.activities.npcDialogueTransitions',
+            'nodes.activities.translations',
             'assets',
+            'assets.messageTopics',
         ]);
 
         $nodes = $map->nodes->sortBy('id')->values();
@@ -35,6 +45,7 @@ class LearningMapExportSerializer
             $activitySlugs = $activities->pluck('slug', 'id')->all();
 
             return [
+                'sourceId' => $node->id,
                 'slug' => $node->slug,
                 'title' => $node->title,
                 'description' => $node->description,
@@ -61,6 +72,7 @@ class LearningMapExportSerializer
                 ])->values()->all(),
                 'activities' => $activities->map(function (LearningActivity $activity): array {
                     return [
+                        'sourceId' => $activity->id,
                         'slug' => $activity->slug,
                         'type' => $activity->type,
                         'title' => $activity->title,
@@ -72,6 +84,44 @@ class LearningMapExportSerializer
                             'y' => $activity->graph_position_y,
                         ],
                         'companionConfig' => $activity->companion_config,
+                        'question' => $activity->question ? [
+                            'prompt' => $activity->question->prompt,
+                            'feedbackCorrect' => $activity->question->feedback_correct,
+                            'feedbackIncorrect' => $activity->question->feedback_incorrect,
+                            'explanation' => $activity->question->explanation,
+                            'allowMultiple' => $activity->question->allow_multiple,
+                            'options' => $activity->question->options->map(fn (LearningQuestionOption $option): array => [
+                                'label' => $option->label,
+                                'body' => $option->body,
+                                'isCorrect' => $option->is_correct,
+                                'outcomeKey' => $option->outcome_key,
+                                'feedback' => $option->feedback,
+                                'weights' => $option->weights ?? [],
+                                'sortOrder' => $option->sort_order,
+                            ])->values()->all(),
+                        ] : null,
+                        'dialogueNodes' => $activity->npcDialogueNodes->map(fn (NpcDialogueNode $dialogueNode): array => [
+                            'sourceId' => $dialogueNode->id,
+                            'type' => $dialogueNode->type,
+                            'title' => $dialogueNode->title,
+                            'body' => $dialogueNode->body,
+                            'config' => $dialogueNode->config ?? [],
+                            'sortOrder' => $dialogueNode->sort_order,
+                            'graphPosition' => [
+                                'x' => $dialogueNode->graph_position_x,
+                                'y' => $dialogueNode->graph_position_y,
+                            ],
+                        ])->values()->all(),
+                        'dialogueTransitions' => $activity->npcDialogueTransitions->map(fn (NpcDialogueTransition $transition): array => [
+                            'fromSourceId' => $transition->from_dialogue_node_id,
+                            'toSourceId' => $transition->to_dialogue_node_id,
+                            'fromConnector' => $transition->from_connector,
+                            'toConnector' => $transition->to_connector,
+                        ])->values()->all(),
+                        'translations' => $activity->translations->map(fn (LearningActivityTranslation $translation): array => [
+                            'locale' => $translation->locale,
+                            'content' => $translation->content,
+                        ])->values()->all(),
                         'transitions' => $activity->transitions->map(fn (ActivityTransition $transition): array => [
                             'toActivitySlug' => $transition->toActivity?->slug,
                             'fromConnector' => $transition->from_connector,
@@ -87,6 +137,7 @@ class LearningMapExportSerializer
         })->values()->all();
 
         $mapAssetExports = $map->assets->map(fn (LearningMapAsset $asset): array => [
+            'sourceId' => $asset->id,
             'nodeSlug' => $nodeSlugs[$asset->learning_node_id] ?? null,
             'imageUrl' => $asset->image_url,
             'text' => $asset->text,
@@ -102,6 +153,11 @@ class LearningMapExportSerializer
             'interactionConfig' => $asset->interaction_config ?? [],
             'visualConfig' => $asset->visual_config ?? [],
             'soundConfig' => $asset->sound_config ?? [],
+            'messageTopics' => $asset->messageTopics->map(fn (LearningMessageTopic $topic): array => [
+                'sourceId' => $topic->id,
+                'slug' => $topic->slug,
+                'title' => $topic->title,
+            ])->values()->all(),
         ])->values()->all();
 
         $mapExport = [
@@ -145,7 +201,7 @@ class LearningMapExportSerializer
      */
     private function loadPortalTargets(LearningMap $map): array
     {
-        return LearningPortalLink::query()
+        return array_values(LearningPortalLink::query()
             ->with([
                 'sourceActivity',
                 'sourceNode',
@@ -168,7 +224,7 @@ class LearningMapExportSerializer
                 'config' => $link->config ?? [],
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

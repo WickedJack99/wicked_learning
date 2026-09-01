@@ -182,7 +182,7 @@ class LearningMapExportValidator
         return [
             'valid' => $errors === [],
             'summary' => $errors === []
-                ? 'The manifest is structurally valid and ready for a future import flow.'
+                ? 'The manifest is structurally valid and ready to import.'
                 : 'The manifest needs corrections before it can be imported.',
             'errors' => $errors,
             'warnings' => array_values(array_unique($warnings)),

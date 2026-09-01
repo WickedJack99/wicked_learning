@@ -1,9 +1,4 @@
-import {
-    CheckCircle2,
-    FileJson,
-    TriangleAlert,
-    Upload,
-} from 'lucide-react';
+import { CheckCircle2, FileJson, TriangleAlert, Upload } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -35,16 +30,13 @@ export type MapExportValidationResult = {
     world: { exists: boolean; slug: string | null };
 };
 
-export function MapExportValidationDialog({
-    endpoint,
-}: {
-    endpoint: string;
-}) {
+export function MapExportValidationDialog({ endpoint }: { endpoint: string }) {
     const t = usePlatformTranslation();
     const [file, setFile] = useState<File | null>(null);
     const [open, setOpen] = useState(false);
-    const [result, setResult] =
-        useState<MapExportValidationResult | null>(null);
+    const [result, setResult] = useState<MapExportValidationResult | null>(
+        null,
+    );
     const [error, setError] = useState<string | null>(null);
     const [validating, setValidating] = useState(false);
 
@@ -157,7 +149,7 @@ export function MapExportValidationDialog({
                         <DialogDescription>
                             {t(
                                 'settings.world_builder.export_validation.description',
-                                'Check an exported map manifest before a future import. This does not create or change any content.',
+                                'Check an exported map manifest without creating or changing any content.',
                             )}
                         </DialogDescription>
                     </DialogHeader>
@@ -232,11 +224,7 @@ export function MapExportValidationDialog({
     );
 }
 
-function ValidationSummary({
-    result,
-}: {
-    result: MapExportValidationResult;
-}) {
+function ValidationSummary({ result }: { result: MapExportValidationResult }) {
     const t = usePlatformTranslation();
 
     return (
@@ -252,7 +240,10 @@ function ValidationSummary({
 
             <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
                 <ValidationCount
-                    label={t('settings.world_builder.export_validation.nodes', 'Nodes')}
+                    label={t(
+                        'settings.world_builder.export_validation.nodes',
+                        'Nodes',
+                    )}
                     value={result.counts.nodes}
                 />
                 <ValidationCount
@@ -331,9 +322,7 @@ function ValidationMessages({
             <h3 className="text-sm font-semibold">{heading}</h3>
             <ul className="grid gap-1 text-sm text-[var(--settings-muted-text)]">
                 {visibleMessages.map((message, index) => (
-                    <li key={`${message}-${index}`}>
-                        • {message}
-                    </li>
+                    <li key={`${message}-${index}`}>• {message}</li>
                 ))}
             </ul>
             {messages.length > visibleMessages.length ? (
