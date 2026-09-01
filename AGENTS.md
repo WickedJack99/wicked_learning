@@ -188,6 +188,9 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - For Inertia/React changes, follow `resources/js/AGENTS.md`; use
   `browser-acceptance-review` for browser-facing behavior and
   `verification-gate` before declaring the change complete.
+- For changes that cross Laravel request/response boundaries and React
+  consumers, use `api-contract-review` to check validation, payload, error and
+  pagination contracts end to end.
 
 # Inertia v3
 
