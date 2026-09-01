@@ -4,6 +4,7 @@ import {
     LearnerAccountControls,
     LearnerBrand,
 } from '@/components/learner-account-controls';
+import { PlatformFeedbackPrompt } from '@/components/platform-feedback-prompt';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +81,7 @@ export function LearnerNavigationHeader({
 
                 <LearnerAccountControls mapThemed={mapThemed} />
             </div>
+            <PlatformFeedbackPrompt />
         </header>
     );
 }

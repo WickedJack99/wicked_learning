@@ -16,6 +16,7 @@ use App\Models\LearningTool;
 use App\Models\PlatformJournalSetting;
 use App\Models\PlatformPresentationSetting;
 use App\Settings\Serializers\SoundPreferenceSerializer;
+use App\Settings\Services\PlatformFeedbackPrompt;
 use App\Support\Appearance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -31,6 +32,7 @@ class HandleInertiaRequests extends Middleware
         private readonly UserLocaleResolver $localeResolver,
         private readonly SoundPreferenceSerializer $soundPreferences,
         private readonly LearningCompanionContext $companionContext,
+        private readonly PlatformFeedbackPrompt $feedbackPrompt,
     ) {}
 
     /**
@@ -113,6 +115,10 @@ class HandleInertiaRequests extends Middleware
 
         if ($request->user() && ! str_starts_with($request->path(), 'settings')) {
             $sharedProps['companion'] = fn (): ?array => $this->companionContext->forDesk();
+            $sharedProps['feedbackPrompt'] = $this->feedbackPrompt->shouldShow(
+                $request->user(),
+                $request,
+            );
         }
 
         return $sharedProps;

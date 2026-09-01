@@ -48,6 +48,8 @@ class PermissionCatalog
 
     public const LEARNER_MESSAGES = 'learner_messages';
 
+    public const PLATFORM_FEEDBACK = 'platform_feedback';
+
     public const ORGANIZATION_MODERATION = 'organization_moderation';
 
     public const AI = 'ai';
@@ -162,6 +164,11 @@ class PermissionCatalog
             self::LEARNER_MESSAGES => [
                 'label' => 'Learner messages',
                 'description' => 'Review, hide and delete messages shared through MapAsset activities.',
+                'group' => 'Learning support',
+            ],
+            self::PLATFORM_FEEDBACK => [
+                'label' => 'Platform feedback',
+                'description' => 'Review feedback deliberately shared about the platform experience.',
                 'group' => 'Learning support',
             ],
             self::ORGANIZATION_MODERATION => [

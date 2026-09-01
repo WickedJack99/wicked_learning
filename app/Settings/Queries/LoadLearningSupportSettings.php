@@ -6,15 +6,18 @@ use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
 use App\Learning\Queries\LoadAdminJournalFeedbackRequests;
 use App\Learning\Queries\LoadAdminPanelMetrics;
+use App\Learning\Queries\LoadAdminPlatformFeedback;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadLearnerManualUnlockTargets;
 use App\Learning\Queries\LoadLearnerMessageModeration;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Queries\LoadLearningConcepts;
 use App\Learning\Serializers\AdminJournalFeedbackRequestSerializer;
+use App\Learning\Serializers\AdminPlatformFeedbackSerializer;
 use App\Learning\Serializers\PlatformJournalSettingsSerializer;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\OrganizationIconReport;
+use App\Models\PlatformFeedback;
 use App\Models\PlatformJournalSetting;
 use App\Models\PlatformOrganizationSetting;
 use App\Models\User;
@@ -33,20 +36,21 @@ class LoadLearningSupportSettings
         private readonly LoadLearnerMessageModeration $learnerMessages,
         private readonly LoadAdminJournalFeedbackRequests $feedbackRequests,
         private readonly AdminJournalFeedbackRequestSerializer $feedbackSerializer,
+        private readonly LoadAdminPlatformFeedback $platformFeedback,
+        private readonly AdminPlatformFeedbackSerializer $platformFeedbackSerializer,
         private readonly LoadPendingOrganizationIconReports $iconReports,
         private readonly OrganizationIconReportSerializer $iconReportSerializer,
         private readonly PlatformJournalSettingsSerializer $journalSettingsSerializer,
     ) {}
 
-    /**
-     * @return array{adminPanel: array<string, mixed>|null, journal: array<string, mixed>|null, learnerMessages: array{topics: array<int, array<string, mixed>>}|null, supportSignals: array<string, mixed>|null}
-     */
-    public function handle(User $user, int $feedbackPage = 1): array
+    /** @return array{adminPanel: array<string, mixed>|null, journal: array<string, mixed>|null, learnerMessages: array{topics: array<int, array<string, mixed>>}|null, platformFeedback: array<string, mixed>|null, supportSignals: array<string, mixed>|null} */
+    public function handle(User $user, int $feedbackPage = 1, int $platformFeedbackPage = 1): array
     {
         return [
             'adminPanel' => $this->adminPanel($user, $feedbackPage),
             'journal' => $this->journal($user),
             'learnerMessages' => $this->learnerMessages($user),
+            'platformFeedback' => $this->platformFeedback($user, $platformFeedbackPage),
             'supportSignals' => $this->supportSignals($user),
         ];
     }
@@ -108,6 +112,24 @@ class LoadLearningSupportSettings
             'organizationSettings' => [
                 'maxMembershipsPerUser' => PlatformOrganizationSetting::current()->max_memberships_per_user,
             ],
+        ];
+    }
+
+    /** @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}|null */
+    private function platformFeedback(User $user, int $page): ?array
+    {
+        if (! $user->can(PermissionCatalog::ability(PermissionCatalog::PLATFORM_FEEDBACK, AccessLevel::READ))) {
+            return null;
+        }
+
+        $feedback = $this->platformFeedback->handle($page);
+
+        return [
+            'items' => $feedback->getCollection()
+                ->map(fn (PlatformFeedback $item): array => $this->platformFeedbackSerializer->serialize($item))
+                ->values()
+                ->all(),
+            'pagination' => $this->pagination($feedback),
         ];
     }
 

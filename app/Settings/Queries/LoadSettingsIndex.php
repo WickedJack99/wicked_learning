@@ -102,6 +102,7 @@ class LoadSettingsIndex
         ?int $selectedNodeId = null,
         ?string $panel = null,
         ?int $feedbackPage = null,
+        ?int $platformFeedbackPage = null,
         ?int $accessLinkPage = null,
         ?string $worldSection = null,
     ): array {
@@ -161,7 +162,7 @@ class LoadSettingsIndex
                 : null,
             'languages' => $loadsLanguages ? $this->languages($accessCapabilities) : [],
             'learningSupportSettings' => $loadsLearningSupport
-                ? $this->loadLearningSupportSettings->handle($user, $feedbackPage ?? 1)
+                ? $this->loadLearningSupportSettings->handle($user, $feedbackPage ?? 1, $platformFeedbackPage ?? 1)
                 : [],
             'platformInfoPages' => $loadsPublicPages && $canManagePresentation
                 ? $this->platformInfoPages()

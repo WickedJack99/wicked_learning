@@ -25,7 +25,11 @@ their profile and language, choose appearance and sound preferences, manage
 passwords, passkeys and two-factor authentication, and review notifications.
 Successful password changes and two-factor or passkey lifecycle changes also
 appear in the administrator's per-user access history without exposing
-credentials.
+credentials. Learners can deliberately share a separate platform-feedback
+message, choosing a general comment, idea, problem or praise. This channel is
+not part of the private Journal, activity responses or competence evidence.
+The occasional invitation can be postponed or permanently declined, and the
+choice can be changed later in Personal settings.
 
 ### Freeform World Maps
 
@@ -731,6 +735,10 @@ Administrative areas are visible according to configurable resource permissions:
 
 Settings colors, inputs, navigation states, journal presentation and map visual
 palettes are database-backed instead of being fixed to one deployment theme.
+Learning Support includes a paginated queue for platform-feedback messages
+that learners deliberately submitted. Authorized staff can mark messages as
+reviewed; this queue does not expose private journal pages, activity responses
+or competence evidence.
 
 ### Access Management
 

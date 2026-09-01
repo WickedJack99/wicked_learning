@@ -335,6 +335,7 @@ function readPersonalViewFromUrl(): PersonalView {
 
     return resolvedValue === 'appearance' ||
         resolvedValue === 'delete-account' ||
+        resolvedValue === 'feedback' ||
         resolvedValue === 'language' ||
         resolvedValue === 'notifications' ||
         resolvedValue === 'security' ||
@@ -414,6 +415,7 @@ function readLearningSupportViewFromUrl(): LearningSupportView {
 
     return value === 'journal' ||
         value === 'learner-messages' ||
+        value === 'platform-feedback' ||
         value === 'feedback-requests' ||
         value === 'support-signals' ||
         value === 'organization-icons' ||
@@ -626,7 +628,9 @@ export default function SettingsIndex({
                                     accessCapabilities={accessCapabilities}
                                     accessLinkOptions={accessLinkOptions}
                                     accessLinks={accessLinks}
-                                    accessLinksPagination={accessLinksPagination}
+                                    accessLinksPagination={
+                                        accessLinksPagination
+                                    }
                                     accessGroupUsers={accessGroupUsers}
                                     accessGroups={accessGroups}
                                     adminRoles={adminRoles}
@@ -915,6 +919,9 @@ function SettingsDetail({
                     }
                     canViewLearningConcepts={
                         accessCapabilities.learning_concepts?.read ?? false
+                    }
+                    canViewPlatformFeedback={
+                        accessCapabilities.platform_feedback?.read ?? false
                     }
                     onSelectSection={(section) => {
                         setLearningSupportView(section);

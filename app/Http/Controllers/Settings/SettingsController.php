@@ -35,6 +35,7 @@ class SettingsController extends Controller
                 $request->integer('node') ?: null,
                 $panel,
                 $request->integer('feedback_page') ?: null,
+                $request->integer('platform_feedback_page') ?: null,
                 $request->integer('access_link_page') ?: null,
                 $request->string('worldSection')->toString() ?: null,
             ),

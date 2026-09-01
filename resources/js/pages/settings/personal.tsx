@@ -1,8 +1,10 @@
+import { Link, router } from '@inertiajs/react';
 import {
     Bell,
     Brush,
     KeyRound,
     Languages,
+    MessageSquareText,
     Trash2,
     UserRound,
     Volume2,
@@ -18,6 +20,7 @@ import {
     type SettingsSaveAction,
     type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
+import { Button } from '@/components/ui/button';
 import { AppearanceSettingsPanel } from '@/features/settings/appearance-settings-panel';
 import { LanguageSettingsPanel } from '@/features/settings/language-settings-panel';
 import { ProfileSettingsPanel } from '@/features/settings/profile-settings-panel';
@@ -32,6 +35,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 export type PersonalSection =
     | 'appearance'
     | 'delete-account'
+    | 'feedback'
     | 'language'
     | 'notifications'
     | 'profile'
@@ -89,6 +93,15 @@ function buildPersonalSections(
         },
         {
             description: t(
+                'settings.personal.sections.feedback.description',
+                'Share thoughts about the platform and manage invitations.',
+            ),
+            icon: MessageSquareText,
+            key: 'feedback',
+            label: t('settings.personal.sections.feedback', 'Feedback'),
+        },
+        {
+            description: t(
                 'settings.personal.sections.sound.description',
                 'Sound effects and ambient audio.',
             ),
@@ -127,6 +140,7 @@ export type PersonalSettingsProps = {
     locale: string;
     mustVerifyEmail: boolean;
     soundPreferences: SoundPreferences;
+    feedbackPromptStatus: 'declined' | 'enabled' | 'snoozed';
     status?: string;
 } & SecuritySettingsProps;
 
@@ -139,6 +153,7 @@ export function PersonalSettingsContent({
     onSelectSection,
     soundPreferences,
     status,
+    feedbackPromptStatus,
     ...security
 }: PersonalSettingsProps & {
     activeSection?: PersonalSection;
@@ -209,6 +224,7 @@ export function PersonalSettingsContent({
                 onSaveActionChange={setSaveAction}
                 soundPreferences={soundPreferences}
                 status={status}
+                feedbackPromptStatus={feedbackPromptStatus}
                 activeSection={resolvedSection}
                 {...security}
             />
@@ -249,6 +265,7 @@ function PersonalSettingsSectionContent({
     onSaveActionChange,
     soundPreferences,
     status,
+    feedbackPromptStatus,
     ...security
 }: Omit<PersonalSettingsProps, 'initialSection'> & {
     activeSection: PersonalSection;
@@ -281,6 +298,12 @@ function PersonalSettingsSectionContent({
             ) : null}
             {activeSection === 'notifications' ? (
                 <NotificationsPanel headingItem={activeItem} />
+            ) : null}
+            {activeSection === 'feedback' ? (
+                <FeedbackPanel
+                    headingItem={activeItem}
+                    promptStatus={feedbackPromptStatus}
+                />
             ) : null}
             {activeSection === 'sound' ? (
                 <SoundSettingsPanel
@@ -358,6 +381,76 @@ function NotificationsPanel({
                     'Communication preferences',
                 )}
             />
+        </section>
+    );
+}
+
+function FeedbackPanel({
+    headingItem,
+    promptStatus,
+}: {
+    headingItem: SettingsNavigationItem<PersonalSection>;
+    promptStatus: 'declined' | 'enabled' | 'snoozed';
+}) {
+    const t = usePlatformTranslation();
+    const invitationsEnabled = promptStatus !== 'declined';
+
+    return (
+        <section className="grid gap-5">
+            <SettingsItemPanelHeader
+                description={t(
+                    'settings.personal.feedback.description',
+                    'Share feedback about the platform separately from journal pages and learning activity responses.',
+                )}
+                item={headingItem}
+                title={t(
+                    'settings.personal.feedback.title',
+                    'Platform feedback',
+                )}
+            />
+            <SettingsFormColumn>
+                <div className="grid gap-4">
+                    <p className="text-sm leading-6 text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.personal.feedback.reminders',
+                            invitationsEnabled
+                                ? 'Occasional invitations to share feedback are enabled.'
+                                : 'Feedback invitations are turned off. You can turn them back on here at any time.',
+                        )}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                        <Button asChild>
+                            <Link href="/feedback">
+                                <MessageSquareText className="size-4" />
+                                {t(
+                                    'settings.personal.feedback.open',
+                                    'Open feedback page',
+                                )}
+                            </Link>
+                        </Button>
+                        <Button
+                            onClick={() =>
+                                router.patch('/settings/feedback-prompt', {
+                                    action: invitationsEnabled
+                                        ? 'decline'
+                                        : 'enable',
+                                })
+                            }
+                            variant="outline"
+                        >
+                            {invitationsEnabled
+                                ? t(
+                                      'settings.personal.feedback.turn_off',
+                                      'Turn off invitations',
+                                  )
+                                : t(
+                                      'settings.personal.feedback.turn_on',
+                                      'Turn invitations back on',
+                                  )}
+                        </Button>
+                    </div>
+                </div>
+            </SettingsFormColumn>
         </section>
     );
 }

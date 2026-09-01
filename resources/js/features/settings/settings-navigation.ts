@@ -68,7 +68,7 @@ export const personalSettings: SettingsListItem[] = [
         label: 'Personal',
         labelKey: 'settings.navigation.personal',
         description:
-            'Profile, appearance, language, notifications and security.',
+            'Profile, appearance, language, notifications, feedback and security.',
         descriptionKey: 'settings.navigation.personal.description',
         icon: UserRound,
         panel: 'personal',
@@ -102,6 +102,7 @@ export const adminSettings: SettingsListItem[] = [
             'journal_feedback',
             'learner_support_signals',
             'learning_concepts',
+            'platform_feedback',
         ],
         children: [
             {
@@ -116,6 +117,13 @@ export const adminSettings: SettingsListItem[] = [
                 labelKey: 'settings.navigation.learning_support.admin_panel',
                 href: '/settings?panel=admin-learning-support&support=feedback-requests',
                 resources: ['journal_feedback'],
+            },
+            {
+                label: 'Platform Feedback',
+                labelKey:
+                    'settings.navigation.learning_support.platform_feedback',
+                href: '/settings?panel=admin-learning-support&support=platform-feedback',
+                resources: ['platform_feedback'],
             },
             {
                 label: 'Organization Icons',

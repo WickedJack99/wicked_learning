@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\RespondToLearnerJournalFeedback;
 use App\Learning\Actions\SyncCompetenceTopicDefinitions;
 use App\Learning\Actions\SyncLearningConcepts;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\OrganizationIconReport;
+use App\Models\PlatformFeedback;
 use App\Organizations\Actions\ResolveOrganizationIconReport;
 use App\Organizations\Actions\UpdateOrganizationSettings;
 use Illuminate\Http\RedirectResponse;
@@ -70,6 +73,18 @@ class AdminPanelController extends Controller
         ]);
 
         $this->respondToFeedback->handle($request->user(), $feedbackRequest, $data['feedback']);
+
+        return back();
+    }
+
+    public function reviewPlatformFeedback(Request $request, PlatformFeedback $feedback): RedirectResponse
+    {
+        abort_unless(
+            $request->user()->hasAccess(PermissionCatalog::PLATFORM_FEEDBACK, AccessLevel::UPDATE),
+            403,
+        );
+
+        $feedback->forceFill(['reviewed_at' => now()])->save();
 
         return back();
     }

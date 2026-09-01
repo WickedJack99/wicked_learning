@@ -160,12 +160,13 @@ remain distinct rather than being collapsed into one disguised score.
 
 The qualitative competence map and topic trails should therefore answer
 “what can I notice or revisit?” rather than “how many points did I earn?”.
-Learner words, confidence and assistance context are private by default. The
-implemented sharing path is an explicit learner request for feedback on a
-selected journal page and selected eligible domain; it does not make journal
-content generally visible to staff or peers. The request is then available in
-the permission-controlled feedback queue; the separate support-signals view
-receives scoped evidence signals, not journal text.
+Learner words, confidence and assistance context are private by default. A
+learner may deliberately share a platform-feedback message or request
+feedback on a selected journal page and selected eligible domain; each is an
+explicit, separate and permission-controlled workflow. Platform feedback is
+not journal content or competence evidence, and journal content is not made
+generally visible to staff or peers. The support-signals view receives scoped
+evidence signals, not journal text.
 
 ## Authoring philosophy
 

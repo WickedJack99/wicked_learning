@@ -28,6 +28,7 @@ declare module '@inertiajs/core' {
             appearance: Appearance;
             auth: Auth;
             companion?: LearningCompanion | null;
+            feedbackPrompt?: boolean;
             journalTheme: JournalThemeSettings;
             menuTheme: MapMenuTheme | null;
             soundPreferences: SoundPreferences;

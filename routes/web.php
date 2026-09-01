@@ -18,6 +18,7 @@ use App\Http\Controllers\LearningSharedTaskSubmissionController;
 use App\Http\Controllers\LearningTopicController;
 use App\Http\Controllers\LearningWorldController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\PlatformFeedbackController;
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\ProtectedMapMediaController;
 use App\Http\Controllers\Settings\AdminAccessLinkController;
@@ -53,6 +54,10 @@ Route::get('protected-media/maps/{map}/{path}', [ProtectedMapMediaController::cl
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('home', LearningHomeController::class)->name('home');
+    Route::get('feedback', [PlatformFeedbackController::class, 'show'])
+        ->name('feedback.index');
+    Route::post('feedback', [PlatformFeedbackController::class, 'store'])
+        ->name('feedback.store');
     Route::patch('learning/desk/preferences', [LearningDeskPlanningPreferenceController::class, 'update'])
         ->name('learning.desk.preferences.update');
     Route::redirect('journal', '/home?journal=1')->name('journal');

@@ -22,6 +22,7 @@ use App\Http\Controllers\Settings\ColorPaletteController;
 use App\Http\Controllers\Settings\JournalSettingsController;
 use App\Http\Controllers\Settings\LanguageController;
 use App\Http\Controllers\Settings\LearnerMessageModerationController;
+use App\Http\Controllers\Settings\PlatformFeedbackPromptController;
 use App\Http\Controllers\Settings\PresentationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -52,6 +53,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('settings.language.update');
     Route::patch('settings/sound-preferences', [SoundPreferenceController::class, 'update'])
         ->name('settings.sound-preferences.update');
+    Route::patch('settings/feedback-prompt', [PlatformFeedbackPromptController::class, 'update'])
+        ->name('settings.feedback-prompt.update');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -104,6 +107,11 @@ Route::middleware(['auth', 'verified', 'can:learner_messages.ru'])->group(functi
         ->name('settings.learning-support.messages.visibility.update');
     Route::patch('settings/learning-support/message-responses/{response}/visibility', [LearnerMessageModerationController::class, 'updateResponseVisibility'])
         ->name('settings.learning-support.message-responses.visibility.update');
+});
+
+Route::middleware(['auth', 'verified', 'can:platform_feedback.ru'])->group(function () {
+    Route::patch('settings/learning-support/platform-feedback/{feedback}/review', [AdminPanelController::class, 'reviewPlatformFeedback'])
+        ->name('settings.learning-support.platform-feedback.review');
 });
 
 Route::middleware(['auth', 'verified', 'can:learner_messages.rud'])->group(function () {

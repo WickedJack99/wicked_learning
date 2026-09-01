@@ -21,6 +21,8 @@ import JournalSettings from '@/pages/settings/journal';
 import type { JournalSettingsProps } from '@/pages/settings/journal';
 import { LearnerMessageModerationPanel } from './learner-message-moderation-panel';
 import type { LearnerMessageModerationTopic } from './learner-message-moderation-panel';
+import { PlatformFeedbackSection } from './platform-feedback-section';
+import type { PlatformFeedbackSectionProps } from './platform-feedback-section';
 import { SupportSignalsPanel } from './support-signals-panel';
 import type { SupportSignalsSettings } from './support-signals-panel';
 
@@ -28,12 +30,14 @@ export type LearningSupportSection =
     | AdminPanelSection
     | 'journal'
     | 'learner-messages'
+    | 'platform-feedback'
     | 'support-signals';
 
 export type LearningSupportSettings = {
     adminPanel: Omit<AdminPanelProps, 'embedded'> | null;
     journal: Omit<JournalSettingsProps, 'embedded'> | null;
     learnerMessages: { topics: LearnerMessageModerationTopic[] } | null;
+    platformFeedback: PlatformFeedbackSectionProps | null;
     supportSignals: SupportSignalsSettings | null;
 };
 
@@ -43,6 +47,7 @@ type Props = {
     canViewJournal: boolean;
     canViewLearnerMessages: boolean;
     canViewLearningConcepts: boolean;
+    canViewPlatformFeedback: boolean;
     canViewSupportSignals: boolean;
     onSelectSection: (section: LearningSupportSection) => void;
     settings: LearningSupportSettings;
@@ -67,6 +72,12 @@ const sections = [
         icon: MessageSquareText,
         key: 'feedback-requests',
         label: 'Feedback',
+    },
+    {
+        description: 'Review feedback deliberately shared about the platform.',
+        icon: MessageSquareText,
+        key: 'platform-feedback',
+        label: 'Platform Feedback',
     },
     {
         description: 'Review reported icons and organization limits.',
@@ -100,6 +111,7 @@ export function LearningSupportPanel({
     canViewJournal,
     canViewLearnerMessages,
     canViewLearningConcepts,
+    canViewPlatformFeedback,
     canViewSupportSignals,
     onSelectSection,
     settings,
@@ -126,7 +138,9 @@ export function LearningSupportPanel({
                 ? canViewSupportSignals
                 : section.key === 'learning-concepts'
                   ? canViewLearningConcepts
-                  : canViewAdminPanel,
+                  : section.key === 'platform-feedback'
+                    ? canViewPlatformFeedback
+                    : canViewAdminPanel,
     );
     const resolvedSection = visibleSections.some(
         (section) => section.key === activeSection,
@@ -184,9 +198,15 @@ export function LearningSupportPanel({
                 />
             ) : null}
 
+            {resolvedSection === 'platform-feedback' &&
+            settings.platformFeedback ? (
+                <PlatformFeedbackSection {...settings.platformFeedback} />
+            ) : null}
+
             {resolvedSection !== 'journal' &&
             resolvedSection !== 'learner-messages' &&
             resolvedSection !== 'support-signals' &&
+            resolvedSection !== 'platform-feedback' &&
             settings.adminPanel ? (
                 <AdminPanel
                     {...settings.adminPanel}
@@ -204,6 +224,7 @@ export function LearningSupportPanel({
             {resolvedSection !== 'journal' &&
             resolvedSection !== 'learner-messages' &&
             resolvedSection !== 'support-signals' &&
+            resolvedSection !== 'platform-feedback' &&
             !settings.adminPanel ? (
                 <UnavailableSection label={resolvedSection} />
             ) : null}
@@ -220,6 +241,11 @@ export function LearningSupportPanel({
             {resolvedSection === 'learner-messages' &&
             !settings.learnerMessages ? (
                 <UnavailableSection label="Learner Messages" />
+            ) : null}
+
+            {resolvedSection === 'platform-feedback' &&
+            !settings.platformFeedback ? (
+                <UnavailableSection label="Platform Feedback" />
             ) : null}
         </SettingsNestedWorkspace>
     );

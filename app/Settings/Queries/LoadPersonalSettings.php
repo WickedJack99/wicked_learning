@@ -6,6 +6,7 @@ use App\Localization\Services\PlatformLocaleCatalog;
 use App\Localization\Services\UserLocaleResolver;
 use App\Models\User;
 use App\Settings\Serializers\SoundPreferenceSerializer;
+use App\Settings\Services\PlatformFeedbackPrompt;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 class LoadPersonalSettings
@@ -15,6 +16,7 @@ class LoadPersonalSettings
         private readonly PlatformLocaleCatalog $localeCatalog,
         private readonly UserLocaleResolver $localeResolver,
         private readonly SoundPreferenceSerializer $soundPreferences,
+        private readonly PlatformFeedbackPrompt $feedbackPrompt,
     ) {}
 
     /**
@@ -28,6 +30,7 @@ class LoadPersonalSettings
             'availableLanguages' => $this->localeCatalog->available(),
             'locale' => $this->localeResolver->forUser($user),
             'soundPreferences' => $this->soundPreferences->serialize($user->preference),
+            'feedbackPromptStatus' => $this->feedbackPrompt->status($user->preference),
             ...$this->securitySettings->handle($user),
         ];
     }
