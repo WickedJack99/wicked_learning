@@ -762,6 +762,10 @@ Map detail edits keep a private author history of the title, description, topic
 and MapAsset-surface lock settings. Authors can inspect the bounded history and
 restore an earlier version without losing the current details.
 
+World title and description edits keep the same private, bounded author
+history. Authors can inspect earlier world details and restore one without
+changing the world's canonical slug or losing the current details.
+
 Node placement edits also keep a bounded, paginated layout history. Authors can
 restore an earlier arrangement of the existing nodes without changing their
 content. The history view marks entries unavailable after nodes have been added

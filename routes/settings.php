@@ -163,6 +163,15 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::get('settings/worlds/export-package', [AdminWorldController::class, 'exportWorldPackage'])
         ->name('settings.worlds.export-package');
 
+    Route::patch('settings/worlds/details', [AdminWorldController::class, 'updateWorld'])
+        ->name('settings.worlds.details.update');
+
+    Route::get('settings/worlds/versions', [AdminWorldController::class, 'worldVersions'])
+        ->name('settings.worlds.versions.index');
+
+    Route::post('settings/worlds/versions/{version}/restore', [AdminWorldController::class, 'restoreWorldVersion'])
+        ->name('settings.worlds.versions.restore');
+
     Route::post('settings/worlds/maps/exports/validate', [AdminWorldController::class, 'validateMapExport'])
         ->name('settings.worlds.maps.exports.validate');
 

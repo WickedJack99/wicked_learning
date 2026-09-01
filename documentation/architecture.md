@@ -210,6 +210,13 @@ Map detail updates use the same transactional snapshot-before-update pattern in
 bounded page, and restore validates that the version belongs to the selected map
 before saving the current details as another version.
 
+`LearningWorldVersion` applies the same transactional snapshot-before-update
+pattern to the current world's title and description. World detail history is
+permission-protected and paginated; restore accepts only a version belonging to
+the canonical current world and keeps the current details as a new history
+entry. The canonical world slug remains outside this edit contract because it
+is the current-world resolver key.
+
 `LearningMapLayoutVersion` stores a private JSON snapshot of node IDs and axial
 positions before a World Builder placement update or neighboring-node swap. Its
 history endpoint is paginated and restore validates both map ownership and an

@@ -1,6 +1,7 @@
 <?php
 
 use App\Learning\ActivityTypeRegistry;
+use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\NodeUnlockReachability;
 use App\Learning\Validation\AdminWorldRules;
 use App\Models\ActivityTransition;
@@ -24,6 +25,7 @@ use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningTool;
 use App\Models\LearningWorld;
+use App\Models\LearningWorldVersion;
 use App\Models\NpcDialogueAnswer;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
@@ -3881,6 +3883,71 @@ test('authors can browse and restore map detail versions without losing the curr
     expect($map->refresh()->title)->toBe('First Clearing')
         ->and($map->description)->toBe($version->description)
         ->and($map->versions()->count())->toBe(2);
+});
+
+test('authors can edit and restore world details without losing the current version', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $world = LearningWorld::query()
+        ->where('slug', CurrentWorldResolver::DEFAULT_WORLD_SLUG)
+        ->firstOrFail();
+    $originalTitle = $world->title;
+    $originalDescription = $world->description;
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.details.update'), [
+            'title' => 'A more welcoming world',
+            'description' => 'A revised authoring description.',
+        ])
+        ->assertRedirect(route('settings.worlds.index'));
+
+    $world->refresh();
+    $version = $world->versions()->firstOrFail();
+
+    expect($world->title)->toBe('A more welcoming world')
+        ->and($world->description)->toBe('A revised authoring description.')
+        ->and($version->title)->toBe($originalTitle)
+        ->and($version->description)->toBe($originalDescription);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.versions.index').'?page=1&per_page=6')
+        ->assertOk()
+        ->assertJsonPath('items.0.title', $originalTitle)
+        ->assertJsonPath('pagination.page', 1)
+        ->assertJsonPath('pagination.perPage', 6)
+        ->assertJsonPath('pagination.total', 1);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.versions.restore', ['version' => $version]))
+        ->assertOk()
+        ->assertJsonPath('world.title', $originalTitle)
+        ->assertJsonPath('world.description', $originalDescription);
+
+    expect($world->refresh()->title)->toBe($originalTitle)
+        ->and($world->description)->toBe($originalDescription)
+        ->and($world->versions()->count())->toBe(2);
+});
+
+test('world detail history cannot restore a version from another world', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $otherWorld = LearningWorld::query()->create([
+        'slug' => 'other-world-for-history',
+        'title' => 'Other world',
+    ]);
+    $version = LearningWorldVersion::query()->create([
+        'learning_world_id' => $otherWorld->id,
+        'title' => 'Unrelated title',
+        'description' => 'Unrelated description',
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.versions.restore', ['version' => $version]))
+        ->assertNotFound();
 });
 
 test('authors can browse and restore activity configuration versions without losing the current version', function () {

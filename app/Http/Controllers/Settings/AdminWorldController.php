@@ -26,12 +26,14 @@ use App\Learning\Actions\UpdateLearningMapDetails;
 use App\Learning\Actions\UpdateLearningMapEditingGroups;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
+use App\Learning\Actions\UpdateLearningWorldDetails;
 use App\Learning\CurrentWorldResolver;
 use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Queries\LoadLearningMapAssetVersions;
 use App\Learning\Queries\LoadLearningMapLayoutVersions;
 use App\Learning\Queries\LoadLearningMapVersions;
+use App\Learning\Queries\LoadLearningWorldVersions;
 use App\Learning\Queries\LoadWorldBuilderReviewQueue;
 use App\Learning\Serializers\LearningMapAssetSerializer;
 use App\Learning\Serializers\LearningMapAssetVersionSerializer;
@@ -39,6 +41,7 @@ use App\Learning\Serializers\LearningMapExportSerializer;
 use App\Learning\Serializers\LearningMapLayoutVersionSerializer;
 use App\Learning\Serializers\LearningMapVersionSerializer;
 use App\Learning\Serializers\LearningWorldExportSerializer;
+use App\Learning\Serializers\LearningWorldVersionSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\LearningMapTransferPackageService;
 use App\Learning\Services\NodeImageUploadService;
@@ -54,6 +57,7 @@ use App\Models\LearningMapLayoutVersion;
 use App\Models\LearningMapVersion;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\LearningWorldVersion;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -68,6 +72,7 @@ class AdminWorldController extends Controller
     public function __construct(
         private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
         private readonly LoadLearningMapVersions $mapVersions,
+        private readonly LoadLearningWorldVersions $worldVersions,
         private readonly LoadLearningMapLayoutVersions $mapLayoutVersions,
         private readonly LoadLearningMapAssetVersions $mapAssetVersions,
         private readonly LearningMapAssetSerializer $mapAssetSerializer,
@@ -76,6 +81,7 @@ class AdminWorldController extends Controller
         private readonly LearningMapTransferPackageService $mapTransferPackage,
         private readonly LearningWorldExportSerializer $worldExportSerializer,
         private readonly LearningMapVersionSerializer $mapVersionSerializer,
+        private readonly LearningWorldVersionSerializer $worldVersionSerializer,
         private readonly LearningMapLayoutVersionSerializer $mapLayoutVersionSerializer,
         private readonly AdminWorldRules $rules,
         private readonly LearningMapExportValidator $mapExportValidator,
@@ -90,6 +96,7 @@ class AdminWorldController extends Controller
         private readonly UpdateLearningMapEditingGroups $updateLearningMapEditingGroups,
         private readonly UpdateLearningMapDetails $updateLearningMapDetails,
         private readonly UpdateLearningMapVisuals $updateLearningMapVisuals,
+        private readonly UpdateLearningWorldDetails $updateLearningWorldDetails,
         private readonly DeleteLearningMap $deleteLearningMap,
         private readonly DeleteLearningMapAsset $deleteLearningMapAsset,
         private readonly UpdateLearningMapAsset $updateLearningMapAsset,
@@ -766,6 +773,76 @@ class AdminWorldController extends Controller
         );
 
         return $this->redirectBackToMap($map);
+    }
+
+    public function updateWorld(Request $request): RedirectResponse
+    {
+        $this->authorizeGlobalWorldEdit($request);
+        $world = $this->worldResolver->resolveOrFail();
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $this->updateLearningWorldDetails->handle(
+            $user,
+            $world,
+            $request->validate([
+                'title' => ['required', 'string', 'max:255'],
+                'description' => ['nullable', 'string'],
+            ]),
+        );
+
+        return $this->redirectToWorldGraph($request);
+    }
+
+    public function worldVersions(Request $request): JsonResponse
+    {
+        $this->authorizeGlobalWorldEdit($request);
+        $world = $this->worldResolver->resolveOrFail();
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $versions = $this->worldVersions->paginate(
+            $world,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 6,
+        );
+
+        return response()->json([
+            'items' => $versions->getCollection()
+                ->map(fn (LearningWorldVersion $version): array => $this->worldVersionSerializer->serialize($version))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $versions->currentPage(),
+                'perPage' => $versions->perPage(),
+                'total' => $versions->total(),
+                'lastPage' => $versions->lastPage(),
+            ],
+        ]);
+    }
+
+    public function restoreWorldVersion(
+        Request $request,
+        LearningWorldVersion $version,
+    ): JsonResponse {
+        $this->authorizeGlobalWorldEdit($request);
+        $world = $this->worldResolver->resolveOrFail();
+        abort_unless($version->learning_world_id === $world->id, 404);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $world = $this->updateLearningWorldDetails->handle($user, $world, [
+            'description' => $version->description,
+            'title' => $version->title,
+        ]);
+
+        return response()->json([
+            'world' => [
+                'description' => $world->description,
+                'title' => $world->title,
+            ],
+        ]);
     }
 
     public function mapVersions(Request $request, LearningMap $map): JsonResponse

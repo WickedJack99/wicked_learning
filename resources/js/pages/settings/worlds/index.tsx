@@ -22,8 +22,11 @@ import {
     CircleCheck,
     Download,
     GitBranch,
+    History,
     Map as MapIcon,
     Pencil,
+    RotateCcw,
+    Save,
     SlidersHorizontal,
     Sparkles,
 } from 'lucide-react';
@@ -97,6 +100,28 @@ export type WorldGraph = {
     maps: MapSummary[];
     portalLinks: PortalLinkSummary[];
     world: WorldSummary;
+};
+
+type WorldDetailsForm = {
+    description: string;
+    title: string;
+};
+
+type WorldDetailsVersion = {
+    createdAt: string | null;
+    description: string | null;
+    id: number;
+    title: string;
+};
+
+type WorldDetailsVersionPage = {
+    items: WorldDetailsVersion[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
 };
 
 type CreateMapForm = {
@@ -207,6 +232,23 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
         slug: '',
         title: '',
     });
+    const [worldDetailsOpen, setWorldDetailsOpen] = useState(false);
+    const [worldDetailsForm, setWorldDetailsForm] = useState<WorldDetailsForm>({
+        description: worldGraph.world.description ?? '',
+        title: worldGraph.world.title,
+    });
+    const [worldDetailsErrors, setWorldDetailsErrors] = useState<
+        Record<string, string>
+    >({});
+    const [worldDetailsHistory, setWorldDetailsHistory] =
+        useState<WorldDetailsVersionPage | null>(null);
+    const [worldDetailsHistoryLoading, setWorldDetailsHistoryLoading] =
+        useState(false);
+    const [worldDetailsHistoryError, setWorldDetailsHistoryError] =
+        useState(false);
+    const [worldDetailsSaving, setWorldDetailsSaving] = useState(false);
+    const [restoringWorldDetailsVersionId, setRestoringWorldDetailsVersionId] =
+        useState<number | null>(null);
     useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
     useEffect(() => {
         if (!flowInstance || initialNodes.length === 0) {
@@ -246,6 +288,111 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
             },
             onFinish: () => setCreating(false),
         });
+    };
+
+    const loadWorldDetailsHistory = async (page = 1) => {
+        setWorldDetailsHistoryLoading(true);
+        setWorldDetailsHistoryError(false);
+
+        try {
+            const response = await fetch(
+                '/settings/worlds/versions?page=' + page + '&per_page=1',
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The world history could not be loaded.');
+            }
+
+            setWorldDetailsHistory(
+                (await response.json()) as WorldDetailsVersionPage,
+            );
+        } catch {
+            setWorldDetailsHistoryError(true);
+        } finally {
+            setWorldDetailsHistoryLoading(false);
+        }
+    };
+
+    const openWorldDetails = () => {
+        setWorldDetailsErrors({});
+        setWorldDetailsForm({
+            description: worldGraph.world.description ?? '',
+            title: worldGraph.world.title,
+        });
+        setWorldDetailsOpen(true);
+        void loadWorldDetailsHistory();
+    };
+
+    const saveWorldDetails = () => {
+        setWorldDetailsSaving(true);
+
+        router.patch('/settings/worlds/details', worldDetailsForm, {
+            onError: (errors) => setWorldDetailsErrors(errors),
+            onFinish: () => setWorldDetailsSaving(false),
+            onSuccess: () => setWorldDetailsOpen(false),
+        });
+    };
+
+    const restoreWorldDetailsVersion = async (version: WorldDetailsVersion) => {
+        if (
+            !window.confirm(
+                'Restore this world detail version? The current details will be preserved in history.',
+            )
+        ) {
+            return;
+        }
+
+        setRestoringWorldDetailsVersionId(version.id);
+
+        try {
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+            const response = await fetch(
+                '/settings/worlds/versions/' + version.id + '/restore',
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    method: 'POST',
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The world version could not be restored.');
+            }
+
+            const payload = (await response.json()) as {
+                world: {
+                    description: string | null;
+                    title: string;
+                };
+            };
+            setWorldDetailsForm({
+                description: payload.world.description ?? '',
+                title: payload.world.title,
+            });
+            await loadWorldDetailsHistory(
+                worldDetailsHistory?.pagination.page ?? 1,
+            );
+            router.reload({ only: ['worldGraph'] });
+        } catch {
+            setWorldDetailsHistoryError(true);
+        } finally {
+            setRestoringWorldDetailsVersionId(null);
+        }
     };
 
     return (
@@ -360,6 +507,15 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                                 )}
                             </a>
                         </Button>
+                        <Button
+                            className="mt-2 w-full"
+                            onClick={openWorldDetails}
+                            type="button"
+                            variant="outline"
+                        >
+                            <History className="size-4" />
+                            Edit world details
+                        </Button>
                         <MapExportValidationDialog endpoint="/settings/worlds/maps/exports/validate" />
                         <MapImportDialog endpoint="/settings/worlds/maps/import" />
                         <MapImportDialog
@@ -466,8 +622,209 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                     </form>
                 </DialogContent>
             </Dialog>
+            <Dialog onOpenChange={setWorldDetailsOpen} open={worldDetailsOpen}>
+                <DialogContent
+                    className="max-h-[min(44rem,calc(100vh-2rem))] overflow-hidden sm:max-w-2xl"
+                    data-wl-id="settings.world-builder.world-details-dialog"
+                >
+                    <DialogHeader>
+                        <DialogTitle>Edit world details</DialogTitle>
+                        <DialogDescription>
+                            Update the author-facing title and description. The
+                            canonical world slug stays unchanged.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="world-title">Title</Label>
+                            <Input
+                                id="world-title"
+                                onChange={(event) =>
+                                    setWorldDetailsForm((current) => ({
+                                        ...current,
+                                        title: event.target.value,
+                                    }))
+                                }
+                                value={worldDetailsForm.title}
+                            />
+                            <InputError message={worldDetailsErrors.title} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="world-description">
+                                Description
+                            </Label>
+                            <textarea
+                                className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_22%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                                id="world-description"
+                                onChange={(event) =>
+                                    setWorldDetailsForm((current) => ({
+                                        ...current,
+                                        description: event.target.value,
+                                    }))
+                                }
+                                value={worldDetailsForm.description}
+                            />
+                            <InputError
+                                message={worldDetailsErrors.description}
+                            />
+                        </div>
+                    </div>
+                    <div
+                        className="grid min-h-0 gap-3 border-t border-[var(--settings-border-color)] pt-4"
+                        data-wl-id="settings.world-builder.world-history"
+                    >
+                        <div>
+                            <h3 className="text-sm font-semibold">
+                                Previous versions
+                            </h3>
+                            <p className="text-xs text-[var(--settings-muted-text)]">
+                                Restoring creates a new version of the current
+                                details.
+                            </p>
+                        </div>
+                        {worldDetailsHistoryLoading ? (
+                            <p aria-live="polite" role="status">
+                                Loading world history…
+                            </p>
+                        ) : worldDetailsHistoryError ? (
+                            <p
+                                aria-live="polite"
+                                className="text-sm text-red-400"
+                                role="status"
+                            >
+                                World history could not be loaded. Try again.
+                            </p>
+                        ) : worldDetailsHistory &&
+                          worldDetailsHistory.items.length > 0 ? (
+                            <div className="grid gap-2">
+                                {worldDetailsHistory.items.map((version) => (
+                                    <div
+                                        className="grid gap-2 rounded-md border border-[var(--settings-border-color)] p-3"
+                                        key={version.id}
+                                    >
+                                        <div className="flex items-baseline justify-between gap-3">
+                                            <p className="text-sm font-medium">
+                                                {version.title}
+                                            </p>
+                                            <time className="text-xs text-[var(--settings-muted-text)]">
+                                                {formatWorldVersionDate(
+                                                    version.createdAt,
+                                                )}
+                                            </time>
+                                        </div>
+                                        <p className="line-clamp-1 text-xs text-[var(--settings-muted-text)]">
+                                            {version.description ||
+                                                'No description'}
+                                        </p>
+                                        <Button
+                                            className="justify-self-end"
+                                            disabled={
+                                                restoringWorldDetailsVersionId !==
+                                                null
+                                            }
+                                            onClick={() =>
+                                                void restoreWorldDetailsVersion(
+                                                    version,
+                                                )
+                                            }
+                                            size="sm"
+                                            type="button"
+                                            variant="ghost"
+                                        >
+                                            <RotateCcw className="size-4" />
+                                            {restoringWorldDetailsVersionId ===
+                                            version.id
+                                                ? 'Restoring…'
+                                                : 'Restore this version'}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-[var(--settings-muted-text)]">
+                                No earlier world details yet. The first update
+                                will create one.
+                            </p>
+                        )}
+                        {worldDetailsHistory &&
+                        worldDetailsHistory.pagination.lastPage > 1 ? (
+                            <div className="flex items-center justify-between gap-3">
+                                <Button
+                                    disabled={
+                                        worldDetailsHistoryLoading ||
+                                        worldDetailsHistory.pagination.page <= 1
+                                    }
+                                    onClick={() =>
+                                        void loadWorldDetailsHistory(
+                                            worldDetailsHistory.pagination
+                                                .page - 1,
+                                        )
+                                    }
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Previous
+                                </Button>
+                                <span className="text-xs text-[var(--settings-muted-text)]">
+                                    Page {worldDetailsHistory.pagination.page}{' '}
+                                    of {worldDetailsHistory.pagination.lastPage}
+                                </span>
+                                <Button
+                                    disabled={
+                                        worldDetailsHistoryLoading ||
+                                        worldDetailsHistory.pagination.page >=
+                                            worldDetailsHistory.pagination
+                                                .lastPage
+                                    }
+                                    onClick={() =>
+                                        void loadWorldDetailsHistory(
+                                            worldDetailsHistory.pagination
+                                                .page + 1,
+                                        )
+                                    }
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        ) : null}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            disabled={worldDetailsSaving}
+                            onClick={() => setWorldDetailsOpen(false)}
+                            type="button"
+                            variant="outline"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            disabled={worldDetailsSaving}
+                            onClick={saveWorldDetails}
+                            type="button"
+                        >
+                            <Save className="size-4" />
+                            {worldDetailsSaving ? 'Saving…' : 'Save details'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
+}
+
+function formatWorldVersionDate(value: string | null): string {
+    if (!value) {
+        return 'Unknown date';
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value));
 }
 
 function GraphViewportLoadingOverlay() {

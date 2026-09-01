@@ -29,4 +29,14 @@ class LearningWorld extends Model
     {
         return $this->hasMany(LearningMap::class);
     }
+
+    /**
+     * @return HasMany<LearningWorldVersion, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(LearningWorldVersion::class)
+            ->latest('created_at')
+            ->latest('id');
+    }
 }
