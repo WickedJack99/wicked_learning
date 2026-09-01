@@ -95,6 +95,59 @@ test('learners see published topic areas in manual order and topics alphabetical
         );
 });
 
+test('the topic overview scopes inaccessible maps before hydrating topic cards', function () {
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+        'sort_order' => 10,
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => 'topic-overview-world',
+        'title' => 'Topic Overview World',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'staff-observatory',
+        'title' => 'Staff Observatory',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'public-observatory',
+        'title' => 'Public Observatory',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    $mapQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$mapQueries): void {
+        if (str_contains($query->sql, 'learning_maps')) {
+            $mapQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($learner)
+        ->get(route('topics.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('areas.0.topics.0.title', 'Astronomy')
+            ->where('areas.0.topics.0.mapCount', 1)
+        );
+
+    expect($mapQueries)->not->toBeEmpty()
+        ->and(collect($mapQueries)->contains(
+            fn (QueryExecuted $query): bool => str_contains($query->sql, 'access_roles'),
+        ))->toBeTrue();
+});
+
 test('a published topic page exposes its published subtopics alphabetically', function () {
     $user = User::factory()->create();
     $area = LearningTopicArea::query()->create([

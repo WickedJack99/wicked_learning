@@ -9,6 +9,7 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -27,7 +28,10 @@ class LoadLearningTopics
             ->with(['rootTopics' => fn ($query) => $query
                 ->where('is_published', true)
                 ->orderBy('title')
-                ->with('maps')])
+                ->with(['maps' => /** @param Relation<LearningMap, LearningTopic, mixed> $relation */
+                function (Relation $relation) use ($user): void {
+                    $this->mapAccess->constrainVisibleQuery($relation->getQuery(), $user);
+                }])])
             ->whereHas('rootTopics', fn ($query) => $query->where('is_published', true))
             ->orderBy('sort_order')
             ->orderBy('title')
@@ -141,11 +145,12 @@ class LoadLearningTopics
             $includedIds = $includedIds->merge($nextIds)->unique()->values();
         } while ($nextIds->isNotEmpty());
 
-        return $topics
+        return array_values($topics
             ->whereIn('id', $includedIds->all())
             ->pluck('slug')
+            ->map(fn (mixed $slug): string => (string) $slug)
             ->values()
-            ->all();
+            ->all());
     }
 
     /** @return Collection<int, LearningTopicArea> */
