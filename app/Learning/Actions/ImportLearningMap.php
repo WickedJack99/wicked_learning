@@ -480,19 +480,40 @@ class ImportLearningMap
                     continue;
                 }
 
-                LearningActivityStart::query()->create([
-                    'learning_node_id' => $newNodeId,
-                    'learning_activity_id' => $activityId,
-                    'label' => $start['label'] ?? null,
-                    'description' => $start['description'] ?? null,
-                    'image_dark' => $start['imageDark'] ?? null,
-                    'image_light' => $start['imageLight'] ?? null,
-                    'button_color_dark' => $start['buttonColorDark'] ?? null,
-                    'button_border_color_dark' => $start['buttonBorderColorDark'] ?? null,
-                    'button_color_light' => $start['buttonColorLight'] ?? null,
-                    'button_border_color_light' => $start['buttonBorderColorLight'] ?? null,
-                    'sort_order' => $start['sortOrder'] ?? 0,
-                ]);
+                LearningActivityStart::query()->firstOrCreate(
+                    [
+                        'learning_node_id' => $newNodeId,
+                        'learning_activity_id' => $activityId,
+                    ],
+                    [
+                        'label' => $start['label'] ?? null,
+                        'description' => $start['description'] ?? null,
+                        'image_dark' => $start['imageDark'] ?? null,
+                        'image_light' => $start['imageLight'] ?? null,
+                        'button_color_dark' => $start['buttonColorDark'] ?? null,
+                        'button_border_color_dark' => $start['buttonBorderColorDark'] ?? null,
+                        'button_color_light' => $start['buttonColorLight'] ?? null,
+                        'button_border_color_light' => $start['buttonBorderColorLight'] ?? null,
+                        'sort_order' => $start['sortOrder'] ?? 0,
+                    ],
+                );
+            }
+
+            $legacyStartActivityId = is_string($startActivitySlug)
+                ? ($activityIds[$node['slug'].':'.$startActivitySlug] ?? null)
+                : null;
+
+            if ($legacyStartActivityId !== null) {
+                LearningActivityStart::query()->firstOrCreate(
+                    [
+                        'learning_node_id' => $newNodeId,
+                        'learning_activity_id' => $legacyStartActivityId,
+                    ],
+                    [
+                        'label' => null,
+                        'sort_order' => 10,
+                    ],
+                );
             }
         }
     }

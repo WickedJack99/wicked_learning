@@ -752,6 +752,63 @@ test('map authors can import an editable world export bundle with remapped porta
         ->toBe('quiet-library');
 });
 
+test('world import restores route records from legacy start activity fields', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $manifest = $this->actingAs($admin)
+        ->get(route('settings.worlds.export'))
+        ->streamedContent();
+    $payload = json_decode($manifest, true, 512, JSON_THROW_ON_ERROR);
+
+    foreach ($payload['maps'] as &$map) {
+        foreach ($map['nodes'] as &$node) {
+            unset($node['activityStarts']);
+        }
+        unset($node);
+    }
+    unset($map);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'legacy-world.json',
+                json_encode($payload, JSON_THROW_ON_ERROR),
+            ),
+        ])
+        ->assertRedirect(route('settings.worlds.index'));
+
+    $importedMapIds = LearningMap::query()
+        ->where('created_by_user_id', $admin->id)
+        ->pluck('id');
+    $importedNodes = LearningNode::query()
+        ->whereIn('learning_map_id', $importedMapIds)
+        ->whereNotNull('start_activity_id')
+        ->get();
+
+    expect($importedNodes)->toHaveCount(4)
+        ->and(LearningActivityStart::query()
+            ->whereIn('learning_node_id', $importedNodes->pluck('id'))
+            ->count())->toBe(4);
+
+    $this->actingAs($admin)
+        ->get(route('paths.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('pagination.total', 7)
+            ->has('paths', 6)
+        );
+
+    $this->actingAs($admin)
+        ->get(route('topics.show', 'pattern-investigation'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.pathsPagination.total', 7)
+            ->has('topic.paths', 6)
+        );
+});
+
 test('world import rejects duplicate source map slugs without creating maps', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
