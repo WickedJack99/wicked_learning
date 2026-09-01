@@ -247,7 +247,7 @@ test('map authors can download an author-only map export manifest', function () 
         ->and($signalAsset['imageUrl'])->toBe('/images/nodes/fantasy-hex-forest.png')
         ->and($payload['portalTargets'])->not->toBeEmpty()
         ->and($payload['references']['mediaUrls'])
-        ->toContain('/images/themes/abstract-map-background.svg')
+        ->toContain('/images/themes/fantasy-world-map-background.png')
         ->and($payload)->not->toHaveKey('versions')
         ->and($payload)->not->toHaveKey('learnerProgress');
 });
@@ -886,6 +886,43 @@ test('map import rejects external media references before creating content', fun
         ->post(route('settings.worlds.maps.import'), [
             'manifest' => UploadedFile::fake()->createWithContent(
                 'external-media.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+            'title' => 'Should not be created',
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
+});
+
+test('map import rejects missing bundled media references before creating content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $mapCount = LearningMap::query()->count();
+    $manifest = [
+        'format' => 'wicked-learning-map',
+        'formatVersion' => 1,
+        'world' => ['slug' => 'demo-learning-world', 'title' => 'Demo learning world'],
+        'map' => [
+            'slug' => 'missing-bundled-media-map',
+            'title' => 'Missing bundled media map',
+            'backgroundConfig' => [
+                'dark' => ['imageUrl' => '/images/does-not-exist.png'],
+            ],
+        ],
+        'nodes' => [],
+        'mapAssets' => [],
+        'portalTargets' => [],
+        'references' => ['mediaUrls' => ['/images/does-not-exist.png']],
+    ];
+
+    $this->actingAs($admin)
+        ->from(route('settings.index', ['panel' => 'admin-world-builder']))
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'missing-bundled-media.json',
                 json_encode($manifest, JSON_THROW_ON_ERROR),
             ),
             'title' => 'Should not be created',

@@ -602,7 +602,7 @@ test('world map serializes outgoing portal links for learner travel', function (
             ->component('world')
             ->where('world.maps.0.nodes.0.mapSlug', 'first-sector')
             ->has('world.maps.0.nodes.0.startRoutes', 1)
-            ->where('world.maps.0.nodes.0.startRoutes.0.imageDark', '/images/routes/portal-route-dark.svg')
+            ->where('world.maps.0.nodes.0.startRoutes.0.imageDark', '/images/portals/portal-swirl.png')
             ->where('world.maps.0.nodes.0.outgoingPortalLinks.0.targetMapSlug', 'signal-archive')
             ->where('world.maps.0.nodes.0.outgoingPortalLinks.0.targetNodeSlug', 'return-gate')
             ->where('world.maps.0.nodes.0.outgoingPortalLinks.0.targetNodeState', 'locked')

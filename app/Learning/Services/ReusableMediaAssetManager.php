@@ -102,18 +102,7 @@ class ReusableMediaAssetManager
             return false;
         }
 
-        $relativePath = ltrim(substr($path, strlen('/images/')), '/');
-
-        return $relativePath !== ''
-            && ! str_contains($relativePath, '..')
-            && in_array(strtolower(pathinfo($relativePath, PATHINFO_EXTENSION)), [
-                'gif',
-                'jpeg',
-                'jpg',
-                'png',
-                'svg',
-                'webp',
-            ], true);
+        return $this->publicImagePathFromUrl($url) !== null;
     }
 
     /**
