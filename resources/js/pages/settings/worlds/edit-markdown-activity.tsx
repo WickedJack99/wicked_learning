@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { activityFormPayload } from './activity-form-payload';
 import { activityFormFromActivity } from './activity-form-state';
@@ -57,9 +58,23 @@ export default function EditMarkdownActivity({
             {
                 preserveScroll: true,
                 onError: (nextErrors) => setErrors(nextErrors),
-                onSuccess: () => {
+                onSuccess: (page) => {
                     setErrors({});
                     setSaved(true);
+                    const props = page.props as {
+                        markdownActivity?: {
+                            activity?: { updatedAt?: string | null };
+                        };
+                    };
+                    const updatedAt =
+                        props.markdownActivity?.activity?.updatedAt;
+
+                    if (updatedAt) {
+                        setForm((current) => ({
+                            ...current,
+                            updated_at: updatedAt,
+                        }));
+                    }
                 },
                 onFinish: () => setSaving(false),
             },
@@ -111,7 +126,9 @@ export default function EditMarkdownActivity({
                     </section>
                     <footer className="flex shrink-0 items-center justify-between border-t border-[var(--settings-border-color)] py-4">
                         <div>
-                            {saved ? (
+                            {errors.updated_at ? (
+                                <InputError message={errors.updated_at} />
+                            ) : saved ? (
                                 <p className="text-sm text-[var(--settings-accent)]">
                                     Saved
                                 </p>

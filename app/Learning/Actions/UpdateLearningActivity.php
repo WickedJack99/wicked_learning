@@ -26,6 +26,9 @@ use App\Learning\Support\UniqueSlugGenerator;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
 use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class UpdateLearningActivity
 {
@@ -62,41 +65,58 @@ class UpdateLearningActivity
         LearningActivity $activity,
         array $data,
         ?User $user = null,
+        ?string $expectedUpdatedAt = null,
     ): LearningActivity {
-        $activity->loadMissing('node');
-        $updates = $this->updatesFor($activity, $data);
-        $questionChanged = $this->questionConfig->willChange($activity, $data, $updates);
-        $snapshot = $this->recordVersion->snapshot($activity);
+        return DB::transaction(function () use ($activity, $data, $expectedUpdatedAt, $user): LearningActivity {
+            $currentActivity = LearningActivity::query()
+                ->whereKey($activity->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $activity->forceFill($updates);
-
-        if ($activity->isDirty() || $questionChanged) {
             if (
-                $user instanceof User
-                && ($this->reviewState->hasContentChanges($activity)
-                    || $questionChanged
-                    || $activity->isDirty([
-                        'companion_config',
-                        'graph_position_x',
-                        'graph_position_y',
-                    ]))
+                $expectedUpdatedAt !== null
+                && $currentActivity->updated_at?->toIso8601String() !== Carbon::parse($expectedUpdatedAt)->toIso8601String()
             ) {
-                $this->recordVersion->handle($user, $activity, $snapshot);
+                throw ValidationException::withMessages([
+                    'updated_at' => 'This activity changed while you were editing. Reload it before saving again.',
+                ]);
             }
 
-            if ($this->reviewState->hasContentChanges($activity) || $questionChanged) {
-                $this->reviewState->markNeedsReview($activity);
-            } else {
-                $activity->save();
+            $currentActivity->loadMissing('node');
+            $updates = $this->updatesFor($currentActivity, $data);
+            $questionChanged = $this->questionConfig->willChange($currentActivity, $data, $updates);
+            $snapshot = $this->recordVersion->snapshot($currentActivity);
+
+            $currentActivity->forceFill($updates);
+
+            if ($currentActivity->isDirty() || $questionChanged) {
+                if (
+                    $user instanceof User
+                    && ($this->reviewState->hasContentChanges($currentActivity)
+                        || $questionChanged
+                        || $currentActivity->isDirty([
+                            'companion_config',
+                            'graph_position_x',
+                            'graph_position_y',
+                        ]))
+                ) {
+                    $this->recordVersion->handle($user, $currentActivity, $snapshot);
+                }
+
+                if ($this->reviewState->hasContentChanges($currentActivity) || $questionChanged) {
+                    $this->reviewState->markNeedsReview($currentActivity);
+                } else {
+                    $currentActivity->save();
+                }
             }
-        }
 
-        $this->questionConfig->sync($activity, $data);
-        $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
-        $this->syncPortalLinkWhenNeeded($activity, $data);
-        $this->ensureCompetenceTopics->handle($this->competenceConfig->topicsForActivity($activity));
+            $this->questionConfig->sync($currentActivity, $data);
+            $this->npcDialogueConfig->scaffoldDefaultEnd($currentActivity);
+            $this->syncPortalLinkWhenNeeded($currentActivity, $data);
+            $this->ensureCompetenceTopics->handle($this->competenceConfig->topicsForActivity($currentActivity));
 
-        return $activity;
+            return $currentActivity->refresh();
+        });
     }
 
     /**

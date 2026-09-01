@@ -27,6 +27,7 @@ const coreFields: Array<keyof ActivityForm> = [
     'slug',
     'title',
     'type',
+    'updated_at',
 ];
 
 const obstacleFields: Array<keyof ActivityForm> = [

@@ -1605,6 +1605,7 @@ test('activity edits enter the scoped AI review queue', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'title' => 'Welcome to the field notes, revised',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $activity->node));
@@ -2125,6 +2126,7 @@ test('admin users configure portal destinations from portal activities', functio
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $targetActivity), [
+            'updated_at' => $targetActivity->updated_at?->toIso8601String(),
             'title' => $targetActivity->title,
             'slug' => $targetActivity->slug,
             'type' => 'portal',
@@ -2231,6 +2233,7 @@ test('admin users can update obstacle activity images', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'obstacle_background_dark' => '/storage/learning/nodes/mineshaft-dark.svg',
             'obstacle_background_light' => '/storage/learning/nodes/mineshaft-light.svg',
             'obstacle_image_dark' => '/storage/learning/nodes/rock-wall-dark.svg',
@@ -2367,6 +2370,7 @@ test('admin users can open and save the markdown page editor', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'title' => 'Markdown route',
             'type' => 'markdown',
             'return_to_markdown' => true,
@@ -2454,6 +2458,7 @@ test('admin users can create and connect activity graph nodes', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'open_practice_next_step' => 'Follow the clue that feels most useful.',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
@@ -2880,6 +2885,7 @@ test('admin users can edit and delete activity graph nodes', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'title' => 'Updated Field Note',
             'slug' => 'updated-field-note',
             'type' => 'portal',
@@ -4023,6 +4029,60 @@ test('map detail edits require an author snapshot token', function () {
         ->and($map->versions()->count())->toBe(0);
 });
 
+test('activity edits reject a stale author form without overwriting newer details', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()
+        ->where('slug', 'write-a-field-note')
+        ->firstOrFail();
+    $staleUpdatedAt = $activity->updated_at?->toIso8601String();
+
+    Carbon::setTestNow(now()->addMinute());
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'introduction' => 'The newer activity details must win.',
+            'title' => 'First author activity update',
+            'updated_at' => $staleUpdatedAt,
+        ])
+        ->assertRedirect();
+    Carbon::setTestNow();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.nodes.activities.edit', $activity->node))
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'introduction' => 'This must not overwrite the newer activity details.',
+            'title' => 'Stale author activity update',
+            'updated_at' => $staleUpdatedAt,
+        ])
+        ->assertSessionHasErrors('updated_at');
+
+    expect($activity->refresh()->title)->toBe('First author activity update')
+        ->and($activity->introduction)->toBe('The newer activity details must win.')
+        ->and($activity->versions()->count())->toBe(1);
+});
+
+test('activity edits require an author snapshot token', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()
+        ->where('slug', 'write-a-field-note')
+        ->firstOrFail();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.nodes.activities.edit', $activity->node))
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'title' => 'Rejected activity update',
+        ])
+        ->assertSessionHasErrors('updated_at');
+
+    expect($activity->refresh()->title)->not->toBe('Rejected activity update')
+        ->and($activity->versions()->count())->toBe(0);
+});
+
 test('world detail history cannot restore a version from another world', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
@@ -4055,6 +4115,7 @@ test('authors can browse and restore activity configuration versions without los
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'title' => 'Updated field note',
             'introduction' => 'A changed authoring prompt.',
             'reflection_prompt' => 'A changed reflection prompt.',
@@ -4282,6 +4343,7 @@ test('activity versions cannot be restored across activities', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'title' => 'Versioned activity',
         ])
         ->assertRedirect();

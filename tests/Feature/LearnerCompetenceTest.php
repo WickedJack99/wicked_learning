@@ -1127,6 +1127,7 @@ test('admins can configure competence topics on any activity', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'competence_topics' => [
                 ['topic' => 'Creative Problem Solving', 'weight' => 3],
                 ['topic' => 'Creative Problem Solving', 'weight' => 4],

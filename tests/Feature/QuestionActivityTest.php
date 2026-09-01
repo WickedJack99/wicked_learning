@@ -56,6 +56,7 @@ test('admins can author question content and preserve it in private templates', 
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'title' => $activity->title,
             'type' => 'question',
             'question_prompt' => 'Which clue should guide the revised observation?',

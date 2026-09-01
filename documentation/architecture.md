@@ -244,6 +244,10 @@ activity's current node. A missing target is skipped rather than recreated as
 an unrelated or cross-node reference. The activity editor exposes a
 permission-protected paginated history endpoint; restoration records the
 current snapshot first and then marks the restored activity for author review.
+Ordinary activity detail updates lock the current activity row and require its
+serialized `updatedAt` token, rejecting stale author forms before recording a
+version or changing related configuration. Graph layout writes remain a
+separate interaction and history boundary.
 Start-route records, node placement and separate NPC dialogue graph records
 remain outside this activity snapshot. Snapshots created before transition
 capture remain configuration-only and do not alter current routes.

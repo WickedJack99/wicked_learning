@@ -81,6 +81,7 @@ test('an administrator can request a scoped activity review', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'title' => 'Next reflection, revised',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $activity->node));

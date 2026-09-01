@@ -45,6 +45,7 @@ class AdminActivityRules
     public function update(LearningActivity $activity): array
     {
         return [
+            'updated_at' => ['required', 'date'],
             'title' => ['sometimes', 'required', 'string', 'max:120'],
             'slug' => [
                 'sometimes',

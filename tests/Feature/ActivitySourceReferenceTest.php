@@ -85,6 +85,7 @@ test('clearing source references preserves the rest of activity configuration', 
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'source_references' => [],
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
@@ -146,6 +147,7 @@ test('source-linked concepts remain in activity provenance snapshots', function 
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'source_references' => [[
                 'concepts' => ['Retrieval', 'Spacing'],
                 'title' => 'A source with learning context',

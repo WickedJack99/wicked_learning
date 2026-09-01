@@ -25,6 +25,7 @@ import {
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColorField } from '@/components/color-input';
+import InputError from '@/components/input-error';
 import { PaginationControls } from '@/components/pagination-controls';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
@@ -3091,6 +3092,8 @@ export default function EditNodeActivities({
                             uploadingImageKey={uploadingImageKey}
                         />
                     </div>
+
+                    <InputError message={editErrors.updated_at} />
 
                     <DialogFooter className="shrink-0">
                         {editingActivity &&

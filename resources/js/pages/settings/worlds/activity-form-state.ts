@@ -19,7 +19,8 @@ type ActivityFormSource = Pick<
     | 'slug'
     | 'title'
     | 'type'
->;
+> &
+    Partial<Pick<ActivitySummary, 'updatedAt'>>;
 export function emptyCreateForm(type: string): CreateActivityForm {
     return {
         activity_sound_enabled: false,
@@ -198,6 +199,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         tool_grant_tool_y: '50',
         tool_grant_typing_speed: '24',
         type,
+        updated_at: '',
     };
 }
 
@@ -579,9 +581,9 @@ export function activityFormFromActivity(
         ),
         shared_task_project_goal: stringConfig(activity.config.projectGoal),
         shared_task_project_steps: Array.isArray(activity.config.projectSteps)
-            ? activity.config.projectSteps.filter(
-                  (step): step is string => typeof step === 'string',
-              ).join('\n')
+            ? activity.config.projectSteps
+                  .filter((step): step is string => typeof step === 'string')
+                  .join('\n')
             : '',
         shared_task_peer_review_enabled: booleanConfig(
             activity.config.peerReviewEnabled,
@@ -675,6 +677,7 @@ export function activityFormFromActivity(
             '24',
         ),
         type: activity.type || fallbackType,
+        updated_at: activity.updatedAt ?? '',
     };
 }
 
@@ -904,10 +907,7 @@ function itemGrantItems(value: unknown): ActivityForm['item_grant_items'] {
 }
 
 function defaultQuestionOptions(): ActivityQuestionOptionForm[] {
-    return [
-        emptyQuestionOption('A'),
-        emptyQuestionOption('B'),
-    ];
+    return [emptyQuestionOption('A'), emptyQuestionOption('B')];
 }
 
 function emptyQuestionOption(label: string): ActivityQuestionOptionForm {

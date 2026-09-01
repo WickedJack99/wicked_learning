@@ -71,6 +71,7 @@ test('admins can add optional time guidance to any activity', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'time_guide_minutes' => null,
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
@@ -106,6 +107,7 @@ test('clearing ambience removes it without replacing other activity configuratio
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'activity_sound_enabled' => false,
             'activity_sound_id' => '',
         ])
@@ -169,6 +171,7 @@ test('admins can add optional feedback guidance to any activity', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
+            'updated_at' => $activity->updated_at?->toIso8601String(),
             'feedback_evidence' => '',
             'feedback_next_action' => '',
             'feedback_purpose' => '',

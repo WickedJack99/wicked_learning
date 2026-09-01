@@ -791,6 +791,10 @@ remain separate histories and are not changed by an activity restore. Older
 activity history entries without route data remain safe to restore without
 removing current connections.
 
+Activity edits use the activity's current authoring snapshot, so a stale form is
+rejected instead of silently overwriting a newer activity or its related
+configuration.
+
 Map configuration keeps its existing section menus but switches nested authoring
 navigation to compact horizontal controls below wide-desktop layouts. Detail and
 visual preview columns stack at the same breakpoint so map fields and actions

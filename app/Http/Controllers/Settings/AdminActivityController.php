@@ -503,6 +503,7 @@ class AdminActivityController extends Controller
             $activity,
             $data,
             $request->user(),
+            $data['updated_at'],
         );
 
         if (($data['return_to_markdown'] ?? false) && $activity->type === 'markdown') {

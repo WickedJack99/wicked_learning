@@ -575,6 +575,7 @@ export type CreateActivityForm = {
     tool_grant_tool_y: string;
     tool_grant_typing_speed: string;
     type: string;
+    updated_at: string;
 };
 
 export type ActivityQuestionOptionForm = {
