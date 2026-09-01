@@ -23,6 +23,7 @@ use App\Models\LearningPortalLink;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningTool;
+use App\Models\LearningWorld;
 use App\Models\NpcDialogueAnswer;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
@@ -583,6 +584,34 @@ test('map export validation reports malformed manifests', function () {
         ->assertOk()
         ->assertJsonPath('valid', false)
         ->assertJsonPath('errors.0', 'format must be "wicked-learning-map".');
+});
+
+test('authors can preflight a world export without changing content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $world = LearningWorld::query()->where('slug', 'demo-learning-world')->firstOrFail();
+    $mapCount = LearningMap::query()->count();
+    $manifest = $this->actingAs($admin)
+        ->get(route('settings.worlds.export'))
+        ->streamedContent();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.exports.validate'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'demo-world.json',
+                $manifest,
+            ),
+            'scope' => 'world',
+        ])
+        ->assertOk()
+        ->assertJsonPath('valid', true)
+        ->assertJsonPath('world.slug', $world->slug)
+        ->assertJsonPath('world.exists', true)
+        ->assertJsonPath('counts.maps', $world->maps()->count());
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
 });
 
 test('map authors can import a validated export as a new authored map', function () {

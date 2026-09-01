@@ -249,7 +249,9 @@ values are collected into a separate reference list. Learner progress, private
 revision history, local editing-group assignments and AI review state are not part
 of the export contract. The matching readiness validator caps collection sizes,
 checks slugs and graph links in memory, and performs only bounded workspace
-lookups; it never imports or mutates the submitted manifest.
+lookups; it never imports or mutates the submitted manifest. The author import
+dialogs can preflight either a single-map or world manifest through this same
+server-side boundary, while the mutating import action validates again.
 
 The same serializer exposes an author-authorized `wicked-learning-map-asset`
 manifest for one MapAsset. It loads the asset's owning map and, when present,

@@ -801,7 +801,9 @@ references are explicit: bundled `/images` paths remain reusable, uploaded
 external media references are rejected before content is created. Media bytes,
 learner state, revision history, permissions and editor groups remain outside
 the import contract; cross-workspace media transfer remains future authoring
-work.
+work. Both import dialogs preflight their selected bundle through the same
+server-side validator and keep the import action unavailable until the bundle
+is structurally ready; the import endpoint validates again before mutation.
 Authors can also export one MapAsset as a standalone JSON bundle. It includes
 the asset, its authored learning place and that place's activities, routes,
 dialogue, questions, translations and asset-scoped message topics. Media remain

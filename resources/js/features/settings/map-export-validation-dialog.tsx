@@ -17,13 +17,14 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 export type MapExportValidationResult = {
     counts: {
         activities: number;
+        maps?: number;
         mapAssets: number;
         mediaReferences: number;
         nodes: number;
         portalTargets: number;
     };
     errors: string[];
-    map: { exists: boolean; slug: string | null };
+    map?: { exists: boolean; slug: string | null };
     summary: string;
     valid: boolean;
     warnings: string[];
@@ -224,7 +225,11 @@ export function MapExportValidationDialog({ endpoint }: { endpoint: string }) {
     );
 }
 
-function ValidationSummary({ result }: { result: MapExportValidationResult }) {
+export function ValidationSummary({
+    result,
+}: {
+    result: MapExportValidationResult;
+}) {
     const t = usePlatformTranslation();
 
     return (
@@ -239,6 +244,15 @@ function ValidationSummary({ result }: { result: MapExportValidationResult }) {
             </div>
 
             <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+                {typeof result.counts.maps === 'number' ? (
+                    <ValidationCount
+                        label={t(
+                            'settings.world_builder.export_validation.maps',
+                            'Maps',
+                        )}
+                        value={result.counts.maps}
+                    />
+                ) : null}
                 <ValidationCount
                     label={t(
                         'settings.world_builder.export_validation.nodes',

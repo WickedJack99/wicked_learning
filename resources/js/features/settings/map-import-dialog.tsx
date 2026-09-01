@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { FileUp } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ValidationSummary } from '@/features/settings/map-export-validation-dialog';
+import type { MapExportValidationResult } from '@/features/settings/map-export-validation-dialog';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type ImportMapErrors = Record<string, string>;
@@ -31,7 +33,11 @@ export function MapImportDialog({
     const isWorldImport = scope === 'world';
     const [open, setOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [validating, setValidating] = useState(false);
     const [errors, setErrors] = useState<ImportMapErrors>({});
+    const [validation, setValidation] =
+        useState<MapExportValidationResult | null>(null);
+    const validationSequence = useRef(0);
     const [form, setForm] = useState<{
         file: File | null;
         slug: string;
@@ -39,12 +45,100 @@ export function MapImportDialog({
     }>({ file: null, slug: '', title: '' });
 
     const reset = () => {
+        validationSequence.current += 1;
         setForm({ file: null, slug: '', title: '' });
         setErrors({});
+        setValidation(null);
+        setValidating(false);
+    };
+
+    const validateFile = async (file: File | null) => {
+        const sequence = ++validationSequence.current;
+        setValidation(null);
+        setErrors({});
+
+        if (!file) {
+            setValidating(false);
+
+            return;
+        }
+
+        setValidating(true);
+        const formData = new FormData();
+        formData.append('manifest', file);
+        formData.append('scope', scope);
+        const csrfToken = document
+            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+            ?.getAttribute('content');
+
+        try {
+            const response = await fetch(
+                '/settings/worlds/maps/exports/validate',
+                {
+                    body: formData,
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                    },
+                    method: 'POST',
+                },
+            );
+            const payload = (await response.json()) as
+                | MapExportValidationResult
+                | { message?: string };
+
+            if (sequence !== validationSequence.current) {
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    'message' in payload && payload.message
+                        ? payload.message
+                        : t(
+                              'settings.world_builder.import.validation_failed',
+                              'The file could not be checked.',
+                          ),
+                );
+            }
+
+            setValidation(payload as MapExportValidationResult);
+        } catch (validationError) {
+            if (sequence !== validationSequence.current) {
+                return;
+            }
+
+            setErrors({
+                manifest:
+                    validationError instanceof Error
+                        ? validationError.message
+                        : t(
+                              'settings.world_builder.import.validation_failed',
+                              'The file could not be checked.',
+                          ),
+            });
+        } finally {
+            if (sequence === validationSequence.current) {
+                setValidating(false);
+            }
+        }
     };
 
     const importMap = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (!form.file || !validation?.valid) {
+            setErrors({
+                manifest: t(
+                    'settings.world_builder.import.validation_required',
+                    'Check a valid export file before importing.',
+                ),
+            });
+
+            return;
+        }
+
         setProcessing(true);
         setErrors({});
 
@@ -100,7 +194,10 @@ export function MapImportDialog({
                 }}
                 open={open}
             >
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent
+                    className="sm:max-w-lg"
+                    data-wl-id={`settings.world-builder.${isWorldImport ? 'world' : 'map'}.import.dialog`}
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {t(
@@ -137,17 +234,53 @@ export function MapImportDialog({
                             <Input
                                 accept=".json,application/json,text/plain"
                                 id="map-import-file"
-                                onChange={(event) =>
+                                onChange={(event) => {
+                                    const file =
+                                        event.target.files?.[0] ?? null;
                                     setForm((current) => ({
                                         ...current,
-                                        file: event.target.files?.[0] ?? null,
-                                    }))
-                                }
+                                        file,
+                                    }));
+                                    void validateFile(file);
+                                }}
                                 required
                                 type="file"
                             />
                             <InputError message={errors.manifest} />
+                            {errors.manifest && form.file && !validating ? (
+                                <Button
+                                    data-wl-id="settings.world-builder.import.revalidate"
+                                    onClick={() => void validateFile(form.file)}
+                                    size="sm"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    {t(
+                                        'settings.world_builder.import.recheck',
+                                        'Check again',
+                                    )}
+                                </Button>
+                            ) : null}
                         </div>
+
+                        {validating ? (
+                            <p
+                                aria-live="polite"
+                                className="text-sm text-[var(--settings-muted-text)]"
+                                role="status"
+                            >
+                                {t(
+                                    'settings.world_builder.import.checking',
+                                    'Checking the export before import...',
+                                )}
+                            </p>
+                        ) : null}
+
+                        {validation ? (
+                            <div data-wl-id="settings.world-builder.import.validation-summary">
+                                <ValidationSummary result={validation} />
+                            </div>
+                        ) : null}
 
                         {!isWorldImport ? (
                             <div className="grid gap-4">
@@ -208,7 +341,15 @@ export function MapImportDialog({
                                     'Cancel',
                                 )}
                             </Button>
-                            <Button disabled={processing} type="submit">
+                            <Button
+                                disabled={
+                                    processing ||
+                                    validating ||
+                                    !form.file ||
+                                    validation?.valid !== true
+                                }
+                                type="submit"
+                            >
                                 <FileUp className="size-4" />
                                 {processing
                                     ? t(

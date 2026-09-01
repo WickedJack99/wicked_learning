@@ -276,9 +276,25 @@ class AdminWorldController extends Controller
 
     public function validateMapExport(Request $request): JsonResponse
     {
+        $scope = $request->validate([
+            'scope' => ['nullable', 'in:map,world'],
+        ])['scope'] ?? 'map';
         $data = $request->validate([
-            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:10240'],
+            'manifest' => [
+                'required',
+                'file',
+                'mimes:json,txt',
+                'max:'.($scope === 'world' ? 51200 : 10240),
+            ],
         ]);
+
+        if ($scope === 'world') {
+            $world = $this->worldResolver->query()->firstOrFail();
+
+            return response()->json(
+                $this->worldExportValidator->validate($data['manifest'], $world),
+            );
+        }
 
         return response()->json(
             $this->mapExportValidator->validate($data['manifest']),
