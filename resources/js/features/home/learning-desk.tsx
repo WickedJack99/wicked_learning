@@ -475,6 +475,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             'home.learning_desk.connections.title',
                                             'Possible connections',
                                         )}
+                                        showTrailingRule={false}
                                     />
                                     {desk.connections.length > 0 ? (
                                         <div className="border-b border-[var(--learner-border-color)] py-6">
