@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 
 type Props = {
     link: {
+        buttonLabel?: string;
+        description?: string;
         note: string | null;
         purpose: string;
+        redeemUrl?: string;
         token: string;
     };
 };
@@ -31,17 +34,20 @@ export default function Redeem({ link }: Props) {
                         </p>
                     ) : null}
                     <p className="mt-4 text-sm text-slate-400">
-                        This link can be used once and expires at the time set
-                        by its creator.
+                        {link.description ??
+                            'This link can be used once and expires at the time set by its creator.'}
                     </p>
                     <Button
                         className="mt-6"
                         onClick={() =>
-                            router.post(`/access-links/${link.token}/redeem`)
+                            router.post(
+                                link.redeemUrl ??
+                                    `/access-links/${link.token}/redeem`,
+                            )
                         }
                     >
                         <Check className="size-4" />
-                        Redeem link
+                        {link.buttonLabel ?? 'Redeem link'}
                     </Button>
                 </section>
             </main>

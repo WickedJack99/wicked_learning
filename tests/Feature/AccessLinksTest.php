@@ -367,6 +367,22 @@ test('temporary login links reject the per-user policy', function () {
     expect(AccessLink::query()->count())->toBe(0);
 });
 
+test('the temporary login endpoint rejects non-temporary access links', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $token = AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_GRANT_ITEMS,
+        ['items' => []],
+        now()->addDay(),
+    );
+
+    $this->post(route('access-links.temporary-login.redeem', ['token' => $token]))
+        ->assertUnprocessable();
+
+    expect(AccessLink::query()->firstOrFail()->redemptions()->count())->toBe(0)
+        ->and(User::query()->count())->toBe(1);
+});
+
 test('registration links enter the existing registration flow and are consumed when the account is created', function () {
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
     $token = AccessLink::createFor(
@@ -393,7 +409,7 @@ test('registration links enter the existing registration flow and are consumed w
     expect(AccessLink::query()->firstOrFail()->redeemed_by_user_id)->toBe($linkedUser->id);
 });
 
-test('temporary login links create a learner-role account and cannot be replayed', function () {
+test('temporary login link previews do not redeem or authenticate', function () {
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
     $token = AccessLink::createFor(
         $admin,
@@ -403,6 +419,28 @@ test('temporary login links create a learner-role account and cannot be replayed
     );
 
     $this->get(route('access-links.show', ['token' => $token]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('access-links/redeem')
+            ->where('link.buttonLabel', 'Continue as temporary learner')
+            ->where('link.redeemUrl', '/access-links/'.$token.'/temporary-login')
+        );
+
+    expect(auth()->user())->toBeNull()
+        ->and(User::query()->count())->toBe(1)
+        ->and(AccessLink::query()->firstOrFail()->redeemed_at)->toBeNull();
+});
+
+test('temporary login links create a learner-role account through an explicit post and cannot be replayed', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $token = AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_TEMPORARY_LOGIN,
+        [],
+        now()->addDay(),
+    );
+
+    $this->post(route('access-links.temporary-login.redeem', ['token' => $token]))
         ->assertRedirect(route('home', absolute: false));
 
     $temporary = auth()->user();
@@ -416,7 +454,7 @@ test('temporary login links create a learner-role account and cannot be replayed
 
     auth()->logout();
 
-    $this->get(route('access-links.show', ['token' => $token]))
+    $this->post(route('access-links.temporary-login.redeem', ['token' => $token]))
         ->assertGone();
 });
 

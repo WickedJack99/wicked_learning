@@ -751,11 +751,13 @@ grant, item grant, registration invitation or temporary learner login. Admins
 can choose one-time, multiple-use or one-time-per-user behavior and enable or
 disable a link. The management list is server-paginated so older links remain
 reachable without sending the whole history to the browser. Link tokens are
-shown only when created; redemption is checked on the server and temporary
-accounts receive the learner role plus a separate least-privileged temporary
-role. The temporary account role remains an access-management detail rather
-than an authored map audience condition. Existing registration tokens remain a
-separate compatibility path.
+shown only when created; redemption is checked on the server. Temporary login
+links first show a non-mutating confirmation page and create the temporary
+learner session only after an explicit POST. Temporary accounts receive the
+learner role plus a separate least-privileged temporary role. The temporary
+account role remains an access-management detail rather than an authored map
+audience condition. Existing registration tokens remain a separate
+compatibility path.
 Roles carry permission levels per resource:
 
 - `No`: no access

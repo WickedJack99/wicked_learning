@@ -101,7 +101,18 @@ class AdminAccessLinkController extends Controller
         }
 
         if ($link->purpose === AccessLink::PURPOSE_TEMPORARY_LOGIN) {
-            return $this->redeemTemporaryLogin($link);
+            return Inertia::render('access-links/redeem', [
+                'link' => [
+                    'purpose' => $this->purposeLabels()[$link->purpose] ?? 'Access link',
+                    'token' => $token,
+                    'note' => $link->note,
+                    'redeemUrl' => route('access-links.temporary-login.redeem', [
+                        'token' => $token,
+                    ], false),
+                    'buttonLabel' => 'Continue as temporary learner',
+                    'description' => 'Continuing creates a temporary learner session for this link.',
+                ],
+            ]);
         }
 
         if (! $request->user()) {
@@ -204,10 +215,14 @@ class AdminAccessLinkController extends Controller
         return $link;
     }
 
-    private function redeemTemporaryLogin(AccessLink $link): RedirectResponse
+    public function redeemTemporaryLogin(string $token): RedirectResponse
     {
-        $user = DB::transaction(function () use ($link): User {
-            $lockedLink = AccessLink::query()->lockForUpdate()->findOrFail($link->id);
+        $user = DB::transaction(function () use ($token): User {
+            $lockedLink = AccessLink::query()
+                ->where('token_hash', AccessLink::hashToken($token))
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_unless($lockedLink->purpose === AccessLink::PURPOSE_TEMPORARY_LOGIN, 422);
             abort_unless($lockedLink->canBeRedeemed(), 410);
 
             $user = User::query()->create([

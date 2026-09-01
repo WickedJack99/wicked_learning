@@ -41,6 +41,8 @@ Route::get('source', SourceCodePageController::class)->name('source');
 
 Route::get('access-links/{token}', [AdminAccessLinkController::class, 'show'])
     ->name('access-links.show');
+Route::post('access-links/{token}/temporary-login', [AdminAccessLinkController::class, 'redeemTemporaryLogin'])
+    ->name('access-links.temporary-login.redeem');
 
 Route::get('world', [LearningWorldController::class, 'show'])->name('world');
 Route::get('learning/search', [LearningWorldController::class, 'search'])
