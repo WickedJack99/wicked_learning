@@ -25,6 +25,7 @@ class AdminWorldSummarySerializer
             'slug' => $world->slug,
             'title' => $world->title,
             'description' => $world->description,
+            'updatedAt' => $world->updated_at?->toIso8601String(),
         ];
     }
 

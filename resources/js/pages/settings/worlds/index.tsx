@@ -58,6 +58,7 @@ export type WorldSummary = {
     id: number;
     slug: string;
     title: string;
+    updatedAt: string | null;
 };
 
 export type MapSummary = {
@@ -105,6 +106,7 @@ export type WorldGraph = {
 type WorldDetailsForm = {
     description: string;
     title: string;
+    updated_at: string;
 };
 
 type WorldDetailsVersion = {
@@ -236,6 +238,7 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
     const [worldDetailsForm, setWorldDetailsForm] = useState<WorldDetailsForm>({
         description: worldGraph.world.description ?? '',
         title: worldGraph.world.title,
+        updated_at: worldGraph.world.updatedAt ?? '',
     });
     const [worldDetailsErrors, setWorldDetailsErrors] = useState<
         Record<string, string>
@@ -325,6 +328,7 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
         setWorldDetailsForm({
             description: worldGraph.world.description ?? '',
             title: worldGraph.world.title,
+            updated_at: worldGraph.world.updatedAt ?? '',
         });
         setWorldDetailsOpen(true);
         void loadWorldDetailsHistory();
@@ -378,11 +382,13 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                 world: {
                     description: string | null;
                     title: string;
+                    updatedAt: string | null;
                 };
             };
             setWorldDetailsForm({
                 description: payload.world.description ?? '',
                 title: payload.world.title,
+                updated_at: payload.world.updatedAt ?? '',
             });
             await loadWorldDetailsHistory(
                 worldDetailsHistory?.pagination.page ?? 1,
@@ -668,6 +674,7 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                                 message={worldDetailsErrors.description}
                             />
                         </div>
+                        <InputError message={worldDetailsErrors.updated_at} />
                     </div>
                     <div
                         className="grid min-h-0 gap-3 border-t border-[var(--settings-border-color)] pt-4"

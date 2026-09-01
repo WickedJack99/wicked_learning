@@ -215,7 +215,10 @@ pattern to the current world's title and description. World detail history is
 permission-protected and paginated; restore accepts only a version belonging to
 the canonical current world and keeps the current details as a new history
 entry. The canonical world slug remains outside this edit contract because it
-is the current-world resolver key.
+is the current-world resolver key. Detail updates lock the current row and
+require the serialized `updatedAt` token, rejecting stale author forms before
+they create a snapshot or overwrite newer data; explicit restore remains an
+intentional operation without that precondition.
 
 `LearningMapLayoutVersion` stores a private JSON snapshot of node IDs and axial
 positions before a World Builder placement update or neighboring-node swap. Its

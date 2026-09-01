@@ -764,7 +764,9 @@ restore an earlier version without losing the current details.
 
 World title and description edits keep the same private, bounded author
 history. Authors can inspect earlier world details and restore one without
-changing the world's canonical slug or losing the current details.
+changing the world's canonical slug or losing the current details. A stale
+author form is rejected when another author has saved newer details, so a
+later save cannot silently overwrite that change.
 
 Node placement edits also keep a bounded, paginated layout history. Authors can
 restore an earlier arrangement of the existing nodes without changing their

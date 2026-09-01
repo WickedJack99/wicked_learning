@@ -34,6 +34,7 @@ use App\Models\UserPreference;
 use Database\Seeders\DemoLearningWorldSeeder;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -3900,6 +3901,7 @@ test('authors can edit and restore world details without losing the current vers
         ->patch(route('settings.worlds.details.update'), [
             'title' => 'A more welcoming world',
             'description' => 'A revised authoring description.',
+            'updated_at' => $world->updated_at?->toIso8601String(),
         ])
         ->assertRedirect(route('settings.worlds.index'));
 
@@ -3928,6 +3930,40 @@ test('authors can edit and restore world details without losing the current vers
     expect($world->refresh()->title)->toBe($originalTitle)
         ->and($world->description)->toBe($originalDescription)
         ->and($world->versions()->count())->toBe(2);
+});
+
+test('world detail edits reject a stale author form without overwriting newer details', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $world = LearningWorld::query()
+        ->where('slug', CurrentWorldResolver::DEFAULT_WORLD_SLUG)
+        ->firstOrFail();
+    $staleUpdatedAt = $world->updated_at?->toIso8601String();
+
+    Carbon::setTestNow(now()->addMinute());
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.details.update'), [
+            'title' => 'First author update',
+            'description' => 'The newer details must win.',
+            'updated_at' => $staleUpdatedAt,
+        ])
+        ->assertRedirect(route('settings.worlds.index'));
+    Carbon::setTestNow();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.index'))
+        ->patch(route('settings.worlds.details.update'), [
+            'title' => 'Stale author update',
+            'description' => 'This must not overwrite the newer details.',
+            'updated_at' => $staleUpdatedAt,
+        ])
+        ->assertSessionHasErrors('updated_at');
+
+    expect($world->refresh()->title)->toBe('First author update')
+        ->and($world->description)->toBe('The newer details must win.')
+        ->and($world->versions()->count())->toBe(1);
 });
 
 test('world detail history cannot restore a version from another world', function () {

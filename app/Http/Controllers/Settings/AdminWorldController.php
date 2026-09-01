@@ -788,7 +788,9 @@ class AdminWorldController extends Controller
             $request->validate([
                 'title' => ['required', 'string', 'max:255'],
                 'description' => ['nullable', 'string'],
+                'updated_at' => ['required', 'date'],
             ]),
+            $request->string('updated_at')->toString(),
         );
 
         return $this->redirectToWorldGraph($request);
@@ -841,6 +843,7 @@ class AdminWorldController extends Controller
             'world' => [
                 'description' => $world->description,
                 'title' => $world->title,
+                'updatedAt' => $world->updated_at?->toIso8601String(),
             ],
         ]);
     }
