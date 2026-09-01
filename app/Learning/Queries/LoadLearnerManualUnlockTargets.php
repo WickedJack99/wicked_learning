@@ -4,8 +4,11 @@ namespace App\Learning\Queries;
 
 use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearningMapEditAccessService;
+use App\Models\LearningMap;
+use App\Models\LearningNode;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class LoadLearnerManualUnlockTargets
 {
@@ -22,29 +25,35 @@ class LoadLearnerManualUnlockTargets
     public function handle(User $viewer): array
     {
         $world = $this->worldResolver->query()
-            ->with(['maps.nodes:id,learning_map_id,title,state'])
+            ->with([
+                'maps' => /** @param Relation<LearningMap, LearningWorld, mixed> $relation */
+                function (Relation $relation) use ($viewer): void {
+                    $this->mapEditAccess->scopeMapsUserCanEdit($relation->getQuery(), $viewer);
+                    $relation->select(['id', 'learning_world_id', 'title']);
+                    $relation->with('nodes:id,learning_map_id,title,state');
+                },
+            ])
             ->first();
 
         if (! $world instanceof LearningWorld) {
             return [];
         }
 
-        return $world->maps
-            ->filter(fn ($map): bool => $this->mapEditAccess->canEditMap($viewer, $map))
-            ->map(function ($map): array {
-                $nodes = $map->nodes
-                    ->filter(fn ($node): bool => $node->state === 'locked')
+        $targets = $world->maps
+            ->map(function (LearningMap $map): array {
+                $nodes = array_values($map->nodes
+                    ->filter(fn (LearningNode $node): bool => $node->state === 'locked')
                     ->sortBy('title')
-                    ->map(fn ($node): array => [
+                    ->map(fn (LearningNode $node): array => [
                         'id' => (int) $node->id,
-                        'title' => $node->title,
+                        'title' => (string) $node->title,
                     ])
                     ->values()
-                    ->all();
+                    ->all());
 
                 return [
                     'id' => (int) $map->id,
-                    'title' => $map->title,
+                    'title' => (string) $map->title,
                     'nodes' => $nodes,
                 ];
             })
@@ -52,5 +61,7 @@ class LoadLearnerManualUnlockTargets
             ->sortBy('title')
             ->values()
             ->all();
+
+        return array_values($targets);
     }
 }

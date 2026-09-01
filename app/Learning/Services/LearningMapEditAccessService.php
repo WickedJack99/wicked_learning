@@ -9,6 +9,7 @@ use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class LearningMapEditAccessService
 {
@@ -79,6 +80,44 @@ class LearningMapEditAccessService
         return $user->hasScopedAccess(PermissionCatalog::WORLD_MAPS, AccessLevel::UPDATE, AccessScope::ALL)
             || $user->hasScopedAccess(PermissionCatalog::WORLD_NODES, AccessLevel::UPDATE, AccessScope::ALL)
             || $user->hasScopedAccess(PermissionCatalog::WORLD_ACTIVITIES, AccessLevel::UPDATE, AccessScope::ALL);
+    }
+
+    /**
+     * Scope maps to the same boundary used by canEditMap().
+     *
+     * This narrower scope is useful when an endpoint only edits map-owned
+     * records, rather than every map that can be edited through a broader
+     * world-builder permission.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    public function scopeMapsUserCanEdit(Builder $query, User $user): Builder
+    {
+        if ($user->hasScopedAccess(PermissionCatalog::WORLD_MAPS, AccessLevel::UPDATE, AccessScope::ALL)) {
+            return $query;
+        }
+
+        $query->where(function (Builder $query) use ($user): void {
+            if ($user->hasAccess(PermissionCatalog::WORLD_MAPS, AccessLevel::UPDATE)) {
+                $scope = $user->accessScopeFor(PermissionCatalog::WORLD_MAPS, AccessLevel::UPDATE);
+
+                if (AccessScope::allows($scope, AccessScope::OWN)) {
+                    $query->orWhere('learning_maps.created_by_user_id', $user->id);
+                }
+            }
+
+            // Explicit group assignments grant map editing access regardless
+            // of whether the user also has an assigned resource scope.
+            $query->orWhereHas(
+                'editingGroups.members',
+                fn (Builder $memberQuery) => $memberQuery->whereKey($user->id),
+            );
+        });
+
+        return $query;
     }
 
     /**

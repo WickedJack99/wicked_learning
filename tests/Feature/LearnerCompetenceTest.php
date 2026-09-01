@@ -1,9 +1,15 @@
 <?php
 
+use App\Access\AccessLevel;
+use App\Access\AccessScope;
+use App\Access\PermissionCatalog;
+use App\Learning\CurrentWorldResolver;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
+use App\Learning\Queries\LoadLearnerManualUnlockTargets;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Services\LearnerCompetenceService;
 use App\Learning\Services\LearnerProgressService;
+use App\Models\AccessRole;
 use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
@@ -17,6 +23,7 @@ use App\Models\LearnerReviewAttempt;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningGroup;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningQuestion;
@@ -1746,6 +1753,93 @@ test('learning support filters non-manual discoveries before hydrating unlock si
         ->and(collect($discoveryQueries)->contains(
             fn (QueryExecuted $query): bool => str_contains(strtolower($query->sql), 'metadata')
                 && str_contains(strtolower($query->sql), 'not null'),
+        ))->toBeTrue();
+});
+
+test('manual unlock targets scope editable maps before hydrating their nodes', function () {
+    $role = AccessRole::query()->create([
+        'slug' => 'support-map-editor',
+        'name' => 'Support map editor',
+        'description' => null,
+        'level' => 50,
+        'is_system' => false,
+    ]);
+
+    foreach (PermissionCatalog::resourceKeys() as $resource) {
+        $role->permissions()->create([
+            'resource' => $resource,
+            'level' => $resource === PermissionCatalog::WORLD_MAPS ? AccessLevel::UPDATE : AccessLevel::NONE,
+            'scope' => $resource === PermissionCatalog::WORLD_MAPS ? AccessScope::OWN : AccessScope::NONE,
+        ]);
+    }
+
+    $viewer = User::factory()->create([
+        'role' => 'support-map-editor',
+        'roles' => ['support-map-editor'],
+    ]);
+    $viewer->setAssignedRoles(['support-map-editor']);
+    $viewer->save();
+
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Support world',
+    ]);
+    $ownMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $viewer->id,
+        'slug' => 'own-support-map',
+        'title' => 'Own support map',
+    ]);
+    $restrictedMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => User::factory()->create()->id,
+        'slug' => 'restricted-support-map',
+        'title' => 'Restricted support map',
+    ]);
+    $assignedMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => User::factory()->create()->id,
+        'slug' => 'assigned-support-map',
+        'title' => 'Assigned support map',
+    ]);
+    $group = LearningGroup::query()->create([
+        'name' => 'Support group',
+        'slug' => 'support-group',
+    ]);
+    $group->members()->attach($viewer->id, ['joined_at' => now()]);
+    $group->editableMaps()->attach($assignedMap->id);
+
+    foreach ([$ownMap, $restrictedMap, $assignedMap] as $map) {
+        LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => $map->slug.'-locked-node',
+            'title' => $map->title.' locked node',
+            'state' => 'locked',
+            'position_q' => 0,
+            'position_r' => 0,
+        ]);
+    }
+
+    $mapQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$mapQueries): void {
+        if (str_contains($query->sql, 'learning_maps')) {
+            $mapQueries[] = $query;
+        }
+    });
+
+    $targets = app(LoadLearnerManualUnlockTargets::class)->handle($viewer);
+
+    expect($targets)->toHaveCount(2)
+        ->and(collect($targets)->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$ownMap->id, $assignedMap->id])->sort()->values()->all())
+        ->and(collect($targets)->pluck('nodes')->flatten(1)->pluck('id'))->toHaveCount(2)
+        ->and($mapQueries)->not->toBeEmpty()
+        ->and(collect($mapQueries)->contains(
+            fn (QueryExecuted $query): bool => str_contains($query->sql, 'created_by_user_id')
+                && str_contains($query->sql, 'learning_maps'),
+        ))->toBeTrue()
+        ->and(collect($mapQueries)->contains(
+            fn (QueryExecuted $query): bool => str_contains($query->sql, 'learning_group_map_editors'),
         ))->toBeTrue();
 });
 
