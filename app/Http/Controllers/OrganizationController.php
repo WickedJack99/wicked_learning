@@ -42,9 +42,14 @@ class OrganizationController extends Controller
 
     public function index(Request $request): Response
     {
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:120'],
+        ]);
         $organizations = $this->organizations->handle(
             $request->user(),
-            $request->integer('page') ?: 1,
+            $data['page'] ?? 1,
+            $data['search'] ?? null,
         );
 
         return Inertia::render('organizations/index', [
@@ -59,6 +64,7 @@ class OrganizationController extends Controller
                 'perPage' => $organizations->perPage(),
                 'total' => $organizations->total(),
             ],
+            'search' => $data['search'] ?? '',
         ]);
     }
 

@@ -1,0 +1,6 @@
+{
+    "organizations.directory.empty": "No organizations exist yet.",
+    "organizations.directory.empty_search": "No organizations match that search.",
+    "organizations.directory.search_label": "Find an organization",
+    "organizations.directory.search_placeholder": "Search names, slogans, or descriptions"
+}

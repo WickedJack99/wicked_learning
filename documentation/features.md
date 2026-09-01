@@ -690,7 +690,8 @@ learner belongs to multiple groups, the map group overlay presents one chat at
 a time with pagination and loads later group pages only when requested; the
 message transcript itself remains a bounded reading area. Organization member
 lists, pending join requests and chat show bounded server-paginated pages,
-while the organization directory also returns a bounded server page, so
+while the organization directory also returns a bounded server page and can
+search organization names, slugs, slogans and descriptions on the server, so
 browsing a larger community does not load every member, request, organization
 or message history at once.
 

@@ -39,6 +39,47 @@ test('users can create and browse organizations', function () {
         );
 });
 
+test('the organization directory searches public identity fields before pagination', function () {
+    $user = User::factory()->create();
+
+    Organization::query()->create([
+        'created_by_user_id' => $user->id,
+        'name' => 'Quiet Archive',
+        'slug' => 'quiet-archive',
+        'slogan' => 'A place for careful notes.',
+    ]);
+    Organization::query()->create([
+        'created_by_user_id' => $user->id,
+        'name' => 'Pattern Guild',
+        'slug' => 'pattern-guild',
+        'description' => 'Explore patterns together.',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('organizations.index', ['search' => 'PATTERN']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('organizations/index')
+            ->where('search', 'PATTERN')
+            ->where('pagination.currentPage', 1)
+            ->where('pagination.lastPage', 1)
+            ->where('pagination.total', 1)
+            ->has('organizations', 1)
+            ->where('organizations.0.name', 'Pattern Guild'));
+
+    $this->actingAs($user)
+        ->get(route('organizations.index', ['search' => 'CAREFUL']))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('pagination.total', 1)
+            ->where('organizations.0.name', 'Quiet Archive'));
+
+    $this->actingAs($user)
+        ->get(route('organizations.index', ['search' => 'EXPLORE']))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('pagination.total', 1)
+            ->where('organizations.0.name', 'Pattern Guild'));
+});
+
 test('the organization directory paginates in the database and clamps stale pages', function () {
     $user = User::factory()->create();
 

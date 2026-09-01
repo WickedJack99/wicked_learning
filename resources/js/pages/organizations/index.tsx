@@ -4,6 +4,7 @@ import {
     Building2,
     Crown,
     Plus,
+    Search,
     Save,
     Shuffle,
     Users,
@@ -22,6 +23,7 @@ import type {
     OrganizationGovernanceType,
     OrganizationSummary,
 } from '@/features/organizations/types';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type OrganizationForm = {
     description: string;
@@ -71,10 +73,13 @@ const organizationAccentBackgroundClass =
 export default function OrganizationsIndex({
     organizations,
     pagination,
+    search,
 }: {
     organizations: OrganizationSummary[];
     pagination: OrganizationsPagination;
+    search: string;
 }) {
+    const t = usePlatformTranslation();
     const [isCreating, setIsCreating] = useState(false);
     const [form, setForm] = useState<OrganizationForm>({
         description: '',
@@ -84,6 +89,7 @@ export default function OrganizationsIndex({
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
+    const [directorySearch, setDirectorySearch] = useState(search);
 
     function createOrganization(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -93,6 +99,25 @@ export default function OrganizationsIndex({
             onError: (nextErrors) => setErrors(nextErrors),
             onFinish: () => setSaving(false),
         });
+    }
+
+    function searchOrganizations(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        const params = new URLSearchParams();
+        const value = directorySearch.trim();
+
+        if (value !== '') {
+            params.set('search', value);
+        }
+
+        router.visit(
+            `/organizations${params.toString() ? `?${params.toString()}` : ''}`,
+            {
+                preserveScroll: true,
+                replace: true,
+            },
+        );
     }
 
     return (
@@ -239,10 +264,64 @@ export default function OrganizationsIndex({
                         </form>
                     ) : null}
 
+                    <form
+                        className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#111820]"
+                        data-wl-id="organizations.directory-search"
+                        onSubmit={searchOrganizations}
+                    >
+                        <div className="min-w-0 flex-1">
+                            <Label htmlFor="organization-directory-search">
+                                {t(
+                                    'organizations.directory.search_label',
+                                    'Find an organization',
+                                )}
+                            </Label>
+                            <Input
+                                id="organization-directory-search"
+                                onChange={(event) =>
+                                    setDirectorySearch(event.target.value)
+                                }
+                                placeholder={t(
+                                    'organizations.directory.search_placeholder',
+                                    'Search names, slogans, or descriptions',
+                                )}
+                                type="search"
+                                value={directorySearch}
+                            />
+                        </div>
+                        <Button type="submit">
+                            <Search className="size-4" />
+                            {t('common.search', 'Search')}
+                        </Button>
+                        {search !== '' ? (
+                            <Button
+                                onClick={() => {
+                                    setDirectorySearch('');
+                                    router.visit('/organizations', {
+                                        preserveScroll: true,
+                                        replace: true,
+                                    });
+                                }}
+                                type="button"
+                                variant="secondary"
+                            >
+                                {t('common.clear', 'Clear')}
+                            </Button>
+                        ) : null}
+                    </form>
+
                     <section className="grid gap-3">
                         {organizations.length === 0 ? (
                             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500 dark:border-white/10 dark:bg-[#111820] dark:text-slate-400">
-                                No organizations exist yet.
+                                {search === ''
+                                    ? t(
+                                          'organizations.directory.empty',
+                                          'No organizations exist yet.',
+                                      )
+                                    : t(
+                                          'organizations.directory.empty_search',
+                                          'No organizations match that search.',
+                                      )}
                             </p>
                         ) : null}
                         {organizations.map((organization) => (
@@ -286,10 +365,16 @@ export default function OrganizationsIndex({
                             currentPage={pagination.currentPage}
                             label="Organizations"
                             onPageChange={(page) =>
-                                router.visit(`/organizations?page=${page}`, {
-                                    preserveScroll: true,
-                                    replace: true,
-                                })
+                                router.visit(
+                                    `/organizations?${new URLSearchParams({
+                                        ...(search !== '' ? { search } : {}),
+                                        page: String(page),
+                                    }).toString()}`,
+                                    {
+                                        preserveScroll: true,
+                                        replace: true,
+                                    },
+                                )
                             }
                             pageCount={pagination.lastPage}
                             textClassName="text-xs text-slate-500 dark:text-slate-400"

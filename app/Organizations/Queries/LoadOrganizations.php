@@ -13,14 +13,26 @@ class LoadOrganizations
     /**
      * @return LengthAwarePaginator<int, Organization>
      */
-    public function handle(User $viewer, int $page = 1): LengthAwarePaginator
+    public function handle(User $viewer, int $page = 1, ?string $search = null): LengthAwarePaginator
     {
+        $search = trim((string) $search);
         $query = Organization::query()
             ->withCount('memberships')
             ->with([
                 'memberships' => fn ($query) => $query->where('user_id', $viewer->id),
                 'joinRequests' => fn ($query) => $query->where('user_id', $viewer->id),
             ])
+            ->when($search !== '', function ($query) use ($search): void {
+                $needle = '%'.mb_strtolower($search).'%';
+
+                $query->where(function ($query) use ($needle): void {
+                    $query
+                        ->whereRaw('LOWER(name) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(slug) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(COALESCE(slogan, \'\')) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', [$needle]);
+                });
+            })
             ->orderBy('name')
             ->orderBy('id');
         $organizations = $query->paginate(
