@@ -47,12 +47,54 @@ test('administrators can create and view access links without receiving the toke
         ->and(strlen($link->token_hash))
         ->toBe(64);
 
+    $firstToken = AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_TEMPORARY_LOGIN,
+        [],
+        now()->addDay(),
+    );
+    $secondToken = AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_TEMPORARY_LOGIN,
+        [],
+        now()->addDay(),
+    );
+
+    expect($firstToken)
+        ->toHaveLength(32)
+        ->not->toBe($secondToken);
+
     $this->actingAs($admin)
         ->get(route('settings.index', ['panel' => 'admin-access', 'access' => 'links']))
         ->assertInertia(fn ($page) => $page
             ->where('accessLinks.0.purpose', AccessLink::PURPOSE_GRANT_TOOL)
             ->where('accessLinks.0.note', 'Workshop demo')
             ->missing('accessLinks.0.token_hash'));
+});
+
+test('administrators can create registration and temporary login links from the admin page', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    foreach ([AccessLink::PURPOSE_REGISTRATION, AccessLink::PURPOSE_TEMPORARY_LOGIN] as $purpose) {
+        $this->actingAs($admin)
+            ->post(route('settings.access-links.store'), [
+                'purpose' => $purpose,
+                'expires_at' => now()->addDay()->format('Y-m-d H:i:s'),
+                'roles' => $purpose === AccessLink::PURPOSE_REGISTRATION
+                    ? [User::ROLE_USER]
+                    : [],
+            ])
+            ->assertRedirect(route('settings.index', [
+                'panel' => 'admin-access',
+                'access' => 'links',
+            ]));
+    }
+
+    expect(AccessLink::query()->orderBy('id')->pluck('purpose')->all())
+        ->toBe([
+            AccessLink::PURPOSE_REGISTRATION,
+            AccessLink::PURPOSE_TEMPORARY_LOGIN,
+        ]);
 });
 
 test('a logged-in learner can redeem a tool link once', function () {

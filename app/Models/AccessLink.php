@@ -46,6 +46,10 @@ class AccessLink extends Model
     /**
      * Create a one-use link and return its only plaintext token.
      *
+     * New links use a 32-character hexadecimal suffix (128 bits of entropy).
+     * Existing links with the previous longer format remain redeemable because
+     * redemption hashes the opaque token without imposing a length.
+     *
      * @param  array<string, mixed>  $payload
      */
     public static function createFor(
@@ -55,7 +59,7 @@ class AccessLink extends Model
         Carbon|string $expiresAt,
         ?string $note = null,
     ): string {
-        $plainToken = bin2hex(random_bytes(32));
+        $plainToken = bin2hex(random_bytes(16));
 
         static::query()->create([
             'token_hash' => static::hashToken($plainToken),

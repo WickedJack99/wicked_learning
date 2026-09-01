@@ -32,7 +32,9 @@ class AdminAccessLinkController extends Controller
             'item_grants' => ['nullable', 'array', 'max:20'],
             'item_grants.*.item_id' => ['required', 'integer', 'exists:learning_items,id'],
             'item_grants.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
-            'roles' => ['nullable', 'array', 'min:1'],
+            'roles' => $request->input('purpose') === AccessLink::PURPOSE_REGISTRATION
+                ? ['nullable', 'array', 'min:1']
+                : ['nullable', 'array'],
             'roles.*' => ['required', 'string', Rule::in($request->user()->assignableRoles())],
         ]);
 
