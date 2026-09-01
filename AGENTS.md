@@ -30,7 +30,11 @@ conversations as if they were current requirements.
    current implementation actually changed.
 
 Scoped `AGENTS.md` files add path-specific engineering guidance. They do not
-override the product/documentation ownership above.
+override the product/documentation ownership above. Use
+`content-transfer-integrity-review` for import/export, duplicate, clone,
+restore and template-transfer workflows, and `media-lifecycle-review` for
+upload, download, selection, replacement, deletion, preview and serving
+paths.
 
 Use `behavior-preservation-review` for changes to existing shared workflows or
 reusable controls, and `runtime-smoke-review` for startup, build, migration,
