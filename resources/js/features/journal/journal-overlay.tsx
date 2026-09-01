@@ -18,8 +18,8 @@ import { competenceTopicHref } from '@/features/competence/competence-links';
 import {
     createJournalPage,
     deleteJournalPage,
-    filterJournalPayload,
     getCachedJournalPayload,
+    JOURNAL_PAGE_SIZE,
     loadJournalPayload,
     requestJournalFeedback,
     updateRevisitInvitation,
@@ -64,6 +64,11 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
     const [draftsById, setDraftsById] = useState<JournalDraftMap>({});
     const [dirtyById, setDirtyById] = useState<DirtyJournalPageMap>({});
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(
+        () => getCachedJournalPayload()?.pagination.currentPage ?? 1,
+    );
+    const [reloadToken, setReloadToken] = useState(0);
+    const [isPageLoading, setIsPageLoading] = useState(payload === null);
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [deletingPageId, setDeletingPageId] = useState<number | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -77,22 +82,14 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const isSavingRef = useRef(false);
-    const isLoading = payload === null;
+    const isLoading = payload === null || isPageLoading;
 
     const visiblePages = useMemo(
         () =>
             payload
-                ? filterJournalPayload(
-                      {
-                          ...payload,
-                          pages: payload.pages.map(
-                              (page) => draftsById[page.id] ?? page,
-                          ),
-                      },
-                      search,
-                  ).pages
+                ? payload.pages.map((page) => draftsById[page.id] ?? page)
                 : [],
-        [draftsById, payload, search],
+        [draftsById, payload],
     );
 
     const selected = useMemo(
@@ -124,27 +121,50 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
 
     useEffect(() => {
         let isActive = true;
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(
+            () => {
+                setIsPageLoading(true);
 
-        void loadJournalPayload({ refresh: true })
-            .then((next) => {
-                if (!isActive) {
-                    return;
-                }
+                void loadJournalPayload({
+                    page,
+                    refresh: true,
+                    search,
+                    signal: controller.signal,
+                })
+                    .then((next) => {
+                        if (!isActive) {
+                            return;
+                        }
 
-                setPayload(next);
-                setDraftsById((current) =>
-                    mergeServerPagesIntoDrafts(current, next.pages),
-                );
-                setSelectedId(
-                    (current) => current ?? next.pages[0]?.id ?? null,
-                );
-            })
-            .catch(() => undefined);
+                        setPayload(next);
+                        setDraftsById((current) =>
+                            mergeServerPagesIntoDrafts(current, next.pages),
+                        );
+                        setSelectedId((current) =>
+                            next.pages.some(
+                                (candidate) => candidate.id === current,
+                            )
+                                ? current
+                                : (next.pages[0]?.id ?? null),
+                        );
+                    })
+                    .catch(() => undefined)
+                    .finally(() => {
+                        if (isActive) {
+                            setIsPageLoading(false);
+                        }
+                    });
+            },
+            search.trim() === '' ? 0 : 250,
+        );
 
         return () => {
             isActive = false;
+            controller.abort();
+            window.clearTimeout(timeoutId);
         };
-    }, []);
+    }, [page, reloadToken, search]);
 
     useEffect(() => {
         const closeOnEscape = (event: KeyboardEvent) => {
@@ -171,8 +191,30 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
     async function createPage() {
         const page = await createJournalPage();
 
+        setSearch('');
+        setPage(1);
         setPayload((current) =>
-            current ? { ...current, pages: [page, ...current.pages] } : current,
+            current
+                ? {
+                      ...current,
+                      pages: [page, ...current.pages].slice(
+                          0,
+                          current.pagination.perPage,
+                      ),
+                      pagination: {
+                          ...current.pagination,
+                          currentPage: 1,
+                          lastPage: Math.max(
+                              1,
+                              Math.ceil(
+                                  (current.pagination.total + 1) /
+                                      current.pagination.perPage,
+                              ),
+                          ),
+                          total: current.pagination.total + 1,
+                      },
+                  }
+                : current,
         );
         setDraftsById((current) => ({
             ...current,
@@ -316,6 +358,11 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                 const pages = current.pages.filter(
                     (candidate) => candidate.id !== deletedPageId,
                 );
+                const total = Math.max(0, current.pagination.total - 1);
+                const lastPage = Math.max(
+                    1,
+                    Math.ceil(total / current.pagination.perPage),
+                );
 
                 setSelectedId((selected) =>
                     selected === deletedPageId
@@ -323,7 +370,17 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                         : selected,
                 );
 
-                return { ...current, pages };
+                setPage((currentPage) => Math.min(currentPage, lastPage));
+
+                return {
+                    ...current,
+                    pages,
+                    pagination: {
+                        ...current.pagination,
+                        lastPage,
+                        total,
+                    },
+                };
             });
             setDraftsById((current) => omitJournalPage(current, deletedPageId));
             setDirtyById((current) => {
@@ -332,6 +389,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
 
                 return next;
             });
+            setReloadToken((current) => current + 1);
         } finally {
             setDeletingPageId(null);
         }
@@ -440,9 +498,10 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 <Input
                                     className="pl-9"
                                     aria-label="Search journal pages"
-                                    onChange={(event) =>
-                                        setSearch(event.target.value)
-                                    }
+                                    onChange={(event) => {
+                                        setSearch(event.target.value);
+                                        setPage(1);
+                                    }}
                                     placeholder="Search pages"
                                     ref={searchInputRef}
                                     style={{
@@ -485,9 +544,10 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 className="grid gap-2"
                                 emptyState={null}
                                 items={visiblePages}
-                                key={search}
-                                pageSize={4}
+                                pageSize={JOURNAL_PAGE_SIZE}
+                                onPageChange={setPage}
                                 paginationLabel="Journal pages"
+                                pagination={payload?.pagination}
                                 paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--journal-accent)] transition hover:text-[var(--journal-heading-text)] disabled:pointer-events-none disabled:opacity-40"
                                 paginationClassName="mt-3 flex items-center justify-between border-t border-[var(--journal-panel-border)] pt-3"
                                 paginationTextClassName="text-xs text-[var(--journal-muted-text)]"
@@ -549,7 +609,9 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                     </button>
                                 )}
                             />
-                            {payload && payload.pages.length === 0 ? (
+                            {payload &&
+                            payload.pagination.total === 0 &&
+                            search.trim() === '' ? (
                                 <p
                                     className="p-3 text-sm leading-6"
                                     style={{
@@ -562,7 +624,8 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 </p>
                             ) : null}
                             {payload &&
-                            payload.pages.length > 0 &&
+                            payload.pagination.total === 0 &&
+                            search.trim() !== '' &&
                             visiblePages.length === 0 ? (
                                 <p
                                     className="p-3 text-sm leading-6"

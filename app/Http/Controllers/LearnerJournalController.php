@@ -40,14 +40,33 @@ class LearnerJournalController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $pages = $this->journal->handle($request->user(), $request->string('search')->toString());
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'search' => ['nullable', 'string', 'max:160'],
+        ]);
+        $pages = $this->journal->paginate(
+            $request->user(),
+            $data['search'] ?? null,
+            $data['page'] ?? 1,
+            $data['per_page'] ?? LoadLearnerJournal::DEFAULT_PAGE_SIZE,
+        );
         $settings = $this->settingsSerializer->serialize(PlatformJournalSetting::current());
 
         return response()->json([
             'allowExpertAccessRequests' => $settings['allowExpertAccessRequests'],
             'checkIns' => $this->checkIns->handle($request->user()),
             'feedbackDomains' => $this->feedbackDomains->handle($request->user()),
-            'pages' => $pages->map(fn (LearnerJournalPage $page): array => $this->serializer->page($page))->values(),
+            'pages' => collect($pages->items())
+                ->map(fn (LearnerJournalPage $page): array => $this->serializer->page($page))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'currentPage' => $pages->currentPage(),
+                'lastPage' => $pages->lastPage(),
+                'perPage' => $pages->perPage(),
+                'total' => $pages->total(),
+            ],
             'revisitInvitations' => $this->revisitInvitations->handle($request->user()),
             'theme' => $settings['theme'],
         ]);

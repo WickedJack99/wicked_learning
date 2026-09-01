@@ -402,6 +402,46 @@ test('the journal includes the learners private check-in trail with a path back 
         ->assertJsonPath('checkIns.0.nodeHref', route('learning.nodes.play', ['node' => $activity->learning_node_id]));
 });
 
+test('the journal API paginates private pages in the database', function () {
+    $learner = User::factory()->create();
+
+    foreach (range(1, 5) as $number) {
+        LearnerJournalPage::query()->create([
+            'user_id' => $learner->id,
+            'title' => "Journal page {$number}",
+            'topic' => 'Field studies',
+            'subtopic' => '',
+            'markdown' => "Private note {$number}",
+            'preferred_mode' => 'view',
+        ]);
+    }
+
+    $pageQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$pageQueries): void {
+        if (str_contains($query->sql, 'learner_journal_pages')) {
+            $pageQueries[] = strtolower($query->sql);
+        }
+    });
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index', [
+            'page' => 2,
+            'per_page' => 2,
+        ]))
+        ->assertOk()
+        ->assertJsonCount(2, 'pages')
+        ->assertJsonPath('pages.0.title', 'Journal page 3')
+        ->assertJsonPath('pages.1.title', 'Journal page 2')
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 3)
+        ->assertJsonPath('pagination.perPage', 2)
+        ->assertJsonPath('pagination.total', 5);
+
+    expect(collect($pageQueries)->contains(
+        fn (string $query): bool => str_contains($query, 'limit 2'),
+    ))->toBeTrue();
+});
+
 test('reflection journal pages keep a path back to their learning place', function () {
     [$learner, $activity, $runId] = activeReflectionActivity();
     $area = LearningTopicArea::query()->create([

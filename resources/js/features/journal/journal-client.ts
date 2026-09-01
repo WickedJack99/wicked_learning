@@ -67,6 +67,13 @@ export type JournalRevisitInvitation = {
     revisitReason: 'pause' | 'later';
 };
 
+export type JournalPagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
+
 export async function requestJournalFeedback(
     pageId: number,
     domainKey: string,
@@ -102,42 +109,78 @@ export type JournalPayload = {
     checkIns: JournalLearningCheckIn[];
     feedbackDomains: JournalFeedbackDomain[];
     pages: JournalPage[];
+    pagination: JournalPagination;
     revisitInvitations: JournalRevisitInvitation[];
     theme: JournalThemeSettings;
 };
 
+export const JOURNAL_PAGE_SIZE = 4;
+
 let cachedPayload: JournalPayload | null = null;
-let pendingPayload: Promise<JournalPayload> | null = null;
+let cachedQueryKey: string | null = null;
+let pendingPayload: { key: string; promise: Promise<JournalPayload> } | null =
+    null;
 
 /** Loads the learner journal and can refresh policy/settings that may change elsewhere. */
 export async function loadJournalPayload({
     refresh = false,
+    page = 1,
+    search = '',
+    signal,
 }: {
     refresh?: boolean;
+    page?: number;
+    search?: string;
+    signal?: AbortSignal;
 } = {}): Promise<JournalPayload> {
-    if (cachedPayload && !refresh) {
+    const normalizedPage = Number.isFinite(page)
+        ? Math.max(1, Math.trunc(page))
+        : 1;
+    const normalizedSearch = search.trim();
+    const query = new URLSearchParams({
+        page: String(normalizedPage),
+        per_page: String(JOURNAL_PAGE_SIZE),
+    });
+
+    if (normalizedSearch !== '') {
+        query.set('search', normalizedSearch);
+    }
+
+    const key = query.toString();
+
+    if (cachedPayload && cachedQueryKey === key && !refresh) {
         return cachedPayload;
     }
 
-    if (pendingPayload && !refresh) {
-        return pendingPayload;
+    if (pendingPayload?.key === key && !refresh) {
+        return pendingPayload.promise;
     }
 
-    pendingPayload = getJson<JournalPayload>('/learning/journal').then(
+    const promise = getJson<JournalPayload>(
+        `/learning/journal?${query.toString()}`,
+        signal,
+    ).then(
         (payload) => {
             cachedPayload = payload;
-            pendingPayload = null;
+            cachedQueryKey = key;
+
+            if (pendingPayload?.promise === promise) {
+                pendingPayload = null;
+            }
 
             return payload;
         },
         (error: unknown) => {
-            pendingPayload = null;
+            if (pendingPayload?.promise === promise) {
+                pendingPayload = null;
+            }
 
             throw error;
         },
     );
+    pendingPayload = { key, promise };
 
-    return pendingPayload;
+    return promise;
 }
 
 export async function updateRevisitInvitation(
@@ -160,22 +203,6 @@ export async function updateRevisitInvitation(
 
 export function getCachedJournalPayload(): JournalPayload | null {
     return cachedPayload;
-}
-
-export function filterJournalPayload(
-    payload: JournalPayload,
-    search: string,
-): JournalPayload {
-    const query = search.trim().toLowerCase();
-
-    if (!query) {
-        return payload;
-    }
-
-    return {
-        ...payload,
-        pages: payload.pages.filter((page) => journalPageMatches(page, query)),
-    };
 }
 
 export async function createJournalPage(): Promise<JournalPage> {
@@ -230,14 +257,4 @@ function updateCachedPages(
         ...cachedPayload,
         pages: transform(cachedPayload.pages),
     };
-}
-
-function journalPageMatches(page: JournalPage, query: string): boolean {
-    return [
-        page.title,
-        page.topic,
-        page.subtopic ?? '',
-        page.markdown,
-        String(page.reflectionCount),
-    ].some((value) => value.toLowerCase().includes(query));
 }
