@@ -251,6 +251,13 @@ of the export contract. The matching readiness validator caps collection sizes,
 checks slugs and graph links in memory, and performs only bounded workspace
 lookups; it never imports or mutates the submitted manifest.
 
+The same serializer exposes an author-authorized `wicked-learning-map-asset`
+manifest for one MapAsset. It loads the asset's owning map and, when present,
+its internal authored node and activity graph, while leaving learner state,
+portals, permissions, revisions and media bytes outside the contract. The
+standalone manifest uses source IDs only as provenance; authored slugs remain
+the portable references for a future destination-side importer.
+
 The World Builder also exposes a world export that resolves the current world,
 scopes its maps with the server-side map-edit boundary, batch-loads the shared
 map relationships and batches portal references across the selected maps. It

@@ -798,7 +798,14 @@ workspace. The bundle creates fresh maps transactionally, populates every map
 before restoring portal links, and remaps links between included maps. Media
 bytes, learner state, revision history, permissions and editor groups remain
 outside both import contracts; cross-workspace media transfer remains future
-authoring work. Within the current world, authors can also duplicate a map as a new
+authoring work.
+Authors can also export one MapAsset as a standalone JSON bundle. It includes
+the asset, its authored learning place and that place's activities, routes,
+dialogue, questions, translations and asset-scoped message topics. Media remain
+explicit references rather than embedded bytes; learner state, map portals and
+revision history are not included. Standalone import is a separate follow-up
+workflow.
+Within the current world, authors can also duplicate a map as a new
 authored copy, including its activities,
 routes, assets, questions, dialogue graphs and companion assignments. The copy
 gets fresh content IDs, starts activities in authoring review, and does not

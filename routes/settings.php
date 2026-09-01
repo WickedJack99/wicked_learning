@@ -124,6 +124,9 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::get('settings/worlds/assets/{asset}/versions', [AdminWorldController::class, 'mapAssetVersions'])
         ->name('settings.worlds.assets.versions.index');
 
+    Route::get('settings/worlds/assets/{asset}/export', [AdminWorldController::class, 'exportMapAsset'])
+        ->name('settings.worlds.assets.export');
+
     Route::post('settings/worlds/assets/{asset}/versions/{version}/restore', [AdminWorldController::class, 'restoreMapAssetVersion'])
         ->name('settings.worlds.assets.versions.restore');
 

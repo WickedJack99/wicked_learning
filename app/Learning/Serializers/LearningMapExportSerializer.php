@@ -42,125 +42,15 @@ class LearningMapExportSerializer
         $nodeSlugs = $nodes->pluck('slug', 'id')->all();
         $portalTargets ??= $this->loadPortalTargets($map);
 
-        $nodeExports = $nodes->map(function (LearningNode $node): array {
-            $activities = $node->activities->values();
-            $activitySlugs = $activities->pluck('slug', 'id')->all();
+        $nodeExports = $nodes
+            ->map(fn (LearningNode $node): array => $this->serializeNode($node))
+            ->values()
+            ->all();
 
-            return [
-                'sourceId' => $node->id,
-                'slug' => $node->slug,
-                'title' => $node->title,
-                'description' => $node->description,
-                'position' => [
-                    'q' => $node->position_q,
-                    'r' => $node->position_r,
-                ],
-                'state' => $node->state,
-                'visualConfig' => $node->visual_config ?? [],
-                'activityGraphLayout' => $node->activity_graph_layout ?? [],
-                'companionConfig' => $node->companion_config,
-                'startActivitySlug' => $activitySlugs[$node->start_activity_id] ?? null,
-                'activityStarts' => $node->activityStarts->map(fn (LearningActivityStart $start): array => [
-                    'activitySlug' => $start->activity?->slug,
-                    'label' => $start->label,
-                    'description' => $start->description,
-                    'imageDark' => $start->image_dark,
-                    'imageLight' => $start->image_light,
-                    'buttonColorDark' => $start->button_color_dark,
-                    'buttonBorderColorDark' => $start->button_border_color_dark,
-                    'buttonColorLight' => $start->button_color_light,
-                    'buttonBorderColorLight' => $start->button_border_color_light,
-                    'sortOrder' => $start->sort_order,
-                ])->values()->all(),
-                'activities' => $activities->map(function (LearningActivity $activity): array {
-                    return [
-                        'sourceId' => $activity->id,
-                        'slug' => $activity->slug,
-                        'type' => $activity->type,
-                        'title' => $activity->title,
-                        'introduction' => $activity->introduction,
-                        'config' => $activity->config ?? [],
-                        'sortOrder' => $activity->sort_order,
-                        'graphPosition' => [
-                            'x' => $activity->graph_position_x,
-                            'y' => $activity->graph_position_y,
-                        ],
-                        'companionConfig' => $activity->companion_config,
-                        'question' => $activity->question ? [
-                            'prompt' => $activity->question->prompt,
-                            'feedbackCorrect' => $activity->question->feedback_correct,
-                            'feedbackIncorrect' => $activity->question->feedback_incorrect,
-                            'explanation' => $activity->question->explanation,
-                            'allowMultiple' => $activity->question->allow_multiple,
-                            'options' => $activity->question->options->map(fn (LearningQuestionOption $option): array => [
-                                'label' => $option->label,
-                                'body' => $option->body,
-                                'isCorrect' => $option->is_correct,
-                                'outcomeKey' => $option->outcome_key,
-                                'feedback' => $option->feedback,
-                                'weights' => $option->weights ?? [],
-                                'sortOrder' => $option->sort_order,
-                            ])->values()->all(),
-                        ] : null,
-                        'dialogueNodes' => $activity->npcDialogueNodes->map(fn (NpcDialogueNode $dialogueNode): array => [
-                            'sourceId' => $dialogueNode->id,
-                            'type' => $dialogueNode->type,
-                            'title' => $dialogueNode->title,
-                            'body' => $dialogueNode->body,
-                            'config' => $dialogueNode->config ?? [],
-                            'sortOrder' => $dialogueNode->sort_order,
-                            'graphPosition' => [
-                                'x' => $dialogueNode->graph_position_x,
-                                'y' => $dialogueNode->graph_position_y,
-                            ],
-                        ])->values()->all(),
-                        'dialogueTransitions' => $activity->npcDialogueTransitions->map(fn (NpcDialogueTransition $transition): array => [
-                            'fromSourceId' => $transition->from_dialogue_node_id,
-                            'toSourceId' => $transition->to_dialogue_node_id,
-                            'fromConnector' => $transition->from_connector,
-                            'toConnector' => $transition->to_connector,
-                        ])->values()->all(),
-                        'translations' => $activity->translations->map(fn (LearningActivityTranslation $translation): array => [
-                            'locale' => $translation->locale,
-                            'content' => $translation->content,
-                        ])->values()->all(),
-                        'transitions' => $activity->transitions->map(fn (ActivityTransition $transition): array => [
-                            'toActivitySlug' => $transition->toActivity?->slug,
-                            'fromConnector' => $transition->from_connector,
-                            'toConnector' => $transition->to_connector,
-                            'trigger' => $transition->trigger,
-                            'triggerValue' => $transition->trigger_value,
-                            'label' => $transition->label,
-                            'rules' => $transition->rules ?? [],
-                        ])->values()->all(),
-                    ];
-                })->values()->all(),
-            ];
-        })->values()->all();
-
-        $mapAssetExports = $map->assets->map(fn (LearningMapAsset $asset): array => [
-            'sourceId' => $asset->id,
-            'nodeSlug' => $nodeSlugs[$asset->learning_node_id] ?? null,
-            'imageUrl' => $asset->image_url,
-            'text' => $asset->text,
-            'x' => $asset->position_x,
-            'y' => $asset->position_y,
-            'z' => $asset->position_z,
-            'width' => $asset->width,
-            'opacity' => $asset->opacity,
-            'locked' => $asset->locked,
-            'focusable' => $asset->focusable,
-            'interactionMode' => $asset->interaction_mode
-                ?? ($asset->focusable ? 'focusable' : 'decorative'),
-            'interactionConfig' => $asset->interaction_config ?? [],
-            'visualConfig' => $asset->visual_config ?? [],
-            'soundConfig' => $asset->sound_config ?? [],
-            'messageTopics' => $asset->messageTopics->map(fn (LearningMessageTopic $topic): array => [
-                'sourceId' => $topic->id,
-                'slug' => $topic->slug,
-                'title' => $topic->title,
-            ])->values()->all(),
-        ])->values()->all();
+        $mapAssetExports = $map->assets
+            ->map(fn (LearningMapAsset $asset): array => $this->serializeMapAsset($asset, $nodeSlugs))
+            ->values()
+            ->all();
 
         $mapExport = [
             'slug' => $map->slug,
@@ -195,6 +85,196 @@ class LearningMapExportSerializer
                     'portalTargets' => $portalTargets,
                 ]),
             ],
+        ];
+    }
+
+    /**
+     * Serialize one MapAsset and its owning authored learning place.
+     * Learner state, map context, portal links, permissions and histories are
+     * intentionally outside this standalone transfer boundary.
+     *
+     * @return array<string, mixed>
+     */
+    public function serializeAsset(LearningMapAsset $asset): array
+    {
+        $asset->loadMissing([
+            'map.world',
+            'node.activities.transitions.toActivity',
+            'node.activityStarts.activity',
+            'node.activities.question.options',
+            'node.activities.npcDialogueNodes',
+            'node.activities.npcDialogueTransitions',
+            'node.activities.translations',
+            'messageTopics',
+        ]);
+
+        $node = $asset->node;
+        $nodeExport = $node ? $this->serializeNode($node) : null;
+        $nodeSlugs = $node ? [$node->id => $node->slug] : [];
+        $mapAssetExport = $this->serializeMapAsset($asset, $nodeSlugs);
+
+        return [
+            'format' => 'wicked-learning-map-asset',
+            'formatVersion' => 1,
+            'exportedAt' => now()->toIso8601String(),
+            'source' => [
+                'world' => [
+                    'slug' => $asset->map?->world?->slug,
+                    'title' => $asset->map?->world?->title,
+                ],
+                'map' => [
+                    'slug' => $asset->map?->slug,
+                    'title' => $asset->map?->title,
+                ],
+                'assetId' => $asset->id,
+            ],
+            'node' => $nodeExport,
+            'mapAsset' => $mapAssetExport,
+            'references' => [
+                'mediaUrls' => $this->collectMediaUrls([
+                    'node' => $nodeExport,
+                    'mapAsset' => $mapAssetExport,
+                ]),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeNode(LearningNode $node): array
+    {
+        $activities = $node->activities->values();
+        $activitySlugs = $activities->pluck('slug', 'id')->all();
+
+        return [
+            'sourceId' => $node->id,
+            'slug' => $node->slug,
+            'title' => $node->title,
+            'description' => $node->description,
+            'position' => [
+                'q' => $node->position_q,
+                'r' => $node->position_r,
+            ],
+            'state' => $node->state,
+            'visualConfig' => $node->visual_config ?? [],
+            'activityGraphLayout' => $node->activity_graph_layout ?? [],
+            'companionConfig' => $node->companion_config,
+            'startActivitySlug' => $activitySlugs[$node->start_activity_id] ?? null,
+            'activityStarts' => $node->activityStarts->map(fn (LearningActivityStart $start): array => [
+                'activitySlug' => $start->activity?->slug,
+                'label' => $start->label,
+                'description' => $start->description,
+                'imageDark' => $start->image_dark,
+                'imageLight' => $start->image_light,
+                'buttonColorDark' => $start->button_color_dark,
+                'buttonBorderColorDark' => $start->button_border_color_dark,
+                'buttonColorLight' => $start->button_color_light,
+                'buttonBorderColorLight' => $start->button_border_color_light,
+                'sortOrder' => $start->sort_order,
+            ])->values()->all(),
+            'activities' => $activities->map(fn (LearningActivity $activity): array => $this->serializeActivity($activity))
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeActivity(LearningActivity $activity): array
+    {
+        return [
+            'sourceId' => $activity->id,
+            'slug' => $activity->slug,
+            'type' => $activity->type,
+            'title' => $activity->title,
+            'introduction' => $activity->introduction,
+            'config' => $activity->config ?? [],
+            'sortOrder' => $activity->sort_order,
+            'graphPosition' => [
+                'x' => $activity->graph_position_x,
+                'y' => $activity->graph_position_y,
+            ],
+            'companionConfig' => $activity->companion_config,
+            'question' => $activity->question ? [
+                'prompt' => $activity->question->prompt,
+                'feedbackCorrect' => $activity->question->feedback_correct,
+                'feedbackIncorrect' => $activity->question->feedback_incorrect,
+                'explanation' => $activity->question->explanation,
+                'allowMultiple' => $activity->question->allow_multiple,
+                'options' => $activity->question->options->map(fn (LearningQuestionOption $option): array => [
+                    'label' => $option->label,
+                    'body' => $option->body,
+                    'isCorrect' => $option->is_correct,
+                    'outcomeKey' => $option->outcome_key,
+                    'feedback' => $option->feedback,
+                    'weights' => $option->weights ?? [],
+                    'sortOrder' => $option->sort_order,
+                ])->values()->all(),
+            ] : null,
+            'dialogueNodes' => $activity->npcDialogueNodes->map(fn (NpcDialogueNode $dialogueNode): array => [
+                'sourceId' => $dialogueNode->id,
+                'type' => $dialogueNode->type,
+                'title' => $dialogueNode->title,
+                'body' => $dialogueNode->body,
+                'config' => $dialogueNode->config ?? [],
+                'sortOrder' => $dialogueNode->sort_order,
+                'graphPosition' => [
+                    'x' => $dialogueNode->graph_position_x,
+                    'y' => $dialogueNode->graph_position_y,
+                ],
+            ])->values()->all(),
+            'dialogueTransitions' => $activity->npcDialogueTransitions->map(fn (NpcDialogueTransition $transition): array => [
+                'fromSourceId' => $transition->from_dialogue_node_id,
+                'toSourceId' => $transition->to_dialogue_node_id,
+                'fromConnector' => $transition->from_connector,
+                'toConnector' => $transition->to_connector,
+            ])->values()->all(),
+            'translations' => $activity->translations->map(fn (LearningActivityTranslation $translation): array => [
+                'locale' => $translation->locale,
+                'content' => $translation->content,
+            ])->values()->all(),
+            'transitions' => $activity->transitions->map(fn (ActivityTransition $transition): array => [
+                'toActivitySlug' => $transition->toActivity?->slug,
+                'fromConnector' => $transition->from_connector,
+                'toConnector' => $transition->to_connector,
+                'trigger' => $transition->trigger,
+                'triggerValue' => $transition->trigger_value,
+                'label' => $transition->label,
+                'rules' => $transition->rules ?? [],
+            ])->values()->all(),
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $nodeSlugs
+     * @return array<string, mixed>
+     */
+    private function serializeMapAsset(LearningMapAsset $asset, array $nodeSlugs): array
+    {
+        return [
+            'sourceId' => $asset->id,
+            'nodeSlug' => $nodeSlugs[$asset->learning_node_id] ?? null,
+            'imageUrl' => $asset->image_url,
+            'text' => $asset->text,
+            'x' => $asset->position_x,
+            'y' => $asset->position_y,
+            'z' => $asset->position_z,
+            'width' => $asset->width,
+            'opacity' => $asset->opacity,
+            'locked' => $asset->locked,
+            'focusable' => $asset->focusable,
+            'interactionMode' => $asset->interaction_mode
+                ?? ($asset->focusable ? 'focusable' : 'decorative'),
+            'interactionConfig' => $asset->interaction_config ?? [],
+            'visualConfig' => $asset->visual_config ?? [],
+            'soundConfig' => $asset->sound_config ?? [],
+            'messageTopics' => $asset->messageTopics->map(fn (LearningMessageTopic $topic): array => [
+                'sourceId' => $topic->id,
+                'slug' => $topic->slug,
+                'title' => $topic->title,
+            ])->values()->all(),
         ];
     }
 

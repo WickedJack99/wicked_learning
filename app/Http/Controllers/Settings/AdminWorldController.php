@@ -195,6 +195,26 @@ class AdminWorldController extends Controller
         );
     }
 
+    public function exportMapAsset(Request $request, LearningMapAsset $asset): StreamedResponse
+    {
+        $asset->loadMissing('map');
+        $this->authorizeMapEdit($request, $asset->map);
+        $payload = $this->mapExportSerializer->serializeAsset($asset);
+        $asset->loadMissing('node');
+        $filename = ($asset->node?->slug ?: "map-asset-{$asset->id}").'-wicked-learning-asset.json';
+
+        return response()->streamDownload(
+            static function () use ($payload): void {
+                echo json_encode(
+                    $payload,
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+                ).PHP_EOL;
+            },
+            $filename,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
     public function exportWorld(Request $request): StreamedResponse
     {
         $user = $request->user();

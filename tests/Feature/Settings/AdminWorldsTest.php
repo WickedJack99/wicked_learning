@@ -251,6 +251,57 @@ test('map authors can download an author-only map export manifest', function () 
         ->and($payload)->not->toHaveKey('learnerProgress');
 });
 
+test('map authors can download a standalone map asset bundle with its authored place', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $asset = LearningMapAsset::query()
+        ->whereHas('node', fn ($query) => $query->where('slug', 'signal-gate'))
+        ->firstOrFail();
+    $messageTopic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $asset->id,
+        'slug' => 'standalone-export-topic',
+        'title' => 'Standalone export topic',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->get(route('settings.worlds.assets.export', $asset));
+
+    $response
+        ->assertOk()
+        ->assertHeader(
+            'Content-Disposition',
+            'attachment; filename=signal-gate-wicked-learning-asset.json',
+        )
+        ->assertHeader('Content-Type', 'application/json');
+
+    $payload = json_decode(
+        $response->streamedContent(),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+
+    expect($payload['format'])->toBe('wicked-learning-map-asset')
+        ->and($payload['formatVersion'])->toBe(1)
+        ->and($payload['source']['world']['slug'])->toBe('demo-learning-world')
+        ->and($payload['source']['map']['slug'])->toBe('first-sector')
+        ->and($payload['source']['assetId'])->toBe($asset->id)
+        ->and($payload['node']['slug'])->toBe('signal-gate')
+        ->and($payload['node']['activities'])->not->toBeEmpty()
+        ->and($payload['mapAsset']['nodeSlug'])->toBe('signal-gate')
+        ->and($payload['mapAsset']['messageTopics'])->toContain([
+            'sourceId' => $messageTopic->id,
+            'slug' => 'standalone-export-topic',
+            'title' => 'Standalone export topic',
+        ])
+        ->and($payload['references']['mediaUrls'])
+        ->toContain('/images/nodes/fantasy-hex-forest.png')
+        ->and($payload)->not->toHaveKey('learnerProgress')
+        ->and($payload)->not->toHaveKey('portalTargets');
+});
+
 test('map authors can download an editable world export bundle', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

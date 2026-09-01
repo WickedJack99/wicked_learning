@@ -7,6 +7,7 @@ use App\Learning\Queries\LoadAdminLearningGroups;
 use App\Models\AccessRole;
 use App\Models\LearningGroup;
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
@@ -126,6 +127,59 @@ test('scoped world exports include only maps in the authors map editing scope', 
 
     expect(collect($payload['maps'])->pluck('map.slug')->all())
         ->toBe([$ownMap->slug]);
+});
+
+test('scoped map authors can export only assets belonging to editable maps', function () {
+    $author = userWithRole('scoped-asset-exporter', [
+        PermissionCatalog::WORLD_MAPS => [AccessLevel::UPDATE, AccessScope::OWN],
+    ]);
+    $otherUser = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'title' => 'Scoped World',
+        'slug' => 'scoped-asset-world',
+    ]);
+    $ownMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $author->id,
+        'title' => 'Own Map',
+        'slug' => 'scoped-own-map',
+    ]);
+    $otherMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $otherUser->id,
+        'title' => 'Other Map',
+        'slug' => 'scoped-other-map',
+    ]);
+    $ownAsset = LearningMapAsset::query()->create([
+        'learning_map_id' => $ownMap->id,
+        'image_url' => '/images/maps/own.svg',
+        'position_x' => 10,
+        'position_y' => 20,
+        'position_z' => 0,
+        'width' => 30,
+        'opacity' => 1,
+        'locked' => false,
+        'focusable' => false,
+    ]);
+    $otherAsset = LearningMapAsset::query()->create([
+        'learning_map_id' => $otherMap->id,
+        'image_url' => '/images/maps/other.svg',
+        'position_x' => 10,
+        'position_y' => 20,
+        'position_z' => 0,
+        'width' => 30,
+        'opacity' => 1,
+        'locked' => false,
+        'focusable' => false,
+    ]);
+
+    $this->actingAs($author)
+        ->get(route('settings.worlds.assets.export', $ownAsset))
+        ->assertOk();
+
+    $this->actingAs($author)
+        ->get(route('settings.worlds.assets.export', $otherAsset))
+        ->assertForbidden();
 });
 
 test('scoped group readers only hydrate groups in their management scope', function () {

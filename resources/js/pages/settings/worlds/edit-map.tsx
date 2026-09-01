@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     ChevronRight,
+    Download,
     Eye,
     GitBranch,
     History,
@@ -1510,29 +1511,47 @@ export default function EditWorldMap({
                             behavior, or add a visual-only MapAsset.
                         </DialogDescription>
                         {selectedMapAsset ? (
-                            <MapAssetHistoryDialog
-                                assetId={selectedMapAsset.id}
-                                onOpenChange={setMapAssetHistoryOpen}
-                                onRestored={(asset) => {
-                                    setSelectedMapAsset(asset);
-                                    setMapAssetForm(assetForm(asset));
-
-                                    if (!selectedNode) {
-                                        setForm(nodeFormFromMapAsset(asset));
-                                    }
-                                }}
-                                open={mapAssetHistoryOpen}
-                            >
+                            <>
                                 <Button
-                                    className="absolute top-4 right-12"
+                                    asChild
+                                    className="absolute top-4 right-28"
                                     size="sm"
-                                    type="button"
                                     variant="outline"
                                 >
-                                    <History className="size-4" />
-                                    History
+                                    <a
+                                        download
+                                        href={`/settings/worlds/assets/${selectedMapAsset.id}/export`}
+                                    >
+                                        <Download className="size-4" />
+                                        Export asset
+                                    </a>
                                 </Button>
-                            </MapAssetHistoryDialog>
+                                <MapAssetHistoryDialog
+                                    assetId={selectedMapAsset.id}
+                                    onOpenChange={setMapAssetHistoryOpen}
+                                    onRestored={(asset) => {
+                                        setSelectedMapAsset(asset);
+                                        setMapAssetForm(assetForm(asset));
+
+                                        if (!selectedNode) {
+                                            setForm(
+                                                nodeFormFromMapAsset(asset),
+                                            );
+                                        }
+                                    }}
+                                    open={mapAssetHistoryOpen}
+                                >
+                                    <Button
+                                        className="absolute top-4 right-12"
+                                        size="sm"
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        <History className="size-4" />
+                                        History
+                                    </Button>
+                                </MapAssetHistoryDialog>
+                            </>
                         ) : null}
                     </DialogHeader>
 
