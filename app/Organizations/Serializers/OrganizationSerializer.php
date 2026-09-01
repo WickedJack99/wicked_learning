@@ -73,7 +73,9 @@ class OrganizationSerializer
      */
     private function base(Organization $organization): array
     {
-        $organization->loadCount('memberships');
+        if (! array_key_exists('memberships_count', $organization->getAttributes())) {
+            $organization->loadCount('memberships');
+        }
 
         return [
             'id' => $organization->id,
@@ -93,9 +95,11 @@ class OrganizationSerializer
      */
     private function viewerMembership(Organization $organization, User $viewer): ?array
     {
-        $membership = $organization->memberships()
-            ->where('user_id', $viewer->id)
-            ->first();
+        $membership = $organization->relationLoaded('memberships')
+            ? $organization->memberships->firstWhere('user_id', $viewer->id)
+            : $organization->memberships()
+                ->where('user_id', $viewer->id)
+                ->first();
 
         return $membership ? $this->membership($membership) : null;
     }
@@ -105,10 +109,15 @@ class OrganizationSerializer
      */
     private function viewerJoinRequest(Organization $organization, User $viewer): ?array
     {
-        $request = $organization->joinRequests()
-            ->where('user_id', $viewer->id)
-            ->latest()
-            ->first();
+        $request = $organization->relationLoaded('joinRequests')
+            ? $organization->joinRequests
+                ->where('user_id', $viewer->id)
+                ->sortByDesc('created_at')
+                ->first()
+            : $organization->joinRequests()
+                ->where('user_id', $viewer->id)
+                ->latest()
+                ->first();
 
         return $request ? $this->joinRequest($request) : null;
     }

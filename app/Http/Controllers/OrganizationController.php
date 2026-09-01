@@ -36,13 +36,23 @@ class OrganizationController extends Controller
 
     public function index(Request $request): Response
     {
+        $organizations = $this->organizations->handle(
+            $request->user(),
+            $request->integer('page') ?: 1,
+        );
+
         return Inertia::render('organizations/index', [
-            'organizations' => $this->organizations
-                ->handle($request->user())
+            'organizations' => $organizations->getCollection()
                 ->map(fn (Organization $organization): Organization => $this->governance->ensureCurrentLeadership($organization))
                 ->map(fn (Organization $organization): array => $this->serializer->card($organization, $request->user()))
                 ->values()
                 ->all(),
+            'pagination' => [
+                'currentPage' => $organizations->currentPage(),
+                'lastPage' => max(1, $organizations->lastPage()),
+                'perPage' => $organizations->perPage(),
+                'total' => $organizations->total(),
+            ],
         ]);
     }
 

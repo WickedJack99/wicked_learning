@@ -6,8 +6,10 @@ use App\Models\OrganizationJoinRequest;
 use App\Models\OrganizationMembership;
 use App\Models\PlatformOrganizationSetting;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 
@@ -35,6 +37,77 @@ test('users can create and browse organizations', function () {
             ->has('organizations', 1)
             ->where('organizations.0.slogan', 'Build useful things together.')
         );
+});
+
+test('the organization directory paginates in the database and clamps stale pages', function () {
+    $user = User::factory()->create();
+
+    foreach (range(1, 13) as $index) {
+        Organization::query()->create([
+            'created_by_user_id' => $user->id,
+            'name' => 'Project Guild '.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+            'slug' => 'project-guild-'.$index,
+        ]);
+    }
+
+    Organization::query()
+        ->where('slug', 'project-guild-13')
+        ->firstOrFail()
+        ->memberships()
+        ->create([
+            'user_id' => $user->id,
+            'role' => OrganizationMembership::ROLE_MEMBER,
+            'joined_at' => now(),
+        ]);
+
+    $pageQuery = null;
+    $organizationQueries = [];
+    $membershipQueries = [];
+    $joinRequestQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$pageQuery, &$organizationQueries, &$membershipQueries, &$joinRequestQueries): void {
+        if (str_contains($query->sql, 'from "organizations"')
+            && preg_match('/limit 12 offset 12/i', $query->sql) === 1) {
+            $pageQuery = $query;
+        }
+
+        if (str_contains(strtolower($query->sql), 'from "organizations"')) {
+            $organizationQueries[] = $query;
+        }
+
+        if (preg_match('/select \* from "organization_memberships"/i', $query->sql) === 1) {
+            $membershipQueries[] = $query;
+        }
+
+        if (preg_match('/select \* from "organization_join_requests"/i', $query->sql) === 1) {
+            $joinRequestQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('organizations.index', ['page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('organizations/index')
+            ->where('pagination.currentPage', 2)
+            ->where('pagination.lastPage', 2)
+            ->where('pagination.perPage', 12)
+            ->where('pagination.total', 13)
+            ->has('organizations', 1)
+            ->where('organizations.0.name', 'Project Guild 13')
+            ->where('organizations.0.viewerMembership.role', OrganizationMembership::ROLE_MEMBER));
+
+    expect($pageQuery)->toBeInstanceOf(QueryExecuted::class)
+        ->and($organizationQueries)->toHaveCount(2)
+        ->and($membershipQueries)->toHaveCount(1)
+        ->and($joinRequestQueries)->toHaveCount(1);
+
+    $this->actingAs($user)
+        ->get(route('organizations.index', ['page' => 99]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('pagination.currentPage', 2)
+            ->has('organizations', 1)
+            ->where('organizations.0.name', 'Project Guild 13'));
 });
 
 test('users choose an organization governance type during creation', function () {

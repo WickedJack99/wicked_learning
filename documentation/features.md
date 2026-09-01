@@ -688,7 +688,9 @@ that request resolved; this records that the request no longer needs attention,
 not that a response was correct or that a learner earned a result. When a
 learner belongs to multiple groups, the map group overlay presents one chat at
 a time with pagination and loads later group pages only when requested; the
-message transcript itself remains a bounded reading area.
+message transcript itself remains a bounded reading area. The organization
+directory also returns a bounded server page, so browsing a larger community
+does not load every organization at once.
 
 ### Tools, Items And Portals
 

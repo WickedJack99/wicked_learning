@@ -13,6 +13,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import InputError from '@/components/input-error';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,13 @@ type OrganizationForm = {
     governance_type: OrganizationGovernanceType;
     name: string;
     slogan: string;
+};
+
+type OrganizationsPagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
 };
 
 const governanceOptions: {
@@ -62,8 +70,10 @@ const organizationAccentBackgroundClass =
 
 export default function OrganizationsIndex({
     organizations,
+    pagination,
 }: {
     organizations: OrganizationSummary[];
+    pagination: OrganizationsPagination;
 }) {
     const [isCreating, setIsCreating] = useState(false);
     const [form, setForm] = useState<OrganizationForm>({
@@ -270,6 +280,20 @@ export default function OrganizationsIndex({
                                 </Button>
                             </article>
                         ))}
+                        <PaginationControls
+                            buttonClassName={organizationAccentClass}
+                            className="mt-3 border-t border-slate-200 pt-3 dark:border-white/10"
+                            currentPage={pagination.currentPage}
+                            label="Organizations"
+                            onPageChange={(page) =>
+                                router.visit(`/organizations?page=${page}`, {
+                                    preserveScroll: true,
+                                    replace: true,
+                                })
+                            }
+                            pageCount={pagination.lastPage}
+                            textClassName="text-xs text-slate-500 dark:text-slate-400"
+                        />
                     </section>
                 </div>
             </LearnerDocumentSurface>
