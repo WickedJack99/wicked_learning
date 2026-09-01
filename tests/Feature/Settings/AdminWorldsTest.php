@@ -457,6 +457,51 @@ test('map import rejects a manifest from another workspace before creating conte
     expect(LearningMap::query()->count())->toBe($mapCount);
 });
 
+test('map import rejects unresolved authored references before creating content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $source = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $manifest = json_decode(
+        $this->actingAs($admin)
+            ->get(route('settings.worlds.maps.export', $source))
+            ->streamedContent(),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+    $mapCount = LearningMap::query()->count();
+
+    $manifest['portalTargets'][0]['targetNodeSlug'] = 'missing-node';
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'missing-target.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+            'title' => 'Should not be created',
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
+
+    $manifest['map']['topicSlug'] = 'missing-topic';
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'missing-topic.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+            'title' => 'Should not be created',
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
+});
+
 test('map authors can duplicate a complete authored map without learner state', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

@@ -3,6 +3,7 @@
 namespace App\Learning\Validation;
 
 use App\Models\LearningMap;
+use App\Models\LearningTopic;
 use App\Models\LearningWorld;
 use Illuminate\Http\UploadedFile;
 use JsonException;
@@ -20,9 +21,15 @@ class LearningMapExportValidator
      */
     public function validate(UploadedFile $manifest): array
     {
+        $contents = $manifest->get();
+
+        if ($contents === false) {
+            return $this->invalid('The selected file could not be read.');
+        }
+
         try {
             $payload = json_decode(
-                $manifest->get(),
+                $contents,
                 true,
                 512,
                 JSON_THROW_ON_ERROR,
@@ -44,6 +51,8 @@ class LearningMapExportValidator
         $mapPayload = $this->object($payload['map'] ?? null, 'map', $errors);
         $worldSlug = $this->slug($worldPayload['slug'] ?? null, 'world.slug', $errors);
         $mapSlug = $this->slug($mapPayload['slug'] ?? null, 'map.slug', $errors);
+        $topicSlug = null;
+        $world = null;
         $worldExists = false;
         $mapExists = false;
 
@@ -64,6 +73,14 @@ class LearningMapExportValidator
                 if ($mapExists) {
                     $warnings[] = "Map '{$mapSlug}' already exists in this world; a future import will need an explicit conflict choice.";
                 }
+            }
+        }
+
+        if (array_key_exists('topicSlug', $mapPayload) && $mapPayload['topicSlug'] !== null) {
+            $topicSlug = $this->slug($mapPayload['topicSlug'], 'map.topicSlug', $errors);
+
+            if ($topicSlug !== null && ! LearningTopic::query()->where('slug', $topicSlug)->exists()) {
+                $this->addError($errors, "Topic '{$topicSlug}' is not available in this workspace.");
             }
         }
 
@@ -123,7 +140,6 @@ class LearningMapExportValidator
 
             if (
                 isset($node['startActivitySlug'])
-                && $node['startActivitySlug'] !== null
                 && (! is_string($node['startActivitySlug']) || ! isset($activitySlugs[$activityKey][$node['startActivitySlug']]))
             ) {
                 $this->addError($errors, "{$path}.startActivitySlug must name an activity in the same node.");
@@ -148,6 +164,20 @@ class LearningMapExportValidator
         }
 
         $portalTargets = $this->list($payload['portalTargets'] ?? null, 'portalTargets', self::MAX_ASSETS, $errors);
+        $externalMapSlugs = collect($portalTargets)
+            ->map(fn (array $portal): mixed => $portal['targetMapSlug'] ?? null)
+            ->filter(fn (mixed $slug): bool => is_string($slug) && $slug !== $mapSlug)
+            ->unique()
+            ->values();
+        $externalMaps = $world && $externalMapSlugs->isNotEmpty()
+            ? LearningMap::query()
+                ->with('nodes.activities')
+                ->where('learning_world_id', $world->id)
+                ->whereIn('slug', $externalMapSlugs->all())
+                ->get()
+                ->keyBy('slug')
+            : collect();
+
         foreach ($portalTargets as $index => $portal) {
             $sourceNodeSlug = $portal['sourceNodeSlug'] ?? null;
 
@@ -160,6 +190,38 @@ class LearningMapExportValidator
             $sourceActivitySlug = $portal['sourceActivitySlug'] ?? null;
             if ($sourceActivitySlug !== null && (! is_string($sourceActivitySlug) || ! isset($activitySlugs[$sourceNodeSlug][$sourceActivitySlug]))) {
                 $this->addError($errors, "portalTargets.{$index}.sourceActivitySlug must name an activity in its source node.");
+            }
+
+            $targetMapSlug = $this->slug($portal['targetMapSlug'] ?? null, "portalTargets.{$index}.targetMapSlug", $errors);
+            $targetNodeSlug = $this->slug($portal['targetNodeSlug'] ?? null, "portalTargets.{$index}.targetNodeSlug", $errors);
+
+            if ($targetMapSlug === null || $targetNodeSlug === null) {
+                continue;
+            }
+
+            $targetActivitySlugs = [];
+            if ($targetMapSlug === $mapSlug) {
+                if (! isset($nodeSlugs[$targetNodeSlug])) {
+                    $this->addError($errors, "portalTargets.{$index}.targetNodeSlug must name an exported node.");
+                } else {
+                    $targetActivitySlugs = array_keys($activitySlugs[$targetNodeSlug] ?? []);
+                }
+            } else {
+                $targetMap = $externalMaps->get($targetMapSlug);
+                $targetNode = $targetMap?->nodes->firstWhere('slug', $targetNodeSlug);
+
+                if ($targetMap === null) {
+                    $this->addError($errors, "portalTargets.{$index}.targetMapSlug must name a map in this workspace.");
+                } elseif ($targetNode === null) {
+                    $this->addError($errors, "portalTargets.{$index}.targetNodeSlug must name a node in the target map.");
+                } else {
+                    $targetActivitySlugs = $targetNode->activities->pluck('slug')->all();
+                }
+            }
+
+            $targetActivitySlug = $portal['targetActivitySlug'] ?? null;
+            if ($targetActivitySlug !== null && (! is_string($targetActivitySlug) || ! in_array($targetActivitySlug, $targetActivitySlugs, true))) {
+                $this->addError($errors, "portalTargets.{$index}.targetActivitySlug must name an activity in the target node.");
             }
         }
 
@@ -272,7 +334,7 @@ class LearningMapExportValidator
             $this->addError($errors, "{$path} contains more than {$max} entries.");
         }
 
-        return array_values(array_slice($value, 0, $max));
+        return array_slice($value, 0, $max);
     }
 
     /**
