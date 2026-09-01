@@ -128,6 +128,7 @@ type EditableMap = {
     slug: string;
     topicId: number | null;
     title: string;
+    updatedAt: string | null;
 };
 
 interface NestedVisualConfig {
@@ -320,6 +321,7 @@ type MapVisualForm = {
 type MapDetailsForm = {
     description: string;
     title: string;
+    updated_at: string;
 };
 
 type NodeSettingsSection =
@@ -411,6 +413,7 @@ export default function EditWorldMap({
         () => ({
             description: map.description ?? '',
             title: map.title,
+            updated_at: map.updatedAt ?? '',
         }),
     );
     const [mapDetailsErrors, setMapDetailsErrors] = useState<
@@ -468,6 +471,7 @@ export default function EditWorldMap({
     const hasMapDetailsChanges = useDirtyState(mapDetailsForm, {
         description: map.description ?? '',
         title: map.title,
+        updated_at: map.updatedAt ?? '',
     });
     const hasMapVisualChanges = useDirtyState(
         mapVisualForm,
@@ -819,9 +823,25 @@ export default function EditWorldMap({
             {
                 preserveScroll: true,
                 onError: (nextErrors) => setMapDetailsErrors(nextErrors),
-                onSuccess: () => {
+                onSuccess: (page) => {
                     setMapDetailsOpen(false);
                     setMapDetailsErrors({});
+                    const props = page.props as {
+                        selectedWorldMap?: {
+                            editableMap?: {
+                                map?: { updatedAt?: string | null };
+                            };
+                        };
+                    };
+                    const updatedAt =
+                        props.selectedWorldMap?.editableMap?.map?.updatedAt;
+
+                    if (updatedAt) {
+                        setMapDetailsForm((current) => ({
+                            ...current,
+                            updated_at: updatedAt,
+                        }));
+                    }
                 },
                 onFinish: () => setProcessing(false),
             },
@@ -1292,6 +1312,7 @@ export default function EditWorldMap({
                             <InputError
                                 message={mapDetailsErrors.description}
                             />
+                            <InputError message={mapDetailsErrors.updated_at} />
                         </div>
                     </div>
 

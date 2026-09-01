@@ -69,6 +69,7 @@ export type MapSummary = {
     reviewCount: number;
     slug: string;
     title: string;
+    updatedAt: string | null;
 };
 
 export type NodeSummary = {

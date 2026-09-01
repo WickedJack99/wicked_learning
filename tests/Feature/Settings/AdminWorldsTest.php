@@ -3826,6 +3826,7 @@ test('admin users can edit map details', function () {
         ->patch(route('settings.worlds.maps.details.update', $map), [
             'title' => 'First Clearing',
             'description' => 'A quiet learning landscape for active practice.',
+            'updated_at' => $map->updated_at?->toIso8601String(),
         ])
         ->assertRedirect(route('settings.worlds.maps.edit', $map));
 
@@ -3846,6 +3847,7 @@ test('admin users can edit map details', function () {
         ->patch(route('settings.worlds.maps.details.update', $map), [
             'title' => 'First Clearing',
             'description' => 'Still inside the settings workspace.',
+            'updated_at' => $map->updated_at?->toIso8601String(),
         ])
         ->assertRedirect($workspaceUrl);
 });
@@ -3861,6 +3863,7 @@ test('authors can browse and restore map detail versions without losing the curr
         ->patch(route('settings.worlds.maps.details.update', $map), [
             'description' => 'The first map description.',
             'title' => 'First Clearing revised',
+            'updated_at' => $map->updated_at?->toIso8601String(),
         ])
         ->assertRedirect();
 
@@ -3967,6 +3970,57 @@ test('world detail edits reject a stale author form without overwriting newer de
     expect($world->refresh()->title)->toBe('First author update')
         ->and($world->description)->toBe('The newer details must win.')
         ->and($world->versions()->count())->toBe(1);
+});
+
+test('map detail edits reject a stale author form without overwriting newer details', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $staleUpdatedAt = $map->updated_at?->toIso8601String();
+
+    Carbon::setTestNow(now()->addMinute());
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'description' => 'The newer map details must win.',
+            'title' => 'First author map update',
+            'updated_at' => $staleUpdatedAt,
+        ])
+        ->assertRedirect();
+    Carbon::setTestNow();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.maps.edit', $map))
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'description' => 'This must not overwrite the newer map details.',
+            'title' => 'Stale author map update',
+            'updated_at' => $staleUpdatedAt,
+        ])
+        ->assertSessionHasErrors('updated_at');
+
+    expect($map->refresh()->title)->toBe('First author map update')
+        ->and($map->description)->toBe('The newer map details must win.')
+        ->and($map->versions()->count())->toBe(1);
+});
+
+test('map detail edits require an author snapshot token', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.maps.edit', $map))
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'description' => 'This write has no snapshot token.',
+            'title' => 'Rejected map update',
+        ])
+        ->assertSessionHasErrors('updated_at');
+
+    expect($map->refresh()->title)->not->toBe('Rejected map update')
+        ->and($map->versions()->count())->toBe(0);
 });
 
 test('world detail history cannot restore a version from another world', function () {
@@ -4259,6 +4313,7 @@ test('map detail versions cannot be restored across maps', function () {
     $this->actingAs($admin)
         ->patch(route('settings.worlds.maps.details.update', $map), [
             'title' => 'Versioned map',
+            'updated_at' => $map->updated_at?->toIso8601String(),
         ])
         ->assertRedirect();
 

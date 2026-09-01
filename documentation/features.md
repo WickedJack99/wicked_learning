@@ -761,7 +761,9 @@ preserved when authors save and reuse private activity templates.
 
 Map detail edits keep a private author history of the title, description, topic
 and MapAsset-surface lock settings. Authors can inspect the bounded history and
-restore an earlier version without losing the current details.
+restore an earlier version without losing the current details. A stale author
+form is rejected when another author has saved newer details, so a later save
+cannot silently overwrite that change.
 
 World title and description edits keep the same private, bounded author
 history. Authors can inspect earlier world details and restore one without

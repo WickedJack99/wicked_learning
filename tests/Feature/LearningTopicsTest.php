@@ -246,6 +246,7 @@ test('a topic page exposes assigned maps that the learner can access', function 
             'map_assets_locked' => false,
             'topic_id' => $topic->id,
             'title' => 'Night Sky',
+            'updated_at' => $map->updated_at?->toIso8601String(),
         ])
         ->assertRedirect();
 

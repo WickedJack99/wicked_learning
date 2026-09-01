@@ -39,6 +39,7 @@ class AdminWorldSummarySerializer
             'slug' => $map->slug,
             'title' => $map->title,
             'description' => $map->description,
+            'updatedAt' => $map->updated_at?->toIso8601String(),
             'nodeCount' => $map->nodes->count(),
             'reviewCount' => 0,
             'accessRoles' => $this->mapAccess->rolesForMap($map),

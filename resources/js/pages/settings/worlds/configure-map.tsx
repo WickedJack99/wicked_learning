@@ -61,6 +61,7 @@ type EditableMap = {
     slug: string;
     topicId: number | null;
     title: string;
+    updatedAt: string | null;
 };
 
 type EditableMapPayload = {
@@ -145,6 +146,7 @@ type DetailsForm = {
     map_assets_locked: boolean;
     topic_id: number | null;
     title: string;
+    updated_at: string;
 };
 
 type MapDetailsVersion = {
@@ -323,12 +325,14 @@ export default function ConfigureMap({
         map_assets_locked: map.mapAssetsLocked,
         topic_id: map.topicId,
         title: map.title,
+        updated_at: map.updatedAt ?? '',
     });
     const [detailsBaseline, setDetailsBaseline] = useState<DetailsForm>({
         description: map.description ?? '',
         map_assets_locked: map.mapAssetsLocked,
         topic_id: map.topicId,
         title: map.title,
+        updated_at: map.updatedAt ?? '',
     });
     const [visualForm, setVisualForm] = useState<MapVisualForm>(() =>
         mapVisualFormFromConfig(map.backgroundConfig),
@@ -414,8 +418,20 @@ export default function ConfigureMap({
         }
 
         if (mainSection === 'details') {
-            saveDetails(map.id, detailsForm, setErrors, setProcessing, () =>
-                setDetailsBaseline(detailsForm),
+            saveDetails(
+                map.id,
+                detailsForm,
+                setErrors,
+                setProcessing,
+                (updatedAt) => {
+                    const nextForm = {
+                        ...detailsForm,
+                        updated_at: updatedAt,
+                    };
+
+                    setDetailsForm(nextForm);
+                    setDetailsBaseline(nextForm);
+                },
             );
 
             return;
@@ -521,6 +537,7 @@ export default function ConfigureMap({
                     mapAssetsLocked: boolean;
                     topicId: number | null;
                     title: string;
+                    updatedAt: string | null;
                 };
             };
             const restoredForm = {
@@ -528,6 +545,7 @@ export default function ConfigureMap({
                 map_assets_locked: payload.map.mapAssetsLocked,
                 topic_id: payload.map.topicId,
                 title: payload.map.title,
+                updated_at: payload.map.updatedAt ?? '',
             };
             setDetailsForm(restoredForm);
             setDetailsBaseline(restoredForm);
@@ -921,6 +939,7 @@ function MapDetailsSection({
                             value={form.description}
                         />
                         <InputError message={errors.description} />
+                        <InputError message={errors.updated_at} />
                     </div>
                     <label className="flex items-start gap-3 border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-3 text-sm">
                         <Checkbox
@@ -1947,16 +1966,27 @@ function saveDetails(
     form: DetailsForm,
     setErrors: (errors: Record<string, string>) => void,
     setProcessing: (processing: boolean) => void,
-    onSuccess: () => void,
+    onSuccess: (updatedAt: string) => void,
 ) {
     setProcessing(true);
     router.patch(`/settings/worlds/maps/${mapId}/details`, form, {
         preserveScroll: true,
         onError: setErrors,
         onFinish: () => setProcessing(false),
-        onSuccess: () => {
+        onSuccess: (page) => {
             setErrors({});
-            onSuccess();
+            const props = page.props as {
+                selectedWorldMap?: {
+                    editableMap?: {
+                        map?: { updatedAt?: string | null };
+                    };
+                };
+            };
+            const updatedAt =
+                props.selectedWorldMap?.editableMap?.map?.updatedAt ??
+                form.updated_at;
+
+            onSuccess(updatedAt);
         },
     });
 }

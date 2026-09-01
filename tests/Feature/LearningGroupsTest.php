@@ -303,6 +303,7 @@ test('assigned group members can configure a map but cannot delete it', function
         ->patch(route('settings.worlds.maps.details.update', $map), [
             'title' => 'Assigned Map Updated',
             'description' => 'Edited by a group member.',
+            'updated_at' => $map->updated_at?->toIso8601String(),
         ])
         ->assertRedirect();
 

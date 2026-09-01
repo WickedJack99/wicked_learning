@@ -208,7 +208,10 @@ review activity in the node.
 Map detail updates use the same transactional snapshot-before-update pattern in
 `LearningMapVersion`. The permission-protected map versions endpoint returns a
 bounded page, and restore validates that the version belongs to the selected map
-before saving the current details as another version.
+before saving the current details as another version. Detail saves lock the
+current map row and require the serialized `updatedAt` token, rejecting stale
+author forms before they create a snapshot or overwrite newer data; explicit
+restore remains an intentional operation without that precondition.
 
 `LearningWorldVersion` applies the same transactional snapshot-before-update
 pattern to the current world's title and description. World detail history is

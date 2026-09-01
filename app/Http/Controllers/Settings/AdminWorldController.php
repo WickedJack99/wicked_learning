@@ -770,6 +770,7 @@ class AdminWorldController extends Controller
             $user,
             $map,
             $request->validate($this->rules->mapDetails()),
+            $request->string('updated_at')->toString(),
         );
 
         return $this->redirectBackToMap($map);
@@ -898,6 +899,7 @@ class AdminWorldController extends Controller
                 'mapAssetsLocked' => (bool) $map->map_assets_locked,
                 'topicId' => $map->learning_topic_id,
                 'title' => $map->title,
+                'updatedAt' => $map->updated_at?->toIso8601String(),
             ],
         ]);
     }

@@ -568,6 +568,7 @@ class AdminWorldRules
             'description' => ['nullable', 'string', 'max:1000'],
             'topic_id' => ['nullable', 'integer', 'exists:learning_topics,id'],
             'map_assets_locked' => ['sometimes', 'boolean'],
+            'updated_at' => ['required', 'date'],
         ];
     }
 
