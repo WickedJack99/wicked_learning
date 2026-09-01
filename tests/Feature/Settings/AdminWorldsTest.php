@@ -789,6 +789,126 @@ test('map import rejects unresolved authored references before creating content'
     expect(LearningMap::query()->count())->toBe($mapCount);
 });
 
+test('map import rejects missing uploaded media references before creating content', function () {
+    Storage::fake('public');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $mapCount = LearningMap::query()->count();
+    $manifest = [
+        'format' => 'wicked-learning-map',
+        'formatVersion' => 1,
+        'world' => ['slug' => 'demo-learning-world', 'title' => 'Demo learning world'],
+        'map' => [
+            'slug' => 'missing-media-map',
+            'title' => 'Missing media map',
+            'backgroundConfig' => [
+                'dark' => ['imageUrl' => '/storage/learning/media/missing.svg'],
+            ],
+        ],
+        'nodes' => [],
+        'mapAssets' => [],
+        'portalTargets' => [],
+        'references' => ['mediaUrls' => ['/storage/learning/media/missing.svg']],
+    ];
+
+    $this->actingAs($admin)
+        ->from(route('settings.index', ['panel' => 'admin-world-builder']))
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'missing-media.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+            'title' => 'Should not be created',
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
+});
+
+test('map import rejects external media references before creating content', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('learning/media/portable.svg', '<svg></svg>');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $mapCount = LearningMap::query()->count();
+    $manifest = [
+        'format' => 'wicked-learning-map',
+        'formatVersion' => 1,
+        'world' => ['slug' => 'demo-learning-world', 'title' => 'Demo learning world'],
+        'map' => [
+            'slug' => 'external-media-map',
+            'title' => 'External media map',
+            'backgroundConfig' => [
+                'dark' => ['imageUrl' => 'https://example.com/storage/learning/media/portable.svg'],
+            ],
+        ],
+        'nodes' => [],
+        'mapAssets' => [],
+        'portalTargets' => [],
+        'references' => ['mediaUrls' => ['https://example.com/storage/learning/media/portable.svg']],
+    ];
+
+    $this->actingAs($admin)
+        ->from(route('settings.index', ['panel' => 'admin-world-builder']))
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'external-media.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+            'title' => 'Should not be created',
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
+});
+
+test('map import preserves an available uploaded media reference', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('learning/media/portable.svg', '<svg></svg>');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $mediaUrl = '/storage/learning/media/portable.svg';
+    $manifest = [
+        'format' => 'wicked-learning-map',
+        'formatVersion' => 1,
+        'world' => ['slug' => 'demo-learning-world', 'title' => 'Demo learning world'],
+        'map' => [
+            'slug' => 'portable-media-map',
+            'title' => 'Portable media map',
+            'backgroundConfig' => [
+                'dark' => ['imageUrl' => $mediaUrl],
+            ],
+        ],
+        'nodes' => [],
+        'mapAssets' => [],
+        'portalTargets' => [],
+        'references' => ['mediaUrls' => [$mediaUrl]],
+    ];
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'portable-media.json',
+                json_encode($manifest, JSON_THROW_ON_ERROR),
+            ),
+            'slug' => 'portable-media-map-imported',
+            'title' => 'Portable media map imported',
+        ])
+        ->assertRedirect();
+
+    $importedMap = LearningMap::query()
+        ->where('slug', 'portable-media-map-imported')
+        ->firstOrFail();
+
+    expect($importedMap->background_config['dark']['imageUrl'])->toBe($mediaUrl);
+});
+
 test('map authors can duplicate a complete authored map without learner state', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

@@ -80,6 +80,42 @@ class ReusableMediaAssetManager
         ]);
     }
 
+    public function isImportableReference(string $url): bool
+    {
+        $parsed = parse_url($url);
+
+        if (! is_array($parsed) || isset($parsed['scheme']) || isset($parsed['host'])) {
+            return false;
+        }
+
+        $storagePath = $this->storagePathFromUrl($url);
+
+        if ($storagePath !== null) {
+            return $storagePath !== ''
+                && ! str_contains($storagePath, '..')
+                && Storage::disk('public')->exists($storagePath);
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+
+        if (! is_string($path) || ! str_starts_with($path, '/images/')) {
+            return false;
+        }
+
+        $relativePath = ltrim(substr($path, strlen('/images/')), '/');
+
+        return $relativePath !== ''
+            && ! str_contains($relativePath, '..')
+            && in_array(strtolower(pathinfo($relativePath, PATHINFO_EXTENSION)), [
+                'gif',
+                'jpeg',
+                'jpg',
+                'png',
+                'svg',
+                'webp',
+            ], true);
+    }
+
     /**
      * @return array{count: int, groups: list<array{count: int, label: string}>}
      */

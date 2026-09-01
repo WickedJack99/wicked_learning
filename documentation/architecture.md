@@ -261,8 +261,10 @@ that manifest only for an existing map the author can edit and only when its
 source world matches the current workspace. The importer creates fresh asset,
 node and child authoring records transactionally, uses a unique destination
 node slug, and remaps source-ID message-topic references through the existing
-map importer; it does not import learner state, permissions, portals, revisions
-or media bytes.
+map importer. Media references must be declared in the manifest and use local
+bundled or public-storage paths. Public-storage references must point to an
+existing file; bundled paths remain versioned references without copying their
+bytes. Learner state, permissions, portals and revisions are not imported.
 
 The World Builder also exposes a world export that resolves the current world,
 scopes its maps with the server-side map-edit boundary, batch-loads the shared
@@ -276,8 +278,11 @@ The matching world import accepts only a validated bundle for the current
 workspace and caps it at twelve single-map manifests. It creates all destination
 maps first, then populates their child records, and restores portal links last so
 links between included maps can use a source-to-destination slug map. The whole
-operation is transactional and creates fresh authored maps; media bytes, learner
-state, history, permissions and editor groups are deliberately excluded.
+operation is transactional and creates fresh authored maps. Its media reference
+list is checked by the same import boundary: bundled `/images` paths remain
+portable references, while `/storage` paths must resolve on the destination
+public disk. Media bytes, learner state, history, permissions and editor groups
+are deliberately excluded.
 
 Same-workspace map duplication is a separate transactional authoring action from
 portable import. It remaps internal node, activity, MapAsset message-topic,

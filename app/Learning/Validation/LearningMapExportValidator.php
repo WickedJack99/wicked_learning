@@ -2,6 +2,7 @@
 
 namespace App\Learning\Validation;
 
+use App\Learning\Services\ReusableMediaAssetManager;
 use App\Models\LearningMap;
 use App\Models\LearningTopic;
 use App\Models\LearningWorld;
@@ -15,6 +16,8 @@ class LearningMapExportValidator
     private const MAX_NODES = 500;
 
     private const MAX_ASSETS = 2000;
+
+    public function __construct(private readonly ReusableMediaAssetManager $mediaAssetManager) {}
 
     /**
      * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
@@ -337,6 +340,20 @@ class LearningMapExportValidator
         foreach ($mediaReferences as $index => $reference) {
             if (! is_string($reference) || trim($reference) === '') {
                 $this->addError($errors, "references.mediaUrls.{$index} must be a non-empty string.");
+            } elseif (! $this->mediaAssetManager->isImportableReference($reference)) {
+                $this->addError($errors, "references.mediaUrls.{$index} must point to an available local media asset.");
+            }
+        }
+
+        $declaredMediaReferences = array_fill_keys(
+            array_values(array_filter($mediaReferences, 'is_string')),
+            true,
+        );
+        foreach ($this->collectMediaUrls($payload) as $reference) {
+            if (! isset($declaredMediaReferences[$reference])) {
+                $this->addError($errors, 'references.mediaUrls must include every media reference used by the manifest.');
+
+                break;
             }
         }
 
@@ -464,6 +481,45 @@ class LearningMapExportValidator
         if (count($errors) < self::MAX_ERRORS) {
             $errors[] = $message;
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function collectMediaUrls(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $urls = [];
+
+        foreach ($value as $key => $nestedValue) {
+            if (
+                is_string($nestedValue)
+                && $this->isMediaKey((string) $key)
+                && trim($nestedValue) !== ''
+            ) {
+                $urls[] = $nestedValue;
+            }
+
+            if (is_array($nestedValue)) {
+                $urls = array_merge($urls, $this->collectMediaUrls($nestedValue));
+            }
+        }
+
+        return array_values(array_unique($urls));
+    }
+
+    private function isMediaKey(string $key): bool
+    {
+        $normalizedKey = strtolower(str_replace(['_', '-'], '', $key));
+
+        return str_ends_with($normalizedKey, 'url')
+            || str_contains($normalizedKey, 'image')
+            || str_contains($normalizedKey, 'sound')
+            || str_contains($normalizedKey, 'audio')
+            || $normalizedKey === 'src';
     }
 
     /**
