@@ -750,7 +750,9 @@ disable a link. The management list is server-paginated so older links remain
 reachable without sending the whole history to the browser. Link tokens are
 shown only when created; redemption is checked on the server and temporary
 accounts receive the learner role plus a separate least-privileged temporary
-role. Existing registration tokens remain a separate compatibility path.
+role. The temporary account role remains an access-management detail rather
+than an authored map audience condition. Existing registration tokens remain a
+separate compatibility path.
 Roles carry permission levels per resource:
 
 - `No`: no access

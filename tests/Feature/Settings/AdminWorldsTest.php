@@ -177,6 +177,7 @@ test('admin users can open world builder map configuration and node inside setti
             ->has('selectedWorldMap.learningGroups')
             ->has('selectedWorldMap.items')
             ->where('selectedWorldMap.roleOptions.0.slug', User::ROLE_USER)
+            ->where('selectedWorldMap.roleOptions', fn ($roles): bool => $roles->pluck('slug')->doesntContain(User::ROLE_TEMPORARY))
         );
 
     $this->actingAs($admin)

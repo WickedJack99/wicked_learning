@@ -693,6 +693,7 @@ class LoadSettingsIndex
                 ->all(),
             'learningGroups' => $this->loadLearningGroupOptions->handle($user),
             'roleOptions' => AccessRole::query()
+                ->where('slug', '!=', User::ROLE_TEMPORARY)
                 ->orderBy('level')
                 ->orderBy('name')
                 ->get(['name', 'slug'])
