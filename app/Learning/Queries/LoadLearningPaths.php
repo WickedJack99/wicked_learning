@@ -154,9 +154,12 @@ class LoadLearningPaths
                 $this->mapAccess->constrainVisibleQuery($query, $user);
             })
             ->whereHas('node', function (Builder $query): void {
-                $query
-                    ->whereNull('visual_config')
-                    ->orWhereJsonDoesntContain('visual_config->hideEmptySpace', true);
+                $query->where(function (Builder $query): void {
+                    $query
+                        ->whereNull('visual_config')
+                        ->orWhereJsonDoesntContainKey('visual_config->hideEmptySpace')
+                        ->orWhereJsonDoesntContain('visual_config->hideEmptySpace', true);
+                });
             })
             ->orderBy('learning_node_id')
             ->orderBy('sort_order')

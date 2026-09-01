@@ -294,3 +294,52 @@ test('learning paths exclude inaccessible maps and unavailable nodes', function 
         ->and($routeQuery->sql)->toContain('access_roles')
         ->and($routeQuery->sql)->toContain('hideEmptySpace');
 });
+
+test('learning paths keep nodes whose visual config has no empty-space flag', function () {
+    $user = User::factory()->create(['role' => User::ROLE_USER]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'configured-route-map',
+        'title' => 'Configured route map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    foreach ([
+        ['visible-configured-node', ['icon' => 'map'], true, 0],
+        ['hidden-configured-node', ['hideEmptySpace' => true], false, 1],
+    ] as [$slug, $visualConfig, $visible, $positionQ]) {
+        $node = LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => $slug,
+            'title' => $slug,
+            'position_q' => $positionQ,
+            'position_r' => 0,
+            'state' => 'available',
+            'visual_config' => $visualConfig,
+        ]);
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => $slug,
+            'title' => $slug,
+            'type' => 'markdown',
+        ]);
+        LearningActivityStart::query()->create([
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'label' => $visible ? 'Visible route' : 'Hidden route',
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->get(route('paths.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 1)
+            ->where('paths.0.label', 'Visible route')
+        );
+});
