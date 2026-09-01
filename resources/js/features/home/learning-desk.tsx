@@ -203,14 +203,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         ...(desk.supportResponses.length > 0 ? (['support'] as const) : []),
         'continue',
     ];
-    const defaultArea =
-        desk.connections.length > 0
-            ? 'connections'
-            : desk.currentRoutes.length > 0
-              ? 'continue'
-              : (availableAreas.find(
-                    (area) => area !== 'connections' && area !== 'continue',
-                ) ?? 'connections');
+    const defaultArea = availableAreas[0] ?? 'connections';
     const deskAreas = availableAreas.map((id) => ({
         id,
         label: areaLabels[id],

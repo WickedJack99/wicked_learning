@@ -92,8 +92,7 @@ test('the learning desk defaults to a useful populated area', function () {
     );
 
     expect($learningDesk)
-        ->toContain('desk.connections.length > 0')
-        ->toContain('desk.currentRoutes.length > 0')
+        ->toContain("const defaultArea = availableAreas[0] ?? 'connections';")
         ->toContain('const initialArea = deskAreaFromUrl() ?? defaultArea;');
 });
 
