@@ -693,7 +693,9 @@ lists, pending join requests and chat show bounded server-paginated pages,
 while the organization directory also returns a bounded server page and can
 search organization names, slugs, slogans and descriptions on the server, so
 browsing a larger community does not load every member, request, organization
-or message history at once.
+or message history at once. Leaders can remove another member from their
+organization when moderation requires it; removing oneself continues to use the
+separate leave flow so the leadership safeguards remain consistent.
 
 ### Tools, Items And Portals
 

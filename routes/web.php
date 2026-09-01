@@ -84,6 +84,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('organizations.membership.destroy');
     Route::patch('organization-memberships/{membership}/leader', [OrganizationController::class, 'promoteMember'])
         ->name('organizations.memberships.promote');
+    Route::delete('organization-memberships/{membership}', [OrganizationController::class, 'removeMember'])
+        ->name('organizations.memberships.destroy');
     Route::post('organizations/{organization:slug}/messages', [OrganizationController::class, 'storeMessage'])
         ->name('organizations.messages.store');
     Route::delete('organization-messages/{message}', [OrganizationController::class, 'destroyMessage'])

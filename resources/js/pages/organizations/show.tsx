@@ -11,6 +11,7 @@ import {
     SlidersHorizontal,
     Trash2,
     Upload,
+    UserRoundMinus,
     UserPlus,
     Users,
     X,
@@ -34,7 +35,9 @@ import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import type {
     OrganizationDetail,
     OrganizationJoinRequest,
+    OrganizationMembership,
 } from '@/features/organizations/types';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { uploadMediaFile } from '@/lib/media-upload';
 
 type OrganizationForm = {
@@ -56,6 +59,7 @@ export default function OrganizationShow({
 }: {
     organization: OrganizationDetail;
 }) {
+    const t = usePlatformTranslation();
     const { url } = usePage();
     const isMember = Boolean(organization.viewerMembership);
     const canViewChat = isMember || organization.canModerateMessages;
@@ -177,6 +181,26 @@ export default function OrganizationShow({
                 onSuccess: () => setErrors({}),
             },
         );
+    }
+
+    function removeMember(member: OrganizationMembership) {
+        if (
+            !window.confirm(
+                t(
+                    'organizations.members.remove_confirmation',
+                    'Remove :name from this organization?',
+                    { name: member.user.name },
+                ),
+            )
+        ) {
+            return;
+        }
+
+        router.delete(`/organization-memberships/${member.id}`, {
+            preserveScroll: true,
+            onError: (nextErrors) => setErrors(nextErrors),
+            onSuccess: () => setErrors({}),
+        });
     }
 
     function deleteOrganization() {
@@ -380,6 +404,7 @@ export default function OrganizationShow({
 
                                 {activeSection === 'members' ? (
                                     <MemberList
+                                        canRemove={organization.isLeader}
                                         canPromote={
                                             organization.isLeader &&
                                             organization.governanceType ===
@@ -411,8 +436,13 @@ export default function OrganizationShow({
                                             );
                                         }}
                                         onPromote={promoteMember}
+                                        onRemove={removeMember}
                                         pagination={
                                             organization.membersPagination
+                                        }
+                                        viewerMembershipId={
+                                            organization.viewerMembership?.id ??
+                                            null
                                         }
                                     />
                                 ) : null}
@@ -1000,18 +1030,24 @@ function ChatPanel({
 
 function MemberList({
     canPromote,
+    canRemove,
     errors,
     members,
     onPageChange,
     onPromote,
+    onRemove,
     pagination,
+    viewerMembershipId,
 }: {
     canPromote: boolean;
+    canRemove: boolean;
     errors: Record<string, string>;
     members: OrganizationDetail['members'];
     onPageChange: (page: number) => void;
     onPromote: (membershipId: number) => void;
+    onRemove: (membership: OrganizationMembership) => void;
     pagination: OrganizationDetail['membersPagination'];
+    viewerMembershipId: number | null;
 }) {
     return (
         <section
@@ -1045,6 +1081,17 @@ function MemberList({
                             >
                                 <UserPlus className="size-4" />
                                 Make leader
+                            </Button>
+                        ) : null}
+                        {canRemove && member.id !== viewerMembershipId ? (
+                            <Button
+                                onClick={() => onRemove(member)}
+                                size="sm"
+                                type="button"
+                                variant="destructive"
+                            >
+                                <UserRoundMinus className="size-4" />
+                                Remove
                             </Button>
                         ) : null}
                     </div>

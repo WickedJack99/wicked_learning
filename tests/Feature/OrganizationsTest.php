@@ -615,6 +615,75 @@ test('leaders can promote organization members to leaders', function () {
     expect($membership->refresh()->role)->toBe(OrganizationMembership::ROLE_LEADER);
 });
 
+test('leaders can remove another organization member but cannot remove themselves through moderation', function () {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $leader->id,
+        'name' => 'Moderation Lab',
+        'slug' => 'moderation-lab',
+    ]);
+    $organization->memberships()->create([
+        'user_id' => $leader->id,
+        'role' => OrganizationMembership::ROLE_LEADER,
+        'joined_at' => now(),
+    ]);
+    $memberMembership = $organization->memberships()->create([
+        'user_id' => $member->id,
+        'role' => OrganizationMembership::ROLE_MEMBER,
+        'joined_at' => now(),
+    ]);
+
+    $this->actingAs($leader)
+        ->delete(route('organizations.memberships.destroy', $memberMembership))
+        ->assertRedirect();
+
+    expect($organization->memberships()->whereKey($memberMembership->id)->exists())
+        ->toBeFalse();
+
+    $leaderMembership = $organization->memberships()->where('user_id', $leader->id)->firstOrFail();
+
+    $this->actingAs($leader)
+        ->delete(route('organizations.memberships.destroy', $leaderMembership))
+        ->assertSessionHasErrors('organization');
+
+    expect($leaderMembership->refresh()->exists)->toBeTrue();
+});
+
+test('regular organization members cannot remove another member', function () {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $otherMember = User::factory()->create();
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $leader->id,
+        'name' => 'Removal Guard',
+        'slug' => 'removal-guard',
+    ]);
+    $organization->memberships()->createMany([
+        [
+            'user_id' => $leader->id,
+            'role' => OrganizationMembership::ROLE_LEADER,
+            'joined_at' => now(),
+        ],
+        [
+            'user_id' => $member->id,
+            'role' => OrganizationMembership::ROLE_MEMBER,
+            'joined_at' => now(),
+        ],
+    ]);
+    $otherMembership = $organization->memberships()->create([
+        'user_id' => $otherMember->id,
+        'role' => OrganizationMembership::ROLE_MEMBER,
+        'joined_at' => now(),
+    ]);
+
+    $this->actingAs($member)
+        ->delete(route('organizations.memberships.destroy', $otherMembership))
+        ->assertForbidden();
+
+    expect($otherMembership->refresh()->exists)->toBeTrue();
+});
+
 test('regular organization members cannot promote other members', function () {
     $leader = User::factory()->create();
     $member = User::factory()->create();

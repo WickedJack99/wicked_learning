@@ -10,6 +10,7 @@ use App\Organizations\Actions\DeleteOrganizationMessage;
 use App\Organizations\Actions\HideOrganizationMessage;
 use App\Organizations\Actions\LeaveOrganization;
 use App\Organizations\Actions\PromoteOrganizationMember;
+use App\Organizations\Actions\RemoveOrganizationMember;
 use App\Organizations\Actions\ReportOrganizationIcon;
 use App\Organizations\Actions\RequestOrganizationMembership;
 use App\Organizations\Actions\RespondToOrganizationJoinRequest;
@@ -186,6 +187,16 @@ class OrganizationController extends Controller
         PromoteOrganizationMember $promote,
     ): RedirectResponse {
         $promote->handle($membership, $request->user());
+
+        return back();
+    }
+
+    public function removeMember(
+        Request $request,
+        OrganizationMembership $membership,
+        RemoveOrganizationMember $remove,
+    ): RedirectResponse {
+        $remove->handle($membership, $request->user());
 
         return back();
     }
