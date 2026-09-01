@@ -1528,6 +1528,11 @@ function TopicPathCard({ path }: { path: TopicPath }) {
                         )}
                     </span>
                 ) : null}
+                {path.routeDescription ? (
+                    <span className="mt-2 line-clamp-2 block text-sm leading-5 text-[var(--learner-body-text)]">
+                        {path.routeDescription}
+                    </span>
+                ) : null}
                 <span className="mt-1 block truncate text-xs text-[var(--learner-muted-text)]">
                     <Link
                         className="underline decoration-[color-mix(in_srgb,var(--learner-muted-text)_60%,transparent)] underline-offset-2 transition hover:text-[var(--learner-action-accent)]"

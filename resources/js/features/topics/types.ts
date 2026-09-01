@@ -145,6 +145,7 @@ export type TopicPath = {
     learningAreas: { name: string; slug: string }[];
     learningIntent: string | null;
     label: string;
+    routeDescription: string | null;
     timeGuideMinutes: number | null;
     mapHref: string;
     mapTitle: string;

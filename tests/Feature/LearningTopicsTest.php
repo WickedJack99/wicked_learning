@@ -305,6 +305,7 @@ test('a topic page exposes playable routes from its assigned maps', function () 
         'learning_node_id' => $node->id,
         'learning_activity_id' => $activity->id,
         'label' => 'Begin observing',
+        'description' => 'Start with a close observation, then compare what changes.',
         'sort_order' => 10,
     ]);
 
@@ -314,6 +315,7 @@ test('a topic page exposes playable routes from its assigned maps', function () 
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('topic.paths', 1)
             ->where('topic.paths.0.label', 'Begin observing')
+            ->where('topic.paths.0.routeDescription', 'Start with a close observation, then compare what changes.')
             ->where('topic.paths.0.learningIntent', 'review')
             ->where('topic.paths.0.mapHref', '/world?map=night-sky')
             ->where('topic.paths.0.mapTitle', 'Night Sky')
