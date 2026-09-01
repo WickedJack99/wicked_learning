@@ -108,6 +108,7 @@ export default function NodePlay({
     const companionContextActivityIdRef = useRef<number | null>(
         initialActivity?.id ?? null,
     );
+    const companionContextReloadActivityIdRef = useRef<number | null>(null);
     const [answerProgress, setAnswerProgress] = useState(progress.answers);
     const [recallQuestionIds, setRecallQuestionIds] = useState(
         progress.recallQuestionIds,
@@ -224,11 +225,31 @@ export default function NodePlay({
 
         if (
             isAuthenticated &&
-            companionContextActivityIdRef.current !== activeActivity.id
+            companionContextActivityIdRef.current !== activeActivity.id &&
+            companionContextReloadActivityIdRef.current !== activeActivity.id
         ) {
-            companionContextActivityIdRef.current = activeActivity.id;
+            const requestedActivityId = activeActivity.id;
+            companionContextReloadActivityIdRef.current = requestedActivityId;
+
             void router.reload({
                 only: ['companion'],
+                onSuccess: () => {
+                    if (
+                        companionContextReloadActivityIdRef.current ===
+                        requestedActivityId
+                    ) {
+                        companionContextActivityIdRef.current =
+                            requestedActivityId;
+                    }
+                },
+                onFinish: () => {
+                    if (
+                        companionContextReloadActivityIdRef.current ===
+                        requestedActivityId
+                    ) {
+                        companionContextReloadActivityIdRef.current = null;
+                    }
+                },
             });
         }
 
