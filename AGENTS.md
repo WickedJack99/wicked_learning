@@ -176,7 +176,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Test every code change by adding or updating a test.
 - Run the affected tests and ensure they pass.
 - Test the changed behavior and its important failure modes, but do not add tests beyond them.
-- Read the `testing-best-practices` skill before writing tests.
+- Read the `regression-matrix` skill before writing tests for behavior changes.
 
 === inertia-laravel/core rules ===
 
@@ -185,7 +185,9 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Inertia creates fully client-side rendered SPAs without modern SPA complexity, leveraging existing server-side patterns.
 - Components live in `resources/js/pages` (unless specified in `vite.config.js`). Use `Inertia::render()` for server-side routing instead of Blade views.
 - ALWAYS use `search-docs` tool for version-specific Inertia documentation and updated code examples.
-- IMPORTANT: Activate `inertia-react-development` when working with Inertia client-side patterns.
+- For Inertia/React changes, follow `resources/js/AGENTS.md`; use
+  `browser-acceptance-review` for browser-facing behavior and
+  `verification-gate` before declaring the change complete.
 
 # Inertia v3
 
@@ -250,7 +252,8 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 
 - This project uses Pest. Create tests with `php artisan make:test --pest {name}`.
 - Do not include the test suite directory in `{name}`. Use `SomeFeatureTest`, not `Feature/SomeFeatureTest`.
-- Read the `testing-best-practices` skill for guidance on coverage, naming, structure, dependency isolation, and review.
+- Use `regression-matrix` for invariant-driven coverage and counterexamples;
+  follow this repository's Pest conventions for naming, isolation and review.
 - Do not delete tests or test files without approval. They are part of the application.
 
 ## Running Tests
@@ -264,6 +267,8 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 
 # Inertia + React
 
-- IMPORTANT: Activate `inertia-react-development` when working with Inertia React client-side patterns.
+- For Inertia/React changes, follow `resources/js/AGENTS.md`; use
+  `browser-acceptance-review` for browser-facing behavior and
+  `verification-gate` before declaring the change complete.
 
 </laravel-boost-guidelines>
