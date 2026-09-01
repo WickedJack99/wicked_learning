@@ -55,6 +55,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class LoadSettingsIndex
 {
+    private const ACCESS_LINK_PAGE_SIZE = 8;
+
     public function __construct(
         private readonly LoadAccessRoles $loadAccessRoles,
         private readonly AccessRoleSerializer $roleSerializer,
@@ -100,6 +102,7 @@ class LoadSettingsIndex
         ?int $selectedNodeId = null,
         ?string $panel = null,
         ?int $feedbackPage = null,
+        ?int $accessLinkPage = null,
         ?string $worldSection = null,
     ): array {
         $hasExplicitPanel = $panel !== null;
@@ -119,6 +122,12 @@ class LoadSettingsIndex
         $loadsPublicPages = $panel === 'admin-public-pages';
         $loadsWorldBuilder = $panel === 'admin-world-builder';
         $loadsWorldGraph = $loadsWorldBuilder && $worldSection !== 'review';
+        $accessLinkData = $panel === 'admin-access' && $canManageUsers
+            ? $this->accessLinks($accessLinkPage ?? 1)
+            : [
+                'items' => [],
+                'pagination' => $this->pagination(1, 1, self::ACCESS_LINK_PAGE_SIZE, 0),
+            ];
 
         return [
             'canManageUsers' => $canManageUsers,
@@ -142,7 +151,8 @@ class LoadSettingsIndex
                 ? $this->companionSettings()
                 : null,
             'registrationTokens' => $loadsAccess && $canManageUsers ? $this->registrationTokens() : [],
-            'accessLinks' => $panel === 'admin-access' && $canManageUsers ? $this->accessLinks() : [],
+            'accessLinks' => $accessLinkData['items'],
+            'accessLinksPagination' => $accessLinkData['pagination'],
             'accessLinkOptions' => $panel === 'admin-access' && $canManageUsers ? $this->accessLinkOptions() : ['items' => [], 'tools' => []],
             'adminRoles' => $loadsAccess && $canManageRoles ? $this->accessRoles() : [],
             'permissionResources' => $loadsAccess ? $this->permissionResources() : [],
@@ -511,31 +521,65 @@ class LoadSettingsIndex
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array{items: array<int, array<string, mixed>>, pagination: array{currentPage: int, lastPage: int, perPage: int, total: int}}
      */
-    private function accessLinks(): array
+    private function accessLinks(int $page): array
     {
-        return AccessLink::query()
+        $query = AccessLink::query()
             ->with(['createdBy:id,name,email', 'redeemedBy:id,name,email'])
-            ->latest()
-            ->limit(25)
-            ->get()
-            ->map(fn (AccessLink $link): array => [
-                'createdAt' => $this->dateForFrontend($link->created_at),
-                'createdBy' => $link->createdBy ? $this->userReference($link->createdBy) : null,
-                'expiresAt' => $this->dateForFrontend($link->expires_at),
-                'id' => $link->id,
-                'isExpired' => $link->expires_at?->isPast() ?? false,
-                'isEnabled' => $link->is_enabled,
-                'isRedeemed' => $link->usage_policy === AccessLink::USAGE_ONE_TIME
-                    && $link->redeemed_at !== null,
-                'note' => $link->note,
-                'purpose' => $link->purpose,
-                'redeemedAt' => $this->dateForFrontend($link->redeemed_at),
-                'redeemedBy' => $link->redeemedBy ? $this->userReference($link->redeemedBy) : null,
-                'usagePolicy' => $link->usage_policy,
-            ])
-            ->all();
+            ->latest();
+        $links = $query->paginate(
+            self::ACCESS_LINK_PAGE_SIZE,
+            ['*'],
+            'access_link_page',
+            max(1, $page),
+        );
+
+        if ($links->isEmpty() && $links->total() > 0 && $links->currentPage() > $links->lastPage()) {
+            $links = $query->paginate(
+                self::ACCESS_LINK_PAGE_SIZE,
+                ['*'],
+                'access_link_page',
+                $links->lastPage(),
+            );
+        }
+
+        return [
+            'items' => $links->getCollection()
+                ->map(fn (AccessLink $link): array => [
+                    'createdAt' => $this->dateForFrontend($link->created_at),
+                    'createdBy' => $link->createdBy ? $this->userReference($link->createdBy) : null,
+                    'expiresAt' => $this->dateForFrontend($link->expires_at),
+                    'id' => $link->id,
+                    'isExpired' => $link->expires_at?->isPast() ?? false,
+                    'isEnabled' => $link->is_enabled,
+                    'isRedeemed' => $link->usage_policy === AccessLink::USAGE_ONE_TIME
+                        && $link->redeemed_at !== null,
+                    'note' => $link->note,
+                    'purpose' => $link->purpose,
+                    'redeemedAt' => $this->dateForFrontend($link->redeemed_at),
+                    'redeemedBy' => $link->redeemedBy ? $this->userReference($link->redeemedBy) : null,
+                    'usagePolicy' => $link->usage_policy,
+                ])
+                ->all(),
+            'pagination' => $this->pagination(
+                $links->currentPage(),
+                $links->lastPage(),
+                $links->perPage(),
+                $links->total(),
+            ),
+        ];
+    }
+
+    /** @return array{currentPage: int, lastPage: int, perPage: int, total: int} */
+    private function pagination(int $currentPage, int $lastPage, int $perPage, int $total): array
+    {
+        return [
+            'currentPage' => $currentPage,
+            'lastPage' => max(1, $lastPage),
+            'perPage' => $perPage,
+            'total' => $total,
+        ];
     }
 
     /** @return array{items: array<int, array{id: int, title: string}>, tools: array<int, array{id: int, title: string}>} */

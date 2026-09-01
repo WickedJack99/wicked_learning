@@ -174,16 +174,23 @@ class AdminAccessLinkController extends Controller
     {
         $data = $request->validate([
             'enabled' => ['required', 'boolean'],
+            'access_link_page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
         $accessLink->forceFill([
             'is_enabled' => (bool) $data['enabled'],
         ])->save();
 
-        return redirect()->route('settings.index', [
+        $query = [
             'panel' => 'admin-access',
             'access' => 'links',
-        ]);
+        ];
+
+        if (($data['access_link_page'] ?? 1) > 1) {
+            $query['access_link_page'] = $data['access_link_page'];
+        }
+
+        return redirect()->route('settings.index', $query);
     }
 
     private function usableLink(string $token): AccessLink

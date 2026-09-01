@@ -4,6 +4,8 @@ use App\Models\AccessLink;
 use App\Models\LearningItem;
 use App\Models\LearningTool;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 
 test('users without user-management permission cannot create access links', function () {
     $user = User::factory()->create();
@@ -129,6 +131,63 @@ test('administrators can create registration and temporary login links from the 
             AccessLink::USAGE_PER_USER,
             AccessLink::USAGE_ONE_TIME,
         ]);
+});
+
+test('access-link management paginates the list in the database and clamps stale pages', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    foreach (range(1, 9) as $index) {
+        AccessLink::createFor(
+            $admin,
+            AccessLink::PURPOSE_REGISTRATION,
+            ['roles' => [User::ROLE_USER]],
+            now()->addDay(),
+            "Invite {$index}",
+        );
+
+        AccessLink::query()
+            ->latest('id')
+            ->firstOrFail()
+            ->forceFill(['created_at' => now()->addSeconds($index)])
+            ->save();
+    }
+
+    $pageQuery = null;
+    DB::listen(function (QueryExecuted $query) use (&$pageQuery): void {
+        if (str_contains($query->sql, 'from "access_links"') && preg_match('/limit 8 offset 8/', $query->sql) === 1) {
+            $pageQuery = $query;
+        }
+    });
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'links',
+            'access_link_page' => 2,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('settings/index')
+            ->where('accessLinksPagination.currentPage', 2)
+            ->where('accessLinksPagination.lastPage', 2)
+            ->where('accessLinksPagination.perPage', 8)
+            ->where('accessLinksPagination.total', 9)
+            ->has('accessLinks', 1)
+            ->where('accessLinks.0.note', 'Invite 1'));
+
+    expect($pageQuery)->toBeInstanceOf(QueryExecuted::class);
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'links',
+            'access_link_page' => 99,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('accessLinksPagination.currentPage', 2)
+            ->has('accessLinks', 1)
+            ->where('accessLinks.0.note', 'Invite 1'));
 });
 
 test('a logged-in learner can redeem a tool link once', function () {

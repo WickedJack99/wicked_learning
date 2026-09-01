@@ -2,12 +2,14 @@ import { router } from '@inertiajs/react';
 import { Check, Clipboard, Link, Plus, Power, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     AccessLinkOption,
+    AccessLinkPagination,
     AccessLinkPurpose,
     AccessLinkSummary,
     AccessLinkUsagePolicy,
@@ -21,6 +23,7 @@ type Props = {
         tools: AccessLinkOption[];
     };
     accessLinks: AccessLinkSummary[];
+    accessLinksPagination: AccessLinkPagination;
     assignableRoles: UserRole[];
     canCreate: boolean;
     createdAccessLink: string | null;
@@ -48,6 +51,7 @@ const usagePolicies: {
 export function AccessLinksPanel({
     accessLinkOptions,
     accessLinks,
+    accessLinksPagination,
     assignableRoles,
     canCreate,
     createdAccessLink,
@@ -456,7 +460,11 @@ export function AccessLinksPanel({
                                         onClick={() =>
                                             router.patch(
                                                 `/settings/access-links/${link.id}/status`,
-                                                { enabled: !link.isEnabled },
+                                                {
+                                                    access_link_page:
+                                                        accessLinksPagination.currentPage,
+                                                    enabled: !link.isEnabled,
+                                                },
                                                 {
                                                     preserveScroll: true,
                                                     preserveState: true,
@@ -482,11 +490,32 @@ export function AccessLinksPanel({
                                 No links created yet.
                             </p>
                         ) : null}
+                        <PaginationControls
+                            buttonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                            className="mt-3 border-t border-[var(--settings-border-color)] pt-3"
+                            currentPage={accessLinksPagination.currentPage}
+                            label="Access links"
+                            onPageChange={changeAccessLinkPage}
+                            pageCount={accessLinksPagination.lastPage}
+                            textClassName="text-xs text-[var(--settings-muted-text)]"
+                        />
                     </div>
                 </section>
             </div>
         </div>
     );
+}
+
+function changeAccessLinkPage(page: number): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'admin-access');
+    url.searchParams.set('access', 'links');
+    url.searchParams.set('access_link_page', String(page));
+
+    router.visit(`${url.pathname}?${url.searchParams.toString()}`, {
+        preserveScroll: true,
+        replace: true,
+    });
 }
 
 function updateItemGrant(

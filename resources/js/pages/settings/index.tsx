@@ -57,6 +57,7 @@ import {
 import type {
     AccessFormState,
     AccessLinkOption,
+    AccessLinkPagination,
     AccessLinkSummary,
     AccessRoleSummary,
     AdminUser,
@@ -136,6 +137,7 @@ type SettingsIndexProps = {
         tools: AccessLinkOption[];
     };
     accessLinks: AccessLinkSummary[];
+    accessLinksPagination: AccessLinkPagination;
     accessGroupUsers: AccessGroupUser[];
     accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
@@ -486,6 +488,7 @@ export default function SettingsIndex({
     accessCapabilities,
     accessLinkOptions,
     accessLinks,
+    accessLinksPagination,
     accessGroupUsers,
     accessGroups,
     adminRoles,
@@ -623,6 +626,7 @@ export default function SettingsIndex({
                                     accessCapabilities={accessCapabilities}
                                     accessLinkOptions={accessLinkOptions}
                                     accessLinks={accessLinks}
+                                    accessLinksPagination={accessLinksPagination}
                                     accessGroupUsers={accessGroupUsers}
                                     accessGroups={accessGroups}
                                     adminRoles={adminRoles}
@@ -701,6 +705,7 @@ function SettingsDetail({
     accessCapabilities,
     accessLinkOptions,
     accessLinks,
+    accessLinksPagination,
     accessGroupUsers,
     accessGroups,
     adminRoles,
@@ -743,6 +748,7 @@ function SettingsDetail({
         tools: AccessLinkOption[];
     };
     accessLinks: AccessLinkSummary[];
+    accessLinksPagination: AccessLinkPagination;
     accessGroupUsers: AccessGroupUser[];
     accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
@@ -981,6 +987,7 @@ function SettingsDetail({
                     accessCapabilities={accessCapabilities}
                     accessLinkOptions={accessLinkOptions}
                     accessLinks={accessLinks}
+                    accessLinksPagination={accessLinksPagination}
                     accessGroupUsers={accessGroupUsers}
                     accessGroups={accessGroups}
                     roles={adminRoles}
@@ -1014,6 +1021,7 @@ function SettingsUnavailablePanel({ label }: { label: string }) {
 function AccessManagementPanel({
     accessLinkOptions,
     accessLinks,
+    accessLinksPagination,
     accessCapabilities,
     accessGroupUsers,
     accessGroups,
@@ -1030,6 +1038,7 @@ function AccessManagementPanel({
         tools: AccessLinkOption[];
     };
     accessLinks: AccessLinkSummary[];
+    accessLinksPagination: AccessLinkPagination;
     accessCapabilities: Record<string, AccessCapability>;
     accessGroupUsers: AccessGroupUser[];
     accessGroups: AccessLearningGroup[];
@@ -1101,6 +1110,7 @@ function AccessManagementPanel({
                     <AccessLinksPanel
                         accessLinkOptions={accessLinkOptions}
                         accessLinks={accessLinks}
+                        accessLinksPagination={accessLinksPagination}
                         assignableRoles={assignableRegistrationRoles}
                         canCreate={accessCapabilities.users?.update ?? false}
                         createdAccessLink={createdAccessLink}

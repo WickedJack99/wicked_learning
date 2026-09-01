@@ -731,10 +731,11 @@ Admins can manage users, registration tokens, roles, groups and account access.
 Access management also provides expiring access links for a configured tool
 grant, item grant, registration invitation or temporary learner login. Admins
 can choose one-time, multiple-use or one-time-per-user behavior and enable or
-disable a link. Link tokens are shown only when created; redemption is checked
-on the server and temporary accounts receive the learner role plus a separate
-least-privileged temporary role. Existing registration tokens remain a
-separate compatibility path.
+disable a link. The management list is server-paginated so older links remain
+reachable without sending the whole history to the browser. Link tokens are
+shown only when created; redemption is checked on the server and temporary
+accounts receive the learner role plus a separate least-privileged temporary
+role. Existing registration tokens remain a separate compatibility path.
 Roles carry permission levels per resource:
 
 - `No`: no access

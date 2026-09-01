@@ -65,6 +65,13 @@ export type AccessLinkSummary = {
     usagePolicy: AccessLinkUsagePolicy;
 };
 
+export type AccessLinkPagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
+
 export type AccessLinkOption = {
     id: number;
     title: string;
