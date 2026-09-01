@@ -148,7 +148,7 @@ class LearningMapExportValidator
      * Validate a decoded single-map export payload.
      *
      * @param  array<string, mixed>  $payload
-     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, mediaReferenceDetails: list<array{available: bool, url: string}>, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
      */
     public function validatePayload(array $payload): array
     {

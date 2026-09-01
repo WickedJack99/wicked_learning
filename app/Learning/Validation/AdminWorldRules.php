@@ -56,7 +56,7 @@ class AdminWorldRules
     public function importMap(LearningWorld $world): array
     {
         return [
-            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:10240'],
+            'manifest' => ['required', 'file', 'mimes:json,txt,zip', 'max:51200'],
             'title' => ['required', 'string', 'max:120'],
             'slug' => [
                 'nullable',

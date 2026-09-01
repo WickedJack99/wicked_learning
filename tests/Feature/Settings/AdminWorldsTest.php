@@ -252,6 +252,123 @@ test('map authors can download an author-only map export manifest', function () 
         ->and($payload)->not->toHaveKey('learnerProgress');
 });
 
+test('map authors can transfer a map with explicitly referenced uploaded media', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('learning/media/portable.svg', '<svg>portable</svg>');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $source = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $mediaUrl = '/storage/learning/media/portable.svg';
+    $source->forceFill([
+        'background_config' => ['dark' => ['imageUrl' => $mediaUrl]],
+    ])->save();
+
+    $export = $this->actingAs($admin)
+        ->get(route('settings.worlds.maps.export-package', $source));
+
+    $export
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/zip')
+        ->assertHeader(
+            'Content-Disposition',
+            'attachment; filename=first-sector-wicked-learning-map.zip',
+        );
+
+    $packagePath = tempnam(sys_get_temp_dir(), 'wicked-map-package-test-');
+    expect($packagePath)->not->toBeFalse();
+    file_put_contents($packagePath, file_get_contents($export->getFile()->getPathname()));
+    $archive = new ZipArchive;
+    expect($archive->open($packagePath))->toBeTrue();
+    $manifestContents = $archive->getFromName('manifest.json');
+    expect($manifestContents)->toBeString()->toContain($mediaUrl);
+    $mediaIndex = json_decode(
+        (string) $archive->getFromName('media.json'),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+    $mediaEntry = $mediaIndex['media'][0];
+    expect($mediaEntry['sourceUrl'])->toBe($mediaUrl);
+    expect($archive->getFromName($mediaEntry['archivePath']))->toBe('<svg>portable</svg>');
+    $archive->close();
+
+    $validation = $this->actingAs($admin)
+        ->withHeaders(['Accept' => 'application/json'])
+        ->post(route('settings.worlds.maps.exports.validate'), [
+            'scope' => 'map',
+            'manifest' => new UploadedFile($packagePath, 'map.zip', 'application/zip', null, true),
+        ]);
+
+    $validation
+        ->assertOk()
+        ->assertJsonPath('valid', true)
+        ->assertJsonPath('mediaReferenceDetails.0.url', $mediaUrl)
+        ->assertJsonPath('mediaReferenceDetails.0.available', true);
+
+    $response = $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.import'), [
+            'manifest' => new UploadedFile($packagePath, 'map.zip', 'application/zip', null, true),
+            'slug' => 'portable-package-map',
+            'title' => 'Portable package map',
+        ]);
+
+    $response->assertRedirect();
+    $imported = LearningMap::query()->where('slug', 'portable-package-map')->firstOrFail();
+    $importedUrl = data_get($imported->background_config, 'dark.imageUrl');
+
+    expect($importedUrl)->toBeString()
+        ->not->toBe($mediaUrl)
+        ->toStartWith('/storage/learning/media/');
+    Storage::disk('public')->assertExists(substr(parse_url($importedUrl, PHP_URL_PATH), strlen('/storage/')));
+    @unlink($packagePath);
+});
+
+test('map package preflight rejects unsafe archive paths before importing content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $mapCount = LearningMap::query()->count();
+    $packagePath = tempnam(sys_get_temp_dir(), 'wicked-invalid-map-package-');
+    expect($packagePath)->not->toBeFalse();
+
+    $archive = new ZipArchive;
+    expect($archive->open($packagePath, ZipArchive::CREATE | ZipArchive::OVERWRITE))->toBeTrue();
+    $archive->addFromString('manifest.json', json_encode([
+        'format' => 'wicked-learning-map',
+        'formatVersion' => 1,
+        'world' => ['slug' => 'demo-learning-world'],
+        'map' => ['slug' => 'unsafe-package-map', 'title' => 'Unsafe package map'],
+        'nodes' => [],
+        'mapAssets' => [],
+        'portalTargets' => [],
+        'references' => ['mediaUrls' => ['/storage/learning/media/unsafe.svg']],
+    ], JSON_THROW_ON_ERROR));
+    $archive->addFromString('media.json', json_encode([
+        'format' => 'wicked-learning-map-media',
+        'formatVersion' => 1,
+        'media' => [[
+            'sourceUrl' => '/storage/learning/media/unsafe.svg',
+            'archivePath' => 'media/../unsafe.svg',
+        ]],
+    ], JSON_THROW_ON_ERROR));
+    $archive->close();
+
+    $this->actingAs($admin)
+        ->withHeaders(['Accept' => 'application/json'])
+        ->post(route('settings.worlds.maps.exports.validate'), [
+            'scope' => 'map',
+            'manifest' => new UploadedFile($packagePath, 'unsafe.zip', 'application/zip', null, true),
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('media');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
+    @unlink($packagePath);
+});
+
 test('map authors can download a standalone map asset bundle with its authored place', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

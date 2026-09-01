@@ -702,6 +702,19 @@ function MapDetails({ map }: { map: MapSummary }) {
                     {t('settings.world_builder.map.export', 'Export map')}
                 </a>
             </Button>
+            <Button asChild className="mt-2 w-full" variant="outline">
+                <a
+                    data-wl-id="settings.world-builder.map.export-package"
+                    download
+                    href={`/settings/worlds/maps/${map.id}/export-package`}
+                >
+                    <Download className="size-4" />
+                    {t(
+                        'settings.world_builder.map.export_package',
+                        'Export map with media',
+                    )}
+                </a>
+            </Button>
             <DuplicateMapDialog mapId={map.id} mapTitle={map.title} />
         </div>
     );

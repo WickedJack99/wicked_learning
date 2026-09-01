@@ -251,7 +251,12 @@ of the export contract. The matching readiness validator caps collection sizes,
 checks slugs and graph links in memory, and performs only bounded workspace
 lookups; it never imports or mutates the submitted manifest. Its response also
 contains a bounded availability detail list for declared media references; it
-does not transfer media bytes. The author import
+does not transfer media bytes for JSON manifests. A single-map portable package
+is also supported: it pairs the manifest with an explicit media index and
+referenced uploaded files, validates archive paths and uncompressed size, then
+materializes each file under a fresh public-disk path before the existing map
+import action runs. Bundled `/images` references are left unchanged, and world
+or standalone MapAsset packages remain future work. The author import
 dialogs can preflight either a single-map or world manifest through this same
 server-side boundary, while the mutating import action validates again.
 

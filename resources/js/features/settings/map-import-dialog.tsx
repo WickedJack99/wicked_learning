@@ -210,29 +210,31 @@ export function MapImportDialog({
                             )}
                         </DialogTitle>
                         <DialogDescription>
-                            {t(
-                                isWorldImport
-                                    ? 'settings.world_builder.import.world_description'
-                                    : 'settings.world_builder.import.description',
-                                isWorldImport
-                                    ? 'Create fresh maps from a validated world export. Portal links between included maps are remapped; learner history, versions, access restrictions and editor groups are not imported.'
-                                    : 'Create a new map from a validated single-map export. Learner history, versions, review state, access restrictions and editor groups are not imported.',
-                            )}
+                            {isWorldImport
+                                ? t(
+                                      'settings.world_builder.import.world_description',
+                                      'Create fresh maps from a validated world export. Portal links between included maps are remapped; learner history, versions, access restrictions and editor groups are not imported.',
+                                  )
+                                : t(
+                                      'settings.world_builder.import.package_description',
+                                      'Create a new map from a validated JSON export or portable package. Learner history, versions, review state, access restrictions and editor groups are not imported.',
+                                  )}
                         </DialogDescription>
                     </DialogHeader>
 
                     <form className="grid gap-4" onSubmit={importMap}>
                         <div className="grid gap-2">
                             <Label htmlFor="map-import-file">
-                                {t(
-                                    'settings.world_builder.import.file',
-                                    isWorldImport
-                                        ? 'JSON world bundle'
-                                        : 'JSON export file',
-                                )}
+                                {isWorldImport
+                                    ? t('settings.world_builder.import.file', 'JSON world bundle')
+                                    : t('settings.world_builder.import.package_file', 'JSON export or portable map package')}
                             </Label>
                             <Input
-                                accept=".json,application/json,text/plain"
+                                accept={
+                                    isWorldImport
+                                        ? '.json,application/json,text/plain'
+                                        : '.json,.zip,application/json,application/zip,text/plain'
+                                }
                                 id="map-import-file"
                                 onChange={(event) => {
                                     const file =

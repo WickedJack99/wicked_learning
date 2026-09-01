@@ -40,6 +40,7 @@ use App\Learning\Serializers\LearningMapLayoutVersionSerializer;
 use App\Learning\Serializers\LearningMapVersionSerializer;
 use App\Learning\Serializers\LearningWorldExportSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
+use App\Learning\Services\LearningMapTransferPackageService;
 use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
@@ -59,6 +60,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use JsonException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminWorldController extends Controller
@@ -71,6 +73,7 @@ class AdminWorldController extends Controller
         private readonly LearningMapAssetSerializer $mapAssetSerializer,
         private readonly LearningMapAssetVersionSerializer $mapAssetVersionSerializer,
         private readonly LearningMapExportSerializer $mapExportSerializer,
+        private readonly LearningMapTransferPackageService $mapTransferPackage,
         private readonly LearningWorldExportSerializer $worldExportSerializer,
         private readonly LearningMapVersionSerializer $mapVersionSerializer,
         private readonly LearningMapLayoutVersionSerializer $mapLayoutVersionSerializer,
@@ -197,6 +200,18 @@ class AdminWorldController extends Controller
         );
     }
 
+    public function exportMapPackage(Request $request, LearningMap $map): BinaryFileResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+        $package = $this->mapTransferPackage->export($map);
+
+        return response()
+            ->download($package['path'], "{$map->slug}-wicked-learning-map.zip", [
+                'Content-Type' => 'application/zip',
+            ])
+            ->deleteFileAfterSend(true);
+    }
+
     public function exportMapAsset(Request $request, LearningMapAsset $asset): StreamedResponse
     {
         $asset->loadMissing('map');
@@ -283,8 +298,8 @@ class AdminWorldController extends Controller
             'manifest' => [
                 'required',
                 'file',
-                'mimes:json,txt',
-                'max:'.($scope === 'world' ? 51200 : 10240),
+                'mimes:json,txt,zip',
+                'max:51200',
             ],
         ]);
 
@@ -296,9 +311,27 @@ class AdminWorldController extends Controller
             );
         }
 
-        return response()->json(
-            $this->mapExportValidator->validate($data['manifest']),
-        );
+        if ($this->mapTransferPackage->isPackage($data['manifest'])) {
+            $prepared = $this->mapTransferPackage->prepare($data['manifest']);
+
+            try {
+                $result = $this->mapExportValidator->validatePayload($prepared['payload']);
+                $sourceByDestination = array_flip($prepared['sourceToDestination']);
+                $result['mediaReferenceDetails'] = array_map(
+                    static fn (array $detail): array => [
+                        ...$detail,
+                        'url' => $sourceByDestination[$detail['url']] ?? $detail['url'],
+                    ],
+                    $result['mediaReferenceDetails'],
+                );
+
+                return response()->json($result);
+            } finally {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+        }
+
+        return response()->json($this->mapExportValidator->validate($data['manifest']));
     }
 
     public function importMap(Request $request): RedirectResponse
@@ -306,23 +339,47 @@ class AdminWorldController extends Controller
         $this->authorizeMapCreate($request);
         $world = $this->loadEditableWorldGraph->handle($request->user());
         $data = $request->validate($this->rules->importMap($world));
-        $validation = $this->mapExportValidator->validate($data['manifest']);
+        $prepared = $this->mapTransferPackage->isPackage($data['manifest'])
+            ? $this->mapTransferPackage->prepare($data['manifest'])
+            : null;
+        $payload = $prepared['payload'] ?? null;
+        try {
+            $validation = $prepared === null
+                ? $this->mapExportValidator->validate($data['manifest'])
+                : $this->mapExportValidator->validatePayload($payload);
+        } catch (\Throwable $exception) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
+            throw $exception;
+        }
 
         if (! $validation['valid']) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
             throw ValidationException::withMessages([
                 'manifest' => $validation['summary'].' '.implode(' ', $validation['errors']),
             ]);
         }
 
-        try {
-            $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw ValidationException::withMessages([
-                'manifest' => 'The selected file is not valid JSON.',
-            ]);
+        if ($payload === null) {
+            try {
+                $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
+            } catch (JsonException) {
+                throw ValidationException::withMessages([
+                    'manifest' => 'The selected file is not valid JSON.',
+                ]);
+            }
         }
 
         if (($payload['world']['slug'] ?? null) !== $world->slug) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
             throw ValidationException::withMessages([
                 'manifest' => 'Import a manifest exported from the current workspace.',
             ]);
@@ -331,7 +388,15 @@ class AdminWorldController extends Controller
         $creator = $request->user();
         abort_unless($creator instanceof User, 401);
 
-        $map = $this->importLearningMap->handle($payload, $world, $data, $creator);
+        try {
+            $map = $this->importLearningMap->handle($payload, $world, $data, $creator);
+        } catch (\Throwable $exception) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
+            throw $exception;
+        }
 
         return $this->redirectToMap($map);
     }

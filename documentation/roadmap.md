@@ -41,8 +41,9 @@ their own evidence without exposing a hidden competence score.
 - Expand map, world, node-placement and activity histories into safe rollback
   and collaborative editing workflows.
 - Extend the current bounded map/world import and export contracts to cover
-  standalone MapAsset transfer and explicit media transfer with reference
-  handling.
+  standalone MapAsset transfer and world-level media packages. Single-map
+  packages now transfer explicitly referenced uploaded media with reference
+  handling; JSON world and standalone MapAsset transfers remain reference-only.
 - Add configuration profiles with visible inherited values and local
   overrides.
 - Grow the private and organization-scoped activity-template library with

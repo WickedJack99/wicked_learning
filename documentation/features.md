@@ -788,6 +788,12 @@ editable-world JSON bundle containing the maps in their current map-editing
 scope. Each map reuses the single-map manifest format, and the bundle includes
 a deduplicated media reference list. The bundle does not transfer media or
 include learner state, revision history, permissions or editing groups.
+For a single map, authors can instead download a portable map package. It
+contains the same authored manifest plus explicitly referenced uploaded media
+files, while bundled `/images` references remain unchanged. Importing a package
+stores those media files under fresh media-library paths before creating the
+new authored map; invalid, missing or unsafe package files are rejected before
+content is created.
 Authorized authors can import one validated manifest into the current workspace
 as a new authored map with a fresh slug;
 the import is transactional and sends imported activities back to authoring
@@ -800,8 +806,9 @@ references are explicit: bundled `/images` paths remain reusable, uploaded
 `/storage` paths must exist on the destination public disk, and undeclared or
 external media references are rejected before content is created. Media bytes,
 learner state, revision history, permissions and editor groups remain outside
-the import contract; cross-workspace media transfer remains future authoring
-work. Both import dialogs preflight their selected bundle through the same
+the world import contract. World bundles remain JSON-only; cross-workspace
+media transfer for world and standalone MapAsset bundles remains future
+authoring work. Both import dialogs preflight their selected bundle through the same
 server-side validator and keep the import action unavailable until the bundle
 is structurally ready; the import endpoint validates again before mutation.
 Authors can also export one MapAsset as a standalone JSON bundle. It includes
