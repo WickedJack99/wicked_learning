@@ -683,6 +683,7 @@
     "settings.learning_concepts.save": "Save concepts",
     "settings.navigation.learning_support.concept_library": "Concept Library",
     "settings.navigation.learning_support.admin_panel": "Feedback",
+    "settings.world_builder.map.export": "Export map",
     "settings.world_builder.map_asset.add": "Add Asset",
     "settings.world_builder.map_asset.add_error": "The MapAsset could not be added.",
     "settings.world_builder.map_asset.select_aria_label": "Select :label to edit",

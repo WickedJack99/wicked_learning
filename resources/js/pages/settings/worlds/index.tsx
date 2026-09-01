@@ -20,6 +20,7 @@ import {
     ArrowRight,
     CircleAlert,
     CircleCheck,
+    Download,
     GitBranch,
     Map as MapIcon,
     Pencil,
@@ -566,6 +567,7 @@ function MapGraphHandles() {
 }
 
 function MapDetails({ map }: { map: MapSummary }) {
+    const t = usePlatformTranslation();
     const nodesNeedingReview = map.nodes.filter(
         (node) => node.activityReviewCount > 0,
     );
@@ -667,6 +669,16 @@ function MapDetails({ map }: { map: MapSummary }) {
                     <SlidersHorizontal className="size-4" />
                     Configure map
                 </Link>
+            </Button>
+            <Button asChild className="mt-2 w-full" variant="outline">
+                <a
+                    data-wl-id="settings.world-builder.map.export"
+                    download
+                    href={`/settings/worlds/maps/${map.id}/export`}
+                >
+                    <Download className="size-4" />
+                    {t('settings.world_builder.map.export', 'Export map')}
+                </a>
             </Button>
             <DuplicateMapDialog mapId={map.id} mapTitle={map.title} />
         </div>
