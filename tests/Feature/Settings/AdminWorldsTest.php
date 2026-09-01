@@ -709,6 +709,137 @@ test('map authors can download an editable world export bundle', function () {
         ->and($portalQueries)->toHaveCount(1);
 });
 
+test('map authors can transfer an editable world with explicitly referenced uploaded media', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('learning/media/portable-world.svg', '<svg>portable world</svg>');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $source = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $mediaUrl = '/storage/learning/media/portable-world.svg';
+    $source->forceFill([
+        'background_config' => ['dark' => ['imageUrl' => $mediaUrl]],
+    ])->save();
+    $originalMapCount = LearningMap::query()->count();
+
+    $export = $this->actingAs($admin)
+        ->get(route('settings.worlds.export-package'));
+
+    $export
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/zip')
+        ->assertHeader(
+            'Content-Disposition',
+            'attachment; filename=demo-learning-world-wicked-learning-world.zip',
+        );
+
+    $packagePath = tempnam(sys_get_temp_dir(), 'wicked-world-package-test-');
+    expect($packagePath)->not->toBeFalse();
+    file_put_contents($packagePath, file_get_contents($export->getFile()->getPathname()));
+    $archive = new ZipArchive;
+    expect($archive->open($packagePath))->toBeTrue();
+    expect($archive->getFromName('manifest.json'))->toBeString()->toContain($mediaUrl);
+    $mediaIndex = json_decode(
+        (string) $archive->getFromName('media.json'),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+    $mediaEntry = $mediaIndex['media'][0];
+    expect($mediaEntry['sourceUrl'])->toBe($mediaUrl)
+        ->and($archive->getFromName($mediaEntry['archivePath']))
+        ->toBe('<svg>portable world</svg>');
+    $archive->close();
+
+    $this->actingAs($admin)
+        ->withHeaders(['Accept' => 'application/json'])
+        ->post(route('settings.worlds.maps.exports.validate'), [
+            'scope' => 'world',
+            'manifest' => new UploadedFile($packagePath, 'world.zip', 'application/zip', null, true),
+        ])
+        ->assertOk()
+        ->assertJsonPath('valid', true)
+        ->assertJsonPath('mediaReferenceDetails.0.url', $mediaUrl)
+        ->assertJsonPath('mediaReferenceDetails.0.available', true);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.import'), [
+            'manifest' => new UploadedFile($packagePath, 'world.zip', 'application/zip', null, true),
+        ])
+        ->assertRedirect(route('settings.worlds.index'));
+
+    $importedMaps = LearningMap::query()
+        ->where('created_by_user_id', $admin->id)
+        ->get();
+    $importedMediaMap = $importedMaps->first(
+        fn (LearningMap $map): bool => str_starts_with(
+            (string) data_get($map->background_config, 'dark.imageUrl'),
+            '/storage/learning/media/',
+        ),
+    );
+
+    expect($importedMaps)->toHaveCount(2)
+        ->and(LearningMap::query()->count())->toBe($originalMapCount + 2)
+        ->and($importedMediaMap)->not->toBeNull()
+        ->and(data_get($importedMediaMap?->background_config, 'dark.imageUrl'))
+        ->not->toBe($mediaUrl);
+    Storage::disk('public')->assertExists(substr(
+        parse_url((string) data_get($importedMediaMap?->background_config, 'dark.imageUrl'), PHP_URL_PATH),
+        strlen('/storage/'),
+    ));
+    @unlink($packagePath);
+});
+
+test('world package failures remove materialized media before creating maps', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('learning/media/portable-world-failure.svg', '<svg>portable world failure</svg>');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $source = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $mediaUrl = '/storage/learning/media/portable-world-failure.svg';
+    $source->forceFill([
+        'background_config' => ['dark' => ['imageUrl' => $mediaUrl]],
+    ])->save();
+    $manifest = $this->actingAs($admin)
+        ->get(route('settings.worlds.export'))
+        ->streamedContent();
+    $payload = json_decode($manifest, true, 512, JSON_THROW_ON_ERROR);
+    $payload['formatVersion'] = 999;
+    $packagePath = tempnam(sys_get_temp_dir(), 'wicked-invalid-world-package-');
+    expect($packagePath)->not->toBeFalse();
+
+    $archive = new ZipArchive;
+    expect($archive->open($packagePath, ZipArchive::CREATE | ZipArchive::OVERWRITE))->toBeTrue();
+    $archive->addFromString('manifest.json', json_encode($payload, JSON_THROW_ON_ERROR));
+    $archive->addFromString('media.json', json_encode([
+        'format' => 'wicked-learning-map-media',
+        'formatVersion' => 1,
+        'media' => [[
+            'sourceUrl' => $mediaUrl,
+            'archivePath' => 'media/failure.svg',
+        ]],
+    ], JSON_THROW_ON_ERROR));
+    $archive->addFromString('media/failure.svg', '<svg>failure</svg>');
+    $archive->close();
+
+    $mapCount = LearningMap::query()->count();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.index'))
+        ->post(route('settings.worlds.import'), [
+            'manifest' => new UploadedFile($packagePath, 'invalid-world.zip', 'application/zip', null, true),
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount)
+        ->and(Storage::disk('public')->allFiles('learning/media'))
+        ->toBe(['learning/media/portable-world-failure.svg']);
+    @unlink($packagePath);
+});
+
 test('map authors can import an editable world export bundle with remapped portal links', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

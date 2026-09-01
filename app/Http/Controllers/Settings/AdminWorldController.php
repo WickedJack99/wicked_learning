@@ -336,6 +336,26 @@ class AdminWorldController extends Controller
         );
     }
 
+    public function exportWorldPackage(Request $request): BinaryFileResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $world = $this->worldResolver->query()->firstOrFail();
+        $mapsQuery = $world->maps();
+        $this->mapEditAccess->scopeMapsUserCanEdit($mapsQuery->getQuery(), $user);
+        $maps = $mapsQuery->get();
+        $package = $this->mapTransferPackage->exportPayload(
+            $this->worldExportSerializer->serialize($world, $maps),
+        );
+
+        return response()
+            ->download($package['path'], "{$world->slug}-wicked-learning-world.zip", [
+                'Content-Type' => 'application/zip',
+            ])
+            ->deleteFileAfterSend(true);
+    }
+
     public function validateMapExport(Request $request): JsonResponse
     {
         $scope = $request->validate([
@@ -352,6 +372,29 @@ class AdminWorldController extends Controller
 
         if ($scope === 'world') {
             $world = $this->worldResolver->query()->firstOrFail();
+
+            if ($this->mapTransferPackage->isPackage($data['manifest'])) {
+                $prepared = $this->mapTransferPackage->prepare($data['manifest']);
+
+                try {
+                    $result = $this->worldExportValidator->validatePayload(
+                        $prepared['payload'],
+                        $world,
+                    );
+                    $sourceByDestination = array_flip($prepared['sourceToDestination']);
+                    $result['mediaReferenceDetails'] = array_map(
+                        static fn (array $detail): array => [
+                            ...$detail,
+                            'url' => $sourceByDestination[$detail['url']] ?? $detail['url'],
+                        ],
+                        $result['mediaReferenceDetails'],
+                    );
+
+                    return response()->json($result);
+                } finally {
+                    $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+                }
+            }
 
             return response()->json(
                 $this->worldExportValidator->validate($data['manifest'], $world),
@@ -453,25 +496,50 @@ class AdminWorldController extends Controller
         $this->authorizeMapCreate($request);
         $world = $this->worldResolver->query()->firstOrFail();
         $data = $request->validate([
-            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:51200'],
+            'manifest' => ['required', 'file', 'mimes:json,txt,zip', 'max:51200'],
         ]);
-        $validation = $this->worldExportValidator->validate($data['manifest'], $world);
+        $prepared = $this->mapTransferPackage->isPackage($data['manifest'])
+            ? $this->mapTransferPackage->prepare($data['manifest'])
+            : null;
+        $payload = $prepared['payload'] ?? null;
+
+        try {
+            $validation = $prepared === null
+                ? $this->worldExportValidator->validate($data['manifest'], $world)
+                : $this->worldExportValidator->validatePayload($payload, $world);
+        } catch (\Throwable $exception) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
+            throw $exception;
+        }
 
         if (! $validation['valid']) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
             throw ValidationException::withMessages([
                 'manifest' => $validation['summary'].' '.implode(' ', $validation['errors']),
             ]);
         }
 
-        try {
-            $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw ValidationException::withMessages([
-                'manifest' => 'The selected file is not valid JSON.',
-            ]);
+        if ($payload === null) {
+            try {
+                $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
+            } catch (JsonException) {
+                throw ValidationException::withMessages([
+                    'manifest' => 'The selected file is not valid JSON.',
+                ]);
+            }
         }
 
         if (! is_array($payload)) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
             throw ValidationException::withMessages([
                 'manifest' => 'The selected file is not a world bundle.',
             ]);
@@ -480,7 +548,15 @@ class AdminWorldController extends Controller
         $creator = $request->user();
         abort_unless($creator instanceof User, 401);
 
-        $this->importLearningWorld->handle($payload, $world, $creator);
+        try {
+            $this->importLearningWorld->handle($payload, $world, $creator);
+        } catch (\Throwable $exception) {
+            if ($prepared !== null) {
+                $this->mapTransferPackage->deletePaths($prepared['createdPaths']);
+            }
+
+            throw $exception;
+        }
 
         return $this->redirectToWorldGraph($request);
     }

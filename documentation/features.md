@@ -808,8 +808,10 @@ references are explicit: bundled `/images` paths remain reusable, uploaded
 `/storage` paths must exist on the destination public disk, and undeclared or
 external media references are rejected before content is created. Media bytes,
 learner state, revision history, permissions and editor groups remain outside
-the world import contract. World bundles remain JSON-only, so their uploaded
-media still has to be available in the destination workspace. Both import dialogs preflight their selected bundle through the same
+the world import contract. Authors can also transfer the world as a portable
+package, which carries the referenced uploaded media and keeps the same fresh-
+map, transactional import behavior. JSON world bundles remain reference-only
+for media. Both import dialogs preflight their selected bundle through the same
 server-side validator and keep the import action unavailable until the bundle
 is structurally ready; the import endpoint validates again before mutation.
 Authors can also export one MapAsset as a standalone JSON bundle or portable

@@ -343,6 +343,23 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                                 )}
                             </a>
                         </Button>
+                        <Button
+                            asChild
+                            className="mt-2 w-full"
+                            variant="outline"
+                        >
+                            <a
+                                data-wl-id="settings.world-builder.world.export-package"
+                                download
+                                href="/settings/worlds/export-package"
+                            >
+                                <Download className="size-4" />
+                                {t(
+                                    'settings.world_builder.world.export_package',
+                                    'Export world with media',
+                                )}
+                            </a>
+                        </Button>
                         <MapExportValidationDialog endpoint="/settings/worlds/maps/exports/validate" />
                         <MapImportDialog endpoint="/settings/worlds/maps/import" />
                         <MapImportDialog

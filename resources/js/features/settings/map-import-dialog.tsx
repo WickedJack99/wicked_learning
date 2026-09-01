@@ -213,7 +213,7 @@ export function MapImportDialog({
                             {isWorldImport
                                 ? t(
                                       'settings.world_builder.import.world_description',
-                                      'Create fresh maps from a validated world export. Portal links between included maps are remapped; learner history, versions, access restrictions and editor groups are not imported.',
+                                      'Create fresh maps from a validated JSON world export or portable package. Portal links between included maps are remapped; learner history, versions, access restrictions and editor groups are not imported.',
                                   )
                                 : t(
                                       'settings.world_builder.import.package_description',
@@ -226,13 +226,13 @@ export function MapImportDialog({
                         <div className="grid gap-2">
                             <Label htmlFor="map-import-file">
                                 {isWorldImport
-                                    ? t('settings.world_builder.import.file', 'JSON world bundle')
+                                    ? t('settings.world_builder.import.world_file', 'JSON world bundle or portable package')
                                     : t('settings.world_builder.import.package_file', 'JSON export or portable map package')}
                             </Label>
                             <Input
                                 accept={
                                     isWorldImport
-                                        ? '.json,application/json,text/plain'
+                                        ? '.json,.zip,application/json,application/zip,text/plain'
                                         : '.json,.zip,application/json,application/zip,text/plain'
                                 }
                                 id="map-import-file"

@@ -49,10 +49,17 @@ class LearningMapTransferPackageService
     }
 
     /**
+     * Package a serialized authored payload with its explicitly referenced
+     * uploaded media.
+     *
+     * The service name predates world packages; the archive contract is
+     * intentionally payload-agnostic so map and world transfers share the
+     * same bounded media handling.
+     *
      * @param  array<string, mixed>  $payload
      * @return array{path: string, mediaCount: int}
      */
-    private function exportPayload(array $payload): array
+    public function exportPayload(array $payload): array
     {
         $references = $this->mediaReferences($payload);
         $mediaEntries = [];

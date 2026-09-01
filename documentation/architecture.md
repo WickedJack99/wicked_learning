@@ -260,8 +260,9 @@ referenced uploaded files, validates archive paths and uncompressed size, then
 materializes each file under a fresh public-disk path before the existing map
 import action runs. The same bounded package boundary supports standalone
 MapAsset transfer and invokes the existing asset import action after replacing
-its media references. Bundled `/images` references are left unchanged, and
-world packages remain future work. JSON manifests remain reference-only; the
+its media references. World packages reuse that same payload-agnostic archive
+boundary and the existing world serializer/import action. Bundled `/images`
+references are left unchanged. JSON manifests remain reference-only; the
 portable MapAsset package carries only its explicitly referenced uploaded
 files. The author import
 dialogs can preflight either a single-map or world manifest through this same
@@ -288,9 +289,10 @@ The World Builder also exposes a world export that resolves the current world,
 scopes its maps with the server-side map-edit boundary, batch-loads the shared
 map relationships and batches portal references across the selected maps. It
 reuses the single-map serializer for each entry and adds only world metadata and
-a deduplicated media reference list. It does not expand access to maps outside
-the author's scope or include learner state, history, permissions or media
-bytes.
+a deduplicated media reference list. A portable world package wraps that same
+manifest with explicitly referenced uploaded media. It does not expand access
+to maps outside the author's scope or include learner state, history,
+permissions or media bytes in the JSON form.
 
 The matching world import accepts only a validated bundle for the current
 workspace and caps it at twelve single-map manifests. It creates all destination
@@ -299,8 +301,10 @@ links between included maps can use a source-to-destination slug map. The whole
 operation is transactional and creates fresh authored maps. Its media reference
 list is checked by the same import boundary: bundled `/images` paths remain
 portable references, while `/storage` paths must resolve on the destination
-public disk. Media bytes, learner state, history, permissions and editor groups
-are deliberately excluded.
+public disk for JSON imports. Portable packages materialize those referenced
+files under fresh destination paths before the transactional import. Media
+bytes do not cross in JSON, and learner state, history, permissions and editor
+groups are deliberately excluded from both forms.
 
 Same-workspace map duplication is a separate transactional authoring action from
 portable import. It remaps internal node, activity, MapAsset message-topic,
