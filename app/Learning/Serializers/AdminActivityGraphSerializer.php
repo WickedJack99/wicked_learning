@@ -249,7 +249,10 @@ class AdminActivityGraphSerializer
     {
         return $node->activityStarts
             ->filter(fn (LearningActivityStart $start): bool => $this->routeEligibility->canStart($start->activity))
-            ->map(fn (LearningActivityStart $start): array => $this->startSerializer->serialize($start))
+            ->map(fn (LearningActivityStart $start): array => $this->startSerializer->serialize(
+                $start,
+                includeCustomLabel: true,
+            ))
             ->values()
             ->all();
     }

@@ -168,7 +168,9 @@ Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity
 connections have meaningful learner-facing labels, and authors can edit or
 remove those labels while the platform supplies a safe default when no label is
-authored. Learner playback also carries an authored connection label into the
+authored. Authors can also give each node-level starting route its own optional
+name; an empty name uses the activity title. Learner playback also carries an
+authored connection label into the
 post-activity action where that transition is known, including the branch chosen
 after a question answer or an NPC dialogue exit; the existing conclusion pause
 identifies that authored next step when a dialogue ends through a named exit.

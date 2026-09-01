@@ -2825,6 +2825,7 @@ test('admin users can configure multiple independent start routes for a node', f
             'description' => 'Begin with a concrete comparison before exploring the harder route.',
             'image_dark' => '/images/routes/easy-dark.svg',
             'image_light' => '/images/routes/easy-light.svg',
+            'label' => 'Compare a field clue',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
@@ -2836,7 +2837,8 @@ test('admin users can configure multiple independent start routes for a node', f
         ->and($easyStart->button_color_light)->toBe('#ffffff')
         ->and($easyStart->description)->toBe('Begin with a concrete comparison before exploring the harder route.')
         ->and($easyStart->image_dark)->toBe('/images/routes/easy-dark.svg')
-        ->and($easyStart->image_light)->toBe('/images/routes/easy-light.svg');
+        ->and($easyStart->image_light)->toBe('/images/routes/easy-light.svg')
+        ->and($easyStart->label)->toBe('Compare a field clue');
 
     $this->actingAs($admin)
         ->get(route('settings.index', [
@@ -2848,6 +2850,7 @@ test('admin users can configure multiple independent start routes for a node', f
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('selectedWorldNode.activityGraph.node.startRoutes', 3)
+            ->where('selectedWorldNode.activityGraph.node.startRoutes.1.customLabel', 'Compare a field clue')
             ->where('selectedWorldNode.activityGraph.node.startRoutes.1.buttonColorDark', '#0f172a')
             ->where('selectedWorldNode.activityGraph.node.startRoutes.1.buttonBorderColorLight', '#e2e8f0')
             ->where('selectedWorldNode.activityGraph.node.startRoutes.1.imageDark', '/images/routes/easy-dark.svg')

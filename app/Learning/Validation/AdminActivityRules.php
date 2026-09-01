@@ -129,6 +129,7 @@ class AdminActivityRules
     public function startRoute(): array
     {
         return [
+            'label' => ['nullable', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:600'],
             'image_dark' => ['nullable', 'string', 'max:2048'],
             'image_light' => ['nullable', 'string', 'max:2048'],

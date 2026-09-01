@@ -244,6 +244,7 @@ export default function EditNodeActivities({
         description: '',
         image_dark: '',
         image_light: '',
+        label: '',
     });
     const [startRouteErrors, setStartRouteErrors] = useState<
         Record<string, string>
@@ -3225,6 +3226,46 @@ export default function EditNodeActivities({
 
                             <SettingsConfigurationSection
                                 description={t(
+                                    'settings.worlds.activities.route_label.description',
+                                    'Give this starting point a clear name. Leave it empty to use the activity title.',
+                                )}
+                                title={t(
+                                    'settings.worlds.activities.route_label.title',
+                                    'Route name',
+                                )}
+                            >
+                                <div className="grid gap-2">
+                                    <Label htmlFor="route-label">
+                                        {t(
+                                            'settings.worlds.activities.route_label.label',
+                                            'Name',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="route-label"
+                                        maxLength={120}
+                                        onChange={(event) =>
+                                            setStartRouteForm((current) => ({
+                                                ...current,
+                                                label: event.target.value,
+                                            }))
+                                        }
+                                        placeholder={routeActivityTitle(
+                                            activityGraph.activities,
+                                            selectedStartRoute,
+                                        )}
+                                        value={startRouteForm.label}
+                                    />
+                                    {startRouteErrors.label ? (
+                                        <p className="text-xs text-red-600 dark:text-red-300">
+                                            {startRouteErrors.label}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </SettingsConfigurationSection>
+
+                            <SettingsConfigurationSection
+                                description={t(
                                     'settings.worlds.activities.route_description.description',
                                     'A short explanation helps learners choose this route without turning it into a ranked recommendation.',
                                 )}
@@ -3603,6 +3644,7 @@ function emptyStartRouteForm(): StartRouteForm {
         description: '',
         image_dark: '',
         image_light: '',
+        label: '',
     };
 }
 
@@ -3615,6 +3657,7 @@ function routeFormFromStartRoute(route: ActivityStartRoute): StartRouteForm {
         description: route.description ?? '',
         image_dark: route.imageDark ?? '',
         image_light: route.imageLight ?? '',
+        label: route.customLabel ?? '',
     };
 }
 

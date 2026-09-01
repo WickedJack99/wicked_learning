@@ -20,8 +20,9 @@ class LearningActivityStartSerializer
         LearningActivityStart $start,
         ?User $user = null,
         ?Collection $progressByStartKey = null,
+        bool $includeCustomLabel = false,
     ): array {
-        return [
+        $serialized = [
             'id' => $start->id,
             'activityId' => $start->learning_activity_id,
             'buttonBorderColorDark' => $start->button_border_color_dark,
@@ -37,6 +38,12 @@ class LearningActivityStartSerializer
                 : null,
             'sortOrder' => $start->sort_order,
         ];
+
+        if ($includeCustomLabel) {
+            $serialized['customLabel'] = $start->label;
+        }
+
+        return $serialized;
     }
 
     /**
