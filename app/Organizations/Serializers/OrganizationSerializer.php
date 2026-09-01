@@ -8,6 +8,7 @@ use App\Models\OrganizationMembership;
 use App\Models\OrganizationMessage;
 use App\Models\User;
 use DateTimeInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class OrganizationSerializer
 {
@@ -26,17 +27,14 @@ class OrganizationSerializer
     /**
      * @return array<string, mixed>
      */
-    public function detail(Organization $organization, User $viewer): array
-    {
+    public function detail(
+        Organization $organization,
+        User $viewer,
+        ?LengthAwarePaginator $messages = null,
+    ): array {
         $organization->loadMissing([
             'memberships.user:id,name,email',
             'joinRequests.requester:id,name,email',
-            'messages' => fn ($query) => $query
-                ->when(! $viewer->isAdmin(), fn ($query) => $query->whereNull('hidden_at'))
-                ->latest()
-                ->limit(80),
-            'messages.hiddenBy:id,name,email',
-            'messages.user:id,name,email',
         ]);
 
         $isLeader = $organization->isLeader($viewer);
@@ -51,13 +49,21 @@ class OrganizationSerializer
                 ->map(fn (OrganizationMembership $membership): array => $this->membership($membership))
                 ->values()
                 ->all(),
-            'messages' => $canViewMessages
-                ? $organization->messages
-                    ->sortBy('created_at')
+            'messages' => $canViewMessages && $messages
+                ? $messages->getCollection()
+                    ->reverse()
                     ->map(fn (OrganizationMessage $message): array => $this->message($message, $viewer))
                     ->values()
                     ->all()
                 : [],
+            'messagesPagination' => $canViewMessages && $messages
+                ? [
+                    'currentPage' => $messages->currentPage(),
+                    'lastPage' => max(1, $messages->lastPage()),
+                    'perPage' => $messages->perPage(),
+                    'total' => $messages->total(),
+                ]
+                : null,
             'joinRequests' => $isLeader
                 ? $organization->joinRequests
                     ->where('status', OrganizationJoinRequest::STATUS_PENDING)

@@ -110,6 +110,104 @@ test('the organization directory paginates in the database and clamps stale page
             ->where('organizations.0.name', 'Project Guild 13'));
 });
 
+test('organization chat paginates recent messages in the database', function () {
+    $user = User::factory()->create();
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $user->id,
+        'name' => 'Message Lab',
+        'slug' => 'message-lab',
+    ]);
+    $organization->memberships()->create([
+        'user_id' => $user->id,
+        'role' => OrganizationMembership::ROLE_LEADER,
+        'joined_at' => now(),
+    ]);
+
+    foreach (range(1, 9) as $index) {
+        $message = $organization->messages()->create([
+            'user_id' => $user->id,
+            'body' => 'Message '.$index,
+        ]);
+        $message->forceFill([
+            'created_at' => Carbon::create(2026, 8, 1, 12, $index),
+        ])->saveQuietly();
+    }
+
+    $messagePageQuery = null;
+    DB::listen(function (QueryExecuted $query) use (&$messagePageQuery): void {
+        if (str_contains($query->sql, 'from "organization_messages"')
+            && preg_match('/limit 8 offset 8/i', $query->sql) === 1) {
+            $messagePageQuery = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('organizations.show', [
+            'organization' => $organization,
+            'messages_page' => 2,
+            'section' => 'chat',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('organizations/show')
+            ->where('organization.messagesPagination.currentPage', 2)
+            ->where('organization.messagesPagination.lastPage', 2)
+            ->where('organization.messagesPagination.perPage', 8)
+            ->where('organization.messagesPagination.total', 9)
+            ->has('organization.messages', 1)
+            ->where('organization.messages.0.body', 'Message 1'));
+
+    expect($messagePageQuery)->toBeInstanceOf(QueryExecuted::class);
+
+    $this->actingAs($user)
+        ->get(route('organizations.show', [
+            'organization' => $organization,
+            'messages_page' => 99,
+            'section' => 'chat',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('organization.messagesPagination.currentPage', 2)
+            ->has('organization.messages', 1)
+            ->where('organization.messages.0.body', 'Message 1'));
+});
+
+test('organization chat stays private from non-members', function () {
+    $leader = User::factory()->create();
+    $outsider = User::factory()->create();
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $leader->id,
+        'name' => 'Private Chat Lab',
+        'slug' => 'private-chat-lab',
+    ]);
+    $organization->memberships()->create([
+        'user_id' => $leader->id,
+        'role' => OrganizationMembership::ROLE_LEADER,
+        'joined_at' => now(),
+    ]);
+    $organization->messages()->create([
+        'user_id' => $leader->id,
+        'body' => 'Private message.',
+    ]);
+
+    $messageQueryCount = 0;
+    DB::listen(function (QueryExecuted $query) use (&$messageQueryCount): void {
+        if (str_contains($query->sql, 'from "organization_messages"')) {
+            $messageQueryCount++;
+        }
+    });
+
+    $this->actingAs($outsider)
+        ->get(route('organizations.show', $organization))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('organization.messages', 0)
+            ->where('organization.messagesPagination', null)
+            ->where('organization.canSendMessages', false));
+
+    expect($messageQueryCount)->toBe(0);
+});
+
 test('users choose an organization governance type during creation', function () {
     $user = User::factory()->create();
 

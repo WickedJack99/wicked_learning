@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     Check,
@@ -20,6 +20,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import InputError from '@/components/input-error';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
+import { PaginationControls } from '@/components/pagination-controls';
 import {
     SettingsSectionNavigation,
     SettingsSidebar,
@@ -56,6 +57,7 @@ export default function OrganizationShow({
 }: {
     organization: OrganizationDetail;
 }) {
+    const { url } = usePage();
     const isMember = Boolean(organization.viewerMembership);
     const canViewChat = isMember || organization.canModerateMessages;
     const leaderCount = organization.members.filter(
@@ -72,6 +74,22 @@ export default function OrganizationShow({
         : canViewChat
           ? 'chat'
           : 'membership';
+    const requestedSection = new URL(
+        url,
+        'http://learning.local',
+    ).searchParams.get('section');
+    const initialSection =
+        requestedSection &&
+        [
+            'leader-controls',
+            'chat',
+            'membership',
+            'join-requests',
+            'members',
+            'report-icon',
+        ].includes(requestedSection)
+            ? (requestedSection as OrganizationSection)
+            : defaultSection;
     const [form, setForm] = useState<OrganizationForm>({
         description: organization.description ?? '',
         name: organization.name,
@@ -83,7 +101,7 @@ export default function OrganizationShow({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [uploading, setUploading] = useState(false);
     const [selectedSection, setSelectedSection] =
-        useState<OrganizationSection>(defaultSection);
+        useState<OrganizationSection>(initialSection);
     const sectionItems = getOrganizationSectionItems({
         canReportIcon: Boolean(organization.iconUrl) && !organization.isLeader,
         isLeader: organization.isLeader,
@@ -279,6 +297,32 @@ export default function OrganizationShow({
                                         onBodyChange={setChatBody}
                                         onDeleteMessage={deleteMessage}
                                         onHideMessage={hideMessage}
+                                        onPageChange={(page) => {
+                                            const nextUrl = new URL(
+                                                window.location.href,
+                                            );
+                                            nextUrl.searchParams.set(
+                                                'section',
+                                                'chat',
+                                            );
+                                            nextUrl.searchParams.set(
+                                                'messages_page',
+                                                String(page),
+                                            );
+                                            router.visit(
+                                                nextUrl.pathname +
+                                                    '?' +
+                                                    nextUrl.searchParams.toString(),
+                                                {
+                                                    preserveScroll: true,
+                                                    preserveState: true,
+                                                    replace: true,
+                                                },
+                                            );
+                                        }}
+                                        pagination={
+                                            organization.messagesPagination
+                                        }
                                         onSubmit={sendMessage}
                                     />
                                 ) : null}
@@ -761,6 +805,8 @@ function ChatPanel({
     body,
     error,
     messages,
+    onPageChange,
+    pagination,
     showComposer,
     onBodyChange,
     onDeleteMessage,
@@ -770,6 +816,8 @@ function ChatPanel({
     body: string;
     error?: string;
     messages: OrganizationDetail['messages'];
+    onPageChange: (page: number) => void;
+    pagination: OrganizationDetail['messagesPagination'];
     showComposer: boolean;
     onBodyChange: (value: string) => void;
     onDeleteMessage: (messageId: number) => void;
@@ -784,7 +832,7 @@ function ChatPanel({
             </h2>
             <div
                 aria-label="Organization chat messages"
-                className="learner-scroll-region grid min-h-0 content-start gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10"
+                className="grid min-h-0 content-start gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10"
             >
                 {messages.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -860,6 +908,16 @@ function ChatPanel({
                     </article>
                 ))}
             </div>
+            {pagination ? (
+                <PaginationControls
+                    className="border-t border-slate-200 pt-3 dark:border-white/10"
+                    currentPage={pagination.currentPage}
+                    label="Organization chat messages"
+                    onPageChange={onPageChange}
+                    pageCount={pagination.lastPage}
+                    textClassName="text-xs text-slate-500 dark:text-slate-400"
+                />
+            ) : null}
             {showComposer ? (
                 <form className="flex gap-2" onSubmit={onSubmit}>
                     <Input

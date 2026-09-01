@@ -30,6 +30,13 @@ export type OrganizationMessage = {
     user: OrganizationUser;
 };
 
+export type OrganizationPagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
+
 export type OrganizationGovernanceType = 'anarchy' | 'monarchy' | 'random';
 
 export type OrganizationSummary = {
@@ -53,4 +60,5 @@ export type OrganizationDetail = OrganizationSummary & {
     joinRequests: OrganizationJoinRequest[];
     members: OrganizationMembership[];
     messages: OrganizationMessage[];
+    messagesPagination: OrganizationPagination | null;
 };

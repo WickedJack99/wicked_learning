@@ -17,6 +17,7 @@ use App\Organizations\Actions\SaveOrganization;
 use App\Organizations\Actions\SendOrganizationMessage;
 use App\Organizations\Actions\UpdateOrganizationIcon;
 use App\Organizations\OrganizationGovernance;
+use App\Organizations\Queries\LoadOrganizationMessages;
 use App\Organizations\Queries\LoadOrganizations;
 use App\Organizations\Serializers\OrganizationSerializer;
 use Illuminate\Http\JsonResponse;
@@ -30,6 +31,7 @@ class OrganizationController extends Controller
 {
     public function __construct(
         private readonly OrganizationGovernance $governance,
+        private readonly LoadOrganizationMessages $messages,
         private readonly LoadOrganizations $organizations,
         private readonly OrganizationSerializer $serializer,
     ) {}
@@ -59,9 +61,17 @@ class OrganizationController extends Controller
     public function show(Request $request, Organization $organization): Response
     {
         $this->governance->ensureCurrentLeadership($organization);
+        $viewer = $request->user();
+        $messages = $organization->isMember($viewer) || $viewer->isAdmin()
+            ? $this->messages->handle(
+                $organization,
+                $viewer,
+                $request->integer('messages_page') ?: 1,
+            )
+            : null;
 
         return Inertia::render('organizations/show', [
-            'organization' => $this->serializer->detail($organization, $request->user()),
+            'organization' => $this->serializer->detail($organization, $viewer, $messages),
         ]);
     }
 
