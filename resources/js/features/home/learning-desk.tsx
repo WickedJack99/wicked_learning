@@ -24,6 +24,7 @@ import {
     learningIntentLabel,
 } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { cn } from '@/lib/utils';
 import learning from '@/routes/learning';
 import { LearningDeskSearch } from './learning-desk-search';
 import type {
@@ -1804,7 +1805,13 @@ function SectionHeading({
     showTrailingRule?: boolean;
 }) {
     return (
-        <div className="flex items-center gap-5 border-b border-[var(--learner-border-color)] pb-3">
+        <div
+            className={cn(
+                'flex items-center gap-5 pb-3',
+                showTrailingRule &&
+                    'border-b border-[var(--learner-border-color)]',
+            )}
+        >
             <h2
                 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none"
                 id={id}

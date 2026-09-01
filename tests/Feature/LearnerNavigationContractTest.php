@@ -120,7 +120,9 @@ test('learning desk headings keep only their section boundaries', function () {
     expect($learningDesk)
         ->toContain('id="connections-heading"')
         ->toContain('showTrailingRule={false}')
-        ->toContain('showTrailingRule = true');
+        ->toContain('showTrailingRule = true')
+        ->toContain('showTrailingRule &&')
+        ->toContain("'border-b border-[var(--learner-border-color)]'");
 
     expect(substr_count($learningDesk, 'showTrailingRule={false}'))->toBe(2);
 });
