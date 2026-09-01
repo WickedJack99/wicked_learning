@@ -10,6 +10,7 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
 use App\Models\LearnerJournalPage;
+use App\Models\LearnerNodeDiscovery;
 use App\Models\LearnerQuestionAnswer;
 use App\Models\LearnerReflection;
 use App\Models\LearnerReviewAttempt;
@@ -1696,6 +1697,55 @@ test('learning support aggregates evidence rows before hydrating support signals
         ->and(collect($evidenceQueries)->contains(
             fn (QueryExecuted $query): bool => str_contains(strtolower($query->sql), 'count(*)')
                 && str_contains(strtolower($query->sql), 'activity_date'),
+        ))->toBeTrue();
+});
+
+test('learning support filters non-manual discoveries before hydrating unlock signals', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    [, $activity] = competenceRoute([]);
+    $secondNode = LearningNode::query()->create([
+        'learning_map_id' => $activity->node->learning_map_id,
+        'slug' => 'second-node-'.Str::random(8),
+        'title' => 'Second Node',
+        'position_q' => 1,
+        'position_r' => 0,
+    ]);
+
+    LearnerNodeDiscovery::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'metadata' => ['source' => 'tool-discovery'],
+    ]);
+    LearnerNodeDiscovery::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $secondNode->id,
+        'metadata' => [
+            'manualUnlock' => [
+                'grantedAt' => now()->toIso8601String(),
+                'grantedByUserId' => $admin->id,
+            ],
+        ],
+    ]);
+
+    $discoveryQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$discoveryQueries): void {
+        if (str_contains($query->sql, 'learner_node_discoveries')) {
+            $discoveryQueries[] = $query;
+        }
+    });
+
+    $signals = app(LoadLearnerSupportSignals::class)->handle($admin);
+    $learnerSignals = collect($signals['learners'])->firstWhere('id', $learner->id);
+
+    expect($learnerSignals['manualUnlocks'])->toHaveCount(1)
+        ->and($learnerSignals['manualUnlocks'][0]['nodeId'])->toBe($secondNode->id)
+        ->and($discoveryQueries)->not->toBeEmpty()
+        ->and(collect($discoveryQueries)->contains(
+            fn (QueryExecuted $query): bool => str_contains(strtolower($query->sql), 'metadata')
+                && str_contains(strtolower($query->sql), 'not null'),
         ))->toBeTrue();
 });
 

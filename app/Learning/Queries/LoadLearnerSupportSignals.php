@@ -171,6 +171,7 @@ class LoadLearnerSupportSignals
         $grouped = LearnerNodeDiscovery::query()
             ->with(['node:id,learning_map_id,title', 'node.map:id,title'])
             ->whereIn('user_id', $learnerIds)
+            ->whereNotNull('metadata->manualUnlock')
             ->get()
             ->filter(fn (LearnerNodeDiscovery $discovery): bool => is_array($discovery->metadata)
                 && is_array($discovery->metadata['manualUnlock'] ?? null)
