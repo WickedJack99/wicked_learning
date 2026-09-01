@@ -39,11 +39,52 @@ test('authors can save and retrieve a private activity template', function () {
         ->assertJsonPath('pagination.total', 1)
         ->assertJsonMissingPath('items.0.snapshot');
 
-    $this->actingAs($admin)
+    $details = $this->actingAs($admin)
         ->getJson(route('settings.worlds.activity-templates.show', $templateId))
         ->assertOk()
         ->assertJsonPath('template.snapshot.title', $activity->title)
         ->assertJsonPath('template.snapshot.config.promptText', data_get($activity->config, 'promptText'));
+
+    expect($details->json('template.mediaReferences'))
+        ->toContain([
+            'available' => true,
+            'url' => '/images/obstacles/noisy-gate-dark.svg',
+        ]);
+});
+
+test('template preview reports unavailable media without changing the snapshot', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()
+        ->where('type', 'obstacle')
+        ->firstOrFail();
+    $activity->forceFill([
+        'config' => [
+            ...$activity->config,
+            'backgroundDark' => '/images/removed-template-background.png',
+        ],
+    ])->save();
+
+    $templateId = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.templates.store', $activity), [
+            'name' => 'Stale media template',
+        ])
+        ->assertCreated()
+        ->json('template.id');
+
+    $details = $this->actingAs($admin)
+        ->getJson(route('settings.worlds.activity-templates.show', $templateId))
+        ->assertOk();
+
+    expect($details->json('template.mediaReferences'))
+        ->toContain([
+            'available' => false,
+            'url' => '/images/removed-template-background.png',
+        ])
+        ->and($details->json('template.snapshot.config.backgroundDark'))
+        ->toBe('/images/removed-template-background.png');
 });
 
 test('authors can update and restore activity template revisions', function () {

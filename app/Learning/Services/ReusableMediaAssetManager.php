@@ -106,6 +106,17 @@ class ReusableMediaAssetManager
     }
 
     /**
+     * @return list<string>
+     */
+    public function mediaReferences(mixed $value, int $limit = 24): array
+    {
+        $references = [];
+        $this->collectMediaReferences($value, $references, $limit);
+
+        return array_keys($references);
+    }
+
+    /**
      * @return array{count: int, groups: list<array{count: int, label: string}>}
      */
     public function referenceSummary(string $url): array
@@ -214,6 +225,47 @@ class ReusableMediaAssetManager
             $oldUrl,
             $newUrl,
         );
+    }
+
+    /**
+     * @param  array<string, true>  $references
+     */
+    private function collectMediaReferences(
+        mixed $value,
+        array &$references,
+        int $limit,
+    ): void {
+        if (count($references) >= $limit || ! is_array($value)) {
+            return;
+        }
+
+        foreach ($value as $key => $nestedValue) {
+            if (
+                is_string($nestedValue)
+                && $this->isMediaKey((string) $key)
+                && trim($nestedValue) !== ''
+            ) {
+                $references[$nestedValue] = true;
+            }
+
+            $this->collectMediaReferences($nestedValue, $references, $limit);
+
+            if (count($references) >= $limit) {
+                return;
+            }
+        }
+    }
+
+    private function isMediaKey(string $key): bool
+    {
+        $normalizedKey = strtolower(str_replace(['_', '-'], '', $key));
+
+        return str_ends_with($normalizedKey, 'url')
+            || str_contains($normalizedKey, 'image')
+            || str_contains($normalizedKey, 'background')
+            || str_contains($normalizedKey, 'sound')
+            || str_contains($normalizedKey, 'audio')
+            || $normalizedKey === 'src';
     }
 
     private function replaceActivityStartReferences(string $oldUrl, string $newUrl): int

@@ -2,11 +2,14 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\ReusableMediaAssetManager;
 use App\Models\LearningActivityTemplate;
 use App\Models\User;
 
 class LearningActivityTemplateSerializer
 {
+    public function __construct(private readonly ReusableMediaAssetManager $mediaAssetManager) {}
+
     /** @return array<string, mixed> */
     public function serialize(
         LearningActivityTemplate $template,
@@ -33,9 +36,22 @@ class LearningActivityTemplateSerializer
         LearningActivityTemplate $template,
         ?User $viewer = null,
     ): array {
+        $snapshot = is_array($template->snapshot) ? $template->snapshot : [];
+        $mediaReferences = $this->mediaAssetManager->mediaReferences([
+            'companionConfig' => $snapshot['companionConfig'] ?? [],
+            'config' => $snapshot['config'] ?? [],
+        ]);
+
         return [
             ...$this->serialize($template, $viewer),
-            'snapshot' => is_array($template->snapshot) ? $template->snapshot : [],
+            'mediaReferences' => array_map(
+                fn (string $url): array => [
+                    'available' => $this->mediaAssetManager->isImportableReference($url),
+                    'url' => $url,
+                ],
+                $mediaReferences,
+            ),
+            'snapshot' => $snapshot,
         ];
     }
 }

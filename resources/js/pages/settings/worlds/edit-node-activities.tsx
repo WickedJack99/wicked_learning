@@ -2862,6 +2862,66 @@ export default function EditNodeActivities({
                                     )}
                                 </ul>
                             </div>
+                            {previewingActivityTemplate.mediaReferences.length >
+                            0 ? (
+                                <div className="grid gap-2 rounded-md border border-[var(--settings-border-color)] p-3">
+                                    <p className="text-xs font-semibold tracking-wide text-[var(--settings-accent)] uppercase">
+                                        {t(
+                                            'settings.worlds.activities.template.preview_media',
+                                            'Reusable media',
+                                        )}
+                                    </p>
+                                    <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.worlds.activities.template.preview_media_summary',
+                                            ':available of :total referenced media files are available in this workspace.',
+                                            {
+                                                available:
+                                                    previewingActivityTemplate.mediaReferences.filter(
+                                                        (reference) =>
+                                                            reference.available,
+                                                    ).length,
+                                                total: previewingActivityTemplate
+                                                    .mediaReferences.length,
+                                            },
+                                        )}
+                                    </p>
+                                    <ul className="grid gap-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                        {previewingActivityTemplate.mediaReferences
+                                            .slice(0, 6)
+                                            .map((reference) => (
+                                                <li
+                                                    className={
+                                                        reference.available
+                                                            ? undefined
+                                                            : 'text-amber-700 dark:text-amber-300'
+                                                    }
+                                                    key={reference.url}
+                                                >
+                                                    {reference.available
+                                                        ? '✓'
+                                                        : '!'}{' '}
+                                                    {reference.url}
+                                                </li>
+                                            ))}
+                                    </ul>
+                                    {previewingActivityTemplate.mediaReferences
+                                        .length > 6 ? (
+                                        <p className="text-xs text-[var(--settings-muted-text)]">
+                                            {t(
+                                                'settings.worlds.activities.template.preview_media_more',
+                                                ':count more media references are included.',
+                                                {
+                                                    count:
+                                                        previewingActivityTemplate
+                                                            .mediaReferences
+                                                            .length - 6,
+                                                },
+                                            )}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : null}
                             <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
                                 {t(
                                     'settings.worlds.activities.template.preview_safety',

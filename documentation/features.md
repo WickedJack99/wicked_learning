@@ -832,8 +832,9 @@ accident. Authors can also save an eligible activity as a private, named
 template and browse their templates through a bounded paginated picker when
 creating an activity. Template metadata is listed separately from its full
 authored configuration, which is loaded only after selection. Authors preview
-the template's activity type, title and context-sensitive references before
-explicitly applying it as a new editable draft. Learner responses, evidence
+the template's activity type, title, context-sensitive references and reusable
+media availability before explicitly applying it as a new editable draft.
+Learner responses, evidence
 and the separate NPC dialogue graph are not included.
 Authors can rename or delete their own saved templates from that picker; these
 operations do not affect activities that were previously created from them.
@@ -842,8 +843,8 @@ members can preview and reuse that snapshot as a read-only starting point,
 while the author retains rename, sharing, deletion and update control. An
 author can update a saved template from a persisted eligible activity; the
 previous snapshot is retained in a bounded, paginated history and can be
-restored. Existing activities remain independent copies. Richer
-asset-resolution controls remain future authoring work.
+restored. Existing activities remain independent copies. Replacing missing
+media or transferring media bytes remains future authoring work.
 
 The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an

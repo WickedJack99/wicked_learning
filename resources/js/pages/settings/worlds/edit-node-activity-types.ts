@@ -95,6 +95,10 @@ export type ActivityTemplateSummary = {
 };
 
 export type ActivityTemplateDetails = ActivityTemplateSummary & {
+    mediaReferences: Array<{
+        available: boolean;
+        url: string;
+    }>;
     snapshot: {
         companionConfig?: Record<string, unknown>;
         config: ActivitySummary['config'];
