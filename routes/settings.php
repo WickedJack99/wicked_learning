@@ -118,6 +118,9 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::post('settings/worlds/maps/{map}/assets', [AdminWorldController::class, 'storeMapAsset'])
         ->name('settings.worlds.maps.assets.store');
 
+    Route::post('settings/worlds/maps/{map}/assets/import', [AdminWorldController::class, 'importMapAsset'])
+        ->name('settings.worlds.maps.assets.import');
+
     Route::patch('settings/worlds/assets/{asset}', [AdminWorldController::class, 'updateMapAsset'])
         ->name('settings.worlds.assets.update');
 

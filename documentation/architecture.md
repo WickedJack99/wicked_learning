@@ -256,7 +256,13 @@ manifest for one MapAsset. It loads the asset's owning map and, when present,
 its internal authored node and activity graph, while leaving learner state,
 portals, permissions, revisions and media bytes outside the contract. The
 standalone manifest uses source IDs only as provenance; authored slugs remain
-the portable references for a future destination-side importer.
+the portable references for destination-side import. The World Builder accepts
+that manifest only for an existing map the author can edit and only when its
+source world matches the current workspace. The importer creates fresh asset,
+node and child authoring records transactionally, uses a unique destination
+node slug, and remaps source-ID message-topic references through the existing
+map importer; it does not import learner state, permissions, portals, revisions
+or media bytes.
 
 The World Builder also exposes a world export that resolves the current world,
 scopes its maps with the server-side map-edit boundary, batch-loads the shared

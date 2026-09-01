@@ -11,6 +11,7 @@ use App\Models\LearningMapAsset;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -90,6 +91,29 @@ test('own scoped map deletion does not allow deleting another users map', functi
 
     expect(LearningMap::query()->whereKey($ownMap->id)->exists())->toBeFalse()
         ->and(LearningMap::query()->whereKey($otherMap->id)->exists())->toBeTrue();
+});
+
+test('own scoped map authors cannot import assets into another users map', function () {
+    $teacher = userWithRole('scoped-map-importer', [
+        PermissionCatalog::WORLD_MAPS => [AccessLevel::UPDATE, AccessScope::OWN],
+    ]);
+    $otherUser = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'title' => 'Scoped World',
+        'slug' => 'scoped-world',
+    ]);
+    $otherMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $otherUser->id,
+        'title' => 'Other Map',
+        'slug' => 'other-map',
+    ]);
+
+    $this->actingAs($teacher)
+        ->post(route('settings.worlds.maps.assets.import', $otherMap), [
+            'manifest' => UploadedFile::fake()->createWithContent('asset.json', '{}'),
+        ])
+        ->assertForbidden();
 });
 
 test('scoped world exports include only maps in the authors map editing scope', function () {

@@ -70,6 +70,16 @@ class AdminWorldRules
     /**
      * @return array<string, mixed>
      */
+    public function importMapAsset(): array
+    {
+        return [
+            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:10240'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function portalLink(): array
     {
         return [

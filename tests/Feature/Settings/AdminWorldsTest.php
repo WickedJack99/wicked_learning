@@ -302,6 +302,133 @@ test('map authors can download a standalone map asset bundle with its authored p
         ->and($payload)->not->toHaveKey('portalTargets');
 });
 
+test('map authors can import a standalone asset bundle into an existing map', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $sourceAsset = LearningMapAsset::query()
+        ->whereHas('node', fn ($query) => $query->where('slug', 'signal-gate'))
+        ->firstOrFail();
+    $messageTopic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $sourceAsset->id,
+        'slug' => 'standalone-import-topic',
+        'title' => 'Standalone import topic',
+    ]);
+    $sourceActivity = LearningActivity::query()
+        ->where('learning_node_id', $sourceAsset->learning_node_id)
+        ->firstOrFail();
+    $sourceActivity->forceFill([
+        'config' => ['messageTopicId' => $messageTopic->id],
+    ])->save();
+    $destination = LearningMap::query()->where('slug', 'signal-archive')->firstOrFail();
+    $sourceExport = $this->actingAs($admin)
+        ->get(route('settings.worlds.assets.export', $sourceAsset))
+        ->streamedContent();
+    $sourcePayload = json_decode($sourceExport, true, 512, JSON_THROW_ON_ERROR);
+
+    $response = $this->actingAs($admin)
+        ->withHeaders([
+            'referer' => route('settings.worlds.maps.edit', $destination),
+        ])
+        ->post(route('settings.worlds.maps.assets.import', $destination), [
+            'manifest' => UploadedFile::fake()->createWithContent('asset.json', $sourceExport),
+        ]);
+
+    $response->assertRedirect(route('settings.worlds.maps.edit', $destination));
+
+    $importedNode = LearningNode::query()
+        ->where('learning_map_id', $destination->id)
+        ->where('slug', 'pattern-gate')
+        ->firstOrFail();
+    $importedAsset = LearningMapAsset::query()
+        ->where('learning_map_id', $destination->id)
+        ->where('learning_node_id', $importedNode->id)
+        ->firstOrFail();
+    $importedTopic = $importedAsset->messageTopics()->firstOrFail();
+    $importedActivity = $importedNode->activities()->where('slug', $sourceActivity->slug)->firstOrFail();
+
+    expect($importedNode->id)->not->toBe($sourcePayload['node']['sourceId'])
+        ->and($importedAsset->id)->not->toBe($sourcePayload['mapAsset']['sourceId'])
+        ->and($importedNode->activities()->count())->toBe(count($sourcePayload['node']['activities']))
+        ->and($importedAsset->messageTopics()->count())->toBe(count($sourcePayload['mapAsset']['messageTopics']))
+        ->and($importedActivity->config['messageTopicId'])->toBe($importedTopic->id)
+        ->and($importedTopic->id)->not->toBe($messageTopic->id);
+
+    $this->actingAs($admin)
+        ->withHeaders([
+            'referer' => route('settings.worlds.maps.edit', $destination),
+        ])
+        ->post(route('settings.worlds.maps.assets.import', $destination), [
+            'manifest' => UploadedFile::fake()->createWithContent('asset.json', $sourceExport),
+        ])
+        ->assertRedirect(route('settings.worlds.maps.edit', $destination));
+
+    expect(LearningNode::query()
+        ->where('learning_map_id', $destination->id)
+        ->where('slug', 'pattern-gate-2')
+        ->exists())->toBeTrue();
+});
+
+test('standalone map asset imports reject invalid bundles before creating records', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $destination = LearningMap::query()->where('slug', 'signal-archive')->firstOrFail();
+    $nodeCount = LearningNode::query()->where('learning_map_id', $destination->id)->count();
+    $assetCount = LearningMapAsset::query()->where('learning_map_id', $destination->id)->count();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.maps.edit', $destination))
+        ->post(route('settings.worlds.maps.assets.import', $destination), [
+            'manifest' => UploadedFile::fake()->createWithContent('invalid.json', json_encode([
+                'format' => 'not-a-wicked-learning-asset',
+                'formatVersion' => 1,
+            ], JSON_THROW_ON_ERROR)),
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningNode::query()->where('learning_map_id', $destination->id)->count())
+        ->toBe($nodeCount)
+        ->and(LearningMapAsset::query()->where('learning_map_id', $destination->id)->count())
+        ->toBe($assetCount);
+});
+
+test('standalone map asset imports reject bundles from another workspace', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $sourceAsset = LearningMapAsset::query()
+        ->whereHas('node', fn ($query) => $query->where('slug', 'signal-gate'))
+        ->firstOrFail();
+    $destination = LearningMap::query()->where('slug', 'signal-archive')->firstOrFail();
+    $payload = json_decode(
+        $this->actingAs($admin)
+            ->get(route('settings.worlds.assets.export', $sourceAsset))
+            ->streamedContent(),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+    $payload['source']['world']['slug'] = 'another-workspace';
+    $nodeCount = LearningNode::query()->where('learning_map_id', $destination->id)->count();
+    $assetCount = LearningMapAsset::query()->where('learning_map_id', $destination->id)->count();
+
+    $this->actingAs($admin)
+        ->from(route('settings.worlds.maps.edit', $destination))
+        ->post(route('settings.worlds.maps.assets.import', $destination), [
+            'manifest' => UploadedFile::fake()->createWithContent('asset.json', json_encode($payload, JSON_THROW_ON_ERROR)),
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningNode::query()->where('learning_map_id', $destination->id)->count())
+        ->toBe($nodeCount)
+        ->and(LearningMapAsset::query()->where('learning_map_id', $destination->id)->count())
+        ->toBe($assetCount);
+});
+
 test('map authors can download an editable world export bundle', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

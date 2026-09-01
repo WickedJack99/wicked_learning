@@ -1,8 +1,15 @@
 import type { FormDataConvertible } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
-import { Eye, EyeOff, MousePointerClick, Plus, Sparkles } from 'lucide-react';
-import { useState } from 'react';
-import type { ReactNode } from 'react';
+import {
+    Eye,
+    EyeOff,
+    MousePointerClick,
+    Plus,
+    Sparkles,
+    Upload,
+} from 'lucide-react';
+import { useRef, useState } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ConfigImageInput } from '@/components/config-image-input';
 import InputError from '@/components/input-error';
@@ -67,7 +74,9 @@ export function MapAssetEditor({
 }) {
     const t = usePlatformTranslation();
     const [processing, setProcessing] = useState(false);
+    const [importing, setImporting] = useState(false);
     const [hoveredAssetId, setHoveredAssetId] = useState<number | null>(null);
+    const manifestInputRef = useRef<HTMLInputElement>(null);
 
     const addAsset = () => {
         setProcessing(true);
@@ -89,6 +98,29 @@ export function MapAssetEditor({
         );
     };
 
+    const importAsset = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+
+        if (!file) {
+            return;
+        }
+
+        const payload = new FormData();
+        payload.append('manifest', file);
+        setImporting(true);
+        router.post(`/settings/worlds/maps/${mapId}/assets/import`, payload, {
+            forceFormData: true,
+            preserveScroll: true,
+            onError: (errors) =>
+                toast.error(
+                    Object.values(errors)[0] ??
+                        'The MapAsset could not be imported.',
+                ),
+            onFinish: () => setImporting(false),
+        });
+    };
+
     return (
         <div className="relative h-full min-h-0">
             <div
@@ -107,6 +139,22 @@ export function MapAssetEditor({
                 />
                 <div className="absolute top-4 right-4 z-30 flex flex-wrap justify-end gap-2">
                     {toolbarAction}
+                    <input
+                        accept=".json,.txt,application/json,text/plain"
+                        className="hidden"
+                        onChange={importAsset}
+                        ref={manifestInputRef}
+                        type="file"
+                    />
+                    <Button
+                        disabled={importing}
+                        onClick={() => manifestInputRef.current?.click()}
+                        type="button"
+                        variant="outline"
+                    >
+                        <Upload className="size-4" />
+                        {importing ? 'Importing…' : 'Import asset'}
+                    </Button>
                     <Button
                         className="shadow-xl"
                         disabled={processing}

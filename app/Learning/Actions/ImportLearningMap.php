@@ -87,7 +87,7 @@ class ImportLearningMap
      *
      * @param  array<string, mixed>  $payload
      * @param  array<string, string>  $mapSlugMap  Source map slug to destination map slug.
-     * @return array{nodeIds: array<string, int>, activityIds: array<string, int>}
+     * @return array{nodeIds: array<string, int>, activityIds: array<string, int>, assetIds: array<string, int>}
      */
     public function populateMap(
         array $payload,
@@ -97,7 +97,8 @@ class ImportLearningMap
         bool $importPortals = true,
     ): array {
         $nodeIds = $this->importNodes($payload['nodes'] ?? [], $map);
-        $messageTopicIds = $this->importAssets($payload['mapAssets'] ?? [], $map, $nodeIds);
+        $assetIds = [];
+        $messageTopicIds = $this->importAssets($payload['mapAssets'] ?? [], $map, $nodeIds, $assetIds);
         $activityIds = $this->importActivities(
             $payload['nodes'] ?? [],
             $nodeIds,
@@ -113,6 +114,7 @@ class ImportLearningMap
         return [
             'nodeIds' => $nodeIds,
             'activityIds' => $activityIds,
+            'assetIds' => $assetIds,
         ];
     }
 
@@ -195,9 +197,10 @@ class ImportLearningMap
 
     /**
      * @param  array<string, int>  $nodeIds
+     * @param  array<string, int>  $assetIds
      * @return array<string, int>
      */
-    private function importAssets(mixed $assetsValue, LearningMap $map, array $nodeIds): array
+    private function importAssets(mixed $assetsValue, LearningMap $map, array $nodeIds, array &$assetIds): array
     {
         $messageTopicIds = [];
 
@@ -225,6 +228,10 @@ class ImportLearningMap
                 'visual_config' => $asset['visualConfig'] ?? [],
                 'sound_config' => $asset['soundConfig'] ?? [],
             ]);
+
+            if (is_numeric($asset['sourceId'] ?? null)) {
+                $assetIds['#'.(int) $asset['sourceId']] = $copy->id;
+            }
 
             foreach (is_array($asset['messageTopics'] ?? null) ? $asset['messageTopics'] : [] as $topic) {
                 if (! is_array($topic) || ! is_string($topic['slug'] ?? null)) {

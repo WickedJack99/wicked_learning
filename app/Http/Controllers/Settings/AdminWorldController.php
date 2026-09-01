@@ -13,6 +13,7 @@ use App\Learning\Actions\DeleteLearningMapAsset;
 use App\Learning\Actions\DeleteLearningNode;
 use App\Learning\Actions\DuplicateLearningMap;
 use App\Learning\Actions\ImportLearningMap;
+use App\Learning\Actions\ImportLearningMapAsset;
 use App\Learning\Actions\ImportLearningWorld;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
 use App\Learning\Actions\ResetLearningNodeUnlocks;
@@ -79,6 +80,7 @@ class AdminWorldController extends Controller
         private readonly CreateLearningMap $createLearningMap,
         private readonly DuplicateLearningMap $duplicateLearningMap,
         private readonly ImportLearningMap $importLearningMap,
+        private readonly ImportLearningMapAsset $importLearningMapAsset,
         private readonly ImportLearningWorld $importLearningWorld,
         private readonly CreateLearningMapAsset $createLearningMapAsset,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
@@ -213,6 +215,40 @@ class AdminWorldController extends Controller
             $filename,
             ['Content-Type' => 'application/json'],
         );
+    }
+
+    public function importMapAsset(Request $request, LearningMap $map): RedirectResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+        $world = $map->world;
+        abort_unless($world !== null, 422, 'The map must belong to a world.');
+
+        $data = $request->validate($this->rules->importMapAsset());
+        $validation = $this->mapExportValidator->validateAsset($data['manifest']);
+
+        if (! $validation['valid']) {
+            throw ValidationException::withMessages([
+                'manifest' => $validation['summary'].' '.implode(' ', $validation['errors']),
+            ]);
+        }
+
+        try {
+            $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw ValidationException::withMessages([
+                'manifest' => 'The selected file is not valid JSON.',
+            ]);
+        }
+
+        if (! is_array($payload) || data_get($payload, 'source.world.slug') !== $world->slug) {
+            throw ValidationException::withMessages([
+                'manifest' => 'Import an asset exported from the current workspace.',
+            ]);
+        }
+
+        $this->importLearningMapAsset->handle($payload, $world, $map);
+
+        return $this->redirectBackToMap($map);
     }
 
     public function exportWorld(Request $request): StreamedResponse

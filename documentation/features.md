@@ -803,8 +803,11 @@ Authors can also export one MapAsset as a standalone JSON bundle. It includes
 the asset, its authored learning place and that place's activities, routes,
 dialogue, questions, translations and asset-scoped message topics. Media remain
 explicit references rather than embedded bytes; learner state, map portals and
-revision history are not included. Standalone import is a separate follow-up
-workflow.
+revision history are not included. Authors can import that bundle into an
+existing editable map in the same workspace. The import creates fresh authored
+records, chooses a collision-safe place slug, preserves the included activity
+graph and remaps internal message-topic references; learner state, permissions,
+portals, revision history and media bytes remain outside the transfer.
 Within the current world, authors can also duplicate a map as a new
 authored copy, including its activities,
 routes, assets, questions, dialogue graphs and companion assignments. The copy

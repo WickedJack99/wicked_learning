@@ -46,6 +46,102 @@ class LearningMapExportValidator
     }
 
     /**
+     * Validate a standalone MapAsset export before it is added to a map.
+     *
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
+     */
+    public function validateAsset(UploadedFile $manifest): array
+    {
+        $contents = $manifest->get();
+
+        if ($contents === false) {
+            return $this->invalid('The selected file could not be read.');
+        }
+
+        try {
+            $payload = json_decode(
+                $contents,
+                true,
+                512,
+                JSON_THROW_ON_ERROR,
+            );
+        } catch (JsonException) {
+            return $this->invalid('The selected file is not valid JSON.');
+        }
+
+        if (! is_array($payload)) {
+            return $this->invalid('The export must contain a JSON object.');
+        }
+
+        return $this->validateAssetPayload($payload);
+    }
+
+    /**
+     * Validate a decoded standalone MapAsset export using the existing
+     * single-map graph checks.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{valid: bool, summary: string, errors: list<string>, warnings: list<string>, counts: array{nodes: int, activities: int, mapAssets: int, portalTargets: int, mediaReferences: int}, world: array{slug: string|null, exists: bool}, map: array{slug: string|null, exists: bool}}
+     */
+    public function validateAssetPayload(array $payload): array
+    {
+        $errors = [];
+        $this->requireValue($payload, 'format', 'wicked-learning-map-asset', $errors);
+        $this->requireValue($payload, 'formatVersion', 1, $errors);
+
+        $source = $this->object($payload['source'] ?? null, 'source', $errors);
+        $world = $this->object($source['world'] ?? null, 'source.world', $errors);
+        $map = $this->object($source['map'] ?? null, 'source.map', $errors);
+        $this->slug($world['slug'] ?? null, 'source.world.slug', $errors);
+        $mapSlug = $this->slug($map['slug'] ?? null, 'source.map.slug', $errors);
+
+        if (! is_numeric($source['assetId'] ?? null) || (int) $source['assetId'] <= 0) {
+            $this->addError($errors, 'source.assetId must be a positive integer.');
+        }
+
+        $node = $payload['node'] ?? null;
+        if ($node !== null && ! is_array($node)) {
+            $this->addError($errors, 'node must be an object or null.');
+            $node = null;
+        }
+
+        $asset = $this->object($payload['mapAsset'] ?? null, 'mapAsset', $errors);
+        if (! is_numeric($asset['sourceId'] ?? null) || (int) $asset['sourceId'] <= 0) {
+            $this->addError($errors, 'mapAsset.sourceId must be a positive integer.');
+        }
+
+        if (
+            is_numeric($source['assetId'] ?? null)
+            && is_numeric($asset['sourceId'] ?? null)
+            && (int) $source['assetId'] !== (int) $asset['sourceId']
+        ) {
+            $this->addError($errors, 'source.assetId must match mapAsset.sourceId.');
+        }
+
+        if ($node === null && ($asset['nodeSlug'] ?? null) !== null) {
+            $this->addError($errors, 'mapAsset.nodeSlug must be null when node is null.');
+        }
+
+        if ($errors !== []) {
+            return $this->invalid(implode(' ', $errors));
+        }
+
+        return $this->validatePayload([
+            'format' => 'wicked-learning-map',
+            'formatVersion' => 1,
+            'world' => $world,
+            'map' => [
+                'slug' => $mapSlug,
+                'title' => $map['title'] ?? $mapSlug,
+            ],
+            'nodes' => $node === null ? [] : [$node],
+            'mapAssets' => [$asset],
+            'portalTargets' => [],
+            'references' => $payload['references'] ?? [],
+        ]);
+    }
+
+    /**
      * Validate a decoded single-map export payload.
      *
      * @param  array<string, mixed>  $payload
