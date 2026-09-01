@@ -224,12 +224,16 @@ paginates one asset's revisions, and restore validates the asset relation before
 recording the current configuration and applying the selected version.
 
 `LearningActivityVersion` stores an immutable JSON snapshot of an activity's
-details, type-specific configuration, graph position and companion override.
-The activity editor exposes a permission-protected paginated history endpoint;
-restoration records the current snapshot first and then marks the restored
-activity for author review. Route connections and separate NPC dialogue graph
-records remain outside this bounded first slice so restoring a content snapshot
-cannot silently rewrite shared route edges or learner-facing graph IDs.
+details, type-specific configuration, graph position, companion override and
+outgoing activity transitions. Transition targets are stored with both their
+current ID and slug; restore resolves them only among activities in the source
+activity's current node. A missing target is skipped rather than recreated as
+an unrelated or cross-node reference. The activity editor exposes a
+permission-protected paginated history endpoint; restoration records the
+current snapshot first and then marks the restored activity for author review.
+Start-route records, node placement and separate NPC dialogue graph records
+remain outside this activity snapshot. Snapshots created before transition
+capture remain configuration-only and do not alter current routes.
 Question activities keep their prompt and answer records in the separate
 `LearningQuestion` and `LearningQuestionOption` tables. Activity creation and
 editing synchronize those records from the author form, and activity/template

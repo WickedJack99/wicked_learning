@@ -39,7 +39,9 @@ their own evidence without exposing a hidden competence score.
 ### Authoring and reuse
 
 - Expand map, world, node-placement and activity histories into safe rollback
-  and collaborative editing workflows.
+  and collaborative editing workflows. Activity history now includes outgoing
+  route connections while keeping start routes and NPC dialogue graphs as
+  separate authoring boundaries.
 - Keep the bounded map, world and MapAsset import/export contracts stable as
   media packages are used in practice. Single-map, world and standalone
   MapAsset packages now transfer explicitly referenced uploaded media with

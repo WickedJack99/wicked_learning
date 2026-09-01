@@ -7,6 +7,7 @@ use App\Learning\Services\QuestionActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityVersion;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class RestoreLearningActivityVersion
@@ -46,9 +47,83 @@ class RestoreLearningActivityVersion
                 is_array($snapshot['question'] ?? null) ? $snapshot['question'] : [],
             );
 
+            if (array_key_exists('transitions', $snapshot) && is_array($snapshot['transitions'])) {
+                $this->restoreTransitions($activity, $snapshot['transitions']);
+            }
+
             $this->reviewState->markNeedsReview($activity);
 
             return $activity->refresh();
         });
+    }
+
+    /**
+     * @param  array<int, mixed>  $snapshots
+     */
+    private function restoreTransitions(LearningActivity $activity, array $snapshots): void
+    {
+        $activity->loadMissing('node');
+        $nodeActivities = $activity->node->activities()->get(['id', 'slug'])->keyBy('id');
+        $activitiesBySlug = $nodeActivities->keyBy('slug');
+
+        $activity->transitions()->delete();
+
+        foreach ($snapshots as $snapshot) {
+            if (! is_array($snapshot)) {
+                continue;
+            }
+
+            $target = $this->targetActivity($snapshot, $nodeActivities, $activitiesBySlug);
+            $hasTarget = array_key_exists('toActivityId', $snapshot)
+                || array_key_exists('toActivitySlug', $snapshot);
+
+            if ($hasTarget && $target === null && ($snapshot['toActivityId'] ?? null) !== null) {
+                continue;
+            }
+
+            $fromConnector = trim((string) ($snapshot['fromConnector'] ?? ''));
+            $toConnector = trim((string) ($snapshot['toConnector'] ?? ''));
+
+            if ($fromConnector === '' || $toConnector === '') {
+                continue;
+            }
+
+            $activity->transitions()->create([
+                'to_activity_id' => $target?->id,
+                'from_connector' => $fromConnector,
+                'to_connector' => $toConnector,
+                'trigger' => (string) ($snapshot['trigger'] ?? 'completed'),
+                'trigger_value' => isset($snapshot['triggerValue'])
+                    ? (string) $snapshot['triggerValue']
+                    : null,
+                'label' => isset($snapshot['label']) ? (string) $snapshot['label'] : null,
+                'rules' => is_array($snapshot['rules'] ?? null) ? $snapshot['rules'] : [],
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  Collection<int, LearningActivity>  $nodeActivities
+     * @param  Collection<string, LearningActivity>  $activitiesBySlug
+     */
+    private function targetActivity(
+        array $snapshot,
+        Collection $nodeActivities,
+        Collection $activitiesBySlug,
+    ): ?LearningActivity {
+        if (array_key_exists('toActivityId', $snapshot)) {
+            $targetId = $snapshot['toActivityId'];
+
+            if (is_numeric($targetId) && $nodeActivities->has((int) $targetId)) {
+                return $nodeActivities->get((int) $targetId);
+            }
+
+            return null;
+        }
+
+        $targetSlug = trim((string) ($snapshot['toActivitySlug'] ?? ''));
+
+        return $targetSlug !== '' ? $activitiesBySlug->get($targetSlug) : null;
     }
 }

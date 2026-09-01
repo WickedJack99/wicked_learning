@@ -707,6 +707,7 @@ class AdminActivityController extends Controller
         $this->createActivityTransition->handle(
             $node,
             $request->validate($this->rules->transition()),
+            $request->user() instanceof User ? $request->user() : null,
         );
 
         return $this->redirectToActivities($node);
@@ -718,7 +719,10 @@ class AdminActivityController extends Controller
         $this->authorizeNodeEdit($request, $transition->fromActivity->node);
 
         return $this->redirectToActivities(
-            $this->deleteActivityTransition->handle($transition),
+            $this->deleteActivityTransition->handle(
+                $transition,
+                $request->user() instanceof User ? $request->user() : null,
+            ),
         );
     }
 
@@ -730,6 +734,7 @@ class AdminActivityController extends Controller
         $this->updateActivityTransition->handle(
             $transition,
             $request->validate($this->rules->transitionUpdate()),
+            $request->user() instanceof User ? $request->user() : null,
         );
 
         return $this->redirectToActivities($transition->fromActivity->node);

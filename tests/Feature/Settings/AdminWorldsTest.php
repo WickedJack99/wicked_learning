@@ -3942,6 +3942,175 @@ test('authors can browse and restore activity configuration versions without los
         ->and($activity->versions()->count())->toBe(2);
 });
 
+test('activity history captures and restores outgoing route connections', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'history-route-source',
+        'title' => 'History route source',
+        'type' => 'open_practice',
+        'config' => [],
+        'sort_order' => 900,
+    ]);
+    $target = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'history-route-target',
+        'title' => 'History route target',
+        'type' => 'reflection',
+        'config' => [],
+        'sort_order' => 901,
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [
+            'from_activity_id' => $activity->id,
+            'to_activity_id' => $target->id,
+            'from_connector' => 'completed',
+            'to_connector' => 'in',
+            'label' => 'Follow the first clue',
+        ])
+        ->assertRedirect();
+
+    $transition = $activity->transitions()->firstOrFail();
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activity-transitions.update', $transition), [
+            'label' => 'Follow the revised clue',
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($admin)
+        ->delete(route('settings.worlds.activity-transitions.destroy', $transition))
+        ->assertRedirect();
+
+    $versions = $activity->versions()->reorder('id')->get();
+
+    expect($versions)->toHaveCount(3)
+        ->and($versions[0]->snapshot['transitions'])->toBe([])
+        ->and($versions[1]->snapshot['transitions'][0]['label'])
+        ->toBe('Follow the first clue')
+        ->and($versions[2]->snapshot['transitions'][0]['label'])
+        ->toBe('Follow the revised clue');
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.versions.restore', [
+            'activity' => $activity,
+            'version' => $versions[1],
+        ]))
+        ->assertOk()
+        ->assertJsonPath('activity.config', []);
+
+    expect($activity->refresh()->transitions)->toHaveCount(1)
+        ->and($activity->transitions->first()->label)->toBe('Follow the first clue')
+        ->and($activity->transitions->first()->to_activity_id)->toBe($target->id);
+});
+
+test('legacy activity versions without route snapshots preserve current connections', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()->where('slug', 'write-a-field-note')->firstOrFail();
+    $node = $activity->node;
+    $target = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'legacy-route-target',
+        'title' => 'Legacy route target',
+        'type' => 'reflection',
+        'config' => [],
+        'sort_order' => 902,
+    ]);
+
+    $transition = $activity->transitions()->create([
+        'to_activity_id' => $target->id,
+        'from_connector' => 'completed',
+        'to_connector' => 'in',
+        'trigger' => 'completed',
+        'label' => 'Keep this route',
+        'rules' => [],
+    ]);
+    $version = $activity->versions()->create([
+        'changed_by' => $admin->id,
+        'snapshot' => [
+            'companionConfig' => [],
+            'config' => $activity->config,
+            'graphPositionX' => $activity->graph_position_x,
+            'graphPositionY' => $activity->graph_position_y,
+            'introduction' => $activity->introduction,
+            'slug' => $activity->slug,
+            'title' => $activity->title,
+            'type' => $activity->type,
+            'question' => [],
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.versions.restore', [
+            'activity' => $activity,
+            'version' => $version,
+        ]))
+        ->assertOk();
+
+    expect($activity->refresh()->transitions)->toHaveCount(1)
+        ->and($activity->transitions->first()->id)->toBe($transition->id);
+});
+
+test('activity history never restores a route target from another node', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()->where('slug', 'write-a-field-note')->firstOrFail();
+    $otherNode = LearningNode::query()->where('id', '!=', $activity->learning_node_id)->firstOrFail();
+    $unrelatedTarget = LearningActivity::query()->create([
+        'learning_node_id' => $otherNode->id,
+        'slug' => 'unrelated-route-target',
+        'title' => 'Unrelated route target',
+        'type' => 'reflection',
+        'config' => [],
+        'sort_order' => 903,
+    ]);
+    $version = $activity->versions()->create([
+        'changed_by' => $admin->id,
+        'snapshot' => [
+            'title' => $activity->title,
+            'slug' => $activity->slug,
+            'type' => $activity->type,
+            'introduction' => $activity->introduction,
+            'config' => $activity->config,
+            'companionConfig' => [],
+            'graphPositionX' => $activity->graph_position_x,
+            'graphPositionY' => $activity->graph_position_y,
+            'question' => [],
+            'transitions' => [[
+                'fromConnector' => 'completed',
+                'toConnector' => 'in',
+                'toActivityId' => $unrelatedTarget->id,
+                'toActivitySlug' => $unrelatedTarget->slug,
+                'trigger' => 'completed',
+                'label' => 'Must not cross nodes',
+                'rules' => [],
+            ]],
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.versions.restore', [
+            'activity' => $activity,
+            'version' => $version,
+        ]))
+        ->assertOk();
+
+    expect($activity->refresh()->transitions)->toBeEmpty()
+        ->and(ActivityTransition::query()
+            ->where('from_activity_id', $activity->id)
+            ->where('to_activity_id', $unrelatedTarget->id)
+            ->exists())->toBeFalse();
+});
+
 test('activity versions cannot be restored across activities', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

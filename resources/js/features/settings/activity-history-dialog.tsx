@@ -36,6 +36,7 @@ type ActivityVersionDetails = ActivityVersion & {
         config: Record<string, unknown>;
         graphPositionX: number | null;
         graphPositionY: number | null;
+        transitions?: Array<Record<string, unknown>>;
     };
 };
 
@@ -211,7 +212,7 @@ export function ActivityHistoryDialog({
                     <DialogDescription>
                         {t(
                             'settings.activity_history.description',
-                            'Review earlier activity details and type-specific settings. Restoring preserves the current state as a new history entry. Route connections and separate dialogue graph records are not changed.',
+                            'Review earlier activity details, type-specific settings and route connections. Restoring preserves the current state as a new history entry. Separate dialogue graph records are not changed.',
                         )}
                     </DialogDescription>
                 </DialogHeader>
@@ -450,6 +451,13 @@ function ActivityVersionDetailsView({
                 )}
             </div>
             <div className="grid gap-1 text-sm text-[var(--settings-muted-text)]">
+                <p>
+                    {t(
+                        'settings.activity_history.details.routes',
+                        'Route connections',
+                    )}{' '}
+                    {version.snapshot.transitions?.length ?? 0}
+                </p>
                 <p>
                     {t(
                         'settings.activity_history.details.companion',

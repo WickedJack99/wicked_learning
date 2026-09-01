@@ -4,15 +4,19 @@ namespace App\Learning\Actions;
 
 use App\Learning\ActivityTypeRegistry;
 use App\Models\ActivityTransition;
+use App\Models\User;
 
 class UpdateActivityTransition
 {
-    public function __construct(private readonly ActivityTypeRegistry $activityTypes) {}
+    public function __construct(
+        private readonly ActivityTypeRegistry $activityTypes,
+        private readonly RecordLearningActivityVersion $recordVersion,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(ActivityTransition $transition, array $data): ActivityTransition
+    public function handle(ActivityTransition $transition, array $data, ?User $user = null): ActivityTransition
     {
         $transition->loadMissing('fromActivity', 'toActivity');
 
@@ -21,7 +25,7 @@ class UpdateActivityTransition
             ? trim((string) ($data['trigger_value'] ?? ''))
             : '';
 
-        $transition->update([
+        $updates = [
             'label' => $label !== ''
                 ? $label
                 : $transition->toActivity?->title
@@ -30,7 +34,16 @@ class UpdateActivityTransition
                         (string) $transition->from_connector,
                     ),
             'trigger_value' => $triggerValue !== '' ? $triggerValue : null,
-        ]);
+        ];
+
+        $changed = $transition->label !== $updates['label']
+            || $transition->trigger_value !== $updates['trigger_value'];
+
+        if ($user instanceof User && $changed) {
+            $this->recordVersion->handle($user, $transition->fromActivity);
+        }
+
+        $transition->update($updates);
 
         return $transition->refresh();
     }

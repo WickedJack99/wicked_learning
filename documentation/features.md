@@ -775,6 +775,13 @@ learner-facing configuration and restore an earlier version without losing the
 current configuration. Structural node placement and broader map history remain
 separate authoring concerns.
 
+Activity history includes an activity's outgoing route connections, so authors
+can restore a previous branch configuration together with its activity
+settings. Start-route records, node placement and separate NPC dialogue graphs
+remain separate histories and are not changed by an activity restore. Older
+activity history entries without route data remain safe to restore without
+removing current connections.
+
 Map configuration keeps its existing section menus but switches nested authoring
 navigation to compact horizontal controls below wide-desktop layouts. Detail and
 visual preview columns stack at the same breakpoint so map fields and actions

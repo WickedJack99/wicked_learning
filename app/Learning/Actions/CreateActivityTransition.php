@@ -7,6 +7,7 @@ use App\Learning\Services\PortalLinkService;
 use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
+use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class CreateActivityTransition
@@ -14,19 +15,26 @@ class CreateActivityTransition
     public function __construct(
         private readonly ActivityTypeRegistry $activityTypes,
         private readonly PortalLinkService $portalLinkService,
+        private readonly RecordLearningActivityVersion $recordVersion,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(LearningNode $node, array $data): ActivityTransition
+    public function handle(LearningNode $node, array $data, ?User $user = null): ActivityTransition
     {
         $fromActivity = $this->nodeActivityOrFail($node, (int) $data['from_activity_id']);
         $toActivity = $this->validatedTargetActivity($node, $data['to_activity_id'] ?? null);
         $this->ensureActivityCanContinue($fromActivity, $toActivity?->id);
+        $identity = $this->transitionIdentity($fromActivity, $toActivity?->id, $data);
+        $snapshot = null;
 
-        return ActivityTransition::query()->firstOrCreate(
-            $this->transitionIdentity($fromActivity, $toActivity?->id, $data),
+        if (! ActivityTransition::query()->where($identity)->exists() && $user instanceof User) {
+            $snapshot = $this->recordVersion->snapshot($fromActivity);
+        }
+
+        $transition = ActivityTransition::query()->firstOrCreate(
+            $identity,
             $this->transitionDefaults(
                 $fromActivity,
                 $toActivity,
@@ -34,6 +42,12 @@ class CreateActivityTransition
                 isset($data['label']) ? (string) $data['label'] : null,
             ),
         );
+
+        if ($transition->wasRecentlyCreated && $snapshot !== null) {
+            $this->recordVersion->handle($user, $fromActivity, $snapshot);
+        }
+
+        return $transition;
     }
 
     private function nodeActivityOrFail(LearningNode $node, int $activityId): LearningActivity
