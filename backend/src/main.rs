@@ -15,6 +15,7 @@ use tower_http::{
     timeout::TimeoutLayer,
     trace::TraceLayer,
 };
+use tower_sessions_sqlx_store::PostgresStore;
 use tracing::{error, info};
 
 use crate::{config::Config, error::ApiError};
@@ -157,6 +158,13 @@ async fn run_migrations(configuration: &Config) -> ExitCode {
 
     if let Err(error) = IDENTITY_MIGRATOR.run(&identity_database).await {
         error!(%error, "identity migrations failed");
+        return ExitCode::FAILURE;
+    }
+    if let Err(error) = PostgresStore::new(identity_database.clone())
+        .migrate()
+        .await
+    {
+        error!(%error, "identity session-store migration failed");
         return ExitCode::FAILURE;
     }
     if let Err(error) = APPLICATION_MIGRATOR.run(&application_database).await {
