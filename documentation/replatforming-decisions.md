@@ -77,6 +77,15 @@ security review. The new platform starts with fresh credentials and fresh
 passkey enrollment; no Laravel password hash, passkey, session or account data
 is migrated.
 
+**Current identity proof-of-concept policy:** preserve invitation-only
+registration: a valid, bounded registration token is required before a new
+identity can be created. Password verifiers live in a dedicated
+`identity_password_credentials` table in the identity database, not in the
+identity profile or application database. The foundation uses RustCrypto
+Argon2id through the maintained `argon2` crate and rejects passwords shorter
+than twelve characters. Session persistence will use `tower-sessions` with its
+SQLx PostgreSQL store; Axum authentication integration will use `axum-login`.
+
 **Future extension:** an OIDC adapter may be added later. It must map a
 validated OIDC subject to the same local identity subject and may not bypass
 local account, role or map-scope policy.

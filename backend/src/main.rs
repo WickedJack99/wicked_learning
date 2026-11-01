@@ -1,5 +1,6 @@
 mod config;
 mod error;
+mod passwords;
 mod public_pages;
 
 use std::{process::ExitCode, time::Duration};
