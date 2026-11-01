@@ -1,0 +1,61 @@
+openapi: 3.1.1
+info:
+  title: Wicked Learning API
+  version: 1.0.0-draft
+  description: |
+    The versioned contract between the React client and Rust/Axum API.
+    This foundation intentionally exposes health endpoints only. User-facing
+    resources and AI operations require a reviewed vertical slice before they
+    are added here.
+servers:
+  - url: /api/v1
+paths:
+  /health/live:
+    get:
+      operationId: getLiveness
+      summary: Report whether the API process is running.
+      responses:
+        '200':
+          description: The API process is live.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /health/ready:
+    get:
+      operationId: getReadiness
+      summary: Report whether required databases are reachable.
+      responses:
+        '200':
+          description: The API and both databases are ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: A required dependency is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [code, title]
+      properties:
+        code:
+          type: string
+          example: dependency_unavailable
+        title:
+          type: string
+          example: A required service is unavailable.

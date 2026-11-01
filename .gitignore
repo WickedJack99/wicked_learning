@@ -31,3 +31,11 @@ yarn-error.log
 /.zed
 container.txt
 /.agents
+/backend/target
+/frontend/node_modules
+/frontend/dist
+/frontend/.env
+/frontend/.env.*
+/backend/.env
+/backend/.env.*
+/.env.rust

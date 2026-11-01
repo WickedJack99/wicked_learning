@@ -25,6 +25,17 @@ Wicked Learning is designed as a generic, domain-agnostic platform. A deployment
 - [AI-assisted authoring](ai-authoring.md) - configure an AI provider and create a reviewable content draft.
 - [Content API](content-api.md) - use the administration console and versioned machine-readable contract.
 - [Deployment](deployment.md) - run the production container locally or deploy it with Coolify.
+- [Rust/Axum replatforming plan](rust-axum-replatforming-plan.md) - proposed
+  discovery, architecture and staged migration plan for separating the React
+  frontend from a Rust/Axum backend.
+- [Replatforming baseline](replatforming-baseline.md) - phase 0 local build,
+  test and source-inventory evidence.
+- [Replatforming inventory](replatforming-inventory.md) - current endpoint,
+  data-model and media boundaries for the migration.
+- [Replatforming decisions](replatforming-decisions.md) - phase 1 architecture
+  decisions and their approval status.
+- [Rust/Axum local foundation](rust-local-stack.md) - run the separate local
+  React, Axum, application-database and identity-database Compose stack.
 - `conversations/` contains archived development conversations and is not an
   active product or implementation specification.
 

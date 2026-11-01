@@ -1,0 +1,39 @@
+:root {
+  color: #172333;
+  background: #f4f8fb;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 42rem;
+  margin: 12vh auto;
+  padding: 2rem;
+}
+
+h1 {
+  margin-block: 0.25rem 1rem;
+}
+
+.eyebrow {
+  color: #44627d;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status {
+  font-weight: 700;
+}
+
+.ready {
+  color: #167044;
+}
+
+.unavailable {
+  color: #9e2f24;
+}
