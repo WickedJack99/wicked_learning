@@ -37,6 +37,10 @@ schemas inside one database.
    docker compose --env-file .env.rust -f compose.rust.yaml run --rm backend migrate
    ```
 
+   This applies the two Rust-owned migration sets and provisions the maintained
+   session library's `tower_sessions.session` table in the identity database.
+   It never imports, reads, or modifies the Laravel database.
+
 4. Start the frontend and API:
 
    ```bash
@@ -58,3 +62,11 @@ that needs a new schema.
 Do not copy the example password values to a shared environment, attach an
 existing Laravel volume/database, or deploy this proof of concept to production.
 No production deployment is authorized by this document.
+
+## Continuous verification
+
+The `Rust replatform foundation` GitHub Actions workflow checks changes to the
+Rust, contract, frontend and Compose files. It runs Rust formatting and tests,
+detects generated TypeScript-client drift, builds the standalone frontend and
+validates the Compose definition. It does not deploy the stack or change the
+Laravel workflows.
