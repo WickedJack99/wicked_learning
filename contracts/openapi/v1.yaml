@@ -4,9 +4,9 @@ info:
   version: 1.0.0-draft
   description: |
     The versioned contract between the React client and Rust/Axum API.
-    This foundation intentionally exposes health endpoints only. User-facing
-    resources and AI operations require a reviewed vertical slice before they
-    are added here.
+    The first read-only public page is available to prove the full React,
+    contract, Axum and PostgreSQL path. User-facing writes and AI operations
+    require a separately reviewed vertical slice.
 servers:
   - url: /api/v1
 paths:
@@ -38,6 +38,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /public/pages/{slug}:
+    get:
+      operationId: getPublicPage
+      summary: Read a published public-information page.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-z0-9-]+$'
+            maxLength: 80
+      responses:
+        '200':
+          description: A published public-information page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPage'
+        '404':
+          description: No published page has this slug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
     HealthStatus:
@@ -59,3 +90,17 @@ components:
         title:
           type: string
           example: A required service is unavailable.
+    PublicPage:
+      type: object
+      additionalProperties: false
+      required: [slug, title, body]
+      properties:
+        slug:
+          type: string
+          example: about
+        title:
+          type: string
+          example: About Wicked Learning
+        body:
+          type: string
+          description: Plain text with paragraph breaks; the client must render it as text, not HTML.

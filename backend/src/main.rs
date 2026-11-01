@@ -1,25 +1,30 @@
 mod config;
+mod error;
+mod public_pages;
 
-use std::process::ExitCode;
+use std::{process::ExitCode, time::Duration};
 
-use axum::{
-    Json, Router,
-    extract::State,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    routing::get,
-};
+use axum::{Json, Router, extract::State, http::HeaderName, routing::get};
 use serde::Serialize;
 use sqlx::{PgPool, postgres::PgPoolOptions};
+use tower::ServiceBuilder;
+use tower_http::{
+    limit::RequestBodyLimitLayer,
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
+    timeout::TimeoutLayer,
+    trace::TraceLayer,
+};
 use tracing::{error, info};
 
-use crate::config::Config;
+use crate::{config::Config, error::ApiError};
 
 static APPLICATION_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/application");
 static IDENTITY_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/identity");
 
+const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
+
 #[derive(Clone)]
-struct AppState {
+pub(crate) struct AppState {
     application_database: PgPool,
     identity_database: PgPool,
 }
@@ -27,27 +32,6 @@ struct AppState {
 #[derive(Serialize)]
 struct HealthResponse {
     status: &'static str,
-}
-
-#[derive(Serialize)]
-struct ProblemResponse {
-    code: &'static str,
-    title: &'static str,
-}
-
-struct NotReady;
-
-impl IntoResponse for NotReady {
-    fn into_response(self) -> Response {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(ProblemResponse {
-                code: "dependency_unavailable",
-                title: "A required service is unavailable.",
-            }),
-        )
-            .into_response()
-    }
 }
 
 #[tokio::main]
@@ -66,22 +50,14 @@ async fn main() -> ExitCode {
         return run_migrations(&configuration).await;
     }
 
-    let application_database = match PgPoolOptions::new()
-        .max_connections(10)
-        .connect(&configuration.application_database_url)
-        .await
-    {
+    let application_database = match connect(&configuration.application_database_url).await {
         Ok(pool) => pool,
         Err(error) => {
             error!(%error, "could not connect to the application database");
             return ExitCode::FAILURE;
         }
     };
-    let identity_database = match PgPoolOptions::new()
-        .max_connections(10)
-        .connect(&configuration.identity_database_url)
-        .await
-    {
+    let identity_database = match connect(&configuration.identity_database_url).await {
         Ok(pool) => pool,
         Err(error) => {
             error!(%error, "could not connect to the identity database");
@@ -114,24 +90,44 @@ fn router(state: AppState) -> Router {
     Router::new()
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
+        .route("/api/v1/public/pages/{slug}", get(public_pages::show))
         .with_state(state)
+        .layer(
+            ServiceBuilder::new()
+                .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestUuid))
+                .layer(TraceLayer::new_for_http())
+                .layer(PropagateRequestIdLayer::new(REQUEST_ID_HEADER))
+                .layer(RequestBodyLimitLayer::new(64 * 1024))
+                .layer(TimeoutLayer::with_status_code(
+                    axum::http::StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(10),
+                )),
+        )
 }
 
 async fn live() -> Json<HealthResponse> {
     Json(HealthResponse { status: "ok" })
 }
 
-async fn ready(State(state): State<AppState>) -> Result<Json<HealthResponse>, NotReady> {
+async fn ready(State(state): State<AppState>) -> Result<Json<HealthResponse>, ApiError> {
     sqlx::query("SELECT 1")
         .execute(&state.application_database)
         .await
-        .map_err(|_| NotReady)?;
+        .map_err(|_| ApiError::service_unavailable())?;
     sqlx::query("SELECT 1")
         .execute(&state.identity_database)
         .await
-        .map_err(|_| NotReady)?;
+        .map_err(|_| ApiError::service_unavailable())?;
 
     Ok(Json(HealthResponse { status: "ok" }))
+}
+
+async fn connect(database_url: &str) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new()
+        .max_connections(10)
+        .acquire_timeout(Duration::from_secs(5))
+        .connect(database_url)
+        .await
 }
 
 async fn run_migrations(configuration: &Config) -> ExitCode {
@@ -210,6 +206,7 @@ mod tests {
             .expect("liveness handler response");
 
         assert_eq!(response.status(), 200);
+        assert!(response.headers().contains_key("x-request-id"));
         assert_eq!(
             response
                 .into_body()

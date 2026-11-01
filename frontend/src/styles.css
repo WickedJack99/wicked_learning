@@ -18,6 +18,10 @@ h1 {
   margin-block: 0.25rem 1rem;
 }
 
+.page-body {
+  line-height: 1.6;
+}
+
 .eyebrow {
   color: #44627d;
   font-size: 0.875rem;
