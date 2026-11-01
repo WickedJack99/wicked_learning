@@ -1,11 +1,13 @@
 mod config;
 mod error;
+mod identity;
 mod passwords;
 mod public_pages;
 
 use std::{process::ExitCode, time::Duration};
 
 use axum::{Json, Router, extract::State, http::HeaderName, routing::get};
+use axum_login::AuthManagerLayerBuilder;
 use serde::Serialize;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use tower::ServiceBuilder;
@@ -15,10 +17,11 @@ use tower_http::{
     timeout::TimeoutLayer,
     trace::TraceLayer,
 };
+use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::PostgresStore;
 use tracing::{error, info};
 
-use crate::{config::Config, error::ApiError};
+use crate::{config::Config, error::ApiError, identity::IdentityBackend};
 
 static APPLICATION_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/application");
 static IDENTITY_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/identity");
@@ -29,6 +32,7 @@ const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 pub(crate) struct AppState {
     application_database: PgPool,
     identity_database: PgPool,
+    session_cookie_secure: bool,
 }
 
 #[derive(Serialize)]
@@ -70,6 +74,7 @@ async fn main() -> ExitCode {
     let state = AppState {
         application_database,
         identity_database,
+        session_cookie_secure: configuration.session_cookie_secure,
     };
     let listener = match tokio::net::TcpListener::bind(configuration.listen_address).await {
         Ok(listener) => listener,
@@ -89,11 +94,19 @@ async fn main() -> ExitCode {
 }
 
 fn router(state: AppState) -> Router {
+    let identity_backend = IdentityBackend::new(state.identity_database.clone());
+    let session_store = PostgresStore::new(state.identity_database.clone());
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_name("wicked_learning_session")
+        .with_secure(state.session_cookie_secure);
+    let auth_layer = AuthManagerLayerBuilder::new(identity_backend, session_layer).build();
+
     Router::new()
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))
         .with_state(state)
+        .layer(auth_layer)
         .layer(
             ServiceBuilder::new()
                 .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestUuid))
@@ -202,6 +215,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            session_cookie_secure: false,
         };
 
         let response = router(state)

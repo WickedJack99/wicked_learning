@@ -236,6 +236,26 @@ text or a structured draft only; it cannot choose permissions, execute tools,
 write content, alter progress or override authorization without a separately
 implemented and authorized application use case.
 
+## ADR-011: Initial browser session boundary
+
+**Status:** Accepted — 1 November 2026
+
+**Decision:** Use the Rust identity database and the maintained
+`tower-sessions-sqlx-store` library for opaque, server-side browser sessions.
+`axum-login` owns session-authentication integration. The browser receives only
+an HTTP-only, SameSite=Strict session identifier; it never receives a password
+hash, identity record or credential in browser storage.
+
+Secure cookies are enabled by default. The local Compose proof of concept sets
+`SESSION_COOKIE_SECURE=false` solely because it is served over `http://localhost`.
+Any HTTPS deployment must leave it enabled. A successful password change changes
+the stored session-authentication hash, which invalidates existing sessions at
+the next request.
+
+There are no state-changing Rust endpoints yet. Before the first one is added,
+it must have an explicit CSRF token/origin policy and authentication rate limit;
+SameSite is defense in depth, not a substitute for either control.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

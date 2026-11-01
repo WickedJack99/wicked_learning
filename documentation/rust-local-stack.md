@@ -19,6 +19,10 @@ is a future adapter-backed feature. The database services have separate named
 volumes and credentials. They are separate PostgreSQL databases, not separate
 schemas inside one database.
 
+The local backend sets `SESSION_COOKIE_SECURE=false` only because this stack is
+served at `http://localhost`. The Rust default is secure cookies; leave that
+default enabled for any HTTPS environment.
+
 ## Start locally
 
 1. Copy `.env.rust.example` to `.env.rust` and replace both database passwords

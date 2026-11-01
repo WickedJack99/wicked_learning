@@ -1,4 +1,4 @@
-use std::{env, net::SocketAddr, path::PathBuf};
+use std::{env, net::SocketAddr, path::PathBuf, str::ParseBoolError};
 
 use thiserror::Error;
 
@@ -8,6 +8,7 @@ pub struct Config {
     pub identity_database_url: String,
     pub listen_address: SocketAddr,
     pub media_root: PathBuf,
+    pub session_cookie_secure: bool,
 }
 
 #[derive(Debug, Error)]
@@ -16,6 +17,8 @@ pub enum ConfigError {
     Missing(&'static str),
     #[error("LISTEN_ADDRESS must be a socket address: {0}")]
     InvalidListenAddress(#[source] std::net::AddrParseError),
+    #[error("SESSION_COOKIE_SECURE must be true or false: {0}")]
+    InvalidSessionCookieSecure(#[source] ParseBoolError),
 }
 
 impl Config {
@@ -30,6 +33,10 @@ impl Config {
             media_root: env::var("MEDIA_ROOT")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| PathBuf::from("/var/lib/wicked-learning/media")),
+            session_cookie_secure: env::var("SESSION_COOKIE_SECURE")
+                .unwrap_or_else(|_| "true".to_owned())
+                .parse()
+                .map_err(ConfigError::InvalidSessionCookieSecure)?,
         })
     }
 }

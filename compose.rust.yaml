@@ -17,6 +17,7 @@ services:
       APPLICATION_DATABASE_URL: postgresql://wicked_application:${APPLICATION_DATABASE_PASSWORD:-wicked-local-development-only}@application-db:5432/wicked_application
       IDENTITY_DATABASE_URL: postgresql://wicked_identity:${IDENTITY_DATABASE_PASSWORD:-wicked-local-development-only}@identity-db:5432/wicked_identity
       MEDIA_ROOT: /var/lib/wicked-learning/media
+      SESSION_COOKIE_SECURE: "false"
       RUST_LOG: ${RUST_LOG:-info}
     depends_on:
       application-db:
