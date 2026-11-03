@@ -290,6 +290,22 @@ The standalone Welcome page is the first fidelity migration: it reuses the
 original layout, content structure, Tailwind utilities and Lucide icons while
 substituting React Router and the existing Rust session state for Inertia.
 
+### World parity boundary
+
+The current `/world` slice proves anonymous, published-map exploration only.
+It intentionally does not yet supply the learner-specific progress, bookmarks,
+equipped tools, group data, audio configuration, route-start state or
+server-evaluated reveal/unlock state consumed by Laravel's
+`LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
+`ActivityPanel` components. It must therefore not be described as a completed
+World migration.
+
+Before treating the route as visually or functionally migrated, define the
+corresponding Rust read contract from that serializer, preserve its bounded and
+authorized server-owned state, then lift the existing React components and
+replace only their Inertia/Laravel glue. Do not extend the provisional map with
+new substitute controls or styling to mask missing behavior.
+
 ### Reference behavior and implementation autonomy
 
 The Laravel application and its React frontend are the behavioral reference for
