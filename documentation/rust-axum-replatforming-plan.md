@@ -247,6 +247,35 @@ Start with these vertical API families:
    unauthorized path, validation error, back/refresh, narrow viewport and
    keyboard/focus behavior.
 
+### Frontend visual-fidelity requirement
+
+The replatforming must preserve the original learner-facing UI rather than
+create a new interpretation of it. The existing React pages, components,
+Tailwind classes, design tokens, icons and accessibility behavior under
+`resources/js` and `resources/css` are the visual source of truth until the
+product explicitly approves a redesign.
+
+- Prefer lifting the existing component markup and styles into `frontend/`.
+  Replace only Laravel/Inertia-specific glue such as `usePage`, Inertia links,
+  forms, router calls and generated route helpers with React Router and the
+  typed Rust API client.
+- Use the existing maintained frontend libraries where they are already part of
+  the original UI; do not recreate their controls or approximate their styling
+  with new bespoke CSS when the original component can be decoupled.
+- When a Rust API is not available yet, retain the original page structure and
+  interaction affordances where safe, with an explicit unavailable/loading
+  state. Do not replace the screen with a newly designed alternative merely to
+  make it appear complete.
+- Before accepting a migrated page, compare it with the Laravel version at
+  desktop and narrow viewports. Check layout, navigation, focus/keyboard
+  behavior, empty/loading/error states and visible copy. Store focused browser
+  coverage for the migrated route.
+
+The standalone welcome, shell and exploration styling introduced during the
+foundation are provisional proof-of-concept work. They are not visual-migration
+acceptance and must be replaced or brought into close alignment with the
+corresponding original React UI before the frontend slice is considered done.
+
 ### Current frontend URL migration register
 
 This register makes the frontend extraction sequence concrete for the fresh
