@@ -3286,6 +3286,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "wicked-learning-application"
+version = "0.1.0"
+dependencies = [
+ "wicked-learning-domain",
+]
+
+[[package]]
+name = "wicked-learning-domain"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "uuid",
+]
+
+[[package]]
+name = "wicked-learning-infrastructure"
+version = "0.1.0"
+dependencies = [
+ "wicked-learning-domain",
+]
+
+[[package]]
+name = "wicked-learning-persistence"
+version = "0.1.0"
+dependencies = [
+ "wicked-learning-domain",
+]
+
+[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -47,8 +47,9 @@ use crate::{
     media_store::MediaStore,
 };
 
-static APPLICATION_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/application");
-static IDENTITY_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/identity");
+static APPLICATION_MIGRATOR: sqlx::migrate::Migrator =
+    sqlx::migrate!("../../migrations/application");
+static IDENTITY_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations/identity");
 
 const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 

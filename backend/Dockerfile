@@ -3,10 +3,10 @@ FROM rust:1.88-bookworm AS builder
 WORKDIR /src
 
 COPY Cargo.toml Cargo.lock ./
-COPY src ./src
+COPY crates ./crates
 COPY migrations ./migrations
 
-RUN cargo build --release --locked
+RUN cargo build --release --locked --package wicked-learning-api
 
 FROM debian:bookworm-slim AS runtime
 
