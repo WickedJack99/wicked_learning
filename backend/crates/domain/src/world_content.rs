@@ -48,3 +48,60 @@ pub struct PublicNode {
     pub state: String,
     pub visual_config: Value,
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicMapAssetDetail {
+    pub world_slug: String,
+    pub world_title: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub routes: Vec<PublicRoutePreview>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicRoutePreview {
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub activity_count: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicRouteOutline {
+    pub world_slug: String,
+    pub world_title: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub asset_slug: String,
+    pub asset_title: String,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub activities: Vec<PublicActivityOutline>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicActivityOutline {
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicSearchResponse {
+    pub query: String,
+    pub results: Vec<PublicSearchResult>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicSearchResult {
+    pub world_slug: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub asset_slug: String,
+    pub title: String,
+    pub description: String,
+}
