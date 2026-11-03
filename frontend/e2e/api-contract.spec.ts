@@ -59,6 +59,26 @@ test('the public source-links endpoint returns only browser-safe link data', asy
   });
 });
 
+test('the public world endpoint returns a bounded fresh exploration graph', async ({ request }) => {
+  const response = await request.get('/api/v1/public/world');
+
+  expect(response.status()).toBe(200);
+  await expect(response.json()).resolves.toMatchObject({
+    slug: 'orientation-garden',
+    title: 'Orientation Garden',
+    maps: [
+      {
+        slug: 'first-path',
+        title: 'The First Path',
+        assets: [
+          { slug: 'notice-the-map', interaction_mode: 'focusable' },
+          { slug: 'choose-a-direction', interaction_mode: 'focusable' },
+        ],
+      },
+    ],
+  });
+});
+
 test('an anonymous session reveals no credential or identity material', async ({ request }) => {
   const response = await request.get('/api/v1/session');
 

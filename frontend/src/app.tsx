@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
+import type { components } from './api/schema';
 
 type Readiness = 'checking' | 'ready' | 'unavailable';
 type PageState =
@@ -21,6 +22,12 @@ type CurrentUserState =
   | { kind: 'loading' }
   | { kind: 'anonymous' }
   | { kind: 'loaded'; roles: string[] }
+  | { kind: 'unavailable' };
+type PublicWorld = components['schemas']['PublicWorld'];
+type WorldState =
+  | { kind: 'loading' }
+  | { kind: 'loaded'; world: PublicWorld }
+  | { kind: 'empty' }
   | { kind: 'unavailable' };
 
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
@@ -46,6 +53,7 @@ export function App() {
             </NavLink>
           ))}
           <NavLink to="/source">Source code</NavLink>
+          <NavLink to="/world">Explore</NavLink>
           <NavLink to="/login">Local sign in</NavLink>
         </nav>
       </header>
@@ -54,6 +62,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/source" element={<SourceCodePage />} />
+        <Route path="/world" element={<WorldPage />} />
         <Route path="/:slug" element={<PublicPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -61,6 +70,56 @@ export function App() {
         API status: {readiness}
       </p>
     </main>
+  );
+}
+
+function WorldPage() {
+  const [world, setWorld] = useState<WorldState>({ kind: 'loading' });
+
+  useEffect(() => {
+    void apiClient.GET('/public/world').then(({ data, response }) => {
+      if (response.status === 404) {
+        setWorld({ kind: 'empty' });
+        return;
+      }
+      if (!response.ok || !data) {
+        setWorld({ kind: 'unavailable' });
+        return;
+      }
+
+      setWorld({ kind: 'loaded', world: data });
+    }).catch(() => setWorld({ kind: 'unavailable' }));
+  }, []);
+
+  if (world.kind === 'loading') {
+    return <p aria-live="polite">Loading the learning world…</p>;
+  }
+  if (world.kind === 'empty') {
+    return <p>The learning world is not published yet.</p>;
+  }
+  if (world.kind === 'unavailable') {
+    return <p role="alert">The learning world is temporarily unavailable.</p>;
+  }
+
+  return (
+    <article>
+      <h1>{world.world.title}</h1>
+      <p>{world.world.description}</p>
+      {world.world.maps.map((map) => (
+        <section className="world-map" key={map.slug}>
+          <h2>{map.title}</h2>
+          <p>{map.description}</p>
+          <ul>
+            {map.assets.map((asset) => (
+              <li key={asset.slug}>
+                <h3>{asset.title}</h3>
+                <p>{asset.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </article>
   );
 }
 

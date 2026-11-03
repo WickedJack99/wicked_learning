@@ -40,6 +40,17 @@ test('the source-code page provides the original project link safely', async ({ 
   );
 });
 
+test('the public explorer presents maps and places without requiring a session', async ({ page }) => {
+  await page.goto('/about');
+
+  await page.getByRole('link', { name: 'Explore' }).click();
+  await expect(page).toHaveURL(/\/world$/);
+  await expect(page.getByRole('heading', { name: 'Orientation Garden' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The First Path' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Notice the map' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Choose a direction' })).toBeVisible();
+});
+
 test('a CI-only local administrator can use the React sign-in and sign-out flow', async ({ page }) => {
   const email = process.env.E2E_LOGIN_EMAIL;
   const password = process.env.E2E_LOGIN_PASSWORD;

@@ -267,6 +267,26 @@ per-account limits, audit records, verification/recovery, MFA/passkeys and the
 full authorization matrix remain required before a user pilot. SameSite is
 defense in depth, not a substitute for CSRF or origin enforcement.
 
+## ADR-012: Fresh public exploration model
+
+**Status:** Accepted — 3 November 2026
+
+**Decision:** The first fresh read-only exploration slice models published
+`World → Map → MapAsset` records directly. It does not recreate Laravel's
+internal `LearningNode` compatibility record or its legacy identifiers.
+
+The public contract returns only published records, bounded to one default
+world, its maps and their map assets. A map asset carries its own stable slug,
+title, description, position and interaction mode. Activities, unlocks,
+progress, private access, media and authoring are intentionally excluded until
+their policies and transactions are implemented in their own slices.
+
+**Why:** The product's learner-facing graph is World → Map → MapAsset →
+activities. A separate Node record in the existing Laravel application is an
+implementation compatibility layer, not a greenfield data requirement. This
+direct model keeps the initial Rust contract small and makes a future activity
+relation explicit rather than silently inheriting a legacy join.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

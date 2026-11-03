@@ -55,6 +55,29 @@ nav a.active {
   margin-top: 1.5rem;
 }
 
+.world-map {
+  border-top: 1px solid #c5d1dc;
+  margin-top: 2rem;
+  padding-top: 1rem;
+}
+
+.world-map ul {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+
+.world-map li {
+  background: #e9f1f7;
+  border-radius: 0.4rem;
+  padding: 1rem;
+}
+
+.world-map h3 {
+  margin-top: 0;
+}
+
 .credential-form label {
   display: grid;
   gap: 0.5rem;
