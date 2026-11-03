@@ -8,6 +8,7 @@ mod login_rate_limit;
 pub mod media_store;
 mod passwords;
 mod public_pages;
+mod public_search;
 mod public_source_links;
 mod public_world;
 mod session_commands;
@@ -206,6 +207,7 @@ fn router(state: AppState) -> Router {
             "/api/v1/public/source-links",
             get(public_source_links::index),
         )
+        .route("/api/v1/public/search", get(public_search::index))
         .route("/api/v1/public/world", get(public_world::show))
         .with_state(state)
         .layer(csrf_layer)

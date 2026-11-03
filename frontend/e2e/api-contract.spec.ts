@@ -79,6 +79,33 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
   });
 });
 
+test('public search returns only published map places and validates its query', async ({ request }) => {
+  const response = await request.get('/api/v1/public/search?q=direction');
+
+  expect(response.status()).toBe(200);
+  await expect(response.json()).resolves.toEqual({
+    query: 'direction',
+    results: [
+      {
+        world_slug: 'orientation-garden',
+        map_slug: 'first-path',
+        map_title: 'The First Path',
+        asset_slug: 'choose-a-direction',
+        title: 'Choose a direction',
+        description:
+          'A learner can choose a useful next direction without pressure or hidden ranking.',
+      },
+    ],
+  });
+
+  const invalidQuery = await request.get('/api/v1/public/search?q=x');
+  expect(invalidQuery.status()).toBe(400);
+  await expect(invalidQuery.json()).resolves.toEqual({
+    code: 'invalid_request',
+    title: 'The request is not valid.',
+  });
+});
+
 test('an anonymous session reveals no credential or identity material', async ({ request }) => {
   const response = await request.get('/api/v1/session');
 

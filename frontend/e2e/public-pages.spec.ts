@@ -51,6 +51,17 @@ test('the public explorer presents maps and places without requiring a session',
   await expect(page.getByRole('heading', { name: 'Choose a direction' })).toBeVisible();
 });
 
+test('the public explorer search is bounded and presents matching places', async ({ page }) => {
+  await page.goto('/about');
+
+  await page.getByRole('link', { name: 'Search' }).click();
+  await page.getByLabel('Search places').fill('direction');
+  await page.getByRole('button', { name: 'Search' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Choose a direction' })).toBeVisible();
+  await expect(page.getByText('The First Path')).toBeVisible();
+});
+
 test('a CI-only local administrator can use the React sign-in and sign-out flow', async ({ page }) => {
   const email = process.env.E2E_LOGIN_EMAIL;
   const password = process.env.E2E_LOGIN_PASSWORD;

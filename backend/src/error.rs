@@ -66,6 +66,14 @@ impl ApiError {
         }
     }
 
+    pub fn invalid_request() -> Self {
+        Self {
+            code: "invalid_request",
+            status: StatusCode::BAD_REQUEST,
+            title: "The request is not valid.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",

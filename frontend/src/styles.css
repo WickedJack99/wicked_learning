@@ -78,6 +78,17 @@ nav a.active {
   margin-top: 0;
 }
 
+.search-results {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+
+.search-results li {
+  border-bottom: 1px solid #c5d1dc;
+}
+
 .credential-form label {
   display: grid;
   gap: 0.5rem;

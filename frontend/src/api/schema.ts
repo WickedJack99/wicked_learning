@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search published public map assets with a bounded literal query. */
+        get: operations["searchPublicWorld"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -254,6 +271,18 @@ export interface components {
             title: string;
             description: string;
             maps: components["schemas"]["PublicMap"][];
+        };
+        PublicSearchResult: {
+            world_slug: string;
+            map_slug: string;
+            map_title: string;
+            asset_slug: string;
+            title: string;
+            description: string;
+        };
+        PublicSearch: {
+            query: string;
+            results: components["schemas"]["PublicSearchResult"][];
         };
     };
     responses: never;
@@ -603,6 +632,46 @@ export interface operations {
             };
             /** @description No public world has been published. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    searchPublicWorld: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description At most 20 published map-asset matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSearch"];
+                };
+            };
+            /** @description The query is absent, too short or too long. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
