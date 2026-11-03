@@ -41,6 +41,22 @@ reusable controls, and `runtime-smoke-review` for startup, build, migration,
 deployment, asset or timeout reports. These are procedural complements to the
 existing audit, regression and verification skills.
 
+## Rust/Axum replatforming
+
+For work on the separate React/TypeScript and Rust/Axum platform, read
+`documentation/rust-axum-replatforming-plan.md` and
+`documentation/replatforming-decisions.md` before selecting or implementing a
+slice. The former is the phased implementation checklist; the latter records
+accepted architecture decisions and phase gates. `documentation/roadmap.md`
+remains the product-priority document, not a replacement for this replatforming
+plan.
+
+Keep Laravel as the production owner until a replatforming slice has the
+required contract, browser, database and rollback evidence. Do not infer
+permission to cross from read-only exploration into identity changes,
+learner-data writes, activity playback/progress, authoring, media mutations or
+production routing: obtain explicit user approval at that phase boundary.
+
 ## Repository Git workflow
 
 - Use the Git CLI for repository operations. Do not depend on the optional GitHub CLI or another Git-specific tool.
