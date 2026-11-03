@@ -41,6 +41,30 @@ impl ApiError {
             title: "The request could not be completed.",
         }
     }
+
+    pub fn forbidden() -> Self {
+        Self {
+            code: "forbidden",
+            status: StatusCode::FORBIDDEN,
+            title: "The request is not allowed.",
+        }
+    }
+
+    pub fn invalid_credentials() -> Self {
+        Self {
+            code: "invalid_credentials",
+            status: StatusCode::UNAUTHORIZED,
+            title: "The email address or password is not valid.",
+        }
+    }
+
+    pub fn too_many_requests() -> Self {
+        Self {
+            code: "rate_limited",
+            status: StatusCode::TOO_MANY_REQUESTS,
+            title: "Too many requests were made. Try again later.",
+        }
+    }
 }
 
 impl IntoResponse for ApiError {

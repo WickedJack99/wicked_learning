@@ -7,6 +7,7 @@ use std::{
 
 use email_address::EmailAddress;
 use thiserror::Error;
+use url::Url;
 
 #[derive(Clone)]
 pub struct Config {
@@ -15,6 +16,7 @@ pub struct Config {
     pub identity_database_url: String,
     pub listen_address: SocketAddr,
     pub media_root: PathBuf,
+    pub public_origin: String,
     pub session_cookie_secure: bool,
 }
 
@@ -33,6 +35,8 @@ pub enum ConfigError {
     InvalidSessionCookieSecure(#[source] ParseBoolError),
     #[error("CSRF_COOKIE_KEY must contain at least 64 bytes of secret material")]
     InvalidCsrfCookieKey,
+    #[error("PUBLIC_ORIGIN must be an absolute HTTP or HTTPS origin")]
+    InvalidPublicOrigin,
     #[error("BOOTSTRAP_ADMIN_EMAIL must be a valid email address")]
     InvalidBootstrapAdminEmail,
 }
@@ -70,12 +74,33 @@ impl Config {
             media_root: env::var("MEDIA_ROOT")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| PathBuf::from("/var/lib/wicked-learning/media")),
+            public_origin: public_origin()?,
             session_cookie_secure: env::var("SESSION_COOKIE_SECURE")
                 .unwrap_or_else(|_| "true".to_owned())
                 .parse()
                 .map_err(ConfigError::InvalidSessionCookieSecure)?,
         })
     }
+}
+
+fn public_origin() -> Result<String, ConfigError> {
+    normalize_public_origin(&required("PUBLIC_ORIGIN")?)
+}
+
+fn normalize_public_origin(value: &str) -> Result<String, ConfigError> {
+    let parsed = Url::parse(value).map_err(|_| ConfigError::InvalidPublicOrigin)?;
+    if !matches!(parsed.scheme(), "http" | "https")
+        || !matches!(parsed.origin(), url::Origin::Tuple(_, _, _))
+        || parsed.path() != "/"
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+    {
+        return Err(ConfigError::InvalidPublicOrigin);
+    }
+
+    Ok(parsed.origin().ascii_serialization())
 }
 
 fn csrf_cookie_key() -> Result<String, ConfigError> {
@@ -96,7 +121,7 @@ fn required(name: &'static str) -> Result<String, ConfigError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ConfigError, normalize_email, validate_csrf_cookie_key};
+    use super::{ConfigError, normalize_email, normalize_public_origin, validate_csrf_cookie_key};
 
     #[test]
     fn bootstrap_email_is_trimmed_and_normalized() {
@@ -113,5 +138,16 @@ mod tests {
             validate_csrf_cookie_key("too-short".to_owned()),
             Err(ConfigError::InvalidCsrfCookieKey)
         ));
+    }
+
+    #[test]
+    fn public_origin_is_an_http_origin_without_a_path_or_credentials() {
+        assert_eq!(
+            normalize_public_origin("https://example.test:8443/").expect("valid public origin"),
+            "https://example.test:8443"
+        );
+        assert!(normalize_public_origin("https://example.test/app").is_err());
+        assert!(normalize_public_origin("https://user@example.test").is_err());
+        assert!(normalize_public_origin("mailto:admin@example.test").is_err());
     }
 }

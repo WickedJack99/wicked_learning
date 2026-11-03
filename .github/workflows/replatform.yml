@@ -59,6 +59,14 @@ jobs:
         run: |
           docker compose -f compose.rust.yaml up --detach --wait application-db identity-db
           docker compose -f compose.rust.yaml run --rm backend migrate
+          test_password="$(openssl rand -hex 32)"
+          docker compose -f compose.rust.yaml run --rm --entrypoint /bin/sh \
+            --env BOOTSTRAP_ADMIN_EMAIL=e2e-admin@example.test \
+            --env BOOTSTRAP_ADMIN_PASSWORD_FILE=/tmp/e2e-bootstrap-password \
+            --env E2E_BOOTSTRAP_PASSWORD="$test_password" \
+            backend -c 'umask 077; printf "%s" "$E2E_BOOTSTRAP_PASSWORD" > /tmp/e2e-bootstrap-password; wicked-learning-api bootstrap-admin'
+          printf '%s\n' 'E2E_LOGIN_EMAIL=e2e-admin@example.test' >> "$GITHUB_ENV"
+          printf '%s\n' "E2E_LOGIN_PASSWORD=$test_password" >> "$GITHUB_ENV"
           docker compose -f compose.rust.yaml up --detach --build --wait frontend
           curl --fail --show-error http://127.0.0.1:8081/api/v1/health/ready
 

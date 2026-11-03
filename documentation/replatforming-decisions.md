@@ -258,9 +258,14 @@ Any HTTPS deployment must leave it enabled. A successful password change changes
 the stored session-authentication hash, which invalidates existing sessions at
 the next request.
 
-There are no state-changing Rust endpoints yet. Before the first one is added,
-it must have an explicit CSRF token/origin policy and authentication rate limit;
-SameSite is defense in depth, not a substitute for either control.
+The local proof of concept now has `POST /session/login` and `POST
+/session/logout`, both protected by an exact configured Origin and CSRF token.
+Login is limited to a five-attempt client-IP burst with one attempt replenished
+per minute using `tower_governor`; Nginx overwrites the trusted `X-Real-IP`
+header. This is a bounded identity proof, not a user cutover: durable
+per-account limits, audit records, verification/recovery, MFA/passkeys and the
+full authorization matrix remain required before a user pilot. SameSite is
+defense in depth, not a substitute for CSRF or origin enforcement.
 
 ## Phase 1 gate
 

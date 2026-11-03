@@ -49,6 +49,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionStatus'
+  /session/login:
+    post:
+      operationId: createSession
+      summary: Start a verified Rust-owned password session.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: The authenticated session state. The server sets an HTTP-only session cookie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatus'
+        '401':
+          description: The email/password pair is invalid, inactive or unverified.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The request has a missing/invalid CSRF token or untrusted Origin.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Too many login attempts came from this client.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The identity store is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /session/logout:
+    post:
+      operationId: deleteSession
+      summary: End the current browser session.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204':
+          description: The session has been ended if one existed.
+        '403':
+          description: The request has a missing/invalid CSRF token or untrusted Origin.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The identity store is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /security/csrf:
     get:
       operationId: getCsrfToken
@@ -98,6 +162,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 components:
+  parameters:
+    CsrfTokenHeader:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin.
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -129,6 +201,19 @@ components:
           type: [string, 'null']
           format: uuid
           description: Opaque Rust identity subject identifier, available only for an authenticated session.
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          minLength: 1
+          maxLength: 1024
     CsrfToken:
       type: object
       additionalProperties: false

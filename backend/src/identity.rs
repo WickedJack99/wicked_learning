@@ -46,13 +46,16 @@ impl IdentityBackend {
         normalized_email: String,
     ) -> Result<Option<IdentitySubject>, IdentityError> {
         let row = sqlx::query_as::<_, IdentityRow>(
-            "SELECT subjects.id, credentials.password_hash\
-             FROM identity_subjects AS subjects\
-             INNER JOIN identity_password_credentials AS credentials\
-                ON credentials.subject_id = subjects.id\
-             WHERE subjects.normalized_email = $1\
-                AND subjects.status = 'active'\
-             LIMIT 1",
+            r#"
+                SELECT subjects.id, credentials.password_hash
+                FROM identity_subjects AS subjects
+                INNER JOIN identity_password_credentials AS credentials
+                    ON credentials.subject_id = subjects.id
+                WHERE subjects.normalized_email = $1
+                    AND subjects.status = 'active'
+                    AND subjects.email_verified_at IS NOT NULL
+                LIMIT 1
+            "#,
         )
         .bind(normalized_email)
         .fetch_optional(&self.identity_database)
@@ -66,13 +69,16 @@ impl IdentityBackend {
         subject_id: Uuid,
     ) -> Result<Option<IdentitySubject>, IdentityError> {
         let row = sqlx::query_as::<_, IdentityRow>(
-            "SELECT subjects.id, credentials.password_hash\
-             FROM identity_subjects AS subjects\
-             INNER JOIN identity_password_credentials AS credentials\
-                ON credentials.subject_id = subjects.id\
-             WHERE subjects.id = $1\
-                AND subjects.status = 'active'\
-             LIMIT 1",
+            r#"
+                SELECT subjects.id, credentials.password_hash
+                FROM identity_subjects AS subjects
+                INNER JOIN identity_password_credentials AS credentials
+                    ON credentials.subject_id = subjects.id
+                WHERE subjects.id = $1
+                    AND subjects.status = 'active'
+                    AND subjects.email_verified_at IS NOT NULL
+                LIMIT 1
+            "#,
         )
         .bind(subject_id)
         .fetch_optional(&self.identity_database)

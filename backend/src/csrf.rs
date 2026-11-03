@@ -1,6 +1,9 @@
 use axum::{
     Json,
-    http::{HeaderValue, header::CACHE_CONTROL},
+    http::{
+        HeaderMap, HeaderValue,
+        header::{CACHE_CONTROL, ORIGIN},
+    },
     response::{IntoResponse, Response},
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, Key, SameSite};
@@ -27,6 +30,24 @@ pub fn layer(cookie_key: &str, cookie_secure: bool) -> CsrfLayer {
             .with_key(Some(key))
             .with_prefix_with_host(cookie_secure),
     )
+}
+
+pub fn verify_unsafe_browser_request(
+    token: &CsrfToken,
+    headers: &HeaderMap,
+    public_origin: &str,
+) -> Result<(), ApiError> {
+    if headers.get(ORIGIN).and_then(|value| value.to_str().ok()) != Some(public_origin) {
+        return Err(ApiError::forbidden());
+    }
+
+    let submitted_token = headers
+        .get("x-csrf-token")
+        .and_then(|value| value.to_str().ok())
+        .ok_or_else(ApiError::forbidden)?;
+    token
+        .verify(submitted_token)
+        .map_err(|_| ApiError::forbidden())
 }
 
 pub async fn show(token: CsrfToken) -> Result<Response, ApiError> {

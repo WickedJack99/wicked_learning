@@ -57,9 +57,18 @@ when both PostgreSQL databases are reachable.
 
 `GET /api/v1/security/csrf` issues a non-cacheable CSRF token and matching
 encrypted, HTTP-only cookie for the future unsafe browser endpoints. This is a
-foundation endpoint only: no login or application mutation route is exposed
-yet. The local HTTP stack intentionally does not mark that cookie `Secure`; an
-HTTPS deployment does.
+foundation endpoint. The local proof of concept also exposes password
+`POST /api/v1/session/login` and `POST /api/v1/session/logout`: both require
+the token's `X-CSRF-Token` header and the configured `PUBLIC_ORIGIN`. Login
+accepts only active, email-verified Rust identities and has a five-attempt
+client-IP burst with one attempt replenished per minute. There is intentionally
+no React login screen and no user cutover: verification, recovery,
+MFA/passkeys, audit records and
+the full authorization matrix remain separate required work.
+
+The local HTTP stack intentionally does not mark session or CSRF cookies
+`Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser
+origin for every non-local deployment.
 
 ## Browser acceptance checks
 
@@ -119,4 +128,6 @@ Rust, contract, frontend and Compose files. It runs Rust formatting and tests,
 detects generated TypeScript-client drift, builds the standalone frontend and
 validates the Compose definition, starts the isolated four-service stack and
 runs the Chromium browser checks against it. It removes the CI-only volumes
-afterward. It does not deploy the stack or change the Laravel workflows.
+afterward. CI creates an ephemeral administrator with a generated job-only
+password so that login/session/logout can be verified; it does not deploy the
+stack or change the Laravel workflows.

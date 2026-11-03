@@ -18,12 +18,14 @@ sqlx = { version = "0.8", default-features = false, features = ["macros", "migra
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
 tower = { version = "0.5", features = ["util"] }
+tower_governor = "0.8"
 tower-http = { version = "0.6", features = ["limit", "request-id", "timeout", "trace"] }
 tower-sessions = "0.14"
 tower-sessions-sqlx-store = { version = "0.15", features = ["postgres"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["serde", "v4"] }
+url = "2"
 
 [dev-dependencies]
 http-body-util = "0.1"

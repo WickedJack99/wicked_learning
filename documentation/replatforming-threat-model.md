@@ -7,12 +7,12 @@ concept. It covers only the local, isolated Compose stack. It neither changes
 the Laravel application's routes nor authorizes a production deployment,
 credential migration or user-facing write.
 
-The currently exposed Rust API is deliberately read-only: health, anonymous
-session status, and published public pages. There is no Rust login, logout,
-registration, password-reset, upload, AI, authoring or learner-state mutation
-route. A missing control is therefore a release blocker for those future routes
-rather than a reason to treat the present read-only slice as secure enough for
-authentication or writes.
+The currently exposed Rust API is public presentation, anonymous session
+status, a CSRF-token endpoint, and a guarded local password login/logout proof
+of concept. There is no React login screen, registration, password reset,
+upload, AI, authoring or learner-state mutation route. A missing control is a
+release blocker for any user pilot or broader protected capability; the local
+password proof is not an authentication cutover.
 
 ## Assets and boundaries
 
@@ -32,9 +32,9 @@ media filesystem paths, database credentials or AI provider credentials.
 
 | Threat | Current position | Required before the relevant route is exposed |
 | --- | --- | --- |
-| Password guessing, credential stuffing and account enumeration | No credential endpoint exists. Passwords are Argon2id verifiers in the identity database. | A maintained per-account and per-client rate limiter, generic invalid-credential response, bounded request body, structured security event, and tests for repeated failures without password logging. |
+| Password guessing, credential stuffing and account enumeration | Passwords are Argon2id verifiers in the identity database. The local login route returns one generic invalid-credential problem and uses `tower_governor` to limit its five-attempt burst to one replenished attempt per minute, keyed by the Nginx-overwritten client-IP header. | Add durable per-account limits and security audit events before a user pilot; replace the process-local limiter with a shared/gateway limiter before running more than one backend replica; retain repeated-failure tests without password logging. |
 | Session fixation, theft and stale sessions | `axum-login` cycles a new session ID on login; password-verifier changes invalidate the authenticated session at its next request. Cookies are HTTP-only and Strict by default. | Test login ID rotation, logout/revocation, expiry, disabled-account rejection and HTTPS cookie attributes. Configure explicit idle and absolute expiries rather than relying on a library default. |
-| Cross-site request forgery | No unsafe method exists. The safe CSRF endpoint issues a non-cacheable token plus an encrypted HTTP-only, SameSite=Strict cookie using the maintained `axum_csrf` crate. SameSite is only a defense in depth. | Exact trusted-origin check plus validation of the issued token on every unsafe browser method, with invalid/missing/cross-origin tests. |
+| Cross-site request forgery | The local login/logout routes require an exact configured Origin and a token issued by the non-cacheable CSRF endpoint, backed by an encrypted HTTP-only, SameSite=Strict cookie using the maintained `axum_csrf` crate. SameSite is only a defense in depth. | Apply the same origin/token guard to every future unsafe route, with invalid/missing/cross-origin tests. |
 | Cross-origin data access | No CORS policy is needed for the same-origin local topology. | Keep the same-origin proxy, or add an explicit allowlist, credential rules and browser tests before a second public origin is introduced. Never use a wildcard credentialed CORS policy. |
 | Cross-user or privilege escalation | Only public data and anonymous status are exposed. Application roles exist but no protected route consumes them. | Require an active identity and mapped application principal; enforce each capability's role/resource scope in the Rust use case; add anonymous, wrong-user, disabled, unverified and missing-role tests. |
 | Identity/application split inconsistency | Bootstrap commits identity and application work separately, then safely repairs the principal/role mapping when rerun. | Registration/deletion must use idempotent compensating actions or an outbox and reconciliation check; test failure between the two databases. |
@@ -67,7 +67,8 @@ endpoint is enabled, even in a non-production user pilot:
 
 The local browser suite calls the running Compose stack and verifies the public
 page contract, standard missing-resource problem, client-side unavailable state,
-deep-link behavior and the anonymous session response. The Rust unit suite
+deep-link behavior, anonymous session response, security headers, CSRF-token
+cookie and login's CSRF/origin/rate-limit protections. The Rust unit suite
 verifies password hashing, password-verifier session binding, bounded public
 slugs, bootstrap secret-error handling and mounted-media key behavior.
 

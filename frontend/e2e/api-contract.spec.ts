@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+test.describe.configure({ mode: 'serial' });
+
+const publicOrigin = new URL(
+  process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
+).origin;
+
 test('the public-page endpoint returns the contracted resource and missing-resource problem', async ({
   request,
 }) => {
@@ -42,6 +48,82 @@ test('the CSRF foundation issues a non-cacheable token and protected cookie', as
   expect(response.headers()['set-cookie']).toContain('SameSite=Strict');
   await expect(response.json()).resolves.toMatchObject({
     token: expect.stringMatching(/^[A-Za-z0-9+/]+={0,2}$/),
+  });
+});
+
+test('a CI-only fresh identity can login, report its session, and logout', async ({ request }) => {
+  const email = process.env.E2E_LOGIN_EMAIL;
+  const password = process.env.E2E_LOGIN_PASSWORD;
+  test.skip(!email || !password, 'requires the disposable CI identity');
+
+  const csrfResponse = await request.get('/api/v1/security/csrf');
+  const { token } = await csrfResponse.json();
+  const login = await request.post('/api/v1/session/login', {
+    headers: {
+      Origin: publicOrigin,
+      'X-CSRF-Token': token,
+    },
+    data: { email, password },
+  });
+
+  expect(login.status()).toBe(200);
+  const session = await login.json();
+  expect(session).toMatchObject({
+    authenticated: true,
+    subject_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+  });
+
+  const currentSession = await request.get('/api/v1/session');
+  await expect(currentSession.json()).resolves.toEqual(session);
+
+  const logout = await request.post('/api/v1/session/logout', {
+    headers: {
+      Origin: publicOrigin,
+      'X-CSRF-Token': token,
+    },
+  });
+  expect(logout.status()).toBe(204);
+
+  const loggedOutSession = await request.get('/api/v1/session');
+  await expect(loggedOutSession.json()).resolves.toEqual({
+    authenticated: false,
+    subject_id: null,
+  });
+});
+
+test('the password-session proof requires same-origin CSRF and returns generic invalid credentials', async ({
+  request,
+}) => {
+  const csrfResponse = await request.get('/api/v1/security/csrf');
+  const { token } = await csrfResponse.json();
+  const body = { email: 'nobody@example.test', password: 'not-a-real-password' };
+
+  const missingToken = await request.post('/api/v1/session/login', {
+    headers: { Origin: publicOrigin },
+    data: body,
+  });
+  expect(missingToken.status()).toBe(403);
+
+  const foreignOrigin = await request.post('/api/v1/session/login', {
+    headers: {
+      Origin: 'https://untrusted.example',
+      'X-CSRF-Token': token,
+    },
+    data: body,
+  });
+  expect(foreignOrigin.status()).toBe(403);
+
+  const invalidCredentials = await request.post('/api/v1/session/login', {
+    headers: {
+      Origin: publicOrigin,
+      'X-CSRF-Token': token,
+    },
+    data: body,
+  });
+  expect(invalidCredentials.status()).toBe(401);
+  await expect(invalidCredentials.json()).resolves.toEqual({
+    code: 'invalid_credentials',
+    title: 'The email address or password is not valid.',
   });
 });
 

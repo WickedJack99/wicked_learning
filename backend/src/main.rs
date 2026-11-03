@@ -3,18 +3,27 @@ mod config;
 mod csrf;
 mod error;
 mod identity;
+mod login_rate_limit;
 pub mod media_store;
 mod passwords;
 mod public_pages;
+mod session_commands;
 mod session_status;
 
 use std::{process::ExitCode, time::Duration};
 
-use axum::{Json, Router, extract::State, http::HeaderName, routing::get};
+use axum::{
+    Json, Router,
+    extract::State,
+    http::{HeaderName, Method},
+    response::IntoResponse,
+    routing::{get, post},
+};
 use axum_login::AuthManagerLayerBuilder;
 use serde::Serialize;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use tower::ServiceBuilder;
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tower_http::{
     limit::RequestBodyLimitLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
@@ -43,6 +52,7 @@ pub(crate) struct AppState {
     csrf_cookie_key: String,
     identity_database: PgPool,
     media_store: MediaStore,
+    public_origin: String,
     session_cookie_secure: bool,
 }
 
@@ -100,6 +110,7 @@ async fn main() -> ExitCode {
         csrf_cookie_key: configuration.csrf_cookie_key,
         identity_database,
         media_store,
+        public_origin: configuration.public_origin,
         session_cookie_secure: configuration.session_cookie_secure,
     };
     let listener = match tokio::net::TcpListener::bind(configuration.listen_address).await {
@@ -163,12 +174,29 @@ fn router(state: AppState) -> Router {
         .with_secure(state.session_cookie_secure);
     let auth_layer = AuthManagerLayerBuilder::new(identity_backend, session_layer).build();
     let csrf_layer = csrf::layer(&state.csrf_cookie_key, state.session_cookie_secure);
+    let mut login_rate_limit = GovernorConfigBuilder::default();
+    login_rate_limit
+        .per_second(60)
+        .burst_size(5)
+        .methods(vec![Method::POST]);
+    let login_rate_limit = login_rate_limit
+        .key_extractor(login_rate_limit::TrustedProxyClientIp)
+        .finish()
+        .expect("a non-zero login rate limit is configured");
+    let login_routes = Router::new()
+        .route("/api/v1/session/login", post(session_commands::login))
+        .layer(
+            GovernorLayer::new(login_rate_limit)
+                .error_handler(|_| ApiError::too_many_requests().into_response()),
+        );
 
     Router::new()
+        .merge(login_routes)
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/session", get(session_status::show))
+        .route("/api/v1/session/logout", post(session_commands::logout))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))
         .with_state(state)
         .layer(csrf_layer)
@@ -290,6 +318,7 @@ mod tests {
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
             media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
         };
 
@@ -329,6 +358,7 @@ mod tests {
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
             media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
         };
 
@@ -367,6 +397,7 @@ mod tests {
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
             media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
         };
 
@@ -392,5 +423,63 @@ mod tests {
         assert!(cookie.contains("HttpOnly"));
         assert!(cookie.contains("SameSite=Strict"));
         assert!(!cookie.contains("Secure"));
+    }
+
+    #[tokio::test]
+    async fn login_is_rate_limited_before_identity_lookup() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+        };
+        let app = router(state);
+
+        for _ in 0..5 {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri("/api/v1/session/login")
+                        .header("content-type", "application/json")
+                        .header("origin", "http://localhost:8081")
+                        .header("x-real-ip", "203.0.113.10")
+                        .body(Body::from(
+                            r#"{"email":"nobody@example.test","password":"not-a-real-password"}"#,
+                        ))
+                        .expect("a valid login request"),
+                )
+                .await
+                .expect("login response");
+
+            assert_eq!(response.status(), 403);
+        }
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/session/login")
+                    .header("content-type", "application/json")
+                    .header("origin", "http://localhost:8081")
+                    .header("x-real-ip", "203.0.113.10")
+                    .body(Body::from(
+                        r#"{"email":"nobody@example.test","password":"not-a-real-password"}"#,
+                    ))
+                    .expect("a valid login request"),
+            )
+            .await
+            .expect("rate-limited login response");
+
+        assert_eq!(response.status(), 429);
     }
 }
