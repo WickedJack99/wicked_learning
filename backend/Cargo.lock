@@ -3283,6 +3283,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "uuid",
+ "wicked-learning-application",
  "wicked-learning-domain",
  "wicked-learning-persistence",
 ]
@@ -3291,6 +3292,7 @@ dependencies = [
 name = "wicked-learning-application"
 version = "0.1.0"
 dependencies = [
+ "tokio",
  "wicked-learning-domain",
 ]
 
@@ -3317,6 +3319,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "uuid",
+ "wicked-learning-application",
  "wicked-learning-domain",
 ]
 

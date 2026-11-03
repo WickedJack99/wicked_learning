@@ -7,3 +7,6 @@ publish.workspace = true
 
 [dependencies]
 wicked-learning-domain = { path = "../domain" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

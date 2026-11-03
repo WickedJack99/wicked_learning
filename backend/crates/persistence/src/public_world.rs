@@ -3,7 +3,33 @@ use std::collections::HashMap;
 use serde_json::Value;
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
+use wicked_learning_application::public_world::{
+    PublicWorldReadError, PublicWorldRepository as PublicWorldRepositoryPort,
+};
 use wicked_learning_domain::world_content::{PublicMap, PublicMapAsset, PublicNode, PublicWorld};
+
+pub struct PostgresPublicWorldRepository<'pool> {
+    pool: &'pool PgPool,
+}
+
+impl<'pool> PostgresPublicWorldRepository<'pool> {
+    pub fn new(pool: &'pool PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+impl PublicWorldRepositoryPort for PostgresPublicWorldRepository<'_> {
+    fn load_first_published(
+        &self,
+    ) -> impl std::future::Future<Output = Result<Option<PublicWorld>, PublicWorldReadError>> + Send
+    {
+        async move {
+            load_first_published(self.pool)
+                .await
+                .map_err(|_| PublicWorldReadError)
+        }
+    }
+}
 
 #[derive(FromRow)]
 struct WorldRow {
