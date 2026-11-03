@@ -131,6 +131,27 @@ test('the learner shell keeps public navigation available on a narrow viewport',
     ).toBeVisible();
 });
 
+test('the learner shell exposes the account link for an authenticated session', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['platform_administrator'],
+            }),
+        });
+    });
+
+    await page.goto('/world');
+
+    await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Local sign in' }),
+    ).not.toBeVisible();
+});
+
 test('a missing public map place has its own recoverable not-found state', async ({
     page,
 }) => {

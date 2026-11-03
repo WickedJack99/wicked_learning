@@ -62,7 +62,11 @@ type RouteState =
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
 
 export function App() {
+    const location = useLocation();
     const [readiness, setReadiness] = useState<Readiness>('checking');
+    const [currentUser, setCurrentUser] = useState<CurrentUserState>({
+        kind: 'loading',
+    });
 
     useEffect(() => {
         void apiClient
@@ -70,6 +74,10 @@ export function App() {
             .then(({ error }) => setReadiness(error ? 'unavailable' : 'ready'))
             .catch(() => setReadiness('unavailable'));
     }, []);
+
+    useEffect(() => {
+        void loadCurrentUser().then(setCurrentUser);
+    }, [location.pathname]);
 
     return (
         <div className="learner-shell">
@@ -98,9 +106,7 @@ export function App() {
                         ))}
                         <NavLink to="/source">Source code</NavLink>
                     </nav>
-                    <NavLink className="account-link" to="/login">
-                        Local sign in
-                    </NavLink>
+                    <SessionNavigation currentUser={currentUser} />
                 </div>
             </header>
             <main className="learner-main" id="learner-main-content">
@@ -114,7 +120,17 @@ export function App() {
                         element={<LegacySearchRedirect />}
                     />
                     <Route path="/login" element={<LoginPage />} />
-                    <Route path="/account" element={<AccountPage />} />
+                    <Route
+                        path="/account"
+                        element={
+                            <AccountPage
+                                currentUser={currentUser}
+                                onSignedOut={() =>
+                                    setCurrentUser({ kind: 'anonymous' })
+                                }
+                            />
+                        }
+                    />
                     <Route path="/source" element={<SourceCodePage />} />
                     <Route path="/world" element={<WorldPage />} />
                     <Route
@@ -136,6 +152,22 @@ export function App() {
                 </p>
             </footer>
         </div>
+    );
+}
+
+function SessionNavigation({ currentUser }: { currentUser: CurrentUserState }) {
+    if (currentUser.kind === 'loaded') {
+        return (
+            <NavLink className="account-link" to="/account">
+                Account
+            </NavLink>
+        );
+    }
+
+    return (
+        <NavLink className="account-link" to="/login">
+            Local sign in
+        </NavLink>
     );
 }
 
@@ -665,30 +697,15 @@ function LoginPage() {
     );
 }
 
-function AccountPage() {
+function AccountPage({
+    currentUser,
+    onSignedOut,
+}: {
+    currentUser: CurrentUserState;
+    onSignedOut: () => void;
+}) {
     const navigate = useNavigate();
     const [error, setError] = useState<string | null>(null);
-    const [currentUser, setCurrentUser] = useState<CurrentUserState>({
-        kind: 'loading',
-    });
-
-    useEffect(() => {
-        void apiClient
-            .GET('/me')
-            .then(({ data, response }) => {
-                if (response.status === 401) {
-                    setCurrentUser({ kind: 'anonymous' });
-                    return;
-                }
-                if (!response.ok || !data) {
-                    setCurrentUser({ kind: 'unavailable' });
-                    return;
-                }
-
-                setCurrentUser({ kind: 'loaded', roles: data.roles });
-            })
-            .catch(() => setCurrentUser({ kind: 'unavailable' }));
-    }, []);
 
     async function logout() {
         setError(null);
@@ -702,6 +719,7 @@ function AccountPage() {
                 return;
             }
 
+            onSignedOut();
             navigate('/login', { replace: true });
         } catch {
             setError('Sign out is temporarily unavailable.');
@@ -742,6 +760,22 @@ function AccountPage() {
             </button>
         </article>
     );
+}
+
+async function loadCurrentUser(): Promise<CurrentUserState> {
+    try {
+        const { data, response } = await apiClient.GET('/me');
+        if (response.status === 401) {
+            return { kind: 'anonymous' };
+        }
+        if (!response.ok || !data) {
+            return { kind: 'unavailable' };
+        }
+
+        return { kind: 'loaded', roles: data.roles };
+    } catch {
+        return { kind: 'unavailable' };
+    }
 }
 
 function SourceCodePage() {
