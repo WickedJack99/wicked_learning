@@ -80,6 +80,7 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
     await expect(response.json()).resolves.toMatchObject({
         slug: 'orientation-garden',
         title: 'Orientation Garden',
+        theme_config: {},
         maps: [
             {
                 slug: 'first-path',
@@ -89,11 +90,14 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
                     pageBackground: '#0b1117',
                 },
                 grid_config: { tileWidth: 96, tileHeight: 84, gap: 8 },
+                map_assets_locked: false,
                 assets: [
                     {
                         slug: 'notice-the-map',
                         interaction_mode: 'focusable',
                         z: 0,
+                        locked: false,
+                        sound_config: {},
                         visual_config: { tileColor: '#0e7490' },
                     },
                     {

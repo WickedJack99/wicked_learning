@@ -297,14 +297,18 @@ export interface components {
             text: string | null;
             width: number;
             opacity: number;
+            locked: boolean;
             visual_config: {
                 [key: string]: unknown;
             };
             interaction_config: {
                 [key: string]: unknown;
             };
+            sound_config: {
+                [key: string]: unknown;
+            };
             /** @enum {string} */
-            interaction_mode: "focusable" | "decorative";
+            interaction_mode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
         };
         PublicNode: {
             /** @description The published map-asset slug that presents this node, when it has one. */
@@ -330,6 +334,7 @@ export interface components {
             grid_config: {
                 [key: string]: unknown;
             };
+            map_assets_locked: boolean;
             assets: components["schemas"]["PublicMapAsset"][];
             nodes: components["schemas"]["PublicNode"][];
         };
@@ -337,6 +342,9 @@ export interface components {
             slug: string;
             title: string;
             description: string;
+            theme_config: {
+                [key: string]: unknown;
+            };
             maps: components["schemas"]["PublicMap"][];
         };
         PublicRoutePreview: {

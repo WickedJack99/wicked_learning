@@ -37,6 +37,7 @@ struct WorldRow {
     slug: String,
     title: String,
     description: String,
+    theme_config: Value,
 }
 
 #[derive(FromRow)]
@@ -47,6 +48,7 @@ struct MapRow {
     description: String,
     background_config: Value,
     grid_config: Value,
+    map_assets_locked: bool,
 }
 
 #[derive(FromRow)]
@@ -62,8 +64,10 @@ struct MapAssetRow {
     text: Option<String>,
     width: f64,
     opacity: f64,
+    locked: bool,
     visual_config: Value,
     interaction_config: Value,
+    sound_config: Value,
     interaction_mode: String,
 }
 
@@ -82,7 +86,7 @@ struct NodeRow {
 
 pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, sqlx::Error> {
     let Some(world) = sqlx::query_as::<_, WorldRow>(
-        "SELECT id, slug, title, description FROM learning_worlds WHERE published_at IS NOT NULL ORDER BY published_at ASC, slug ASC LIMIT 1",
+        "SELECT id, slug, title, description, theme_config FROM learning_worlds WHERE published_at IS NOT NULL ORDER BY published_at ASC, slug ASC LIMIT 1",
     )
     .fetch_optional(pool)
     .await?
@@ -91,7 +95,7 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
     };
 
     let maps = sqlx::query_as::<_, MapRow>(
-        "SELECT id, slug, title, description, background_config, grid_config FROM learning_maps WHERE world_id = $1 AND published_at IS NOT NULL ORDER BY position ASC, slug ASC",
+        "SELECT id, slug, title, description, background_config, grid_config, map_assets_locked FROM learning_maps WHERE world_id = $1 AND published_at IS NOT NULL ORDER BY position ASC, slug ASC",
     )
     .bind(world.id)
     .fetch_all(pool)
@@ -101,7 +105,7 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
         Vec::new()
     } else {
         sqlx::query_as::<_, MapAssetRow>(
-            "SELECT map_id, slug, title, description, position_x AS x, position_y AS y, position_z AS z, image_url, text, width, opacity, visual_config, interaction_config, interaction_mode FROM learning_map_assets WHERE map_id = ANY($1) AND published_at IS NOT NULL ORDER BY map_id ASC, position_z ASC, slug ASC",
+            "SELECT map_id, slug, title, description, position_x AS x, position_y AS y, position_z AS z, image_url, text, width, opacity, locked, visual_config, interaction_config, sound_config, interaction_mode FROM learning_map_assets WHERE map_id = ANY($1) AND published_at IS NOT NULL ORDER BY map_id ASC, position_z ASC, slug ASC",
         )
         .bind(&map_ids)
         .fetch_all(pool)
@@ -130,8 +134,10 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
                 text: asset.text,
                 width: asset.width,
                 opacity: asset.opacity,
+                locked: asset.locked,
                 visual_config: asset.visual_config,
                 interaction_config: asset.interaction_config,
+                sound_config: asset.sound_config,
                 interaction_mode: asset.interaction_mode,
             });
     }
@@ -155,6 +161,7 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
         slug: world.slug,
         title: world.title,
         description: world.description,
+        theme_config: world.theme_config,
         maps: maps
             .into_iter()
             .map(|map| PublicMap {
@@ -163,6 +170,7 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
                 description: map.description,
                 background_config: map.background_config,
                 grid_config: map.grid_config,
+                map_assets_locked: map.map_assets_locked,
                 assets: assets_by_map.remove(&map.id).unwrap_or_default(),
                 nodes: nodes_by_map.remove(&map.id).unwrap_or_default(),
             })

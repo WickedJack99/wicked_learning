@@ -465,7 +465,7 @@ components:
     PublicMapAsset:
       type: object
       additionalProperties: false
-      required: [slug, title, description, x, y, z, image_url, text, width, opacity, visual_config, interaction_config, interaction_mode]
+      required: [slug, title, description, x, y, z, image_url, text, width, opacity, locked, visual_config, interaction_config, sound_config, interaction_mode]
       properties:
         slug:
           type: string
@@ -496,15 +496,20 @@ components:
           type: number
           minimum: 0
           maximum: 1
+        locked:
+          type: boolean
         visual_config:
           type: object
           additionalProperties: true
         interaction_config:
           type: object
           additionalProperties: true
+        sound_config:
+          type: object
+          additionalProperties: true
         interaction_mode:
           type: string
-          enum: [focusable, decorative]
+          enum: [focusable, decorative, hide_on_hover, toggle]
     PublicNode:
       type: object
       additionalProperties: false
@@ -534,7 +539,7 @@ components:
     PublicMap:
       type: object
       additionalProperties: false
-      required: [slug, title, description, background_config, grid_config, assets, nodes]
+      required: [slug, title, description, background_config, grid_config, map_assets_locked, assets, nodes]
       properties:
         slug:
           type: string
@@ -549,6 +554,8 @@ components:
         grid_config:
           type: object
           additionalProperties: true
+        map_assets_locked:
+          type: boolean
         assets:
           type: array
           maxItems: 100
@@ -562,7 +569,7 @@ components:
     PublicWorld:
       type: object
       additionalProperties: false
-      required: [slug, title, description, maps]
+      required: [slug, title, description, theme_config, maps]
       properties:
         slug:
           type: string
@@ -571,6 +578,9 @@ components:
           type: string
         description:
           type: string
+        theme_config:
+          type: object
+          additionalProperties: true
         maps:
           type: array
           maxItems: 24

@@ -6,6 +6,7 @@ pub struct PublicWorld {
     pub slug: String,
     pub title: String,
     pub description: String,
+    pub theme_config: Value,
     pub maps: Vec<PublicMap>,
 }
 
@@ -16,6 +17,7 @@ pub struct PublicMap {
     pub description: String,
     pub background_config: Value,
     pub grid_config: Value,
+    pub map_assets_locked: bool,
     pub assets: Vec<PublicMapAsset>,
     pub nodes: Vec<PublicNode>,
 }
@@ -32,8 +34,10 @@ pub struct PublicMapAsset {
     pub text: Option<String>,
     pub width: f64,
     pub opacity: f64,
+    pub locked: bool,
     pub visual_config: Value,
     pub interaction_config: Value,
+    pub sound_config: Value,
     pub interaction_mode: String,
 }
 
