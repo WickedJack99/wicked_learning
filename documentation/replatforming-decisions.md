@@ -287,6 +287,26 @@ implementation compatibility layer, not a greenfield data requirement. This
 direct model keeps the initial Rust contract small and makes a future activity
 relation explicit rather than silently inheriting a legacy join.
 
+## ADR-013: Fresh route-preview boundary
+
+**Status:** Accepted — 3 November 2026
+
+**Decision:** Extend the fresh public exploration model with direct
+`MapAsset → Route → Activity` relations. The first public place-detail endpoint
+returns a published, focusable MapAsset and at most twelve published route
+previews, each with only its title, description and published activity count.
+
+The endpoint does not expose an activity payload, begin a route, create a run,
+or record learner state. Private access, unlock rules, route selection,
+activity playback and all learner writes remain later slices with their own
+authorization and transaction boundaries.
+
+**Why:** A map place needs enough orientation to explain its available learning
+directions, while starting or progressing a route is learner state and must not
+be approximated by a read-only browser implementation. Direct fresh relations
+keep the model aligned with the product graph without reintroducing Laravel's
+internal compatibility Node.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

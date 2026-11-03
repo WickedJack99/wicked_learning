@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a published focusable map place and its bounded route previews. */
+        get: operations["getPublicMapAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/search": {
         parameters: {
             query?: never;
@@ -272,6 +289,22 @@ export interface components {
             description: string;
             maps: components["schemas"]["PublicMap"][];
         };
+        PublicRoutePreview: {
+            slug: string;
+            title: string;
+            description: string;
+            activity_count: number;
+        };
+        PublicMapAssetDetail: {
+            world_slug: string;
+            world_title: string;
+            map_slug: string;
+            map_title: string;
+            slug: string;
+            title: string;
+            description: string;
+            routes: components["schemas"]["PublicRoutePreview"][];
+        };
         PublicSearchResult: {
             world_slug: string;
             map_slug: string;
@@ -289,6 +322,9 @@ export interface components {
     parameters: {
         /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
         CsrfTokenHeader: string;
+        PublicSlugPathWorld: string;
+        PublicSlugPathMap: string;
+        PublicSlugPathAsset: string;
     };
     requestBodies: never;
     headers: never;
@@ -631,6 +667,48 @@ export interface operations {
                 };
             };
             /** @description No public world has been published. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPublicMapAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                world_slug: components["parameters"]["PublicSlugPathWorld"];
+                map_slug: components["parameters"]["PublicSlugPathMap"];
+                asset_slug: components["parameters"]["PublicSlugPathAsset"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A published focusable map asset with at most 12 published route previews. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicMapAssetDetail"];
+                };
+            };
+            /** @description No matching published focusable map asset exists. */
             404: {
                 headers: {
                     [name: string]: unknown;

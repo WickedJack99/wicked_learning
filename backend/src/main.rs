@@ -7,6 +7,7 @@ mod identity;
 mod login_rate_limit;
 pub mod media_store;
 mod passwords;
+mod public_map_assets;
 mod public_pages;
 mod public_search;
 mod public_source_links;
@@ -209,6 +210,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/public/search", get(public_search::index))
         .route("/api/v1/public/world", get(public_world::show))
+        .route(
+            "/api/v1/public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}",
+            get(public_map_assets::show),
+        )
         .with_state(state)
         .layer(csrf_layer)
         .layer(auth_layer)

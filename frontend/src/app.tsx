@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
@@ -36,6 +36,12 @@ type SearchState =
   | { kind: 'loaded'; search: PublicSearch }
   | { kind: 'invalid' }
   | { kind: 'unavailable' };
+type PublicMapAssetDetail = components['schemas']['PublicMapAssetDetail'];
+type MapAssetState =
+  | { kind: 'loading' }
+  | { kind: 'loaded'; asset: PublicMapAssetDetail }
+  | { kind: 'not-found' }
+  | { kind: 'unavailable' };
 
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
 
@@ -71,6 +77,10 @@ export function App() {
         <Route path="/account" element={<AccountPage />} />
         <Route path="/source" element={<SourceCodePage />} />
         <Route path="/world" element={<WorldPage />} />
+        <Route
+          path="/world/:worldSlug/maps/:mapSlug/assets/:assetSlug"
+          element={<MapAssetPage />}
+        />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/:slug" element={<PublicPage />} />
         <Route path="*" element={<NotFound />} />
@@ -144,7 +154,13 @@ function SearchPage() {
           <ul className="search-results">
             {search.search.results.map((result) => (
               <li key={`${result.map_slug}-${result.asset_slug}`}>
-                <h2>{result.title}</h2>
+                <h2>
+                  <Link
+                    to={mapAssetPath(result.world_slug, result.map_slug, result.asset_slug)}
+                  >
+                    {result.title}
+                  </Link>
+                </h2>
                 <p>{result.description}</p>
                 <p className="eyebrow">{result.map_title}</p>
               </li>
@@ -197,7 +213,11 @@ function WorldPage() {
           <ul>
             {map.assets.map((asset) => (
               <li key={asset.slug}>
-                <h3>{asset.title}</h3>
+                <h3>
+                  <Link to={mapAssetPath(world.world.slug, map.slug, asset.slug)}>
+                    {asset.title}
+                  </Link>
+                </h3>
                 <p>{asset.description}</p>
               </li>
             ))}
@@ -206,6 +226,93 @@ function WorldPage() {
       ))}
     </article>
   );
+}
+
+function MapAssetPage() {
+  const { assetSlug, mapSlug, worldSlug } = useParams();
+  const [asset, setAsset] = useState<MapAssetState>({ kind: 'loading' });
+
+  useEffect(() => {
+    if (!assetSlug || !mapSlug || !worldSlug) {
+      setAsset({ kind: 'not-found' });
+      return;
+    }
+
+    void apiClient
+      .GET('/public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}', {
+        params: {
+          path: {
+            asset_slug: assetSlug,
+            map_slug: mapSlug,
+            world_slug: worldSlug,
+          },
+        },
+      })
+      .then(({ data, response }) => {
+        if (response.status === 404) {
+          setAsset({ kind: 'not-found' });
+          return;
+        }
+        if (!response.ok || !data) {
+          setAsset({ kind: 'unavailable' });
+          return;
+        }
+
+        setAsset({ kind: 'loaded', asset: data });
+      })
+      .catch(() => setAsset({ kind: 'unavailable' }));
+  }, [assetSlug, mapSlug, worldSlug]);
+
+  if (asset.kind === 'loading') {
+    return <p aria-live="polite">Loading this place…</p>;
+  }
+  if (asset.kind === 'not-found') {
+    return (
+      <article>
+        <h1>Place not found</h1>
+        <p>This published place is not available.</p>
+        <p>
+          <Link to="/world">Back to exploration</Link>
+        </p>
+      </article>
+    );
+  }
+  if (asset.kind === 'unavailable') {
+    return <p role="alert">This place is temporarily unavailable.</p>;
+  }
+
+  return (
+    <article>
+      <p className="eyebrow">
+        {asset.asset.world_title} / {asset.asset.map_title}
+      </p>
+      <h1>{asset.asset.title}</h1>
+      <p>{asset.asset.description}</p>
+      <h2>Available routes</h2>
+      {asset.asset.routes.length ? (
+        <ul className="search-results">
+          {asset.asset.routes.map((route) => (
+            <li key={route.slug}>
+              <h3>{route.title}</h3>
+              <p>{route.description}</p>
+              <p className="eyebrow">
+                {route.activity_count} {route.activity_count === 1 ? 'activity' : 'activities'}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No routes are published for this place yet.</p>
+      )}
+      <p>
+        <Link to="/world">Back to exploration</Link>
+      </p>
+    </article>
+  );
+}
+
+function mapAssetPath(worldSlug: string, mapSlug: string, assetSlug: string): string {
+  return `/world/${worldSlug}/maps/${mapSlug}/assets/${assetSlug}`;
 }
 
 function LoginPage() {

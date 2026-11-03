@@ -57,14 +57,14 @@ when both PostgreSQL databases are reachable.
 
 `GET /api/v1/security/csrf` issues a non-cacheable CSRF token and matching
 encrypted, HTTP-only cookie for the future unsafe browser endpoints. This is a
-foundation endpoint. The local proof of concept also exposes password
-`POST /api/v1/session/login` and `POST /api/v1/session/logout`: both require
-the token's `X-CSRF-Token` header and the configured `PUBLIC_ORIGIN`. Login
-accepts only active, email-verified Rust identities and has a five-attempt
-client-IP burst with one attempt replenished per minute. There is intentionally
-no React login screen and no user cutover: verification, recovery,
-MFA/passkeys, audit records and
-the full authorization matrix remain separate required work.
+foundation endpoint. The local proof of concept exposes password
+`POST /api/v1/session/login` and `POST /api/v1/session/logout`, with a small
+React sign-in/sign-out proof: both require the token's `X-CSRF-Token` header
+and the configured `PUBLIC_ORIGIN`. Login accepts only active, email-verified
+Rust identities and has a five-attempt client-IP burst with one attempt
+replenished per minute. Registration, verification, recovery, MFA/passkeys,
+audit records and the full authorization matrix remain separate required work;
+this is not a user cutover.
 
 The local HTTP stack intentionally does not mark session or CSRF cookies
 `Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser
@@ -82,10 +82,12 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The tests visit the actual local Compose stack. They cover the root deep-link
-redirect, successful public-page display, the unavailable API state, an unknown
-browser route, the public JSON/404-problem contract, and the safe anonymous
-session shape. They do not use, start, or alter the Laravel stack.
+The tests visit the actual local Compose stack. They cover root and place
+deep-links, public information, public exploration/search/place route previews,
+the unavailable API state, unknown browser routes, public JSON/problem
+contracts and the safe anonymous session shape. When a disposable bootstrap
+administrator is provided, they also cover the Rust-owned React sign-in/sign-
+out proof. They do not use, start, or alter the Laravel stack.
 
 ## Fresh administrator bootstrap
 

@@ -230,6 +230,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}:
+    get:
+      operationId: getPublicMapAsset
+      summary: Read a published focusable map place and its bounded route previews.
+      parameters:
+        - $ref: '#/components/parameters/PublicSlugPathWorld'
+        - $ref: '#/components/parameters/PublicSlugPathMap'
+        - $ref: '#/components/parameters/PublicSlugPathAsset'
+      responses:
+        '200':
+          description: A published focusable map asset with at most 12 published route previews.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMapAssetDetail'
+        '404':
+          description: No matching published focusable map asset exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /public/search:
     get:
       operationId: searchPublicWorld
@@ -270,6 +297,30 @@ components:
       description: Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin.
       schema:
         type: string
+    PublicSlugPathWorld:
+      name: world_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
+    PublicSlugPathMap:
+      name: map_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
+    PublicSlugPathAsset:
+      name: asset_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
   schemas:
     HealthStatus:
       type: object
@@ -432,6 +483,48 @@ components:
           maxItems: 24
           items:
             $ref: '#/components/schemas/PublicMap'
+    PublicRoutePreview:
+      type: object
+      additionalProperties: false
+      required: [slug, title, description, activity_count]
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+        description:
+          type: string
+        activity_count:
+          type: integer
+          minimum: 0
+    PublicMapAssetDetail:
+      type: object
+      additionalProperties: false
+      required: [world_slug, world_title, map_slug, map_title, slug, title, description, routes]
+      properties:
+        world_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        world_title:
+          type: string
+        map_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        map_title:
+          type: string
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+        description:
+          type: string
+        routes:
+          type: array
+          maxItems: 12
+          items:
+            $ref: '#/components/schemas/PublicRoutePreview'
     PublicSearchResult:
       type: object
       additionalProperties: false

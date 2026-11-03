@@ -79,6 +79,42 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
   });
 });
 
+test('a public map place exposes only its bounded published route previews', async ({ request }) => {
+  const response = await request.get(
+    '/api/v1/public/worlds/orientation-garden/maps/first-path/assets/choose-a-direction',
+  );
+
+  expect(response.status()).toBe(200);
+  await expect(response.json()).resolves.toEqual({
+    world_slug: 'orientation-garden',
+    world_title: 'Orientation Garden',
+    map_slug: 'first-path',
+    map_title: 'The First Path',
+    slug: 'choose-a-direction',
+    title: 'Choose a direction',
+    description:
+      'A learner can choose a useful next direction without pressure or hidden ranking.',
+    routes: [
+      {
+        slug: 'choose-your-next-step',
+        title: 'Choose your next step',
+        description:
+          'A short route for considering a useful direction without a prescribed order.',
+        activity_count: 1,
+      },
+    ],
+  });
+
+  const missingResponse = await request.get(
+    '/api/v1/public/worlds/orientation-garden/maps/first-path/assets/not-published',
+  );
+  expect(missingResponse.status()).toBe(404);
+  await expect(missingResponse.json()).resolves.toEqual({
+    code: 'not_found',
+    title: 'The requested resource was not found.',
+  });
+});
+
 test('public search returns only published map places and validates its query', async ({ request }) => {
   const response = await request.get('/api/v1/public/search?q=direction');
 

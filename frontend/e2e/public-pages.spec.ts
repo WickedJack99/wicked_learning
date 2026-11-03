@@ -51,6 +51,28 @@ test('the public explorer presents maps and places without requiring a session',
   await expect(page.getByRole('heading', { name: 'Choose a direction' })).toBeVisible();
 });
 
+test('a learner can open a map place and inspect its route previews', async ({ page }) => {
+  await page.goto('/world');
+
+  await page.getByRole('link', { name: 'Choose a direction' }).click();
+
+  await expect(page).toHaveURL(
+    /\/world\/orientation-garden\/maps\/first-path\/assets\/choose-a-direction$/,
+  );
+  await expect(page.getByRole('heading', { name: 'Choose a direction' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Available routes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Choose your next step' })).toBeVisible();
+  await expect(page.getByText('1 activity')).toBeVisible();
+});
+
+test('a missing public map place has its own recoverable not-found state', async ({ page }) => {
+  await page.goto('/world/orientation-garden/maps/first-path/assets/not-published');
+
+  await expect(page.getByRole('heading', { name: 'Place not found' })).toBeVisible();
+  await page.getByRole('link', { name: 'Back to exploration' }).click();
+  await expect(page).toHaveURL(/\/world$/);
+});
+
 test('the public explorer search is bounded and presents matching places', async ({ page }) => {
   await page.goto('/about');
 
