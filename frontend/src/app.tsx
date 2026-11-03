@@ -13,6 +13,7 @@ import {
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { OriginalWelcomePage } from './original-welcome';
 
 type Readiness = 'checking' | 'ready' | 'unavailable';
 type PageState =
@@ -78,6 +79,14 @@ export function App() {
     useEffect(() => {
         void loadCurrentUser().then(setCurrentUser);
     }, [location.pathname]);
+
+    if (location.pathname === '/') {
+        return (
+            <OriginalWelcomePage
+                isAuthenticated={currentUser.kind === 'loaded'}
+            />
+        );
+    }
 
     return (
         <div className="learner-shell">

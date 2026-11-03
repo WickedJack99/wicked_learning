@@ -271,10 +271,13 @@ product explicitly approves a redesign.
   behavior, empty/loading/error states and visible copy. Store focused browser
   coverage for the migrated route.
 
-The standalone welcome, shell and exploration styling introduced during the
+The standalone learner shell and exploration styling introduced during the
 foundation are provisional proof-of-concept work. They are not visual-migration
 acceptance and must be replaced or brought into close alignment with the
 corresponding original React UI before the frontend slice is considered done.
+The standalone Welcome page is the first fidelity migration: it reuses the
+original layout, content structure, Tailwind utilities and Lucide icons while
+substituting React Router and the existing Rust session state for Inertia.
 
 ### Current frontend URL migration register
 

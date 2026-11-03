@@ -6,9 +6,9 @@ test('the root renders the public welcome screen and offers exploration', async 
     await page.goto('/');
 
     await expect(
-        page.getByRole('heading', { name: 'Find a place to begin.' }),
+        page.getByRole('heading', { name: 'Learning Worlds' }),
     ).toBeVisible();
-    await page.getByRole('link', { name: 'Explore the world' }).click();
+    await page.getByRole('link', { name: 'Enter the first world' }).click();
     await expect(page).toHaveURL(/\/world$/);
 });
 
@@ -19,12 +19,12 @@ test('the public welcome screen offers its alternative orientation messages', as
 
     await page
         .getByRole('button', {
-            name: 'Show Choose a direction that makes sense to you.',
+            name: 'Show Motivation without pressure loops',
         })
         .click();
     await expect(
         page.getByRole('heading', {
-            name: 'Choose a direction that makes sense to you.',
+            name: 'Motivation without pressure loops',
         }),
     ).toBeVisible();
 });
