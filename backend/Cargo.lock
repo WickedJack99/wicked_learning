@@ -3283,6 +3283,8 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "uuid",
+ "wicked-learning-domain",
+ "wicked-learning-persistence",
 ]
 
 [[package]]
@@ -3311,6 +3313,8 @@ dependencies = [
 name = "wicked-learning-persistence"
 version = "0.1.0"
 dependencies = [
+ "sqlx",
+ "uuid",
  "wicked-learning-domain",
 ]
 

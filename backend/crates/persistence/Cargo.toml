@@ -6,4 +6,6 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
+sqlx = { version = "0.8", default-features = false, features = ["macros", "postgres", "runtime-tokio-rustls", "uuid"] }
+uuid.workspace = true
 wicked-learning-domain = { path = "../domain" }
