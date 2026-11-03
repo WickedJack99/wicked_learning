@@ -2,4 +2,22 @@ import createClient from 'openapi-fetch';
 
 import type { paths } from './schema';
 
-export const apiClient = createClient<paths>({ baseUrl: '/api/v1' });
+const API_TIMEOUT_MILLISECONDS = 10_000;
+
+const sameOriginFetch: typeof fetch = async (input, init) => {
+  const timeoutSignal = AbortSignal.timeout(API_TIMEOUT_MILLISECONDS);
+  const signal = init?.signal
+    ? AbortSignal.any([init.signal, timeoutSignal])
+    : timeoutSignal;
+
+  return fetch(input, {
+    ...init,
+    credentials: 'same-origin',
+    signal,
+  });
+};
+
+export const apiClient = createClient<paths>({
+  baseUrl: '/api/v1',
+  fetch: sameOriginFetch,
+});
