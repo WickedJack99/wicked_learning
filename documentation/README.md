@@ -34,6 +34,9 @@ Wicked Learning is designed as a generic, domain-agnostic platform. A deployment
   data-model and media boundaries for the migration.
 - [Replatforming decisions](replatforming-decisions.md) - phase 1 architecture
   decisions and their approval status.
+- [Replatforming threat model](replatforming-threat-model.md) - trust
+  boundaries, current safeguards and security gates for the isolated Rust
+  foundation.
 - [Rust/Axum local foundation](rust-local-stack.md) - run the separate local
   React, Axum, application-database and identity-database Compose stack.
 - `conversations/` contains archived development conversations and is not an
