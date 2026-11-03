@@ -10,6 +10,7 @@ async-openai = { version = "0.43", default-features = false, features = ["respon
 argon2 = "0.5"
 axum = "0.8"
 axum-login = "0.18"
+email_address = "0.2"
 serde = { version = "1", features = ["derive"] }
 sqlx = { version = "0.8", default-features = false, features = ["macros", "migrate", "postgres", "runtime-tokio-rustls", "uuid"] }
 thiserror = "2"

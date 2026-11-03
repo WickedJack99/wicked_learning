@@ -55,6 +55,28 @@ Open `http://localhost:8081`. The React foundation requests
 `/api/v1/health/ready` at the same public origin. The endpoint is ready only
 when both PostgreSQL databases are reachable.
 
+## Fresh administrator bootstrap
+
+After migrations, create the first administrator with the backend's explicit
+one-time command. It needs two values that must not be committed: the intended
+administrator email and a local file containing the password. The password is
+read from the file so it is not exposed in a shell command or an environment
+variable.
+
+```bash
+BOOTSTRAP_ADMIN_EMAIL='admin@example.test' \
+BOOTSTRAP_ADMIN_PASSWORD_FILE='/absolute/path/to/admin-password' \
+docker compose --env-file .env.rust -f compose.rust.yaml run --rm backend bootstrap-admin
+```
+
+The command validates and normalizes the email, creates a verified Rust-owned
+identity with an Argon2id password verifier, creates the separate application
+principal, and grants that principal the `platform_administrator` role. It is
+safe to re-run to repair the application-principal/role mapping; it never
+replaces the password of an existing identity. The command has not been run by
+this proof-of-concept setup, so no administrator account has been guessed or
+created automatically.
+
 ## Coolify-shaped deployment
 
 The Compose file is structured for a later isolated Coolify application: select

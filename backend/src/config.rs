@@ -1,5 +1,11 @@
-use std::{env, net::SocketAddr, path::PathBuf, str::ParseBoolError};
+use std::{
+    env,
+    net::SocketAddr,
+    path::PathBuf,
+    str::{FromStr, ParseBoolError},
+};
 
+use email_address::EmailAddress;
 use thiserror::Error;
 
 #[derive(Clone)]
@@ -11,6 +17,11 @@ pub struct Config {
     pub session_cookie_secure: bool,
 }
 
+pub struct BootstrapAdminConfig {
+    pub normalized_email: String,
+    pub password_file: PathBuf,
+}
+
 #[derive(Debug, Error)]
 pub enum ConfigError {
     #[error("{0} must be set")]
@@ -19,6 +30,28 @@ pub enum ConfigError {
     InvalidListenAddress(#[source] std::net::AddrParseError),
     #[error("SESSION_COOKIE_SECURE must be true or false: {0}")]
     InvalidSessionCookieSecure(#[source] ParseBoolError),
+    #[error("BOOTSTRAP_ADMIN_EMAIL must be a valid email address")]
+    InvalidBootstrapAdminEmail,
+}
+
+impl BootstrapAdminConfig {
+    pub fn from_environment() -> Result<Self, ConfigError> {
+        let normalized_email = normalize_email(&required("BOOTSTRAP_ADMIN_EMAIL")?)?;
+
+        Ok(Self {
+            normalized_email,
+            password_file: PathBuf::from(required("BOOTSTRAP_ADMIN_PASSWORD_FILE")?),
+        })
+    }
+}
+
+pub fn normalize_email(email: &str) -> Result<String, ConfigError> {
+    let normalized_email = email.trim().to_lowercase();
+    if EmailAddress::from_str(&normalized_email).is_err() {
+        return Err(ConfigError::InvalidBootstrapAdminEmail);
+    }
+
+    Ok(normalized_email)
 }
 
 impl Config {
@@ -43,4 +76,18 @@ impl Config {
 
 fn required(name: &'static str) -> Result<String, ConfigError> {
     env::var(name).map_err(|_| ConfigError::Missing(name))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_email;
+
+    #[test]
+    fn bootstrap_email_is_trimmed_and_normalized() {
+        assert_eq!(
+            normalize_email("  ADMIN@EXAMPLE.TEST ").expect("valid bootstrap email"),
+            "admin@example.test"
+        );
+        assert!(normalize_email("not-an-email").is_err());
+    }
 }

@@ -1,3 +1,4 @@
+mod bootstrap;
 mod config;
 mod error;
 mod identity;
@@ -21,7 +22,11 @@ use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::PostgresStore;
 use tracing::{error, info};
 
-use crate::{config::Config, error::ApiError, identity::IdentityBackend};
+use crate::{
+    config::{BootstrapAdminConfig, Config},
+    error::ApiError,
+    identity::IdentityBackend,
+};
 
 static APPLICATION_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/application");
 static IDENTITY_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/identity");
@@ -52,8 +57,14 @@ async fn main() -> ExitCode {
         }
     };
 
-    if std::env::args().nth(1).as_deref() == Some("migrate") {
-        return run_migrations(&configuration).await;
+    match std::env::args().nth(1).as_deref() {
+        Some("migrate") => return run_migrations(&configuration).await,
+        Some("bootstrap-admin") => return bootstrap_admin(&configuration).await,
+        Some(command) => {
+            error!(%command, "unknown command");
+            return ExitCode::FAILURE;
+        }
+        None => {}
     }
 
     let application_database = match connect(&configuration.application_database_url).await {
@@ -91,6 +102,42 @@ async fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+async fn bootstrap_admin(configuration: &Config) -> ExitCode {
+    let bootstrap = match BootstrapAdminConfig::from_environment() {
+        Ok(bootstrap) => bootstrap,
+        Err(error) => {
+            error!(%error, "invalid bootstrap-admin configuration");
+            return ExitCode::FAILURE;
+        }
+    };
+    let application_database = match connect(&configuration.application_database_url).await {
+        Ok(pool) => pool,
+        Err(error) => {
+            error!(%error, "could not connect to the application database for bootstrap");
+            return ExitCode::FAILURE;
+        }
+    };
+    let identity_database = match connect(&configuration.identity_database_url).await {
+        Ok(pool) => pool,
+        Err(error) => {
+            error!(%error, "could not connect to the identity database for bootstrap");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    match bootstrap::create_administrator(application_database, identity_database, bootstrap).await
+    {
+        Ok(()) => {
+            info!("administrator bootstrap completed");
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            error!(%error, "administrator bootstrap failed");
+            ExitCode::FAILURE
+        }
+    }
 }
 
 fn router(state: AppState) -> Router {
