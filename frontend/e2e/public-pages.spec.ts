@@ -40,6 +40,25 @@ test('the source-code page provides the original project link safely', async ({ 
   );
 });
 
+test('a CI-only local administrator can use the React sign-in and sign-out flow', async ({ page }) => {
+  const email = process.env.E2E_LOGIN_EMAIL;
+  const password = process.env.E2E_LOGIN_PASSWORD;
+  test.skip(!email || !password, 'requires the disposable CI identity');
+
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill(email);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+
+  await expect(page).toHaveURL(/\/account$/);
+  await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible();
+  await expect(page.getByText('platform administrator')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('heading', { name: 'Local sign in' })).toBeVisible();
+});
+
 test('an unavailable public-page API is presented without a stale page', async ({ page }) => {
   await page.route('**/api/v1/public/pages/about', async (route) => {
     await route.fulfill({

@@ -21,3 +21,12 @@ export const apiClient = createClient<paths>({
   baseUrl: '/api/v1',
   fetch: sameOriginFetch,
 });
+
+export async function getCsrfToken(): Promise<string> {
+  const { data, response } = await apiClient.GET('/security/csrf');
+  if (!response.ok || !data) {
+    throw new Error('The security token is unavailable.');
+  }
+
+  return data.token;
+}

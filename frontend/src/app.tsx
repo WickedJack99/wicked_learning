@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes, useParams } from 'react-router';
+import { type FormEvent, useEffect, useState } from 'react';
+import { Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router';
 
-import { apiClient } from './api/client';
+import { apiClient, getCsrfToken } from './api/client';
 
 type Readiness = 'checking' | 'ready' | 'unavailable';
 type PageState =
@@ -16,6 +16,11 @@ type SourceLinksState =
       modifiedSources: Array<{ label: string; url: string }>;
       origin: { label: string; url: string };
     }
+  | { kind: 'unavailable' };
+type CurrentUserState =
+  | { kind: 'loading' }
+  | { kind: 'anonymous' }
+  | { kind: 'loaded'; roles: string[] }
   | { kind: 'unavailable' };
 
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
@@ -41,10 +46,13 @@ export function App() {
             </NavLink>
           ))}
           <NavLink to="/source">Source code</NavLink>
+          <NavLink to="/login">Local sign in</NavLink>
         </nav>
       </header>
       <Routes>
         <Route path="/" element={<Navigate replace to="/about" />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/account" element={<AccountPage />} />
         <Route path="/source" element={<SourceCodePage />} />
         <Route path="/:slug" element={<PublicPage />} />
         <Route path="*" element={<NotFound />} />
@@ -53,6 +61,149 @@ export function App() {
         API status: {readiness}
       </p>
     </main>
+  );
+}
+
+function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      const token = await getCsrfToken();
+      const { data, response } = await apiClient.POST('/session/login', {
+        body: { email, password },
+        params: { header: { 'X-CSRF-Token': token } },
+      });
+      if (response.status === 401) {
+        setError('The email address or password is not valid.');
+        return;
+      }
+      if (!response.ok || !data) {
+        setError('Sign in is temporarily unavailable.');
+        return;
+      }
+
+      navigate('/account', { replace: true });
+    } catch {
+      setError('Sign in is temporarily unavailable.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <article>
+      <h1>Local sign in</h1>
+      <p>
+        This is the Rust replatforming proof of concept. Only a securely bootstrapped local
+        administrator can sign in; registration, recovery, MFA and passkeys are not available yet.
+      </p>
+      <form className="credential-form" onSubmit={submit}>
+        <label>
+          Email address
+          <input
+            autoComplete="username"
+            onChange={(event) => setEmail(event.currentTarget.value)}
+            required
+            type="email"
+            value={email}
+          />
+        </label>
+        <label>
+          Password
+          <input
+            autoComplete="current-password"
+            onChange={(event) => setPassword(event.currentTarget.value)}
+            required
+            type="password"
+            value={password}
+          />
+        </label>
+        {error ? <p role="alert">{error}</p> : null}
+        <button disabled={submitting} type="submit">
+          {submitting ? 'Signing in…' : 'Sign in'}
+        </button>
+      </form>
+    </article>
+  );
+}
+
+function AccountPage() {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUserState>({ kind: 'loading' });
+
+  useEffect(() => {
+    void apiClient.GET('/me').then(({ data, response }) => {
+      if (response.status === 401) {
+        setCurrentUser({ kind: 'anonymous' });
+        return;
+      }
+      if (!response.ok || !data) {
+        setCurrentUser({ kind: 'unavailable' });
+        return;
+      }
+
+      setCurrentUser({ kind: 'loaded', roles: data.roles });
+    }).catch(() => setCurrentUser({ kind: 'unavailable' }));
+  }, []);
+
+  async function logout() {
+    setError(null);
+    try {
+      const token = await getCsrfToken();
+      const { response } = await apiClient.POST('/session/logout', {
+        params: { header: { 'X-CSRF-Token': token } },
+      });
+      if (!response.ok) {
+        setError('Sign out is temporarily unavailable.');
+        return;
+      }
+
+      navigate('/login', { replace: true });
+    } catch {
+      setError('Sign out is temporarily unavailable.');
+    }
+  }
+
+  if (currentUser.kind === 'loading') {
+    return <p aria-live="polite">Loading account status…</p>;
+  }
+  if (currentUser.kind === 'anonymous') {
+    return (
+      <article>
+        <h1>Sign in required</h1>
+        <p>This local proof of concept has no authenticated session in this browser.</p>
+        <NavLink to="/login">Sign in</NavLink>
+      </article>
+    );
+  }
+  if (currentUser.kind === 'unavailable') {
+    return <p role="alert">Account status is temporarily unavailable.</p>;
+  }
+
+  return (
+    <article>
+      <h1>Account</h1>
+      <p>Your current application roles:</p>
+      <ul>
+        {currentUser.roles.map((role) => (
+          <li key={role}>{role.replaceAll('_', ' ')}</li>
+        ))}
+      </ul>
+      {error ? <p role="alert">{error}</p> : null}
+      <button onClick={() => void logout()} type="button">
+        Sign out
+      </button>
+    </article>
   );
 }
 
