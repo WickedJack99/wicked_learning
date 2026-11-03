@@ -257,7 +257,7 @@ private or identifier-based links will resolve in a deployed cutover.
 
 | Laravel URL or family                                                     | React route        | Current status | Notes                                                                                                          |
 | ------------------------------------------------------------------------- | ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `/`                                                                       | `/about`           | Available      | The existing standalone shell redirects its root to the published About page.                                  |
+| `/`                                                                       | `/`                | Available      | A standalone React welcome screen provides public orientation and routes into exploration or local sign-in.    |
 | `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path          | Available      | Public presentation/source endpoints provide their content.                                                    |
 | `/world`                                                                  | `/world`           | Available      | Public, read-only world/map exploration; learner progress, tools and private state are intentionally excluded. |
 | `/learning/search?query={term}`                                           | `/search?q={term}` | Available      | React retains the search term and runs the bounded published-place search.                                     |

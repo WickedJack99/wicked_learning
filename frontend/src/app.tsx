@@ -109,11 +109,18 @@ export function App() {
                     <SessionNavigation currentUser={currentUser} />
                 </div>
             </header>
-            <main className="learner-main" id="learner-main-content">
+            <main
+                className={`learner-main${location.pathname === '/' ? 'welcome-main' : ''}`}
+                id="learner-main-content"
+            >
                 <Routes>
                     <Route
                         path="/"
-                        element={<Navigate replace to="/about" />}
+                        element={
+                            <WelcomePage
+                                isAuthenticated={currentUser.kind === 'loaded'}
+                            />
+                        }
                     />
                     <Route
                         path="/learning/search"
@@ -168,6 +175,83 @@ function SessionNavigation({ currentUser }: { currentUser: CurrentUserState }) {
         <NavLink className="account-link" to="/login">
             Local sign in
         </NavLink>
+    );
+}
+
+const welcomePages = [
+    {
+        eyebrow: 'An explorable learning space',
+        title: 'Find a place to begin.',
+        body: 'Wicked Learning puts ideas, activities and possible directions into a world you can explore at your own pace.',
+        action: 'Explore the world',
+        target: '/world',
+    },
+    {
+        eyebrow: 'Your route is yours',
+        title: 'Choose a direction that makes sense to you.',
+        body: 'Routes offer a way into an idea without turning learning into a race, a score or a single compulsory path.',
+        action: 'See the learning world',
+        target: '/world',
+    },
+    {
+        eyebrow: 'Built for thoughtful learning',
+        title: 'Notice, try, reflect and continue.',
+        body: 'This prototype supports curiosity and orientation with clear choices—without streaks, rankings or manufactured urgency.',
+        action: 'Learn about Wicked Learning',
+        target: '/about',
+    },
+] as const;
+
+function WelcomePage({ isAuthenticated }: { isAuthenticated: boolean }) {
+    const [activePage, setActivePage] = useState(0);
+    const page = welcomePages[activePage] ?? welcomePages[0];
+
+    return (
+        <section aria-labelledby="welcome-title" className="welcome-surface">
+            <div aria-hidden="true" className="welcome-orb welcome-orb-one" />
+            <div aria-hidden="true" className="welcome-orb welcome-orb-two" />
+            <div aria-hidden="true" className="welcome-grid" />
+            <div className="welcome-content">
+                <p className="welcome-eyebrow">{page.eyebrow}</p>
+                <h1 id="welcome-title">{page.title}</h1>
+                <p className="welcome-body">{page.body}</p>
+                <div className="welcome-actions">
+                    <Link className="welcome-primary-action" to={page.target}>
+                        {page.action}
+                    </Link>
+                    {isAuthenticated ? (
+                        <Link
+                            className="welcome-secondary-action"
+                            to="/account"
+                        >
+                            Open account
+                        </Link>
+                    ) : (
+                        <Link className="welcome-secondary-action" to="/login">
+                            Local sign in
+                        </Link>
+                    )}
+                </div>
+            </div>
+            <div
+                aria-label="Welcome pages"
+                className="welcome-page-controls"
+                role="group"
+            >
+                {welcomePages.map((welcomePage, index) => (
+                    <button
+                        aria-current={activePage === index ? 'true' : undefined}
+                        aria-label={`Show ${welcomePage.title}`}
+                        className="welcome-page-control"
+                        key={welcomePage.title}
+                        onClick={() => setActivePage(index)}
+                        type="button"
+                    >
+                        <span aria-hidden="true">{index + 1}</span>
+                    </button>
+                ))}
+            </div>
+        </section>
     );
 }
 

@@ -1,18 +1,31 @@
 import { expect, test } from '@playwright/test';
 
-test('the root redirects to and renders the public About page', async ({
+test('the root renders the public welcome screen and offers exploration', async ({
     page,
 }) => {
     await page.goto('/');
 
-    await expect(page).toHaveURL(/\/about$/);
     await expect(
-        page.getByRole('heading', { name: 'About Wicked Learning' }),
+        page.getByRole('heading', { name: 'Find a place to begin.' }),
     ).toBeVisible();
+    await page.getByRole('link', { name: 'Explore the world' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+});
+
+test('the public welcome screen offers its alternative orientation messages', async ({
+    page,
+}) => {
+    await page.goto('/');
+
+    await page
+        .getByRole('button', {
+            name: 'Show Choose a direction that makes sense to you.',
+        })
+        .click();
     await expect(
-        page.getByText(
-            'It does not use point totals, competitive rankings or streak pressure.',
-        ),
+        page.getByRole('heading', {
+            name: 'Choose a direction that makes sense to you.',
+        }),
     ).toBeVisible();
 });
 
