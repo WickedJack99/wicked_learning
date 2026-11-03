@@ -68,8 +68,9 @@ npm run test:e2e
 ```
 
 The tests visit the actual local Compose stack. They cover the root deep-link
-redirect, successful public-page display, the unavailable API state, and an
-unknown browser route. They do not use, start, or alter the Laravel stack.
+redirect, successful public-page display, the unavailable API state, an unknown
+browser route, the public JSON/404-problem contract, and the safe anonymous
+session shape. They do not use, start, or alter the Laravel stack.
 
 ## Fresh administrator bootstrap
 
