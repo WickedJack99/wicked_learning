@@ -30,6 +30,25 @@ h1 {
   text-transform: uppercase;
 }
 
+.site-header {
+  margin-bottom: 2rem;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+nav a {
+  color: #305a82;
+}
+
+nav a.active {
+  color: #172333;
+  font-weight: 700;
+}
+
 .status {
   font-weight: 700;
 }
