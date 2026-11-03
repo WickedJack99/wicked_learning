@@ -23,7 +23,7 @@ authentication or writes.
 | Browser session identifier | HTTP-only cookie and identity database | `tower-sessions` defaults to `HttpOnly` and `SameSite=Strict`; `Secure` is on by default and disabled only for local HTTP Compose |
 | Uploaded media | Backend-mounted media volume | No public upload/download route; media keys are server-owned opaque values and storage is outside the frontend web root |
 | AI provider credentials and model output | Rust backend only | No provider credential, network call or browser-facing AI route exists |
-| Public web traffic | React Nginx reverse proxy to private Axum service | Same-origin `/api` proxy; neither database nor backend has a public host port in Compose |
+| Public web traffic | React Nginx reverse proxy to private Axum service | Same-origin `/api` proxy; neither database nor backend has a public host port in Compose; a restrictive CSP, frame denial, same-origin COOP/CORP, no-sniff and referrer policy are set at the public proxy |
 
 The browser is not trusted with authorization decisions, credential material,
 media filesystem paths, database credentials or AI provider credentials.
