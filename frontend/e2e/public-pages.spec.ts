@@ -160,6 +160,18 @@ test('the public explorer search is bounded and presents matching places', async
     await expect(page.getByText('The First Path')).toBeVisible();
 });
 
+test('a legacy public search link keeps its query when entering the React shell', async ({
+    page,
+}) => {
+    await page.goto('/learning/search?query=direction');
+
+    await expect(page).toHaveURL(/\/search\?q=direction$/);
+    await expect(page.getByLabel('Search places')).toHaveValue('direction');
+    await expect(
+        page.getByRole('heading', { name: 'Choose a direction' }),
+    ).toBeVisible();
+});
+
 test('a CI-only local administrator can use the React sign-in and sign-out flow', async ({
     page,
 }) => {

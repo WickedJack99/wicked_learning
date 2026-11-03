@@ -5,8 +5,10 @@ import {
     NavLink,
     Route,
     Routes,
+    useLocation,
     useNavigate,
     useParams,
+    useSearchParams,
 } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
@@ -107,6 +109,10 @@ export function App() {
                         path="/"
                         element={<Navigate replace to="/about" />}
                     />
+                    <Route
+                        path="/learning/search"
+                        element={<LegacySearchRedirect />}
+                    />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/account" element={<AccountPage />} />
                     <Route path="/source" element={<SourceCodePage />} />
@@ -134,12 +140,12 @@ export function App() {
 }
 
 function SearchPage() {
-    const [query, setQuery] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
     const [search, setSearch] = useState<SearchState>({ kind: 'idle' });
 
-    async function submit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        const normalizedQuery = query.trim();
+    async function searchPlaces(queryToSearch: string) {
+        const normalizedQuery = queryToSearch.trim();
         if (normalizedQuery.length < 2 || normalizedQuery.length > 80) {
             setSearch({ kind: 'invalid' });
             return;
@@ -163,6 +169,22 @@ function SearchPage() {
         } catch {
             setSearch({ kind: 'unavailable' });
         }
+    }
+
+    useEffect(() => {
+        const requestedQuery = searchParams.get('q');
+        if (!requestedQuery) {
+            return;
+        }
+
+        setQuery(requestedQuery);
+        void searchPlaces(requestedQuery);
+    }, [searchParams]);
+
+    function submit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const normalizedQuery = query.trim();
+        setSearchParams(normalizedQuery ? { q: normalizedQuery } : {});
     }
 
     return (
@@ -226,6 +248,14 @@ function SearchPage() {
             ) : null}
         </article>
     );
+}
+
+function LegacySearchRedirect() {
+    const location = useLocation();
+    const legacyQuery = new URLSearchParams(location.search).get('query');
+    const search = legacyQuery ? `?q=${encodeURIComponent(legacyQuery)}` : '';
+
+    return <Navigate replace to={`/search${search}`} />;
 }
 
 function WorldPage() {

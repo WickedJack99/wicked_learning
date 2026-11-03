@@ -247,6 +247,29 @@ Start with these vertical API families:
    unauthorized path, validation error, back/refresh, narrow viewport and
    keyboard/focus behavior.
 
+### Current frontend URL migration register
+
+This register makes the frontend extraction sequence concrete for the fresh
+Rust deployment. It records React Router behavior only; it neither changes the
+Laravel application's routes nor configures production redirects. Because the
+new platform has fresh schemas and identifiers, this is not a promise that old
+private or identifier-based links will resolve in a deployed cutover.
+
+| Laravel URL or family                                                     | React route        | Current status | Notes                                                                                                          |
+| ------------------------------------------------------------------------- | ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `/`                                                                       | `/about`           | Available      | The existing standalone shell redirects its root to the published About page.                                  |
+| `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path          | Available      | Public presentation/source endpoints provide their content.                                                    |
+| `/world`                                                                  | `/world`           | Available      | Public, read-only world/map exploration; learner progress, tools and private state are intentionally excluded. |
+| `/learning/search?query={term}`                                           | `/search?q={term}` | Available      | React retains the search term and runs the bounded published-place search.                                     |
+| `/learning/nodes/{node}/play`                                             | —                  | Not available  | Activity playback needs the later learner-state/write slice and server-owned transition rules.                 |
+| `/home`, `/journal`, `/paths`, `/topics`, `/bookmarks`, `/competence`     | —                  | Not available  | These require authenticated data and, in several cases, APIs that have not yet been implemented.               |
+| `/organizations/*`, `/learning/groups/*`, authoring/settings/admin routes | —                  | Not available  | These belong to later collaboration, authoring and administration slices with their own authorization tests.   |
+| `/access-links/{token}`, `/protected-media/*`                             | —                  | Not available  | Security-sensitive access-link and media-serving contracts are deliberately deferred.                          |
+
+The current public asset and route-preview URLs are newly designed React URLs
+under `/world/{world}/maps/{map}/assets/{asset}`. They have no legacy-ID
+redirect because the platform is greenfield and does not migrate Laravel data.
+
 ## Authentication, authorization and browser security
 
 This is a go/no-go workstream. The current app includes passkeys and two-factor
