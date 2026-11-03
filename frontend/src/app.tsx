@@ -42,6 +42,12 @@ type MapAssetState =
   | { kind: 'loaded'; asset: PublicMapAssetDetail }
   | { kind: 'not-found' }
   | { kind: 'unavailable' };
+type PublicRouteOutline = components['schemas']['PublicRouteOutline'];
+type RouteState =
+  | { kind: 'loading' }
+  | { kind: 'loaded'; route: PublicRouteOutline }
+  | { kind: 'not-found' }
+  | { kind: 'unavailable' };
 
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
 
@@ -80,6 +86,10 @@ export function App() {
         <Route
           path="/world/:worldSlug/maps/:mapSlug/assets/:assetSlug"
           element={<MapAssetPage />}
+        />
+        <Route
+          path="/world/:worldSlug/maps/:mapSlug/assets/:assetSlug/routes/:routeSlug"
+          element={<RoutePage />}
         />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/:slug" element={<PublicPage />} />
@@ -293,7 +303,18 @@ function MapAssetPage() {
         <ul className="search-results">
           {asset.asset.routes.map((route) => (
             <li key={route.slug}>
-              <h3>{route.title}</h3>
+              <h3>
+                <Link
+                  to={routePath(
+                    asset.asset.world_slug,
+                    asset.asset.map_slug,
+                    asset.asset.slug,
+                    route.slug,
+                  )}
+                >
+                  {route.title}
+                </Link>
+              </h3>
               <p>{route.description}</p>
               <p className="eyebrow">
                 {route.activity_count} {route.activity_count === 1 ? 'activity' : 'activities'}
@@ -311,8 +332,96 @@ function MapAssetPage() {
   );
 }
 
+function RoutePage() {
+  const { assetSlug, mapSlug, routeSlug, worldSlug } = useParams();
+  const [route, setRoute] = useState<RouteState>({ kind: 'loading' });
+  const placePath =
+    assetSlug && mapSlug && worldSlug ? mapAssetPath(worldSlug, mapSlug, assetSlug) : '/world';
+
+  useEffect(() => {
+    if (!assetSlug || !mapSlug || !routeSlug || !worldSlug) {
+      setRoute({ kind: 'not-found' });
+      return;
+    }
+
+    void apiClient
+      .GET('/public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}/routes/{route_slug}', {
+        params: {
+          path: {
+            asset_slug: assetSlug,
+            map_slug: mapSlug,
+            route_slug: routeSlug,
+            world_slug: worldSlug,
+          },
+        },
+      })
+      .then(({ data, response }) => {
+        if (response.status === 404) {
+          setRoute({ kind: 'not-found' });
+          return;
+        }
+        if (!response.ok || !data) {
+          setRoute({ kind: 'unavailable' });
+          return;
+        }
+
+        setRoute({ kind: 'loaded', route: data });
+      })
+      .catch(() => setRoute({ kind: 'unavailable' }));
+  }, [assetSlug, mapSlug, routeSlug, worldSlug]);
+
+  if (route.kind === 'loading') {
+    return <p aria-live="polite">Loading this route…</p>;
+  }
+  if (route.kind === 'not-found') {
+    return (
+      <article>
+        <h1>Route not found</h1>
+        <p>This published route is not available.</p>
+        <p>
+          <Link to={placePath}>Back to the place</Link>
+        </p>
+      </article>
+    );
+  }
+  if (route.kind === 'unavailable') {
+    return <p role="alert">This route is temporarily unavailable.</p>;
+  }
+
+  return (
+    <article>
+      <p className="eyebrow">
+        {route.route.world_title} / {route.route.map_title} / {route.route.asset_title}
+      </p>
+      <h1>{route.route.title}</h1>
+      <p>{route.route.description}</p>
+      <h2>Activities in this route</h2>
+      {route.route.activities.length ? (
+        <ol className="search-results">
+          {route.route.activities.map((activity) => (
+            <li key={activity.slug}>
+              <h3>{activity.title}</h3>
+              <p>{activity.description}</p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p>No activities are published for this route yet.</p>
+      )}
+      <p>This route is an outline only; starting and recording activities will be added separately.</p>
+      <p>
+        <Link to={placePath}>Back to the place</Link>
+      </p>
+    </article>
+  );
+}
+
 function mapAssetPath(worldSlug: string, mapSlug: string, assetSlug: string): string {
   return `/world/${worldSlug}/maps/${mapSlug}/assets/${assetSlug}`;
+}
+
+function routePath(worldSlug: string, mapSlug: string, assetSlug: string, routeSlug: string): string {
+  return `${mapAssetPath(worldSlug, mapSlug, assetSlug)}/routes/${routeSlug}`;
 }
 
 function LoginPage() {

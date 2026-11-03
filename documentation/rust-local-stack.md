@@ -82,12 +82,12 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The tests visit the actual local Compose stack. They cover root and place
-deep-links, public information, public exploration/search/place route previews,
-the unavailable API state, unknown browser routes, public JSON/problem
-contracts and the safe anonymous session shape. When a disposable bootstrap
-administrator is provided, they also cover the Rust-owned React sign-in/sign-
-out proof. They do not use, start, or alter the Laravel stack.
+The tests visit the actual local Compose stack. They cover root, place and route
+deep-links; public information; public exploration/search/place and route
+outlines; the unavailable API state; unknown browser routes; public
+JSON/problem contracts; and the safe anonymous session shape. When a disposable
+bootstrap administrator is provided, they also cover the Rust-owned React
+sign-in/sign-out proof. They do not use, start, or alter the Laravel stack.
 
 ## Fresh administrator bootstrap
 

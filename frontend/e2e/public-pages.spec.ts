@@ -61,8 +61,13 @@ test('a learner can open a map place and inspect its route previews', async ({ p
   );
   await expect(page.getByRole('heading', { name: 'Choose a direction' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Available routes' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Choose your next step' })).toBeVisible();
   await expect(page.getByText('1 activity')).toBeVisible();
+  await page.getByRole('link', { name: 'Choose your next step' }).click();
+  await expect(page).toHaveURL(
+    /\/world\/orientation-garden\/maps\/first-path\/assets\/choose-a-direction\/routes\/choose-your-next-step$/,
+  );
+  await expect(page.getByRole('heading', { name: 'Activities in this route' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Consider a direction' })).toBeVisible();
 });
 
 test('a missing public map place has its own recoverable not-found state', async ({ page }) => {

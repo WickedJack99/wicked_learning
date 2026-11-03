@@ -191,6 +191,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}/routes/{route_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a published route and its bounded published activity outline. */
+        get: operations["getPublicRouteOutline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/search": {
         parameters: {
             query?: never;
@@ -305,6 +322,23 @@ export interface components {
             description: string;
             routes: components["schemas"]["PublicRoutePreview"][];
         };
+        PublicActivityOutline: {
+            slug: string;
+            title: string;
+            description: string;
+        };
+        PublicRouteOutline: {
+            world_slug: string;
+            world_title: string;
+            map_slug: string;
+            map_title: string;
+            asset_slug: string;
+            asset_title: string;
+            slug: string;
+            title: string;
+            description: string;
+            activities: components["schemas"]["PublicActivityOutline"][];
+        };
         PublicSearchResult: {
             world_slug: string;
             map_slug: string;
@@ -325,6 +359,7 @@ export interface components {
         PublicSlugPathWorld: string;
         PublicSlugPathMap: string;
         PublicSlugPathAsset: string;
+        PublicSlugPathRoute: string;
     };
     requestBodies: never;
     headers: never;
@@ -709,6 +744,49 @@ export interface operations {
                 };
             };
             /** @description No matching published focusable map asset exists. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPublicRouteOutline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                world_slug: components["parameters"]["PublicSlugPathWorld"];
+                map_slug: components["parameters"]["PublicSlugPathMap"];
+                asset_slug: components["parameters"]["PublicSlugPathAsset"];
+                route_slug: components["parameters"]["PublicSlugPathRoute"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A published route with at most 24 published activity outlines. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRouteOutline"];
+                };
+            };
+            /** @description No matching published route exists. */
             404: {
                 headers: {
                     [name: string]: unknown;

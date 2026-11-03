@@ -257,6 +257,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}/routes/{route_slug}:
+    get:
+      operationId: getPublicRouteOutline
+      summary: Read a published route and its bounded published activity outline.
+      parameters:
+        - $ref: '#/components/parameters/PublicSlugPathWorld'
+        - $ref: '#/components/parameters/PublicSlugPathMap'
+        - $ref: '#/components/parameters/PublicSlugPathAsset'
+        - $ref: '#/components/parameters/PublicSlugPathRoute'
+      responses:
+        '200':
+          description: A published route with at most 24 published activity outlines.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicRouteOutline'
+        '404':
+          description: No matching published route exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /public/search:
     get:
       operationId: searchPublicWorld
@@ -315,6 +343,14 @@ components:
         maxLength: 80
     PublicSlugPathAsset:
       name: asset_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
+    PublicSlugPathRoute:
+      name: route_slug
       in: path
       required: true
       schema:
@@ -525,6 +561,50 @@ components:
           maxItems: 12
           items:
             $ref: '#/components/schemas/PublicRoutePreview'
+    PublicActivityOutline:
+      type: object
+      additionalProperties: false
+      required: [slug, title, description]
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+        description:
+          type: string
+    PublicRouteOutline:
+      type: object
+      additionalProperties: false
+      required: [world_slug, world_title, map_slug, map_title, asset_slug, asset_title, slug, title, description, activities]
+      properties:
+        world_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        world_title:
+          type: string
+        map_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        map_title:
+          type: string
+        asset_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        asset_title:
+          type: string
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+        description:
+          type: string
+        activities:
+          type: array
+          maxItems: 24
+          items:
+            $ref: '#/components/schemas/PublicActivityOutline'
     PublicSearchResult:
       type: object
       additionalProperties: false

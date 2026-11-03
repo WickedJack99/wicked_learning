@@ -9,6 +9,7 @@ pub mod media_store;
 mod passwords;
 mod public_map_assets;
 mod public_pages;
+mod public_routes;
 mod public_search;
 mod public_source_links;
 mod public_world;
@@ -213,6 +214,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}",
             get(public_map_assets::show),
+        )
+        .route(
+            "/api/v1/public/worlds/{world_slug}/maps/{map_slug}/assets/{asset_slug}/routes/{route_slug}",
+            get(public_routes::show),
         )
         .with_state(state)
         .layer(csrf_layer)

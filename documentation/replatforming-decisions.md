@@ -295,11 +295,13 @@ relation explicit rather than silently inheriting a legacy join.
 `MapAsset → Route → Activity` relations. The first public place-detail endpoint
 returns a published, focusable MapAsset and at most twelve published route
 previews, each with only its title, description and published activity count.
+Its route-outline endpoint returns at most twenty-four published activity
+titles and descriptions for orientation.
 
-The endpoint does not expose an activity payload, begin a route, create a run,
-or record learner state. Private access, unlock rules, route selection,
-activity playback and all learner writes remain later slices with their own
-authorization and transaction boundaries.
+Neither read-only endpoint exposes activity configuration or interaction
+details, begins a route, creates a run, or records learner state. Private
+access, unlock rules, route selection, activity playback and all learner writes
+remain later slices with their own authorization and transaction boundaries.
 
 **Why:** A map place needs enough orientation to explain its available learning
 directions, while starting or progressing a route is learner state and must not

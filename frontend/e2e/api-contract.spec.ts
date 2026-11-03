@@ -115,6 +115,37 @@ test('a public map place exposes only its bounded published route previews', asy
   });
 });
 
+test('a public route exposes only its bounded published activity outline', async ({ request }) => {
+  const response = await request.get(
+    '/api/v1/public/worlds/orientation-garden/maps/first-path/assets/choose-a-direction/routes/choose-your-next-step',
+  );
+
+  expect(response.status()).toBe(200);
+  await expect(response.json()).resolves.toEqual({
+    world_slug: 'orientation-garden',
+    world_title: 'Orientation Garden',
+    map_slug: 'first-path',
+    map_title: 'The First Path',
+    asset_slug: 'choose-a-direction',
+    asset_title: 'Choose a direction',
+    slug: 'choose-your-next-step',
+    title: 'Choose your next step',
+    description: 'A short route for considering a useful direction without a prescribed order.',
+    activities: [
+      {
+        slug: 'consider-a-direction',
+        title: 'Consider a direction',
+        description: 'Compare available directions without ranking them or creating urgency.',
+      },
+    ],
+  });
+
+  const missingResponse = await request.get(
+    '/api/v1/public/worlds/orientation-garden/maps/first-path/assets/choose-a-direction/routes/not-published',
+  );
+  expect(missingResponse.status()).toBe(404);
+});
+
 test('public search returns only published map places and validates its query', async ({ request }) => {
   const response = await request.get('/api/v1/public/search?q=direction');
 
