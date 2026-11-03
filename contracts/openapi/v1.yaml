@@ -4,7 +4,7 @@ info:
   version: 1.0.0-draft
   description: |
     The versioned contract between the React client and Rust/Axum API.
-    The first read-only public page is available to prove the full React,
+    The initial read-only public-information pages are available to prove the full React,
     contract, Axum and PostgreSQL path. User-facing writes and AI operations
     require a separately reviewed vertical slice.
 servers:

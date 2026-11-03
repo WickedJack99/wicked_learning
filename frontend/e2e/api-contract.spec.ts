@@ -19,6 +19,24 @@ test('the public-page endpoint returns the contracted resource and missing-resou
     body: expect.stringContaining('curiosity'),
   });
 
+  const imprintResponse = await request.get('/api/v1/public/pages/imprint');
+
+  expect(imprintResponse.status()).toBe(200);
+  await expect(imprintResponse.json()).resolves.toMatchObject({
+    slug: 'imprint',
+    title: 'Imprint',
+    body: expect.stringContaining('deployment-specific publisher information'),
+  });
+
+  const dataProtectionResponse = await request.get('/api/v1/public/pages/data-protection');
+
+  expect(dataProtectionResponse.status()).toBe(200);
+  await expect(dataProtectionResponse.json()).resolves.toMatchObject({
+    slug: 'data-protection',
+    title: 'Data Protection',
+    body: expect.stringContaining('privacy and data protection information'),
+  });
+
   const missingResponse = await request.get('/api/v1/public/pages/not-published');
 
   expect(missingResponse.status()).toBe(404);
@@ -91,25 +109,23 @@ test('a CI-only fresh identity can login, report its session, and logout', async
   });
 });
 
-test('the password-session proof requires same-origin CSRF and returns generic invalid credentials', async ({
+test('unsafe browser requests require same-origin CSRF and login returns generic invalid credentials', async ({
   request,
 }) => {
   const csrfResponse = await request.get('/api/v1/security/csrf');
   const { token } = await csrfResponse.json();
   const body = { email: 'nobody@example.test', password: 'not-a-real-password' };
 
-  const missingToken = await request.post('/api/v1/session/login', {
+  const missingToken = await request.post('/api/v1/session/logout', {
     headers: { Origin: publicOrigin },
-    data: body,
   });
   expect(missingToken.status()).toBe(403);
 
-  const foreignOrigin = await request.post('/api/v1/session/login', {
+  const foreignOrigin = await request.post('/api/v1/session/logout', {
     headers: {
       Origin: 'https://untrusted.example',
       'X-CSRF-Token': token,
     },
-    data: body,
   });
   expect(foreignOrigin.status()).toBe(403);
 

@@ -10,6 +10,20 @@ test('the root redirects to and renders the public About page', async ({ page })
   ).toBeVisible();
 });
 
+test('all public-information navigation entries resolve to their published pages', async ({ page }) => {
+  await page.goto('/about');
+
+  await page.getByRole('link', { name: 'Imprint' }).click();
+  await expect(page).toHaveURL(/\/imprint$/);
+  await expect(page.getByRole('heading', { name: 'Imprint' })).toBeVisible();
+  await expect(page.getByText('deployment-specific publisher information')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Data protection' }).click();
+  await expect(page).toHaveURL(/\/data-protection$/);
+  await expect(page.getByRole('heading', { name: 'Data Protection' })).toBeVisible();
+  await expect(page.getByText('privacy and data protection information')).toBeVisible();
+});
+
 test('an unavailable public-page API is presented without a stale page', async ({ page }) => {
   await page.route('**/api/v1/public/pages/about', async (route) => {
     await route.fulfill({

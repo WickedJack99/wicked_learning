@@ -482,4 +482,40 @@ mod tests {
 
         assert_eq!(response.status(), 429);
     }
+
+    #[tokio::test]
+    async fn login_rejects_an_untrusted_origin_before_identity_lookup() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/session/login")
+                    .header("content-type", "application/json")
+                    .header("origin", "https://untrusted.example")
+                    .header("x-real-ip", "203.0.113.11")
+                    .body(Body::from(
+                        r#"{"email":"nobody@example.test","password":"not-a-real-password"}"#,
+                    ))
+                    .expect("a valid login request"),
+            )
+            .await
+            .expect("untrusted-origin login response");
+
+        assert_eq!(response.status(), 403);
+    }
 }
