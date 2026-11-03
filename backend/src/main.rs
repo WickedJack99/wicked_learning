@@ -1,5 +1,6 @@
 mod bootstrap;
 mod config;
+mod csrf;
 mod error;
 mod identity;
 pub mod media_store;
@@ -39,6 +40,7 @@ const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 #[derive(Clone)]
 pub(crate) struct AppState {
     application_database: PgPool,
+    csrf_cookie_key: String,
     identity_database: PgPool,
     media_store: MediaStore,
     session_cookie_secure: bool,
@@ -95,6 +97,7 @@ async fn main() -> ExitCode {
 
     let state = AppState {
         application_database,
+        csrf_cookie_key: configuration.csrf_cookie_key,
         identity_database,
         media_store,
         session_cookie_secure: configuration.session_cookie_secure,
@@ -159,13 +162,16 @@ fn router(state: AppState) -> Router {
         .with_name("wicked_learning_session")
         .with_secure(state.session_cookie_secure);
     let auth_layer = AuthManagerLayerBuilder::new(identity_backend, session_layer).build();
+    let csrf_layer = csrf::layer(&state.csrf_cookie_key, state.session_cookie_secure);
 
     Router::new()
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
+        .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))
         .with_state(state)
+        .layer(csrf_layer)
         .layer(auth_layer)
         .layer(
             ServiceBuilder::new()
@@ -277,6 +283,9 @@ mod tests {
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -313,6 +322,9 @@ mod tests {
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -340,5 +352,45 @@ mod tests {
                 .to_bytes(),
             "{\"authenticated\":false,\"subject_id\":null}"
         );
+    }
+
+    #[tokio::test]
+    async fn csrf_token_uses_a_non_cacheable_http_only_cookie() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            session_cookie_secure: false,
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/security/csrf")
+                    .body(Body::empty())
+                    .expect("a valid HTTP request"),
+            )
+            .await
+            .expect("CSRF token response");
+
+        assert_eq!(response.status(), 200);
+        assert_eq!(response.headers().get("cache-control").unwrap(), "no-store");
+        let cookie = response
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(cookie.starts_with("wicked_learning_csrf="));
+        assert!(cookie.contains("HttpOnly"));
+        assert!(cookie.contains("SameSite=Strict"));
+        assert!(!cookie.contains("Secure"));
     }
 }

@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/security/csrf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Issue a token for a subsequent same-origin unsafe browser request. */
+        get: operations["getCsrfToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/pages/{slug}": {
         parameters: {
             query?: never;
@@ -93,6 +110,10 @@ export interface components {
              * @description Opaque Rust identity subject identifier, available only for an authenticated session.
              */
             subject_id: string | null;
+        };
+        CsrfToken: {
+            /** @description Send this value in the CSRF header defined by a future unsafe endpoint. It is not an authentication credential. */
+            token: string;
         };
         PublicPage: {
             /** @example about */
@@ -176,6 +197,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionStatus"];
+                };
+            };
+        };
+    };
+    getCsrfToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A short-lived CSRF token. The matching protected cookie is set by the response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsrfToken"];
                 };
             };
         };

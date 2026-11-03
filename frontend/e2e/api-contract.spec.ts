@@ -32,6 +32,19 @@ test('an anonymous session reveals no credential or identity material', async ({
   });
 });
 
+test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({ request }) => {
+  const response = await request.get('/api/v1/security/csrf');
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()['cache-control']).toBe('no-store');
+  expect(response.headers()['set-cookie']).toContain('wicked_learning_csrf=');
+  expect(response.headers()['set-cookie']).toContain('HttpOnly');
+  expect(response.headers()['set-cookie']).toContain('SameSite=Strict');
+  await expect(response.json()).resolves.toMatchObject({
+    token: expect.stringMatching(/^[A-Za-z0-9+/]+={0,2}$/),
+  });
+});
+
 test('the same-origin entry point has the required browser security headers', async ({ request }) => {
   const response = await request.get('/about');
 

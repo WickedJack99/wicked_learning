@@ -49,6 +49,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionStatus'
+  /security/csrf:
+    get:
+      operationId: getCsrfToken
+      summary: Issue a token for a subsequent same-origin unsafe browser request.
+      responses:
+        '200':
+          description: A short-lived CSRF token. The matching protected cookie is set by the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfToken'
   /public/pages/{slug}:
     get:
       operationId: getPublicPage
@@ -112,6 +123,14 @@ components:
           type: [string, 'null']
           format: uuid
           description: Opaque Rust identity subject identifier, available only for an authenticated session.
+    CsrfToken:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: Send this value in the CSRF header defined by a future unsafe endpoint. It is not an authentication credential.
     PublicPage:
       type: object
       additionalProperties: false

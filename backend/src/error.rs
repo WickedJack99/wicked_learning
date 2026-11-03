@@ -33,6 +33,14 @@ impl ApiError {
             title: "A required service is unavailable.",
         }
     }
+
+    pub fn internal_server_error() -> Self {
+        Self {
+            code: "internal_error",
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            title: "The request could not be completed.",
+        }
+    }
 }
 
 impl IntoResponse for ApiError {

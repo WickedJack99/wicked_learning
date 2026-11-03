@@ -26,8 +26,8 @@ default enabled for any HTTPS environment.
 ## Start locally
 
 1. Copy `.env.rust.example` to `.env.rust` and replace both database passwords
-   before using any shared environment. The committed defaults are deliberately
-   local-development-only values.
+   and the CSRF cookie key before using any shared environment. The committed
+   defaults are deliberately local-development-only values.
 2. Start the two database services:
 
    ```bash
@@ -54,6 +54,12 @@ default enabled for any HTTPS environment.
 Open `http://localhost:8081`. The React foundation requests
 `/api/v1/health/ready` at the same public origin. The endpoint is ready only
 when both PostgreSQL databases are reachable.
+
+`GET /api/v1/security/csrf` issues a non-cacheable CSRF token and matching
+encrypted, HTTP-only cookie for the future unsafe browser endpoints. This is a
+foundation endpoint only: no login or application mutation route is exposed
+yet. The local HTTP stack intentionally does not mark that cookie `Secure`; an
+HTTPS deployment does.
 
 ## Browser acceptance checks
 

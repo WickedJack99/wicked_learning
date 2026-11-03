@@ -11,6 +11,7 @@ use thiserror::Error;
 #[derive(Clone)]
 pub struct Config {
     pub application_database_url: String,
+    pub csrf_cookie_key: String,
     pub identity_database_url: String,
     pub listen_address: SocketAddr,
     pub media_root: PathBuf,
@@ -30,6 +31,8 @@ pub enum ConfigError {
     InvalidListenAddress(#[source] std::net::AddrParseError),
     #[error("SESSION_COOKIE_SECURE must be true or false: {0}")]
     InvalidSessionCookieSecure(#[source] ParseBoolError),
+    #[error("CSRF_COOKIE_KEY must contain at least 64 bytes of secret material")]
+    InvalidCsrfCookieKey,
     #[error("BOOTSTRAP_ADMIN_EMAIL must be a valid email address")]
     InvalidBootstrapAdminEmail,
 }
@@ -58,6 +61,7 @@ impl Config {
     pub fn from_environment() -> Result<Self, ConfigError> {
         Ok(Self {
             application_database_url: required("APPLICATION_DATABASE_URL")?,
+            csrf_cookie_key: csrf_cookie_key()?,
             identity_database_url: required("IDENTITY_DATABASE_URL")?,
             listen_address: env::var("LISTEN_ADDRESS")
                 .unwrap_or_else(|_| "0.0.0.0:3000".to_owned())
@@ -74,13 +78,25 @@ impl Config {
     }
 }
 
+fn csrf_cookie_key() -> Result<String, ConfigError> {
+    validate_csrf_cookie_key(required("CSRF_COOKIE_KEY")?)
+}
+
+fn validate_csrf_cookie_key(key: String) -> Result<String, ConfigError> {
+    if key.as_bytes().len() < 64 {
+        return Err(ConfigError::InvalidCsrfCookieKey);
+    }
+
+    Ok(key)
+}
+
 fn required(name: &'static str) -> Result<String, ConfigError> {
     env::var(name).map_err(|_| ConfigError::Missing(name))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_email;
+    use super::{ConfigError, normalize_email, validate_csrf_cookie_key};
 
     #[test]
     fn bootstrap_email_is_trimmed_and_normalized() {
@@ -89,5 +105,13 @@ mod tests {
             "admin@example.test"
         );
         assert!(normalize_email("not-an-email").is_err());
+    }
+
+    #[test]
+    fn csrf_cookie_key_requires_enough_secret_material() {
+        assert!(matches!(
+            validate_csrf_cookie_key("too-short".to_owned()),
+            Err(ConfigError::InvalidCsrfCookieKey)
+        ));
     }
 }
