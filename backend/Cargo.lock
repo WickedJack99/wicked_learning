@@ -3293,6 +3293,7 @@ name = "wicked-learning-application"
 version = "0.1.0"
 dependencies = [
  "tokio",
+ "uuid",
  "wicked-learning-domain",
 ]
 
