@@ -309,6 +309,36 @@ be approximated by a read-only browser implementation. Direct fresh relations
 keep the model aligned with the product graph without reintroducing Laravel's
 internal compatibility Node.
 
+## ADR-014: Foundation crate placement and extraction trigger
+
+**Status:** Accepted — 3 November 2026
+
+**Decision:** The initial Rust/Axum proof of concept intentionally uses one
+small `backend` binary crate with route handlers and adapters directly under
+`backend/src`. This was a temporary foundation layout, not a rejection of the
+planned workspace architecture.
+
+**Why:** ADR-008 authorized a no-write proof of concept to validate the
+separate build, Compose topology, two PostgreSQL databases, OpenAPI generation,
+health checks, media adapter, CSRF and session libraries. At that point there
+were no proven application use cases or domain seams, so creating empty
+`api`, `application`, `domain`, `persistence` and `infrastructure` crates would
+have added ceremony without protecting a real boundary. Keeping the foundation
+in one crate made those cross-cutting concerns executable and testable quickly.
+
+**Extraction trigger:** Before adding a substantial behavior module beyond the
+foundation—starting with the World content contract and its persistence/query
+logic—refactor `backend` into the workspace described in the replatforming
+plan. Put Axum/HTTP DTOs in `api`, use cases in `application`, policy/value
+objects in `domain`, SQLx implementations in `persistence`, and media, mail,
+AI and clock adapters in `infrastructure`. Do not add new domain behavior to
+the flat root `backend/src` modules after this trigger.
+
+**Documentation rule:** Any deliberate deviation from the planned repository
+or crate structure needs a dated ADR that states the scope, rationale, owner,
+and concrete trigger for revisiting it. Do not leave structural shortcuts as
+implicit or chat-only context.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

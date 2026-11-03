@@ -117,6 +117,17 @@ calls between these modules. A single Axum service and transaction boundary is
 the least risky replacement for the existing monolith; future service
 extraction requires a demonstrated operational or scaling need.
 
+### Foundation layout and workspace transition
+
+The first executable proof of concept intentionally began as one small binary
+crate under `backend/src`. It validated the Compose topology, generated
+contracts, separate databases, Rust-owned sessions, CSRF, mounted media and
+read-only endpoints before there were demonstrated application/domain seams.
+This limited exception is recorded in ADR-014; it must not become the permanent
+layout. Before the World content slice expands beyond its migration foundation,
+move the backend to the workspace and dependency direction above. Any later
+structural exception requires a recorded ADR with a concrete extraction trigger.
+
 ### Technology choices to validate in a proof of concept
 
 These are recommendations, not dependency approvals. Pin exact versions only

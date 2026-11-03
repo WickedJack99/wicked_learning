@@ -57,6 +57,14 @@ permission to cross from read-only exploration into identity changes,
 learner-data writes, activity playback/progress, authoring, media mutations or
 production routing: obtain explicit user approval at that phase boundary.
 
+The flat `backend/src` Rust layout is an explicitly temporary proof-of-concept
+exception recorded in ADR-014 of `documentation/replatforming-decisions.md`.
+Before adding substantial behavior beyond the existing foundation—beginning
+with World content—move the Rust backend into the workspace and dependency
+direction specified by `documentation/rust-axum-replatforming-plan.md`. Do not
+leave a structural shortcut undocumented: record any deviation, its rationale,
+scope and concrete revisit/extraction trigger in an ADR before relying on it.
+
 ## Repository Git workflow
 
 - Use the Git CLI for repository operations. Do not depend on the optional GitHub CLI or another Git-specific tool.
