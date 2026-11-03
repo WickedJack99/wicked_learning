@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the safe authentication state for the current browser session. */
+        get: operations["getSessionStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/pages/{slug}": {
         parameters: {
             query?: never;
@@ -68,6 +85,14 @@ export interface components {
             code: string;
             /** @example A required service is unavailable. */
             title: string;
+        };
+        SessionStatus: {
+            authenticated: boolean;
+            /**
+             * Format: uuid
+             * @description Opaque Rust identity subject identifier, available only for an authenticated session.
+             */
+            subject_id: string | null;
         };
         PublicPage: {
             /** @example about */
@@ -131,6 +156,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getSessionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current session state without credential material. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatus"];
                 };
             };
         };

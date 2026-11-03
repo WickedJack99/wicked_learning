@@ -82,6 +82,12 @@ impl IdentityBackend {
     }
 }
 
+impl IdentitySubject {
+    pub fn subject_id(&self) -> Uuid {
+        self.id
+    }
+}
+
 fn subject_from_row(row: IdentityRow) -> IdentitySubject {
     IdentitySubject {
         id: row.id,

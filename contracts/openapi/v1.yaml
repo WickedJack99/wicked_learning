@@ -38,6 +38,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /session:
+    get:
+      operationId: getSessionStatus
+      summary: Read the safe authentication state for the current browser session.
+      responses:
+        '200':
+          description: Current session state without credential material.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatus'
   /public/pages/{slug}:
     get:
       operationId: getPublicPage
@@ -90,6 +101,17 @@ components:
         title:
           type: string
           example: A required service is unavailable.
+    SessionStatus:
+      type: object
+      additionalProperties: false
+      required: [authenticated, subject_id]
+      properties:
+        authenticated:
+          type: boolean
+        subject_id:
+          type: [string, 'null']
+          format: uuid
+          description: Opaque Rust identity subject identifier, available only for an authenticated session.
     PublicPage:
       type: object
       additionalProperties: false

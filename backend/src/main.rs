@@ -4,6 +4,7 @@ mod error;
 mod identity;
 mod passwords;
 mod public_pages;
+mod session_status;
 
 use std::{process::ExitCode, time::Duration};
 
@@ -151,6 +152,7 @@ fn router(state: AppState) -> Router {
     Router::new()
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
+        .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))
         .with_state(state)
         .layer(auth_layer)
@@ -285,6 +287,40 @@ mod tests {
                 .expect("body bytes")
                 .to_bytes(),
             "{\"status\":\"ok\"}"
+        );
+    }
+
+    #[tokio::test]
+    async fn anonymous_session_status_is_safe_and_does_not_query_a_database() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            session_cookie_secure: false,
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/session")
+                    .body(Body::empty())
+                    .expect("a valid HTTP request"),
+            )
+            .await
+            .expect("anonymous session response");
+
+        assert_eq!(response.status(), 200);
+        assert_eq!(
+            response
+                .into_body()
+                .collect()
+                .await
+                .expect("body bytes")
+                .to_bytes(),
+            "{\"authenticated\":false,\"subject_id\":null}"
         );
     }
 }
