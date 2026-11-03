@@ -219,6 +219,15 @@ export interface operations {
                     "application/json": components["schemas"]["CsrfToken"];
                 };
             };
+            /** @description The token could not be issued. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     getPublicPage: {

@@ -60,6 +60,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CsrfToken'
+        '500':
+          description: The token could not be issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /public/pages/{slug}:
     get:
       operationId: getPublicPage
