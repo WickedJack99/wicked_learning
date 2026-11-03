@@ -67,6 +67,13 @@ test('an anonymous session reveals no credential or identity material', async ({
     authenticated: false,
     subject_id: null,
   });
+
+  const currentUserResponse = await request.get('/api/v1/me');
+  expect(currentUserResponse.status()).toBe(401);
+  await expect(currentUserResponse.json()).resolves.toEqual({
+    code: 'authentication_required',
+    title: 'Authentication is required.',
+  });
 });
 
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({ request }) => {
@@ -106,6 +113,13 @@ test('a CI-only fresh identity can login, report its session, and logout', async
 
   const currentSession = await request.get('/api/v1/session');
   await expect(currentSession.json()).resolves.toEqual(session);
+
+  const currentUser = await request.get('/api/v1/me');
+  expect(currentUser.status()).toBe(200);
+  await expect(currentUser.json()).resolves.toEqual({
+    subject_id: session.subject_id,
+    roles: ['platform_administrator'],
+  });
 
   const logout = await request.post('/api/v1/session/logout', {
     headers: {

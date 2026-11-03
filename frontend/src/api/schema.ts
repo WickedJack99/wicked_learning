@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current authenticated subject and application roles. */
+        get: operations["getCurrentUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session/login": {
         parameters: {
             query?: never;
@@ -162,6 +179,15 @@ export interface components {
              */
             subject_id: string | null;
         };
+        CurrentUser: {
+            /**
+             * Format: uuid
+             * @description Opaque Rust-owned identity subject identifier.
+             */
+            subject_id: string;
+            /** @description Application roles, not credentials or profile data. */
+            roles: "platform_administrator"[];
+        };
         LoginRequest: {
             /** Format: email */
             email: string;
@@ -268,6 +294,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionStatus"];
+                };
+            };
+        };
+    };
+    getCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The opaque identity subject and roles currently granted by the application database. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
         };

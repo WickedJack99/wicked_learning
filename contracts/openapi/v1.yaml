@@ -49,6 +49,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionStatus'
+  /me:
+    get:
+      operationId: getCurrentUser
+      summary: Read the current authenticated subject and application roles.
+      responses:
+        '200':
+          description: The opaque identity subject and roles currently granted by the application database.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The identity has no application principal or role assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /session/login:
     post:
       operationId: createSession
@@ -218,6 +247,21 @@ components:
           type: [string, 'null']
           format: uuid
           description: Opaque Rust identity subject identifier, available only for an authenticated session.
+    CurrentUser:
+      type: object
+      additionalProperties: false
+      required: [subject_id, roles]
+      properties:
+        subject_id:
+          type: string
+          format: uuid
+          description: Opaque Rust-owned identity subject identifier.
+        roles:
+          type: array
+          description: Application roles, not credentials or profile data.
+          items:
+            type: string
+            enum: [platform_administrator]
     LoginRequest:
       type: object
       additionalProperties: false

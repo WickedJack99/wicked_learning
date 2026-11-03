@@ -1,6 +1,7 @@
 mod bootstrap;
 mod config;
 mod csrf;
+mod current_user;
 mod error;
 mod identity;
 mod login_rate_limit;
@@ -196,6 +197,7 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/security/csrf", get(csrf::show))
+        .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/session/logout", post(session_commands::logout))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))
@@ -386,6 +388,45 @@ mod tests {
                 .expect("body bytes")
                 .to_bytes(),
             "{\"authenticated\":false,\"subject_id\":null}"
+        );
+    }
+
+    #[tokio::test]
+    async fn current_user_requires_an_authenticated_session() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/me")
+                    .body(Body::empty())
+                    .expect("a valid current-user request"),
+            )
+            .await
+            .expect("current-user response");
+
+        assert_eq!(response.status(), 401);
+        assert_eq!(
+            response
+                .into_body()
+                .collect()
+                .await
+                .expect("body bytes")
+                .to_bytes(),
+            "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
         );
     }
 

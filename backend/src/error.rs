@@ -58,6 +58,14 @@ impl ApiError {
         }
     }
 
+    pub fn authentication_required() -> Self {
+        Self {
+            code: "authentication_required",
+            status: StatusCode::UNAUTHORIZED,
+            title: "Authentication is required.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",
