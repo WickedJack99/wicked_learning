@@ -2,4 +2,5 @@
 //!
 //! Domain modules must not depend on Axum, SQLx, HTTP DTOs or React payloads.
 
+pub mod platform_presentation;
 pub mod world_content;
