@@ -77,7 +77,8 @@ test('the public explorer presents maps and places without requiring a session',
 }) => {
     await page.goto('/about');
 
-    await page.getByRole('link', { name: 'Explore' }).click();
+    await page.getByRole('link', { name: 'Home' }).click();
+    await page.getByRole('link', { name: 'Enter the first world' }).click();
     await expect(page).toHaveURL(/\/world$/);
     await expect(
         page.getByRole('heading', { name: 'The First Path' }),
@@ -185,12 +186,19 @@ test('a missing public map place has its own recoverable not-found state', async
 test('the public explorer search is bounded and presents matching places', async ({
     page,
 }) => {
-    await page.goto('/about');
+    await page.goto('/world');
 
-    await page.getByRole('link', { name: 'Search' }).click();
-    await page.getByLabel('Search places').fill('direction');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByLabel('Search maps and places').fill('direction');
+    await expect(
+        page.getByRole('button', { name: 'Choose a direction The First Path' }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Choose a direction The First Path' })
+        .click();
 
+    await expect(page).toHaveURL(
+        /\/world\?map=first-path&focused=choose-a-direction$/,
+    );
     await expect(
         page.getByRole('heading', { name: 'Choose a direction' }),
     ).toBeVisible();

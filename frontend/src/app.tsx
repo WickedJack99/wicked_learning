@@ -14,6 +14,10 @@ import {
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalWelcomePage } from './original-welcome';
+import {
+    PublicInformationPage,
+    PublicSourceCodePage,
+} from './public-information';
 import { PublicWorldPage } from './public-world';
 
 type Readiness = 'checking' | 'ready' | 'unavailable';
@@ -91,6 +95,15 @@ export function App() {
 
     if (location.pathname === '/world') {
         return <PublicWorldPage isAuthenticated={currentUser.kind === 'loaded'} />;
+    }
+
+    if (location.pathname === '/source') {
+        return <PublicSourceCodePage />;
+    }
+
+    const publicInformationSlug = location.pathname.slice(1);
+    if (publicSlugs.includes(publicInformationSlug as (typeof publicSlugs)[number])) {
+        return <PublicInformationPage slug={publicInformationSlug} />;
     }
 
     return (

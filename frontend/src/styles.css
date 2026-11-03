@@ -470,6 +470,26 @@ button:disabled {
     padding: 0;
 }
 
+/* Public information pages retain the original full-bleed presentation rather
+   than inheriting the provisional article card used by the early shell. */
+.public-information article {
+    background: rgb(2 6 23 / 0.72);
+    border-color: rgb(255 255 255 / 0.15);
+    box-shadow: 0 25px 55px rgb(2 6 23 / 0.3);
+    color: #f8fafc;
+}
+
+.public-information article h1,
+.public-information article h2,
+.public-information article h3,
+.public-information article h4 {
+    color: #f8fafc;
+}
+
+.public-information article a {
+    color: inherit;
+}
+
 .search-results {
     display: grid;
     gap: 0.75rem;

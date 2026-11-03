@@ -290,6 +290,35 @@ The standalone Welcome page is the first fidelity migration: it reuses the
 original layout, content structure, Tailwind utilities and Lucide icons while
 substituting React Router and the existing Rust session state for Inertia.
 
+### Reference behavior and implementation autonomy
+
+The Laravel application and its React frontend are the behavioral reference for
+this replatforming. This is a backend/platform replacement, not a product
+redesign. Existing route behavior, business rules, authorization, learning
+state transitions, edge cases, React components, layouts, styles and automated
+tests establish the expected result unless a later product decision explicitly
+changes it.
+
+When behavior is uncertain, investigate the existing controllers, actions,
+models, serializers, database relations, React code, tests and current project
+documentation before requesting a decision. The migration may use greenfield
+Rust schemas and idiomatic Rust libraries; it must not inherit Laravel's
+internal architecture merely for compatibility.
+
+Implementation agents are expected to choose ordinary technical details
+autonomously: workspace/module organization, maintained libraries, persistence
+patterns, internal abstractions, refactoring and focused verification. Record a
+significant architectural choice in this plan or an ADR when it changes a
+durable boundary, including the problem, selected approach, reason, meaningful
+alternatives/trade-offs and limitations. Do not create decision records for
+routine local implementation details.
+
+Ask for manual direction only where the reference conflicts or cannot answer a
+real product question, where a proposed result changes user-visible behavior,
+or where protected resources, production infrastructure, existing data or new
+authority are involved. An implementation challenge alone is not a reason to
+stop migration work.
+
 ### Current frontend URL migration register
 
 This register makes the frontend extraction sequence concrete for the fresh
