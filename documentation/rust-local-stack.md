@@ -55,6 +55,22 @@ Open `http://localhost:8081`. The React foundation requests
 `/api/v1/health/ready` at the same public origin. The endpoint is ready only
 when both PostgreSQL databases are reachable.
 
+## Browser acceptance checks
+
+With the stack running, install the Chromium test browser once and run the
+standalone frontend's browser checks:
+
+```bash
+cd frontend
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The tests visit the actual local Compose stack. They cover the root deep-link
+redirect, successful public-page display, the unavailable API state, and an
+unknown browser route. They do not use, start, or alter the Laravel stack.
+
 ## Fresh administrator bootstrap
 
 After migrations, create the first administrator with the backend's explicit
@@ -94,5 +110,6 @@ No production deployment is authorized by this document.
 The `Rust replatform foundation` GitHub Actions workflow checks changes to the
 Rust, contract, frontend and Compose files. It runs Rust formatting and tests,
 detects generated TypeScript-client drift, builds the standalone frontend and
-validates the Compose definition. It does not deploy the stack or change the
-Laravel workflows.
+validates the Compose definition, starts the isolated four-service stack and
+runs the Chromium browser checks against it. It removes the CI-only volumes
+afterward. It does not deploy the stack or change the Laravel workflows.

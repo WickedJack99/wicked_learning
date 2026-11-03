@@ -36,6 +36,8 @@ container.txt
 /frontend/dist
 /frontend/.env
 /frontend/.env.*
+/frontend/playwright-report
+/frontend/test-results
 /backend/.env
 /backend/.env.*
 /.env.rust

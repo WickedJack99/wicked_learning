@@ -54,3 +54,20 @@ jobs:
 
       - name: Validate local Compose definition
         run: docker compose -f compose.rust.yaml config --quiet
+
+      - name: Start the isolated replatform stack
+        run: |
+          docker compose -f compose.rust.yaml up --detach --wait application-db identity-db
+          docker compose -f compose.rust.yaml run --rm backend migrate
+          docker compose -f compose.rust.yaml up --detach --build --wait frontend
+          curl --fail --show-error http://127.0.0.1:8081/api/v1/health/ready
+
+      - name: Run browser acceptance checks
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Stop the isolated replatform stack
+        if: always()
+        run: docker compose -f compose.rust.yaml down --volumes --remove-orphans
