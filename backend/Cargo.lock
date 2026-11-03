@@ -3299,6 +3299,7 @@ name = "wicked-learning-domain"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "uuid",
 ]
 
@@ -3313,6 +3314,7 @@ dependencies = [
 name = "wicked-learning-persistence"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "sqlx",
  "uuid",
  "wicked-learning-domain",

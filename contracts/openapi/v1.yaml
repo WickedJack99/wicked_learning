@@ -465,7 +465,7 @@ components:
     PublicMapAsset:
       type: object
       additionalProperties: false
-      required: [slug, title, description, x, y, interaction_mode]
+      required: [slug, title, description, x, y, z, image_url, text, width, opacity, visual_config, interaction_config, interaction_mode]
       properties:
         slug:
           type: string
@@ -482,13 +482,33 @@ components:
           type: number
           minimum: 0
           maximum: 100
+        z:
+          type: integer
+        image_url:
+          type: [string, 'null']
+          format: uri
+        text:
+          type: [string, 'null']
+        width:
+          type: number
+          exclusiveMinimum: 0
+        opacity:
+          type: number
+          minimum: 0
+          maximum: 1
+        visual_config:
+          type: object
+          additionalProperties: true
+        interaction_config:
+          type: object
+          additionalProperties: true
         interaction_mode:
           type: string
           enum: [focusable, decorative]
-    PublicMap:
+    PublicNode:
       type: object
       additionalProperties: false
-      required: [slug, title, description, assets]
+      required: [slug, title, description, q, r, state, visual_config]
       properties:
         slug:
           type: string
@@ -497,11 +517,44 @@ components:
           type: string
         description:
           type: string
+        q:
+          type: integer
+        r:
+          type: integer
+        state:
+          type: string
+          enum: [available, locked, hidden]
+        visual_config:
+          type: object
+          additionalProperties: true
+    PublicMap:
+      type: object
+      additionalProperties: false
+      required: [slug, title, description, background_config, grid_config, assets, nodes]
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+        description:
+          type: string
+        background_config:
+          type: object
+          additionalProperties: true
+        grid_config:
+          type: object
+          additionalProperties: true
         assets:
           type: array
           maxItems: 100
           items:
             $ref: '#/components/schemas/PublicMapAsset'
+        nodes:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/PublicNode'
     PublicWorld:
       type: object
       additionalProperties: false

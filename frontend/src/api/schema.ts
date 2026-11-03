@@ -291,14 +291,45 @@ export interface components {
             description: string;
             x: number;
             y: number;
+            z: number;
+            /** Format: uri */
+            image_url: string | null;
+            text: string | null;
+            width: number;
+            opacity: number;
+            visual_config: {
+                [key: string]: unknown;
+            };
+            interaction_config: {
+                [key: string]: unknown;
+            };
             /** @enum {string} */
             interaction_mode: "focusable" | "decorative";
+        };
+        PublicNode: {
+            slug: string;
+            title: string;
+            description: string;
+            q: number;
+            r: number;
+            /** @enum {string} */
+            state: "available" | "locked" | "hidden";
+            visual_config: {
+                [key: string]: unknown;
+            };
         };
         PublicMap: {
             slug: string;
             title: string;
             description: string;
+            background_config: {
+                [key: string]: unknown;
+            };
+            grid_config: {
+                [key: string]: unknown;
+            };
             assets: components["schemas"]["PublicMapAsset"][];
+            nodes: components["schemas"]["PublicNode"][];
         };
         PublicWorld: {
             slug: string;
