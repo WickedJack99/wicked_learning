@@ -39,6 +39,7 @@ pub struct PublicMapAsset {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct PublicNode {
+    pub asset_slug: Option<String>,
     pub slug: String,
     pub title: String,
     pub description: String,

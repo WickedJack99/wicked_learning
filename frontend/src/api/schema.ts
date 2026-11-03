@@ -307,6 +307,8 @@ export interface components {
             interaction_mode: "focusable" | "decorative";
         };
         PublicNode: {
+            /** @description The published map-asset slug that presents this node, when it has one. */
+            asset_slug: string | null;
             slug: string;
             title: string;
             description: string;

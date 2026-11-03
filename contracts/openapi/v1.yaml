@@ -508,8 +508,12 @@ components:
     PublicNode:
       type: object
       additionalProperties: false
-      required: [slug, title, description, q, r, state, visual_config]
+      required: [asset_slug, slug, title, description, q, r, state, visual_config]
       properties:
+        asset_slug:
+          type: [string, 'null']
+          pattern: '^[a-z0-9-]+$'
+          description: The published map-asset slug that presents this node, when it has one.
         slug:
           type: string
           pattern: '^[a-z0-9-]+$'

@@ -80,16 +80,15 @@ test('the public explorer presents maps and places without requiring a session',
     await page.getByRole('link', { name: 'Explore' }).click();
     await expect(page).toHaveURL(/\/world$/);
     await expect(
-        page.getByRole('heading', { name: 'Orientation Garden' }),
-    ).toBeVisible();
-    await expect(
         page.getByRole('heading', { name: 'The First Path' }),
     ).toBeVisible();
     await expect(
-        page.getByRole('heading', { name: 'Notice the map' }),
+        page.getByRole('button', { name: 'Notice the map, open location' }),
     ).toBeVisible();
     await expect(
-        page.getByRole('heading', { name: 'Choose a direction' }),
+        page.getByRole('button', {
+            name: 'Choose a direction, open location',
+        }),
     ).toBeVisible();
 });
 
@@ -99,18 +98,22 @@ test('a learner can open a map place and inspect its route previews', async ({
     await page.goto('/world');
 
     await page
-        .getByRole('region', { name: 'The First Path map' })
-        .getByRole('link', {
-            name: 'Open Choose a direction on The First Path',
-        })
+        .getByRole('button', { name: 'Choose a direction, open location' })
         .click();
 
     await expect(page).toHaveURL(
-        /\/world\/orientation-garden\/maps\/first-path\/assets\/choose-a-direction$/,
+        /\/world\?map=first-path&focused=choose-a-direction$/,
     );
     await expect(
         page.getByRole('heading', { name: 'Choose a direction' }),
     ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'View available routes' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'View available routes' }).click();
+    await expect(page).toHaveURL(
+        /\/world\/orientation-garden\/maps\/first-path\/assets\/choose-a-direction$/,
+    );
     await expect(
         page.getByRole('heading', { name: 'Available routes' }),
     ).toBeVisible();
@@ -140,7 +143,7 @@ test('the learner shell keeps public navigation available on a narrow viewport',
         page.getByRole('link', { name: 'Local sign in' }),
     ).toBeVisible();
     await expect(
-        page.getByRole('region', { name: 'The First Path map' }),
+        page.getByRole('heading', { name: 'The First Path' }),
     ).toBeVisible();
 });
 

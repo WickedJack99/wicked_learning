@@ -44,6 +44,7 @@ struct MapAssetRow {
 #[derive(FromRow)]
 struct NodeRow {
     map_id: Uuid,
+    asset_slug: Option<String>,
     slug: String,
     title: String,
     description: String,
@@ -84,7 +85,7 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
         Vec::new()
     } else {
         sqlx::query_as::<_, NodeRow>(
-            "SELECT map_id, slug, title, description, position_q AS q, position_r AS r, state, visual_config FROM learning_nodes WHERE map_id = ANY($1) AND published_at IS NOT NULL ORDER BY map_id ASC, position_q ASC, position_r ASC, slug ASC",
+            "SELECT nodes.map_id, assets.slug AS asset_slug, nodes.slug, nodes.title, nodes.description, nodes.position_q AS q, nodes.position_r AS r, nodes.state, nodes.visual_config FROM learning_nodes AS nodes LEFT JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id WHERE nodes.map_id = ANY($1) AND nodes.published_at IS NOT NULL ORDER BY nodes.map_id ASC, nodes.position_q ASC, nodes.position_r ASC, nodes.slug ASC",
         ).bind(&map_ids).fetch_all(pool).await?
     };
     let mut assets_by_map: HashMap<Uuid, Vec<PublicMapAsset>> = HashMap::new();
@@ -114,6 +115,7 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
             .entry(node.map_id)
             .or_default()
             .push(PublicNode {
+                asset_slug: node.asset_slug,
                 slug: node.slug,
                 title: node.title,
                 description: node.description,

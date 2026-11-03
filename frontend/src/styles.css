@@ -448,6 +448,28 @@ button:disabled {
     opacity: 0.65;
 }
 
+/* The original map is a full-screen Tailwind surface. Keep the provisional
+   shell controls from bleeding into the retained World component styling. */
+.public-world button {
+    width: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font-weight: inherit;
+    padding: 0;
+}
+
+.public-world button:hover {
+    background: transparent;
+}
+
+.public-world input {
+    width: auto;
+    padding: 0;
+}
+
 .search-results {
     display: grid;
     gap: 0.75rem;

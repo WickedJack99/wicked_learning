@@ -14,6 +14,7 @@ import {
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalWelcomePage } from './original-welcome';
+import { PublicWorldPage } from './public-world';
 
 type Readiness = 'checking' | 'ready' | 'unavailable';
 type PageState =
@@ -86,6 +87,10 @@ export function App() {
                 isAuthenticated={currentUser.kind === 'loaded'}
             />
         );
+    }
+
+    if (location.pathname === '/world') {
+        return <PublicWorldPage isAuthenticated={currentUser.kind === 'loaded'} />;
     }
 
     return (

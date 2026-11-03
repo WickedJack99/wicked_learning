@@ -105,6 +105,7 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
                 ],
                 nodes: [
                     {
+                        asset_slug: 'notice-the-map',
                         slug: 'notice-the-map',
                         q: 0,
                         r: 0,
@@ -112,6 +113,7 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
                         visual_config: { icon: 'map' },
                     },
                     {
+                        asset_slug: 'choose-a-direction',
                         slug: 'choose-a-direction',
                         q: 2,
                         r: 1,
