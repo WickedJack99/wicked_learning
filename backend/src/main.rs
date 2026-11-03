@@ -2,6 +2,7 @@ mod bootstrap;
 mod config;
 mod error;
 mod identity;
+pub mod media_store;
 mod passwords;
 mod public_pages;
 mod session_status;
@@ -27,6 +28,7 @@ use crate::{
     config::{BootstrapAdminConfig, Config},
     error::ApiError,
     identity::IdentityBackend,
+    media_store::MediaStore,
 };
 
 static APPLICATION_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/application");
@@ -38,6 +40,7 @@ const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 pub(crate) struct AppState {
     application_database: PgPool,
     identity_database: PgPool,
+    media_store: MediaStore,
     session_cookie_secure: bool,
 }
 
@@ -82,10 +85,18 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    let media_store = match MediaStore::from_mounted_volume(&configuration.media_root) {
+        Ok(media_store) => media_store,
+        Err(error) => {
+            error!(%error, media_root = %configuration.media_root.display(), "could not initialize media store");
+            return ExitCode::FAILURE;
+        }
+    };
 
     let state = AppState {
         application_database,
         identity_database,
+        media_store,
         session_cookie_secure: configuration.session_cookie_secure,
     };
     let listener = match tokio::net::TcpListener::bind(configuration.listen_address).await {
@@ -178,6 +189,11 @@ async fn ready(State(state): State<AppState>) -> Result<Json<HealthResponse>, Ap
         .execute(&state.application_database)
         .await
         .map_err(|_| ApiError::service_unavailable())?;
+    state
+        .media_store
+        .check_readiness()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
     sqlx::query("SELECT 1")
         .execute(&state.identity_database)
         .await
@@ -264,6 +280,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
             session_cookie_secure: false,
         };
 
@@ -299,6 +316,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
             session_cookie_secure: false,
         };
 

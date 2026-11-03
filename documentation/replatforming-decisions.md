@@ -162,6 +162,12 @@ adapter prevents storage-provider details from becoming HTTP or domain policy.
 proof of concept while retaining an explicit boundary for a later object-store
 adapter.
 
+**Implementation:** The initial adapter uses the maintained Apache Arrow
+`object_store` crate's local filesystem provider rooted at the mounted backend
+volume. It assigns opaque server-owned object keys and uses the provider's
+atomic write behavior with filesystem sync enabled. The same adapter boundary
+can later be configured with its S3-compatible or other object providers.
+
 ## ADR-007: Deployment and background work
 
 **Status:** Accepted — 1 November 2026
