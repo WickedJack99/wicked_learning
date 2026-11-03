@@ -46,6 +46,19 @@ test('the public-page endpoint returns the contracted resource and missing-resou
   });
 });
 
+test('the public source-links endpoint returns only browser-safe link data', async ({ request }) => {
+  const response = await request.get('/api/v1/public/source-links');
+
+  expect(response.status()).toBe(200);
+  await expect(response.json()).resolves.toEqual({
+    origin: {
+      label: 'Original project',
+      url: 'https://github.com/WickedJack99/wicked_learning',
+    },
+    modified_sources: [],
+  });
+});
+
 test('an anonymous session reveals no credential or identity material', async ({ request }) => {
   const response = await request.get('/api/v1/session');
 

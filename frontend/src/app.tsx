@@ -9,6 +9,14 @@ type PageState =
   | { kind: 'loaded'; body: string; title: string }
   | { kind: 'not-found' }
   | { kind: 'unavailable' };
+type SourceLinksState =
+  | { kind: 'loading' }
+  | {
+      kind: 'loaded';
+      modifiedSources: Array<{ label: string; url: string }>;
+      origin: { label: string; url: string };
+    }
+  | { kind: 'unavailable' };
 
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
 
@@ -32,10 +40,12 @@ export function App() {
               {labelFor(slug)}
             </NavLink>
           ))}
+          <NavLink to="/source">Source code</NavLink>
         </nav>
       </header>
       <Routes>
         <Route path="/" element={<Navigate replace to="/about" />} />
+        <Route path="/source" element={<SourceCodePage />} />
         <Route path="/:slug" element={<PublicPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -43,6 +53,56 @@ export function App() {
         API status: {readiness}
       </p>
     </main>
+  );
+}
+
+function SourceCodePage() {
+  const [links, setLinks] = useState<SourceLinksState>({ kind: 'loading' });
+
+  useEffect(() => {
+    void apiClient.GET('/public/source-links').then(({ data }) => {
+      if (!data) {
+        setLinks({ kind: 'unavailable' });
+        return;
+      }
+
+      setLinks({
+        kind: 'loaded',
+        modifiedSources: data.modified_sources,
+        origin: data.origin,
+      });
+    }).catch(() => setLinks({ kind: 'unavailable' }));
+  }, []);
+
+  if (links.kind === 'loading') {
+    return <p aria-live="polite">Loading source-code links…</p>;
+  }
+  if (links.kind === 'unavailable') {
+    return <p role="alert">Source-code links are temporarily unavailable.</p>;
+  }
+
+  return (
+    <article>
+      <h1>Source code</h1>
+      <p>
+        This page points to the source code for the original project and, when configured,
+        source locations for modified versions.
+      </p>
+      <ul>
+        <li>
+          <a href={links.origin.url} rel="noreferrer" target="_blank">
+            {links.origin.label}
+          </a>
+        </li>
+        {links.modifiedSources.map((link) => (
+          <li key={link.url}>
+            <a href={link.url} rel="noreferrer" target="_blank">
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }
 

@@ -161,6 +161,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /public/source-links:
+    get:
+      operationId: getPublicSourceLinks
+      summary: Read the public source-code links for this fresh deployment.
+      responses:
+        '200':
+          description: The original project link and any deployment-specific modified-source links.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicSourceLinks'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   parameters:
     CsrfTokenHeader:
@@ -236,3 +253,27 @@ components:
         body:
           type: string
           description: Plain text with paragraph breaks; the client must render it as text, not HTML.
+    PublicSourceLink:
+      type: object
+      additionalProperties: false
+      required: [label, url]
+      properties:
+        label:
+          type: string
+          maxLength: 80
+        url:
+          type: string
+          format: uri
+          description: An HTTP(S) link opened outside the application.
+    PublicSourceLinks:
+      type: object
+      additionalProperties: false
+      required: [origin, modified_sources]
+      properties:
+        origin:
+          $ref: '#/components/schemas/PublicSourceLink'
+        modified_sources:
+          type: array
+          maxItems: 12
+          items:
+            $ref: '#/components/schemas/PublicSourceLink'

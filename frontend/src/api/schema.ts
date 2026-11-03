@@ -123,6 +123,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/source-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the public source-code links for this fresh deployment. */
+        get: operations["getPublicSourceLinks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -161,6 +178,18 @@ export interface components {
             title: string;
             /** @description Plain text with paragraph breaks; the client must render it as text, not HTML. */
             body: string;
+        };
+        PublicSourceLink: {
+            label: string;
+            /**
+             * Format: uri
+             * @description An HTTP(S) link opened outside the application.
+             */
+            url: string;
+        };
+        PublicSourceLinks: {
+            origin: components["schemas"]["PublicSourceLink"];
+            modified_sources: components["schemas"]["PublicSourceLink"][];
         };
     };
     responses: never;
@@ -401,6 +430,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPublicSourceLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The original project link and any deployment-specific modified-source links. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSourceLinks"];
                 };
             };
             /** @description The application database is unavailable. */

@@ -24,6 +24,22 @@ test('all public-information navigation entries resolve to their published pages
   await expect(page.getByText('privacy and data protection information')).toBeVisible();
 });
 
+test('the source-code page provides the original project link safely', async ({ page }) => {
+  await page.goto('/about');
+
+  await page.getByRole('link', { name: 'Source code' }).click();
+  await expect(page).toHaveURL(/\/source$/);
+  await expect(page.getByRole('heading', { name: 'Source code' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Original project' })).toHaveAttribute(
+    'href',
+    'https://github.com/WickedJack99/wicked_learning',
+  );
+  await expect(page.getByRole('link', { name: 'Original project' })).toHaveAttribute(
+    'rel',
+    'noreferrer',
+  );
+});
+
 test('an unavailable public-page API is presented without a stale page', async ({ page }) => {
   await page.route('**/api/v1/public/pages/about', async (route) => {
     await route.fulfill({
