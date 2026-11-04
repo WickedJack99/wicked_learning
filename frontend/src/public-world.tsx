@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
     BookOpen,
+    Bookmark,
+    CheckCircle2,
     LockKeyhole,
     Map as MapIcon,
     MapPin,
@@ -28,9 +30,18 @@ type PublicWorld = components['schemas']['PublicWorld'];
 
 type WorldState =
     | { kind: 'loading' }
-    | { kind: 'loaded'; world: PublicWorld }
+    | {
+          kind: 'loaded';
+          learnerState: LearnerWorldState | null;
+          world: PublicWorld;
+      }
     | { kind: 'empty' }
     | { kind: 'unavailable' };
+
+type LearnerWorldState = Pick<
+    components['schemas']['LearnerWorldSnapshot'],
+    'activity_progress' | 'bookmarked_node_slugs' | 'route_progress'
+>;
 
 type SearchState =
     | { kind: 'idle' }
@@ -70,7 +81,16 @@ export function PublicWorldPage({
                         return;
                     }
                     if (response.ok && data) {
-                        updateWorldState({ kind: 'loaded', world: data.world });
+                        updateWorldState({
+                            kind: 'loaded',
+                            learnerState: {
+                                activity_progress: data.activity_progress,
+                                bookmarked_node_slugs:
+                                    data.bookmarked_node_slugs,
+                                route_progress: data.route_progress,
+                            },
+                            world: data.world,
+                        });
                         return;
                     }
                     if (response.status !== 401) {
@@ -90,7 +110,11 @@ export function PublicWorldPage({
                     return;
                 }
 
-                updateWorldState({ kind: 'loaded', world: data });
+                updateWorldState({
+                    kind: 'loaded',
+                    learnerState: null,
+                    world: data,
+                });
             } catch {
                 updateWorldState({ kind: 'unavailable' });
             }
@@ -121,6 +145,7 @@ export function PublicWorldPage({
     return (
         <PublicWorldSurface
             isAuthenticated={isAuthenticated}
+            learnerState={worldState.learnerState}
             world={worldState.world}
         />
     );
@@ -136,9 +161,11 @@ function WorldMessage({ message, role }: { message: string; role?: string }) {
 
 function PublicWorldSurface({
     isAuthenticated,
+    learnerState,
     world,
 }: {
     isAuthenticated: boolean;
+    learnerState: LearnerWorldState | null;
     world: PublicWorld;
 }) {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -151,6 +178,10 @@ function PublicWorldSurface({
     const selectedNode =
         selectedMap?.nodes.find((node) => node.slug === requestedNodeSlug) ??
         null;
+    const completedNodeSlugs = useMemo(
+        () => completedNodeSlugsFrom(learnerState),
+        [learnerState],
+    );
 
     function selectNode(node: PublicNode | null, map = selectedMap): void {
         if (!map) {
@@ -187,6 +218,8 @@ function PublicWorldSurface({
             <WorldNavigation isAuthenticated={isAuthenticated} />
             <section className="absolute inset-0 overflow-hidden">
                 <PublicMapSurface
+                    bookmarkedNodeSlugs={learnerState?.bookmarked_node_slugs ?? []}
+                    completedNodeSlugs={completedNodeSlugs}
                     map={selectedMap}
                     onClearFocus={() => selectNode(null)}
                     onSelectNode={selectNode}
@@ -222,6 +255,8 @@ function PublicWorldSurface({
             ) : null}
 
             <NodeDrawer
+                bookmarked={selectedNode ? learnerState?.bookmarked_node_slugs.includes(selectedNode.slug) ?? false : false}
+                completed={selectedNode ? completedNodeSlugs.has(selectedNode.slug) : false}
                 map={selectedMap}
                 node={selectedNode}
                 onClose={() => selectNode(null)}
@@ -278,11 +313,15 @@ function WorldNavigation({ isAuthenticated }: { isAuthenticated: boolean }) {
 }
 
 function PublicMapSurface({
+    bookmarkedNodeSlugs,
+    completedNodeSlugs,
     map,
     onClearFocus,
     onSelectNode,
     selectedNode,
 }: {
+    bookmarkedNodeSlugs: string[];
+    completedNodeSlugs: Set<string>;
     map: PublicMap;
     onClearFocus: () => void;
     onSelectNode: (node: PublicNode) => void;
@@ -397,6 +436,12 @@ function PublicMapSurface({
                         node;
                     const canToggle = asset.interaction_mode === 'toggle';
                     const selected = node?.slug === selectedNode?.slug;
+                    const isBookmarked = Boolean(
+                        node && bookmarkedNodeSlugs.includes(node.slug),
+                    );
+                    const isCompleted = Boolean(
+                        node && completedNodeSlugs.has(node.slug),
+                    );
                     const isHidden = hiddenAssetSlugs.has(asset.slug);
                     const assetTheme = assetThemes[index];
                     const label =
@@ -482,6 +527,22 @@ function PublicMapSurface({
                                 label={label}
                                 labelColor={stringConfig(assetTheme, 'labelColor')}
                             />
+                            {isBookmarked || isCompleted ? (
+                                <span className="pointer-events-none absolute top-1 right-1 flex gap-1 text-teal-100 drop-shadow-md">
+                                    {isBookmarked ? (
+                                        <Bookmark
+                                            aria-label="Saved place"
+                                            className="size-4 fill-current"
+                                        />
+                                    ) : null}
+                                    {isCompleted ? (
+                                        <CheckCircle2
+                                            aria-label="Activity complete"
+                                            className="size-4"
+                                        />
+                                    ) : null}
+                                </span>
+                            ) : null}
                         </button>
                     );
                 })}
@@ -630,11 +691,15 @@ function WorldSearch({
 }
 
 function NodeDrawer({
+    bookmarked,
+    completed,
     map,
     node,
     onClose,
     world,
 }: {
+    bookmarked: boolean;
+    completed: boolean;
     map: PublicMap;
     node: PublicNode | null;
     onClose: () => void;
@@ -675,6 +740,16 @@ function NodeDrawer({
                     {node.state === 'locked' ? (
                         <p className="mt-4 flex items-center gap-2 rounded-lg border border-white/10 p-3 text-sm"><LockKeyhole className="size-4" /> This place is locked.</p>
                     ) : null}
+                    {bookmarked ? (
+                        <p className="mt-4 flex items-center gap-2 text-sm" data-wl-id="learner.world.bookmark-state">
+                            <Bookmark className="size-4 fill-current" /> Saved place
+                        </p>
+                    ) : null}
+                    {completed ? (
+                        <p className="mt-3 flex items-center gap-2 text-sm" data-wl-id="learner.world.activity-progress-state">
+                            <CheckCircle2 className="size-4" /> An activity here is complete.
+                        </p>
+                    ) : null}
                     {placePath ? (
                         <Link className="mt-auto inline-flex items-center gap-2 text-sm font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current" to={placePath}>
                             <BookOpen className="size-4" />
@@ -684,6 +759,16 @@ function NodeDrawer({
                 </div>
             ) : null}
         </aside>
+    );
+}
+
+function completedNodeSlugsFrom(
+    learnerState: LearnerWorldState | null,
+): Set<string> {
+    return new Set(
+        learnerState?.activity_progress
+            .filter((progress) => progress.status === 'completed')
+            .map((progress) => progress.node_slug) ?? [],
     );
 }
 

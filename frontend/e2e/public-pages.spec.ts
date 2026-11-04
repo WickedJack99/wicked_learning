@@ -292,13 +292,49 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
                             background_config: {},
                             grid_config: {},
                             map_assets_locked: false,
-                            assets: [],
-                            nodes: [],
+                            assets: [
+                                {
+                                    slug: 'private-place',
+                                    title: 'Private place',
+                                    description: '',
+                                    x: 50,
+                                    y: 50,
+                                    z: 0,
+                                    image_url: null,
+                                    text: 'Private place',
+                                    width: 24,
+                                    opacity: 1,
+                                    locked: false,
+                                    visual_config: {},
+                                    interaction_config: {},
+                                    sound_config: {},
+                                    interaction_mode: 'focusable',
+                                },
+                            ],
+                            nodes: [
+                                {
+                                    asset_slug: 'private-place',
+                                    slug: 'private-place',
+                                    title: 'Private place',
+                                    description: '',
+                                    q: 0,
+                                    r: 0,
+                                    state: 'available',
+                                    visual_config: {},
+                                },
+                            ],
                         },
                     ],
                 },
-                bookmarked_node_slugs: [],
-                activity_progress: [],
+                bookmarked_node_slugs: ['private-place'],
+                activity_progress: [
+                    {
+                        node_slug: 'private-place',
+                        activity_slug: 'private-activity',
+                        status: 'completed',
+                        completed_at: '2026-11-04T00:00:00.000000Z',
+                    },
+                ],
                 route_progress: [],
             }),
         });
@@ -310,6 +346,15 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
         page.getByRole('heading', { name: 'A private path' }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Private place, open location' })
+        .click();
+    await expect(
+        page.getByText('Saved place', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('An activity here is complete.'),
+    ).toBeVisible();
 });
 
 test('a missing public map place has its own recoverable not-found state', async ({
