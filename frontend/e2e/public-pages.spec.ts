@@ -148,6 +148,42 @@ test('the learner shell keeps public navigation available on a narrow viewport',
     ).toBeVisible();
 });
 
+test('the lifted World drawer keeps its close control usable on a narrow viewport', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/world');
+    await page
+        .getByRole('button', { name: 'Choose a direction, open location' })
+        .click();
+
+    const closeButton = page.getByRole('button', {
+        name: 'Close node panel',
+    });
+    await expect(closeButton).toBeVisible();
+    await expect
+        .poll(
+            async () =>
+                (
+                    await page
+                        .getByRole('complementary', {
+                            name: 'Selected learning place',
+                        })
+                        .boundingBox()
+                )?.x ?? -1,
+        )
+        .toBe(0);
+    const bounds = await closeButton.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds?.x).toBeGreaterThanOrEqual(0);
+    expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
+    expect(bounds?.y).toBeGreaterThanOrEqual(0);
+    expect((bounds?.y ?? 0) + (bounds?.height ?? 0)).toBeLessThanOrEqual(844);
+
+    await closeButton.click();
+    await expect(page).toHaveURL(/\/world\?map=first-path$/);
+});
+
 test('a transparent public map overlay hides only over its visible image pixels', async ({
     page,
 }) => {
@@ -382,12 +418,8 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
     await page
         .getByRole('button', { name: 'Private place, open location' })
         .click();
-    await expect(
-        page.getByText('Saved place', { exact: true }),
-    ).toBeVisible();
-    await expect(
-        page.getByText('An activity here is complete.'),
-    ).toBeVisible();
+    await expect(page.getByLabel('Saved place')).toBeVisible();
+    await expect(page.getByLabel('Node completed')).toBeVisible();
     await expect(
         page.getByRole('heading', { name: 'Available routes' }),
     ).toBeVisible();

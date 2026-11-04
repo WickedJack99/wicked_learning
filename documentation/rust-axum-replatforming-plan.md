@@ -302,8 +302,10 @@ does not yet supply equipped tools, group data, audio configuration, route-start
 commands or server-evaluated reveal/unlock
 state consumed by Laravel's
 `LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
-`ActivityPanel` components. It must therefore not be described as a completed
-World migration.
+`ActivityPanel` components. The original `NodeDetailDrawer` geometry, close
+control, scroll ownership and touch-swipe behavior are now lifted onto the
+interim route, but its original `ActivityPanel` and `WorldMap` remain to be
+migrated. It must therefore not be described as a completed World migration.
 
 Before treating the route as visually or functionally migrated, define the
 corresponding Rust read contract from that serializer, preserve its bounded and

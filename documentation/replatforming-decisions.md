@@ -373,7 +373,9 @@ model tool inventory, groups, answer-derived reveal/unlock rules, route start
 or activity playback. The interim `/world` React route uses this snapshot for a
 signed-in session and the public contract otherwise, rendering its authorized
 route previews in place of a link to a public-only endpoint. It has not yet
-lifted the original World components. Those capabilities need their own complete
+lifted the original `ActivityPanel`; its node drawer geometry, close control,
+scroll ownership and touch swipe behavior are now lifted from the original
+`NodeDetailDrawer`. Those capabilities need their own complete
 policy, schema and browser evidence before this endpoint can be described as
 full World parity.
 

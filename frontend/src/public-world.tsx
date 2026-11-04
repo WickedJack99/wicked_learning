@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
     BookOpen,
@@ -48,6 +49,13 @@ type LearnerWorldState = Pick<
     | 'start_routes'
 >;
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
+type PanelSwipe = {
+    isDragging: boolean;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    offsetX: number;
+};
 
 type SearchState =
     | { kind: 'idle' }
@@ -190,6 +198,7 @@ function PublicWorldSurface({
         () => completedNodeSlugsFrom(learnerState),
         [learnerState],
     );
+    const [panelSwipe, setPanelSwipe] = useState<PanelSwipe | null>(null);
 
     function selectNode(node: PublicNode | null, map = selectedMap): void {
         if (!map) {
@@ -200,8 +209,10 @@ function PublicWorldSurface({
         next.set('map', map.slug);
         if (node) {
             next.set('focused', node.slug);
+            setPanelSwipe(null);
         } else {
             next.delete('focused');
+            setPanelSwipe(null);
         }
         setSearchParams(next, { replace: true });
     }
@@ -269,7 +280,9 @@ function PublicWorldSurface({
                 map={selectedMap}
                 node={selectedNode}
                 onClose={() => selectNode(null)}
+                onSwipeChange={setPanelSwipe}
                 starts={selectedNode ? learnerState?.start_routes.filter((start) => start.node_slug === selectedNode.slug) ?? [] : []}
+                swipe={panelSwipe}
                 world={world}
             />
         </main>
@@ -707,7 +720,9 @@ function NodeDrawer({
     map,
     node,
     onClose,
+    onSwipeChange,
     starts,
+    swipe,
     world,
 }: {
     bookmarked: boolean;
@@ -716,7 +731,9 @@ function NodeDrawer({
     map: PublicMap;
     node: PublicNode | null;
     onClose: () => void;
+    onSwipeChange: (swipe: PanelSwipe | null) => void;
     starts: LearnerActivityStart[];
+    swipe: PanelSwipe | null;
     world: PublicWorld;
 }) {
     const theme = map.background_config;
@@ -728,45 +745,98 @@ function NodeDrawer({
     return (
         <aside
             aria-label="Selected learning place"
-            className={`absolute inset-x-0 top-0 bottom-0 z-50 w-full border-l shadow-2xl transition-transform duration-300 ease-out md:left-auto md:max-w-[420px] ${node ? 'translate-x-0' : 'pointer-events-none translate-x-full'}`}
-            style={{
-                background: stringConfig(theme, 'sidePanelBackground') ?? '#111820',
-                borderColor: stringConfig(theme, 'sidePanelBorderColor') ?? 'rgba(255,255,255,0.1)',
-                color: stringConfig(theme, 'sidePanelTextColor') ?? '#e2e8f0',
+            className={`absolute inset-x-0 top-28 bottom-0 z-50 w-full touch-pan-y border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out sm:top-16 md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100 ${node ? 'translate-x-0' : 'pointer-events-none translate-x-full'} ${swipe?.isDragging ? 'transition-none' : ''}`}
+            onPointerCancel={() => onSwipeChange(null)}
+            onPointerDown={(event) => {
+                if (event.pointerType === 'mouse' || event.button !== 0) {
+                    return;
+                }
+
+                onSwipeChange({
+                    isDragging: false,
+                    pointerId: event.pointerId,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    offsetX: 0,
+                });
             }}
+            onPointerMove={(event) => {
+                if (!swipe || swipe.pointerId !== event.pointerId) {
+                    return;
+                }
+
+                const deltaX = event.clientX - swipe.startX;
+                const deltaY = event.clientY - swipe.startY;
+                const isHorizontalSwipe =
+                    Math.abs(deltaX) > 12 &&
+                    Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+
+                if (!swipe.isDragging && !isHorizontalSwipe) {
+                    return;
+                }
+
+                event.preventDefault();
+                onSwipeChange({
+                    ...swipe,
+                    isDragging: true,
+                    offsetX: Math.max(0, deltaX),
+                });
+            }}
+            onPointerUp={(event) => {
+                if (!swipe || swipe.pointerId !== event.pointerId) {
+                    return;
+                }
+
+                if (swipe.offsetX > 96) {
+                    onClose();
+                } else {
+                    onSwipeChange(null);
+                }
+            }}
+            style={
+                {
+                    '--map-side-panel-heading-color':
+                        stringConfig(theme, 'sidePanelHeadingColor') ??
+                        stringConfig(theme, 'accentColor'),
+                    background:
+                        stringConfig(theme, 'sidePanelBackground') ?? '#111820',
+                    borderColor:
+                        stringConfig(theme, 'sidePanelBorderColor') ??
+                        'rgba(255,255,255,0.1)',
+                    color: stringConfig(theme, 'sidePanelTextColor') ?? '#e2e8f0',
+                    transform:
+                        node && swipe?.offsetX
+                            ? `translateX(${swipe.offsetX}px)`
+                            : undefined,
+                } as CSSProperties
+            }
         >
             {node ? (
-                <div className="flex h-full flex-col p-6">
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="m-0 text-xs font-semibold tracking-[0.2em] uppercase" style={{ color: stringConfig(theme, 'accentColor') ?? '#5eead4' }}>
+                <div className="flex h-full min-h-[44vh] flex-col gap-5 overflow-y-auto overscroll-contain p-5 md:p-7">
+                    <div className="flex items-start gap-4">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium tracking-[0.18em] [color:var(--map-side-panel-heading-color)] text-cyan-700 uppercase dark:text-teal-200/78">
                                 Learning place
                             </p>
-                            <h2 className="mt-3 mb-0 text-2xl font-semibold" style={{ color: stringConfig(theme, 'sidePanelHeadingColor') ?? stringConfig(theme, 'sidePanelTextColor') ?? '#f8fafc' }}>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-normal text-slate-950 dark:text-white">
                                 {node.title}
                             </h2>
                         </div>
-                        <button aria-label="Close place details" className="grid size-10 shrink-0 place-items-center rounded-lg hover:bg-white/10" onClick={onClose} type="button">
+                        <div className="flex shrink-0 items-center gap-1">
+                            {completed ? <span aria-label="Node completed" className="grid size-9 place-items-center rounded-md text-emerald-600 dark:text-emerald-300" title="Completed"><CheckCircle2 className="size-4" /></span> : null}
+                            {bookmarked ? <span aria-label="Saved place" className="grid size-9 place-items-center rounded-md text-cyan-600 dark:text-teal-200"><Bookmark className="size-4 fill-current" /></span> : null}
+                        </div>
+                        <button aria-label="Close node panel" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-slate-100 dark:hover:bg-white/10" onClick={onClose} type="button">
                             <X className="size-5" />
                         </button>
                     </div>
-                    <p className="mt-6 text-sm leading-6 opacity-85">{node.description}</p>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/6"><p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{node.description}</p></div>
                     {node.state === 'locked' ? (
-                        <p className="mt-4 flex items-center gap-2 rounded-lg border border-white/10 p-3 text-sm"><LockKeyhole className="size-4" /> This place is locked.</p>
-                    ) : null}
-                    {bookmarked ? (
-                        <p className="mt-4 flex items-center gap-2 text-sm" data-wl-id="learner.world.bookmark-state">
-                            <Bookmark className="size-4 fill-current" /> Saved place
-                        </p>
-                    ) : null}
-                    {completed ? (
-                        <p className="mt-3 flex items-center gap-2 text-sm" data-wl-id="learner.world.activity-progress-state">
-                            <CheckCircle2 className="size-4" /> An activity here is complete.
-                        </p>
+                        <p className="flex items-center gap-2 rounded-lg border border-white/10 p-3 text-sm"><LockKeyhole className="size-4" /> This place is locked.</p>
                     ) : null}
                     {isAuthenticated ? (
-                        <section className="mt-auto" data-wl-id="learner.world.activity-starts">
-                            <h3 className="m-0 text-sm font-semibold">Available routes</h3>
+                        <section className="relative mt-auto flex shrink-0 flex-col pb-12 md:pb-14" data-wl-id="learner.world.activity-starts">
+                            <h3 className="px-1 text-sm font-semibold">Available routes</h3>
                             {starts.length ? (
                                 <ul className="mt-3 grid list-none gap-2 p-0">
                                     {starts.map((start) => <ActivityStartPreview key={start.start_id} start={start} />)}
