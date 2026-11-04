@@ -664,10 +664,30 @@ components:
         last_entered_at:
           type: [string, 'null']
           format: date-time
+    LearnerWorldRoute:
+      type: object
+      additionalProperties: false
+      required: [node_slug, route_slug, title, description, activity_count]
+      properties:
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        route_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+          maxLength: 240
+        description:
+          type: string
+          maxLength: 4000
+        activity_count:
+          type: integer
+          minimum: 1
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false
-      required: [world, bookmarked_node_slugs, activity_progress, route_progress]
+      required: [world, bookmarked_node_slugs, activity_progress, route_progress, available_routes]
       properties:
         world:
           $ref: '#/components/schemas/PublicWorld'
@@ -687,6 +707,11 @@ components:
           maxItems: 200
           items:
             $ref: '#/components/schemas/LearnerRouteProgress'
+        available_routes:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/LearnerWorldRoute'
     PublicRoutePreview:
       type: object
       additionalProperties: false

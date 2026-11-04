@@ -336,6 +336,15 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
                     },
                 ],
                 route_progress: [],
+                available_routes: [
+                    {
+                        node_slug: 'private-place',
+                        route_slug: 'private-orientation-route',
+                        title: 'Private orientation route',
+                        description: 'A route visible only in this learner snapshot.',
+                        activity_count: 1,
+                    },
+                ],
             }),
         });
     });
@@ -354,6 +363,12 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
     ).toBeVisible();
     await expect(
         page.getByText('An activity here is complete.'),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Available routes' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Private orientation route'),
     ).toBeVisible();
 });
 

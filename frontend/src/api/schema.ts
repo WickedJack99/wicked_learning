@@ -384,11 +384,19 @@ export interface components {
             /** Format: date-time */
             last_entered_at: string | null;
         };
+        LearnerWorldRoute: {
+            node_slug: string;
+            route_slug: string;
+            title: string;
+            description: string;
+            activity_count: number;
+        };
         LearnerWorldSnapshot: {
             world: components["schemas"]["PublicWorld"];
             bookmarked_node_slugs: string[];
             activity_progress: components["schemas"]["LearnerActivityProgress"][];
             route_progress: components["schemas"]["LearnerRouteProgress"][];
+            available_routes: components["schemas"]["LearnerWorldRoute"][];
         };
         PublicRoutePreview: {
             slug: string;

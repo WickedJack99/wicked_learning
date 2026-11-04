@@ -352,7 +352,8 @@ the browser responsible for authorization.
 snapshot. The API resolves the identity subject to an application principal,
 filters maps by the principal's application roles (or the explicit `public`
 map role), and returns only that principal's bookmark, activity-progress and
-route-progress summaries. Learner-owned records reference
+route-progress summaries, plus bounded published route previews for the visible
+nodes. Learner-owned records reference
 `application_principals`, not identities in the separate identity database.
 The contract deliberately excludes answers, activity configuration, play-run
 identifiers, mutation affordances and data owned by another learner.
@@ -370,8 +371,9 @@ decisions. Both are rejected.
 **Limitations and next trigger:** The snapshot has no writer and does not yet
 model tool inventory, groups, answer-derived reveal/unlock rules, route start
 or activity playback. The interim `/world` React route uses this snapshot for a
-signed-in session and the public contract otherwise, but it has not yet lifted
-the original World components. Those capabilities need their own complete
+signed-in session and the public contract otherwise, rendering its authorized
+route previews in place of a link to a public-only endpoint. It has not yet
+lifted the original World components. Those capabilities need their own complete
 policy, schema and browser evidence before this endpoint can be described as
 full World parity.
 

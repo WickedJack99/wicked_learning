@@ -297,8 +297,9 @@ signed-in session and the public contract for an anonymous visitor. The
 authenticated contract provides a server-owned snapshot of visible maps plus
 the current principal's bookmark, activity-progress and route-progress
 summaries. The interim view renders read-only saved-place and completed-activity
-signals from that snapshot. It intentionally does not yet supply equipped
-tools, group data, audio configuration, route-start commands or server-evaluated reveal/unlock
+signals and its authorized route previews from that snapshot. It intentionally
+does not yet supply equipped tools, group data, audio configuration, route-start
+commands or server-evaluated reveal/unlock
 state consumed by Laravel's
 `LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
 `ActivityPanel` components. It must therefore not be described as a completed

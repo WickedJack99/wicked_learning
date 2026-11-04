@@ -40,8 +40,12 @@ type WorldState =
 
 type LearnerWorldState = Pick<
     components['schemas']['LearnerWorldSnapshot'],
-    'activity_progress' | 'bookmarked_node_slugs' | 'route_progress'
+    | 'activity_progress'
+    | 'available_routes'
+    | 'bookmarked_node_slugs'
+    | 'route_progress'
 >;
+type LearnerWorldRoute = components['schemas']['LearnerWorldRoute'];
 
 type SearchState =
     | { kind: 'idle' }
@@ -85,6 +89,7 @@ export function PublicWorldPage({
                             kind: 'loaded',
                             learnerState: {
                                 activity_progress: data.activity_progress,
+                                available_routes: data.available_routes,
                                 bookmarked_node_slugs:
                                     data.bookmarked_node_slugs,
                                 route_progress: data.route_progress,
@@ -257,9 +262,11 @@ function PublicWorldSurface({
             <NodeDrawer
                 bookmarked={selectedNode ? learnerState?.bookmarked_node_slugs.includes(selectedNode.slug) ?? false : false}
                 completed={selectedNode ? completedNodeSlugs.has(selectedNode.slug) : false}
+                isAuthenticated={isAuthenticated}
                 map={selectedMap}
                 node={selectedNode}
                 onClose={() => selectNode(null)}
+                routes={selectedNode ? learnerState?.available_routes.filter((route) => route.node_slug === selectedNode.slug) ?? [] : []}
                 world={world}
             />
         </main>
@@ -693,16 +700,20 @@ function WorldSearch({
 function NodeDrawer({
     bookmarked,
     completed,
+    isAuthenticated,
     map,
     node,
     onClose,
+    routes,
     world,
 }: {
     bookmarked: boolean;
     completed: boolean;
+    isAuthenticated: boolean;
     map: PublicMap;
     node: PublicNode | null;
     onClose: () => void;
+    routes: LearnerWorldRoute[];
     world: PublicWorld;
 }) {
     const theme = map.background_config;
@@ -750,7 +761,24 @@ function NodeDrawer({
                             <CheckCircle2 className="size-4" /> An activity here is complete.
                         </p>
                     ) : null}
-                    {placePath ? (
+                    {isAuthenticated ? (
+                        <section className="mt-auto" data-wl-id="learner.world.available-routes">
+                            <h3 className="m-0 text-sm font-semibold">Available routes</h3>
+                            {routes.length ? (
+                                <ul className="mt-3 grid list-none gap-2 p-0">
+                                    {routes.map((route) => (
+                                        <li className="rounded-lg border border-white/10 p-3" key={route.route_slug}>
+                                            <p className="m-0 text-sm font-medium">{route.title}</p>
+                                            {route.description ? <p className="mt-1 mb-0 text-xs leading-5 opacity-80">{route.description}</p> : null}
+                                            <p className="mt-2 mb-0 text-xs opacity-70">{route.activity_count} {route.activity_count === 1 ? 'activity' : 'activities'}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="mt-3 mb-0 text-sm opacity-80">No route is available here yet.</p>
+                            )}
+                        </section>
+                    ) : placePath ? (
                         <Link className="mt-auto inline-flex items-center gap-2 text-sm font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current" to={placePath}>
                             <BookOpen className="size-4" />
                             View available routes

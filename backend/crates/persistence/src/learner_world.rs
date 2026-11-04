@@ -5,7 +5,9 @@ use wicked_learning_application::learner_world::{
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
-    learner_state::{LearnerActivityProgress, LearnerRouteProgress, LearnerWorldSnapshot},
+    learner_state::{
+        LearnerActivityProgress, LearnerRouteProgress, LearnerWorldRoute, LearnerWorldSnapshot,
+    },
 };
 
 use crate::public_world::load_first_visible as load_visible_world;
@@ -54,6 +56,15 @@ struct RouteProgressRow {
     status: String,
 }
 
+#[derive(FromRow)]
+struct AvailableRouteRow {
+    activity_count: i64,
+    description: String,
+    node_slug: String,
+    route_slug: String,
+    title: String,
+}
+
 async fn load_first_visible(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -92,6 +103,12 @@ async fn load_first_visible(
     .bind(&loaded_world.map_ids)
     .fetch_all(pool)
     .await?;
+    let available_routes = sqlx::query_as::<_, AvailableRouteRow>(
+        "SELECT COUNT(activities.id) AS activity_count, routes.description, nodes.slug AS node_slug, routes.slug AS route_slug, routes.title FROM learning_routes AS routes INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id LEFT JOIN learning_activities AS activities ON activities.route_id = routes.id AND activities.published_at IS NOT NULL WHERE nodes.map_id = ANY($1) AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL GROUP BY routes.id, nodes.slug HAVING COUNT(activities.id) > 0 ORDER BY nodes.slug ASC, routes.position ASC, routes.slug ASC",
+    )
+    .bind(&loaded_world.map_ids)
+    .fetch_all(pool)
+    .await?;
 
     Ok(Some(LearnerWorldSnapshot {
         world: loaded_world.world,
@@ -115,6 +132,16 @@ async fn load_first_visible(
                 completion_count: row.completion_count,
                 last_completed_at: row.last_completed_at,
                 last_entered_at: row.last_entered_at,
+            })
+            .collect(),
+        available_routes: available_routes
+            .into_iter()
+            .map(|row| LearnerWorldRoute {
+                node_slug: row.node_slug,
+                route_slug: row.route_slug,
+                title: row.title,
+                description: row.description,
+                activity_count: row.activity_count,
             })
             .collect(),
     }))
