@@ -6,7 +6,8 @@ use wicked_learning_application::learner_world::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerActivityProgress, LearnerRouteProgress, LearnerWorldRoute, LearnerWorldSnapshot,
+        LearnerActivityProgress, LearnerActivityStart, LearnerActivityStartProgress,
+        LearnerRouteProgress, LearnerWorldRoute, LearnerWorldSnapshot,
     },
 };
 
@@ -65,6 +66,28 @@ struct AvailableRouteRow {
     title: String,
 }
 
+#[derive(FromRow)]
+struct ActivityStartRow {
+    activity_slug: String,
+    button_border_color_dark: Option<String>,
+    button_border_color_light: Option<String>,
+    button_color_dark: Option<String>,
+    button_color_light: Option<String>,
+    completion_count: Option<i32>,
+    current_activity_slug: Option<String>,
+    description: Option<String>,
+    image_dark: Option<String>,
+    image_light: Option<String>,
+    label: String,
+    last_completed_at: Option<String>,
+    last_entered_at: Option<String>,
+    node_slug: String,
+    route_slug: String,
+    sort_order: i16,
+    start_id: Uuid,
+    status: Option<String>,
+}
+
 async fn load_first_visible(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -109,6 +132,13 @@ async fn load_first_visible(
     .bind(&loaded_world.map_ids)
     .fetch_all(pool)
     .await?;
+    let start_routes = sqlx::query_as::<_, ActivityStartRow>(
+        "SELECT activities.slug AS activity_slug, starts.button_border_color_dark, starts.button_border_color_light, starts.button_color_dark, starts.button_color_light, progress.completion_count, current_activity.slug AS current_activity_slug, starts.description, starts.image_dark, starts.image_light, COALESCE(starts.label, activities.title) AS label, to_char(progress.last_completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_completed_at, to_char(progress.last_entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_entered_at, nodes.slug AS node_slug, routes.slug AS route_slug, starts.sort_order, starts.id AS start_id, progress.status FROM learning_activity_starts AS starts INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id LEFT JOIN learner_route_progress AS progress ON progress.principal_id = $1 AND progress.route_id = routes.id AND progress.node_id = nodes.id LEFT JOIN learning_activities AS current_activity ON current_activity.id = progress.current_activity_id WHERE nodes.map_id = ANY($2) AND nodes.map_asset_id = assets.id AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL ORDER BY nodes.slug ASC, starts.sort_order ASC, starts.id ASC",
+    )
+    .bind(principal_id)
+    .bind(&loaded_world.map_ids)
+    .fetch_all(pool)
+    .await?;
 
     Ok(Some(LearnerWorldSnapshot {
         world: loaded_world.world,
@@ -142,6 +172,31 @@ async fn load_first_visible(
                 title: row.title,
                 description: row.description,
                 activity_count: row.activity_count,
+            })
+            .collect(),
+        start_routes: start_routes
+            .into_iter()
+            .map(|row| LearnerActivityStart {
+                start_id: row.start_id.to_string(),
+                node_slug: row.node_slug,
+                route_slug: row.route_slug,
+                activity_slug: row.activity_slug,
+                label: row.label,
+                description: row.description,
+                image_dark: row.image_dark,
+                image_light: row.image_light,
+                button_color_dark: row.button_color_dark,
+                button_border_color_dark: row.button_border_color_dark,
+                button_color_light: row.button_color_light,
+                button_border_color_light: row.button_border_color_light,
+                sort_order: row.sort_order,
+                progress: row.status.map(|status| LearnerActivityStartProgress {
+                    current_activity_slug: row.current_activity_slug,
+                    status,
+                    completion_count: row.completion_count.unwrap_or_default(),
+                    last_completed_at: row.last_completed_at,
+                    last_entered_at: row.last_entered_at,
+                }),
             })
             .collect(),
     }))

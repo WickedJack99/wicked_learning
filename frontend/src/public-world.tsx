@@ -7,6 +7,7 @@ import {
     LockKeyhole,
     Map as MapIcon,
     MapPin,
+    PlayCircle,
     Search,
     X,
 } from 'lucide-react';
@@ -44,8 +45,9 @@ type LearnerWorldState = Pick<
     | 'available_routes'
     | 'bookmarked_node_slugs'
     | 'route_progress'
+    | 'start_routes'
 >;
-type LearnerWorldRoute = components['schemas']['LearnerWorldRoute'];
+type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 
 type SearchState =
     | { kind: 'idle' }
@@ -93,6 +95,7 @@ export function PublicWorldPage({
                                 bookmarked_node_slugs:
                                     data.bookmarked_node_slugs,
                                 route_progress: data.route_progress,
+                                start_routes: data.start_routes,
                             },
                             world: data.world,
                         });
@@ -266,7 +269,7 @@ function PublicWorldSurface({
                 map={selectedMap}
                 node={selectedNode}
                 onClose={() => selectNode(null)}
-                routes={selectedNode ? learnerState?.available_routes.filter((route) => route.node_slug === selectedNode.slug) ?? [] : []}
+                starts={selectedNode ? learnerState?.start_routes.filter((start) => start.node_slug === selectedNode.slug) ?? [] : []}
                 world={world}
             />
         </main>
@@ -704,7 +707,7 @@ function NodeDrawer({
     map,
     node,
     onClose,
-    routes,
+    starts,
     world,
 }: {
     bookmarked: boolean;
@@ -713,7 +716,7 @@ function NodeDrawer({
     map: PublicMap;
     node: PublicNode | null;
     onClose: () => void;
-    routes: LearnerWorldRoute[];
+    starts: LearnerActivityStart[];
     world: PublicWorld;
 }) {
     const theme = map.background_config;
@@ -762,17 +765,11 @@ function NodeDrawer({
                         </p>
                     ) : null}
                     {isAuthenticated ? (
-                        <section className="mt-auto" data-wl-id="learner.world.available-routes">
+                        <section className="mt-auto" data-wl-id="learner.world.activity-starts">
                             <h3 className="m-0 text-sm font-semibold">Available routes</h3>
-                            {routes.length ? (
+                            {starts.length ? (
                                 <ul className="mt-3 grid list-none gap-2 p-0">
-                                    {routes.map((route) => (
-                                        <li className="rounded-lg border border-white/10 p-3" key={route.route_slug}>
-                                            <p className="m-0 text-sm font-medium">{route.title}</p>
-                                            {route.description ? <p className="mt-1 mb-0 text-xs leading-5 opacity-80">{route.description}</p> : null}
-                                            <p className="mt-2 mb-0 text-xs opacity-70">{route.activity_count} {route.activity_count === 1 ? 'activity' : 'activities'}</p>
-                                        </li>
-                                    ))}
+                                    {starts.map((start) => <ActivityStartPreview key={start.start_id} start={start} />)}
                                 </ul>
                             ) : (
                                 <p className="mt-3 mb-0 text-sm opacity-80">No route is available here yet.</p>
@@ -788,6 +785,55 @@ function NodeDrawer({
             ) : null}
         </aside>
     );
+}
+
+function ActivityStartPreview({ start }: { start: LearnerActivityStart }) {
+    const image = start.image_dark;
+    const borderColor =
+        start.button_border_color_dark ?? 'rgba(255, 255, 255, 0.1)';
+    const buttonStyle = {
+        ...(start.button_color_dark
+            ? { backgroundColor: start.button_color_dark }
+            : {}),
+        backgroundClip: 'padding-box',
+        boxShadow: `inset 0 0 0 2px ${borderColor}`,
+    };
+    const progress = activityStartProgressText(start.progress);
+
+    return (
+        <li className="grid gap-1.5">
+            {image ? (
+                <div className="relative overflow-hidden rounded-lg bg-slate-950 text-left" style={buttonStyle}>
+                    <img alt="" className="h-32 w-full object-cover" decoding="async" loading="lazy" src={image} />
+                    <span className="absolute inset-x-0 top-0 flex min-h-10 items-center gap-2 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-slate-950 backdrop-blur-md dark:bg-slate-950/82 dark:text-white">
+                        <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                        <span className="truncate">{start.label}</span>
+                    </span>
+                </div>
+            ) : (
+                <div className="flex h-10 items-center gap-2 rounded-md border border-transparent bg-white/90 px-3 text-sm font-medium text-slate-950 dark:bg-slate-950 dark:text-white" style={buttonStyle}>
+                    <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                    <span className="truncate">{start.label}</span>
+                </div>
+            )}
+            {progress ? <p className="m-0 px-1 text-xs opacity-70">{progress}</p> : null}
+            {start.description ? <p className="m-0 px-1 text-xs leading-5 opacity-80">{start.description}</p> : null}
+        </li>
+    );
+}
+
+function activityStartProgressText(
+    progress: components['schemas']['LearnerActivityStartProgress'] | null,
+): string | null {
+    if (!progress) {
+        return null;
+    }
+
+    if (progress.completion_count > 0) {
+        return `Completed ${progress.completion_count}×`;
+    }
+
+    return progress.status === 'in_progress' ? 'In progress' : null;
 }
 
 function completedNodeSlugsFrom(

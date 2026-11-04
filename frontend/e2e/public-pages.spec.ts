@@ -336,6 +336,30 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
                     },
                 ],
                 route_progress: [],
+                start_routes: [
+                    {
+                        start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                        node_slug: 'private-place',
+                        route_slug: 'private-orientation-route',
+                        activity_slug: 'private-activity',
+                        label: 'Begin private orientation',
+                        description: 'A read-only route presentation from the learner snapshot.',
+                        image_dark: null,
+                        image_light: null,
+                        button_color_dark: null,
+                        button_border_color_dark: null,
+                        button_color_light: null,
+                        button_border_color_light: null,
+                        sort_order: 0,
+                        progress: {
+                            current_activity_slug: 'private-activity',
+                            status: 'completed',
+                            completion_count: 1,
+                            last_completed_at: '2026-11-04T00:00:00.000000Z',
+                            last_entered_at: '2026-11-04T00:00:00.000000Z',
+                        },
+                    },
+                ],
                 available_routes: [
                     {
                         node_slug: 'private-place',
@@ -368,8 +392,9 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
         page.getByRole('heading', { name: 'Available routes' }),
     ).toBeVisible();
     await expect(
-        page.getByText('Private orientation route'),
+        page.getByText('Begin private orientation'),
     ).toBeVisible();
+    await expect(page.getByText('Completed 1×')).toBeVisible();
 });
 
 test('a missing public map place has its own recoverable not-found state', async ({

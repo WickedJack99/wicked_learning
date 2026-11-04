@@ -391,12 +391,40 @@ export interface components {
             description: string;
             activity_count: number;
         };
+        LearnerActivityStartProgress: {
+            current_activity_slug: string | null;
+            /** @enum {string} */
+            status: "in_progress" | "completed";
+            completion_count: number;
+            /** Format: date-time */
+            last_completed_at: string | null;
+            /** Format: date-time */
+            last_entered_at: string | null;
+        };
+        LearnerActivityStart: {
+            /** Format: uuid */
+            start_id: string;
+            node_slug: string;
+            route_slug: string;
+            activity_slug: string;
+            label: string;
+            description: string | null;
+            image_dark: string | null;
+            image_light: string | null;
+            button_color_dark: string | null;
+            button_border_color_dark: string | null;
+            button_color_light: string | null;
+            button_border_color_light: string | null;
+            sort_order: number;
+            progress: components["schemas"]["LearnerActivityStartProgress"] | null;
+        };
         LearnerWorldSnapshot: {
             world: components["schemas"]["PublicWorld"];
             bookmarked_node_slugs: string[];
             activity_progress: components["schemas"]["LearnerActivityProgress"][];
             route_progress: components["schemas"]["LearnerRouteProgress"][];
             available_routes: components["schemas"]["LearnerWorldRoute"][];
+            start_routes: components["schemas"]["LearnerActivityStart"][];
         };
         PublicRoutePreview: {
             slug: string;

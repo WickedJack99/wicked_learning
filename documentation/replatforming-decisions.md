@@ -377,6 +377,35 @@ lifted the original World components. Those capabilities need their own complete
 policy, schema and browser evidence before this endpoint can be described as
 full World parity.
 
+## ADR-016: Preserve node-specific activity starts separately from routes
+
+**Status:** Accepted — 4 November 2026
+
+**Problem:** Laravel distinguishes an activity route (the activity sequence)
+from an activity start (how an eligible activity is offered from a particular
+node). A start owns its ordering, label, description, images and button theme.
+Representing every visible offer as a generic route would lose that behavior
+and prevent the original `ActivityPanel` from being lifted faithfully.
+
+**Decision:** Add `learning_activity_starts` to the application database. It
+links a node to an activity and holds the learner-facing presentation fields.
+The existing fresh orientation content receives one start per route's first
+published activity. The later authenticated World contract will expose starts,
+not synthesize them in React from generic route rows.
+
+**Temporary limitation and trigger:** The first learner-progress schema keys
+route progress by `(principal_id, route_id)`. That is safe for the current
+fresh content, where each route has one node, but is not sufficient once a
+route can be started from more than one node. Before authoring or publishing a
+reused route, evolve route progress to reference `learning_activity_starts.id`
+and preserve the old route-level records through an explicit local migration.
+Do not let the temporary key become a permanent convention.
+
+**Alternatives:** Synthesizing start buttons directly from routes would discard
+their authored presentation and node-specific semantics. Delaying the table
+would keep the provisional drawer in place and make the frontend re-create
+server content decisions. Both are rejected.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

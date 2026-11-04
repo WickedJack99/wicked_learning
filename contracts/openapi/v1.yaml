@@ -684,10 +684,76 @@ components:
         activity_count:
           type: integer
           minimum: 1
+    LearnerActivityStartProgress:
+      type: object
+      additionalProperties: false
+      required: [current_activity_slug, status, completion_count, last_completed_at, last_entered_at]
+      properties:
+        current_activity_slug:
+          type: [string, 'null']
+          pattern: '^[a-z0-9-]+$'
+        status:
+          type: string
+          enum: [in_progress, completed]
+        completion_count:
+          type: integer
+          minimum: 0
+        last_completed_at:
+          type: [string, 'null']
+          format: date-time
+        last_entered_at:
+          type: [string, 'null']
+          format: date-time
+    LearnerActivityStart:
+      type: object
+      additionalProperties: false
+      required: [start_id, node_slug, route_slug, activity_slug, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, sort_order, progress]
+      properties:
+        start_id:
+          type: string
+          format: uuid
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        route_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        activity_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        label:
+          type: string
+          maxLength: 240
+        description:
+          type: [string, 'null']
+          maxLength: 4000
+        image_dark:
+          type: [string, 'null']
+        image_light:
+          type: [string, 'null']
+        button_color_dark:
+          type: [string, 'null']
+          maxLength: 32
+        button_border_color_dark:
+          type: [string, 'null']
+          maxLength: 32
+        button_color_light:
+          type: [string, 'null']
+          maxLength: 32
+        button_border_color_light:
+          type: [string, 'null']
+          maxLength: 32
+        sort_order:
+          type: integer
+          minimum: 0
+        progress:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerActivityStartProgress'
+            - type: 'null'
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false
-      required: [world, bookmarked_node_slugs, activity_progress, route_progress, available_routes]
+      required: [world, bookmarked_node_slugs, activity_progress, route_progress, available_routes, start_routes]
       properties:
         world:
           $ref: '#/components/schemas/PublicWorld'
@@ -712,6 +778,11 @@ components:
           maxItems: 1000
           items:
             $ref: '#/components/schemas/LearnerWorldRoute'
+        start_routes:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/LearnerActivityStart'
     PublicRoutePreview:
       type: object
       additionalProperties: false

@@ -311,6 +311,13 @@ authorized server-owned state, then lift the existing React components and
 replace only their Inertia/Laravel glue. Do not extend the provisional map with
 new substitute controls or styling to mask missing behavior.
 
+The application schema now distinguishes a route from a node-specific activity
+start, matching the existing `LearningActivityStart` behavior. Read-only starts
+are the next contract prerequisite for lifting the original `ActivityPanel`.
+Route progress remains temporarily keyed to the route while fresh content has a
+one-to-one route/node relationship; ADR-016 requires an explicit change before
+routes can be offered from more than one node.
+
 ### Reference behavior and implementation autonomy
 
 The Laravel application and its React frontend are the behavioral reference for

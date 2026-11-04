@@ -12,6 +12,7 @@ pub struct LearnerWorldSnapshot {
     pub activity_progress: Vec<LearnerActivityProgress>,
     pub route_progress: Vec<LearnerRouteProgress>,
     pub available_routes: Vec<LearnerWorldRoute>,
+    pub start_routes: Vec<LearnerActivityStart>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -43,4 +44,34 @@ pub struct LearnerWorldRoute {
     pub title: String,
     pub description: String,
     pub activity_count: i64,
+}
+
+/// A server-authorized presentation of an activity start for the World drawer.
+/// This is deliberately read-only: it does not grant a play run or authorize a
+/// transition.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerActivityStart {
+    pub start_id: String,
+    pub node_slug: String,
+    pub route_slug: String,
+    pub activity_slug: String,
+    pub label: String,
+    pub description: Option<String>,
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub button_color_dark: Option<String>,
+    pub button_border_color_dark: Option<String>,
+    pub button_color_light: Option<String>,
+    pub button_border_color_light: Option<String>,
+    pub sort_order: i16,
+    pub progress: Option<LearnerActivityStartProgress>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerActivityStartProgress {
+    pub current_activity_slug: Option<String>,
+    pub status: String,
+    pub completion_count: i32,
+    pub last_completed_at: Option<String>,
+    pub last_entered_at: Option<String>,
 }
