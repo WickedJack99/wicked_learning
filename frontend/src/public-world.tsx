@@ -334,8 +334,7 @@ function PublicMapSurface({
                     const surface = assetSurface(asset, isToggled);
                     const canOpen =
                         asset.interaction_mode === 'focusable' &&
-                        node &&
-                        !asset.locked;
+                        node;
                     const canToggle = asset.interaction_mode === 'toggle';
                     const selected = node?.slug === selectedNode?.slug;
                     const isHidden = hiddenAssetSlugs.has(asset.slug);
