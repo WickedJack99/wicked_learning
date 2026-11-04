@@ -148,6 +148,100 @@ test('the learner shell keeps public navigation available on a narrow viewport',
     ).toBeVisible();
 });
 
+test('a transparent public map overlay hides only over its visible image pixels', async ({
+    page,
+}) => {
+    const circularOverlay = `data:image/svg+xml,${encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="34" fill="#ffffff"/></svg>',
+    )}`;
+    await page.route('**/api/v1/public/world', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                slug: 'transparent-overlay-world',
+                title: 'Transparent overlay world',
+                description: '',
+                theme_config: {},
+                maps: [
+                    {
+                        slug: 'transparent-overlay-map',
+                        title: 'Transparent overlay map',
+                        description: '',
+                        background_config: {},
+                        grid_config: {},
+                        map_assets_locked: false,
+                        assets: [
+                            {
+                                slug: 'visible-place',
+                                title: 'Visible place',
+                                description: '',
+                                x: 50,
+                                y: 50,
+                                z: 0,
+                                image_url: null,
+                                text: 'Visible place',
+                                width: 24,
+                                opacity: 1,
+                                locked: false,
+                                visual_config: {},
+                                interaction_config: {},
+                                sound_config: {},
+                                interaction_mode: 'focusable',
+                            },
+                            {
+                                slug: 'transparent-overlay',
+                                title: 'Transparent overlay',
+                                description: '',
+                                x: 50,
+                                y: 50,
+                                z: 1,
+                                image_url: circularOverlay,
+                                text: null,
+                                width: 24,
+                                opacity: 1,
+                                locked: false,
+                                visual_config: {},
+                                interaction_config: {},
+                                sound_config: {},
+                                interaction_mode: 'hide_on_hover',
+                            },
+                        ],
+                        nodes: [
+                            {
+                                slug: 'visible-place',
+                                title: 'Visible place',
+                                description: '',
+                                asset_slug: 'visible-place',
+                                q: 0,
+                                r: 0,
+                                state: 'available',
+                                visual_config: {},
+                                outgoing_portal_links: [],
+                            },
+                        ],
+                    },
+                ],
+            }),
+        });
+    });
+
+    await page.goto('/world');
+    const overlay = page.locator('[data-map-asset-slug="transparent-overlay"]');
+    await expect(overlay.locator('img')).toBeVisible();
+    await page.waitForTimeout(100);
+    const box = await overlay.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) {
+        return;
+    }
+
+    await page.mouse.move(box.x + 3, box.y + 3);
+    await expect(overlay).toHaveAttribute('data-map-asset-visibility', 'visible');
+
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(overlay).toHaveAttribute('data-map-asset-visibility', 'hidden');
+});
+
 test('the learner shell exposes the account link for an authenticated session', async ({
     page,
 }) => {

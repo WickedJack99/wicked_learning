@@ -10,6 +10,14 @@ import {
 } from 'lucide-react';
 
 import { apiClient } from './api/client';
+import {
+    imageAlphaMaskFor,
+    useImageAlphaMasks,
+} from './public-image-alpha-mask';
+import {
+    mapAssetSurfacesOverlap,
+    pointInsideMapAsset,
+} from './public-map-asset-interaction';
 import type { components } from './api/schema';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
 
@@ -255,47 +263,62 @@ function PublicMapSurface({
         () => new Map(map.nodes.flatMap((node) => (node.asset_slug ? [[node.asset_slug, node] as const] : []))),
         [map.nodes],
     );
-    const hiddenAssetSlugs = useMemo(() => {
-        const selectedAsset = selectedNode?.asset_slug
-            ? map.assets.find((asset) => asset.slug === selectedNode.asset_slug)
-            : null;
-        const selectedAssetIndex = selectedAsset
-            ? map.assets.findIndex((asset) => asset.slug === selectedAsset.slug)
-            : -1;
+    const assetThemes = map.assets.map((asset) =>
+        mergedThemeConfig(
+            nodesByAssetSlug.get(asset.slug)?.visual_config,
+            asset.visual_config,
+        ),
+    );
+    const currentSurfaces = map.assets.map((asset) =>
+        assetSurface(asset, toggledAssetSlugs.includes(asset.slug)),
+    );
+    const alphaMaskRequests = map.assets.map((asset, index) => ({
+        imageFit: stringConfig(assetThemes[index], 'imageFit'),
+        imagePosition: stringConfig(assetThemes[index], 'imagePosition'),
+        imageUrl: currentSurfaces[index].imageUrl,
+    }));
+    const alphaMasks = useImageAlphaMasks(alphaMaskRequests);
+    const selectedAssetIndex = selectedNode?.asset_slug
+        ? map.assets.findIndex((asset) => asset.slug === selectedNode.asset_slug)
+        : -1;
+    const selectedAsset =
+        selectedAssetIndex >= 0 ? map.assets[selectedAssetIndex] : null;
+    const hiddenAssetSlugs = new Set(
+        map.assets
+            .filter((asset, index) => {
+                if (asset.interaction_mode !== 'hide_on_hover') {
+                    return false;
+                }
 
-        return new Set(
-            map.assets
-                .filter((asset, index) => {
-                    if (asset.interaction_mode !== 'hide_on_hover') {
-                        return false;
-                    }
-
-                    const surface = assetSurface(
-                        asset,
-                        toggledAssetSlugs.includes(asset.slug),
+                const hiddenByPointer = mapPointer
+                    ? pointInsideMapAsset(
+                          currentSurfaces[index],
+                          mapPointer,
+                          mapPointer,
+                          imageAlphaMaskFor(alphaMaskRequests[index], alphaMasks),
+                      )
+                    : false;
+                const hiddenForFocusedAsset =
+                    selectedAsset &&
+                    selectedAssetIndex >= 0 &&
+                    (asset.z > selectedAsset.z ||
+                        (asset.z === selectedAsset.z && index > selectedAssetIndex)) &&
+                    mapPointer &&
+                    mapAssetSurfacesOverlap(
+                        currentSurfaces[index],
+                        currentSurfaces[selectedAssetIndex],
+                        mapPointer,
+                        imageAlphaMaskFor(alphaMaskRequests[index], alphaMasks),
+                        imageAlphaMaskFor(
+                            alphaMaskRequests[selectedAssetIndex],
+                            alphaMasks,
+                        ),
                     );
-                    const hiddenByPointer = mapPointer
-                        ? pointInsideAssetSurface(surface, mapPointer)
-                        : false;
-                    const hiddenForFocusedAsset =
-                        selectedAsset &&
-                        selectedAssetIndex >= 0 &&
-                        (asset.z > selectedAsset.z ||
-                            (asset.z === selectedAsset.z && index > selectedAssetIndex)) &&
-                        surfacesOverlap(
-                            surface,
-                            assetSurface(
-                                selectedAsset,
-                                toggledAssetSlugs.includes(selectedAsset.slug),
-                            ),
-                            mapPointer,
-                        );
 
-                    return hiddenByPointer || hiddenForFocusedAsset;
-                })
-                .map((asset) => asset.slug),
-        );
-    }, [map.assets, mapPointer, selectedNode?.asset_slug, toggledAssetSlugs]);
+                return hiddenByPointer || hiddenForFocusedAsset;
+            })
+            .map((asset) => asset.slug),
+    );
 
     return (
         <div
@@ -328,20 +351,17 @@ function PublicMapSurface({
                 className="pointer-events-none absolute inset-0 z-20"
                 data-wl-id="learner.world.map-assets"
             >
-                {map.assets.map((asset) => {
+                {map.assets.map((asset, index) => {
                     const node = nodesByAssetSlug.get(asset.slug) ?? null;
                     const isToggled = toggledAssetSlugs.includes(asset.slug);
-                    const surface = assetSurface(asset, isToggled);
+                    const surface = currentSurfaces[index];
                     const canOpen =
                         asset.interaction_mode === 'focusable' &&
                         node;
                     const canToggle = asset.interaction_mode === 'toggle';
                     const selected = node?.slug === selectedNode?.slug;
                     const isHidden = hiddenAssetSlugs.has(asset.slug);
-                    const assetTheme = mergedThemeConfig(
-                        node?.visual_config,
-                        asset.visual_config,
-                    );
+                    const assetTheme = assetThemes[index];
                     const label =
                         stringConfig(assetTheme, 'label') ?? node?.title ?? asset.text ?? asset.title;
                     const style = {
@@ -357,6 +377,9 @@ function PublicMapSurface({
                             <div
                                 aria-hidden="true"
                                 className="absolute -translate-x-1/2 -translate-y-1/2"
+                                data-map-asset-mode={asset.interaction_mode}
+                                data-map-asset-slug={asset.slug}
+                                data-map-asset-visibility={isHidden ? 'hidden' : 'visible'}
                                 key={asset.slug}
                                 style={style}
                             >
@@ -385,6 +408,9 @@ function PublicMapSurface({
                             }
                             aria-pressed={canToggle ? isToggled : undefined}
                             className={`pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-left transition-transform duration-200 hover:z-20 hover:-translate-y-[calc(50%+0.25rem)] focus-visible:z-20 focus-visible:outline-none ${isHidden ? 'pointer-events-none' : ''}`}
+                            data-map-asset-mode={asset.interaction_mode}
+                            data-map-asset-slug={asset.slug}
+                            data-map-asset-visibility={isHidden ? 'hidden' : 'visible'}
                             key={asset.slug}
                             onClick={(event) => {
                                 event.stopPropagation();
@@ -460,42 +486,6 @@ function assetSurface(asset: PublicMapAsset, secondState: boolean): {
         x: numberConfig(state, 'x', asset.x),
         y: numberConfig(state, 'y', asset.y),
     };
-}
-
-function pointInsideAssetSurface(
-    surface: { width: number; x: number; y: number },
-    bounds: { height: number; width: number; x: number; y: number },
-): boolean {
-    const size = Math.min((surface.width / 100) * bounds.width, 13 * 16);
-    const centerX = (surface.x / 100) * bounds.width;
-    const centerY = (surface.y / 100) * bounds.height;
-
-    return (
-        Math.abs(bounds.x - centerX) <= size / 2 &&
-        Math.abs(bounds.y - centerY) <= size / 2
-    );
-}
-
-function surfacesOverlap(
-    first: { width: number; x: number; y: number },
-    second: { width: number; x: number; y: number },
-    bounds: { height: number; width: number } | null,
-): boolean {
-    if (!bounds) {
-        return false;
-    }
-
-    const firstSize = Math.min((first.width / 100) * bounds.width, 13 * 16);
-    const secondSize = Math.min((second.width / 100) * bounds.width, 13 * 16);
-    const firstCenterX = (first.x / 100) * bounds.width;
-    const firstCenterY = (first.y / 100) * bounds.height;
-    const secondCenterX = (second.x / 100) * bounds.width;
-    const secondCenterY = (second.y / 100) * bounds.height;
-
-    return (
-        Math.abs(firstCenterX - secondCenterX) <= (firstSize + secondSize) / 2 &&
-        Math.abs(firstCenterY - secondCenterY) <= (firstSize + secondSize) / 2
-    );
 }
 
 function WorldSearch({
