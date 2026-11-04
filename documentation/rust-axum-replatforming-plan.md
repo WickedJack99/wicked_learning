@@ -292,12 +292,13 @@ substituting React Router and the existing Rust session state for Inertia.
 
 ### World parity boundary
 
-The current `/world` React route still proves anonymous, published-map
-exploration only. `GET /api/v1/learner/world` now provides an authenticated,
-read-only server-owned snapshot of visible maps plus the current principal's
-bookmark, activity-progress and route-progress summaries. It intentionally
-does not yet supply equipped tools, group data, audio configuration,
-route-start commands or server-evaluated reveal/unlock state consumed by Laravel's
+The current `/world` React route uses `GET /api/v1/learner/world` for a
+signed-in session and the public contract for an anonymous visitor. The
+authenticated contract provides a server-owned snapshot of visible maps plus
+the current principal's bookmark, activity-progress and route-progress
+summaries. It intentionally does not yet supply equipped tools, group data,
+audio configuration, route-start commands or server-evaluated reveal/unlock
+state consumed by Laravel's
 `LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
 `ActivityPanel` components. It must therefore not be described as a completed
 World migration.
@@ -349,7 +350,7 @@ private or identifier-based links will resolve in a deployed cutover.
 | ------------------------------------------------------------------------- | ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |
 | `/`                                                                       | `/`                | Available      | A standalone React welcome screen provides public orientation and routes into exploration or local sign-in.    |
 | `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path          | Available      | Public presentation/source endpoints provide their content.                                                    |
-| `/world`                                                                  | `/world`           | Available      | Public, read-only world/map exploration. The separate authenticated snapshot exists but the original World UI has not yet been lifted onto it. |
+| `/world`                                                                  | `/world`           | Available      | Read-only world/map exploration. It consumes the principal-scoped snapshot after local sign-in and the public contract otherwise; the original World UI has not yet been lifted onto it. |
 | `/learning/search?query={term}`                                           | `/search?q={term}` | Available      | React retains the search term and runs the bounded published-place search.                                     |
 | `/learning/nodes/{node}/play`                                             | —                  | Not available  | Activity playback needs the later learner-state/write slice and server-owned transition rules.                 |
 | `/home`, `/journal`, `/paths`, `/topics`, `/bookmarks`, `/competence`     | —                  | Not available  | These require authenticated data and, in several cases, APIs that have not yet been implemented.               |

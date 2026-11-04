@@ -369,10 +369,11 @@ decisions. Both are rejected.
 
 **Limitations and next trigger:** The snapshot has no writer and does not yet
 model tool inventory, groups, answer-derived reveal/unlock rules, route start
-or activity playback. The existing `/world` React route remains the public
-presentation slice until the original World components consume this contract.
-Those capabilities need their own complete policy, schema and browser evidence
-before this endpoint can be described as full World parity.
+or activity playback. The interim `/world` React route uses this snapshot for a
+signed-in session and the public contract otherwise, but it has not yet lifted
+the original World components. Those capabilities need their own complete
+policy, schema and browser evidence before this endpoint can be described as
+full World parity.
 
 ## Phase 1 gate
 

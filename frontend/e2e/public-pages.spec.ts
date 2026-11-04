@@ -263,6 +263,55 @@ test('the learner shell exposes the account link for an authenticated session', 
     ).not.toBeVisible();
 });
 
+test('the signed-in explorer uses the principal-scoped World snapshot', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['platform_administrator'],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/world', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                world: {
+                    slug: 'private-orientation',
+                    title: 'Private orientation',
+                    description: 'A role-scoped map for the signed-in learner.',
+                    theme_config: {},
+                    maps: [
+                        {
+                            slug: 'private-path',
+                            title: 'A private path',
+                            description: '',
+                            background_config: {},
+                            grid_config: {},
+                            map_assets_locked: false,
+                            assets: [],
+                            nodes: [],
+                        },
+                    ],
+                },
+                bookmarked_node_slugs: [],
+                activity_progress: [],
+                route_progress: [],
+            }),
+        });
+    });
+
+    await page.goto('/world');
+
+    await expect(
+        page.getByRole('heading', { name: 'A private path' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+});
+
 test('a missing public map place has its own recoverable not-found state', async ({
     page,
 }) => {

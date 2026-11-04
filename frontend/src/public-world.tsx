@@ -48,23 +48,60 @@ export function PublicWorldPage({
     });
 
     useEffect(() => {
-        void apiClient
-            .GET('/public/world')
-            .then(({ data, response }) => {
+        let isCurrent = true;
+
+        const updateWorldState = (nextState: WorldState) => {
+            if (isCurrent) {
+                setWorldState(nextState);
+            }
+        };
+
+        async function loadWorld(): Promise<void> {
+            updateWorldState({ kind: 'loading' });
+
+            try {
+                if (isAuthenticated) {
+                    const { data, response } = await apiClient.GET(
+                        '/learner/world',
+                    );
+
+                    if (response.status === 404) {
+                        updateWorldState({ kind: 'empty' });
+                        return;
+                    }
+                    if (response.ok && data) {
+                        updateWorldState({ kind: 'loaded', world: data.world });
+                        return;
+                    }
+                    if (response.status !== 401) {
+                        updateWorldState({ kind: 'unavailable' });
+                        return;
+                    }
+                }
+
+                const { data, response } = await apiClient.GET('/public/world');
+
                 if (response.status === 404) {
-                    setWorldState({ kind: 'empty' });
+                    updateWorldState({ kind: 'empty' });
                     return;
                 }
-
                 if (!response.ok || !data) {
-                    setWorldState({ kind: 'unavailable' });
+                    updateWorldState({ kind: 'unavailable' });
                     return;
                 }
 
-                setWorldState({ kind: 'loaded', world: data });
-            })
-            .catch(() => setWorldState({ kind: 'unavailable' }));
-    }, []);
+                updateWorldState({ kind: 'loaded', world: data });
+            } catch {
+                updateWorldState({ kind: 'unavailable' });
+            }
+        }
+
+        void loadWorld();
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [isAuthenticated]);
 
     if (worldState.kind === 'loading') {
         return <WorldMessage message="Loading the learning world…" />;
