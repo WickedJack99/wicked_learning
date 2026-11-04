@@ -5,14 +5,13 @@ import {
     LockKeyhole,
     Map as MapIcon,
     MapPin,
-    RadioTower,
     Search,
-    Signpost,
     X,
 } from 'lucide-react';
 
 import { apiClient } from './api/client';
 import type { components } from './api/schema';
+import { PublicMapAssetVisual } from './public-map-asset-visual';
 
 type PublicMap = components['schemas']['PublicMap'];
 type PublicMapAsset = components['schemas']['PublicMapAsset'];
@@ -30,9 +29,6 @@ type SearchState =
     | { kind: 'loading' }
     | { kind: 'loaded'; results: components['schemas']['PublicSearchResult'][] }
     | { kind: 'unavailable' };
-
-const hexTileClipPath =
-    'polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%)';
 
 export function PublicWorldPage({
     isAuthenticated,
@@ -248,6 +244,7 @@ function PublicMapSurface({
     selectedNode: PublicNode | null;
 }) {
     const theme = map.background_config;
+    const [toggledAssetSlugs, setToggledAssetSlugs] = useState<string[]>([]);
     const nodesByAssetSlug = useMemo(
         () => new Map(map.nodes.flatMap((node) => (node.asset_slug ? [[node.asset_slug, node] as const] : []))),
         [map.nodes],
@@ -270,10 +267,19 @@ function PublicMapSurface({
                 className="absolute inset-0"
                 style={{ background: stringConfig(theme, 'overlay') ?? 'rgba(0, 0, 0, 0.4)' }}
             />
-            <div className="pointer-events-none absolute inset-0 z-20">
+            <div
+                className="pointer-events-none absolute inset-0 z-20"
+                data-wl-id="learner.world.map-assets"
+            >
                 {map.assets.map((asset) => {
                     const node = nodesByAssetSlug.get(asset.slug) ?? null;
-                    const canOpen = asset.interaction_mode === 'focusable' && node;
+                    const isToggled = toggledAssetSlugs.includes(asset.slug);
+                    const surface = assetSurface(asset, isToggled);
+                    const canOpen =
+                        asset.interaction_mode === 'focusable' &&
+                        node &&
+                        !asset.locked;
+                    const canToggle = asset.interaction_mode === 'toggle';
                     const selected = node?.slug === selectedNode?.slug;
                     const assetTheme = mergedThemeConfig(
                         node?.visual_config,
@@ -281,66 +287,15 @@ function PublicMapSurface({
                     );
                     const label =
                         stringConfig(assetTheme, 'label') ?? node?.title ?? asset.text ?? asset.title;
-                    const tileColor = stringConfig(assetTheme, 'tileColor') ?? '#12343b';
-                    const highlightColor = stringConfig(assetTheme, 'highlightColor') ?? '#7dd3fc';
-                    const labelColor = stringConfig(assetTheme, 'labelColor') ?? '#ffffff';
-                    const Icon = iconFor(assetTheme);
                     const style = {
-                        left: `${asset.x}%`,
+                        left: `${surface.x}%`,
                         opacity: asset.opacity,
-                        top: `${asset.y}%`,
-                        width: `${asset.width}%`,
+                        top: `${surface.y}%`,
+                        width: `${surface.width}%`,
                         zIndex: asset.z + 20,
                     };
 
-                    const content = (
-                        <>
-                            <span
-                                className="absolute inset-0"
-                                style={{ background: tileColor, clipPath: hexTileClipPath }}
-                            />
-                            <span
-                                className="absolute inset-[7px] bg-black/14"
-                                style={{ clipPath: hexTileClipPath }}
-                            />
-                            {asset.image_url ? (
-                                <img
-                                    alt=""
-                                    className="absolute inset-[7px] size-[calc(100%-14px)] object-contain"
-                                    src={asset.image_url}
-                                    style={{ clipPath: hexTileClipPath }}
-                                />
-                            ) : null}
-                            <span
-                                className="pointer-events-none absolute inset-0 transition-opacity duration-150"
-                                style={{
-                                    background: highlightColor,
-                                    clipPath: hexTileClipPath,
-                                    filter: 'drop-shadow(0 0 12px var(--tile-highlight))',
-                                    opacity: selected ? 0.72 : 0,
-                                }}
-                            />
-                            <span className="relative z-10 flex size-full flex-col items-center justify-center gap-2 px-5 text-center">
-                                {!asset.image_url ? (
-                                    <Icon
-                                        aria-hidden="true"
-                                        className="size-7"
-                                        style={{ color: stringConfig(assetTheme, 'foregroundColor') ?? '#ccfbf1' }}
-                                    />
-                                ) : null}
-                                <span className="text-xs leading-tight font-medium" style={{ color: labelColor }}>
-                                    {label}
-                                </span>
-                            </span>
-                            {node?.state === 'locked' ? (
-                                <span className="pointer-events-none absolute inset-0 z-20 grid place-items-center" style={{ clipPath: hexTileClipPath }}>
-                                    <LockKeyhole className="size-11 text-white/45" />
-                                </span>
-                            ) : null}
-                        </>
-                    );
-
-                    if (!canOpen) {
+                    if (!canOpen && !canToggle) {
                         return (
                             <div
                                 aria-hidden="true"
@@ -348,26 +303,65 @@ function PublicMapSurface({
                                 key={asset.slug}
                                 style={style}
                             >
-                                <div className="relative aspect-square overflow-hidden">{content}</div>
+                                <PublicMapAssetVisual
+                                    backgroundColor={stringConfig(assetTheme, 'borderColor') ?? stringConfig(assetTheme, 'tileColor') ?? '#12343b'}
+                                    highlightBorderColor={stringConfig(assetTheme, 'highlightBorderColor') ?? stringConfig(assetTheme, 'highlightColor')}
+                                    highlightColor={stringConfig(assetTheme, 'highlightColor')}
+                                    highlighted={false}
+                                    highlightedLabelColor={stringConfig(assetTheme, 'highlightedLabelColor')}
+                                    imageFit={stringConfig(assetTheme, 'imageFit')}
+                                    imagePosition={stringConfig(assetTheme, 'imagePosition')}
+                                    imageUrl={surface.imageUrl}
+                                    label={label}
+                                    labelColor={stringConfig(assetTheme, 'labelColor')}
+                                />
                             </div>
                         );
                     }
 
                     return (
                         <button
-                            aria-label={`${label}, ${node.state === 'locked' ? 'locked' : 'open location'}`}
+                            aria-label={
+                                canToggle
+                                    ? `${label}, ${isToggled ? 'second state' : 'first state'}`
+                                    : `${label}, ${node?.state === 'locked' ? 'locked' : 'open location'}`
+                            }
+                            aria-pressed={canToggle ? isToggled : undefined}
                             className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-left transition-transform duration-200 hover:z-20 hover:-translate-y-[calc(50%+0.25rem)] focus-visible:z-20 focus-visible:outline-none"
                             key={asset.slug}
                             onClick={(event) => {
                                 event.stopPropagation();
-                                if (node.state !== 'locked' && node.state !== 'hidden') {
+                                if (canToggle) {
+                                    setToggledAssetSlugs((current) =>
+                                        current.includes(asset.slug)
+                                            ? current.filter((slug) => slug !== asset.slug)
+                                            : [...current, asset.slug],
+                                    );
+                                } else if (
+                                    node &&
+                                    node.state !== 'locked' &&
+                                    node.state !== 'hidden'
+                                ) {
                                     onSelectNode(node);
                                 }
                             }}
                             style={style}
                             type="button"
                         >
-                            <span className="relative block aspect-square overflow-hidden">{content}</span>
+                            <PublicMapAssetVisual
+                                backgroundColor={stringConfig(assetTheme, 'borderColor') ?? stringConfig(assetTheme, 'tileColor') ?? '#12343b'}
+                                highlightBorderColor={stringConfig(assetTheme, 'highlightBorderColor') ?? stringConfig(assetTheme, 'highlightColor')}
+                                highlightColor={stringConfig(assetTheme, 'highlightColor')}
+                                highlightImageEnabled={assetTheme.highlightImageEnabled === true}
+                                highlightImageUrl={stringConfig(assetTheme, 'highlightImageUrl')}
+                                highlighted={selected || canToggle}
+                                highlightedLabelColor={stringConfig(assetTheme, 'highlightedLabelColor')}
+                                imageFit={stringConfig(assetTheme, 'imageFit')}
+                                imagePosition={stringConfig(assetTheme, 'imagePosition')}
+                                imageUrl={surface.imageUrl}
+                                label={label}
+                                labelColor={stringConfig(assetTheme, 'labelColor')}
+                            />
                         </button>
                     );
                 })}
@@ -392,6 +386,23 @@ function PublicMapSurface({
             </div>
         </div>
     );
+}
+
+function assetSurface(asset: PublicMapAsset, secondState: boolean): {
+    imageUrl: string | null;
+    width: number;
+    x: number;
+    y: number;
+} {
+    const states = objectConfig(asset.interaction_config, 'states');
+    const state = secondState ? objectConfig(states, 'second') : objectConfig(states, 'first');
+
+    return {
+        imageUrl: stringConfig(state, 'imageUrl') ?? asset.image_url,
+        width: numberConfig(state, 'width', asset.width),
+        x: numberConfig(state, 'x', asset.x),
+        y: numberConfig(state, 'y', asset.y),
+    };
 }
 
 function WorldSearch({
@@ -556,18 +567,6 @@ function NodeDrawer({
     );
 }
 
-function iconFor(config: Record<string, unknown>) {
-    switch (stringConfig(config, 'icon')) {
-        case 'map':
-        case 'map-pin':
-            return MapPin;
-        case 'signpost':
-            return Signpost;
-        default:
-            return RadioTower;
-    }
-}
-
 function mergedThemeConfig(...configs: Array<Record<string, unknown> | undefined>): Record<string, unknown> {
     return Object.assign({}, ...configs.filter((config): config is Record<string, unknown> => Boolean(config)));
 }
@@ -575,6 +574,27 @@ function mergedThemeConfig(...configs: Array<Record<string, unknown> | undefined
 function stringConfig(config: Record<string, unknown>, key: string): string | undefined {
     const value = config[key];
     return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+function objectConfig(
+    config: Record<string, unknown>,
+    key: string,
+): Record<string, unknown> {
+    const value = config[key];
+
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+}
+
+function numberConfig(
+    config: Record<string, unknown>,
+    key: string,
+    fallback: number,
+): number {
+    const value = config[key];
+
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 function worldSurfaceStyle(config: Record<string, unknown>) {
