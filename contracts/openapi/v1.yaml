@@ -78,6 +78,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/world:
+    get:
+      operationId: getLearnerWorld
+      summary: Read the signed-in learner's authorized World snapshot and bounded progress summaries.
+      responses:
+        '200':
+          description: Visible published maps plus only this learner's bookmarks and progress summaries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerWorldSnapshot'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The identity has no application principal or role assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: No World map is visible to this learner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /session/login:
     post:
       operationId: createSession
@@ -586,6 +621,72 @@ components:
           maxItems: 24
           items:
             $ref: '#/components/schemas/PublicMap'
+    LearnerActivityProgress:
+      type: object
+      additionalProperties: false
+      required: [node_slug, activity_slug, status, completed_at]
+      properties:
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        activity_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        status:
+          type: string
+          enum: [reached, completed]
+        completed_at:
+          type: [string, 'null']
+          format: date-time
+    LearnerRouteProgress:
+      type: object
+      additionalProperties: false
+      required: [node_slug, route_slug, current_activity_slug, status, completion_count, last_completed_at, last_entered_at]
+      properties:
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        route_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        current_activity_slug:
+          type: [string, 'null']
+          pattern: '^[a-z0-9-]+$'
+        status:
+          type: string
+          enum: [in_progress, completed]
+        completion_count:
+          type: integer
+          minimum: 0
+        last_completed_at:
+          type: [string, 'null']
+          format: date-time
+        last_entered_at:
+          type: [string, 'null']
+          format: date-time
+    LearnerWorldSnapshot:
+      type: object
+      additionalProperties: false
+      required: [world, bookmarked_node_slugs, activity_progress, route_progress]
+      properties:
+        world:
+          $ref: '#/components/schemas/PublicWorld'
+        bookmarked_node_slugs:
+          type: array
+          maxItems: 200
+          items:
+            type: string
+            pattern: '^[a-z0-9-]+$'
+        activity_progress:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/LearnerActivityProgress'
+        route_progress:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/LearnerRouteProgress'
     PublicRoutePreview:
       type: object
       additionalProperties: false

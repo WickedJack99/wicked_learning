@@ -249,6 +249,13 @@ test('an anonymous session reveals no credential or identity material', async ({
         code: 'authentication_required',
         title: 'Authentication is required.',
     });
+
+    const learnerWorldResponse = await request.get('/api/v1/learner/world');
+    expect(learnerWorldResponse.status()).toBe(401);
+    await expect(learnerWorldResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
 });
 
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({

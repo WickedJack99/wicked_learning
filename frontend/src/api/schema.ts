@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/world": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the signed-in learner's authorized World snapshot and bounded progress summaries. */
+        get: operations["getLearnerWorld"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session/login": {
         parameters: {
             query?: never;
@@ -347,6 +364,32 @@ export interface components {
             };
             maps: components["schemas"]["PublicMap"][];
         };
+        LearnerActivityProgress: {
+            node_slug: string;
+            activity_slug: string;
+            /** @enum {string} */
+            status: "reached" | "completed";
+            /** Format: date-time */
+            completed_at: string | null;
+        };
+        LearnerRouteProgress: {
+            node_slug: string;
+            route_slug: string;
+            current_activity_slug: string | null;
+            /** @enum {string} */
+            status: "in_progress" | "completed";
+            completion_count: number;
+            /** Format: date-time */
+            last_completed_at: string | null;
+            /** Format: date-time */
+            last_entered_at: string | null;
+        };
+        LearnerWorldSnapshot: {
+            world: components["schemas"]["PublicWorld"];
+            bookmarked_node_slugs: string[];
+            activity_progress: components["schemas"]["LearnerActivityProgress"][];
+            route_progress: components["schemas"]["LearnerRouteProgress"][];
+        };
         PublicRoutePreview: {
             slug: string;
             title: string;
@@ -506,6 +549,62 @@ export interface operations {
             };
             /** @description The identity has no application principal or role assignment. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getLearnerWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Visible published maps plus only this learner's bookmarks and progress summaries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerWorldSnapshot"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No World map is visible to this learner. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

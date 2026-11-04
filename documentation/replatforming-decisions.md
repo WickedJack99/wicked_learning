@@ -339,6 +339,41 @@ or crate structure needs a dated ADR that states the scope, rationale, owner,
 and concrete trigger for revisiting it. Do not leave structural shortcuts as
 implicit or chat-only context.
 
+## ADR-015: Authenticated learner World snapshot is a separate read contract
+
+**Status:** Accepted — 4 November 2026
+
+**Problem:** The anonymous World contract cannot safely represent a learner's
+map access, bookmarks, activity summaries or route status. Letting React merge
+public content with unscoped records would expose other learners' data and make
+the browser responsible for authorization.
+
+**Decision:** Add `GET /api/v1/learner/world` as a signed-in, read-only
+snapshot. The API resolves the identity subject to an application principal,
+filters maps by the principal's application roles (or the explicit `public`
+map role), and returns only that principal's bookmark, activity-progress and
+route-progress summaries. Learner-owned records reference
+`application_principals`, not identities in the separate identity database.
+The contract deliberately excludes answers, activity configuration, play-run
+identifiers, mutation affordances and data owned by another learner.
+
+**Why:** This follows the Laravel `LearningWorldSerializer` boundary while
+keeping access policy and ownership checks in Rust/PostgreSQL. It creates a
+small, independently testable foundation for lifting the original World UI
+without treating public exploration as a learner-state implementation.
+
+**Alternatives:** Extending `/public/world` would mix anonymous and private
+contracts and invite accidental disclosure. Fetching public content and
+learner records separately in React would force client-side joins and policy
+decisions. Both are rejected.
+
+**Limitations and next trigger:** The snapshot has no writer and does not yet
+model tool inventory, groups, answer-derived reveal/unlock rules, route start
+or activity playback. The existing `/world` React route remains the public
+presentation slice until the original World components consume this contract.
+Those capabilities need their own complete policy, schema and browser evidence
+before this endpoint can be described as full World parity.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

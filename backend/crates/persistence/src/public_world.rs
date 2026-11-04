@@ -31,6 +31,11 @@ impl PublicWorldRepositoryPort for PostgresPublicWorldRepository<'_> {
     }
 }
 
+pub struct LoadedWorld {
+    pub world: PublicWorld,
+    pub map_ids: Vec<Uuid>,
+}
+
 #[derive(FromRow)]
 struct WorldRow {
     id: Uuid,
@@ -85,6 +90,15 @@ struct NodeRow {
 }
 
 pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, sqlx::Error> {
+    Ok(load_first_visible(pool, &[])
+        .await?
+        .map(|loaded| loaded.world))
+}
+
+pub async fn load_first_visible(
+    pool: &PgPool,
+    roles: &[String],
+) -> Result<Option<LoadedWorld>, sqlx::Error> {
     let Some(world) = sqlx::query_as::<_, WorldRow>(
         "SELECT id, slug, title, description, theme_config FROM learning_worlds WHERE published_at IS NOT NULL ORDER BY published_at ASC, slug ASC LIMIT 1",
     )
@@ -95,11 +109,15 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
     };
 
     let maps = sqlx::query_as::<_, MapRow>(
-        "SELECT id, slug, title, description, background_config, grid_config, map_assets_locked FROM learning_maps WHERE world_id = $1 AND published_at IS NOT NULL ORDER BY position ASC, slug ASC",
+        "SELECT id, slug, title, description, background_config, grid_config, map_assets_locked FROM learning_maps WHERE world_id = $1 AND published_at IS NOT NULL AND (access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY position ASC, slug ASC",
     )
     .bind(world.id)
+    .bind(roles)
     .fetch_all(pool)
     .await?;
+    if maps.is_empty() {
+        return Ok(None);
+    }
     let map_ids: Vec<Uuid> = maps.iter().map(|map| map.id).collect();
     let assets = if map_ids.is_empty() {
         Vec::new()
@@ -157,23 +175,26 @@ pub async fn load_first_published(pool: &PgPool) -> Result<Option<PublicWorld>, 
                 visual_config: node.visual_config,
             });
     }
-    Ok(Some(PublicWorld {
-        slug: world.slug,
-        title: world.title,
-        description: world.description,
-        theme_config: world.theme_config,
-        maps: maps
-            .into_iter()
-            .map(|map| PublicMap {
-                slug: map.slug,
-                title: map.title,
-                description: map.description,
-                background_config: map.background_config,
-                grid_config: map.grid_config,
-                map_assets_locked: map.map_assets_locked,
-                assets: assets_by_map.remove(&map.id).unwrap_or_default(),
-                nodes: nodes_by_map.remove(&map.id).unwrap_or_default(),
-            })
-            .collect(),
+    Ok(Some(LoadedWorld {
+        map_ids: map_ids.clone(),
+        world: PublicWorld {
+            slug: world.slug,
+            title: world.title,
+            description: world.description,
+            theme_config: world.theme_config,
+            maps: maps
+                .into_iter()
+                .map(|map| PublicMap {
+                    slug: map.slug,
+                    title: map.title,
+                    description: map.description,
+                    background_config: map.background_config,
+                    grid_config: map.grid_config,
+                    map_assets_locked: map.map_assets_locked,
+                    assets: assets_by_map.remove(&map.id).unwrap_or_default(),
+                    nodes: nodes_by_map.remove(&map.id).unwrap_or_default(),
+                })
+                .collect(),
+        },
     }))
 }
