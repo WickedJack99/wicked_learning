@@ -600,9 +600,12 @@ principal IDs would weaken ownership. Adding disabled edit/review controls
 would misrepresent unavailable workflows. Both are rejected.
 
 **Limitations and trigger:** The basic page writer is separately defined in
-ADR-024. Export, feedback requests and the source check-in history/timeline
-still need their own source UI and authorization evidence. Due revisit
-invitations are defined by ADR-032 and ADR-033.
+ADR-024. The bounded read-only source Learning trail is now available from the
+same learner-scoped model, but its activity-replay and competence links remain
+omitted until those contracts and source surfaces exist. Export, feedback
+requests and the fuller source check-in history/timeline still need their own
+source UI and authorization evidence. Due revisit invitations are defined by
+ADR-032 and ADR-033.
 
 ## ADR-023: Journal categories remain labels, not page identities
 
@@ -986,12 +989,13 @@ the browser cannot choose an activity or progression state on its own.
 format rather than behavior. Taking only an activity slug would make the Rust
 writer depend on a weaker authorization check. Both are rejected.
 
-**Limitations and trigger:** The source check-in panel, journal timeline and
-competence presentation remain unavailable until their contracts and browser
-evidence exist. Due revisit invitations, their dismiss/snooze actions and
-review-attempt recording are now exposed through the lifted original Journal
-panel and ADR-033's server-owned re-entry flow; no substitute React control was
-added.
+**Limitations and trigger:** The bounded read-only source Learning trail is
+available in Journal. The source post-activity check-in panel, activity-replay
+and competence links, fuller journal timeline and competence presentation
+remain unavailable until their contracts and browser evidence exist. Due
+revisit invitations, their dismiss/snooze actions and review-attempt recording
+are now exposed through the lifted original Journal panel and ADR-033's
+server-owned re-entry flow; no substitute React control was added.
 
 The existing authenticated journal read model now carries the bounded private
 check-in trail and due, visible revisit-invitation projection required by that

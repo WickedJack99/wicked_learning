@@ -613,7 +613,21 @@ test('the original journal overlay reads only its private paginated contract', a
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
-                check_ins: [],
+                check_ins: [
+                    {
+                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d69',
+                        activity_slug: 'consider-a-direction',
+                        activity_title: 'Consider a direction',
+                        feeling: 'forming',
+                        note: 'I want to return to this thought after walking.',
+                        next_direction: 'related',
+                        recorded_at: '2026-11-05T08:00:00.000000Z',
+                        map_slug: 'first-path',
+                        map_title: 'The First Path',
+                        node_slug: 'private-place',
+                        node_title: 'A private place',
+                    },
+                ],
                 pages: [
                     {
                         id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d99',
@@ -766,6 +780,16 @@ test('the original journal overlay reads only its private paginated contract', a
     await page.goto('/world');
     await page.getByRole('button', { name: 'Journal' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(
+        page.getByRole('region', { name: 'Recent learning check-ins' }),
+    ).toBeVisible();
+    await expect(page.getByText('Still forming')).toBeVisible();
+    await expect(
+        page.getByText('I want to return to this thought after walking.'),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Next direction: Look for something related'),
+    ).toBeVisible();
     await expect(
         page.getByRole('region', { name: 'Revisit invitations' }),
     ).toBeVisible();

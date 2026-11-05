@@ -11,6 +11,7 @@ import { OriginalPaginatedItems } from './original-paginated-items';
 
 type JournalDocument = components['schemas']['LearnerJournalDocument'];
 type JournalPage = components['schemas']['LearnerJournalPage'];
+type JournalCheckIn = components['schemas']['LearnerJournalCheckIn'];
 type RevisitInvitation = components['schemas']['LearnerRevisitInvitation'];
 
 const journalStyle = {
@@ -430,7 +431,7 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                 </header>
                 <div className="relative z-10 grid min-h-0 flex-1 grid-rows-[minmax(11rem,32svh)_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-none">
                     <aside
-                        className="flex min-h-0 flex-col border-b p-3 lg:border-r lg:border-b-0"
+                        className="flex min-h-0 flex-col overflow-y-auto border-b p-3 lg:overflow-visible lg:border-r lg:border-b-0"
                         style={{
                             background: 'var(--journal-sidebar-background)',
                             borderColor: 'var(--journal-panel-border)',
@@ -475,6 +476,9 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                                 <FilePlus2 className="size-4" />
                             </button>
                         </div>
+                        {journal?.check_ins.length ? (
+                            <LearningTrail checkIns={journal.check_ins} />
+                        ) : null}
                         {journal?.revisit_invitations.length ? (
                             <RevisitInvitations
                                 invitations={journal.revisit_invitations}
@@ -577,6 +581,82 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
             </section>
         </div>,
         document.body,
+    );
+}
+
+function LearningTrail({ checkIns }: { checkIns: JournalCheckIn[] }) {
+    return (
+        <section
+            aria-label="Recent learning check-ins"
+            className="mt-3 rounded-lg border p-3"
+            data-wl-id="learner.journal.learning-trail"
+            style={{
+                background: 'var(--journal-content-background)',
+                borderColor: 'var(--journal-button-border)',
+            }}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p
+                        className="text-xs font-semibold tracking-[0.12em] uppercase"
+                        style={{ color: 'var(--journal-accent)' }}
+                    >
+                        Learning trail
+                    </p>
+                    <p
+                        className="mt-1 text-xs leading-5"
+                        style={{ color: 'var(--journal-muted-text)' }}
+                    >
+                        Your recent check-ins, kept as observations.
+                    </p>
+                </div>
+            </div>
+            <div className="mt-2 space-y-1">
+                {checkIns.slice(0, 4).map((checkIn) => (
+                    <div
+                        className="rounded-md px-2 py-2 transition-colors hover:bg-[var(--journal-content-background)]"
+                        key={checkIn.id}
+                    >
+                        <div className="block">
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="truncate text-xs font-semibold">
+                                    {checkInFeelingLabel(checkIn.feeling)}
+                                </span>
+                                <time
+                                    className="shrink-0 text-xs"
+                                    dateTime={checkIn.recorded_at}
+                                    style={{ color: 'var(--journal-muted-text)' }}
+                                >
+                                    {formatCheckInDate(checkIn.recorded_at)}
+                                </time>
+                            </div>
+                            <p
+                                className="mt-1 truncate text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                {checkIn.activity_title} · {checkIn.node_title}
+                            </p>
+                            {checkIn.note ? (
+                                <p className="mt-2 text-xs leading-5">
+                                    {checkIn.note}
+                                </p>
+                            ) : null}
+                            {checkIn.next_direction ? (
+                                <p
+                                    className="mt-2 text-xs"
+                                    style={{ color: 'var(--journal-accent)' }}
+                                >
+                                    Next direction:{' '}
+                                    {checkInDirectionLabel(
+                                        checkIn.next_direction,
+                                    )}
+                                </p>
+                            ) : null}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
     );
 }
 
@@ -713,6 +793,27 @@ function formatCheckInDate(value: string): string {
               day: 'numeric',
               month: 'short',
           });
+}
+
+function checkInFeelingLabel(value: string | null): string {
+    return (
+        {
+            clearer: 'Felt clearer',
+            forming: 'Still forming',
+            stretched: 'Felt stretched',
+            stuck: 'Felt stuck',
+        }[value ?? ''] ?? 'A reflection'
+    );
+}
+
+function checkInDirectionLabel(value: string): string {
+    return (
+        {
+            revisit: 'Return to this place',
+            related: 'Look for something related',
+            settle: 'Let it settle',
+        }[value] ?? value
+    );
 }
 
 function JournalListItem({
