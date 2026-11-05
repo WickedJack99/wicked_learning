@@ -1,6 +1,8 @@
-import { ArrowRight, Compass, LogIn, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Compass, LogIn } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router';
+
+import { OriginalAppearanceToggle } from './original-appearance-toggle';
 
 type WelcomePage = {
     eyebrow: string;
@@ -41,12 +43,14 @@ export function OriginalWelcomePage({
     const [activePage, setActivePage] = useState(0);
     const [isLight, setIsLight] = useState(false);
     const wheelLocked = useRef(false);
+    // Values are the original default public palette. A presentation contract
+    // will replace these defaults only when it can preserve the deployment
+    // configuration from the Laravel source.
     const foreground = isLight ? '#0f172a' : '#f8fafc';
-    const body = isLight
-        ? 'rgba(51, 65, 85, 0.78)'
-        : 'rgba(203, 213, 225, 0.78)';
-    const accent = isLight ? '#0e7490' : '#5eead4';
-    const controlText = isLight ? '#ffffff' : '#06111f';
+    const body = isLight ? '#475569' : '#cbd5e1';
+    const accent = isLight ? '#0891b2' : '#5eead4';
+    const controlBorder = isLight ? '#0f172a' : '#ffffff';
+    const controlText = isLight ? '#0f172a' : '#ffffff';
 
     const goToPage = useCallback((pageIndex: number) => {
         setActivePage(
@@ -80,6 +84,8 @@ export function OriginalWelcomePage({
             style={
                 {
                     '--auth-background-color': isLight ? '#ecfeff' : '#07111f',
+                    '--public-control-border': controlBorder,
+                    '--public-control-text': controlText,
                     '--public-welcome-overlay': isLight
                         ? 'linear-gradient(120deg, rgba(236, 254, 255, 0.94), rgba(240, 249, 255, 0.82), rgba(219, 234, 254, 0.62))'
                         : 'linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))',
@@ -116,19 +122,12 @@ export function OriginalWelcomePage({
                         </Link>
                     ) : (
                         <>
-                            <button
-                                aria-label="Toggle colour appearance"
-                                className="mr-2 inline-flex size-9 items-center justify-center rounded-md border-0 bg-white/10 p-0 shadow-lg hover:bg-white/20"
-                                onClick={() => setIsLight((value) => !value)}
-                                style={{ color: foreground }}
-                                type="button"
-                            >
-                                {isLight ? (
-                                    <Moon className="size-4" />
-                                ) : (
-                                    <Sun className="size-4" />
-                                )}
-                            </button>
+                            <OriginalAppearanceToggle
+                                appearance={isLight ? 'light' : 'dark'}
+                                onAppearanceChange={(appearance) =>
+                                    setIsLight(appearance === 'light')
+                                }
+                            />
                             <Link
                                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition hover:bg-current/8"
                                 style={{ color: foreground }}

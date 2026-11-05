@@ -9,6 +9,12 @@ test('the root renders the public welcome screen and offers exploration', async 
         page.getByRole('heading', { name: 'Learning Worlds' }),
     ).toBeVisible();
     await expect(page.getByText('Register', { exact: true })).toHaveCount(0);
+    await expect(
+        page.getByRole('button', { name: 'Light' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Dark' }),
+    ).toBeVisible();
     await page.getByRole('link', { name: 'Enter the first world' }).click();
     await expect(page).toHaveURL(/\/world$/);
 });
@@ -36,6 +42,10 @@ test('the login surface uses the original platform logo asset', async ({
     await page.goto('/login');
 
     await expect(page.locator('img[src="/images/logo.png"]')).toBeVisible();
+    await page.getByRole('button', { name: 'Light' }).click();
+    await expect(page.getByRole('button', { name: 'Light' })).toHaveClass(
+        /bg-current\/12/,
+    );
 });
 
 test('all public-information navigation entries resolve to their published pages', async ({
