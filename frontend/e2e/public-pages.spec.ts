@@ -9,12 +9,8 @@ test('the root renders the public welcome screen and offers exploration', async 
         page.getByRole('heading', { name: 'Learning Worlds' }),
     ).toBeVisible();
     await expect(page.getByText('Register', { exact: true })).toHaveCount(0);
-    await expect(
-        page.getByRole('button', { name: 'Light' }),
-    ).toBeVisible();
-    await expect(
-        page.getByRole('button', { name: 'Dark' }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Light' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Dark' })).toBeVisible();
     await page.getByRole('link', { name: 'Enter the first world' }).click();
     await expect(page).toHaveURL(/\/world$/);
 });
@@ -87,9 +83,10 @@ test('the anonymous source appearance choice persists across public routes and r
 
     await page.getByRole('button', { name: 'Light' }).click();
     await expect(page.locator('html')).not.toHaveClass(/dark/);
-    await expect(
-        page.locator('[data-wl-id="public.welcome"]'),
-    ).toHaveAttribute('style', /--auth-background-color: #ecfeff/);
+    await expect(page.locator('[data-wl-id="public.welcome"]')).toHaveAttribute(
+        'style',
+        /--auth-background-color: #ecfeff/,
+    );
 
     await page.getByRole('link', { name: 'About' }).click();
     await expect(page).toHaveURL(/\/about$/);
@@ -268,9 +265,9 @@ test('the narrow world search uses the source mobile search panel', async ({
     ).toBeFocused();
 
     await page.getByRole('button', { name: 'Close map search' }).last().click();
-    await expect(
-        page.getByRole('region', { name: 'Map search' }),
-    ).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Map search' })).toHaveCount(
+        0,
+    );
 });
 
 test('the lifted World drawer keeps its close control usable on a narrow viewport', async ({
@@ -559,9 +556,7 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/bookmarks');
-    await expect
-        .poll(() => page.evaluate(() => window.innerWidth))
-        .toBe(390);
+    await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(390);
     await page
         .getByRole('button', {
             name: 'Saved place, open bookmarked place',
@@ -571,18 +566,19 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
         page.getByRole('heading', { name: 'Saved place' }),
     ).toBeVisible();
     await expect(page.getByText('The First Path')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Go to node' })).toHaveAttribute(
-        'href',
-        '/world?map=first-path&focused=saved-place',
-    );
+    await expect(
+        page.getByRole('link', { name: 'Go to node' }),
+    ).toHaveAttribute('href', '/world?map=first-path&focused=saved-place');
     const removeBookmarkButton = page.getByRole('button', {
         name: 'Remove bookmark',
     });
-    await expect.poll(async () => {
-        const bounds = await removeBookmarkButton.boundingBox();
+    await expect
+        .poll(async () => {
+            const bounds = await removeBookmarkButton.boundingBox();
 
-        return (bounds?.x ?? 390) + (bounds?.width ?? 0);
-    }).toBeLessThanOrEqual(390);
+            return (bounds?.x ?? 390) + (bounds?.width ?? 0);
+        })
+        .toBeLessThanOrEqual(390);
     const removeBookmarkBounds = await removeBookmarkButton.boundingBox();
     expect(removeBookmarkBounds).not.toBeNull();
     expect(removeBookmarkBounds?.x).toBeGreaterThanOrEqual(0);
@@ -694,7 +690,9 @@ test('the original journal overlay reads only its private paginated contract', a
         '**/api/v1/learner/revisit-invitations/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d70',
         async (route) => {
             expect(route.request().method()).toBe('POST');
-            expect(route.request().postDataJSON()).toEqual({ action: 'snooze' });
+            expect(route.request().postDataJSON()).toEqual({
+                action: 'snooze',
+            });
             expect(await route.request().headerValue('X-CSRF-Token')).toBe(
                 'journal-csrf-token',
             );
@@ -754,8 +752,7 @@ test('the original journal overlay reads only its private paginated contract', a
                 await route.fulfill({
                     contentType: 'application/json',
                     body: JSON.stringify({
-                        deleted_page_id:
-                            '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88',
+                        deleted_page_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88',
                     }),
                 });
                 return;
@@ -805,11 +802,13 @@ test('the original journal overlay reads only its private paginated contract', a
     await page.setViewportSize({ width: 390, height: 844 });
     const laterButton = page.getByRole('button', { name: 'Later' });
     await expect(laterButton).toBeVisible();
-    await expect.poll(async () => {
-        const bounds = await laterButton.boundingBox();
+    await expect
+        .poll(async () => {
+            const bounds = await laterButton.boundingBox();
 
-        return (bounds?.x ?? 390) + (bounds?.width ?? 0);
-    }).toBeLessThanOrEqual(390);
+            return (bounds?.x ?? 390) + (bounds?.width ?? 0);
+        })
+        .toBeLessThanOrEqual(390);
     await page.getByRole('button', { name: 'Later' }).click();
     await expect(
         page.getByText('Return to the first question', { exact: true }),
@@ -834,6 +833,239 @@ test('the original journal overlay reads only its private paginated contract', a
     await page.getByRole('button', { name: 'Close journal' }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
 });
+
+test('the authenticated Topics reader keeps the source directory, topic Trail and Routes flow', async ({
+    page,
+}) => {
+    await mockTopicReader(page);
+
+    await page.goto('/topics');
+
+    await expect(page.getByRole('heading', { name: 'Topics' })).toBeVisible();
+    await expect(page.getByLabel('Topic area')).toHaveValue('orientation');
+    await page.getByRole('link', { name: /Map orientation/ }).click();
+
+    await expect(
+        page.getByRole('heading', { name: 'Map orientation' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Your trail in this topic' }),
+    ).toBeVisible();
+    await expect(page.getByText('Recent reflections')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Routes' }).click();
+    await expect(page).toHaveURL(/\/topics\/map-orientation\?section=routes$/);
+    await expect(
+        page.getByRole('heading', { name: 'Map orientation' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Start with a route' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Enter route' }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/choose-a-direction\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e$/,
+    );
+});
+
+test('the source Topic tab strip remains inside a narrow viewport and loads only its selected section', async ({
+    page,
+}) => {
+    await mockTopicReader(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/topics/map-orientation');
+
+    const tabStrip = page.locator('[data-wl-id="learner.topic.sections"]');
+    await expect(tabStrip).toBeVisible();
+    await expect
+        .poll(async () => {
+            const box = await tabStrip.boundingBox();
+            return box ? box.x >= 0 && box.x + box.width <= 390 : false;
+        })
+        .toBe(true);
+    await page.getByRole('tab', { name: 'Trail' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Routes' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+    );
+    await page.getByRole('tab', { name: 'Routes' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Maps' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+    );
+    await page.getByRole('tab', { name: 'Overview' }).click();
+    await expect(page).toHaveURL(/section=overview/);
+    await expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Subtopics' }),
+    ).toBeVisible();
+});
+
+async function mockTopicReader(page: import('@playwright/test').Page) {
+    const topic = {
+        area_slug: 'orientation',
+        area_title: 'Orientation',
+        content: 'A guide to **map orientation**.',
+        description: 'Notice where you are before choosing a direction.',
+        parent: null,
+        slug: 'map-orientation',
+        title: 'Map orientation',
+    };
+    const pagination = { current_page: 1, last_page: 1, per_page: 6, total: 1 };
+
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['learner'],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/topics', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                areas: [{ slug: 'orientation', title: 'Orientation' }],
+                pagination,
+                search: '',
+                selected_area: {
+                    description: 'Begin with a bearing.',
+                    slug: 'orientation',
+                    title: 'Orientation',
+                    topics: [
+                        {
+                            description: 'Notice the map.',
+                            href: '/topics/map-orientation',
+                            map_count: 1,
+                            slug: 'map-orientation',
+                            title: 'Map orientation',
+                        },
+                    ],
+                },
+            }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/topics/map-orientation/trail',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    competence: null,
+                    learning_areas: [
+                        {
+                            learning_intents: ['retrieve'],
+                            name: 'Orientation',
+                            slug: 'orientation',
+                        },
+                    ],
+                    learning_pulse: [
+                        {
+                            activity_title: 'Consider a direction',
+                            feeling: 'clearer',
+                            node_title: 'Choose a direction',
+                            note: 'I can name a next step.',
+                            recorded_at: '2026-11-05T12:00:00Z',
+                        },
+                    ],
+                    reflection_narrative: null,
+                    subtopic_competence: [],
+                    topic,
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/topics/map-orientation/overview**',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    subtopics: [],
+                    subtopics_pagination: {
+                        ...pagination,
+                        per_page: 4,
+                        total: 0,
+                    },
+                    topic,
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/topics/map-orientation/maps**',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    maps: [],
+                    maps_pagination: { ...pagination, per_page: 4, total: 0 },
+                    topic,
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/learner/paths**', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                pagination,
+                paths: [
+                    {
+                        activity_title: 'Consider a direction',
+                        activity_type: 'question',
+                        description: 'Consider a useful next step.',
+                        image_url: null,
+                        label: 'Choose your next step',
+                        learning_areas: [],
+                        learning_intent: 'retrieve',
+                        map_href: '/world?map=first-path',
+                        map_title: 'The First Path',
+                        node_href:
+                            '/world?map=first-path&focused=choose-a-direction',
+                        node_slug: 'choose-a-direction',
+                        node_title: 'Choose a direction',
+                        progress: null,
+                        route_description: 'A short route for orientation.',
+                        start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                        time_guide_minutes: 15,
+                        topic: {
+                            href: '/topics/map-orientation',
+                            slug: 'map-orientation',
+                            title: 'Map orientation',
+                        },
+                    },
+                ],
+                selected_purpose: null,
+                selected_time_budget: null,
+                topic_context: topic,
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/activity-starts/**/start',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                }),
+            });
+        },
+    );
+}
 
 test('the signed-in explorer starts and completes an original open-practice route through server-owned playback', async ({
     page,
@@ -1164,11 +1396,13 @@ test('the signed-in explorer starts and completes an original open-practice rout
     const relatedDirection = page.getByRole('button', {
         name: 'Look for something related',
     });
-    await expect.poll(async () => {
-        const bounds = await relatedDirection.boundingBox();
+    await expect
+        .poll(async () => {
+            const bounds = await relatedDirection.boundingBox();
 
-        return (bounds?.x ?? 390) + (bounds?.width ?? 0);
-    }).toBeLessThanOrEqual(390);
+            return (bounds?.x ?? 390) + (bounds?.width ?? 0);
+        })
+        .toBeLessThanOrEqual(390);
     await relatedDirection.click();
     await page.getByRole('button', { name: 'Save note and continue' }).click();
     await expect(

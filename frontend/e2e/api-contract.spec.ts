@@ -561,9 +561,25 @@ test('a CI-only fresh identity can login, report its session, and logout', async
         topic: { slug: 'map-orientation' },
     });
 
-    const learnerCompetence = await request.get(
-        '/api/v1/learner/competence',
+    const topicPaths = await request.get(
+        '/api/v1/learner/paths?topic=map-orientation',
     );
+    expect(topicPaths.status()).toBe(200);
+    await expect(topicPaths.json()).resolves.toMatchObject({
+        topic_context: {
+            area_slug: 'orientation',
+            slug: 'map-orientation',
+            title: 'Map orientation',
+        },
+        paths: expect.arrayContaining([
+            expect.objectContaining({
+                node_slug: expect.stringMatching(/^[a-z0-9-]+$/),
+                start_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+            }),
+        ]),
+    });
+
+    const learnerCompetence = await request.get('/api/v1/learner/competence');
     expect(learnerCompetence.status()).toBe(200);
     await expect(learnerCompetence.json()).resolves.toMatchObject({
         month_key: expect.stringMatching(/^\d{4}-\d{2}$/),

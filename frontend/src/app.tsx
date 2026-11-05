@@ -5,6 +5,7 @@ import { apiClient } from './api/client';
 import { OriginalLoginPage } from './original-login';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
+import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
 import {
     PublicInformationPage,
@@ -112,6 +113,18 @@ export function App() {
         return (
             <OriginalBookmarksPage
                 appearance={appearance}
+                isAuthenticationLoading={currentUser.kind === 'loading'}
+                isAuthenticated={currentUser.kind === 'loaded'}
+            />
+        );
+    }
+
+    if (
+        location.pathname === '/topics' ||
+        /^\/topics\/[^/]+$/.test(location.pathname)
+    ) {
+        return (
+            <OriginalTopicsPage
                 isAuthenticationLoading={currentUser.kind === 'loading'}
                 isAuthenticated={currentUser.kind === 'loaded'}
             />

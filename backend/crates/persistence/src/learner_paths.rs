@@ -9,7 +9,7 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
         LearnerPathLearningArea, LearnerPathPagination, LearnerPathProgress, LearnerPathSummary,
-        LearnerPathTopic, LearnerPaths,
+        LearnerPathTopic, LearnerPaths, LearnerTopicDetailHeader, LearnerTopicParent,
     },
 };
 
@@ -47,6 +47,18 @@ struct PathRow {
     topic_title: Option<String>,
 }
 
+#[derive(FromRow)]
+struct TopicContextRow {
+    area_slug: String,
+    area_title: String,
+    content: Option<String>,
+    description: Option<String>,
+    parent_slug: Option<String>,
+    parent_title: Option<String>,
+    slug: String,
+    title: String,
+}
+
 impl LearnerPathsRepositoryPort for PostgresLearnerPathsRepository<'_> {
     fn load(
         &self,
@@ -69,6 +81,10 @@ async fn load_paths(
     principal: &AuthorizedPrincipal,
     request: &LearnerPathsRequest,
 ) -> Result<LearnerPaths, sqlx::Error> {
+    let topic_context = match request.topic_slug.as_deref() {
+        Some(topic_slug) => load_topic_context(pool, topic_slug).await?,
+        None => None,
+    };
     let total = sqlx::query_scalar::<_, i64>(PATH_COUNT_SQL)
         .bind(&principal.roles)
         .bind(&request.topic_slug)
@@ -93,7 +109,37 @@ async fn load_paths(
         paths: rows.into_iter().map(Into::into).collect(),
         selected_purpose: request.purpose.clone(),
         selected_time_budget: request.time_budget,
+        topic_context,
     })
+}
+
+async fn load_topic_context(
+    pool: &PgPool,
+    topic_slug: &str,
+) -> Result<Option<LearnerTopicDetailHeader>, sqlx::Error> {
+    let row = sqlx::query_as::<_, TopicContextRow>(
+        "SELECT areas.slug AS area_slug, areas.title AS area_title, topics.content, topics.description, parents.slug AS parent_slug, parents.title AS parent_title, topics.slug, topics.title FROM learning_topics AS topics INNER JOIN learning_topic_areas AS areas ON areas.id = topics.area_id LEFT JOIN learning_topics AS parents ON parents.id = topics.parent_id WHERE topics.slug = $1 AND topics.published_at IS NOT NULL",
+    )
+    .bind(topic_slug)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(|row| LearnerTopicDetailHeader {
+        area_slug: row.area_slug,
+        area_title: row.area_title,
+        content: row.content,
+        description: row.description,
+        parent: row
+            .parent_slug
+            .zip(row.parent_title)
+            .map(|(slug, title)| LearnerTopicParent {
+                href: format!("/topics/{slug}"),
+                slug,
+                title,
+            }),
+        slug: row.slug,
+        title: row.title,
+    }))
 }
 
 const PATH_COUNT_SQL: &str = r#"
@@ -192,6 +238,7 @@ impl From<PathRow> for LearnerPathSummary {
             map_href: format!("/world?map={}", row.map_slug),
             map_title: row.map_title,
             node_href: format!("/world?map={}&focused={}", row.map_slug, row.node_slug),
+            node_slug: row.node_slug,
             node_title: row.node_title,
             progress: row.progress_status.map(|status| LearnerPathProgress {
                 current_activity_title: row.current_activity_title,

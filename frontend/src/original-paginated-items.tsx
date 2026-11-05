@@ -11,11 +11,9 @@ export function OriginalPaginatedItems<T>({
     className = 'grid gap-3 sm:grid-cols-2',
     items,
     pageSize,
-    paginationButtonClassName =
-        'inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40',
+    paginationButtonClassName = 'inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40',
     paginationLabel,
-    paginationClassName =
-        'mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3',
+    paginationClassName = 'mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3',
     paginationTextClassName = 'text-xs text-[var(--learner-muted-text)]',
     renderItem,
 }: {
@@ -35,7 +33,8 @@ export function OriginalPaginatedItems<T>({
     const currentPage = Math.min(page, Math.max(0, pageCount - 1));
 
     const rememberContentHeight = useCallback(() => {
-        const contentHeight = contentRef.current?.getBoundingClientRect().height;
+        const contentHeight =
+            contentRef.current?.getBoundingClientRect().height;
 
         if (contentHeight === undefined) {
             return;
@@ -67,10 +66,7 @@ export function OriginalPaginatedItems<T>({
                 }}
             >
                 {items
-                    .slice(
-                        currentPage * pageSize,
-                        (currentPage + 1) * pageSize,
-                    )
+                    .slice(currentPage * pageSize, (currentPage + 1) * pageSize)
                     .map(renderItem)}
             </div>
             <OriginalPaginationControls
@@ -89,10 +85,12 @@ export function OriginalPaginatedItems<T>({
     );
 }
 
-function OriginalPaginationControls({
+export function OriginalPaginationControls({
     buttonClassName,
     className,
     currentPage,
+    focusOutlineClassName = 'focus-visible:outline-[var(--journal-accent)]',
+    focusRingClassName = 'focus-visible:ring-[var(--journal-accent)]',
     label,
     onPageChange,
     pageCount,
@@ -101,6 +99,8 @@ function OriginalPaginationControls({
     buttonClassName: string;
     className: string;
     currentPage: number;
+    focusOutlineClassName?: string;
+    focusRingClassName?: string;
     label: string;
     onPageChange: (page: number) => void;
     pageCount: number;
@@ -149,7 +149,7 @@ function OriginalPaginationControls({
         >
             <button
                 aria-label="Previous items"
-                className={`inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--journal-accent)] ${buttonClassName}`}
+                className={`inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 ${focusOutlineClassName} ${buttonClassName}`}
                 disabled={safeCurrentPage === 1}
                 onClick={() => onPageChange(safeCurrentPage - 1)}
                 type="button"
@@ -167,7 +167,7 @@ function OriginalPaginationControls({
                 <span aria-hidden="true">Page</span>
                 <input
                     aria-label="Current page"
-                    className="h-7 w-12 rounded border border-current/30 bg-transparent px-1 text-center text-inherit outline-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)]"
+                    className={`h-7 w-12 rounded border border-current/30 bg-transparent px-1 text-center text-inherit outline-none focus-visible:ring-2 ${focusRingClassName}`}
                     defaultValue={safeCurrentPage}
                     id={inputId}
                     inputMode="numeric"
@@ -175,7 +175,8 @@ function OriginalPaginationControls({
                     min={1}
                     onBlur={() => {
                         if (pageInputRef.current?.value === '') {
-                            pageInputRef.current.value = String(safeCurrentPage);
+                            pageInputRef.current.value =
+                                String(safeCurrentPage);
                         }
                     }}
                     onChange={(event) => {
@@ -186,7 +187,8 @@ function OriginalPaginationControls({
                         }
 
                         if (!/^\d+$/.test(value)) {
-                            event.currentTarget.value = lastValidInputRef.current;
+                            event.currentTarget.value =
+                                lastValidInputRef.current;
                             return;
                         }
 
@@ -196,7 +198,8 @@ function OriginalPaginationControls({
                             requestedPage < 1 ||
                             requestedPage > safePageCount
                         ) {
-                            event.currentTarget.value = lastValidInputRef.current;
+                            event.currentTarget.value =
+                                lastValidInputRef.current;
                             return;
                         }
 
@@ -216,7 +219,7 @@ function OriginalPaginationControls({
             </span>
             <button
                 aria-label="Next items"
-                className={`inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--journal-accent)] ${buttonClassName}`}
+                className={`inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 ${focusOutlineClassName} ${buttonClassName}`}
                 disabled={safeCurrentPage === safePageCount}
                 onClick={() => onPageChange(safeCurrentPage + 1)}
                 type="button"

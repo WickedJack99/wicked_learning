@@ -1739,7 +1739,7 @@ components:
     LearnerPaths:
       type: object
       additionalProperties: false
-      required: [pagination, paths, selected_purpose, selected_time_budget]
+      required: [pagination, paths, selected_purpose, selected_time_budget, topic_context]
       properties:
         pagination: { $ref: '#/components/schemas/LearnerPathPagination' }
         paths:
@@ -1752,6 +1752,10 @@ components:
         selected_time_budget:
           type: [integer, 'null']
           enum: [15, 30, null]
+        topic_context:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerTopicDetailHeader'
+            - type: 'null'
     LearnerPathPagination:
       type: object
       additionalProperties: false
@@ -1764,7 +1768,7 @@ components:
     LearnerPathSummary:
       type: object
       additionalProperties: false
-      required: [activity_title, activity_type, description, image_url, label, learning_areas, learning_intent, map_href, map_title, node_href, node_title, progress, route_description, start_id, time_guide_minutes, topic]
+      required: [activity_title, activity_type, description, image_url, label, learning_areas, learning_intent, map_href, map_title, node_href, node_slug, node_title, progress, route_description, start_id, time_guide_minutes, topic]
       properties:
         activity_title: { type: string }
         activity_type: { type: string }
@@ -1779,6 +1783,7 @@ components:
         map_href: { type: string, pattern: '^/world\\?map=[a-z0-9-]+$' }
         map_title: { type: string }
         node_href: { type: string, pattern: '^/world\\?map=[a-z0-9-]+&focused=[a-z0-9-]+$' }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         node_title: { type: string }
         progress:
           oneOf:

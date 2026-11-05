@@ -1006,6 +1006,7 @@ export interface components {
             selected_purpose: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer" | null;
             /** @enum {integer|null} */
             selected_time_budget: 15 | 30 | null;
+            topic_context: components["schemas"]["LearnerTopicDetailHeader"] | null;
         };
         LearnerPathPagination: {
             current_page: number;
@@ -1026,6 +1027,7 @@ export interface components {
             map_href: string;
             map_title: string;
             node_href: string;
+            node_slug: string;
             node_title: string;
             progress: components["schemas"]["LearnerPathProgress"] | null;
             route_description: string | null;

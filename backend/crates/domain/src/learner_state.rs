@@ -139,6 +139,9 @@ pub struct LearnerPaths {
     pub paths: Vec<LearnerPathSummary>,
     pub selected_purpose: Option<String>,
     pub selected_time_budget: Option<i16>,
+    /// Present only when the paths reader is scoped to one published topic.
+    /// The source topic-detail page retains this header while Routes is active.
+    pub topic_context: Option<LearnerTopicDetailHeader>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -161,6 +164,7 @@ pub struct LearnerPathSummary {
     pub map_href: String,
     pub map_title: String,
     pub node_href: String,
+    pub node_slug: String,
     pub node_title: String,
     pub progress: Option<LearnerPathProgress>,
     pub route_description: Option<String>,

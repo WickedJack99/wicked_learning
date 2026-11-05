@@ -739,24 +739,23 @@ context. Returning a generic item list would redesign the existing learner
 workflow. Returning the source world's first map regardless of visibility
 could disclose role-restricted presentation. All are rejected.
 
-**Limitations and trigger:** The original optional topic link is not exposed
-until the authenticated topics reader is migrated. Learning Desk's separate
-bookmark rail and the remaining learner navigation need their own
-source-derived contracts.
+**Limitations and trigger:** Learning Desk's separate bookmark rail and the
+remaining learner navigation need their own source-derived contracts.
 
-## ADR-027: Topics directory is a private contract foundation, not a partial route
+## ADR-027: Topics reader preserves the source directory-to-detail flow
 
 **Status:** Accepted — 5 November 2026
 
 **Problem:** The source topic directory is authenticated, paginated and
-searchable, but every listed topic navigates to the source topic-detail flow.
-Publishing a Rust `/topics` page before that flow exists would create links to
-an invented reader, a generic card page, or a non-functional destination.
+searchable, and every listed topic opens one detail document with a persistent
+topic header and four sections: Trail, Routes, Maps and Overview. A Rust
+directory without that document would create a non-functional or redesigned
+destination. Conversely, the generic Paths contract did not return the topic
+header or a server-owned node identifier needed to begin a selected path.
 
-**Decision:** Create the greenfield topic-area/topic schema and authenticated
-`GET /learner/topics` contract first, plus the source detail page's separate
-authenticated Overview, Maps and Trail reads, while keeping the browser
-`/topics` route unavailable. The directory returns only published root topics
+**Decision:** Expose the source-adapted authenticated `/topics` and
+`/topics/{topic}` reader only after all four sections have Rust contracts. The
+directory returns only published root topics
 in a source-ordered area, applies literal bounded search and six-item
 pagination in PostgreSQL, and derives each map count from maps the
 authenticated principal may currently view. Overview returns a published topic
@@ -770,12 +769,16 @@ published maps. It derives the source learning-area list from visible authored
 activity configuration, rather than asking React to parse or filter it. It
 does not provide historical activity replay or a generic activity writer. The
 browser does not receive topic IDs, unpublished records, arbitrary map access,
-or a client-filtered collection.
+or a client-filtered collection. The detail reader retains the source default
+Trail tab, tabs/keyboard behavior, section-specific query parameters, filters
+and bounded pagination. The Routes tab invokes the existing CSRF-protected
+start command; its opaque returned run remains the only authority to open
+playback.
 
-The next browser slice must add the source topic-detail reader and preserve
-the directory's original links before exposing `/topics`. It must not replace
-those links with an unrelated list, disabled control, or a changed default
-section merely because only one detail panel is ready.
+When `GET /learner/paths` is scoped with `topic`, it now returns nullable
+`topic_context` and a `node_slug` per path. The context preserves the source
+detail header without a second unrelated browser read; the node slug is an
+explicit server-issued playback destination instead of parsing a World URL.
 
 **Why:** This makes the data, authorization and URL boundary reviewable now
 without presenting an incomplete workflow as migrated. It also preserves the
@@ -787,12 +790,14 @@ unpublished or inaccessible context and lose source pagination semantics.
 Publishing a directory whose links lead to a simplified topic summary would
 make an unfinished substitute part of the product. Both are rejected.
 
-**Limitations and trigger:** This does not migrate the topic-detail browser
-surface, source Routes section, learner start controls or topic-map browsing.
-Trail intentionally omits unavailable historical activity replay and competence
-destination links rather than inventing a substitute. The contracts are local
-authenticated backend foundations until every source-defined section required
-by the browser flow has matching reads and browser evidence.
+**Limitations and trigger:** The standalone source `/paths` page remains
+unavailable. Trail intentionally omits unavailable historical activity replay,
+competence-destination and direct-Journal controls rather than inventing a
+substitute; the journal is currently an overlay, not a direct document URL.
+The management control is also absent because the administration route has no
+Rust contract. Dynamic schedule, reveal and tool-unlock parity remains a Paths
+reader gate; rows needing those capabilities must not become visible merely
+because this static source slice is available.
 
 ## ADR-028: Paths reader preserves source filtering without publishing a partial page
 
@@ -829,9 +834,10 @@ Paths workflow. Both are rejected.
 **Limitations and trigger:** The endpoint intentionally does not claim dynamic
 schedule, reveal or unlock parity; rows using those source capabilities must
 remain unavailable until their learner-state model and authorization evidence
-exist in Rust. The React `/paths` route and the topic Routes tab remain absent
-until the source controls can start a server-authorized run and every source
-eligibility input is represented.
+exist in Rust. The standalone React `/paths` route remains absent until its
+complete source page and every source eligibility input are represented. The
+topic Routes tab may consume only the already represented static eligibility
+slice and starts runs through the existing server-owned command.
 
 ## ADR-029: Competence uses an append-only private evidence ledger
 
