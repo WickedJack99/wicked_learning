@@ -547,6 +547,11 @@ transition. The browser never supplies an activity target, journal identity,
 topic, transition or evidence claim. The response deliberately does not echo
 the learner's writing.
 
+Each stored reflection also retains the authored activity-start identity active
+at the time of writing. This lets a later private journal reader show its
+original map/node context even after the learner resets or starts another run;
+it must not derive old reflection context from mutable current progress.
+
 `learner_journal_pages` and `learner_reflections` are application-database
 tables keyed by `application_principals.id`; identity credentials and identity
 profile data remain in the separate identity database. Neither table is part

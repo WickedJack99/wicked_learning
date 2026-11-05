@@ -20,6 +20,7 @@ impl<'pool> PostgresLearnerReflectionRepository<'pool> {
 
 #[derive(FromRow)]
 struct CurrentReflectionRow {
+    activity_start_id: Uuid,
     activity_config: serde_json::Value,
     activity_id: Uuid,
     activity_title: String,
@@ -135,11 +136,12 @@ async fn save_current_reflection(
 
     let reflection_title = format!("{} - {}", current.node_title, current.activity_title);
     sqlx::query(
-        "INSERT INTO learner_reflections (principal_id, learner_journal_page_id, activity_id, play_run_id, title, question, reflection) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        "INSERT INTO learner_reflections (principal_id, learner_journal_page_id, activity_id, activity_start_id, play_run_id, title, question, reflection) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
     )
     .bind(current.principal_id)
     .bind(journal_page_id)
     .bind(current.activity_id)
+    .bind(current.activity_start_id)
     .bind(play_run_id)
     .bind(&reflection_title)
     .bind(prompt)
@@ -222,7 +224,7 @@ async fn load_current_reflection(
     activity_slug: &str,
 ) -> Result<Option<CurrentReflectionRow>, sqlx::Error> {
     sqlx::query_as::<_, CurrentReflectionRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, activities.title AS activity_title, nodes.title AS node_title, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'reflection' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT progress.activity_start_id, activities.activity_config, activities.id AS activity_id, activities.title AS activity_title, nodes.title AS node_title, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'reflection' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
