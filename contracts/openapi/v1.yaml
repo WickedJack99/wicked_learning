@@ -214,6 +214,31 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active run, question, or submitted choices are unavailable. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection:
+    post:
+      operationId: saveLearnerReflection
+      summary: Save a private reflection for the current authorized activity and advance its play run.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerReflectionRequest'
+      responses:
+        '200':
+          description: The private reflection was stored and the server advanced or completed the active run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerReflectionResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active run/activity pair is stale, unavailable, not owned by this learner, or the reflection is invalid. }
+        '503': { description: The application database is unavailable. }
   /learner/activity-starts/{start_id}/start:
     post:
       operationId: startLearnerRoute
@@ -1002,7 +1027,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question]
+          enum: [open_practice, question, reflection]
         config:
           type: object
         completion:
@@ -1059,6 +1084,25 @@ components:
         calibration: { type: [string, 'null'], enum: [aligned, stronger_than_expected, higher_than_result, uncertainty_made_gap_visible, null] }
         attempt_number: { type: integer, minimum: 1 }
         next_transition_label: { type: [string, 'null'] }
+    LearnerReflectionRequest:
+      type: object
+      additionalProperties: false
+      required: [reflection]
+      properties:
+        reflection:
+          type: string
+          minLength: 1
+          maxLength: 20000
+    LearnerReflectionResult:
+      type: object
+      additionalProperties: false
+      required: [play_run_id, activity_slug, status]
+      properties:
+        play_run_id: { type: string, format: uuid }
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        status:
+          type: string
+          enum: [in_progress, completed]
     LearnerRouteRun:
       type: object
       additionalProperties: false

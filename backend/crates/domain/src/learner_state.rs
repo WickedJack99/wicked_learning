@@ -156,3 +156,13 @@ pub struct LearnerQuestionAnswerResult {
     pub attempt_number: i32,
     pub next_transition_label: Option<String>,
 }
+
+/// A private reflection saved for the currently authorized activity. The
+/// response intentionally contains no learner writing or journal metadata:
+/// subsequent journal/review readers must be separately authorized.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerReflectionResult {
+    pub play_run_id: String,
+    pub activity_slug: String,
+    pub status: String,
+}

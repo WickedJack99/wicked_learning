@@ -10,6 +10,7 @@ type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
 type LearnerQuestionAnswerResult =
     components['schemas']['LearnerQuestionAnswerResult'];
+type LearnerReflectionResult = components['schemas']['LearnerReflectionResult'];
 
 const ROUTE_PAGE_SIZE = 3;
 
@@ -61,7 +62,9 @@ export function OriginalRouteStartButtons({
                     <button
                         className="rounded-md px-2 py-1 font-medium hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-white/10"
                         disabled={currentPage === 1}
-                        onClick={() => setPage((value) => Math.max(1, value - 1))}
+                        onClick={() =>
+                            setPage((value) => Math.max(1, value - 1))
+                        }
                         type="button"
                     >
                         Previous
@@ -332,7 +335,10 @@ export function OriginalOpenPracticePage({
                 ) : null}
                 {state.kind === 'unavailable' ? (
                     <div className="rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
-                        <p role="alert" className="text-sm leading-6 text-[var(--learner-muted-text)]">
+                        <p
+                            role="alert"
+                            className="text-sm leading-6 text-[var(--learner-muted-text)]"
+                        >
                             This activity is no longer available.
                         </p>
                         <Link
@@ -354,9 +360,13 @@ export function OriginalOpenPracticePage({
                             </span>
                             <div className="min-w-0">
                                 <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
-                                    {state.document.activity.activity_type === 'question'
+                                    {state.document.activity.activity_type ===
+                                    'question'
                                         ? 'Question'
-                                        : 'Open practice'}
+                                        : state.document.activity
+                                                .activity_type === 'reflection'
+                                          ? 'Reflection'
+                                          : 'Open practice'}
                                 </p>
                                 <h3
                                     className="mt-1 scroll-mt-4 rounded-sm text-base font-semibold text-[var(--learner-heading-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-page-background)]"
@@ -372,11 +382,25 @@ export function OriginalOpenPracticePage({
                                 ) : null}
                             </div>
                         </div>
-                        {state.document.activity.activity_type === 'question' ? (
+                        {state.document.activity.activity_type ===
+                        'question' ? (
                             <QuestionActivity
                                 activity={state.document.activity}
                                 playRunId={state.document.play_run_id}
                                 onContinue={() => void load()}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'reflection' ? (
+                            <ReflectionActivity
+                                activity={state.document.activity}
+                                onSaved={(result) => {
+                                    if (result.status === 'completed') {
+                                        returnToWorld();
+                                        return;
+                                    }
+                                    void load();
+                                }}
+                                playRunId={state.document.play_run_id}
                             />
                         ) : (
                             <OpenPracticeActivity
@@ -389,6 +413,105 @@ export function OriginalOpenPracticePage({
                 ) : null}
             </section>
         </main>
+    );
+}
+
+/**
+ * Source-adapted from the base branch of the original ReflectionActivity.
+ * The Rust command owns journal selection, private persistence and progression;
+ * no journal page or transition can be selected by the browser.
+ */
+function ReflectionActivity({
+    activity,
+    onSaved,
+    playRunId,
+}: {
+    activity: LearnerPlaybackDocument['activity'];
+    onSaved: (result: LearnerReflectionResult) => void;
+    playRunId: string;
+}) {
+    const config = activity.config as { note?: unknown; prompt?: unknown };
+    const prompt = typeof config.prompt === 'string' ? config.prompt : '';
+    const note = typeof config.note === 'string' ? config.note : '';
+    const [reflection, setReflection] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    if (!prompt) {
+        return null;
+    }
+
+    async function save(): Promise<void> {
+        const response = reflection.trim();
+        if (!response || saving) {
+            return;
+        }
+        setSaving(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const { data, response: apiResponse } = await apiClient.POST(
+                '/learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection',
+                {
+                    body: { reflection: response },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: {
+                            activity_slug: activity.slug,
+                            play_run_id: playRunId,
+                        },
+                    },
+                },
+            );
+            if (!apiResponse.ok || !data) {
+                setError(
+                    'Your private reflection could not be saved. Try again.',
+                );
+                return;
+            }
+            onSaved(data);
+        } catch {
+            setError('Your private reflection could not be saved. Try again.');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <div className="flex flex-1 flex-col gap-4">
+            <div className="flex items-center gap-2 text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200">
+                <RotateCcw className="size-3.5" />
+                Reflection
+            </div>
+            <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                {prompt}
+            </p>
+            <textarea
+                className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                id="activity-reflection-response"
+                onChange={(event) => setReflection(event.currentTarget.value)}
+                placeholder="Write a short note for yourself."
+                value={reflection}
+            />
+            {note ? (
+                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {note}
+                </p>
+            ) : null}
+            {error ? (
+                <p className="text-sm text-red-300" role="alert">
+                    {error}
+                </p>
+            ) : null}
+            <button
+                className="mt-auto inline-flex h-9 items-center justify-center rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                disabled={saving || reflection.trim().length === 0}
+                onClick={() => void save()}
+                type="button"
+            >
+                {saving ? 'Keeping reflection…' : 'Keep reflection'}
+            </button>
+        </div>
     );
 }
 
@@ -409,7 +532,9 @@ function QuestionActivity({
     };
     const options = Array.isArray(config.options)
         ? config.options.filter(
-              (option): option is { body: string; key: string; label: string } =>
+              (
+                  option,
+              ): option is { body: string; key: string; label: string } =>
                   typeof option === 'object' &&
                   option !== null &&
                   typeof (option as { body?: unknown }).body === 'string' &&
@@ -423,7 +548,9 @@ function QuestionActivity({
     const [confidence, setConfidence] = useState<
         'exploring' | 'leaning' | 'settled' | null
     >(null);
-    const [answer, setAnswer] = useState<LearnerQuestionAnswerResult | null>(null);
+    const [answer, setAnswer] = useState<LearnerQuestionAnswerResult | null>(
+        null,
+    );
     const [submitting, setSubmitting] = useState(false);
 
     if (!prompt || options.length === 0) {
@@ -453,7 +580,10 @@ function QuestionActivity({
                     body: { confidence, option_keys: optionKeys },
                     params: {
                         header: { 'X-CSRF-Token': token },
-                        path: { activity_slug: activity.slug, play_run_id: playRunId },
+                        path: {
+                            activity_slug: activity.slug,
+                            play_run_id: playRunId,
+                        },
                     },
                 },
             );
@@ -463,12 +593,112 @@ function QuestionActivity({
         }
     }
 
-    return <div className="flex flex-1 flex-col gap-5">
-        <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-white/6 dark:text-slate-100">{prompt}</p>
-        {!answer ? <><div><p className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">Optional starting sense</p><div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="How settled your answer feels">{(['exploring', 'leaning', 'settled'] as const).map((value) => <button aria-pressed={confidence === value} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300" key={value} onClick={() => setConfidence(value)} type="button">{value === 'exploring' ? 'Exploring' : value === 'leaning' ? 'I have a hunch' : 'Settled'}</button>)}</div></div>
-        <div className="grid gap-3">{options.map((option) => <button aria-pressed={selection.includes(option.key)} className="rounded-lg border border-slate-200 bg-white p-4 text-left text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-100" disabled={submitting} key={option.key} onClick={() => select(option.key)} type="button"><span className="mr-2 font-semibold text-cyan-700 dark:text-teal-200">{option.label}</span>{option.body}</button>)}</div>
-        {allowMultiple ? <button className="self-start rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={submitting || selection.length === 0} onClick={() => void submit(selection)} type="button">{submitting ? 'Checking…' : 'Check answers'}<ArrowRight className="ml-2 inline size-4" /></button> : null}</> :
-        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6"><p className="text-sm font-medium text-cyan-700 dark:text-teal-100">{answer.is_correct ? 'Useful clue found' : 'Adjust the hypothesis'}</p>{answer.feedback ? <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">{answer.feedback}</p> : null}{answer.explanation ? <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{answer.explanation}</p> : null}<div className="mt-4 flex flex-wrap gap-3"><button className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:text-slate-100" onClick={() => { setAnswer(null); setSelection([]); setConfidence(null); }} type="button">Try again independently</button><button className="rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950" onClick={onContinue} type="button">{answer.next_transition_label || 'Continue'}<ArrowRight className="ml-2 inline size-4" /></button></div></div>}</div>;
+    return (
+        <div className="flex flex-1 flex-col gap-5">
+            <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-white/6 dark:text-slate-100">
+                {prompt}
+            </p>
+            {!answer ? (
+                <>
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                            Optional starting sense
+                        </p>
+                        <div
+                            className="mt-2 flex flex-wrap gap-2"
+                            role="group"
+                            aria-label="How settled your answer feels"
+                        >
+                            {(['exploring', 'leaning', 'settled'] as const).map(
+                                (value) => (
+                                    <button
+                                        aria-pressed={confidence === value}
+                                        className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300"
+                                        key={value}
+                                        onClick={() => setConfidence(value)}
+                                        type="button"
+                                    >
+                                        {value === 'exploring'
+                                            ? 'Exploring'
+                                            : value === 'leaning'
+                                              ? 'I have a hunch'
+                                              : 'Settled'}
+                                    </button>
+                                ),
+                            )}
+                        </div>
+                    </div>
+                    <div className="grid gap-3">
+                        {options.map((option) => (
+                            <button
+                                aria-pressed={selection.includes(option.key)}
+                                className="rounded-lg border border-slate-200 bg-white p-4 text-left text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-100"
+                                disabled={submitting}
+                                key={option.key}
+                                onClick={() => select(option.key)}
+                                type="button"
+                            >
+                                <span className="mr-2 font-semibold text-cyan-700 dark:text-teal-200">
+                                    {option.label}
+                                </span>
+                                {option.body}
+                            </button>
+                        ))}
+                    </div>
+                    {allowMultiple ? (
+                        <button
+                            className="self-start rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"
+                            disabled={submitting || selection.length === 0}
+                            onClick={() => void submit(selection)}
+                            type="button"
+                        >
+                            {submitting ? 'Checking…' : 'Check answers'}
+                            <ArrowRight className="ml-2 inline size-4" />
+                        </button>
+                    ) : null}
+                </>
+            ) : (
+                <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">
+                    <p className="text-sm font-medium text-cyan-700 dark:text-teal-100">
+                        {answer.is_correct
+                            ? 'Useful clue found'
+                            : 'Adjust the hypothesis'}
+                    </p>
+                    {answer.feedback ? (
+                        <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                            {answer.feedback}
+                        </p>
+                    ) : null}
+                    {answer.explanation ? (
+                        <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            {answer.explanation}
+                        </p>
+                    ) : null}
+                    <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                            className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:text-slate-100"
+                            onClick={() => {
+                                setAnswer(null);
+                                setSelection([]);
+                                setConfidence(null);
+                            }}
+                            type="button"
+                        >
+                            Try again independently
+                        </button>
+                        <button
+                            className="rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950"
+                            onClick={onContinue}
+                            type="button"
+                        >
+                            {answer.next_transition_label || 'Continue'}
+                            <ArrowRight className="ml-2 inline size-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 /** Source-adapted from the original NodePlay learning-context aside. */
@@ -539,7 +769,7 @@ function OpenPracticeActivity({
                 {nextStep}
             </p>
             <button
-                className="mt-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
+                className="mt-auto inline-flex h-9 items-center justify-center gap-2 rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 disabled={completing}
                 onClick={onComplete}
                 type="button"

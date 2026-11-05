@@ -142,7 +142,7 @@ async fn answer_current_question(
         .as_ref()
         .and_then(|transition| transition.to_activity_id);
     if let Some(next_activity_id) = next_activity_id {
-        let available = sqlx::query_scalar::<_, Uuid>("SELECT activities.id FROM learning_activities AS activities WHERE activities.id = $1 AND activities.route_id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question')")
+        let available = sqlx::query_scalar::<_, Uuid>("SELECT activities.id FROM learning_activities AS activities WHERE activities.id = $1 AND activities.route_id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection')")
             .bind(next_activity_id).bind(current.route_id).fetch_optional(&mut *transaction).await?;
         let Some(next_activity_id) = available else {
             transaction.commit().await?;

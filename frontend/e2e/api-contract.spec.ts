@@ -153,7 +153,7 @@ test('a public map place exposes only its bounded published route previews', asy
                 title: 'Choose your next step',
                 description:
                     'A short route for considering a useful direction without a prescribed order.',
-                activity_count: 1,
+                activity_count: 2,
             },
         ],
     });
@@ -193,6 +193,12 @@ test('a public route exposes only its bounded published activity outline', async
                 title: 'Consider a direction',
                 description:
                     'Compare available directions without ranking them or creating urgency.',
+            },
+            {
+                slug: 'reflect-on-direction',
+                title: 'Connect the direction',
+                description:
+                    'Keep a private note about what feels useful to explore next.',
             },
         ],
     });
@@ -345,7 +351,9 @@ test('a CI-only fresh identity can login, report its session, and logout', async
     const firstStart = learnerWorldSnapshot.start_routes[0];
     expect(firstStart).toBeDefined();
     if (!firstStart) {
-        throw new Error('the disposable learner needs one published activity start');
+        throw new Error(
+            'the disposable learner needs one published activity start',
+        );
     }
 
     const start = await request.post(
@@ -446,7 +454,9 @@ test('a CI-only fresh identity can login, report its session, and logout', async
         `/api/v1/learner/play-runs/${firstRun.play_run_id}`,
     );
     if (completionResult.status === 'in_progress') {
-        expect(playbackDocument.activity.completion.next_activity_slug).not.toBeNull();
+        expect(
+            playbackDocument.activity.completion.next_activity_slug,
+        ).not.toBeNull();
         expect(playbackAfterCompletion.status()).toBe(200);
         await expect(playbackAfterCompletion.json()).resolves.toMatchObject({
             activity: {

@@ -689,6 +689,71 @@ test('the original question surface posts only selected option keys and waits fo
     ).toBeVisible();
 });
 
+test('the original reflection surface sends private writing only to its active server-owned run', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88';
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    play_run_id: playRunId,
+                    context: {
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        map_slug: 'private-path',
+                        map_title: 'A private path',
+                        route_label: 'Reflection route',
+                    },
+                    activity: {
+                        slug: 'private-reflection',
+                        title: 'Connect the direction',
+                        description: 'A private learner reflection.',
+                        activity_type: 'reflection',
+                        config: {
+                            prompt: 'What feels clearer about your direction?',
+                            note: 'This response stays in your private journal.',
+                        },
+                        completion: { label: null, next_activity_slug: null },
+                    },
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/private-reflection/reflection`,
+        async (route) => {
+            expect(route.request().postDataJSON()).toEqual({
+                reflection: 'I want to compare the routes before choosing.',
+            });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    activity_slug: 'private-reflection',
+                    status: 'completed',
+                }),
+            });
+        },
+    );
+
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await page
+        .getByRole('textbox', { name: '' })
+        .fill('I want to compare the routes before choosing.');
+    await page.getByRole('button', { name: 'Keep reflection' }).click();
+    await expect(page).toHaveURL(/\/world\?focused=private-place$/);
+});
+
 test('the public explorer search is bounded and presents matching places', async ({
     page,
 }) => {

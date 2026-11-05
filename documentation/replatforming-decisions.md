@@ -523,6 +523,49 @@ policy in React. Returning an arbitrary next-page URL would couple API policy
 to browser routing. A generic completion endpoint without the expected current
 activity would make stale submissions ambiguous. All are rejected.
 
+## ADR-021: Private reflection is a distinct learner-state boundary
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original reflection activity is not a generic text field or a
+public activity completion. It writes learner-owned private words, attaches
+them to the currently active play run, organizes them in a private journal and
+then follows an authored transition. Storing reflection text in route-progress
+metadata, exposing it in the World snapshot, or allowing the browser to choose
+a journal page would break that boundary.
+
+**Decision:** The first reflection slice supports the original base
+`reflection` activity only. `POST
+/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection`
+accepts one bounded non-empty reflection for the authenticated principal's
+current server-owned reflection activity. In one application-database
+transaction it validates publication/access and the authored configuration,
+upserts the principal's private journal page from the authored topic/subtopic,
+adds an immutable structured reflection row, appends the journal representation
+and advances or completes the active run through its authored `completed`
+transition. The browser never supplies an activity target, journal identity,
+topic, transition or evidence claim. The response deliberately does not echo
+the learner's writing.
+
+`learner_journal_pages` and `learner_reflections` are application-database
+tables keyed by `application_principals.id`; identity credentials and identity
+profile data remain in the separate identity database. Neither table is part
+of anonymous/public World data or the broad learner World snapshot.
+
+**Why:** This preserves the original privacy and progression behavior while
+providing a narrow, independently testable base that future journal and review
+surfaces can read through separately authorized contracts.
+
+**Alternatives:** A plain completion endpoint plus browser-local note would
+lose the private durable record. A generic journal-write endpoint would allow a
+stale activity page to write outside its current run. Both are rejected.
+
+**Limitations and trigger:** This does not yet enable the original transfer,
+explanation, review comparison, independent-check, confidence, cue, journal
+editing/export or staff-feedback variants. Each has additional private data and
+evidence semantics, so it needs a separate contract and browser parity slice;
+the UI must not advertise those variants before then.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

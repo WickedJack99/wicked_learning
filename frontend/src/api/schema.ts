@@ -140,6 +140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a private reflection for the current authorized activity and advance its play run. */
+        post: operations["saveLearnerReflection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/activity-starts/{start_id}/start": {
         parameters: {
             query?: never;
@@ -530,7 +547,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question";
+            activity_type: "open_practice" | "question" | "reflection";
             config: Record<string, never>;
             completion: components["schemas"]["LearnerPlaybackCompletion"];
         };
@@ -563,6 +580,16 @@ export interface components {
             calibration: "aligned" | "stronger_than_expected" | "higher_than_result" | "uncertainty_made_gap_visible" | null;
             attempt_number: number;
             next_transition_label: string | null;
+        };
+        LearnerReflectionRequest: {
+            reflection: string;
+        };
+        LearnerReflectionResult: {
+            /** Format: uuid */
+            play_run_id: string;
+            activity_slug: string;
+            /** @enum {string} */
+            status: "in_progress" | "completed";
         };
         LearnerRouteRun: {
             /** Format: uuid */
@@ -984,6 +1011,64 @@ export interface operations {
                 content?: never;
             };
             /** @description The active run */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    saveLearnerReflection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerReflectionRequest"];
+            };
+        };
+        responses: {
+            /** @description The private reflection was stored and the server advanced or completed the active run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerReflectionResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active run/activity pair is stale */
             404: {
                 headers: {
                     [name: string]: unknown;
