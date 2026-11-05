@@ -56,7 +56,7 @@ pub async fn reset(
         .ok_or_else(ApiError::not_found)
 }
 
-async fn authenticated_principal(
+pub(crate) async fn authenticated_principal(
     state: &AppState,
     auth_session: AuthSession<IdentityBackend>,
 ) -> Result<wicked_learning_domain::identity_access::AuthorizedPrincipal, ApiError> {

@@ -266,6 +266,15 @@ test('an anonymous session reveals no credential or identity material', async ({
         code: 'authentication_required',
         title: 'Authentication is required.',
     });
+
+    const playbackResponse = await request.get(
+        '/api/v1/learner/play-runs/00000000-0000-4000-8000-000000000000',
+    );
+    expect(playbackResponse.status()).toBe(401);
+    await expect(playbackResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
 });
 
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({
@@ -349,6 +358,47 @@ test('a CI-only fresh identity can login, report its session, and logout', async
         reset_count: expect.any(Number),
         status: 'in_progress',
     });
+
+    const playback = await request.get(
+        `/api/v1/learner/play-runs/${firstRun.play_run_id}`,
+    );
+    expect(playback.status()).toBe(200);
+    const playbackDocument = (await playback.json()) as {
+        activity: {
+            completion: {
+                label: string | null;
+                next_activity_slug: string | null;
+            };
+        };
+    };
+    expect(playbackDocument).toMatchObject({
+        start_id: firstStart.start_id,
+        play_run_id: firstRun.play_run_id,
+        activity: {
+            slug: expect.any(String),
+            title: expect.any(String),
+            description: expect.any(String),
+            activity_type: 'open_practice',
+            config: {
+                nextStep: expect.any(String),
+            },
+            completion: {},
+        },
+    });
+    expect(
+        playbackDocument.activity.completion.label === null ||
+            typeof playbackDocument.activity.completion.label === 'string',
+    ).toBe(true);
+    expect(
+        playbackDocument.activity.completion.next_activity_slug === null ||
+            typeof playbackDocument.activity.completion.next_activity_slug ===
+                'string',
+    ).toBe(true);
+
+    const unknownPlayback = await request.get(
+        '/api/v1/learner/play-runs/00000000-0000-4000-8000-000000000000',
+    );
+    expect(unknownPlayback.status()).toBe(404);
 
     const resumed = await request.post(
         `/api/v1/learner/activity-starts/${firstStart.start_id}/start`,

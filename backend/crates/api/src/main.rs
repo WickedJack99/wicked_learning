@@ -4,6 +4,7 @@ mod csrf;
 mod current_user;
 mod error;
 mod identity;
+mod learner_playback;
 mod learner_route_run;
 mod learner_world;
 mod login_rate_limit;
@@ -213,6 +214,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/activity-starts/{start_id}/reset",
             post(learner_route_run::reset),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}",
+            get(learner_playback::show),
         )
         .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/session/logout", post(session_commands::logout))

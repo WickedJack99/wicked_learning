@@ -113,6 +113,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/play-runs/{play_run_id}:
+    get:
+      operationId: getLearnerPlayback
+      summary: Read the current activity in an authorized active play run.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+      responses:
+        '200':
+          description: Server-authorized current activity and authored completion destination.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerPlaybackDocument'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The identity has no application principal or role assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The run is unknown, completed, unavailable, or not owned by this learner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /learner/activity-starts/{start_id}/start:
     post:
       operationId: startLearnerRoute
@@ -438,6 +475,13 @@ components:
         type: string
     ActivityStartId:
       name: start_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PlayRunId:
+      name: play_run_id
       in: path
       required: true
       schema:
@@ -840,6 +884,48 @@ components:
           oneOf:
             - $ref: '#/components/schemas/LearnerActivityStartProgress'
             - type: 'null'
+    LearnerPlaybackDocument:
+      type: object
+      additionalProperties: false
+      required: [start_id, play_run_id, activity]
+      properties:
+        start_id:
+          type: string
+          format: uuid
+        play_run_id:
+          type: string
+          format: uuid
+        activity:
+          $ref: '#/components/schemas/LearnerPlaybackActivity'
+    LearnerPlaybackActivity:
+      type: object
+      additionalProperties: false
+      required: [slug, title, description, activity_type, config, completion]
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+        description:
+          type: string
+        activity_type:
+          type: string
+          enum: [open_practice]
+        config:
+          type: object
+        completion:
+          $ref: '#/components/schemas/LearnerPlaybackCompletion'
+    LearnerPlaybackCompletion:
+      type: object
+      additionalProperties: false
+      required: [label, next_activity_slug]
+      properties:
+        label:
+          type: [string, 'null']
+        next_activity_slug:
+          type: [string, 'null']
+          pattern: '^[a-z0-9-]+$'
     LearnerRouteRun:
       type: object
       additionalProperties: false

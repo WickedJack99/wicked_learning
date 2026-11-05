@@ -435,11 +435,10 @@ PostgreSQL. The database now has a durable activity type/configuration boundary
 so portal-input starts can be rejected by policy before a browser can invoke
 them.
 
-**Limitations:** This slice exposes start/resume/reset contracts only. It does
-not yet expose a playback document, activity completion, answer/reflection
-writes, transitions, inventory, tools, AI, collaboration, or authoring. Those
-writers must validate an active server-owned run and arrive as separate tested
-increments.
+**Limitations:** This slice starts/resumes/resets a run. It does not complete
+an activity or permit answer/reflection writes, inventory changes, tools, AI,
+collaboration, or authoring. Those writers must validate an active
+server-owned run and arrive as separate tested increments.
 
 ## ADR-018: Current-user display data remains identity-owned and self-scoped
 
@@ -465,6 +464,35 @@ application records to credential data.
 identity. Duplicating email into `application_principals` would violate the
 separate-database boundary. Adding a full profile model is premature until the
 original profile/settings workstream is migrated.
+
+## ADR-019: Playback reads are scoped to an active server-owned run
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original activity page receives the current activity and its
+authored transition through Laravel state. Letting the React client select an
+activity by slug or derive the next transition would let a URL bypass learner
+progress, publication and access checks.
+
+**Decision:** `GET /api/v1/learner/play-runs/{play_run_id}` resolves only the
+authenticated principal's active, in-progress run. It returns the current
+supported activity's type, authored configuration and its one `completed`
+transition label/target. It never accepts an activity slug from the browser.
+Unknown, completed, inaccessible and unsupported runs are all not-found.
+The first reader and route-start policy support only `open_practice`; adding a
+different activity type requires its own server validation, OpenAPI contract,
+writer and lifted original React component.
+
+**Why:** This makes the browser a renderer of server-authorized playback data,
+matches the original route-progress ownership model and avoids a partial
+player choosing a next activity. The narrow initial type gives the existing
+`OpenPracticeActivity` a complete target without claiming that all activity
+types have been migrated.
+
+**Alternatives:** Exposing a generic activity-by-slug endpoint or returning
+the entire route graph would duplicate authorization and transition policy in
+the browser. Enabling every existing activity type through an untyped JSON
+payload would misrepresent unsupported behavior. Both are rejected.
 
 ## Phase 1 gate
 

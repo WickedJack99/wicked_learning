@@ -91,3 +91,29 @@ pub struct LearnerRouteRun {
     pub completion_count: i32,
     pub reset_count: i32,
 }
+
+/// A server-authorized snapshot of the current activity in an active play run.
+/// The browser may render this document but cannot choose its activity or
+/// authored completion transition.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackDocument {
+    pub start_id: String,
+    pub play_run_id: String,
+    pub activity: LearnerPlaybackActivity,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackActivity {
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub activity_type: String,
+    pub config: serde_json::Value,
+    pub completion: LearnerPlaybackCompletion,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackCompletion {
+    pub label: Option<String>,
+    pub next_activity_slug: Option<String>,
+}

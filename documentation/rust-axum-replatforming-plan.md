@@ -333,10 +333,12 @@ those learners' runs.
 
 The local learner-state phase is approved. `POST` start/resume and reset
 commands now resolve an authorized start and generate a server-owned play run
-(ADR-017), but the interim World panel must not enable its controls until a
-playback document and activity writer give the destination a complete,
-authorized behavior. This remains isolated to the local Rust Compose database;
-Laravel and production ownership are unchanged.
+(ADR-017). `GET /api/v1/learner/play-runs/{play_run_id}` now supplies the
+authorized current `open_practice` document (ADR-019), but the interim World
+panel must not enable its controls until the activity-completion command and
+lifted original player give it complete, authorized behavior. This remains
+isolated to the local Rust Compose database; Laravel and production ownership
+are unchanged.
 
 ### Reference behavior and implementation autonomy
 

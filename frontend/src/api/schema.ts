@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current activity in an authorized active play run. */
+        get: operations["getLearnerPlayback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/activity-starts/{start_id}/start": {
         parameters: {
             query?: never;
@@ -459,6 +476,26 @@ export interface components {
             sort_order: number;
             progress: components["schemas"]["LearnerActivityStartProgress"] | null;
         };
+        LearnerPlaybackDocument: {
+            /** Format: uuid */
+            start_id: string;
+            /** Format: uuid */
+            play_run_id: string;
+            activity: components["schemas"]["LearnerPlaybackActivity"];
+        };
+        LearnerPlaybackActivity: {
+            slug: string;
+            title: string;
+            description: string;
+            /** @enum {string} */
+            activity_type: "open_practice";
+            config: Record<string, never>;
+            completion: components["schemas"]["LearnerPlaybackCompletion"];
+        };
+        LearnerPlaybackCompletion: {
+            label: string | null;
+            next_activity_slug: string | null;
+        };
         LearnerRouteRun: {
             /** Format: uuid */
             start_id: string;
@@ -531,6 +568,7 @@ export interface components {
         /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
         CsrfTokenHeader: string;
         ActivityStartId: string;
+        PlayRunId: string;
         PublicSlugPathWorld: string;
         PublicSlugPathMap: string;
         PublicSlugPathAsset: string;
@@ -695,6 +733,64 @@ export interface operations {
                 };
             };
             /** @description No World map is visible to this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getLearnerPlayback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-authorized current activity and authored completion destination. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPlaybackDocument"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The run is unknown, completed, unavailable, or not owned by this learner. */
             404: {
                 headers: {
                     [name: string]: unknown;
