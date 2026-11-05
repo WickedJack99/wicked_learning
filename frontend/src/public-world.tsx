@@ -4,7 +4,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
     Bookmark,
     CheckCircle2,
+    ChevronDown,
     LockKeyhole,
+    LogOut,
     Map as MapIcon,
     MapPin,
     NotebookPen,
@@ -504,30 +506,46 @@ function WorldNavigation({
                             aria-expanded={isUserMenuOpen}
                             aria-haspopup="menu"
                             aria-label="Open user menu"
-                            className="grid size-10 place-items-center rounded-full border text-sm font-medium text-slate-100 transition hover:bg-white/10"
+                            className="flex h-10 items-center gap-2 rounded-lg border px-2.5 text-slate-100 transition hover:bg-white/10"
                             onClick={() => setIsUserMenuOpen((open) => !open)}
                             style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
                             type="button"
                         >
-                            {userEmail.slice(0, 1).toUpperCase()}
+                            <span className="grid size-7 place-items-center rounded-full bg-teal-300/12 text-xs text-teal-200">
+                                {userEmail.slice(0, 1).toUpperCase()}
+                            </span>
+                            <span className="hidden max-w-32 truncate text-sm sm:block">
+                                {userEmail}
+                            </span>
+                            <ChevronDown className="hidden size-3.5 text-slate-400 sm:block" />
                         </button>
                         {isUserMenuOpen ? (
                             <div
-                                className="absolute top-12 right-0 z-[80] grid min-w-56 gap-2 rounded-lg border bg-slate-950 p-2 shadow-2xl"
+                                className="absolute top-12 right-0 z-[80] w-60 rounded-lg border bg-slate-950 p-1 shadow-2xl"
                                 role="menu"
                                 style={{
                                     borderColor: 'rgba(255, 255, 255, 0.14)',
                                 }}
                             >
-                                <p className="truncate px-2 py-1 text-sm text-slate-300">
-                                    {userEmail}
-                                </p>
+                                <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
+                                    <span className="grid size-8 place-items-center rounded-full bg-teal-300/12 text-xs text-teal-200">
+                                        {userEmail.slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <span className="min-w-0 truncate font-medium text-slate-100">
+                                        {userEmail}
+                                    </span>
+                                </div>
+                                <div
+                                    aria-hidden="true"
+                                    className="my-1 h-px bg-white/10"
+                                />
                                 <button
-                                    className="rounded-md px-2 py-2 text-left text-sm font-medium text-slate-100 transition hover:bg-white/10"
+                                    className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium text-slate-100 transition hover:bg-white/10"
                                     onClick={() => void signOut()}
                                     role="menuitem"
                                     type="button"
                                 >
+                                    <LogOut className="mr-2 size-4" />
                                     Log out
                                 </button>
                                 {signOutError ? (

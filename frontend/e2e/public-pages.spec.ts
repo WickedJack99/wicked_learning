@@ -347,6 +347,9 @@ test('the learner World exposes the original-style user menu for an authenticate
         page.getByRole('button', { name: 'Open user menu' }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Open user menu' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Log out' })).toBeVisible();
+    await expect(page.getByRole('menu')).toContainText('learner@example.test');
 });
 
 test('the authenticated World restores the original bookmark toggle with a server-owned result', async ({
