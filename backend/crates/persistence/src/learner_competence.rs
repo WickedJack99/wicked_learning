@@ -221,7 +221,7 @@ async fn load_transitions(
         .collect())
 }
 
-fn visual_for_topic(
+pub(crate) fn visual_for_topic(
     total_signal: f64,
     recent_signal: f64,
     growth_threshold: f64,

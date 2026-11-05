@@ -7,7 +7,9 @@ use serde::Deserialize;
 use wicked_learning_application::learner_topic_detail::{
     LearnerTopicDetailQuery, LearnerTopicDetailRequest,
 };
-use wicked_learning_domain::learner_state::{LearnerTopicMaps, LearnerTopicOverview};
+use wicked_learning_domain::learner_state::{
+    LearnerTopicMaps, LearnerTopicOverview, LearnerTopicTrail,
+};
 use wicked_learning_persistence::learner_topic_detail::PostgresLearnerTopicDetailRepository;
 
 use crate::{
@@ -34,6 +36,24 @@ pub async fn maps(
 
     LearnerTopicDetailQuery::new(&repository)
         .maps(&principal, &request)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
+pub async fn trail(
+    State(state): State<AppState>,
+    Path(topic_slug): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearnerTopicTrail>, ApiError> {
+    let request = LearnerTopicDetailRequest::parse(&topic_slug, None)
+        .ok_or_else(ApiError::invalid_request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = PostgresLearnerTopicDetailRepository::new(&state.application_database);
+
+    LearnerTopicDetailQuery::new(&repository)
+        .trail(&principal, &request)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

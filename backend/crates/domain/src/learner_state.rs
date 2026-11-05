@@ -197,6 +197,60 @@ pub struct LearnerTopicMaps {
     pub topic: LearnerTopicDetailHeader,
 }
 
+/// The private Trail section of the source topic detail. It is deliberately a
+/// single server-side read model: React must not join evidence, check-ins,
+/// reflections and current map visibility itself.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicTrail {
+    pub competence: Option<LearnerTopicTrailCompetence>,
+    pub learning_areas: Vec<LearnerTopicLearningArea>,
+    pub learning_pulse: Vec<LearnerTopicLearningPulse>,
+    pub reflection_narrative: Option<LearnerTopicReflectionNarrative>,
+    pub subtopic_competence: Vec<LearnerTopicTrailCompetence>,
+    pub topic: LearnerTopicDetailHeader,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicTrailCompetence {
+    pub name: String,
+    pub slug: String,
+    pub visual: LearnerCompetenceVisual,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicLearningArea {
+    pub learning_intents: Vec<String>,
+    pub name: String,
+    pub slug: String,
+}
+
+/// A bounded current-learner check-in projected only when the corresponding
+/// published map remains visible. It deliberately does not authorize replay.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicLearningPulse {
+    pub activity_title: String,
+    pub feeling: Option<String>,
+    pub node_title: String,
+    pub note: Option<String>,
+    pub recorded_at: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicReflectionNarrative {
+    pub earlier: LearnerTopicReflectionSnapshot,
+    pub entries: Vec<LearnerTopicReflectionSnapshot>,
+    pub later: LearnerTopicReflectionSnapshot,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicReflectionSnapshot {
+    pub activity_title: Option<String>,
+    pub created_at: String,
+    pub id: String,
+    pub question: String,
+    pub reflection: String,
+}
+
 /// A private, qualitative reading of evidence the current learner accumulated
 /// through authorized activity runs. Ratios support the source star-map
 /// presentation; they are not a score, rank or progression total.

@@ -755,14 +755,22 @@ an invented reader, a generic card page, or a non-functional destination.
 
 **Decision:** Create the greenfield topic-area/topic schema and authenticated
 `GET /learner/topics` contract first, plus the source detail page's separate
-authenticated Overview and Maps reads, while keeping the browser `/topics`
-route unavailable. The directory returns only published root topics in a
-source-ordered area, applies literal bounded search and six-item pagination in
-PostgreSQL, and derives each map count from maps the authenticated principal
-may currently view. Overview returns a published topic header and bounded
-published subtopics; Maps returns only maps currently visible to the
-authenticated principal. The browser does not receive topic IDs, unpublished
-records, arbitrary map access, or a client-filtered collection.
+authenticated Overview, Maps and Trail reads, while keeping the browser
+`/topics` route unavailable. The directory returns only published root topics
+in a source-ordered area, applies literal bounded search and six-item
+pagination in PostgreSQL, and derives each map count from maps the
+authenticated principal may currently view. Overview returns a published topic
+header and bounded published subtopics; Maps returns only maps currently
+visible to the authenticated principal.
+
+Trail resolves the source topic's published descendants server-side and returns
+only the current learner's bounded qualitative evidence, recent check-ins and
+private reflection comparison whose activities remain in currently visible,
+published maps. It derives the source learning-area list from visible authored
+activity configuration, rather than asking React to parse or filter it. It
+does not provide historical activity replay or a generic activity writer. The
+browser does not receive topic IDs, unpublished records, arbitrary map access,
+or a client-filtered collection.
 
 The next browser slice must add the source topic-detail reader and preserve
 the directory's original links before exposing `/topics`. It must not replace
@@ -780,10 +788,11 @@ Publishing a directory whose links lead to a simplified topic summary would
 make an unfinished substitute part of the product. Both are rejected.
 
 **Limitations and trigger:** This does not migrate the topic-detail browser
-surface, its default Trail, competence, Paths, learner progress or
-topic-map browsing. The contracts are local authenticated backend foundations
-until every source-defined section required by the browser flow has matching
-reads and browser evidence.
+surface, source Routes section, learner start controls or topic-map browsing.
+Trail intentionally omits unavailable historical activity replay and competence
+destination links rather than inventing a substitute. The contracts are local
+authenticated backend foundations until every source-defined section required
+by the browser flow has matching reads and browser evidence.
 
 ## ADR-028: Paths reader preserves source filtering without publishing a partial page
 

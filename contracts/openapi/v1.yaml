@@ -251,6 +251,24 @@ paths:
         '403': { description: The current identity has no learner application principal. }
         '404': { description: The requested topic is unpublished or does not exist. }
         '503': { description: The application database is unavailable. }
+  /learner/topics/{topic_slug}/trail:
+    get:
+      operationId: getLearnerTopicTrail
+      summary: Read the authenticated learner's bounded private trail for a published topic.
+      parameters:
+        - $ref: '#/components/parameters/TopicSlug'
+      responses:
+        '200':
+          description: A source-defined topic Trail scoped to the current learner and currently visible maps.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerTopicTrail'
+        '400': { description: The topic parameter is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '404': { description: The requested topic is unpublished or does not exist. }
+        '503': { description: The application database is unavailable. }
   /learner/topics/{topic_slug}/maps:
     get:
       operationId: getLearnerTopicMaps
@@ -1553,6 +1571,75 @@ components:
         node_count: { type: integer, minimum: 0 }
         slug: { type: string, pattern: '^[a-z0-9-]+$' }
         title: { type: string }
+    LearnerTopicTrail:
+      type: object
+      additionalProperties: false
+      required: [competence, learning_areas, learning_pulse, reflection_narrative, subtopic_competence, topic]
+      properties:
+        competence:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerCompetenceTopic'
+            - type: 'null'
+        learning_areas:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/LearnerTopicLearningArea' }
+        learning_pulse:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/LearnerTopicLearningPulse' }
+        reflection_narrative:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerTopicReflectionNarrative'
+            - type: 'null'
+        subtopic_competence:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/LearnerCompetenceTopic' }
+        topic: { $ref: '#/components/schemas/LearnerTopicDetailHeader' }
+    LearnerTopicLearningArea:
+      type: object
+      additionalProperties: false
+      required: [learning_intents, name, slug]
+      properties:
+        learning_intents:
+          type: array
+          maxItems: 7
+          items: { type: string, enum: [apply, explain, participate, reflect, retrieve, review, transfer] }
+        name: { type: string, maxLength: 120 }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+    LearnerTopicLearningPulse:
+      type: object
+      additionalProperties: false
+      required: [activity_title, feeling, node_title, note, recorded_at]
+      properties:
+        activity_title: { type: string, maxLength: 240 }
+        feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
+        node_title: { type: string, maxLength: 240 }
+        note: { type: [string, 'null'], maxLength: 500 }
+        recorded_at: { type: string, format: date-time }
+    LearnerTopicReflectionNarrative:
+      type: object
+      additionalProperties: false
+      required: [earlier, entries, later]
+      properties:
+        earlier: { $ref: '#/components/schemas/LearnerTopicReflectionSnapshot' }
+        entries:
+          type: array
+          minItems: 2
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearnerTopicReflectionSnapshot' }
+        later: { $ref: '#/components/schemas/LearnerTopicReflectionSnapshot' }
+    LearnerTopicReflectionSnapshot:
+      type: object
+      additionalProperties: false
+      required: [activity_title, created_at, id, question, reflection]
+      properties:
+        activity_title: { type: [string, 'null'], maxLength: 240 }
+        created_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+        question: { type: string, maxLength: 2000 }
+        reflection: { type: string, maxLength: 10000 }
     LearnerCompetenceMap:
       type: object
       additionalProperties: false

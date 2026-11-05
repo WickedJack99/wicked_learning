@@ -2,7 +2,7 @@ use std::future::Future;
 
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
-    learner_state::{LearnerTopicMaps, LearnerTopicOverview},
+    learner_state::{LearnerTopicMaps, LearnerTopicOverview, LearnerTopicTrail},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -37,6 +37,12 @@ fn normalized_slug(value: &str) -> Option<String> {
 pub struct LearnerTopicDetailReadError;
 
 pub trait LearnerTopicDetailRepository {
+    fn load_trail(
+        &self,
+        principal: &AuthorizedPrincipal,
+        request: &LearnerTopicDetailRequest,
+    ) -> impl Future<Output = Result<Option<LearnerTopicTrail>, LearnerTopicDetailReadError>> + Send;
+
     fn load_maps(
         &self,
         principal: &AuthorizedPrincipal,
@@ -68,6 +74,14 @@ where
         request: &LearnerTopicDetailRequest,
     ) -> Result<Option<LearnerTopicMaps>, LearnerTopicDetailReadError> {
         self.repository.load_maps(principal, request).await
+    }
+
+    pub async fn trail(
+        &self,
+        principal: &AuthorizedPrincipal,
+        request: &LearnerTopicDetailRequest,
+    ) -> Result<Option<LearnerTopicTrail>, LearnerTopicDetailReadError> {
+        self.repository.load_trail(principal, request).await
     }
 
     pub async fn overview(

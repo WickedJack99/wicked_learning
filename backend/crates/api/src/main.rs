@@ -236,6 +236,10 @@ fn router(state: AppState) -> Router {
             get(learner_topic_detail::overview),
         )
         .route(
+            "/api/v1/learner/topics/{topic_slug}/trail",
+            get(learner_topic_detail::trail),
+        )
+        .route(
             "/api/v1/learner/topics/{topic_slug}/maps",
             get(learner_topic_detail::maps),
         )

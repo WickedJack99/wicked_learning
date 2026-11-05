@@ -340,6 +340,15 @@ test('an anonymous session reveals no credential or identity material', async ({
         title: 'Authentication is required.',
     });
 
+    const learnerTopicTrailResponse = await request.get(
+        '/api/v1/learner/topics/map-orientation/trail',
+    );
+    expect(learnerTopicTrailResponse.status()).toBe(401);
+    await expect(learnerTopicTrailResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+
     const learnerTopicMapsResponse = await request.get(
         '/api/v1/learner/topics/map-orientation/maps',
     );

@@ -192,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/topics/{topic_slug}/trail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authenticated learner's bounded private trail for a published topic. */
+        get: operations["getLearnerTopicTrail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/topics/{topic_slug}/maps": {
         parameters: {
             query?: never;
@@ -879,6 +896,42 @@ export interface components {
             node_count: number;
             slug: string;
             title: string;
+        };
+        LearnerTopicTrail: {
+            competence: components["schemas"]["LearnerCompetenceTopic"] | null;
+            learning_areas: components["schemas"]["LearnerTopicLearningArea"][];
+            learning_pulse: components["schemas"]["LearnerTopicLearningPulse"][];
+            reflection_narrative: components["schemas"]["LearnerTopicReflectionNarrative"] | null;
+            subtopic_competence: components["schemas"]["LearnerCompetenceTopic"][];
+            topic: components["schemas"]["LearnerTopicDetailHeader"];
+        };
+        LearnerTopicLearningArea: {
+            learning_intents: ("apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer")[];
+            name: string;
+            slug: string;
+        };
+        LearnerTopicLearningPulse: {
+            activity_title: string;
+            /** @enum {string|null} */
+            feeling: "clearer" | "forming" | "stretched" | "stuck" | null;
+            node_title: string;
+            note: string | null;
+            /** Format: date-time */
+            recorded_at: string;
+        };
+        LearnerTopicReflectionNarrative: {
+            earlier: components["schemas"]["LearnerTopicReflectionSnapshot"];
+            entries: components["schemas"]["LearnerTopicReflectionSnapshot"][];
+            later: components["schemas"]["LearnerTopicReflectionSnapshot"];
+        };
+        LearnerTopicReflectionSnapshot: {
+            activity_title: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            question: string;
+            reflection: string;
         };
         LearnerCompetenceMap: {
             month_key: string;
@@ -1826,6 +1879,63 @@ export interface operations {
                 };
             };
             /** @description The topic or pagination parameter is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The requested topic is unpublished or does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerTopicTrail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topic_slug: components["parameters"]["TopicSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A source-defined topic Trail scoped to the current learner and currently visible maps. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerTopicTrail"];
+                };
+            };
+            /** @description The topic parameter is invalid. */
             400: {
                 headers: {
                     [name: string]: unknown;
