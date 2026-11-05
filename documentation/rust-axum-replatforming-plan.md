@@ -303,7 +303,7 @@ signed-in session and the public contract for an anonymous visitor. The
 authenticated contract provides a server-owned snapshot of visible maps plus
 the current principal's bookmark, activity-progress and route-progress
 summaries. It renders saved-place and completed-activity signals, and now
-renders only server-authorized `open_practice` start cards for a signed-in
+renders only server-authorized `open_practice` and question start cards for a signed-in
 learner. Each lifted original start/reset control calls a Rust command with its
 authored start UUID; the browser then navigates to the matching server-owned
 play run. Anonymous visitors receive no start control. A disabled imitation of
@@ -381,7 +381,7 @@ private or identifier-based links will resolve in a deployed cutover.
 | ------------------------------------------------------------------------- | ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |
 | `/`                                                                       | `/`                | Available      | A standalone React welcome screen provides public orientation and routes into exploration or local sign-in.    |
 | `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path          | Available      | Public presentation/source endpoints provide their content.                                                    |
-| `/world`                                                                  | `/world`           | Available      | Public exploration plus signed-in, server-authorized start/reset controls for supported `open_practice` starts; broader World behavior remains incomplete. |
+| `/world`                                                                  | `/world`           | Available      | Public exploration plus signed-in, server-authorized start/reset controls for supported `open_practice` and question starts; broader World behavior remains incomplete. |
 | `/learning/search?query={term}`                                           | —                  | Not available  | Search is retained inside the lifted `/world` surface; no substitute standalone search page is exposed.       |
 | `/learning/nodes/{node}/play?run={uuid}`                                  | Same path          | Available      | Signed-in playback for server-owned `open_practice` and question runs. Question options are read from a learner-safe projection; the Rust writer evaluates selected keys, records attempts and resolves authored branches. The response provides authorized node/map/route orientation labels used by the lifted original learning-context panel; the node path segment preserves the source URL family, while the opaque run UUID remains the only API authority. |
 | `/home`, `/journal`, `/paths`, `/topics`, `/bookmarks`, `/competence`     | —                  | Not available  | These require authenticated data and, in several cases, APIs that have not yet been implemented.               |
