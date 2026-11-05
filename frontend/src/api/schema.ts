@@ -106,6 +106,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/journal/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a private manual journal page for the authenticated learner. */
+        post: operations["createLearnerJournalPage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/journal/pages/{page_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a private journal page owned by the authenticated learner. */
+        delete: operations["deleteLearnerJournalPage"];
+        options?: never;
+        head?: never;
+        /** Update a private journal page owned by the authenticated learner. */
+        patch: operations["updateLearnerJournalPage"];
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}": {
         parameters: {
             query?: never;
@@ -612,6 +647,29 @@ export interface components {
             pages: components["schemas"]["LearnerJournalPage"][];
             pagination: components["schemas"]["LearnerJournalPagination"];
         };
+        CreateLearnerJournalPageRequest: {
+            title: string;
+            topic: string;
+            subtopic?: string | null;
+            markdown?: string | null;
+            /** @enum {string|null} */
+            preferred_mode?: "view" | "edit" | null;
+        };
+        UpdateLearnerJournalPageRequest: {
+            title: string;
+            topic: string;
+            subtopic?: string | null;
+            markdown?: string | null;
+            /** @enum {string} */
+            preferred_mode: "view" | "edit";
+        };
+        LearnerJournalPageResponse: {
+            page: components["schemas"]["LearnerJournalPage"];
+        };
+        DeleteLearnerJournalPageResponse: {
+            /** Format: uuid */
+            deleted_page_id: string;
+        };
         LearnerJournalPage: {
             /** Format: uuid */
             id: string;
@@ -619,6 +677,8 @@ export interface components {
             topic: string;
             subtopic: string | null;
             markdown: string;
+            /** @enum {string} */
+            preferred_mode: "view" | "edit";
             reflection_count: number;
             learning_context: components["schemas"]["LearnerJournalLearningContext"] | null;
             /** Format: date-time */
@@ -709,6 +769,7 @@ export interface components {
         /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
         CsrfTokenHeader: string;
         ActivityStartId: string;
+        LearnerJournalPageId: string;
         PlayRunId: string;
         ActivitySlug: string;
         PublicSlugPathWorld: string;
@@ -951,6 +1012,178 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    createLearnerJournalPage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLearnerJournalPageRequest"];
+            };
+        };
+        responses: {
+            /** @description The new private journal page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerJournalPageResponse"];
+                };
+            };
+            /** @description The page fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteLearnerJournalPage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                page_id: components["parameters"]["LearnerJournalPageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The deleted private journal page identifier. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteLearnerJournalPageResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The journal page does not exist for this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerJournalPage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                page_id: components["parameters"]["LearnerJournalPageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerJournalPageRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated private journal page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerJournalPageResponse"];
+                };
+            };
+            /** @description The page fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The journal page does not exist for this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -5,6 +5,7 @@ mod current_user;
 mod error;
 mod identity;
 mod learner_journal;
+mod learner_journal_page;
 mod learner_playback;
 mod learner_question;
 mod learner_reflection;
@@ -29,7 +30,7 @@ use axum::{
     extract::State,
     http::{HeaderName, Method},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{get, patch, post},
 };
 use axum_login::AuthManagerLayerBuilder;
 use serde::Serialize;
@@ -211,6 +212,14 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/learner/world", get(learner_world::show))
         .route("/api/v1/learner/journal", get(learner_journal::index))
+        .route(
+            "/api/v1/learner/journal/pages",
+            post(learner_journal_page::create),
+        )
+        .route(
+            "/api/v1/learner/journal/pages/{page_id}",
+            patch(learner_journal_page::update).delete(learner_journal_page::delete),
+        )
         .route(
             "/api/v1/learner/activity-starts/{start_id}/start",
             post(learner_route_run::start_or_resume),

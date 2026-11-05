@@ -350,6 +350,7 @@ test('the original journal overlay reads only its private paginated contract', a
                         topic: 'Orientation',
                         subtopic: 'Choosing a direction',
                         markdown: '## Private note\n\nThis remains mine.',
+                        preferred_mode: 'view',
                         reflection_count: 1,
                         learning_context: {
                             activity_title: 'Connect the direction',
@@ -370,14 +371,77 @@ test('the original journal overlay reads only its private paginated contract', a
             }),
         });
     });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'journal-csrf-token' }),
+        });
+    });
+    await page.route('**/api/v1/learner/journal/pages', async (route) => {
+        expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+            'journal-csrf-token',
+        );
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                page: {
+                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88',
+                    title: 'Untitled page',
+                    topic: 'General',
+                    subtopic: null,
+                    markdown: '',
+                    preferred_mode: 'edit',
+                    reflection_count: 0,
+                    learning_context: null,
+                    updated_at: '2026-11-05T09:01:00.000000Z',
+                },
+            }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/journal/pages/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88',
+        async (route) => {
+            if (route.request().method() === 'DELETE') {
+                await route.fulfill({
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        deleted_page_id:
+                            '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88',
+                    }),
+                });
+                return;
+            }
+            const body = route.request().postDataJSON();
+            expect(body.title).toBe('A manual note');
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    page: {
+                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88',
+                        ...body,
+                        reflection_count: 0,
+                        learning_context: null,
+                        updated_at: '2026-11-05T09:02:00.000000Z',
+                    },
+                }),
+            });
+        },
+    );
 
     await page.goto('/world');
     await page.getByRole('button', { name: 'Journal' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(
         page.getByText('Connect the direction', { exact: true }),
-    ).toHaveCount(2);
+    ).toHaveCount(1);
     await expect(page.getByText('This remains mine.')).toBeVisible();
+    await page.getByRole('button', { name: 'Add journal page' }).click();
+    await page.getByLabel('Title').fill('A manual note');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('All changes saved.')).toBeVisible();
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Delete journal page' }).click();
+    await expect(page.locator('input[value="A manual note"]')).toHaveCount(0);
     await page.getByRole('button', { name: 'Close journal' }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
 });

@@ -50,6 +50,7 @@ struct PageRow {
     markdown: String,
     node_slug: Option<String>,
     node_title: Option<String>,
+    preferred_mode: String,
     reflection_count: i64,
     subtopic: String,
     title: String,
@@ -88,7 +89,7 @@ async fn load_page(
     .await?;
     let offset = (request.page - 1) * request.per_page;
     let pages = sqlx::query_as::<_, PageRow>(
-        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_journal_pages AS pages LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id WHERE pages.principal_id = $1 AND ($2::text IS NULL OR pages.title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\') GROUP BY pages.id, activities.title, maps.slug, maps.title, nodes.slug, nodes.title ORDER BY pages.updated_at DESC, pages.id DESC LIMIT $3 OFFSET $4",
+        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, pages.preferred_mode, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_journal_pages AS pages LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id WHERE pages.principal_id = $1 AND ($2::text IS NULL OR pages.title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\') GROUP BY pages.id, activities.title, maps.slug, maps.title, nodes.slug, nodes.title ORDER BY pages.updated_at DESC, pages.id DESC LIMIT $3 OFFSET $4",
     )
     .bind(principal_id)
     .bind(&search)
@@ -107,6 +108,7 @@ async fn load_page(
                 topic: page.topic,
                 subtopic: (!page.subtopic.is_empty()).then_some(page.subtopic),
                 markdown: page.markdown,
+                preferred_mode: page.preferred_mode,
                 reflection_count: page.reflection_count,
                 learning_context: match (
                     page.map_slug,

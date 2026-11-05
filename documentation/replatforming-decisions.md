@@ -584,9 +584,10 @@ also cannot be recovered safely from mutable current route progress.
 application principal's journal pages. It accepts bounded, server-validated
 page, page-size and text-search parameters; PostgreSQL applies ownership,
 search, ordering and pagination before returning page markdown. The response
-may include the latest reflection's immutable activity-start map/node context,
-but includes no editor preference, export, feedback request, review, staff or
-other-learner data. Missing application-principal authorization is forbidden.
+may include the latest reflection's immutable activity-start map/node context
+and the page's `view`/`edit` presentation preference, but includes no export,
+feedback request, review, staff or other-learner data. Missing
+application-principal authorization is forbidden.
 
 **Why:** This is the safe read foundation for lifting the original journal
 overlay without pretending that editing, export, expert access, learning
@@ -596,10 +597,9 @@ check-ins or revisit invitations have migrated.
 principal IDs would weaken ownership. Adding disabled edit/review controls
 would misrepresent unavailable workflows. Both are rejected.
 
-**Limitations and trigger:** A source-derived read-only overlay can use this
-contract. Add create/update/delete, export, feedback requests, check-ins and
-revisit invitations only as separately authorized contracts with their source
-UI and cross-user tests.
+**Limitations and trigger:** The basic page writer is separately defined in
+ADR-024. Export, feedback requests, check-ins and revisit invitations still
+need their own source UI and authorization evidence.
 
 ## ADR-023: Journal categories remain labels, not page identities
 
@@ -630,9 +630,45 @@ creating competing automatic pages after the uniqueness restriction is gone.
 journal behavior. Assigning a separate hidden reflection page would diverge
 from a manual page that intentionally shares its category. Both are rejected.
 
-**Limitations:** Editing or deleting a page with attached reflections remains
-a later writer slice; it must define what happens to its private structured
-records before exposing controls.
+**Limitations:** The source schema cascades deletion to attached private
+reflection records; ADR-024 preserves that source behavior. Feedback,
+export, check-in and revisit workflows remain separate slices.
+
+## ADR-024: Manual journal pages use owner-scoped source-defined writes
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original private journal permits a learner to create a
+free-form page, edit its title/category/Markdown and view preference, and
+delete only a page they own. The prior Rust reader accurately displayed pages
+but could not lift those original controls without either browser-local fake
+state or an owner-safe writer contract.
+
+**Decision:** Add authenticated, CSRF-protected `POST /learner/journal/pages`,
+`PATCH /learner/journal/pages/{page_id}`, and `DELETE
+/learner/journal/pages/{page_id}` commands. The application layer validates
+the original title (240), topic/subtopic (160), Markdown (100000) and
+`view`/`edit` bounds. PostgreSQL scopes every update and delete by both page
+UUID and authenticated application principal; unknown and another learner's
+page both return `404`. New pages use the original client defaults: “Untitled
+page”, “General”, empty Markdown and edit mode. Deleting a page retains the
+existing schema's source-equivalent cascade to its attached private
+reflections.
+
+**Why:** This lifts the original journal editor without exposing a page ID as
+authority, retaining its explicit save/delete behavior and empty-page support.
+It keeps structured reflection data inside the application database and does
+not widen it to the browser or another learner.
+
+**Alternatives:** A generic unscoped page mutation would permit cross-learner
+writes. A browser-only editor would lose durable behavior. Soft-deleting or
+reassigning reflections would alter the existing application's documented
+database behavior. All are rejected.
+
+**Limitations and trigger:** This slice does not include the original export,
+feedback request/expert-access, learning check-in or revisit-invitation
+controls. Each has distinct information-sharing or learning-state semantics
+and requires its own contract and source-derived UI before it may appear.
 
 ## Phase 1 gate
 

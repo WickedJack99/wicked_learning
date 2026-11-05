@@ -183,6 +183,7 @@ pub struct LearnerJournalPage {
     pub topic: String,
     pub subtopic: Option<String>,
     pub markdown: String,
+    pub preferred_mode: String,
     pub reflection_count: i64,
     pub learning_context: Option<LearnerJournalLearningContext>,
     pub updated_at: String,

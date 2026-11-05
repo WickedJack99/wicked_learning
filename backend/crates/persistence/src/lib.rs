@@ -2,6 +2,7 @@
 
 pub mod current_user;
 pub mod learner_journal;
+pub mod learner_journal_page;
 pub mod learner_playback;
 pub mod learner_question;
 pub mod learner_reflection;

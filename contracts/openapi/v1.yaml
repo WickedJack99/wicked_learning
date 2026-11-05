@@ -161,6 +161,71 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/journal/pages:
+    post:
+      operationId: createLearnerJournalPage
+      summary: Create a private manual journal page for the authenticated learner.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLearnerJournalPageRequest'
+      responses:
+        '200':
+          description: The new private journal page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerJournalPageResponse'
+        '400': { description: The page fields are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application database is unavailable. }
+  /learner/journal/pages/{page_id}:
+    patch:
+      operationId: updateLearnerJournalPage
+      summary: Update a private journal page owned by the authenticated learner.
+      parameters:
+        - $ref: '#/components/parameters/LearnerJournalPageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLearnerJournalPageRequest'
+      responses:
+        '200':
+          description: The updated private journal page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerJournalPageResponse'
+        '400': { description: The page fields are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The journal page does not exist for this learner. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteLearnerJournalPage
+      summary: Delete a private journal page owned by the authenticated learner.
+      parameters:
+        - $ref: '#/components/parameters/LearnerJournalPageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The deleted private journal page identifier.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteLearnerJournalPageResponse'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The journal page does not exist for this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}:
     get:
       operationId: getLearnerPlayback
@@ -612,6 +677,13 @@ components:
         type: string
     ActivityStartId:
       name: start_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LearnerJournalPageId:
+      name: page_id
       in: path
       required: true
       schema:
@@ -1162,16 +1234,49 @@ components:
           items: { $ref: '#/components/schemas/LearnerJournalPage' }
         pagination:
           $ref: '#/components/schemas/LearnerJournalPagination'
+    CreateLearnerJournalPageRequest:
+      type: object
+      additionalProperties: false
+      required: [title, topic]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 240 }
+        topic: { type: string, minLength: 1, maxLength: 160 }
+        subtopic: { type: [string, 'null'], maxLength: 160 }
+        markdown: { type: [string, 'null'], maxLength: 100000 }
+        preferred_mode: { type: [string, 'null'], enum: [view, edit, null] }
+    UpdateLearnerJournalPageRequest:
+      type: object
+      additionalProperties: false
+      required: [title, topic, preferred_mode]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 240 }
+        topic: { type: string, minLength: 1, maxLength: 160 }
+        subtopic: { type: [string, 'null'], maxLength: 160 }
+        markdown: { type: [string, 'null'], maxLength: 100000 }
+        preferred_mode: { type: string, enum: [view, edit] }
+    LearnerJournalPageResponse:
+      type: object
+      additionalProperties: false
+      required: [page]
+      properties:
+        page: { $ref: '#/components/schemas/LearnerJournalPage' }
+    DeleteLearnerJournalPageResponse:
+      type: object
+      additionalProperties: false
+      required: [deleted_page_id]
+      properties:
+        deleted_page_id: { type: string, format: uuid }
     LearnerJournalPage:
       type: object
       additionalProperties: false
-      required: [id, title, topic, subtopic, markdown, reflection_count, learning_context, updated_at]
+      required: [id, title, topic, subtopic, markdown, preferred_mode, reflection_count, learning_context, updated_at]
       properties:
         id: { type: string, format: uuid }
         title: { type: string, maxLength: 240 }
         topic: { type: string, maxLength: 160 }
         subtopic: { type: [string, 'null'], maxLength: 160 }
         markdown: { type: string, maxLength: 100000 }
+        preferred_mode: { type: string, enum: [view, edit] }
         reflection_count: { type: integer, minimum: 0 }
         learning_context:
           oneOf:

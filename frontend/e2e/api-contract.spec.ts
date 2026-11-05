@@ -270,6 +270,19 @@ test('an anonymous session reveals no credential or identity material', async ({
         title: 'Authentication is required.',
     });
 
+    const journalCreateResponse = await request.post(
+        '/api/v1/learner/journal/pages',
+        {
+            data: { title: 'Unauthenticated page', topic: 'General' },
+            headers: { Origin: publicOrigin },
+        },
+    );
+    expect(journalCreateResponse.status()).toBe(401);
+    await expect(journalCreateResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+
     const routeStartResponse = await request.post(
         '/api/v1/learner/activity-starts/00000000-0000-4000-8000-000000000000/start',
         { headers: { Origin: publicOrigin } },

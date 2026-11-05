@@ -1,10 +1,10 @@
-import { Search, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { FilePlus2, Pencil, Save, Search, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 
-import { apiClient } from './api/client';
+import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalMarkdownRenderer } from './original-markdown';
 
@@ -32,16 +32,23 @@ const journalStyle = {
     '--journal-sidebar-background': 'rgba(17, 24, 39, 0.64)',
 } as CSSProperties;
 
-/** Source-adapted from the original JournalOverlay. The Rust contract exposes
- * only safe, private reads, so writer/review/export controls are absent. */
+/** Source-adapted from the original JournalOverlay. Review, export and
+ * check-in affordances remain unavailable until their source-defined contracts exist. */
 export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     const [journal, setJournal] = useState<JournalDocument | null>(null);
+    const [draftsById, setDraftsById] = useState<Record<string, JournalPage>>(
+        {},
+    );
+    const [dirtyById, setDirtyById] = useState<Record<string, boolean>>({});
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>(
         'loading',
     );
+    const [isSaving, setIsSaving] = useState(false);
+    const [deletingPageId, setDeletingPageId] = useState<string | null>(null);
+    const [saveError, setSaveError] = useState('');
     const searchRef = useRef<HTMLInputElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -84,6 +91,14 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                             return;
                         }
                         setJournal(data);
+                        setDraftsById((current) =>
+                            Object.fromEntries(
+                                data.pages.map((journalPage) => [
+                                    journalPage.id,
+                                    current[journalPage.id] ?? journalPage,
+                                ]),
+                            ),
+                        );
                         setSelectedId((current) =>
                             data.pages.some(
                                 (candidate) => candidate.id === current,
@@ -103,8 +118,177 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
         };
     }, [page, search]);
 
-    const selected =
-        journal?.pages.find((item) => item.id === selectedId) ?? null;
+    const pages = journal?.pages.map(
+        (journalPage) => draftsById[journalPage.id] ?? journalPage,
+    );
+    const selected = pages?.find((item) => item.id === selectedId) ?? null;
+
+    function updateDraft(next: JournalPage) {
+        setDraftsById((current) => ({ ...current, [next.id]: next }));
+        setDirtyById((current) => ({ ...current, [next.id]: true }));
+    }
+
+    async function createPage() {
+        setSaveError('');
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST('/learner/journal/pages', {
+                body: {
+                    markdown: '',
+                    preferred_mode: 'edit',
+                    subtopic: '',
+                    title: 'Untitled page',
+                    topic: 'General',
+                },
+                params: { header: { 'X-CSRF-Token': token } },
+            });
+            if (!response.ok || !data) throw new Error('create failed');
+            setSearch('');
+            setPage(1);
+            setJournal((current) =>
+                current
+                    ? {
+                          ...current,
+                          pages: [data.page, ...current.pages].slice(
+                              0,
+                              current.pagination.per_page,
+                          ),
+                          pagination: {
+                              ...current.pagination,
+                              current_page: 1,
+                              last_page: Math.max(
+                                  1,
+                                  Math.ceil(
+                                      (current.pagination.total + 1) /
+                                          current.pagination.per_page,
+                                  ),
+                              ),
+                              total: current.pagination.total + 1,
+                          },
+                      }
+                    : current,
+            );
+            setDraftsById((current) => ({ ...current, [data.page.id]: data.page }));
+            setDirtyById((current) => ({ ...current, [data.page.id]: false }));
+            setSelectedId(data.page.id);
+        } catch {
+            setSaveError('Your page could not be created. Please try again.');
+        }
+    }
+
+    const savePage = useCallback(async (next: JournalPage) => {
+        if (isSaving) return;
+        setIsSaving(true);
+        setSaveError('');
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.PATCH(
+                '/learner/journal/pages/{page_id}',
+                {
+                    body: {
+                        markdown: next.markdown,
+                        preferred_mode: next.preferred_mode,
+                        subtopic: next.subtopic ?? '',
+                        title: next.title,
+                        topic: next.topic,
+                    },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { page_id: next.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) throw new Error('save failed');
+            setJournal((current) =>
+                current
+                    ? {
+                          ...current,
+                          pages: current.pages.map((candidate) =>
+                              candidate.id === data.page.id
+                                  ? data.page
+                                  : candidate,
+                          ),
+                      }
+                    : current,
+            );
+            setDraftsById((current) => ({ ...current, [data.page.id]: data.page }));
+            setDirtyById((current) => ({ ...current, [data.page.id]: false }));
+        } catch {
+            setSaveError(
+                'Your changes are still here. Saving will retry when you continue editing.',
+            );
+        } finally {
+            setIsSaving(false);
+        }
+    }, [isSaving]);
+
+    async function deletePage(journalPage: JournalPage) {
+        if (
+            deletingPageId !== null ||
+            !window.confirm(`Delete \"${journalPage.title}\"? This cannot be undone.`)
+        ) {
+            return;
+        }
+        setDeletingPageId(journalPage.id);
+        setSaveError('');
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.DELETE(
+                '/learner/journal/pages/{page_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { page_id: journalPage.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) throw new Error('delete failed');
+            setJournal((current) => {
+                if (!current) return current;
+                const remaining = current.pages.filter(
+                    (candidate) => candidate.id !== data.deleted_page_id,
+                );
+                setSelectedId((currentId) =>
+                    currentId === data.deleted_page_id
+                        ? (remaining[0]?.id ?? null)
+                        : currentId,
+                );
+                return {
+                    ...current,
+                    pages: remaining,
+                    pagination: {
+                        ...current.pagination,
+                        total: Math.max(0, current.pagination.total - 1),
+                    },
+                };
+            });
+            setDraftsById((current) => {
+                const next = { ...current };
+                delete next[data.deleted_page_id];
+                return next;
+            });
+            setDirtyById((current) => {
+                const next = { ...current };
+                delete next[data.deleted_page_id];
+                return next;
+            });
+        } catch {
+            setSaveError('Your page could not be deleted. Please try again.');
+        } finally {
+            setDeletingPageId(null);
+        }
+    }
+
+    useEffect(() => {
+        if (!selected || !dirtyById[selected.id] || isSaving) {
+            return;
+        }
+        const timeout = window.setTimeout(() => {
+            void savePage(selected);
+        }, 900);
+        return () => window.clearTimeout(timeout);
+    }, [dirtyById, isSaving, savePage, selected]);
+
     return createPortal(
         <div
             aria-modal="true"
@@ -168,29 +352,44 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                             borderColor: 'var(--journal-panel-border)',
                         }}
                     >
-                        <div className="relative">
-                            <Search
-                                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-                                style={{ color: 'var(--journal-muted-text)' }}
-                            />
-                            <input
-                                aria-label="Search journal pages"
-                                className="w-full rounded-md border py-2 pr-3 pl-9 text-sm outline-none focus:ring-2 focus:ring-[var(--journal-accent)]"
-                                onChange={(event) => {
-                                    setSearch(event.target.value);
-                                    setPage(1);
-                                    setStatus('loading');
-                                }}
-                                placeholder="Search pages"
-                                ref={searchRef}
+                        <div className="flex gap-2">
+                            <div className="relative min-w-0 flex-1">
+                                <Search
+                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                                    style={{ color: 'var(--journal-muted-text)' }}
+                                />
+                                <input
+                                    aria-label="Search journal pages"
+                                    className="w-full rounded-md border py-2 pr-3 pl-9 text-sm outline-none focus:ring-2 focus:ring-[var(--journal-accent)]"
+                                    onChange={(event) => {
+                                        setSearch(event.target.value);
+                                        setPage(1);
+                                        setStatus('loading');
+                                    }}
+                                    placeholder="Search pages"
+                                    ref={searchRef}
+                                    style={{
+                                        background:
+                                            'var(--journal-input-background)',
+                                        borderColor: 'var(--journal-button-border)',
+                                        color: 'var(--journal-body-text)',
+                                    }}
+                                    value={search}
+                                />
+                            </div>
+                            <button
+                                aria-label="Add journal page"
+                                className="grid size-10 shrink-0 place-items-center rounded-md"
+                                disabled={!journal || status !== 'ready'}
+                                onClick={() => void createPage()}
                                 style={{
-                                    background:
-                                        'var(--journal-input-background)',
-                                    borderColor: 'var(--journal-button-border)',
-                                    color: 'var(--journal-body-text)',
+                                    background: 'var(--journal-accent)',
+                                    color: 'var(--journal-accent-text)',
                                 }}
-                                value={search}
-                            />
+                                type="button"
+                            >
+                                <FilePlus2 className="size-4" />
+                            </button>
                         </div>
                         <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
                             {status === 'loading' ? (
@@ -215,7 +414,7 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                                 </p>
                             ) : null}
                             {status === 'ready' &&
-                                journal?.pages.map((item) => (
+                                pages?.map((item) => (
                                     <JournalListItem
                                         item={item}
                                         key={item.id}
@@ -233,7 +432,7 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                                 >
                                     {search.trim()
                                         ? `No pages match “${search.trim()}”.`
-                                        : 'A reflection activity will add its first page here.'}
+                                        : 'A reflection activity will add its first page here. You can also make a free-form page now.'}
                                 </p>
                             ) : null}
                         </div>
@@ -271,7 +470,17 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                             </div>
                         ) : null}
                     </aside>
-                    <JournalPageReadView page={selected} status={status} />
+                    <JournalPageEditor
+                        deletingPageId={deletingPageId}
+                        isDirty={selected ? (dirtyById[selected.id] ?? false) : false}
+                        isSaving={isSaving}
+                        onDelete={deletePage}
+                        onDraftChange={updateDraft}
+                        onSave={savePage}
+                        page={selected}
+                        saveError={saveError}
+                        status={status}
+                    />
                 </div>
             </section>
         </div>,
@@ -332,11 +541,25 @@ function JournalListItem({
     );
 }
 
-function JournalPageReadView({
+function JournalPageEditor({
+    deletingPageId,
+    isDirty,
+    isSaving,
+    onDelete,
+    onDraftChange,
+    onSave,
     page,
+    saveError,
     status,
 }: {
+    deletingPageId: string | null;
+    isDirty: boolean;
+    isSaving: boolean;
+    onDelete: (page: JournalPage) => Promise<void>;
+    onDraftChange: (page: JournalPage) => void;
+    onSave: (page: JournalPage) => Promise<void>;
     page: JournalPage | null;
+    saveError: string;
     status: 'loading' | 'ready' | 'unavailable';
 }) {
     if (status === 'loading')
@@ -360,32 +583,120 @@ function JournalPageReadView({
                     color: 'var(--journal-muted-text)',
                 }}
             >
-                Select a page when your private journal has entries.
+                Select a page or create a new one.
             </main>
         );
+    const editing = page.preferred_mode === 'edit';
     const context = page.learning_context;
     return (
         <main
-            className="min-h-0 overflow-y-auto p-4 sm:p-6"
+            className="flex min-h-0 flex-col p-3 sm:p-4 md:p-6"
             style={{ background: 'var(--journal-content-background)' }}
         >
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+                <div className="grid w-full gap-3 sm:min-w-0 sm:flex-1 sm:grid-cols-3">
+                    <JournalField
+                        disabled={!editing}
+                        label="Title"
+                        onChange={(title) => onDraftChange({ ...page, title })}
+                        value={page.title}
+                    />
+                    <JournalField
+                        disabled={!editing}
+                        label="Topic"
+                        onChange={(topic) => onDraftChange({ ...page, topic })}
+                        value={page.topic}
+                    />
+                    <JournalField
+                        disabled={!editing}
+                        label="Subtopic"
+                        onChange={(subtopic) =>
+                            onDraftChange({ ...page, subtopic })
+                        }
+                        value={page.subtopic ?? ''}
+                    />
+                </div>
+                <div
+                    className="flex rounded-lg border p-1"
+                    style={{ borderColor: 'var(--journal-button-border)' }}
+                >
+                    <button
+                        className="rounded-md px-3 py-1.5 text-sm"
+                        onClick={() =>
+                            onDraftChange({ ...page, preferred_mode: 'view' })
+                        }
+                        style={{
+                            background: !editing
+                                ? 'var(--journal-accent)'
+                                : 'transparent',
+                            color: !editing
+                                ? 'var(--journal-accent-text)'
+                                : 'var(--journal-button-text)',
+                        }}
+                        type="button"
+                    >
+                        View
+                    </button>
+                    <button
+                        className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm"
+                        onClick={() =>
+                            onDraftChange({ ...page, preferred_mode: 'edit' })
+                        }
+                        style={{
+                            background: editing
+                                ? 'var(--journal-accent)'
+                                : 'transparent',
+                            color: editing
+                                ? 'var(--journal-accent-text)'
+                                : 'var(--journal-button-text)',
+                        }}
+                        type="button"
+                    >
+                        <Pencil className="size-3.5" /> Edit
+                    </button>
+                </div>
+                <button
+                    className="inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                    disabled={!isDirty || isSaving}
+                    onClick={() => void onSave(page)}
+                    style={{
+                        background: 'var(--journal-button-background)',
+                        borderColor: 'var(--journal-button-border)',
+                        color: 'var(--journal-button-text)',
+                    }}
+                    type="button"
+                >
+                    <Save className="size-4" /> Save changes
+                </button>
+                <button
+                    aria-label="Delete journal page"
+                    className="grid size-9 place-items-center rounded-md border disabled:opacity-50"
+                    disabled={deletingPageId === page.id || isSaving}
+                    onClick={() => void onDelete(page)}
+                    style={{
+                        borderColor: 'var(--journal-button-border)',
+                        color: 'var(--journal-button-text)',
+                    }}
+                    title="Delete page"
+                    type="button"
+                >
+                    <Trash2 className="size-4" />
+                </button>
+            </div>
             <div
-                className="border-b pb-3"
-                style={{ borderColor: 'var(--journal-button-border)' }}
+                aria-live="polite"
+                className="mt-2 min-h-5 text-xs"
+                style={{
+                    color: saveError ? '#dc2626' : 'var(--journal-muted-text)',
+                }}
             >
-                <p
-                    className="text-xs font-semibold tracking-[0.12em] uppercase"
-                    style={{ color: 'var(--journal-accent)' }}
-                >
-                    {page.topic}
-                    {page.subtopic ? ` / ${page.subtopic}` : ''}
-                </p>
-                <h3
-                    className="mt-1 text-xl font-semibold"
-                    style={{ color: 'var(--journal-heading-text)' }}
-                >
-                    {page.title}
-                </h3>
+                {saveError
+                    ? saveError
+                    : isSaving
+                      ? 'Saving your draft…'
+                      : isDirty
+                        ? 'Saving your draft…'
+                        : 'All changes saved.'}
             </div>
             {context ? (
                 <section
@@ -417,19 +728,65 @@ function JournalPageReadView({
                 </section>
             ) : null}
             <div
-                className="mt-4 rounded-lg border p-5"
+                className="mt-4 min-h-0 flex-1 overflow-hidden rounded-lg border"
                 style={{
                     background: 'var(--journal-input-background)',
                     borderColor: 'var(--journal-button-border)',
                 }}
             >
-                <OriginalMarkdownRenderer
-                    headingColor="var(--journal-heading-text)"
-                    inheritColor
-                    markdown={page.markdown || '*This page is still empty.*'}
-                    style={{ color: 'var(--journal-body-text)' }}
-                />
+                {editing ? (
+                    <textarea
+                        className="size-full resize-none overflow-y-auto bg-transparent p-4 font-mono text-sm leading-6 outline-none"
+                        onChange={(event) =>
+                            onDraftChange({ ...page, markdown: event.target.value })
+                        }
+                        placeholder="Write in Markdown..."
+                        style={{ color: 'var(--journal-body-text)' }}
+                        value={page.markdown}
+                    />
+                ) : (
+                    <div className="size-full overflow-y-auto p-5">
+                        <OriginalMarkdownRenderer
+                            headingColor="var(--journal-heading-text)"
+                            inheritColor
+                            markdown={page.markdown || '*This page is still empty.*'}
+                            style={{ color: 'var(--journal-body-text)' }}
+                        />
+                    </div>
+                )}
             </div>
         </main>
+    );
+}
+
+function JournalField({
+    disabled,
+    label,
+    onChange,
+    value,
+}: {
+    disabled: boolean;
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <label
+            className="grid gap-1 text-sm font-medium"
+            style={{ color: 'var(--journal-heading-text)' }}
+        >
+            {label}
+            <input
+                className="rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--journal-accent)]"
+                disabled={disabled}
+                onChange={(event) => onChange(event.target.value)}
+                style={{
+                    background: 'var(--journal-input-background)',
+                    borderColor: 'var(--journal-button-border)',
+                    color: 'var(--journal-body-text)',
+                }}
+                value={value}
+            />
+        </label>
     );
 }
