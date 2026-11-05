@@ -601,6 +601,39 @@ contract. Add create/update/delete, export, feedback requests, check-ins and
 revisit invitations only as separately authorized contracts with their source
 UI and cross-user tests.
 
+## ADR-023: Journal categories remain labels, not page identities
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The initial Rust reflection migration made a learner's
+topic/subtopic pair unique. That followed an early Laravel schema, but the
+existing application later removed the unique key: a learner can create
+several distinct manual pages in the same category, each with its own title.
+Keeping the uniqueness restriction would reject valid existing behavior and
+prevent a source-derived manual journal UI.
+
+**Decision:** `learner_journal_pages` permits repeated topic/subtopic pairs
+for the same application principal. Page UUID is the durable identity; title
+and category are editable presentation data. Reflection persistence chooses the
+oldest existing page for its authored category, matching Laravel's
+`firstOrCreate` lookup, or creates one when the category is absent. A
+transaction-scoped PostgreSQL advisory lock serializes that narrow reflection
+lookup/create decision without preventing manual pages in the category. An
+ordered principal/category index supports the lookup.
+
+**Why:** This preserves both original behaviors: automatic reflections gather
+under the first matching category page, and learners may independently keep
+several titled notes under that category. The lock avoids a new-platform race
+creating competing automatic pages after the uniqueness restriction is gone.
+
+**Alternatives:** Retaining the unique constraint would silently narrow manual
+journal behavior. Assigning a separate hidden reflection page would diverge
+from a manual page that intentionally shares its category. Both are rejected.
+
+**Limitations:** Editing or deleting a page with attached reflections remains
+a later writer slice; it must define what happens to its private structured
+records before exposing controls.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

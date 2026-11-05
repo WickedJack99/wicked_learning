@@ -117,16 +117,8 @@ async fn save_current_reflection(
         transaction.commit().await?;
         return Ok(None);
     }
-    let journal_title = journal_page_title(topic, subtopic);
-    let journal_page_id = sqlx::query_scalar::<_, Uuid>(
-        "INSERT INTO learner_journal_pages (principal_id, title, topic, subtopic) VALUES ($1, $2, $3, $4) ON CONFLICT (principal_id, topic, subtopic) DO UPDATE SET updated_at = NOW() RETURNING id",
-    )
-    .bind(current.principal_id)
-    .bind(&journal_title)
-    .bind(topic)
-    .bind(subtopic)
-    .fetch_one(&mut *transaction)
-    .await?;
+    let journal_page_id =
+        reflection_journal_page_id(&mut transaction, current.principal_id, topic, subtopic).await?;
     let page = sqlx::query_as::<_, JournalPageRow>(
         "SELECT markdown FROM learner_journal_pages WHERE id = $1 FOR UPDATE",
     )
@@ -215,6 +207,47 @@ async fn save_current_reflection(
         activity_slug: activity_slug.to_owned(),
         status: status.to_owned(),
     }))
+}
+
+/// Reflection pages are categorized by authored topic/subtopic, while manual
+/// journal pages may share that category. Serialize the small first-or-create
+/// decision per principal/category so two reflection submissions cannot create
+/// competing category pages after the manual-page uniqueness restriction was
+/// removed. The oldest matching page remains the one reflections use, as in
+/// the Laravel action's `firstOrCreate` lookup.
+async fn reflection_journal_page_id(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    topic: &str,
+    subtopic: &str,
+) -> Result<Uuid, sqlx::Error> {
+    let lock_key = format!("{principal_id}:{topic}:{subtopic}");
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))")
+        .bind(lock_key)
+        .execute(&mut **transaction)
+        .await?;
+
+    let existing = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM learner_journal_pages WHERE principal_id = $1 AND topic = $2 AND subtopic = $3 ORDER BY created_at ASC, id ASC LIMIT 1 FOR UPDATE",
+    )
+    .bind(principal_id)
+    .bind(topic)
+    .bind(subtopic)
+    .fetch_optional(&mut **transaction)
+    .await?;
+    if let Some(existing) = existing {
+        return Ok(existing);
+    }
+
+    sqlx::query_scalar::<_, Uuid>(
+        "INSERT INTO learner_journal_pages (principal_id, title, topic, subtopic) VALUES ($1, $2, $3, $4) RETURNING id",
+    )
+    .bind(principal_id)
+    .bind(journal_page_title(topic, subtopic))
+    .bind(topic)
+    .bind(subtopic)
+    .fetch_one(&mut **transaction)
+    .await
 }
 
 async fn load_current_reflection(
