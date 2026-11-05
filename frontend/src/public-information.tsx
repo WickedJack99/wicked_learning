@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { ArrowLeft, Compass, ExternalLink, Github } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 
@@ -54,7 +55,10 @@ export function PublicInformationPage({ slug }: { slug: string }) {
                 <div className="w-full max-w-3xl">
                     {page.kind === 'loading' ? (
                         <InformationCard>
-                            <p aria-live="polite" className="m-0 text-sm leading-7">
+                            <p
+                                aria-live="polite"
+                                className="m-0 text-sm leading-7"
+                            >
                                 Loading public information…
                             </p>
                         </InformationCard>
@@ -72,13 +76,14 @@ export function PublicInformationPage({ slug }: { slug: string }) {
                                 Page not found
                             </h1>
                             <p className="mt-4 mb-0 text-sm leading-7 md:text-base">
-                                The requested public information page is not available.
+                                The requested public information page is not
+                                available.
                             </p>
                         </InformationCard>
                     ) : null}
                     {page.kind === 'loaded' ? (
                         <InformationCard>
-                            <p className="m-0 text-xs font-medium tracking-[0.18em] uppercase text-teal-300">
+                            <p className="m-0 text-xs font-medium tracking-[0.18em] text-teal-300 uppercase">
                                 {pageLabels[slug] ?? page.title}
                             </p>
                             <div className="mt-4">
@@ -129,11 +134,25 @@ export function PublicSourceCodePage() {
     }, []);
 
     return (
-        <PublicInformationSurface>
+        <main
+            className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
+            data-wl-id="public.source-code"
+            style={originalPublicPresentationStyle}
+        >
+            <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: 'var(--auth-background-image)' }}
+            />
+            <div
+                aria-hidden="true"
+                className="absolute inset-0"
+                style={{ background: 'var(--auth-background-overlay)' }}
+            />
             <section className="relative z-10 flex min-h-svh items-center justify-center px-6 py-16">
-                <InformationCard className="w-full max-w-2xl">
+                <article className="w-full max-w-2xl rounded-xl border border-[var(--auth-border-line-color,rgba(148,163,184,0.24))] bg-[var(--auth-panel-background,rgba(255,255,255,0.86))] p-6 shadow-2xl shadow-slate-950/15 backdrop-blur-md md:p-8 dark:shadow-black/30">
                     <button
-                        className="mb-6 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-slate-100 no-underline transition hover:bg-white/10"
+                        className="mb-6 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium transition hover:bg-current/8"
                         onClick={() => {
                             if (window.history.length > 1) {
                                 navigate(-1);
@@ -142,34 +161,61 @@ export function PublicSourceCodePage() {
 
                             navigate('/');
                         }}
+                        style={{ color: 'var(--public-control-text)' }}
                         type="button"
                     >
                         <ArrowLeft className="size-4" />
                         Back
                     </button>
                     <div className="flex items-start gap-4">
-                        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-teal-300 text-slate-950">
+                        <span
+                            className="grid size-11 shrink-0 place-items-center rounded-lg"
+                            style={{
+                                background: 'var(--public-accent)',
+                                color: 'var(--auth-button-text-color)',
+                            }}
+                        >
                             <Github className="size-6" />
                         </span>
                         <div>
-                            <p className="m-0 text-xs font-medium tracking-[0.18em] uppercase text-teal-300">
+                            <p
+                                className="m-0 text-xs font-medium tracking-[0.18em] uppercase"
+                                style={{ color: 'var(--public-accent)' }}
+                            >
                                 Source availability
                             </p>
-                            <h1 className="mt-2 mb-0 text-3xl font-semibold tracking-normal md:text-5xl">
+                            <h1
+                                className="mt-2 mb-0 text-3xl font-semibold tracking-normal md:text-5xl"
+                                style={{ color: 'var(--public-heading-text)' }}
+                            >
                                 Source code
                             </h1>
-                            <p className="mt-4 mb-0 text-sm leading-7 text-slate-200 md:text-base">
-                                This page points to the source code for the original project and, when configured by a deployment, source locations for modified versions.
+                            <p
+                                className="mt-4 mb-0 text-sm leading-7 md:text-base"
+                                style={{ color: 'var(--public-body-text)' }}
+                            >
+                                This page points to the source code for the
+                                original project and, when configured by a
+                                deployment, source locations for modified
+                                versions.
                             </p>
                         </div>
                     </div>
                     {links.kind === 'loading' ? (
-                        <p aria-live="polite" className="mt-8 mb-0 text-sm text-slate-200">
+                        <p
+                            aria-live="polite"
+                            className="mt-8 mb-0 text-sm"
+                            style={{ color: 'var(--public-body-text)' }}
+                        >
                             Loading source-code links…
                         </p>
                     ) : null}
                     {links.kind === 'unavailable' ? (
-                        <p className="mt-8 mb-0 text-sm text-slate-200" role="alert">
+                        <p
+                            className="mt-8 mb-0 text-sm"
+                            role="alert"
+                            style={{ color: 'var(--public-body-text)' }}
+                        >
                             Source-code links are temporarily unavailable.
                         </p>
                     ) : null}
@@ -178,19 +224,27 @@ export function PublicSourceCodePage() {
                             <SourceButton link={links.origin} />
                             {links.modifiedSources.length ? (
                                 <div className="grid gap-3 pt-3">
-                                    <p className="m-0 text-xs font-medium tracking-[0.14em] uppercase text-slate-300">
+                                    <p
+                                        className="m-0 text-xs font-medium tracking-[0.14em] uppercase"
+                                        style={{
+                                            color: 'var(--public-muted-text)',
+                                        }}
+                                    >
                                         Modified sources
                                     </p>
                                     {links.modifiedSources.map((link) => (
-                                        <SourceButton key={link.url} link={link} />
+                                        <SourceButton
+                                            key={link.url}
+                                            link={link}
+                                        />
                                     ))}
                                 </div>
                             ) : null}
                         </div>
                     ) : null}
-                </InformationCard>
+                </article>
             </section>
-        </PublicInformationSurface>
+        </main>
     );
 }
 
@@ -203,33 +257,62 @@ function PublicInformationSurface({
 }) {
     return (
         <main
-            className="public-information relative min-h-svh overflow-hidden bg-[#07111f] text-slate-100"
+            className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
             data-wl-id="public.information"
+            style={originalPublicPresentationStyle}
         >
             <div
                 aria-hidden="true"
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: 'var(--auth-background-image)' }}
+            />
+            <div
+                aria-hidden="true"
                 className="absolute inset-0"
-                style={{
-                    background:
-                        'linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))',
-                }}
+                style={{ background: 'var(--auth-background-overlay)' }}
             />
             <header className="relative z-10 flex items-center justify-between px-6 py-5 md:px-10">
-                <Link className="flex items-center gap-3 text-sm font-semibold text-slate-100 no-underline" to="/">
-                    <span className="flex size-9 items-center justify-center rounded-md bg-teal-300 text-slate-950">
+                <Link
+                    className="flex items-center gap-3 text-sm font-semibold"
+                    to="/"
+                >
+                    <span
+                        className="flex size-9 items-center justify-center rounded-md"
+                        style={{
+                            background: 'var(--public-accent)',
+                            color: 'var(--auth-button-text-color)',
+                        }}
+                    >
                         <Compass className="size-5" />
                     </span>
-                    <span className="hidden sm:inline">Learning Worlds</span>
+                    <span
+                        className="hidden sm:inline"
+                        style={{ color: 'var(--public-heading-text)' }}
+                    >
+                        Learning Worlds
+                    </span>
                 </Link>
-                <nav className="flex items-center gap-2" aria-label="Public information">
-                    <Link className="rounded-md px-3 py-2 text-sm font-medium text-slate-100 no-underline transition hover:bg-white/10" to="/">
+                <nav
+                    className="flex items-center gap-2"
+                    aria-label="Public information"
+                >
+                    <Link
+                        className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/10"
+                        style={{ color: 'var(--public-control-text)' }}
+                        to="/"
+                    >
                         Home
                     </Link>
                     {Object.entries(pageLabels).map(([slug, label]) => (
                         <Link
-                            className="rounded-md px-3 py-2 text-sm font-medium no-underline transition hover:bg-white/10"
+                            className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/10"
                             key={slug}
-                            style={{ color: slug === activeSlug ? '#5eead4' : '#f8fafc' }}
+                            style={{
+                                color:
+                                    slug === activeSlug
+                                        ? 'var(--public-accent)'
+                                        : 'var(--public-control-text)',
+                            }}
                             to={`/${slug}`}
                         >
                             {label}
@@ -238,14 +321,6 @@ function PublicInformationSurface({
                 </nav>
             </header>
             {children}
-            <Link
-                aria-label="Source code"
-                className="fixed right-6 bottom-6 z-[80] grid size-6 place-items-center text-slate-200 opacity-80 transition hover:-translate-y-0.5 hover:opacity-100"
-                title="Source code"
-                to="/source"
-            >
-                <Github className="size-5" />
-            </Link>
         </main>
     );
 }
@@ -258,7 +333,9 @@ function InformationCard({
     className?: string;
 }) {
     return (
-        <article className={`rounded-xl border border-white/15 bg-slate-950/72 p-6 shadow-2xl shadow-slate-950/30 backdrop-blur-md md:p-8 ${className}`}>
+        <article
+            className={`rounded-xl border border-[var(--auth-border-line-color,rgba(148,163,184,0.24))] bg-[var(--auth-panel-background,rgba(255,255,255,0.86))] p-6 shadow-2xl shadow-slate-950/15 backdrop-blur-md md:p-8 dark:shadow-black/30 ${className}`}
+        >
             {children}
         </article>
     );
@@ -267,9 +344,13 @@ function InformationCard({
 function SourceButton({ link }: { link: { label: string; url: string } }) {
     return (
         <a
-            className="flex items-center justify-between gap-3 rounded-lg border border-white/15 px-4 py-3 text-sm font-semibold text-slate-100 no-underline transition hover:bg-white/10"
+            className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-semibold transition hover:bg-current/8"
             href={link.url}
             rel="noreferrer"
+            style={{
+                borderColor: 'var(--public-control-border)',
+                color: 'var(--public-control-text)',
+            }}
             target="_blank"
         >
             <span>{link.label}</span>
@@ -277,3 +358,24 @@ function SourceButton({ link }: { link: { label: string; url: string } }) {
         </a>
     );
 }
+
+/**
+ * Exact default values from the original public-presentation and auth themes.
+ * This remains intentionally static until the matching Rust presentation
+ * contract can carry administrator-configured palettes, media and cursors.
+ */
+const originalPublicPresentationStyle = {
+    '--auth-background-color': '#07111f',
+    '--auth-background-image': 'none',
+    '--auth-background-overlay':
+        'linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))',
+    '--auth-border-line-color': 'rgba(94, 234, 212, 0.24)',
+    '--auth-button-text-color': '#06111f',
+    '--auth-panel-background': 'transparent',
+    '--public-accent': '#5eead4',
+    '--public-body-text': '#cbd5e1',
+    '--public-control-border': '#ffffff',
+    '--public-control-text': '#ffffff',
+    '--public-heading-text': '#f8fafc',
+    '--public-muted-text': '#94a3b8',
+} as CSSProperties;

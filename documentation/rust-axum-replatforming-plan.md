@@ -296,6 +296,28 @@ The standalone Welcome page is the first fidelity migration: it reuses the
 original layout, content structure, Tailwind utilities and Lucide icons while
 substituting React Router and the existing Rust session state for Inertia.
 
+### Active frontend provenance audit — 5 November 2026
+
+The active Rust frontend was checked component-by-component against the named
+Laravel React sources. The current code must retain this mapping; a new route
+or control is not an acceptable stand-in merely because it can call a Rust
+endpoint.
+
+| Rust surface                 | Laravel React reference                                                                                                                       | Current boundary                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Welcome (`/`)                | `pages/welcome.tsx`                                                                                                                           | Lifted markup, interactions and the original default welcome content. Administrator-configured welcome pages, backgrounds, palette and cursors remain unavailable until a read-only public-presentation contract is added; do not replace the default screen with newly authored copy or styling.                                                  |
+| Login (`/login`)             | `pages/auth/login.tsx`, `layouts/auth/auth-simple-layout.tsx`                                                                                 | Lifted form/layout with the Inertia submit replaced by the typed Rust session request. Registration, recovery, passkeys and MFA remain unavailable rather than being imitated.                                                                                                                                                                     |
+| Information and source pages | `features/platform-info/platform-info-page.tsx`, `pages/source.tsx`, `features/platform-info/markdown-renderer.tsx`                           | Lifted page hierarchy, source layout and markdown renderer using the original default presentation tokens. The former floating source-code launcher was removed because it has no equivalent on the original information pages. Configured public presentation remains a future read-contract requirement.                                         |
+| World/map/search/node drawer | `pages/world.tsx`, `features/world/world-map.tsx`, `world-search.tsx`, `node-detail-drawer.tsx`, `activity-panel.tsx`, `map-asset-visual.tsx` | Source-adapted around the bounded public/learner contracts. Map assets, hit testing, search, drawer geometry/swipe and supported route-start cards retain their original structures. Tools, groups, audio, bookmarks, reveal/unlock behavior and the full learner navigation need their own contracts before this can be called full World parity. |
+| Playback                     | `pages/learning/node-play.tsx`, `features/world/standard-activities.tsx`                                                                      | Source-adapted open-practice and question frames. Rust owns answer evaluation and transitions. Question recall scheduling, previous-attempt display and feedback-after-answer data require dedicated learner-state contracts and are not silently represented as complete.                                                                         |
+
+Transport-only loading, unavailable and authorization-error branches may be
+introduced where the original page received server props synchronously. They
+must use the surrounding lifted page surface and must not become a replacement
+product UI. This audit records source provenance, not completion: every row
+still needs the contract, browser and behavior-parity evidence required by its
+slice.
+
 ### World parity boundary
 
 The current `/world` React route uses `GET /api/v1/learner/world` for a
@@ -330,15 +352,16 @@ more than one node without merging those learners' runs.
 
 The local learner-state phase is approved. `POST` start/resume and reset
 commands now resolve an authorized start and generate a server-owned play run
-(ADR-017). `GET /api/v1/learner/play-runs/{play_run_id}` now supplies the
-authorized current `open_practice` document (ADR-019), and its completion
-command advances only the active server-owned run (ADR-020). React now uses
-those contracts on the legacy player URL family with a lifted original
-open-practice activity frame: after an in-progress completion it re-reads the
-same run, and after a terminal completion it returns to the focused World
-location. It does not derive or submit a transition target. This remains
-isolated to the local Rust Compose database; Laravel and production ownership
-are unchanged.
+(ADR-017). `GET /api/v1/learner/play-runs/{play_run_id}` supplies the
+authorized current `open_practice` or question document. The open-practice
+completion command advances only the active server-owned run (ADR-020), and
+the question answer command evaluates selected option keys, records the private
+attempt and resolves the authored branch. React uses those contracts on the
+legacy player URL family with lifted activity frames: after an in-progress
+transition it re-reads the same run, and after a terminal transition it returns
+to the focused World location. It does not derive or submit a transition
+target. This remains isolated to the local Rust Compose database; Laravel and
+production ownership are unchanged.
 
 ### Reference behavior and implementation autonomy
 
@@ -377,16 +400,16 @@ Laravel application's routes nor configures production redirects. Because the
 new platform has fresh schemas and identifiers, this is not a promise that old
 private or identifier-based links will resolve in a deployed cutover.
 
-| Laravel URL or family                                                     | React route        | Current status | Notes                                                                                                          |
-| ------------------------------------------------------------------------- | ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `/`                                                                       | `/`                | Available      | A standalone React welcome screen provides public orientation and routes into exploration or local sign-in.    |
-| `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path          | Available      | Public presentation/source endpoints provide their content.                                                    |
-| `/world`                                                                  | `/world`           | Available      | Public exploration plus signed-in, server-authorized start/reset controls for supported `open_practice` and question starts; broader World behavior remains incomplete. |
-| `/learning/search?query={term}`                                           | —                  | Not available  | Search is retained inside the lifted `/world` surface; no substitute standalone search page is exposed.       |
-| `/learning/nodes/{node}/play?run={uuid}`                                  | Same path          | Available      | Signed-in playback for server-owned `open_practice` and question runs. Question options are read from a learner-safe projection; the Rust writer evaluates selected keys, records attempts and resolves authored branches. The response provides authorized node/map/route orientation labels used by the lifted original learning-context panel; the node path segment preserves the source URL family, while the opaque run UUID remains the only API authority. |
-| `/home`, `/journal`, `/paths`, `/topics`, `/bookmarks`, `/competence`     | —                  | Not available  | These require authenticated data and, in several cases, APIs that have not yet been implemented.               |
-| `/organizations/*`, `/learning/groups/*`, authoring/settings/admin routes | —                  | Not available  | These belong to later collaboration, authoring and administration slices with their own authorization tests.   |
-| `/access-links/{token}`, `/protected-media/*`                             | —                  | Not available  | Security-sensitive access-link and media-serving contracts are deliberately deferred.                          |
+| Laravel URL or family                                                     | React route | Current status | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------- | ----------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                                                                       | `/`         | Available      | A standalone React welcome screen provides public orientation and routes into exploration or local sign-in.                                                                                                                                                                                                                                                                                                                                                        |
+| `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path   | Available      | Public presentation/source endpoints provide their content.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `/world`                                                                  | `/world`    | Available      | Public exploration plus signed-in, server-authorized start/reset controls for supported `open_practice` and question starts; broader World behavior remains incomplete.                                                                                                                                                                                                                                                                                            |
+| `/learning/search?query={term}`                                           | —           | Not available  | Search is retained inside the lifted `/world` surface; no substitute standalone search page is exposed.                                                                                                                                                                                                                                                                                                                                                            |
+| `/learning/nodes/{node}/play?run={uuid}`                                  | Same path   | Available      | Signed-in playback for server-owned `open_practice` and question runs. Question options are read from a learner-safe projection; the Rust writer evaluates selected keys, records attempts and resolves authored branches. The response provides authorized node/map/route orientation labels used by the lifted original learning-context panel; the node path segment preserves the source URL family, while the opaque run UUID remains the only API authority. |
+| `/home`, `/journal`, `/paths`, `/topics`, `/bookmarks`, `/competence`     | —           | Not available  | These require authenticated data and, in several cases, APIs that have not yet been implemented.                                                                                                                                                                                                                                                                                                                                                                   |
+| `/organizations/*`, `/learning/groups/*`, authoring/settings/admin routes | —           | Not available  | These belong to later collaboration, authoring and administration slices with their own authorization tests.                                                                                                                                                                                                                                                                                                                                                       |
+| `/access-links/{token}`, `/protected-media/*`                             | —           | Not available  | Security-sensitive access-link and media-serving contracts are deliberately deferred.                                                                                                                                                                                                                                                                                                                                                                              |
 
 The current public asset and route-preview URLs are newly designed React URLs
 under `/world/{world}/maps/{map}/assets/{asset}`. They have no legacy-ID

@@ -60,13 +60,16 @@ test('all public-information navigation entries resolve to their published pages
     ).toBeVisible();
 });
 
-test('the source-code page provides the original project link safely', async ({
+test('the source-code page provides the original project link without adding a public-page launcher', async ({
     page,
 }) => {
     await page.goto('/about');
 
-    await page.getByRole('link', { name: 'Source code' }).click();
-    await expect(page).toHaveURL(/\/source$/);
+    await expect(page.getByRole('link', { name: 'Source code' })).toHaveCount(
+        0,
+    );
+
+    await page.goto('/source');
     await expect(
         page.getByRole('heading', { name: 'Source code' }),
     ).toBeVisible();
@@ -149,9 +152,7 @@ test('the learner shell keeps public navigation available on a narrow viewport',
     await expect(
         page.getByRole('navigation', { name: 'Learner navigation' }),
     ).toBeVisible();
-    await expect(
-        page.getByRole('link', { name: 'Log in' }),
-    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
     await expect(
         page.getByRole('heading', { name: 'The First Path' }),
     ).toBeVisible();
@@ -281,10 +282,16 @@ test('a transparent public map overlay hides only over its visible image pixels'
     }
 
     await page.mouse.move(box.x + 3, box.y + 3);
-    await expect(overlay).toHaveAttribute('data-map-asset-visibility', 'visible');
+    await expect(overlay).toHaveAttribute(
+        'data-map-asset-visibility',
+        'visible',
+    );
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(overlay).toHaveAttribute('data-map-asset-visibility', 'hidden');
+    await expect(overlay).toHaveAttribute(
+        'data-map-asset-visibility',
+        'hidden',
+    );
 });
 
 test('the learner World exposes the original-style user menu for an authenticated session', async ({
@@ -303,10 +310,10 @@ test('the learner World exposes the original-style user menu for an authenticate
 
     await page.goto('/world');
 
-    await expect(page.getByRole('button', { name: 'Open user menu' })).toBeVisible();
     await expect(
-        page.getByRole('link', { name: 'Log in' }),
-    ).not.toBeVisible();
+        page.getByRole('button', { name: 'Open user menu' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Log in' })).not.toBeVisible();
 });
 
 test('the signed-in explorer starts and completes an original open-practice route through server-owned playback', async ({
@@ -323,7 +330,8 @@ test('the signed-in explorer starts and completes an original open-practice rout
         route_slug: 'private-orientation-route',
         activity_slug: 'private-activity',
         label,
-        description: 'A read-only route presentation from the learner snapshot.',
+        description:
+            'A read-only route presentation from the learner snapshot.',
         image_dark: null,
         image_light: null,
         button_color_dark: null,
@@ -420,7 +428,8 @@ test('the signed-in explorer starts and completes an original open-practice rout
                         node_slug: 'private-place',
                         route_slug: 'private-orientation-route',
                         title: 'Private orientation route',
-                        description: 'A route visible only in this learner snapshot.',
+                        description:
+                            'A route visible only in this learner snapshot.',
                         activity_count: 1,
                     },
                 ],
@@ -470,15 +479,21 @@ test('the signed-in explorer starts and completes an original open-practice rout
                         route_label: 'Begin private orientation',
                     },
                     activity: {
-                        slug: secondActivity ? 'next-private-activity' : 'private-activity',
-                        title: secondActivity ? 'Choose the next step' : 'Begin private orientation',
+                        slug: secondActivity
+                            ? 'next-private-activity'
+                            : 'private-activity',
+                        title: secondActivity
+                            ? 'Choose the next step'
+                            : 'Begin private orientation',
                         description: 'A server-authorized activity.',
                         activity_type: 'open_practice',
                         config: {
                             nextStep: 'Pause here, then continue when ready.',
                         },
                         completion: {
-                            label: secondActivity ? null : 'Continue to the next step',
+                            label: secondActivity
+                                ? null
+                                : 'Continue to the next step',
                             next_activity_slug: secondActivity
                                 ? null
                                 : 'next-private-activity',
@@ -526,23 +541,22 @@ test('the signed-in explorer starts and completes an original open-practice rout
         .click();
     await expect(page.getByLabel('Saved place')).toBeVisible();
     await expect(page.getByLabel('Node completed')).toBeVisible();
-    await expect(
-        page.getByText('Begin private orientation'),
-    ).toBeVisible();
-    await page.getByRole('button', { name: 'Begin private orientation' }).click();
+    await expect(page.getByText('Begin private orientation')).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Begin private orientation' })
+        .click();
     await expect(page).toHaveURL(
         /\/learning\/nodes\/private-place\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66$/,
     );
     await expect(
         page.getByRole('heading', { name: 'Begin private orientation' }),
     ).toBeVisible();
-    await expect(page.locator('aside[aria-label="Learning context"]')).toContainText(
-        'Private place',
-    );
-    await expect(page.getByRole('link', { name: 'A private path' })).toHaveAttribute(
-        'href',
-        '/world?map=private-path&focused=private-place',
-    );
+    await expect(
+        page.locator('aside[aria-label="Learning context"]'),
+    ).toContainText('Private place');
+    await expect(
+        page.getByRole('link', { name: 'A private path' }),
+    ).toHaveAttribute('href', '/world?map=private-path&focused=private-place');
     await page.setViewportSize({ width: 390, height: 844 });
     const continueButton = page.getByRole('button', {
         name: 'Continue to the next step',
@@ -550,9 +564,13 @@ test('the signed-in explorer starts and completes an original open-practice rout
     const continueBounds = await continueButton.boundingBox();
     expect(continueBounds).not.toBeNull();
     expect(continueBounds?.x).toBeGreaterThanOrEqual(0);
-    expect((continueBounds?.x ?? 0) + (continueBounds?.width ?? 0)).toBeLessThanOrEqual(390);
+    expect(
+        (continueBounds?.x ?? 0) + (continueBounds?.width ?? 0),
+    ).toBeLessThanOrEqual(390);
     expect(continueBounds?.y).toBeGreaterThanOrEqual(0);
-    expect((continueBounds?.y ?? 0) + (continueBounds?.height ?? 0)).toBeLessThanOrEqual(844);
+    expect(
+        (continueBounds?.y ?? 0) + (continueBounds?.height ?? 0),
+    ).toBeLessThanOrEqual(844);
     await page
         .getByRole('button', { name: 'Continue to the next step' })
         .click();
@@ -571,74 +589,104 @@ test('a removed substitute map-place URL returns to the retained welcome surface
     );
 
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: 'Learning Worlds' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Learning Worlds' }),
+    ).toBeVisible();
 });
 
 test('the original question surface posts only selected option keys and waits for server feedback', async ({
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77';
-    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
-        await route.fulfill({
-            contentType: 'application/json',
-            body: JSON.stringify({
-                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
-                play_run_id: playRunId,
-                context: {
-                    node_slug: 'private-place',
-                    node_title: 'Private place',
-                    map_slug: 'private-path',
-                    map_title: 'A private path',
-                    route_label: 'Question route',
-                },
-                activity: {
-                    slug: 'learner-choice',
-                    title: 'Keep choice visible',
-                    description: 'A server-authorized question.',
-                    activity_type: 'question',
-                    config: {
-                        allowMultiple: false,
-                        prompt: 'Which choice keeps exploration learner-directed?',
-                        options: [
-                            { key: 'choice', label: 'A', body: 'Keep useful choices visible.' },
-                            { key: 'sequence', label: 'B', body: 'Hide all other routes.' },
-                        ],
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    play_run_id: playRunId,
+                    context: {
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        map_slug: 'private-path',
+                        map_title: 'A private path',
+                        route_label: 'Question route',
                     },
-                    completion: { label: null, next_activity_slug: null },
-                },
-            }),
-        });
-    });
+                    activity: {
+                        slug: 'learner-choice',
+                        title: 'Keep choice visible',
+                        description: 'A server-authorized question.',
+                        activity_type: 'question',
+                        config: {
+                            allowMultiple: false,
+                            prompt: 'Which choice keeps exploration learner-directed?',
+                            options: [
+                                {
+                                    key: 'choice',
+                                    label: 'A',
+                                    body: 'Keep useful choices visible.',
+                                },
+                                {
+                                    key: 'sequence',
+                                    label: 'B',
+                                    body: 'Hide all other routes.',
+                                },
+                            ],
+                        },
+                        completion: { label: null, next_activity_slug: null },
+                    },
+                }),
+            });
+        },
+    );
     await page.route('**/api/v1/security/csrf', async (route) => {
-        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ token: 'test-csrf-token' }) });
-    });
-    await page.route(`**/api/v1/learner/play-runs/${playRunId}/activities/learner-choice/answer`, async (route) => {
-        expect(route.request().postDataJSON()).toEqual({ confidence: 'settled', option_keys: ['choice'] });
         await route.fulfill({
             contentType: 'application/json',
-            body: JSON.stringify({
-                play_run_id: playRunId,
-                activity_slug: 'learner-choice',
-                selected_option_keys: ['choice'],
-                is_correct: true,
-                feedback: 'This keeps the learner in charge.',
-                explanation: 'Maps support orientation and choice.',
-                confidence: 'settled',
-                calibration: 'aligned',
-                attempt_number: 1,
-                next_transition_label: null,
-            }),
+            body: JSON.stringify({ token: 'test-csrf-token' }),
         });
     });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/learner-choice/answer`,
+        async (route) => {
+            expect(route.request().postDataJSON()).toEqual({
+                confidence: 'settled',
+                option_keys: ['choice'],
+            });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    activity_slug: 'learner-choice',
+                    selected_option_keys: ['choice'],
+                    is_correct: true,
+                    feedback: 'This keeps the learner in charge.',
+                    explanation: 'Maps support orientation and choice.',
+                    confidence: 'settled',
+                    calibration: 'aligned',
+                    attempt_number: 1,
+                    next_transition_label: null,
+                }),
+            });
+        },
+    );
 
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
-    await expect(page.getByText('Which choice keeps exploration learner-directed?')).toBeVisible();
+    await expect(
+        page.getByText('Which choice keeps exploration learner-directed?'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Settled' }).click();
-    await page.getByRole('button', { name: /Keep useful choices visible/ }).click();
+    await page
+        .getByRole('button', { name: /Keep useful choices visible/ })
+        .click();
     await expect(page.getByText('Useful clue found')).toBeVisible();
-    await expect(page.getByText('This keeps the learner in charge.')).toBeVisible();
+    await expect(
+        page.getByText('This keeps the learner in charge.'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Try again independently' }).click();
-    await expect(page.getByText('Which choice keeps exploration learner-directed?')).toBeVisible();
+    await expect(
+        page.getByText('Which choice keeps exploration learner-directed?'),
+    ).toBeVisible();
 });
 
 test('the public explorer search is bounded and presents matching places', async ({
@@ -669,7 +717,9 @@ test('a legacy standalone search URL returns to the retained welcome surface', a
     await page.goto('/learning/search?query=direction');
 
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: 'Learning Worlds' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Learning Worlds' }),
+    ).toBeVisible();
 });
 
 test('a CI-only local administrator can use the React sign-in and sign-out flow', async ({
@@ -720,5 +770,7 @@ test('unknown browser routes return to the retained welcome surface', async ({
     await page.goto('/not-a-public-page');
 
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: 'Learning Worlds' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Learning Worlds' }),
+    ).toBeVisible();
 });
