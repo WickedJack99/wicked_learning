@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::world_content::{PublicMapAsset, PublicWorld};
 
@@ -51,6 +51,26 @@ pub struct LearnerTool {
 pub struct LearnerToolGrantResult {
     pub already_owned: bool,
     pub tool: LearnerTool,
+}
+
+/// One source-configured item displayed after a successful item-grant roll.
+/// Its quantity is the grant amount, not the learner's full inventory count.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearnerItemGrantDisplay {
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub quantity: i32,
+    pub slug: String,
+    pub title: String,
+}
+
+/// A server-owned item-grant result for the active play run. A repeated
+/// request returns the persisted roll and display snapshot without granting a
+/// second quantity.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerItemGrantResult {
+    pub items: Vec<LearnerItemGrantDisplay>,
+    pub success: bool,
 }
 
 /// The bounded result of using an owned tool on an accessible map node. The

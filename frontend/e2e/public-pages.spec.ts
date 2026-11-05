@@ -1790,6 +1790,112 @@ test('the original tool-grant surface claims only its active configured tool bef
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });
 
+test('the original item-grant surface rolls only the active configured items before completing', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88';
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    play_run_id: playRunId,
+                    run_kind: 'route',
+                    context: {
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        map_slug: 'private-path',
+                        map_title: 'A private path',
+                        route_label: 'Item route',
+                    },
+                    activity: {
+                        slug: 'receive-portal-key',
+                        title: 'A useful key',
+                        description: 'A source-authored item grant.',
+                        activity_type: 'item_grant',
+                        config: {
+                            backgroundDark: null,
+                            backgroundLight: null,
+                            backgroundMirrored: false,
+                            items: [{ itemId: 'portal-key', quantity: 2 }],
+                            probabilityPercent: 100,
+                        },
+                        completion: { label: null, next_activity_slug: null },
+                        check_in: {
+                            choice_prompt: null,
+                            concepts: [],
+                            learning_areas: [],
+                            objective: null,
+                        },
+                    },
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/receive-portal-key/grant-items`,
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    items: [
+                        {
+                            image_dark: null,
+                            image_light: null,
+                            quantity: 2,
+                            slug: 'portal-key',
+                            title: 'Portal key',
+                        },
+                    ],
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/receive-portal-key/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    status: 'completed',
+                }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByRole('heading', { name: 'A useful key' })).toBeVisible();
+    await expect(page.getByText('Item received:')).toBeVisible();
+    const continueButton = page.getByRole('button', { name: 'Continue' });
+    await expect(continueButton).toBeVisible();
+    const bounds = await continueButton.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect((bounds?.x ?? 390) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
+    await continueButton.click();
+    await expect(
+        page.getByRole('heading', { name: 'A small pause after A useful key' }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Continue without answering' })
+        .click();
+    await expect(page).toHaveURL(/\/world\?focused=private-place$/);
+});
+
 test('the public explorer search is bounded and presents matching places', async ({
     page,
 }) => {

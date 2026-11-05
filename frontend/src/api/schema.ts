@@ -386,6 +386,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Roll and apply the configured items for the current authorized item-grant activity.
+         * @description The server resolves the active run, activity, chance and configured public item references. It does not accept a browser-selected item or quantity; repeats return the one persisted roll for this run.
+         */
+        post: operations["grantLearnerItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins": {
         parameters: {
             query?: never;
@@ -879,6 +899,17 @@ export interface components {
             already_owned: boolean;
             tool: components["schemas"]["LearnerTool"];
         };
+        LearnerItemGrantDisplay: {
+            image_dark: string | null;
+            image_light: string | null;
+            quantity: number;
+            slug: string;
+            title: string;
+        };
+        LearnerItemGrantResult: {
+            items: components["schemas"]["LearnerItemGrantDisplay"][];
+            success: boolean;
+        };
         LearnerNodeToolRequest: {
             tool_slug: string;
         };
@@ -1194,7 +1225,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "tool_grant";
+            activity_type: "open_practice" | "question" | "reflection" | "tool_grant" | "item_grant";
             config: {
                 [key: string]: unknown;
             };
@@ -2675,6 +2706,60 @@ export interface operations {
                 content?: never;
             };
             /** @description The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    grantLearnerItems: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run's item-grant result, including any source-configured display items after a successful roll. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerItemGrantResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active item-grant activity is unavailable or not owned by this learner's current run. */
             404: {
                 headers: {
                     [name: string]: unknown;

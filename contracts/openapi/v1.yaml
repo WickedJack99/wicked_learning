@@ -574,6 +574,26 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items:
+    post:
+      operationId: grantLearnerItems
+      summary: Roll and apply the configured items for the current authorized item-grant activity.
+      description: The server resolves the active run, activity, chance and configured public item references. It does not accept a browser-selected item or quantity; repeats return the one persisted roll for this run.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The run's item-grant result, including any source-configured display items after a successful roll.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerItemGrantResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active item-grant activity is unavailable or not owned by this learner's current run. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins:
     post:
       operationId: recordLearnerActivityCheckIn
@@ -1522,6 +1542,28 @@ components:
           type: boolean
         tool:
           $ref: '#/components/schemas/LearnerTool'
+    LearnerItemGrantDisplay:
+      type: object
+      additionalProperties: false
+      required: [image_dark, image_light, quantity, slug, title]
+      properties:
+        image_dark: { type: [string, 'null'] }
+        image_light: { type: [string, 'null'] }
+        quantity: { type: integer, minimum: 1, maximum: 999 }
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title: { type: string }
+    LearnerItemGrantResult:
+      type: object
+      additionalProperties: false
+      required: [items, success]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/LearnerItemGrantDisplay' }
+        success: { type: boolean }
     LearnerNodeToolRequest:
       type: object
       additionalProperties: false
@@ -2099,7 +2141,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection, tool_grant]
+          enum: [open_practice, question, reflection, tool_grant, item_grant]
         config:
           type: object
           additionalProperties: true

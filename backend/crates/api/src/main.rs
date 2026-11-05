@@ -8,6 +8,7 @@ mod learner_bookmark;
 mod learner_bookmark_map;
 mod learner_check_in;
 mod learner_competence;
+mod learner_item_grant;
 mod learner_journal;
 mod learner_journal_page;
 mod learner_node_tool;
@@ -289,6 +290,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool",
             post(learner_tool_grant::grant_current_tool),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items",
+            post(learner_item_grant::roll_current_items),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins",

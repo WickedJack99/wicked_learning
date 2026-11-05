@@ -841,17 +841,19 @@ their source writers are lifted. The reader consumes each fact without turning
 Laravel's mixed discovery metadata into an opaque cross-purpose JSON contract.
 The first writer verifies map visibility, CSRF, learner ownership and the
 configured tool before it records a source-equivalent reveal or unlock attempt.
-Author-facing `toolId` configuration now names the unique tool slug—not an
-internal Rust UUID or a Laravel numeric key—because this is a greenfield
-platform. The source `tool_grant` activity is now the sole Rust acquisition
-writer: it derives the current active activity and configured public tool slug
-from the authorized play run, inserts one idempotent ownership record, and
-completion rechecks ownership before advancing the authored transition. Its
-React component is lifted from the original activity rather than being a new
-inventory workflow. Item grants, NPC dialogue grants, answer events and staff
-overrides remain absent and fail closed. This is the deliberate architecture boundary
-for the source tool/discovery slice, not permission to publish the standalone
-Paths screen.
+Author-facing `toolId` and item-grant `items[].itemId` configuration now name
+unique public slugs—not an internal Rust UUID or a Laravel numeric key—because
+this is a greenfield platform. The source `tool_grant` activity is now the
+sole Rust tool-acquisition writer: it derives the current active activity and
+configured public tool slug from the authorized play run, inserts one
+idempotent ownership record, and completion rechecks ownership before advancing
+the authored transition. Its React component is lifted from the original
+activity rather than being a new inventory workflow. The source `item_grant`
+activity is its own item-acquisition writer; its roll and holding boundary is
+recorded in ADR-034. NPC dialogue grants, answer events and staff overrides
+remain absent and fail closed. This is the deliberate architecture boundary for
+the source tool/discovery slice, not permission to publish the standalone Paths
+screen.
 
 **Why:** This retains server authority for availability and creates one bounded
 reader that both the future `/paths` page and topic Routes panel can consume.
@@ -1135,6 +1137,56 @@ panel has been lifted with its one-at-a-time pagination and
 and narrow viewport panel, a CSRF-protected defer, and navigation only after
 the opaque server-owned run is returned. It does not expose a partial re-entry
 link or an `is_revisit` browser parameter.
+
+## ADR-034: Item grants are one persisted roll per authorized play run
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The original item-grant activity is neither a browser-selected
+inventory mutation nor an ordinary completion. It rolls a configured
+probability once, gives the configured quantities only after success, returns
+the same result on refresh, and can grant again when the learner starts a new
+route run. Reusing a generic progress JSON field would make quantity changes
+hard to audit and would not reliably protect retries from duplicate grants.
+
+**Decision:** Add `learner_item_grants`, keyed by application principal,
+activity and opaque server-issued play-run ID. The `grant-items` command locks
+the active visible `item_grant` activity, derives its chance and configured
+public item slugs from server content, and records a PostgreSQL-generated roll
+with its result in the same transaction as the normalized holding increments.
+The command accepts no item, quantity, probability or learner identity from the
+browser. A repeated request returns the persisted success/failure and bounded
+source display snapshot; it never increments a holding again. Completion must
+prove that the current run has a persisted grant result, so both a successful
+grant and the source's unsuccessful-roll auto-continue path remain valid, but
+a browser cannot skip the roll. A new route run uses a new key and therefore
+can roll and grant again as in Laravel.
+
+The existing `learning_items` and `learner_item_holdings` tables remain the
+content and inventory owners. `items[].itemId` is a public item slug in this
+greenfield contract, mirroring the established tool-reference choice without
+exposing UUIDs or Laravel numeric IDs. The React scene is adapted directly from
+the original `ItemGrantActivity`, including its loading state, background,
+item grid, flight effect, automatic unsuccessful-roll completion and continue
+action.
+
+**Why:** This makes the server the sole authority for randomness, configured
+content, ownership, retry behavior and transition eligibility while preserving
+the source interaction. It also gives future item obstacles a normalized,
+queryable inventory fact rather than a frontend cache or metadata convention.
+
+**Alternatives:** Accepting item IDs and quantities from React would let a
+learner forge inventory. Reusing generic route-progress metadata would obscure
+the one-per-run uniqueness and complicate holding reconciliation. Both are
+rejected.
+
+**Limitations and trigger:** This restores only source item grants. It does
+not expose item consumption, item obstacles, access-link item grants, NPC or
+answer rewards, authoring, or an inventory editor. Those source behaviors need
+their own contracts, authorization and directly lifted UI before any related
+control is exposed. The temporary 100 configured-display-item bound is an API
+payload safeguard; authoring validation must make the eventual content bound
+explicit before Rust authoring is introduced.
 
 ## Phase 1 gate
 

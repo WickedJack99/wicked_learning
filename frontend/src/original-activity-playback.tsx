@@ -7,6 +7,7 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalLearningCheckIn } from './original-learning-check-in';
+import { OriginalItemGrantActivity } from './original-item-grant-activity';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
@@ -461,6 +462,10 @@ export function OriginalOpenPracticePage({
                                                     .activity_type ===
                                               'tool_grant'
                                             ? 'Tool grant'
+                                            : state.document.activity
+                                                      .activity_type ===
+                                                  'item_grant'
+                                              ? 'Item grant'
                                           : 'Open practice'}
                                 </p>
                                 <h3
@@ -513,6 +518,14 @@ export function OriginalOpenPracticePage({
                         ) : state.document.activity.activity_type ===
                           'tool_grant' ? (
                             <OriginalToolGrantActivity
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                onComplete={complete}
+                                playRunId={state.document.play_run_id}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'item_grant' ? (
+                            <OriginalItemGrantActivity
                                 activity={state.document.activity}
                                 appearance={appearance}
                                 onComplete={complete}
