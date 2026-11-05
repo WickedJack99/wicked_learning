@@ -40,6 +40,7 @@ struct PathRow {
     last_entered_at: Option<String>,
     map_slug: String,
     map_title: String,
+    node_id: Uuid,
     node_slug: String,
     node_state: String,
     node_title: String,
@@ -156,7 +157,11 @@ async fn scan_paths(
 
         for candidate in candidates {
             if !availability
-                .state_for_node(&candidate.node_state, &candidate.node_visual_config)
+                .state_for_node(
+                    candidate.node_id,
+                    &candidate.node_state,
+                    &candidate.node_visual_config,
+                )
                 .can_play()
             {
                 continue;
@@ -211,7 +216,7 @@ SELECT activities.activity_config, activities.title AS activity_title, activitie
   COALESCE(NULLIF(activities.description, ''), nodes.description) AS description,
   assets.image_url, COALESCE(starts.label, activities.title) AS label,
   to_char(progress.last_entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS last_entered_at,
-  maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.state AS node_state, nodes.title AS node_title, nodes.visual_config AS node_visual_config,
+  maps.slug AS map_slug, maps.title AS map_title, nodes.id AS node_id, nodes.slug AS node_slug, nodes.state AS node_state, nodes.title AS node_title, nodes.visual_config AS node_visual_config,
   progress.status AS progress_status, routes.description AS route_description, starts.id AS start_id,
   CASE WHEN activities.activity_config->>'timeGuideMinutes' ~ '^[1-9][0-9]*$' THEN (activities.activity_config->>'timeGuideMinutes')::smallint ELSE NULL END AS time_guide_minutes,
   topics.slug AS topic_slug, topics.title AS topic_title

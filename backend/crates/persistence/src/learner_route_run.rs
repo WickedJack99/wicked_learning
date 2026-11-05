@@ -247,7 +247,7 @@ async fn resolve_visible_start(
     Ok(start
         .filter(|start| {
             availability
-                .state_for_node(&start.node_state, &start.node_visual_config)
+                .state_for_node(start.node_id, &start.node_state, &start.node_visual_config)
                 .can_play()
         })
         .map(|start| (principal_id, start)))

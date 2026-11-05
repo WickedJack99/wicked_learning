@@ -831,8 +831,18 @@ The first availability increment supplies the policy with the authenticated
 principal's roles, completed nodes and current RFC 3339 schedule instants.
 Malformed availability configuration fails closed. Source discovery, answer
 events, tool use, item ownership and staff manual openings have no Rust writer
-or persisted fact yet; their conditions therefore remain unavailable instead
-of being treated as satisfied.
+yet; absent facts therefore remain unavailable instead of being treated as
+satisfied.
+
+**State-model evolution:** Application migration `0029` creates normalized
+tool, item, ownership, discovery, tool-use and manual-opening records before
+their source writers are lifted. The reader can now consume a fact once its
+authorized writer exists, without turning Laravel's mixed discovery metadata
+into an opaque cross-purpose JSON contract. The tables alone do not enable a
+control or make a node available: no Rust tool, item, answer-event or support
+writer exists yet, so those sets are empty and remain fail-closed. This is the
+deliberate next architecture boundary for the source tool/discovery slice, not
+permission to publish the standalone Paths screen.
 
 **Why:** This retains server authority for availability and creates one bounded
 reader that both the future `/paths` page and topic Routes panel can consume.

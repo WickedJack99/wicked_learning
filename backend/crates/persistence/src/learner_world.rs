@@ -228,7 +228,7 @@ fn apply_learner_node_states(
 
     for map in &mut world.maps {
         for node in &mut map.nodes {
-            let state = availability.state_for_node(&node.state, &node.visual_config);
+            let state = availability.state_for_node(node.id, &node.state, &node.visual_config);
             node.state = match state {
                 wicked_learning_domain::learner_availability::LearnerNodeState::Available => {
                     "available".to_owned()

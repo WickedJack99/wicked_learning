@@ -43,6 +43,10 @@ pub struct PublicMapAsset {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct PublicNode {
+    /// Internal persistence identity used only by authenticated policy
+    /// evaluation. It must never become part of the browser's public graph.
+    #[serde(skip)]
+    pub id: uuid::Uuid,
     pub asset_slug: Option<String>,
     pub slug: String,
     pub title: String,
@@ -108,4 +112,32 @@ pub struct PublicSearchResult {
     pub asset_slug: String,
     pub title: String,
     pub description: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use uuid::Uuid;
+
+    use super::PublicNode;
+
+    #[test]
+    fn internal_node_identity_is_not_part_of_the_public_graph() {
+        let node = PublicNode {
+            id: Uuid::nil(),
+            asset_slug: Some("first-asset".to_owned()),
+            slug: "first-node".to_owned(),
+            title: "First node".to_owned(),
+            description: "A node used to verify the serialization boundary.".to_owned(),
+            q: 2,
+            r: -1,
+            state: "available".to_owned(),
+            visual_config: json!({}),
+        };
+
+        let serialized = serde_json::to_value(node).expect("public node serializes");
+
+        assert!(serialized.get("id").is_none());
+        assert_eq!(serialized["slug"], "first-node");
+    }
 }
