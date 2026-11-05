@@ -1001,6 +1001,7 @@ function WorldSearch({
 }) {
     const [term, setTerm] = useState('');
     const [search, setSearch] = useState<SearchState>({ kind: 'idle' });
+    const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
     useEffect(() => {
         const query = term.trim();
@@ -1044,91 +1045,192 @@ function WorldSearch({
             onSelectMap(resultMap);
         }
         setTerm('');
+        setIsMobilePanelOpen(false);
     }
 
     const theme = map.background_config;
     const hasSearch = term.trim().length > 0;
-    return (
-        <div className="absolute bottom-5 left-5 z-20 w-[min(24rem,calc(100%-2.5rem))]">
-            {hasSearch ? (
-                <div
-                    className="mb-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md"
-                    style={floatingPanelStyle(theme)}
-                >
-                    {search.kind === 'loading' ? (
-                        <p className="px-3 py-4 text-sm">Searching…</p>
-                    ) : null}
-                    {search.kind === 'unavailable' ? (
-                        <p className="px-3 py-4 text-sm">
-                            Search is temporarily unavailable.
-                        </p>
-                    ) : null}
-                    {search.kind === 'loaded' && search.results.length === 0 ? (
-                        <p className="px-3 py-4 text-sm">
-                            No visible maps or places found.
-                        </p>
-                    ) : null}
-                    {search.kind === 'loaded' ? (
-                        <div className="grid gap-1">
-                            {search.results.map((result) => (
-                                <button
-                                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-white/10"
-                                    key={`${result.map_slug}-${result.asset_slug}`}
-                                    onClick={() => chooseResult(result)}
-                                    type="button"
-                                >
-                                    <span
-                                        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-teal-300/12"
-                                        style={{
-                                            color:
-                                                stringConfig(
-                                                    theme,
-                                                    'accentColor',
-                                                ) ?? '#ccfbf1',
-                                        }}
-                                    >
-                                        <MapPin className="size-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span className="block truncate text-sm font-semibold">
-                                            {result.title}
-                                        </span>
-                                        <span className="mt-0.5 block truncate text-xs opacity-75">
-                                            {result.map_title}
-                                        </span>
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    ) : null}
-                </div>
-            ) : null}
-            <label
-                className="flex items-center gap-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md"
-                style={floatingPanelStyle(theme)}
-            >
-                <Search className="ml-2 size-4 shrink-0 opacity-75" />
-                <span className="sr-only">Search maps and places</span>
-                <input
-                    aria-label="Search maps and places"
-                    className="h-9 border-0 bg-transparent px-1 text-current shadow-none outline-none placeholder:text-current/60"
-                    onChange={(event) => setTerm(event.currentTarget.value)}
-                    placeholder="Search maps and places"
-                    type="search"
-                    value={term}
-                />
-                {hasSearch ? (
+    const searchLabel = 'Search maps and places';
+    const searchResults = () => {
+        if (search.kind === 'loading') {
+            return <p className="px-3 py-4 text-sm">Searching…</p>;
+        }
+        if (search.kind === 'unavailable') {
+            return (
+                <p className="px-3 py-4 text-sm">
+                    Search is temporarily unavailable.
+                </p>
+            );
+        }
+        if (search.kind === 'loaded' && search.results.length === 0) {
+            return (
+                <p className="px-3 py-4 text-sm">
+                    No visible maps or places found.
+                </p>
+            );
+        }
+        if (search.kind !== 'loaded') {
+            return null;
+        }
+
+        return (
+            <div className="grid gap-1">
+                {search.results.map((result) => (
                     <button
-                        aria-label="Clear search"
-                        className="grid size-9 place-items-center rounded-md hover:bg-white/10"
-                        onClick={() => setTerm('')}
+                        className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-white/10"
+                        key={`${result.map_slug}-${result.asset_slug}`}
+                        onClick={() => chooseResult(result)}
                         type="button"
                     >
-                        <X className="size-4" />
+                        <span
+                            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-teal-300/12"
+                            style={{
+                                color:
+                                    stringConfig(theme, 'accentColor') ??
+                                    '#ccfbf1',
+                            }}
+                        >
+                            <MapPin className="size-4" />
+                        </span>
+                        <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold">
+                                {result.title}
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs opacity-75">
+                                {result.map_title}
+                            </span>
+                        </span>
                     </button>
-                ) : null}
-            </label>
+                ))}
+            </div>
+        );
+    };
+    const searchInput = (autoFocus = false) => (
+        <div
+            className="flex items-center gap-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md"
+            style={floatingPanelStyle(theme)}
+        >
+            <Search className="ml-2 size-4 shrink-0 opacity-75" />
+            <span className="sr-only">{searchLabel}</span>
+            <input
+                aria-label={searchLabel}
+                autoFocus={autoFocus}
+                className="h-9 border-0 bg-transparent px-1 text-current shadow-none outline-none placeholder:text-current/60"
+                onChange={(event) => setTerm(event.currentTarget.value)}
+                placeholder={searchLabel}
+                type="search"
+                value={term}
+            />
+            {hasSearch ? (
+                <button
+                    aria-label="Clear search"
+                    className="grid size-9 place-items-center rounded-md hover:bg-white/10"
+                    onClick={() => setTerm('')}
+                    type="button"
+                >
+                    <X className="size-4" />
+                </button>
+            ) : null}
         </div>
+    );
+
+    return (
+        <>
+            <div className="absolute bottom-5 left-5 z-20 hidden w-[min(24rem,calc(100%-2rem))] md:block">
+                {hasSearch ? (
+                    <div
+                        className="mb-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md"
+                        style={floatingPanelStyle(theme)}
+                    >
+                        {searchResults()}
+                    </div>
+                ) : null}
+                {searchInput()}
+            </div>
+
+            <button
+                aria-label="Open map search"
+                className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-30 grid size-12 place-items-center rounded-2xl border shadow-2xl backdrop-blur-md transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none md:hidden dark:focus-visible:ring-teal-200"
+                onClick={() => setIsMobilePanelOpen(true)}
+                style={floatingPanelStyle(theme)}
+                type="button"
+            >
+                <Search className="size-5" />
+            </button>
+
+            {isMobilePanelOpen ? (
+                <div className="fixed inset-0 z-[80] md:hidden">
+                    <button
+                        aria-label="Close map search"
+                        className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+                        onClick={() => setIsMobilePanelOpen(false)}
+                        type="button"
+                    />
+                    <section
+                        aria-label="Map search"
+                        className="absolute inset-x-4 top-4 bottom-4 flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-2xl"
+                        style={floatingPanelStyle(theme)}
+                    >
+                        <div
+                            className="flex items-center justify-between gap-4 border-b px-4 py-3"
+                            style={{
+                                borderColor:
+                                    stringConfig(theme, 'panelBorderColor') ??
+                                    'rgba(255,255,255,0.1)',
+                            }}
+                        >
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.2em] uppercase opacity-75">
+                                    Search
+                                </p>
+                                <h2 className="text-lg font-semibold">
+                                    Map search
+                                </h2>
+                            </div>
+                            <button
+                                aria-label="Close map search"
+                                className="grid size-9 place-items-center rounded-md hover:bg-white/10"
+                                onClick={() => setIsMobilePanelOpen(false)}
+                                type="button"
+                            >
+                                <X className="size-5" />
+                            </button>
+                        </div>
+                        <div className="p-4">{searchInput(true)}</div>
+                        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+                            {hasSearch ? (
+                                <div
+                                    className="rounded-xl border p-2"
+                                    style={{
+                                        borderColor:
+                                            stringConfig(
+                                                theme,
+                                                'panelBorderColor',
+                                            ) ?? 'rgba(255,255,255,0.1)',
+                                    }}
+                                >
+                                    {searchResults()}
+                                </div>
+                            ) : (
+                                <p
+                                    className="rounded-xl border px-3 py-4 text-sm opacity-75"
+                                    style={{
+                                        borderColor:
+                                            stringConfig(
+                                                theme,
+                                                'panelBorderColor',
+                                            ) ?? 'rgba(255,255,255,0.1)',
+                                    }}
+                                >
+                                    Enter a word to search visible maps and
+                                    places.
+                                </p>
+                            )}
+                        </div>
+                    </section>
+                </div>
+            ) : null}
+        </>
     );
 }
 

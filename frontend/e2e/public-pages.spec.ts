@@ -171,6 +171,26 @@ test('the learner shell keeps the source-derived public navigation available on 
     ).toBeVisible();
 });
 
+test('the narrow world search uses the source mobile search panel', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/world');
+
+    await page.getByRole('button', { name: 'Open map search' }).click();
+    await expect(
+        page.getByRole('region', { name: 'Map search' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('searchbox', { name: 'Search maps and places' }),
+    ).toBeFocused();
+
+    await page.getByRole('button', { name: 'Close map search' }).last().click();
+    await expect(
+        page.getByRole('region', { name: 'Map search' }),
+    ).toHaveCount(0);
+});
+
 test('the lifted World drawer keeps its close control usable on a narrow viewport', async ({
     page,
 }) => {
