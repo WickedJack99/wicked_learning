@@ -4,6 +4,7 @@ mod csrf;
 mod current_user;
 mod error;
 mod identity;
+mod learner_journal;
 mod learner_playback;
 mod learner_question;
 mod learner_reflection;
@@ -209,6 +210,7 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/learner/world", get(learner_world::show))
+        .route("/api/v1/learner/journal", get(learner_journal::index))
         .route(
             "/api/v1/learner/activity-starts/{start_id}/start",
             post(learner_route_run::start_or_resume),

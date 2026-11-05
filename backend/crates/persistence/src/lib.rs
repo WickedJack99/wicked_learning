@@ -1,6 +1,7 @@
 //! PostgreSQL repositories and SQLx row mappings for Wicked Learning.
 
 pub mod current_user;
+pub mod learner_journal;
 pub mod learner_playback;
 pub mod learner_question;
 pub mod learner_reflection;

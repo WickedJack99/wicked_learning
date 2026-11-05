@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a bounded page of the authenticated learner's private journal. */
+        get: operations["getLearnerJournal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}": {
         parameters: {
             query?: never;
@@ -591,6 +608,35 @@ export interface components {
             /** @enum {string} */
             status: "in_progress" | "completed";
         };
+        LearnerJournalDocument: {
+            pages: components["schemas"]["LearnerJournalPage"][];
+            pagination: components["schemas"]["LearnerJournalPagination"];
+        };
+        LearnerJournalPage: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            topic: string;
+            subtopic: string | null;
+            markdown: string;
+            reflection_count: number;
+            learning_context: components["schemas"]["LearnerJournalLearningContext"] | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LearnerJournalLearningContext: {
+            activity_title: string | null;
+            map_slug: string;
+            map_title: string;
+            node_slug: string;
+            node_title: string;
+        };
+        LearnerJournalPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
         LearnerRouteRun: {
             /** Format: uuid */
             start_id: string;
@@ -830,6 +876,66 @@ export interface operations {
             };
             /** @description No World map is visible to this learner. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getLearnerJournal: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Only the current learner's private journal pages, ordered by recent update. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerJournalDocument"];
+                };
+            };
+            /** @description Pagination or search parameters are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -113,6 +113,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/journal:
+    get:
+      operationId: getLearnerJournal
+      summary: Read a bounded page of the authenticated learner's private journal.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 24, default: 4 }
+        - name: search
+          in: query
+          required: false
+          schema: { type: string, maxLength: 160 }
+      responses:
+        '200':
+          description: Only the current learner's private journal pages, ordered by recent update.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerJournalDocument'
+        '400':
+          description: Pagination or search parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Authentication is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The identity has no application principal or role assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /learner/play-runs/{play_run_id}:
     get:
       operationId: getLearnerPlayback
@@ -1103,6 +1151,52 @@ components:
         status:
           type: string
           enum: [in_progress, completed]
+    LearnerJournalDocument:
+      type: object
+      additionalProperties: false
+      required: [pages, pagination]
+      properties:
+        pages:
+          type: array
+          maxItems: 24
+          items: { $ref: '#/components/schemas/LearnerJournalPage' }
+        pagination:
+          $ref: '#/components/schemas/LearnerJournalPagination'
+    LearnerJournalPage:
+      type: object
+      additionalProperties: false
+      required: [id, title, topic, subtopic, markdown, reflection_count, learning_context, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, maxLength: 240 }
+        topic: { type: string, maxLength: 160 }
+        subtopic: { type: [string, 'null'], maxLength: 160 }
+        markdown: { type: string, maxLength: 100000 }
+        reflection_count: { type: integer, minimum: 0 }
+        learning_context:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerJournalLearningContext'
+            - type: 'null'
+        updated_at: { type: string, format: date-time }
+    LearnerJournalLearningContext:
+      type: object
+      additionalProperties: false
+      required: [activity_title, map_slug, map_title, node_slug, node_title]
+      properties:
+        activity_title: { type: [string, 'null'] }
+        map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        map_title: { type: string }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_title: { type: string }
+    LearnerJournalPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
     LearnerRouteRun:
       type: object
       additionalProperties: false

@@ -166,3 +166,41 @@ pub struct LearnerReflectionResult {
     pub activity_slug: String,
     pub status: String,
 }
+
+/// A bounded, learner-owned journal page. This deliberately has no editing,
+/// feedback-request, export, or staff-review fields: those are separate
+/// private capabilities with their own writer contracts.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalDocument {
+    pub pages: Vec<LearnerJournalPage>,
+    pub pagination: LearnerJournalPagination,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalPage {
+    pub id: String,
+    pub title: String,
+    pub topic: String,
+    pub subtopic: Option<String>,
+    pub markdown: String,
+    pub reflection_count: i64,
+    pub learning_context: Option<LearnerJournalLearningContext>,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalLearningContext {
+    pub activity_title: Option<String>,
+    pub map_slug: String,
+    pub map_title: String,
+    pub node_slug: String,
+    pub node_title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}

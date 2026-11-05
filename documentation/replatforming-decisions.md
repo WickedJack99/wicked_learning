@@ -571,6 +571,36 @@ editing/export or staff-feedback variants. Each has additional private data and
 evidence semantics, so it needs a separate contract and browser parity slice;
 the UI must not advertise those variants before then.
 
+## ADR-022: Journal reading remains learner-scoped and bounded
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original journal is a private learner record. Returning all
+pages and filtering in React, or reusing the broad World snapshot, could expose
+another learner's writing or make private record loading unbounded. Its context
+also cannot be recovered safely from mutable current route progress.
+
+**Decision:** `GET /api/v1/learner/journal` reads only the authenticated
+application principal's journal pages. It accepts bounded, server-validated
+page, page-size and text-search parameters; PostgreSQL applies ownership,
+search, ordering and pagination before returning page markdown. The response
+may include the latest reflection's immutable activity-start map/node context,
+but includes no editor preference, export, feedback request, review, staff or
+other-learner data. Missing application-principal authorization is forbidden.
+
+**Why:** This is the safe read foundation for lifting the original journal
+overlay without pretending that editing, export, expert access, learning
+check-ins or revisit invitations have migrated.
+
+**Alternatives:** A generic journal endpoint keyed by browser-supplied page or
+principal IDs would weaken ownership. Adding disabled edit/review controls
+would misrepresent unavailable workflows. Both are rejected.
+
+**Limitations and trigger:** A source-derived read-only overlay can use this
+contract. Add create/update/delete, export, feedback requests, check-ins and
+revisit invitations only as separately authorized contracts with their source
+UI and cross-user tests.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
