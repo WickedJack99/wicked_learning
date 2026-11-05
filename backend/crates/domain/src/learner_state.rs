@@ -494,6 +494,17 @@ pub struct LearnerRevisitInvitationActionResult {
     pub available_at: Option<String>,
 }
 
+/// The minimal server-authorized result for reopening a due private revisit.
+/// It is deliberately separate from an authored route run: the invited
+/// activity may not be an activity start and must not overwrite route progress.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRevisitRun {
+    pub activity_slug: String,
+    pub node_slug: String,
+    pub play_run_id: String,
+    pub status: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalPage {
     pub id: String,
