@@ -7,6 +7,7 @@ import {
     publicPresentationStyle,
     type PublicPresentation,
 } from './public-presentation';
+import type { OriginalAppearance } from './original-appearance';
 
 /**
  * Lifted from `resources/js/pages/auth/login.tsx` and
@@ -14,8 +15,12 @@ import {
  * submission is replaced by the typed Rust session command.
  */
 export function OriginalLoginPage({
+    appearance,
+    onAppearanceChange,
     presentation,
 }: {
+    appearance: OriginalAppearance;
+    onAppearanceChange: (appearance: OriginalAppearance) => void;
     presentation: PublicPresentation;
 }) {
     const navigate = useNavigate();
@@ -23,8 +28,6 @@ export function OriginalLoginPage({
     const [error, setError] = useState<string | null>(null);
     const [password, setPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [isLight, setIsLight] = useState(false);
-    const appearance = isLight ? 'light' : 'dark';
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -72,10 +75,8 @@ export function OriginalLoginPage({
             />
             <div className="absolute top-4 right-4 z-10">
                 <OriginalAppearanceToggle
-                    appearance={isLight ? 'light' : 'dark'}
-                    onAppearanceChange={(appearance) =>
-                        setIsLight(appearance === 'light')
-                    }
+                    appearance={appearance}
+                    onAppearanceChange={onAppearanceChange}
                 />
             </div>
             <section

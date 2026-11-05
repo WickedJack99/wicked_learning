@@ -8,6 +8,7 @@ import {
     publicPresentationStyle,
     type PublicPresentation,
 } from './public-presentation';
+import type { OriginalAppearance } from './original-appearance';
 
 const pageLabels: Record<string, string> = {
     about: 'About',
@@ -31,9 +32,11 @@ type SourceLinksState =
     | { kind: 'unavailable' };
 
 export function PublicInformationPage({
+    appearance,
     presentation,
     slug,
 }: {
+    appearance: OriginalAppearance;
     presentation: PublicPresentation;
     slug: string;
 }) {
@@ -59,7 +62,11 @@ export function PublicInformationPage({
     }, [slug]);
 
     return (
-        <PublicInformationSurface activeSlug={slug} presentation={presentation}>
+        <PublicInformationSurface
+            activeSlug={slug}
+            appearance={appearance}
+            presentation={presentation}
+        >
             <section className="relative z-10 flex min-h-[calc(100svh-5rem)] items-center px-6 py-8 md:px-10">
                 <div className="w-full max-w-3xl">
                     {page.kind === 'loading' ? (
@@ -129,8 +136,10 @@ function hasDocumentTitle(markdown: string): boolean {
 }
 
 export function PublicSourceCodePage({
+    appearance,
     presentation,
 }: {
+    appearance: OriginalAppearance;
     presentation: PublicPresentation;
 }) {
     const navigate = useNavigate();
@@ -158,7 +167,7 @@ export function PublicSourceCodePage({
         <main
             className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
             data-wl-id="public.source-code"
-            style={publicPresentationStyle(presentation, 'dark', 'welcome')}
+            style={publicPresentationStyle(presentation, appearance, 'welcome')}
         >
             <div
                 aria-hidden="true"
@@ -271,10 +280,12 @@ export function PublicSourceCodePage({
 
 function PublicInformationSurface({
     activeSlug,
+    appearance,
     children,
     presentation,
 }: {
     activeSlug?: string;
+    appearance: OriginalAppearance;
     children: React.ReactNode;
     presentation: PublicPresentation;
 }) {
@@ -282,7 +293,7 @@ function PublicInformationSurface({
         <main
             className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
             data-wl-id="public.information"
-            style={publicPresentationStyle(presentation, 'dark', 'welcome')}
+            style={publicPresentationStyle(presentation, appearance, 'welcome')}
         >
             <div
                 aria-hidden="true"

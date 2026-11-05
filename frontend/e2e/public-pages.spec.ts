@@ -80,6 +80,41 @@ test('the public welcome screen offers its alternative orientation messages', as
     ).toBeVisible();
 });
 
+test('the anonymous source appearance choice persists across public routes and reloads', async ({
+    page,
+}) => {
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Light' }).click();
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+    await expect(
+        page.locator('[data-wl-id="public.welcome"]'),
+    ).toHaveAttribute('style', /--auth-background-color: #ecfeff/);
+
+    await page.getByRole('link', { name: 'About' }).click();
+    await expect(page).toHaveURL(/\/about$/);
+    await expect(
+        page.locator('[data-wl-id="public.information"]'),
+    ).toHaveAttribute('style', /--auth-background-color: #ecfeff/);
+
+    await page.goto('/login');
+    await expect(page.getByRole('button', { name: 'Light' })).toHaveClass(
+        /bg-current\/12/,
+    );
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Light' })).toHaveClass(
+        /bg-current\/12/,
+    );
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(
+        page.evaluate(() =>
+            window.localStorage.getItem('theme-preference-unauthenticated'),
+        ),
+    ).resolves.toBe('light');
+});
+
 test('the login surface uses the original platform logo asset', async ({
     page,
 }) => {

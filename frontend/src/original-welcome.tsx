@@ -8,18 +8,21 @@ import {
     type PublicPresentation,
     welcomeBackgroundImage,
 } from './public-presentation';
+import type { OriginalAppearance } from './original-appearance';
 
 export function OriginalWelcomePage({
     isAuthenticated,
+    appearance,
+    onAppearanceChange,
     presentation,
 }: {
     isAuthenticated: boolean;
+    appearance: OriginalAppearance;
+    onAppearanceChange: (appearance: OriginalAppearance) => void;
     presentation: PublicPresentation;
 }) {
     const [activePage, setActivePage] = useState(0);
-    const [isLight, setIsLight] = useState(false);
     const wheelLocked = useRef(false);
-    const appearance = isLight ? 'light' : 'dark';
     const welcomePages = presentation.welcome.pages;
     const activeWelcomePage = welcomePages[activePage] ?? welcomePages[0];
     const backgroundImage = activeWelcomePage
@@ -101,10 +104,8 @@ export function OriginalWelcomePage({
                     ) : (
                         <>
                             <OriginalAppearanceToggle
-                                appearance={isLight ? 'light' : 'dark'}
-                                onAppearanceChange={(appearance) =>
-                                    setIsLight(appearance === 'light')
-                                }
+                                appearance={appearance}
+                                onAppearanceChange={onAppearanceChange}
                             />
                             <Link
                                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition hover:bg-current/8"
@@ -184,7 +185,7 @@ export function OriginalWelcomePage({
                             background:
                                 activePage === index
                                     ? 'var(--public-accent)'
-                                    : isLight
+                                    : appearance === 'light'
                                       ? 'rgba(255,255,255,0.82)'
                                       : 'rgba(15,23,42,0.82)',
                             borderColor:

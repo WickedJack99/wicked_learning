@@ -10,6 +10,7 @@ import {
     PublicInformationPage,
     PublicSourceCodePage,
 } from './public-information';
+import { useOriginalAppearance } from './original-appearance';
 import type { PublicPresentation } from './public-presentation';
 import { PublicWorldPage } from './public-world';
 
@@ -33,6 +34,7 @@ const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
  */
 export function App() {
     const location = useLocation();
+    const [appearance, setAppearance] = useOriginalAppearance();
     const [currentUser, setCurrentUser] = useState<CurrentUserState>({
         kind: 'loading',
     });
@@ -85,7 +87,9 @@ export function App() {
     if (location.pathname === '/') {
         return (
             <OriginalWelcomePage
+                appearance={appearance}
                 isAuthenticated={currentUser.kind === 'loaded'}
+                onAppearanceChange={setAppearance}
                 presentation={presentation!}
             />
         );
@@ -113,7 +117,13 @@ export function App() {
     }
 
     if (location.pathname === '/login') {
-        return <OriginalLoginPage presentation={presentation!} />;
+        return (
+            <OriginalLoginPage
+                appearance={appearance}
+                onAppearanceChange={setAppearance}
+                presentation={presentation!}
+            />
+        );
     }
 
     const playerMatch = location.pathname.match(
@@ -129,7 +139,12 @@ export function App() {
     }
 
     if (location.pathname === '/source') {
-        return <PublicSourceCodePage presentation={presentation!} />;
+        return (
+            <PublicSourceCodePage
+                appearance={appearance}
+                presentation={presentation!}
+            />
+        );
     }
 
     const publicInformationSlug = location.pathname.slice(1);
@@ -140,6 +155,7 @@ export function App() {
     ) {
         return (
             <PublicInformationPage
+                appearance={appearance}
                 presentation={presentation!}
                 slug={publicInformationSlug}
             />
