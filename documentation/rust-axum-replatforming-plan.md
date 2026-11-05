@@ -248,6 +248,12 @@ Start with these vertical API families:
 3. Replace each Inertia page with a React route only when its API family is
    available. Replace `usePage`, Inertia partial reloads, flash props,
    `router.*`, `useForm`, redirects and route helpers deliberately.
+   The existing React page, feature and shared-component source is the visual
+   and interaction reference: lift and adapt it around the new client rather
+   than replacing it with an approximation. Do not add substitute navigation,
+   cards, copy, colors or interaction patterns merely to make an incomplete
+   API slice appear complete. If a referenced component cannot yet run without
+   Laravel, keep that route unavailable until its needed contract exists.
 4. Preserve URL, deep-link and browser-history semantics. Build a URL mapping
    table for existing learner, settings and public URLs; route old URLs through
    the proxy or React Router with permanent redirects where appropriate.
