@@ -9,6 +9,7 @@ use crate::{AppState, error::ApiError, identity::IdentityBackend};
 
 #[derive(Serialize)]
 pub struct CurrentUserResponse {
+    pub email: String,
     pub subject_id: Uuid,
     pub roles: Vec<String>,
 }
@@ -29,6 +30,7 @@ pub async fn show(
         .ok_or_else(ApiError::forbidden)?;
 
     Ok(Json(CurrentUserResponse {
+        email: subject.normalized_email().to_owned(),
         subject_id: principal.subject_id,
         roles: principal.roles,
     }))

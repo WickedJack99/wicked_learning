@@ -509,8 +509,12 @@ components:
     CurrentUser:
       type: object
       additionalProperties: false
-      required: [subject_id, roles]
+      required: [email, subject_id, roles]
       properties:
+        email:
+          type: string
+          format: email
+          description: The authenticated subject's normalized sign-in address. It is never returned for another subject.
         subject_id:
           type: string
           format: uuid

@@ -36,7 +36,7 @@ export function OriginalLoginPage() {
                 return;
             }
 
-            navigate('/account', { replace: true });
+            navigate('/world', { replace: true });
         } catch {
             setError('Sign in is temporarily unavailable.');
         } finally {

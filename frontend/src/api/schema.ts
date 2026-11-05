@@ -300,6 +300,11 @@ export interface components {
         };
         CurrentUser: {
             /**
+             * Format: email
+             * @description The authenticated subject's normalized sign-in address. It is never returned for another subject.
+             */
+            email: string;
+            /**
              * Format: uuid
              * @description Opaque Rust-owned identity subject identifier.
              */

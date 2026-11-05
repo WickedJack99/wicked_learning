@@ -15,7 +15,7 @@ import {
     X,
 } from 'lucide-react';
 
-import { apiClient } from './api/client';
+import { apiClient, getCsrfToken } from './api/client';
 import {
     imageAlphaMaskFor,
     useImageAlphaMasks,
@@ -67,8 +67,12 @@ type SearchState =
 
 export function PublicWorldPage({
     isAuthenticated,
+    onSignedOut,
+    userEmail,
 }: {
     isAuthenticated: boolean;
+    onSignedOut: () => void;
+    userEmail: string | null;
 }) {
     const [worldState, setWorldState] = useState<WorldState>({
         kind: 'loading',
@@ -164,6 +168,8 @@ export function PublicWorldPage({
         <PublicWorldSurface
             isAuthenticated={isAuthenticated}
             learnerState={worldState.learnerState}
+            onSignedOut={onSignedOut}
+            userEmail={userEmail}
             world={worldState.world}
         />
     );
@@ -180,10 +186,14 @@ function WorldMessage({ message, role }: { message: string; role?: string }) {
 function PublicWorldSurface({
     isAuthenticated,
     learnerState,
+    onSignedOut,
+    userEmail,
     world,
 }: {
     isAuthenticated: boolean;
     learnerState: LearnerWorldState | null;
+    onSignedOut: () => void;
+    userEmail: string | null;
     world: PublicWorld;
 }) {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -236,7 +246,11 @@ function PublicWorldSurface({
             data-wl-id="public-world"
             style={worldSurfaceStyle(selectedMap.background_config)}
         >
-            <WorldNavigation isAuthenticated={isAuthenticated} />
+            <WorldNavigation
+                isAuthenticated={isAuthenticated}
+                onSignedOut={onSignedOut}
+                userEmail={userEmail}
+            />
             <section className="absolute inset-0 overflow-hidden">
                 <PublicMapSurface
                     bookmarkedNodeSlugs={learnerState?.bookmarked_node_slugs ?? []}
@@ -290,7 +304,39 @@ function PublicWorldSurface({
     );
 }
 
-function WorldNavigation({ isAuthenticated }: { isAuthenticated: boolean }) {
+function WorldNavigation({
+    isAuthenticated,
+    onSignedOut,
+    userEmail,
+}: {
+    isAuthenticated: boolean;
+    onSignedOut: () => void;
+    userEmail: string | null;
+}) {
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [signOutError, setSignOutError] = useState<string | null>(null);
+
+    async function signOut(): Promise<void> {
+        setSignOutError(null);
+
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.POST('/session/logout', {
+                params: { header: { 'X-CSRF-Token': token } },
+            });
+
+            if (!response.ok) {
+                setSignOutError('Sign out is temporarily unavailable.');
+                return;
+            }
+
+            setIsUserMenuOpen(false);
+            onSignedOut();
+        } catch {
+            setSignOutError('Sign out is temporarily unavailable.');
+        }
+    }
+
     return (
         <header
             className="fixed top-0 right-0 left-0 z-[70] border-b backdrop-blur-xl"
@@ -324,13 +370,53 @@ function WorldNavigation({ isAuthenticated }: { isAuthenticated: boolean }) {
                         Current map
                     </Link>
                 </nav>
-                <Link
-                    className="ml-auto inline-flex shrink-0 items-center rounded-lg border px-3 py-2 text-sm font-medium text-slate-100 no-underline transition hover:bg-white/10"
-                    style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
-                    to={isAuthenticated ? '/account' : '/login'}
-                >
-                    {isAuthenticated ? 'Account' : 'Local sign in'}
-                </Link>
+                {isAuthenticated && userEmail ? (
+                    <div className="relative ml-auto shrink-0">
+                        <button
+                            aria-expanded={isUserMenuOpen}
+                            aria-haspopup="menu"
+                            aria-label="Open user menu"
+                            className="grid size-10 place-items-center rounded-full border text-sm font-medium text-slate-100 transition hover:bg-white/10"
+                            onClick={() => setIsUserMenuOpen((open) => !open)}
+                            style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
+                            type="button"
+                        >
+                            {userEmail.slice(0, 1).toUpperCase()}
+                        </button>
+                        {isUserMenuOpen ? (
+                            <div
+                                className="absolute top-12 right-0 z-[80] grid min-w-56 gap-2 rounded-lg border bg-slate-950 p-2 shadow-2xl"
+                                role="menu"
+                                style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
+                            >
+                                <p className="truncate px-2 py-1 text-sm text-slate-300">
+                                    {userEmail}
+                                </p>
+                                <button
+                                    className="rounded-md px-2 py-2 text-left text-sm font-medium text-slate-100 transition hover:bg-white/10"
+                                    onClick={() => void signOut()}
+                                    role="menuitem"
+                                    type="button"
+                                >
+                                    Log out
+                                </button>
+                                {signOutError ? (
+                                    <p className="px-2 text-sm text-red-300" role="alert">
+                                        {signOutError}
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
+                    </div>
+                ) : (
+                    <Link
+                        className="ml-auto inline-flex shrink-0 items-center rounded-lg border px-3 py-2 text-sm font-medium text-slate-100 no-underline transition hover:bg-white/10"
+                        style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
+                        to="/login"
+                    >
+                        Log in
+                    </Link>
+                )}
             </div>
         </header>
     );

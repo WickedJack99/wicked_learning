@@ -19,6 +19,7 @@ pub struct PasswordCredentials {
 #[derive(Clone, Debug)]
 pub struct IdentitySubject {
     id: Uuid,
+    normalized_email: String,
     session_auth_hash: String,
 }
 
@@ -33,6 +34,7 @@ pub enum IdentityError {
 #[derive(FromRow)]
 struct IdentityRow {
     id: Uuid,
+    normalized_email: String,
     password_hash: String,
 }
 
@@ -47,7 +49,7 @@ impl IdentityBackend {
     ) -> Result<Option<IdentitySubject>, IdentityError> {
         let row = sqlx::query_as::<_, IdentityRow>(
             r#"
-                SELECT subjects.id, credentials.password_hash
+                SELECT subjects.id, subjects.normalized_email, credentials.password_hash
                 FROM identity_subjects AS subjects
                 INNER JOIN identity_password_credentials AS credentials
                     ON credentials.subject_id = subjects.id
@@ -70,7 +72,7 @@ impl IdentityBackend {
     ) -> Result<Option<IdentitySubject>, IdentityError> {
         let row = sqlx::query_as::<_, IdentityRow>(
             r#"
-                SELECT subjects.id, credentials.password_hash
+                SELECT subjects.id, subjects.normalized_email, credentials.password_hash
                 FROM identity_subjects AS subjects
                 INNER JOIN identity_password_credentials AS credentials
                     ON credentials.subject_id = subjects.id
@@ -92,11 +94,16 @@ impl IdentitySubject {
     pub fn subject_id(&self) -> Uuid {
         self.id
     }
+
+    pub fn normalized_email(&self) -> &str {
+        &self.normalized_email
+    }
 }
 
 fn subject_from_row(row: IdentityRow) -> IdentitySubject {
     IdentitySubject {
         id: row.id,
+        normalized_email: row.normalized_email,
         session_auth_hash: row.password_hash,
     }
 }
@@ -153,10 +160,12 @@ mod tests {
         let password_hash = "$argon2id$v=19$m=19456,t=2,p=1$test$test".to_owned();
         let subject = IdentitySubject {
             id: Uuid::nil(),
+            normalized_email: "learner@example.test".to_owned(),
             session_auth_hash: password_hash.clone(),
         };
 
         assert_eq!(subject.id(), Uuid::nil());
+        assert_eq!(subject.normalized_email(), "learner@example.test");
         assert_eq!(subject.session_auth_hash(), password_hash.as_bytes());
     }
 }

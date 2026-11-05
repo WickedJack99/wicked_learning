@@ -36,7 +36,7 @@ type SourceLinksState =
 type CurrentUserState =
     | { kind: 'loading' }
     | { kind: 'anonymous' }
-    | { kind: 'loaded'; roles: string[] }
+    | { kind: 'loaded'; email: string; roles: string[] }
     | { kind: 'unavailable' };
 type PublicWorld = components['schemas']['PublicWorld'];
 type WorldState =
@@ -86,7 +86,15 @@ export function App() {
     }
 
     if (location.pathname === '/world') {
-        return <PublicWorldPage isAuthenticated={currentUser.kind === 'loaded'} />;
+        return (
+            <PublicWorldPage
+                isAuthenticated={currentUser.kind === 'loaded'}
+                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                userEmail={
+                    currentUser.kind === 'loaded' ? currentUser.email : null
+                }
+            />
+        );
     }
 
     if (location.pathname === '/login') {
@@ -136,17 +144,6 @@ export function App() {
                 id="learner-main-content"
             >
                 <Routes>
-                    <Route
-                        path="/account"
-                        element={
-                            <AccountPage
-                                currentUser={currentUser}
-                                onSignedOut={() =>
-                                    setCurrentUser({ kind: 'anonymous' })
-                                }
-                            />
-                        }
-                    />
                     <Route path="/source" element={<SourceCodePage />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
@@ -658,7 +655,7 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
             return { kind: 'unavailable' };
         }
 
-        return { kind: 'loaded', roles: data.roles };
+        return { kind: 'loaded', email: data.email, roles: data.roles };
     } catch {
         return { kind: 'unavailable' };
     }

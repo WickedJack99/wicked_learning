@@ -140,7 +140,7 @@ test('the learner shell keeps public navigation available on a narrow viewport',
         page.getByRole('navigation', { name: 'Learner navigation' }),
     ).toBeVisible();
     await expect(
-        page.getByRole('link', { name: 'Local sign in' }),
+        page.getByRole('link', { name: 'Log in' }),
     ).toBeVisible();
     await expect(
         page.getByRole('heading', { name: 'The First Path' }),
@@ -277,13 +277,14 @@ test('a transparent public map overlay hides only over its visible image pixels'
     await expect(overlay).toHaveAttribute('data-map-asset-visibility', 'hidden');
 });
 
-test('the learner shell exposes the account link for an authenticated session', async ({
+test('the learner World exposes the original-style user menu for an authenticated session', async ({
     page,
 }) => {
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
+                email: 'learner@example.test',
                 subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                 roles: ['platform_administrator'],
             }),
@@ -292,9 +293,9 @@ test('the learner shell exposes the account link for an authenticated session', 
 
     await page.goto('/world');
 
-    await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open user menu' })).toBeVisible();
     await expect(
-        page.getByRole('link', { name: 'Local sign in' }),
+        page.getByRole('link', { name: 'Log in' }),
     ).not.toBeVisible();
 });
 
@@ -336,6 +337,7 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
+                email: 'learner@example.test',
                 subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                 roles: ['platform_administrator'],
             }),
@@ -421,7 +423,9 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
     await expect(
         page.getByRole('heading', { name: 'A private path' }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Open user menu' }),
+    ).toBeVisible();
     await page
         .getByRole('button', { name: 'Private place, open location' })
         .click();
@@ -497,15 +501,10 @@ test('a CI-only local administrator can use the React sign-in and sign-out flow'
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: 'Log in' }).click();
 
-    await expect(page).toHaveURL(/\/account$/);
-    await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible();
-    await expect(page.getByText('platform administrator')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Sign out' }).click();
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(
-        page.getByRole('heading', { name: 'Log in to your account' }),
-    ).toBeVisible();
+    await expect(page).toHaveURL(/\/world$/);
+    await page.getByRole('button', { name: 'Open user menu' }).click();
+    await page.getByRole('menuitem', { name: 'Log out' }).click();
+    await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });
 
 test('an unavailable public-page API is presented without a stale page', async ({
