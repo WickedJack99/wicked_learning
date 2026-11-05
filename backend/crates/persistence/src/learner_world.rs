@@ -7,7 +7,7 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
         LearnerActivityProgress, LearnerActivityStart, LearnerActivityStartProgress,
-        LearnerRouteProgress, LearnerWorldRoute, LearnerWorldSnapshot,
+        LearnerBookmark, LearnerRouteProgress, LearnerWorldRoute, LearnerWorldSnapshot,
     },
 };
 
@@ -89,6 +89,12 @@ struct ActivityStartRow {
     status: Option<String>,
 }
 
+#[derive(FromRow)]
+struct BookmarkRow {
+    map_slug: String,
+    node_slug: String,
+}
+
 async fn load_first_visible(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -106,8 +112,8 @@ async fn load_first_visible(
         return Ok(None);
     };
 
-    let bookmarked_node_slugs = sqlx::query_scalar::<_, String>(
-        "SELECT nodes.slug FROM learner_node_bookmarks AS bookmarks INNER JOIN learning_nodes AS nodes ON nodes.id = bookmarks.node_id WHERE bookmarks.principal_id = $1 AND nodes.map_id = ANY($2) AND nodes.published_at IS NOT NULL ORDER BY bookmarks.created_at ASC, nodes.slug ASC",
+    let bookmarked_nodes = sqlx::query_as::<_, BookmarkRow>(
+        "SELECT maps.slug AS map_slug, nodes.slug AS node_slug FROM learner_node_bookmarks AS bookmarks INNER JOIN learning_nodes AS nodes ON nodes.id = bookmarks.node_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE bookmarks.principal_id = $1 AND nodes.map_id = ANY($2) AND nodes.published_at IS NOT NULL AND nodes.state <> 'hidden' AND NOT (nodes.visual_config @> '{\"hideEmptySpace\": true}'::jsonb) ORDER BY bookmarks.created_at ASC, maps.slug ASC, nodes.slug ASC LIMIT 500",
     )
     .bind(principal_id)
     .bind(&loaded_world.map_ids)
@@ -143,7 +149,13 @@ async fn load_first_visible(
 
     Ok(Some(LearnerWorldSnapshot {
         world: loaded_world.world,
-        bookmarked_node_slugs,
+        bookmarked_nodes: bookmarked_nodes
+            .into_iter()
+            .map(|row| LearnerBookmark {
+                map_slug: row.map_slug,
+                node_slug: row.node_slug,
+            })
+            .collect(),
         activity_progress: activity_progress
             .into_iter()
             .map(|row| LearnerActivityProgress {

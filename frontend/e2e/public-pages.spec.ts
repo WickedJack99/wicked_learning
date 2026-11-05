@@ -326,6 +326,56 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(page.getByRole('link', { name: 'Log in' })).not.toBeVisible();
 });
 
+test('the authenticated World restores the original bookmark toggle with a server-owned result', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['learner'],
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'bookmark-csrf-token' }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/maps/first-path/nodes/choose-a-direction/bookmark',
+        async (route) => {
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'bookmark-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    bookmarked: true,
+                    bookmarked_nodes: [
+                        {
+                            map_slug: 'first-path',
+                            node_slug: 'choose-a-direction',
+                        },
+                    ],
+                }),
+            });
+        },
+    );
+
+    await page.goto('/world');
+    await page
+        .getByRole('button', { name: 'Choose a direction, open location' })
+        .click();
+    await page.getByRole('button', { name: 'Bookmark this tile' }).click();
+    await expect(
+        page.getByRole('button', { name: 'Remove bookmark' }),
+    ).toBeVisible();
+});
+
 test('the original journal overlay reads only its private paginated contract', async ({
     page,
 }) => {
@@ -542,7 +592,12 @@ test('the signed-in explorer starts and completes an original open-practice rout
                         },
                     ],
                 },
-                bookmarked_node_slugs: ['private-place'],
+                bookmarked_nodes: [
+                    {
+                        map_slug: 'private-path',
+                        node_slug: 'private-place',
+                    },
+                ],
                 activity_progress: [
                     {
                         node_slug: 'private-place',

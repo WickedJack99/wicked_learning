@@ -113,6 +113,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/maps/{map_slug}/nodes/{node_slug}/bookmark:
+    post:
+      operationId: createLearnerNodeBookmark
+      summary: Bookmark an accessible learner map node.
+      parameters:
+        - $ref: '#/components/parameters/MapSlug'
+        - $ref: '#/components/parameters/NodeSlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The accessible bookmark set after the idempotent save.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerBookmarkResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The map node is unknown or not accessible to this learner. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteLearnerNodeBookmark
+      summary: Remove the current learner's bookmark for an accessible map node.
+      parameters:
+        - $ref: '#/components/parameters/MapSlug'
+        - $ref: '#/components/parameters/NodeSlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The accessible bookmark set after the idempotent removal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerBookmarkResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The map node is unknown or not accessible to this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/journal:
     get:
       operationId: getLearnerJournal
@@ -689,6 +726,22 @@ components:
       schema:
         type: string
         format: uuid
+    MapSlug:
+      name: map_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
+    NodeSlug:
+      name: node_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
     PlayRunId:
       name: play_run_id
       in: path
@@ -986,6 +1039,28 @@ components:
         completed_at:
           type: [string, 'null']
           format: date-time
+    LearnerBookmarkResult:
+      type: object
+      additionalProperties: false
+      required: [bookmarked, bookmarked_nodes]
+      properties:
+        bookmarked: { type: boolean }
+        bookmarked_nodes:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/LearnerBookmark'
+    LearnerBookmark:
+      type: object
+      additionalProperties: false
+      required: [map_slug, node_slug]
+      properties:
+        map_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
     LearnerRouteProgress:
       type: object
       additionalProperties: false
@@ -1334,16 +1409,15 @@ components:
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false
-      required: [world, bookmarked_node_slugs, activity_progress, route_progress, available_routes, start_routes]
+      required: [world, bookmarked_nodes, activity_progress, route_progress, available_routes, start_routes]
       properties:
         world:
           $ref: '#/components/schemas/PublicWorld'
-        bookmarked_node_slugs:
+        bookmarked_nodes:
           type: array
-          maxItems: 200
+          maxItems: 500
           items:
-            type: string
-            pattern: '^[a-z0-9-]+$'
+            $ref: '#/components/schemas/LearnerBookmark'
         activity_progress:
           type: array
           maxItems: 1000

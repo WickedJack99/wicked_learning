@@ -283,6 +283,16 @@ test('an anonymous session reveals no credential or identity material', async ({
         title: 'Authentication is required.',
     });
 
+    const bookmarkResponse = await request.post(
+        '/api/v1/learner/maps/first-path/nodes/choose-a-direction/bookmark',
+        { headers: { Origin: publicOrigin } },
+    );
+    expect(bookmarkResponse.status()).toBe(401);
+    await expect(bookmarkResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+
     const routeStartResponse = await request.post(
         '/api/v1/learner/activity-starts/00000000-0000-4000-8000-000000000000/start',
         { headers: { Origin: publicOrigin } },

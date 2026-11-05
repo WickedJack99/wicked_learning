@@ -8,11 +8,28 @@ use crate::world_content::PublicWorld;
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerWorldSnapshot {
     pub world: PublicWorld,
-    pub bookmarked_node_slugs: Vec<String>,
+    pub bookmarked_nodes: Vec<LearnerBookmark>,
     pub activity_progress: Vec<LearnerActivityProgress>,
     pub route_progress: Vec<LearnerRouteProgress>,
     pub available_routes: Vec<LearnerWorldRoute>,
     pub start_routes: Vec<LearnerActivityStart>,
+}
+
+/// A visible bookmarked node. A node slug is unique only within its map, so
+/// both slugs are required for a stable browser presentation.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerBookmark {
+    pub map_slug: String,
+    pub node_slug: String,
+}
+
+/// The caller's visible bookmark set after one idempotent bookmark command.
+/// This is a bounded presentation projection; the database continues to use
+/// the principal/node relation as the ownership boundary.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerBookmarkResult {
+    pub bookmarked: bool,
+    pub bookmarked_nodes: Vec<LearnerBookmark>,
 }
 
 #[derive(Clone, Debug, Serialize)]

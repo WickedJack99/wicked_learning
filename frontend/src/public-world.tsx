@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
@@ -45,7 +45,7 @@ type LearnerWorldState = Pick<
     components['schemas']['LearnerWorldSnapshot'],
     | 'activity_progress'
     | 'available_routes'
-    | 'bookmarked_node_slugs'
+    | 'bookmarked_nodes'
     | 'route_progress'
     | 'start_routes'
 >;
@@ -103,8 +103,7 @@ export function PublicWorldPage({
                             learnerState: {
                                 activity_progress: data.activity_progress,
                                 available_routes: data.available_routes,
-                                bookmarked_node_slugs:
-                                    data.bookmarked_node_slugs,
+                                bookmarked_nodes: data.bookmarked_nodes,
                                 route_progress: data.route_progress,
                                 start_routes: data.start_routes,
                             },
@@ -209,8 +208,16 @@ function PublicWorldSurface({
         () => completedNodeSlugsFrom(learnerState),
         [learnerState],
     );
+    const [bookmarkedNodes, setBookmarkedNodes] = useState(
+        learnerState?.bookmarked_nodes ?? [],
+    );
+    const [isBookmarking, setIsBookmarking] = useState(false);
     const [panelSwipe, setPanelSwipe] = useState<PanelSwipe | null>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        setBookmarkedNodes(learnerState?.bookmarked_nodes ?? []);
+    }, [learnerState?.bookmarked_nodes]);
 
     function selectNode(node: PublicNode | null, map = selectedMap): void {
         if (!map) {
@@ -263,6 +270,53 @@ function PublicWorldSurface({
         }
     }
 
+    const toggleBookmark = useCallback(
+        async (node: PublicNode): Promise<void> => {
+            if (!isAuthenticated || !selectedMap || isBookmarking) {
+                return;
+            }
+
+            setIsBookmarking(true);
+            try {
+                const token = await getCsrfToken();
+                const bookmarked = bookmarkedNodes.some(
+                    (bookmark) =>
+                        bookmark.map_slug === selectedMap.slug &&
+                        bookmark.node_slug === node.slug,
+                );
+                const endpoint =
+                    '/learner/maps/{map_slug}/nodes/{node_slug}/bookmark';
+                const { data, response } = bookmarked
+                    ? await apiClient.DELETE(endpoint, {
+                          params: {
+                              header: { 'X-CSRF-Token': token },
+                              path: {
+                                  map_slug: selectedMap.slug,
+                                  node_slug: node.slug,
+                              },
+                          },
+                      })
+                    : await apiClient.POST(endpoint, {
+                          params: {
+                              header: { 'X-CSRF-Token': token },
+                              path: {
+                                  map_slug: selectedMap.slug,
+                                  node_slug: node.slug,
+                              },
+                          },
+                      });
+                if (response.ok && data) {
+                    setBookmarkedNodes(data.bookmarked_nodes);
+                }
+            } catch {
+                // Preserve the original visible state on a transient failure.
+            } finally {
+                setIsBookmarking(false);
+            }
+        },
+        [bookmarkedNodes, isAuthenticated, isBookmarking, selectedMap],
+    );
+
     if (!selectedMap) {
         return (
             <WorldMessage message="The learning world has no published maps yet." />
@@ -282,9 +336,7 @@ function PublicWorldSurface({
             />
             <section className="absolute inset-0 overflow-hidden">
                 <PublicMapSurface
-                    bookmarkedNodeSlugs={
-                        learnerState?.bookmarked_node_slugs ?? []
-                    }
+                    bookmarkedNodes={bookmarkedNodes}
                     completedNodeSlugs={completedNodeSlugs}
                     map={selectedMap}
                     onClearFocus={() => selectNode(null)}
@@ -327,9 +379,11 @@ function PublicWorldSurface({
             <NodeDrawer
                 bookmarked={
                     selectedNode
-                        ? (learnerState?.bookmarked_node_slugs.includes(
-                              selectedNode.slug,
-                          ) ?? false)
+                        ? bookmarkedNodes.some(
+                              (bookmark) =>
+                                  bookmark.map_slug === selectedMap.slug &&
+                                  bookmark.node_slug === selectedNode.slug,
+                          )
                         : false
                 }
                 completed={
@@ -338,10 +392,13 @@ function PublicWorldSurface({
                         : false
                 }
                 map={selectedMap}
+                canBookmark={isAuthenticated}
+                isBookmarking={isBookmarking}
                 node={selectedNode}
                 onClose={() => selectNode(null)}
                 onReset={(start) => void startRoute(start, true)}
                 onStart={(start) => void startRoute(start)}
+                onToggleBookmark={(node) => void toggleBookmark(node)}
                 onSwipeChange={setPanelSwipe}
                 startRoutes={
                     isAuthenticated ? (learnerState?.start_routes ?? []) : []
@@ -501,14 +558,14 @@ function WorldNavigation({
 }
 
 function PublicMapSurface({
-    bookmarkedNodeSlugs,
+    bookmarkedNodes,
     completedNodeSlugs,
     map,
     onClearFocus,
     onSelectNode,
     selectedNode,
 }: {
-    bookmarkedNodeSlugs: string[];
+    bookmarkedNodes: components['schemas']['LearnerBookmark'][];
     completedNodeSlugs: Set<string>;
     map: PublicMap;
     onClearFocus: () => void;
@@ -676,7 +733,12 @@ function PublicMapSurface({
                     const canToggle = asset.interaction_mode === 'toggle';
                     const selected = node?.slug === selectedNode?.slug;
                     const isBookmarked = Boolean(
-                        node && bookmarkedNodeSlugs.includes(node.slug),
+                        node &&
+                            bookmarkedNodes.some(
+                                (bookmark) =>
+                                    bookmark.map_slug === map.slug &&
+                                    bookmark.node_slug === node.slug,
+                            ),
                     );
                     const isCompleted = Boolean(
                         node && completedNodeSlugs.has(node.slug),
@@ -1077,24 +1139,30 @@ function WorldSearch({
 
 function NodeDrawer({
     bookmarked,
+    canBookmark,
     completed,
+    isBookmarking,
     map,
     node,
     onClose,
     onReset,
     onStart,
     onSwipeChange,
+    onToggleBookmark,
     startRoutes,
     swipe,
 }: {
     bookmarked: boolean;
+    canBookmark: boolean;
     completed: boolean;
+    isBookmarking: boolean;
     map: PublicMap;
     node: PublicNode | null;
     onClose: () => void;
     onReset: (start: components['schemas']['LearnerActivityStart']) => void;
     onStart: (start: components['schemas']['LearnerActivityStart']) => void;
     onSwipeChange: (swipe: PanelSwipe | null) => void;
+    onToggleBookmark: (node: PublicNode) => void;
     startRoutes: components['schemas']['LearnerActivityStart'][];
     swipe: PanelSwipe | null;
 }) {
@@ -1191,13 +1259,22 @@ function NodeDrawer({
                                     <CheckCircle2 className="size-4" />
                                 </span>
                             ) : null}
-                            {bookmarked ? (
-                                <span
-                                    aria-label="Saved place"
-                                    className="grid size-9 place-items-center rounded-md text-cyan-600 dark:text-teal-200"
+                            {canBookmark ? (
+                                <button
+                                    aria-label={
+                                        bookmarked
+                                            ? 'Remove bookmark'
+                                            : 'Bookmark this tile'
+                                    }
+                                    className="grid size-9 place-items-center rounded-md hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-white/10"
+                                    disabled={isBookmarking}
+                                    onClick={() => onToggleBookmark(node)}
+                                    type="button"
                                 >
-                                    <Bookmark className="size-4 fill-current" />
-                                </span>
+                                    <Bookmark
+                                        className={`size-4 ${bookmarked ? 'fill-cyan-600 text-cyan-600 dark:fill-teal-200 dark:text-teal-200' : ''}`}
+                                    />
+                                </button>
                             ) : null}
                         </div>
                         <button

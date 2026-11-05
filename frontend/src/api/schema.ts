@@ -89,6 +89,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/maps/{map_slug}/nodes/{node_slug}/bookmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bookmark an accessible learner map node. */
+        post: operations["createLearnerNodeBookmark"];
+        /** Remove the current learner's bookmark for an accessible map node. */
+        delete: operations["deleteLearnerNodeBookmark"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/journal": {
         parameters: {
             query?: never;
@@ -531,6 +549,14 @@ export interface components {
             /** Format: date-time */
             completed_at: string | null;
         };
+        LearnerBookmarkResult: {
+            bookmarked: boolean;
+            bookmarked_nodes: components["schemas"]["LearnerBookmark"][];
+        };
+        LearnerBookmark: {
+            map_slug: string;
+            node_slug: string;
+        };
         LearnerRouteProgress: {
             /** Format: uuid */
             start_id: string;
@@ -712,7 +738,7 @@ export interface components {
         };
         LearnerWorldSnapshot: {
             world: components["schemas"]["PublicWorld"];
-            bookmarked_node_slugs: string[];
+            bookmarked_nodes: components["schemas"]["LearnerBookmark"][];
             activity_progress: components["schemas"]["LearnerActivityProgress"][];
             route_progress: components["schemas"]["LearnerRouteProgress"][];
             available_routes: components["schemas"]["LearnerWorldRoute"][];
@@ -770,6 +796,8 @@ export interface components {
         CsrfTokenHeader: string;
         ActivityStartId: string;
         LearnerJournalPageId: string;
+        MapSlug: string;
+        NodeSlug: string;
         PlayRunId: string;
         ActivitySlug: string;
         PublicSlugPathWorld: string;
@@ -952,6 +980,114 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    createLearnerNodeBookmark: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_slug: components["parameters"]["MapSlug"];
+                node_slug: components["parameters"]["NodeSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The accessible bookmark set after the idempotent save. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerBookmarkResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map node is unknown or not accessible to this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteLearnerNodeBookmark: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_slug: components["parameters"]["MapSlug"];
+                node_slug: components["parameters"]["NodeSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The accessible bookmark set after the idempotent removal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerBookmarkResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map node is unknown or not accessible to this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

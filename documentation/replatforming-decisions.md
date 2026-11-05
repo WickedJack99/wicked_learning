@@ -670,6 +670,39 @@ feedback request/expert-access, learning check-in or revisit-invitation
 controls. Each has distinct information-sharing or learning-state semantics
 and requires its own contract and source-derived UI before it may appear.
 
+## ADR-025: Bookmark commands are visibility-scoped and idempotent
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original World drawer lets a signed-in learner save or remove
+an accessible place. The Rust World snapshot had a read-only bookmark marker,
+which made the lifted UI look incomplete and encouraged a browser-side state
+substitute. A raw node identifier must not let a learner bookmark a hidden or
+role-restricted place.
+
+**Decision:** Add CSRF-protected `POST` and `DELETE` commands at a map-slug and
+node-slug path. The repository first resolves the target only among the
+principal's currently visible maps and rejects hidden or empty-space nodes as
+not found. It then uses the existing application-database
+`(principal_id, node_id)` primary key for an idempotent insert or delete and
+returns the bounded visible bookmark projection. Each projected bookmark
+contains both map and node slugs: node slugs are only unique within a map, and
+the original application used a globally unique node ID. The source-derived
+World drawer preserves its bookmark/remove labels and keeps the prior
+presentation when a request fails.
+
+**Why:** The server remains the authority for access, visibility and learner
+ownership, while the browser receives exactly the data it needs to update the
+existing control. Idempotence makes retries and duplicate clicks safe.
+
+**Alternatives:** A browser-only toggle would not persist. Accepting arbitrary
+node UUIDs or slugs without the visible-map predicate could reveal restricted
+content or create records for a hidden location. Both are rejected.
+
+**Limitations and trigger:** This restores only bookmarking from the World
+drawer. The dedicated bookmark-map page, Learning Desk integration, tools,
+groups, audio and unlock/reveal rules remain separate source-defined slices.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
