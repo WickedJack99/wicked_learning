@@ -864,6 +864,45 @@ in the same run. Before enabling the competence browser route, add qualitative
 aggregation, cross-user tests and the source-derived UI together; do not expose
 a numeric score or a partial star map from these tables.
 
+## ADR-030: Competence aggregation is private, qualitative, and contract-first
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The source competence star map translates private evidence into
+qualitative size, brightness and recency signals, a bounded evidence ledger and
+private topic transitions. The newly migrated writers made those records
+durable, but exposing their raw database rows, a numeric total, or a partial
+browser star map would violate the product's no-score and privacy boundaries.
+
+**Decision:** Add authenticated `GET /learner/competence` as an unexposed
+contract foundation. PostgreSQL resolves only the authenticated application
+principal, aggregates at most 100 evidence-bearing topics using the source's
+30-day window and active authored thresholds, and returns the source visual
+ratios/tier descriptions rather than contribution totals. Each topic includes
+at most 12 recent events; source references and structured authored guidance
+are retained from the server-written snapshot, while learner reflection text
+and arbitrary metadata are omitted. Transition pairs are limited to the
+returned private topics and capped at 1,000. The browser receives no endpoint
+link to a past activity because a historical activity alone cannot authorize a
+new Rust play run.
+
+**Why:** This establishes a reviewable frontend/backend boundary and makes the
+source aggregation testable without publishing a new screen or treating event
+counts as learner achievement. It also keeps the later source UI from having
+to reconstruct private evidence or authorization policy in React.
+
+**Alternatives:** Returning raw evidence lets clients infer their own score and
+would disclose fields that do not belong in a browser contract. Publishing the
+existing star map with incomplete check-in/review and re-entry behavior would
+present an approximation as a migration. Both are rejected.
+
+**Limitations and trigger:** This contract currently covers only evidence and
+topic entries written by the supported Rust activity slice. It omits source
+check-ins, review attempts, activity/node links and richer response evidence;
+no React route uses it. Before adding `/competence`, migrate those applicable
+inputs, preserve server-authorized re-entry, lift the original star-map
+components, and add cross-user/browser parity evidence together.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

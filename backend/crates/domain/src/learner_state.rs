@@ -197,6 +197,83 @@ pub struct LearnerTopicMaps {
     pub topic: LearnerTopicDetailHeader,
 }
 
+/// A private, qualitative reading of evidence the current learner accumulated
+/// through authorized activity runs. Ratios support the source star-map
+/// presentation; they are not a score, rank or progression total.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceMap {
+    pub month_key: String,
+    pub recent_window_days: i16,
+    pub topics: Vec<LearnerCompetenceTopic>,
+    pub transitions: Vec<LearnerCompetenceTransition>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceTopic {
+    pub name: String,
+    pub slug: String,
+    pub visual: LearnerCompetenceVisual,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceVisual {
+    pub aura_ratio: f64,
+    pub brightness_ratio: f64,
+    pub description: String,
+    pub evidence_ledger: Vec<LearnerCompetenceEvidence>,
+    pub evidence_types: Vec<String>,
+    pub learning_periods: Vec<String>,
+    pub recent_description: String,
+    pub size_ratio: f64,
+    pub size_tier: String,
+}
+
+/// A bounded, inspectable evidence description. It intentionally omits
+/// private reflection text and any hidden server-side metadata.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceEvidence {
+    pub activity_title: String,
+    pub assistance_level: Option<String>,
+    pub attempt_number: i32,
+    pub concepts: Vec<String>,
+    pub confidence: Option<String>,
+    pub confidence_after_feedback: Option<String>,
+    pub evidence_claim: String,
+    pub evidence_criterion: Option<String>,
+    pub evidence_rubric: Vec<String>,
+    pub evidence_type: String,
+    pub id: String,
+    pub independent_check: bool,
+    pub learning_purpose: Option<String>,
+    pub node_title: Option<String>,
+    pub objective: Option<String>,
+    pub observed_cues: Vec<String>,
+    pub outcome: String,
+    pub recorded_at: String,
+    pub sources: Vec<LearnerCompetenceSource>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceSource {
+    pub anchor: Option<String>,
+    pub concepts: Vec<String>,
+    pub excerpt: Option<String>,
+    pub published_at: Option<String>,
+    pub publisher: Option<String>,
+    pub rights: Option<String>,
+    pub title: String,
+    pub url: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceTransition {
+    pub count: i32,
+    pub from_topic_name: String,
+    pub from_topic_slug: String,
+    pub to_topic_name: String,
+    pub to_topic_slug: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerActivityProgress {
     pub node_slug: String,

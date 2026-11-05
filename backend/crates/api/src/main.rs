@@ -6,6 +6,7 @@ mod error;
 mod identity;
 mod learner_bookmark;
 mod learner_bookmark_map;
+mod learner_competence;
 mod learner_journal;
 mod learner_journal_page;
 mod learner_paths;
@@ -219,6 +220,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/bookmarks",
             get(learner_bookmark_map::show),
+        )
+        .route(
+            "/api/v1/learner/competence",
+            get(learner_competence::show),
         )
         .route("/api/v1/learner/topics", get(learner_topics::index))
         .route("/api/v1/learner/paths", get(learner_paths::index))

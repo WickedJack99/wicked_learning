@@ -124,6 +124,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/competence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's private qualitative evidence map. */
+        get: operations["getLearnerCompetenceMap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/topics": {
         parameters: {
             query?: never;
@@ -723,6 +740,72 @@ export interface components {
             node_count: number;
             slug: string;
             title: string;
+        };
+        LearnerCompetenceMap: {
+            month_key: string;
+            /** @enum {integer} */
+            recent_window_days: 30;
+            topics: components["schemas"]["LearnerCompetenceTopic"][];
+            transitions: components["schemas"]["LearnerCompetenceTransition"][];
+        };
+        LearnerCompetenceTopic: {
+            name: string;
+            slug: string;
+            visual: components["schemas"]["LearnerCompetenceVisual"];
+        };
+        LearnerCompetenceVisual: {
+            aura_ratio: number;
+            brightness_ratio: number;
+            description: string;
+            evidence_ledger: components["schemas"]["LearnerCompetenceEvidence"][];
+            evidence_types: ("apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer")[];
+            learning_periods: string[];
+            recent_description: string;
+            size_ratio: number;
+            /** @enum {string} */
+            size_tier: "spark" | "star" | "beacon" | "constellation";
+        };
+        LearnerCompetenceEvidence: {
+            activity_title: string;
+            assistance_level: string | null;
+            attempt_number: number;
+            concepts: string[];
+            confidence: string | null;
+            confidence_after_feedback: string | null;
+            /** @enum {string} */
+            evidence_claim: "application_attempt" | "explanation_attempt" | "independent_explanation_attempt" | "independent_recall" | "independent_transfer_attempt" | "learning_encounter" | "participation" | "reflection" | "retrieval_attempt" | "review" | "transfer_attempt";
+            evidence_criterion: string | null;
+            evidence_rubric: string[];
+            /** @enum {string} */
+            evidence_type: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
+            /** Format: uuid */
+            id: string;
+            independent_check: boolean;
+            learning_purpose: string | null;
+            node_title: string | null;
+            objective: string | null;
+            observed_cues: string[];
+            outcome: string;
+            /** Format: date-time */
+            recorded_at: string;
+            sources: components["schemas"]["LearnerCompetenceSource"][];
+        };
+        LearnerCompetenceSource: {
+            anchor: string | null;
+            concepts: string[];
+            excerpt: string | null;
+            published_at: string | null;
+            publisher: string | null;
+            rights: string | null;
+            title: string;
+            url: string;
+        };
+        LearnerCompetenceTransition: {
+            count: number;
+            from_topic_name: string;
+            from_topic_slug: string;
+            to_topic_name: string;
+            to_topic_slug: string;
         };
         LearnerPaths: {
             pagination: components["schemas"]["LearnerPathPagination"];
@@ -1326,6 +1409,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LearnerBookmarkMap"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerCompetenceMap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded qualitative evidence and topic-transition view for the authenticated learner only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerCompetenceMap"];
                 };
             };
             /** @description Authentication is required. */

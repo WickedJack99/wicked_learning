@@ -272,6 +272,15 @@ test('an anonymous session reveals no credential or identity material', async ({
         title: 'Authentication is required.',
     });
 
+    const learnerCompetenceResponse = await request.get(
+        '/api/v1/learner/competence',
+    );
+    expect(learnerCompetenceResponse.status()).toBe(401);
+    await expect(learnerCompetenceResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+
     const learnerTopicDirectoryResponse = await request.get(
         '/api/v1/learner/topics',
     );
@@ -464,6 +473,17 @@ test('a CI-only fresh identity can login, report its session, and logout', async
         ],
         maps_pagination: { per_page: 4, total: 1 },
         topic: { slug: 'map-orientation' },
+    });
+
+    const learnerCompetence = await request.get(
+        '/api/v1/learner/competence',
+    );
+    expect(learnerCompetence.status()).toBe(200);
+    await expect(learnerCompetence.json()).resolves.toMatchObject({
+        month_key: expect.stringMatching(/^\d{4}-\d{2}$/),
+        recent_window_days: 30,
+        topics: [],
+        transitions: [],
     });
 
     const learnerWorld = await request.get('/api/v1/learner/world');

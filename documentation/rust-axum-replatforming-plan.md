@@ -377,8 +377,17 @@ Loading an authorized active play run also mirrors the source activity-entry
 topic history: the backend atomically replaces that learner's private last
 topic set and increments private topic-to-topic pairs only when the set has
 changed. A visit remains separate from completion evidence and this history is
-not returned by any Rust contract. It is retained solely as a prerequisite for
-the later source-derived competence map; its UI remains unavailable.
+not returned by any playback contract. It is retained solely as a prerequisite
+for the later source-derived competence map; its UI remains unavailable.
+
+`GET /api/v1/learner/competence` now provides an authenticated but still
+unexposed contract foundation for that future map. It derives the source
+qualitative ratios, tiers, recent descriptions, evidence-type labels, twelve
+most-recent private evidence entries per topic, and bounded private transition
+pairs. It returns no score, reflection text, hidden metadata, or activity URL
+that could bypass Rust's start/run authorization. React has no route or
+navigation entry for this endpoint until the original star-map UI and the
+remaining source evidence inputs are migrated together.
 
 ### Reference behavior and implementation autonomy
 
