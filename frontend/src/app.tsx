@@ -16,6 +16,7 @@ import {
     PublicInformationPage,
     PublicSourceCodePage,
 } from './public-information';
+import { OriginalLoginPage } from './original-login';
 import { PublicWorldPage } from './public-world';
 
 type Readiness = 'checking' | 'ready' | 'unavailable';
@@ -88,6 +89,10 @@ export function App() {
         return <PublicWorldPage isAuthenticated={currentUser.kind === 'loaded'} />;
     }
 
+    if (location.pathname === '/login') {
+        return <OriginalLoginPage />;
+    }
+
     if (location.pathname === '/source') {
         return <PublicSourceCodePage />;
     }
@@ -131,7 +136,6 @@ export function App() {
                 id="learner-main-content"
             >
                 <Routes>
-                    <Route path="/login" element={<LoginPage />} />
                     <Route
                         path="/account"
                         element={

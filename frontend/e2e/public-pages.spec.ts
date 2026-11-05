@@ -495,7 +495,7 @@ test('a CI-only local administrator can use the React sign-in and sign-out flow'
     await page.goto('/login');
     await page.getByLabel('Email address').fill(email);
     await page.getByLabel('Password').fill(password);
-    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.getByRole('button', { name: 'Log in' }).click();
 
     await expect(page).toHaveURL(/\/account$/);
     await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible();
@@ -504,7 +504,7 @@ test('a CI-only local administrator can use the React sign-in and sign-out flow'
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL(/\/login$/);
     await expect(
-        page.getByRole('heading', { name: 'Local sign in' }),
+        page.getByRole('heading', { name: 'Log in to your account' }),
     ).toBeVisible();
 });
 
