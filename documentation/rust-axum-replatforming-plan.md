@@ -303,6 +303,16 @@ Laravel React sources. The current code must retain this mapping; a new route
 or control is not an acceptable stand-in merely because it can call a Rust
 endpoint.
 
+**Meaning of the classifications:** the standalone Vite application cannot
+import a Laravel/Inertia page unchanged: those files depend on Inertia props,
+Wayfinder route helpers, and Laravel-only client modules. “Source-adapted”
+therefore means the original React component structure, Tailwind utilities,
+icons, copy and interaction model have been lifted into `frontend/`, with only
+that transport glue replaced by React Router and the typed API client. It does
+not mean that a similarly styled new screen is acceptable. A smaller Rust
+surface may omit a source control whose required contract is not ready; it may
+not replace it with a newly invented workflow.
+
 | Rust surface                 | Laravel React reference                                                                                                                       | Current boundary                                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Welcome (`/`)                | `pages/welcome.tsx`, `components/appearance-tabs.tsx`, `hooks/use-appearance.tsx`, `theme/presentation.ts`                                  | Source-adapted markup, wheel/pager interaction, footer links and Light/Dark selector. The anonymous preference persists under the source browser-storage key and follows the visitor across public routes. `GET /public/presentation` supplies the server-owned welcome pages, backgrounds, palette and base theme instead of duplicated frontend defaults. The source registration path is not exposed until Rust-owned invitation registration exists. |
@@ -334,6 +344,12 @@ The audit found no visible page that should be removed for being an invented
 screen. The remaining adaptations are limited to replacing Laravel transport
 glue with the typed Rust client and omitting original controls whose complete
 contract is not available yet:
+
+This is a source-provenance finding, not a claim that every source feature is
+already migrated. In particular, World navigation, bookmark maps, activity
+playback and Journal expose only the original substructures for which the Rust
+contract exists. Their absent source controls remain absent until their
+corresponding contract and server-owned behavior are available.
 
 | Reachable area | Source-derived elements retained | Intentionally absent rather than imitated |
 | --- | --- | --- |
