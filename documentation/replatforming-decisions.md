@@ -1041,11 +1041,15 @@ activity identifier in a normal completion request would weaken the ownership
 boundary. Consuming on open would punish a learner for leaving or refreshing a
 review. All are rejected.
 
-**Implementation trigger:** Add the normalized revisit-run and review-attempt
-tables, run-kind-aware playback resolution, and transactional completion for
-open-practice, question and reflection activities before exposing the lifted
-Journal invitation controls. Do not expose a partial re-entry link or an
-`is_revisit` browser parameter.
+**Current foundation:** The normalized revisit-run and review-attempt tables
+and an internal owner/due/visibility-scoped open-or-resume command now exist.
+They are intentionally not routed to the browser yet; an incomplete run cannot
+be opened through the UI.
+
+**Implementation trigger:** Add run-kind-aware playback resolution and
+transactional completion for open-practice, question and reflection activities
+before exposing the lifted Journal invitation controls. Do not expose a partial
+re-entry link or an `is_revisit` browser parameter.
 
 ## Phase 1 gate
 
