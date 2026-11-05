@@ -303,18 +303,18 @@ signed-in session and the public contract for an anonymous visitor. The
 authenticated contract provides a server-owned snapshot of visible maps plus
 the current principal's bookmark, activity-progress and route-progress
 summaries. The interim view renders read-only saved-place and completed-activity
-signals, its authorized route previews, and the original ActivityPanel's
-read-only start-card/progress/pagination presentation from that snapshot. Its
-start and reset controls remain visibly unavailable: they are learner-state
-writes, not a browser-only substitute. It intentionally
+signals. It deliberately does not render activity start cards until the Rust
+playback endpoint and completion command can give the lifted original controls
+their complete, authorized behavior. A disabled imitation of the original
+controls is not acceptable. It intentionally
 does not yet supply equipped tools, group data, audio configuration, route-start
 commands or server-evaluated reveal/unlock
 state consumed by Laravel's
 `LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
 `ActivityPanel` components. The original `NodeDetailDrawer` geometry, close
-control, scroll ownership and touch-swipe behavior, plus the ActivityPanel's
-start-card presentation, are now lifted onto the interim route. Its route
-start/reset policy and `WorldMap` remain to be migrated. It must therefore not
+control, scroll ownership and touch-swipe behavior are now lifted onto the
+interim route. Its activity-panel controls, route start/reset policy and
+`WorldMap` remain to be migrated. It must therefore not
 be described as a completed World migration.
 
 Before treating the route as visually or functionally migrated, define the
@@ -380,7 +380,7 @@ private or identifier-based links will resolve in a deployed cutover.
 | `/`                                                                       | `/`                | Available      | A standalone React welcome screen provides public orientation and routes into exploration or local sign-in.    |
 | `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path          | Available      | Public presentation/source endpoints provide their content.                                                    |
 | `/world`                                                                  | `/world`           | Available      | Read-only world/map exploration. It consumes the principal-scoped snapshot after local sign-in and the public contract otherwise; the original World UI has not yet been lifted onto it. |
-| `/learning/search?query={term}`                                           | `/search?q={term}` | Available      | React retains the search term and runs the bounded published-place search.                                     |
+| `/learning/search?query={term}`                                           | —                  | Not available  | Search is retained inside the lifted `/world` surface; no substitute standalone search page is exposed.       |
 | `/learning/nodes/{node}/play`                                             | —                  | Not available  | Activity playback needs the later learner-state/write slice and server-owned transition rules.                 |
 | `/home`, `/journal`, `/paths`, `/topics`, `/bookmarks`, `/competence`     | —                  | Not available  | These require authenticated data and, in several cases, APIs that have not yet been implemented.               |
 | `/organizations/*`, `/learning/groups/*`, authoring/settings/admin routes | —                  | Not available  | These belong to later collaboration, authoring and administration slices with their own authorization tests.   |

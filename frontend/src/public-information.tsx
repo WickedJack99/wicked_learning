@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Compass, ExternalLink, Github } from 'lucide-react';
-import { Link } from 'react-router';
+import { ArrowLeft, Compass, ExternalLink, Github } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
 
 import { apiClient } from './api/client';
+import { OriginalMarkdownRenderer } from './original-markdown';
 
 const pageLabels: Record<string, string> = {
     about: 'About',
@@ -80,15 +81,18 @@ export function PublicInformationPage({ slug }: { slug: string }) {
                             <p className="m-0 text-xs font-medium tracking-[0.18em] uppercase text-teal-300">
                                 {pageLabels[slug] ?? page.title}
                             </p>
-                            <h1 className="mt-4 mb-0 text-3xl font-semibold tracking-normal md:text-5xl">
-                                {page.title}
-                            </h1>
-                            <div className="mt-6 space-y-4 text-sm leading-7 text-slate-200 md:text-base">
-                                {page.body.split('\n\n').map((paragraph) => (
-                                    <p key={paragraph} className="m-0">
-                                        {paragraph}
-                                    </p>
-                                ))}
+                            <div className="mt-4">
+                                {hasDocumentTitle(page.body) ? null : (
+                                    <h1 className="text-3xl font-semibold tracking-normal text-slate-50 md:text-5xl">
+                                        {page.title}
+                                    </h1>
+                                )}
+                                <OriginalMarkdownRenderer
+                                    headingColor="#f8fafc"
+                                    inheritColor
+                                    markdown={page.body}
+                                    style={{ color: '#e2e8f0' }}
+                                />
                             </div>
                         </InformationCard>
                     ) : null}
@@ -98,7 +102,12 @@ export function PublicInformationPage({ slug }: { slug: string }) {
     );
 }
 
+function hasDocumentTitle(markdown: string): boolean {
+    return markdown.split(/\r?\n/).some((line) => /^#\s+/.test(line));
+}
+
 export function PublicSourceCodePage() {
+    const navigate = useNavigate();
     const [links, setLinks] = useState<SourceLinksState>({ kind: 'loading' });
 
     useEffect(() => {
@@ -123,13 +132,21 @@ export function PublicSourceCodePage() {
         <PublicInformationSurface>
             <section className="relative z-10 flex min-h-svh items-center justify-center px-6 py-16">
                 <InformationCard className="w-full max-w-2xl">
-                    <Link
+                    <button
                         className="mb-6 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-slate-100 no-underline transition hover:bg-white/10"
-                        to="/"
+                        onClick={() => {
+                            if (window.history.length > 1) {
+                                navigate(-1);
+                                return;
+                            }
+
+                            navigate('/');
+                        }}
+                        type="button"
                     >
-                        <span aria-hidden="true">←</span>
+                        <ArrowLeft className="size-4" />
                         Back
-                    </Link>
+                    </button>
                     <div className="flex items-start gap-4">
                         <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-teal-300 text-slate-950">
                             <Github className="size-6" />

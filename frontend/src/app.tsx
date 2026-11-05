@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 
 import { apiClient } from './api/client';
 import { OriginalLoginPage } from './original-login';
@@ -70,9 +70,11 @@ export function App() {
         return <PublicInformationPage slug={publicInformationSlug} />;
     }
 
-    return <NotFound />;
+    // The Laravel application has no generic client-side not-found surface for
+    // these public routes. Keep an unsupported deep link on a retained public
+    // page rather than introducing another substitute design.
+    return <Navigate replace to="/" />;
 }
-
 async function loadCurrentUser(): Promise<CurrentUserState> {
     try {
         const { data, response } = await apiClient.GET('/me');
@@ -87,17 +89,4 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
     } catch {
         return { kind: 'unavailable' };
     }
-}
-
-function NotFound() {
-    return (
-        <main className="flex min-h-svh items-center justify-center bg-slate-950 p-6 text-slate-100">
-            <section className="max-w-md text-center">
-                <h1 className="text-2xl font-semibold">Page not found</h1>
-                <p className="mt-3 text-slate-300">
-                    This route is not available in the Rust replatform yet.
-                </p>
-            </section>
-        </main>
-    );
 }

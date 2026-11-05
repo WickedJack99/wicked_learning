@@ -299,7 +299,7 @@ test('the learner World exposes the original-style user menu for an authenticate
     ).not.toBeVisible();
 });
 
-test('the signed-in explorer uses the principal-scoped World snapshot', async ({
+test('the signed-in explorer uses the principal-scoped World snapshot without substitute activity controls', async ({
     page,
 }) => {
     const activityStarts = [
@@ -433,30 +433,21 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
     await expect(page.getByLabel('Node completed')).toBeVisible();
     await expect(
         page.getByText('Begin private orientation'),
-    ).toBeVisible();
+    ).not.toBeVisible();
     await expect(
-        page.getByRole('button', { name: 'Start Begin private orientation' }),
-    ).toBeDisabled();
-    await expect(
-        page
-            .getByText('Starting activities is not available in this preview yet.')
-            .first(),
-    ).toBeVisible();
-    await expect(page.getByText('Completed 1×')).toBeVisible();
-    await expect(page.getByText('Find a quiet route')).toBeVisible();
-    await expect(page.getByText('Reflect on the next step')).not.toBeVisible();
-    await page.getByRole('button', { name: 'Next' }).click();
-    await expect(page.getByText('Reflect on the next step')).toBeVisible();
+        page.getByText('Starting activities is not available in this preview yet.'),
+    ).not.toBeVisible();
 });
 
-test('a removed substitute map-place URL does not create a replacement page', async ({
+test('a removed substitute map-place URL returns to the retained welcome surface', async ({
     page,
 }) => {
     await page.goto(
         '/world/orientation-garden/maps/first-path/assets/not-published',
     );
 
-    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { name: 'Learning Worlds' })).toBeVisible();
 });
 
 test('the public explorer search is bounded and presents matching places', async ({
@@ -481,12 +472,13 @@ test('the public explorer search is bounded and presents matching places', async
     await expect(page.getByText('The First Path')).toBeVisible();
 });
 
-test('a legacy standalone search URL is not promoted as a replacement learner surface', async ({
+test('a legacy standalone search URL returns to the retained welcome surface', async ({
     page,
 }) => {
     await page.goto('/learning/search?query=direction');
 
-    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { name: 'Learning Worlds' })).toBeVisible();
 });
 
 test('a CI-only local administrator can use the React sign-in and sign-out flow', async ({
@@ -531,17 +523,11 @@ test('an unavailable public-page API is presented without a stale page', async (
     ).not.toBeVisible();
 });
 
-test('unknown browser routes render the client-side not-found state', async ({
+test('unknown browser routes return to the retained welcome surface', async ({
     page,
 }) => {
     await page.goto('/not-a-public-page');
 
-    await expect(
-        page.getByRole('heading', { name: 'Page not found' }),
-    ).toBeVisible();
-    await expect(
-        page.getByText(
-            'This route is not available in the Rust replatform yet.',
-        ),
-    ).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { name: 'Learning Worlds' })).toBeVisible();
 });

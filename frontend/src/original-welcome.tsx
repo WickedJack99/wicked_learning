@@ -1,5 +1,5 @@
 import { ArrowRight, Compass, LogIn, Moon, Sun } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router';
 
 type WelcomePage = {
@@ -40,6 +40,7 @@ export function OriginalWelcomePage({
 }) {
     const [activePage, setActivePage] = useState(0);
     const [isLight, setIsLight] = useState(false);
+    const wheelLocked = useRef(false);
     const activeWelcomePage =
         defaultWelcomePages[activePage] ?? defaultWelcomePages[0];
     const foreground = isLight ? '#0f172a' : '#f8fafc';
@@ -49,10 +50,35 @@ export function OriginalWelcomePage({
     const accent = isLight ? '#0e7490' : '#5eead4';
     const controlText = isLight ? '#ffffff' : '#06111f';
 
+    const goToPage = useCallback((pageIndex: number) => {
+        setActivePage(
+            Math.min(
+                Math.max(pageIndex, 0),
+                defaultWelcomePages.length - 1,
+            ),
+        );
+    }, []);
+
+    const handleWheel = useCallback(
+        (event: React.WheelEvent<HTMLElement>) => {
+            if (Math.abs(event.deltaY) < 24 || wheelLocked.current) {
+                return;
+            }
+
+            wheelLocked.current = true;
+            goToPage(activePage + (event.deltaY > 0 ? 1 : -1));
+            window.setTimeout(() => {
+                wheelLocked.current = false;
+            }, 520);
+        },
+        [activePage, goToPage],
+    );
+
     return (
         <main
             data-wl-id="public.welcome"
             className="relative h-svh overflow-hidden bg-[var(--auth-background-color)]"
+            onWheel={handleWheel}
             style={
                 {
                     '--auth-background-color': isLight ? '#ecfeff' : '#07111f',
@@ -82,29 +108,29 @@ export function OriginalWelcomePage({
                     <span style={{ color: foreground }}>Learning Worlds</span>
                 </div>
                 <nav className="flex items-center gap-2">
-                    <button
-                        aria-label="Toggle colour appearance"
-                        className="mr-2 inline-flex size-9 items-center justify-center rounded-md border-0 bg-white/10 p-0 shadow-lg hover:bg-white/20"
-                        onClick={() => setIsLight((value) => !value)}
-                        style={{ color: foreground }}
-                        type="button"
-                    >
-                        {isLight ? (
-                            <Moon className="size-4" />
-                        ) : (
-                            <Sun className="size-4" />
-                        )}
-                    </button>
                     {isAuthenticated ? (
                         <Link
                             className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium opacity-95 transition hover:opacity-100"
                             style={{ background: accent, color: controlText }}
-                            to="/account"
+                            to="/world"
                         >
                             Open learning desk <ArrowRight className="size-4" />
                         </Link>
                     ) : (
                         <>
+                            <button
+                                aria-label="Toggle colour appearance"
+                                className="mr-2 inline-flex size-9 items-center justify-center rounded-md border-0 bg-white/10 p-0 shadow-lg hover:bg-white/20"
+                                onClick={() => setIsLight((value) => !value)}
+                                style={{ color: foreground }}
+                                type="button"
+                            >
+                                {isLight ? (
+                                    <Moon className="size-4" />
+                                ) : (
+                                    <Sun className="size-4" />
+                                )}
+                            </button>
                             <Link
                                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition hover:bg-current/8"
                                 style={{ color: foreground }}
