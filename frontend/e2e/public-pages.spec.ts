@@ -613,6 +613,7 @@ test('the original journal overlay reads only its private paginated contract', a
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
+                check_ins: [],
                 pages: [
                     {
                         id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d99',
@@ -638,6 +639,34 @@ test('the original journal overlay reads only its private paginated contract', a
                     per_page: 4,
                     total: 1,
                 },
+                revisit_invitations: [
+                    {
+                        check_in_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d70',
+                        activity_slug: 'first-revisit',
+                        activity_title: 'Return to the first question',
+                        available_after_days: 3,
+                        available_at: '2026-11-03T09:00:00.000000Z',
+                        available_since: '2026-10-31T09:00:00.000000Z',
+                        revisit_reason: 'pause',
+                        map_slug: 'first-path',
+                        map_title: 'The First Path',
+                        node_slug: 'private-place',
+                        node_title: 'A private place',
+                    },
+                    {
+                        check_in_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d71',
+                        activity_slug: 'second-revisit',
+                        activity_title: 'Return to a second question',
+                        available_after_days: 3,
+                        available_at: '2026-11-04T09:00:00.000000Z',
+                        available_since: '2026-11-01T09:00:00.000000Z',
+                        revisit_reason: 'later',
+                        map_slug: 'first-path',
+                        map_title: 'The First Path',
+                        node_slug: 'private-place',
+                        node_title: 'A private place',
+                    },
+                ],
             }),
         });
     });
@@ -647,6 +676,42 @@ test('the original journal overlay reads only its private paginated contract', a
             body: JSON.stringify({ token: 'journal-csrf-token' }),
         });
     });
+    await page.route(
+        '**/api/v1/learner/revisit-invitations/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d70',
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(route.request().postDataJSON()).toEqual({ action: 'snooze' });
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'journal-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    check_in_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d70',
+                    revisit_status: 'snoozed',
+                    available_at: '2026-11-12T09:00:00.000000Z',
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/revisit-invitations/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d71/open',
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'journal-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    activity_slug: 'second-revisit',
+                    node_slug: 'private-place',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77',
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
     await page.route('**/api/v1/learner/journal/pages', async (route) => {
         expect(await route.request().headerValue('X-CSRF-Token')).toBe(
             'journal-csrf-token',
@@ -701,6 +766,36 @@ test('the original journal overlay reads only its private paginated contract', a
     await page.goto('/world');
     await page.getByRole('button', { name: 'Journal' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(
+        page.getByRole('region', { name: 'Revisit invitations' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Return to the first question', { exact: true }),
+    ).toBeVisible();
+    const invitationRegion = page.getByRole('region', {
+        name: 'Revisit invitations',
+    });
+    const desktopInvitationBounds = await invitationRegion.boundingBox();
+    expect(desktopInvitationBounds).not.toBeNull();
+    expect(desktopInvitationBounds?.width).toBeGreaterThan(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    const laterButton = page.getByRole('button', { name: 'Later' });
+    await expect(laterButton).toBeVisible();
+    await expect.poll(async () => {
+        const bounds = await laterButton.boundingBox();
+
+        return (bounds?.x ?? 390) + (bounds?.width ?? 0);
+    }).toBeLessThanOrEqual(390);
+    await page.getByRole('button', { name: 'Later' }).click();
+    await expect(
+        page.getByText('Return to the first question', { exact: true }),
+    ).toHaveCount(0);
+    await page.getByRole('button', { name: 'Open activity' }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/private-place\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77$/,
+    );
+    await page.goto('/world');
+    await page.getByRole('button', { name: 'Journal' }).click();
     await expect(
         page.getByText('Connect the direction', { exact: true }),
     ).toHaveCount(1);

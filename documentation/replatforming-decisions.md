@@ -589,17 +589,20 @@ and the page's `view`/`edit` presentation preference, but includes no export,
 feedback request, review, staff or other-learner data. Missing
 application-principal authorization is forbidden.
 
-**Why:** This is the safe read foundation for lifting the original journal
+**Why:** This was the safe read foundation for lifting the original journal
 overlay without pretending that editing, export, expert access, learning
-check-ins or revisit invitations have migrated.
+check-ins or revisit invitations had migrated. The later source-derived page
+writer and revisit slices now consume the same learner-scoped model without
+widening it to another principal.
 
 **Alternatives:** A generic journal endpoint keyed by browser-supplied page or
 principal IDs would weaken ownership. Adding disabled edit/review controls
 would misrepresent unavailable workflows. Both are rejected.
 
 **Limitations and trigger:** The basic page writer is separately defined in
-ADR-024. Export, feedback requests, check-ins and revisit invitations still
-need their own source UI and authorization evidence.
+ADR-024. Export, feedback requests and the source check-in history/timeline
+still need their own source UI and authorization evidence. Due revisit
+invitations are defined by ADR-032 and ADR-033.
 
 ## ADR-023: Journal categories remain labels, not page identities
 
@@ -983,12 +986,12 @@ the browser cannot choose an activity or progression state on its own.
 format rather than behavior. Taking only an activity slug would make the Rust
 writer depend on a weaker authorization check. Both are rejected.
 
-**Limitations and trigger:** This is a persistence and command foundation only.
-The source check-in panel, journal timeline, due revisit invitations,
-dismiss/snooze actions, review-attempt recording and competence presentation
-are not exposed yet. Lift them together with their source UI and browser
-behavior once the complete revisit/re-entry workflow has a contract; do not add
-a substitute React control before then.
+**Limitations and trigger:** The source check-in panel, journal timeline and
+competence presentation remain unavailable until their contracts and browser
+evidence exist. Due revisit invitations, their dismiss/snooze actions and
+review-attempt recording are now exposed through the lifted original Journal
+panel and ADR-033's server-owned re-entry flow; no substitute React control was
+added.
 
 The existing authenticated journal read model now carries the bounded private
 check-in trail and due, visible revisit-invitation projection required by that
@@ -996,10 +999,10 @@ future UI. Its private command now also permits only the source's two due
 invitation actions: `snooze` postpones the same invitation for seven days and
 `dismiss` hides it. The command resolves the invitation from the authenticated
 principal, current map visibility and completed progress; it never accepts a
-bare activity writer. It exposes neither an activity-reentry URL nor browser
-controls: those remain unavailable until a Rust command can create and
-complete a server-owned revisit run, consume the invitation and record the
-source review attempt atomically.
+bare activity writer. It does not expose an activity-reentry URL. Browser
+controls are exposed only after ADR-033's command could create and complete a
+server-owned revisit run, consume the invitation and record the source review
+attempt atomically.
 
 ## ADR-033: Revisit runs are separate from authored route progress
 
@@ -1057,10 +1060,12 @@ they do not advance or reset route progress. This was
 verified against a rebuilt local Compose stack with disposable owner-scoped
 records for all three activity types.
 
-**Implementation trigger:** Lift the corresponding original Journal invitation
-controls and their navigation using this command, then verify the full browser
-flow. Do not expose a partial re-entry link or an `is_revisit` browser
-parameter.
+**Implementation evidence:** The corresponding original Journal invitation
+panel has been lifted with its one-at-a-time pagination and
+`Open activity`/`Later`/`Hide` controls. Its browser test verifies the desktop
+and narrow viewport panel, a CSRF-protected defer, and navigation only after
+the opaque server-owned run is returned. It does not expose a partial re-entry
+link or an `is_revisit` browser parameter.
 
 ## Phase 1 gate
 

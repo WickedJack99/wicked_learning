@@ -2,14 +2,16 @@ import { FilePlus2, Pencil, Save, Search, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalMarkdownRenderer } from './original-markdown';
+import { OriginalPaginatedItems } from './original-paginated-items';
 
 type JournalDocument = components['schemas']['LearnerJournalDocument'];
 type JournalPage = components['schemas']['LearnerJournalPage'];
+type RevisitInvitation = components['schemas']['LearnerRevisitInvitation'];
 
 const journalStyle = {
     '--journal-accent': '#2dd4bf',
@@ -35,6 +37,7 @@ const journalStyle = {
 /** Source-adapted from the original JournalOverlay. Review, export and
  * check-in affordances remain unavailable until their source-defined contracts exist. */
 export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
+    const navigate = useNavigate();
     const [journal, setJournal] = useState<JournalDocument | null>(null);
     const [draftsById, setDraftsById] = useState<Record<string, JournalPage>>(
         {},
@@ -49,6 +52,9 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     const [isSaving, setIsSaving] = useState(false);
     const [deletingPageId, setDeletingPageId] = useState<string | null>(null);
     const [saveError, setSaveError] = useState('');
+    const [updatingRevisitId, setUpdatingRevisitId] = useState<string | null>(
+        null,
+    );
     const searchRef = useRef<HTMLInputElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -279,6 +285,84 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
         }
     }
 
+    async function updateRevisit(
+        checkInId: string,
+        action: 'dismiss' | 'snooze',
+    ): Promise<void> {
+        if (updatingRevisitId !== null) {
+            return;
+        }
+
+        setUpdatingRevisitId(checkInId);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.POST(
+                '/learner/revisit-invitations/{check_in_id}',
+                {
+                    body: { action },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { check_in_id: checkInId },
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                return;
+            }
+
+            setJournal((current) =>
+                current
+                    ? {
+                          ...current,
+                          revisit_invitations:
+                              current.revisit_invitations.filter(
+                                  (invitation) =>
+                                      invitation.check_in_id !== checkInId,
+                              ),
+                      }
+                    : current,
+            );
+        } catch {
+            // Keep the invitation visible so the original action can be retried.
+        } finally {
+            setUpdatingRevisitId(null);
+        }
+    }
+
+    async function openRevisit(checkInId: string): Promise<void> {
+        if (updatingRevisitId !== null) {
+            return;
+        }
+
+        setUpdatingRevisitId(checkInId);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/revisit-invitations/{check_in_id}/open',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { check_in_id: checkInId },
+                    },
+                },
+            );
+
+            if (!response.ok || !data) {
+                return;
+            }
+
+            onClose();
+            navigate(
+                `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
+            );
+        } catch {
+            // The source link remains available if the server rejects a stale invite.
+        } finally {
+            setUpdatingRevisitId(null);
+        }
+    }
+
     useEffect(() => {
         if (!selected || !dirtyById[selected.id] || isSaving) {
             return;
@@ -391,6 +475,14 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                                 <FilePlus2 className="size-4" />
                             </button>
                         </div>
+                        {journal?.revisit_invitations.length ? (
+                            <RevisitInvitations
+                                invitations={journal.revisit_invitations}
+                                onOpen={openRevisit}
+                                onUpdate={updateRevisit}
+                                updatingRevisitId={updatingRevisitId}
+                            />
+                        ) : null}
                         <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
                             {status === 'loading' ? (
                                 <p
@@ -486,6 +578,141 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
         </div>,
         document.body,
     );
+}
+
+function RevisitInvitations({
+    invitations,
+    onOpen,
+    onUpdate,
+    updatingRevisitId,
+}: {
+    invitations: RevisitInvitation[];
+    onOpen: (checkInId: string) => Promise<void>;
+    onUpdate: (
+        checkInId: string,
+        action: 'dismiss' | 'snooze',
+    ) => Promise<void>;
+    updatingRevisitId: string | null;
+}) {
+    return (
+        <section
+            aria-label="Revisit invitations"
+            className="mt-3 rounded-lg border p-3"
+            style={{
+                background: 'var(--journal-content-background)',
+                borderColor: 'var(--journal-button-border)',
+            }}
+        >
+            <p
+                className="text-xs font-semibold tracking-[0.12em] uppercase"
+                style={{ color: 'var(--journal-accent)' }}
+            >
+                Revisit when ready
+            </p>
+            <p
+                className="mt-1 text-xs leading-5"
+                style={{ color: 'var(--journal-muted-text)' }}
+            >
+                A few places you chose to return to after some time away.
+            </p>
+            <OriginalPaginatedItems
+                className="mt-2 grid gap-2"
+                items={invitations}
+                pageSize={1}
+                paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--journal-accent)] transition hover:text-[var(--journal-heading-text)] disabled:pointer-events-none disabled:opacity-40"
+                paginationClassName="mt-3 flex items-center justify-between border-t border-[var(--journal-button-border)] pt-3"
+                paginationLabel="Revisit invitations"
+                paginationTextClassName="text-xs text-[var(--journal-muted-text)]"
+                renderItem={(invitation) => (
+                    <article
+                        className="rounded-md border px-2 py-2"
+                        key={invitation.check_in_id}
+                        style={{ borderColor: 'var(--journal-button-border)' }}
+                    >
+                        <button
+                            className="block text-left"
+                            disabled={updatingRevisitId !== null}
+                            onClick={() => void onOpen(invitation.check_in_id)}
+                            type="button"
+                        >
+                            <p className="text-xs font-semibold">
+                                {invitation.activity_title}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                {invitation.node_title} · {invitation.map_title}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                You chose to return on{' '}
+                                {formatCheckInDate(invitation.available_since)}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                Ready since {formatCheckInDate(invitation.available_at)}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                {invitation.revisit_reason === 'later'
+                                    ? 'You chose to wait longer before returning.'
+                                    : `Ready after ${invitation.available_after_days} days away.`}
+                            </p>
+                        </button>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <button
+                                className="text-xs font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                                disabled={updatingRevisitId !== null}
+                                onClick={() => void onOpen(invitation.check_in_id)}
+                                style={{ color: 'var(--journal-accent)' }}
+                                type="button"
+                            >
+                                Open activity
+                            </button>
+                            <button
+                                className="text-xs underline-offset-2 hover:underline disabled:opacity-50"
+                                disabled={updatingRevisitId !== null}
+                                onClick={() =>
+                                    void onUpdate(invitation.check_in_id, 'snooze')
+                                }
+                                type="button"
+                            >
+                                Later
+                            </button>
+                            <button
+                                className="text-xs underline-offset-2 hover:underline disabled:opacity-50"
+                                disabled={updatingRevisitId !== null}
+                                onClick={() =>
+                                    void onUpdate(invitation.check_in_id, 'dismiss')
+                                }
+                                type="button"
+                            >
+                                Hide
+                            </button>
+                        </div>
+                    </article>
+                )}
+            />
+        </section>
+    );
+}
+
+function formatCheckInDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+          });
 }
 
 function JournalListItem({
