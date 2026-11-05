@@ -441,6 +441,31 @@ writes, transitions, inventory, tools, AI, collaboration, or authoring. Those
 writers must validate an active server-owned run and arrive as separate tested
 increments.
 
+## ADR-018: Current-user display data remains identity-owned and self-scoped
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original learner shell presents a user menu with identifying
+display information. The initial Rust `GET /me` contract exposed only an opaque
+subject ID and application roles, which encouraged a substitute account page
+instead of lifting that menu.
+
+**Decision:** `GET /api/v1/me` may include the authenticated subject's own
+normalized email address alongside its opaque subject ID and application
+roles. The value is read from the identity database only for the active
+session; the application database continues to own roles and never receives or
+stores the address. Password hashes, credential metadata, other identities,
+and profile/learner data remain excluded.
+
+**Why:** This is the minimum safe display data needed to adapt the original
+user-menu pattern without inventing a separate account surface or coupling
+application records to credential data.
+
+**Alternatives:** Showing the opaque UUID is not an acceptable learner-facing
+identity. Duplicating email into `application_principals` would violate the
+separate-database boundary. Adding a full profile model is premature until the
+original profile/settings workstream is migrated.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
