@@ -14,5 +14,6 @@ FROM nginx:1.27-alpine AS runtime
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY public/images/logo.png /usr/share/nginx/html/images/logo.png
+COPY public/images/themes/journal-paper-leather-background.png /usr/share/nginx/html/images/themes/journal-paper-leather-background.png
 
 EXPOSE 80

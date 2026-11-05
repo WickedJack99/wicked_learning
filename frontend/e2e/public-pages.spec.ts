@@ -316,6 +316,62 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(page.getByRole('link', { name: 'Log in' })).not.toBeVisible();
 });
 
+test('the original journal overlay reads only its private paginated contract', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['learner'],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/journal?*', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                pages: [
+                    {
+                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d99',
+                        title: 'Connect the direction',
+                        topic: 'Orientation',
+                        subtopic: 'Choosing a direction',
+                        markdown: '## Private note\n\nThis remains mine.',
+                        reflection_count: 1,
+                        learning_context: {
+                            activity_title: 'Connect the direction',
+                            map_slug: 'first-path',
+                            map_title: 'The First Path',
+                            node_slug: 'private-place',
+                            node_title: 'A private place',
+                        },
+                        updated_at: '2026-11-05T09:00:00.000000Z',
+                    },
+                ],
+                pagination: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 4,
+                    total: 1,
+                },
+            }),
+        });
+    });
+
+    await page.goto('/world');
+    await page.getByRole('button', { name: 'Journal' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(
+        page.getByText('Connect the direction', { exact: true }),
+    ).toHaveCount(2);
+    await expect(page.getByText('This remains mine.')).toBeVisible();
+    await page.getByRole('button', { name: 'Close journal' }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+});
+
 test('the signed-in explorer starts and completes an original open-practice route through server-owned playback', async ({
     page,
 }) => {

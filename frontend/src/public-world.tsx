@@ -7,6 +7,7 @@ import {
     LockKeyhole,
     Map as MapIcon,
     MapPin,
+    NotebookPen,
     Search,
     X,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
 import type { components } from './api/schema';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
 import { OriginalRouteStartButtons } from './original-activity-playback';
+import { OriginalJournalOverlay } from './original-journal';
 
 type PublicMap = components['schemas']['PublicMap'];
 type PublicMapAsset = components['schemas']['PublicMapAsset'];
@@ -88,9 +90,8 @@ export function PublicWorldPage({
 
             try {
                 if (isAuthenticated) {
-                    const { data, response } = await apiClient.GET(
-                        '/learner/world',
-                    );
+                    const { data, response } =
+                        await apiClient.GET('/learner/world');
 
                     if (response.status === 404) {
                         updateWorldState({ kind: 'empty' });
@@ -149,7 +150,9 @@ export function PublicWorldPage({
         return <WorldMessage message="Loading the learning world…" />;
     }
     if (worldState.kind === 'empty') {
-        return <WorldMessage message="The learning world is not published yet." />;
+        return (
+            <WorldMessage message="The learning world is not published yet." />
+        );
     }
     if (worldState.kind === 'unavailable') {
         return (
@@ -261,7 +264,9 @@ function PublicWorldSurface({
     }
 
     if (!selectedMap) {
-        return <WorldMessage message="The learning world has no published maps yet." />;
+        return (
+            <WorldMessage message="The learning world has no published maps yet." />
+        );
     }
 
     return (
@@ -277,7 +282,9 @@ function PublicWorldSurface({
             />
             <section className="absolute inset-0 overflow-hidden">
                 <PublicMapSurface
-                    bookmarkedNodeSlugs={learnerState?.bookmarked_node_slugs ?? []}
+                    bookmarkedNodeSlugs={
+                        learnerState?.bookmarked_node_slugs ?? []
+                    }
                     completedNodeSlugs={completedNodeSlugs}
                     map={selectedMap}
                     onClearFocus={() => selectNode(null)}
@@ -301,7 +308,11 @@ function PublicWorldSurface({
                 >
                     {world.maps.map((map) => (
                         <button
-                            aria-current={map.slug === selectedMap.slug ? 'page' : undefined}
+                            aria-current={
+                                map.slug === selectedMap.slug
+                                    ? 'page'
+                                    : undefined
+                            }
                             className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-white/10"
                             key={map.slug}
                             onClick={() => selectMap(map)}
@@ -314,8 +325,18 @@ function PublicWorldSurface({
             ) : null}
 
             <NodeDrawer
-                bookmarked={selectedNode ? learnerState?.bookmarked_node_slugs.includes(selectedNode.slug) ?? false : false}
-                completed={selectedNode ? completedNodeSlugs.has(selectedNode.slug) : false}
+                bookmarked={
+                    selectedNode
+                        ? (learnerState?.bookmarked_node_slugs.includes(
+                              selectedNode.slug,
+                          ) ?? false)
+                        : false
+                }
+                completed={
+                    selectedNode
+                        ? completedNodeSlugs.has(selectedNode.slug)
+                        : false
+                }
                 map={selectedMap}
                 node={selectedNode}
                 onClose={() => selectNode(null)}
@@ -323,9 +344,7 @@ function PublicWorldSurface({
                 onStart={(start) => void startRoute(start)}
                 onSwipeChange={setPanelSwipe}
                 startRoutes={
-                    isAuthenticated
-                        ? (learnerState?.start_routes ?? [])
-                        : []
+                    isAuthenticated ? (learnerState?.start_routes ?? []) : []
                 }
                 swipe={panelSwipe}
             />
@@ -343,6 +362,7 @@ function WorldNavigation({
     userEmail: string | null;
 }) {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isJournalOpen, setIsJournalOpen] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
 
     async function signOut(): Promise<void> {
@@ -382,9 +402,17 @@ function WorldNavigation({
                 Skip to content
             </a>
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:px-6 lg:px-8 xl:flex-nowrap">
-                <Link className="flex shrink-0 items-center gap-3 text-slate-100 no-underline" to="/world">
-                    <MapIcon aria-hidden="true" className="size-8 text-teal-300" />
-                    <span className="hidden text-sm font-semibold tracking-wide sm:block">Wicked Learning</span>
+                <Link
+                    className="flex shrink-0 items-center gap-3 text-slate-100 no-underline"
+                    to="/world"
+                >
+                    <MapIcon
+                        aria-hidden="true"
+                        className="size-8 text-teal-300"
+                    />
+                    <span className="hidden text-sm font-semibold tracking-wide sm:block">
+                        Wicked Learning
+                    </span>
                 </Link>
                 <nav
                     aria-label="Learner navigation"
@@ -400,7 +428,18 @@ function WorldNavigation({
                     </Link>
                 </nav>
                 {isAuthenticated && userEmail ? (
-                    <div className="relative ml-auto shrink-0">
+                    <div className="relative ml-auto flex shrink-0 items-center gap-2">
+                        <button
+                            aria-controls="learning-journal-panel"
+                            aria-expanded={isJournalOpen}
+                            aria-label="Journal"
+                            className="grid size-10 place-items-center rounded-lg border text-slate-100 transition hover:bg-white/10"
+                            onClick={() => setIsJournalOpen(true)}
+                            style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
+                            type="button"
+                        >
+                            <NotebookPen className="size-4" />
+                        </button>
                         <button
                             aria-expanded={isUserMenuOpen}
                             aria-haspopup="menu"
@@ -416,7 +455,9 @@ function WorldNavigation({
                             <div
                                 className="absolute top-12 right-0 z-[80] grid min-w-56 gap-2 rounded-lg border bg-slate-950 p-2 shadow-2xl"
                                 role="menu"
-                                style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
+                                style={{
+                                    borderColor: 'rgba(255, 255, 255, 0.14)',
+                                }}
                             >
                                 <p className="truncate px-2 py-1 text-sm text-slate-300">
                                     {userEmail}
@@ -430,7 +471,10 @@ function WorldNavigation({
                                     Log out
                                 </button>
                                 {signOutError ? (
-                                    <p className="px-2 text-sm text-red-300" role="alert">
+                                    <p
+                                        className="px-2 text-sm text-red-300"
+                                        role="alert"
+                                    >
                                         {signOutError}
                                     </p>
                                 ) : null}
@@ -447,6 +491,11 @@ function WorldNavigation({
                     </Link>
                 )}
             </div>
+            {isJournalOpen ? (
+                <OriginalJournalOverlay
+                    onClose={() => setIsJournalOpen(false)}
+                />
+            ) : null}
         </header>
     );
 }
@@ -478,7 +527,12 @@ function PublicMapSurface({
         y: number;
     } | null>(null);
     const nodesByAssetSlug = useMemo(
-        () => new Map(map.nodes.flatMap((node) => (node.asset_slug ? [[node.asset_slug, node] as const] : []))),
+        () =>
+            new Map(
+                map.nodes.flatMap((node) =>
+                    node.asset_slug ? [[node.asset_slug, node] as const] : [],
+                ),
+            ),
         [map.nodes],
     );
     const assetThemes = map.assets.map((asset) =>
@@ -497,7 +551,9 @@ function PublicMapSurface({
     }));
     const alphaMasks = useImageAlphaMasks(alphaMaskRequests);
     const selectedAssetIndex = selectedNode?.asset_slug
-        ? map.assets.findIndex((asset) => asset.slug === selectedNode.asset_slug)
+        ? map.assets.findIndex(
+              (asset) => asset.slug === selectedNode.asset_slug,
+          )
         : -1;
     const selectedAsset =
         selectedAssetIndex >= 0 ? map.assets[selectedAssetIndex] : null;
@@ -513,14 +569,18 @@ function PublicMapSurface({
                           currentSurfaces[index],
                           mapPointer,
                           mapPointer,
-                          imageAlphaMaskFor(alphaMaskRequests[index], alphaMasks),
+                          imageAlphaMaskFor(
+                              alphaMaskRequests[index],
+                              alphaMasks,
+                          ),
                       )
                     : false;
                 const hiddenForFocusedAsset =
                     selectedAsset &&
                     selectedAssetIndex >= 0 &&
                     (asset.z > selectedAsset.z ||
-                        (asset.z === selectedAsset.z && index > selectedAssetIndex)) &&
+                        (asset.z === selectedAsset.z &&
+                            index > selectedAssetIndex)) &&
                     mapPointer &&
                     mapAssetSurfacesOverlap(
                         currentSurfaces[index],
@@ -549,10 +609,7 @@ function PublicMapSurface({
                       currentSurfaces[index],
                       mapPointer,
                       mapPointer,
-                      imageAlphaMaskFor(
-                          alphaMaskRequests[index],
-                          alphaMasks,
-                      ),
+                      imageAlphaMaskFor(alphaMaskRequests[index], alphaMasks),
                   )
               ) {
                   return currentSlug;
@@ -593,13 +650,18 @@ function PublicMapSurface({
                 <div
                     aria-hidden="true"
                     className="absolute inset-0 bg-cover bg-center transition-opacity"
-                    style={{ backgroundImage: `url(${stringConfig(theme, 'imageUrl')})` }}
+                    style={{
+                        backgroundImage: `url(${stringConfig(theme, 'imageUrl')})`,
+                    }}
                 />
             ) : null}
             <div
                 aria-hidden="true"
                 className="absolute inset-0"
-                style={{ background: stringConfig(theme, 'overlay') ?? 'rgba(0, 0, 0, 0.4)' }}
+                style={{
+                    background:
+                        stringConfig(theme, 'overlay') ?? 'rgba(0, 0, 0, 0.4)',
+                }}
             />
             <div
                 className="pointer-events-none absolute inset-0 z-20"
@@ -610,8 +672,7 @@ function PublicMapSurface({
                     const isToggled = toggledAssetSlugs.includes(asset.slug);
                     const surface = currentSurfaces[index];
                     const canOpen =
-                        asset.interaction_mode === 'focusable' &&
-                        node;
+                        asset.interaction_mode === 'focusable' && node;
                     const canToggle = asset.interaction_mode === 'toggle';
                     const selected = node?.slug === selectedNode?.slug;
                     const isBookmarked = Boolean(
@@ -623,7 +684,10 @@ function PublicMapSurface({
                     const isHidden = hiddenAssetSlugs.has(asset.slug);
                     const assetTheme = assetThemes[index];
                     const label =
-                        stringConfig(assetTheme, 'label') ?? node?.title ?? asset.text ?? asset.title;
+                        stringConfig(assetTheme, 'label') ??
+                        node?.title ??
+                        asset.text ??
+                        asset.title;
                     const isHighlighted =
                         selected ||
                         pointerAssetSlug === asset.slug ||
@@ -644,21 +708,54 @@ function PublicMapSurface({
                                 className="absolute -translate-x-1/2 -translate-y-1/2"
                                 data-map-asset-mode={asset.interaction_mode}
                                 data-map-asset-slug={asset.slug}
-                                data-map-asset-visibility={isHidden ? 'hidden' : 'visible'}
+                                data-map-asset-visibility={
+                                    isHidden ? 'hidden' : 'visible'
+                                }
                                 key={asset.slug}
                                 style={style}
                             >
                                 <PublicMapAssetVisual
-                                    backgroundColor={stringConfig(assetTheme, 'borderColor') ?? stringConfig(assetTheme, 'tileColor') ?? '#12343b'}
-                                    highlightBorderColor={stringConfig(assetTheme, 'highlightBorderColor') ?? stringConfig(assetTheme, 'highlightColor')}
-                                    highlightColor={stringConfig(assetTheme, 'highlightColor')}
+                                    backgroundColor={
+                                        stringConfig(
+                                            assetTheme,
+                                            'borderColor',
+                                        ) ??
+                                        stringConfig(assetTheme, 'tileColor') ??
+                                        '#12343b'
+                                    }
+                                    highlightBorderColor={
+                                        stringConfig(
+                                            assetTheme,
+                                            'highlightBorderColor',
+                                        ) ??
+                                        stringConfig(
+                                            assetTheme,
+                                            'highlightColor',
+                                        )
+                                    }
+                                    highlightColor={stringConfig(
+                                        assetTheme,
+                                        'highlightColor',
+                                    )}
                                     highlighted={false}
-                                    highlightedLabelColor={stringConfig(assetTheme, 'highlightedLabelColor')}
-                                    imageFit={stringConfig(assetTheme, 'imageFit')}
-                                    imagePosition={stringConfig(assetTheme, 'imagePosition')}
+                                    highlightedLabelColor={stringConfig(
+                                        assetTheme,
+                                        'highlightedLabelColor',
+                                    )}
+                                    imageFit={stringConfig(
+                                        assetTheme,
+                                        'imageFit',
+                                    )}
+                                    imagePosition={stringConfig(
+                                        assetTheme,
+                                        'imagePosition',
+                                    )}
                                     imageUrl={surface.imageUrl}
                                     label={label}
-                                    labelColor={stringConfig(assetTheme, 'labelColor')}
+                                    labelColor={stringConfig(
+                                        assetTheme,
+                                        'labelColor',
+                                    )}
                                 />
                             </div>
                         );
@@ -678,14 +775,18 @@ function PublicMapSurface({
                             data-map-asset-highlighted={
                                 isHighlighted ? 'true' : 'false'
                             }
-                            data-map-asset-visibility={isHidden ? 'hidden' : 'visible'}
+                            data-map-asset-visibility={
+                                isHidden ? 'hidden' : 'visible'
+                            }
                             key={asset.slug}
                             onClick={(event) => {
                                 event.stopPropagation();
                                 if (canToggle) {
                                     setToggledAssetSlugs((current) =>
                                         current.includes(asset.slug)
-                                            ? current.filter((slug) => slug !== asset.slug)
+                                            ? current.filter(
+                                                  (slug) => slug !== asset.slug,
+                                              )
                                             : [...current, asset.slug],
                                     );
                                 } else if (
@@ -707,18 +808,45 @@ function PublicMapSurface({
                             type="button"
                         >
                             <PublicMapAssetVisual
-                                backgroundColor={stringConfig(assetTheme, 'borderColor') ?? stringConfig(assetTheme, 'tileColor') ?? '#12343b'}
-                                highlightBorderColor={stringConfig(assetTheme, 'highlightBorderColor') ?? stringConfig(assetTheme, 'highlightColor')}
-                                highlightColor={stringConfig(assetTheme, 'highlightColor')}
-                                highlightImageEnabled={assetTheme.highlightImageEnabled === true}
-                                highlightImageUrl={stringConfig(assetTheme, 'highlightImageUrl')}
+                                backgroundColor={
+                                    stringConfig(assetTheme, 'borderColor') ??
+                                    stringConfig(assetTheme, 'tileColor') ??
+                                    '#12343b'
+                                }
+                                highlightBorderColor={
+                                    stringConfig(
+                                        assetTheme,
+                                        'highlightBorderColor',
+                                    ) ??
+                                    stringConfig(assetTheme, 'highlightColor')
+                                }
+                                highlightColor={stringConfig(
+                                    assetTheme,
+                                    'highlightColor',
+                                )}
+                                highlightImageEnabled={
+                                    assetTheme.highlightImageEnabled === true
+                                }
+                                highlightImageUrl={stringConfig(
+                                    assetTheme,
+                                    'highlightImageUrl',
+                                )}
                                 highlighted={isHighlighted}
-                                highlightedLabelColor={stringConfig(assetTheme, 'highlightedLabelColor')}
+                                highlightedLabelColor={stringConfig(
+                                    assetTheme,
+                                    'highlightedLabelColor',
+                                )}
                                 imageFit={stringConfig(assetTheme, 'imageFit')}
-                                imagePosition={stringConfig(assetTheme, 'imagePosition')}
+                                imagePosition={stringConfig(
+                                    assetTheme,
+                                    'imagePosition',
+                                )}
                                 imageUrl={surface.imageUrl}
                                 label={label}
-                                labelColor={stringConfig(assetTheme, 'labelColor')}
+                                labelColor={stringConfig(
+                                    assetTheme,
+                                    'labelColor',
+                                )}
                             />
                             {isBookmarked || isCompleted ? (
                                 <span className="pointer-events-none absolute top-1 right-1 flex gap-1 text-teal-100 drop-shadow-md">
@@ -745,15 +873,34 @@ function PublicMapSurface({
                 className="pointer-events-none absolute top-28 left-1/2 z-10 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-lg border p-4 text-left shadow-2xl backdrop-blur-md sm:top-24 md:left-8 md:w-auto md:translate-x-0"
                 style={mapPanelStyle(theme)}
             >
-                <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: stringConfig(theme, 'accentColor') ?? '#ccfbf1' }}>
+                <div
+                    className="mb-3 flex items-center gap-2 text-sm"
+                    style={{
+                        color: stringConfig(theme, 'accentColor') ?? '#ccfbf1',
+                    }}
+                >
                     <MapIcon className="size-4" />
                     <span>Current map</span>
                 </div>
-                <h1 className="m-0 text-3xl font-semibold tracking-normal" style={{ color: stringConfig(theme, 'panelTextColor') ?? '#e2e8f0' }}>
+                <h1
+                    className="m-0 text-3xl font-semibold tracking-normal"
+                    style={{
+                        color:
+                            stringConfig(theme, 'panelTextColor') ?? '#e2e8f0',
+                    }}
+                >
                     {map.title}
                 </h1>
                 {map.description ? (
-                    <p className="mt-3 mb-0 max-w-md text-sm leading-6" style={{ color: stringConfig(theme, 'panelMutedTextColor') ?? stringConfig(theme, 'panelTextColor') ?? '#e2e8f0' }}>
+                    <p
+                        className="mt-3 mb-0 max-w-md text-sm leading-6"
+                        style={{
+                            color:
+                                stringConfig(theme, 'panelMutedTextColor') ??
+                                stringConfig(theme, 'panelTextColor') ??
+                                '#e2e8f0',
+                        }}
+                    >
                         {map.description}
                     </p>
                 ) : null}
@@ -762,14 +909,19 @@ function PublicMapSurface({
     );
 }
 
-function assetSurface(asset: PublicMapAsset, secondState: boolean): {
+function assetSurface(
+    asset: PublicMapAsset,
+    secondState: boolean,
+): {
     imageUrl: string | null;
     width: number;
     x: number;
     y: number;
 } {
     const states = objectConfig(asset.interaction_config, 'states');
-    const state = secondState ? objectConfig(states, 'second') : objectConfig(states, 'first');
+    const state = secondState
+        ? objectConfig(states, 'second')
+        : objectConfig(states, 'first');
 
     return {
         imageUrl: stringConfig(state, 'imageUrl') ?? asset.image_url,
@@ -817,12 +969,18 @@ function WorldSearch({
         return () => window.clearTimeout(timer);
     }, [term]);
 
-    function chooseResult(result: components['schemas']['PublicSearchResult']): void {
-        const resultMap = world.maps.find((candidate) => candidate.slug === result.map_slug);
+    function chooseResult(
+        result: components['schemas']['PublicSearchResult'],
+    ): void {
+        const resultMap = world.maps.find(
+            (candidate) => candidate.slug === result.map_slug,
+        );
         if (!resultMap) {
             return;
         }
-        const node = resultMap.nodes.find((candidate) => candidate.asset_slug === result.asset_slug);
+        const node = resultMap.nodes.find(
+            (candidate) => candidate.asset_slug === result.asset_slug,
+        );
         if (node) {
             onSelectNode(node, resultMap);
         } else {
@@ -836,10 +994,23 @@ function WorldSearch({
     return (
         <div className="absolute bottom-5 left-5 z-20 w-[min(24rem,calc(100%-2.5rem))]">
             {hasSearch ? (
-                <div className="mb-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md" style={floatingPanelStyle(theme)}>
-                    {search.kind === 'loading' ? <p className="px-3 py-4 text-sm">Searching…</p> : null}
-                    {search.kind === 'unavailable' ? <p className="px-3 py-4 text-sm">Search is temporarily unavailable.</p> : null}
-                    {search.kind === 'loaded' && search.results.length === 0 ? <p className="px-3 py-4 text-sm">No visible maps or places found.</p> : null}
+                <div
+                    className="mb-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md"
+                    style={floatingPanelStyle(theme)}
+                >
+                    {search.kind === 'loading' ? (
+                        <p className="px-3 py-4 text-sm">Searching…</p>
+                    ) : null}
+                    {search.kind === 'unavailable' ? (
+                        <p className="px-3 py-4 text-sm">
+                            Search is temporarily unavailable.
+                        </p>
+                    ) : null}
+                    {search.kind === 'loaded' && search.results.length === 0 ? (
+                        <p className="px-3 py-4 text-sm">
+                            No visible maps or places found.
+                        </p>
+                    ) : null}
                     {search.kind === 'loaded' ? (
                         <div className="grid gap-1">
                             {search.results.map((result) => (
@@ -849,12 +1020,25 @@ function WorldSearch({
                                     onClick={() => chooseResult(result)}
                                     type="button"
                                 >
-                                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-teal-300/12" style={{ color: stringConfig(theme, 'accentColor') ?? '#ccfbf1' }}>
+                                    <span
+                                        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-teal-300/12"
+                                        style={{
+                                            color:
+                                                stringConfig(
+                                                    theme,
+                                                    'accentColor',
+                                                ) ?? '#ccfbf1',
+                                        }}
+                                    >
                                         <MapPin className="size-4" />
                                     </span>
                                     <span className="min-w-0">
-                                        <span className="block truncate text-sm font-semibold">{result.title}</span>
-                                        <span className="mt-0.5 block truncate text-xs opacity-75">{result.map_title}</span>
+                                        <span className="block truncate text-sm font-semibold">
+                                            {result.title}
+                                        </span>
+                                        <span className="mt-0.5 block truncate text-xs opacity-75">
+                                            {result.map_title}
+                                        </span>
                                     </span>
                                 </button>
                             ))}
@@ -862,7 +1046,10 @@ function WorldSearch({
                     ) : null}
                 </div>
             ) : null}
-            <label className="flex items-center gap-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md" style={floatingPanelStyle(theme)}>
+            <label
+                className="flex items-center gap-2 rounded-xl border p-2 shadow-2xl backdrop-blur-md"
+                style={floatingPanelStyle(theme)}
+            >
                 <Search className="ml-2 size-4 shrink-0 opacity-75" />
                 <span className="sr-only">Search maps and places</span>
                 <input
@@ -874,7 +1061,12 @@ function WorldSearch({
                     value={term}
                 />
                 {hasSearch ? (
-                    <button aria-label="Clear search" className="grid size-9 place-items-center rounded-md hover:bg-white/10" onClick={() => setTerm('')} type="button">
+                    <button
+                        aria-label="Clear search"
+                        className="grid size-9 place-items-center rounded-md hover:bg-white/10"
+                        onClick={() => setTerm('')}
+                        type="button"
+                    >
                         <X className="size-4" />
                     </button>
                 ) : null}
@@ -969,7 +1161,8 @@ function NodeDrawer({
                     borderColor:
                         stringConfig(theme, 'sidePanelBorderColor') ??
                         'rgba(255,255,255,0.1)',
-                    color: stringConfig(theme, 'sidePanelTextColor') ?? '#e2e8f0',
+                    color:
+                        stringConfig(theme, 'sidePanelTextColor') ?? '#e2e8f0',
                     transform:
                         node && swipe?.offsetX
                             ? `translateX(${swipe.offsetX}px)`
@@ -989,16 +1182,43 @@ function NodeDrawer({
                             </h2>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                            {completed ? <span aria-label="Node completed" className="grid size-9 place-items-center rounded-md text-emerald-600 dark:text-emerald-300" title="Completed"><CheckCircle2 className="size-4" /></span> : null}
-                            {bookmarked ? <span aria-label="Saved place" className="grid size-9 place-items-center rounded-md text-cyan-600 dark:text-teal-200"><Bookmark className="size-4 fill-current" /></span> : null}
+                            {completed ? (
+                                <span
+                                    aria-label="Node completed"
+                                    className="grid size-9 place-items-center rounded-md text-emerald-600 dark:text-emerald-300"
+                                    title="Completed"
+                                >
+                                    <CheckCircle2 className="size-4" />
+                                </span>
+                            ) : null}
+                            {bookmarked ? (
+                                <span
+                                    aria-label="Saved place"
+                                    className="grid size-9 place-items-center rounded-md text-cyan-600 dark:text-teal-200"
+                                >
+                                    <Bookmark className="size-4 fill-current" />
+                                </span>
+                            ) : null}
                         </div>
-                        <button aria-label="Close node panel" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-slate-100 dark:hover:bg-white/10" onClick={onClose} type="button">
+                        <button
+                            aria-label="Close node panel"
+                            className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-slate-100 dark:hover:bg-white/10"
+                            onClick={onClose}
+                            type="button"
+                        >
                             <X className="size-5" />
                         </button>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/6"><p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{node.description}</p></div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/6">
+                        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            {node.description}
+                        </p>
+                    </div>
                     {node.state === 'locked' ? (
-                        <p className="flex items-center gap-2 rounded-lg border border-white/10 p-3 text-sm"><LockKeyhole className="size-4" /> This place is locked.</p>
+                        <p className="flex items-center gap-2 rounded-lg border border-white/10 p-3 text-sm">
+                            <LockKeyhole className="size-4" /> This place is
+                            locked.
+                        </p>
                     ) : null}
                     {node.state !== 'locked' ? (
                         <OriginalRouteStartButtons
@@ -1025,11 +1245,21 @@ function completedNodeSlugsFrom(
     );
 }
 
-function mergedThemeConfig(...configs: Array<Record<string, unknown> | undefined>): Record<string, unknown> {
-    return Object.assign({}, ...configs.filter((config): config is Record<string, unknown> => Boolean(config)));
+function mergedThemeConfig(
+    ...configs: Array<Record<string, unknown> | undefined>
+): Record<string, unknown> {
+    return Object.assign(
+        {},
+        ...configs.filter((config): config is Record<string, unknown> =>
+            Boolean(config),
+        ),
+    );
 }
 
-function stringConfig(config: Record<string, unknown>, key: string): string | undefined {
+function stringConfig(
+    config: Record<string, unknown>,
+    key: string,
+): string | undefined {
     const value = config[key];
     return typeof value === 'string' && value.trim() ? value : undefined;
 }
@@ -1052,7 +1282,9 @@ function numberConfig(
 ): number {
     const value = config[key];
 
-    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+    return typeof value === 'number' && Number.isFinite(value)
+        ? value
+        : fallback;
 }
 
 function worldSurfaceStyle(config: Record<string, unknown>) {
@@ -1064,16 +1296,24 @@ function worldSurfaceStyle(config: Record<string, unknown>) {
 
 function mapPanelStyle(config: Record<string, unknown>) {
     return {
-        background: stringConfig(config, 'panelBackground') ?? 'rgba(5, 15, 22, 0.72)',
-        borderColor: stringConfig(config, 'panelBorderColor') ?? stringConfig(config, 'cardBorderColor') ?? 'rgba(255,255,255,0.1)',
+        background:
+            stringConfig(config, 'panelBackground') ?? 'rgba(5, 15, 22, 0.72)',
+        borderColor:
+            stringConfig(config, 'panelBorderColor') ??
+            stringConfig(config, 'cardBorderColor') ??
+            'rgba(255,255,255,0.1)',
         color: stringConfig(config, 'panelTextColor') ?? '#e2e8f0',
     };
 }
 
 function floatingPanelStyle(config: Record<string, unknown>) {
     return {
-        background: stringConfig(config, 'panelBackground') ?? 'rgba(5, 15, 22, 0.86)',
-        borderColor: stringConfig(config, 'panelBorderColor') ?? stringConfig(config, 'cardBorderColor') ?? 'rgba(255,255,255,0.1)',
+        background:
+            stringConfig(config, 'panelBackground') ?? 'rgba(5, 15, 22, 0.86)',
+        borderColor:
+            stringConfig(config, 'panelBorderColor') ??
+            stringConfig(config, 'cardBorderColor') ??
+            'rgba(255,255,255,0.1)',
         color: stringConfig(config, 'panelTextColor') ?? '#e2e8f0',
     };
 }
