@@ -461,6 +461,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins:
+    post:
+      operationId: recordLearnerActivityCheckIn
+      summary: Record one private, optional reflection after a completed activity.
+      description: The server derives the completed activity and its owner from the authorized play run; the browser cannot select another learner or activity.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerActivityCheckInRequest'
+      responses:
+        '200':
+          description: The current learner's recorded private observation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerActivityCheckInResult'
+        '400': { description: The selected phrase, direction, or private note is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The run/activity pair is stale, unavailable, incomplete, or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/answer:
     post:
       operationId: answerLearnerQuestion
@@ -1837,6 +1864,31 @@ components:
         status:
           type: string
           enum: [in_progress, completed]
+    LearnerActivityCheckInRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        feeling:
+          type: [string, 'null']
+          enum: [clearer, forming, stretched, stuck, null]
+        note:
+          type: [string, 'null']
+          maxLength: 500
+        next_direction:
+          type: [string, 'null']
+          enum: [revisit, related, settle, null]
+    LearnerActivityCheckInResult:
+      type: object
+      additionalProperties: false
+      required: [id, activity_slug, feeling, note, next_direction, recorded_at]
+      properties:
+        id: { type: string, format: uuid }
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
+        note: { type: [string, 'null'], maxLength: 500 }
+        next_direction: { type: [string, 'null'], enum: [revisit, related, settle, null] }
+        recorded_at: { type: string, format: date-time }
     LearnerQuestionAnswerRequest:
       type: object
       additionalProperties: false

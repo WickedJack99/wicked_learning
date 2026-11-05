@@ -409,6 +409,27 @@ test('an anonymous session reveals no credential or identity material', async ({
     });
 });
 
+test('a private activity check-in requires an authenticated owner and never accepts a bare activity writer', async ({
+    request,
+}) => {
+    const response = await request.post(
+        '/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e/activities/consider-a-direction/check-ins',
+        {
+            data: {
+                feeling: 'forming',
+                next_direction: 'revisit',
+                note: 'I want to return to this after a pause.',
+            },
+        },
+    );
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+});
+
 test('learner paths require an authenticated application principal', async ({
     request,
 }) => {

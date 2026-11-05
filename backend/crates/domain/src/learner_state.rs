@@ -399,6 +399,19 @@ pub struct LearnerPlaybackCompletionResult {
     pub status: String,
 }
 
+/// A private, source-defined observation a learner chooses after completing an
+/// activity. The browser cannot choose the activity or its ownership; those
+/// come from the authorized play run.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerActivityCheckInResult {
+    pub activity_slug: String,
+    pub feeling: Option<String>,
+    pub id: String,
+    pub next_direction: Option<String>,
+    pub note: Option<String>,
+    pub recorded_at: String,
+}
+
 /// A learner's evaluated attempt at the question currently authorized by a
 /// play run. Choice keys are opaque authored identifiers; correctness and the
 /// next transition are resolved by the server, never the browser.

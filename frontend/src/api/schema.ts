@@ -295,6 +295,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record one private, optional reflection after a completed activity.
+         * @description The server derives the completed activity and its owner from the authorized play run; the browser cannot select another learner or activity.
+         */
+        post: operations["recordLearnerActivityCheckIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/answer": {
         parameters: {
             query?: never;
@@ -1021,6 +1041,25 @@ export interface components {
             play_run_id: string;
             /** @enum {string} */
             status: "in_progress" | "completed";
+        };
+        LearnerActivityCheckInRequest: {
+            /** @enum {string|null} */
+            feeling?: "clearer" | "forming" | "stretched" | "stuck" | null;
+            note?: string | null;
+            /** @enum {string|null} */
+            next_direction?: "revisit" | "related" | "settle" | null;
+        };
+        LearnerActivityCheckInResult: {
+            /** Format: uuid */
+            id: string;
+            activity_slug: string;
+            /** @enum {string|null} */
+            feeling: "clearer" | "forming" | "stretched" | "stuck" | null;
+            note: string | null;
+            /** @enum {string|null} */
+            next_direction: "revisit" | "related" | "settle" | null;
+            /** Format: date-time */
+            recorded_at: string;
         };
         LearnerQuestionAnswerRequest: {
             option_keys: string[];
@@ -2122,6 +2161,71 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    recordLearnerActivityCheckIn: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerActivityCheckInRequest"];
+            };
+        };
+        responses: {
+            /** @description The current learner's recorded private observation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerActivityCheckInResult"];
+                };
+            };
+            /** @description The selected phrase */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The run/activity pair is stale */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

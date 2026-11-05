@@ -6,6 +6,7 @@ mod error;
 mod identity;
 mod learner_bookmark;
 mod learner_bookmark_map;
+mod learner_check_in;
 mod learner_competence;
 mod learner_journal;
 mod learner_journal_page;
@@ -264,6 +265,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
             post(learner_playback::complete_open_practice),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins",
+            post(learner_check_in::record),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/answer",

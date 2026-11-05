@@ -3,6 +3,7 @@
 pub mod current_user;
 pub mod learner_bookmark;
 pub mod learner_bookmark_map;
+pub mod learner_check_in;
 pub mod learner_competence;
 pub mod learner_journal;
 pub mod learner_journal_page;

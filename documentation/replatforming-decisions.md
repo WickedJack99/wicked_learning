@@ -946,6 +946,50 @@ ordering, or the full source cursor/theme set. A later administrator slice
 must validate and write this typed model under appropriate authorization;
 until then, the seeded source defaults are the only supported configuration.
 
+## ADR-032: Private check-ins are normalized and bound to an owned completed run
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** Laravel stores a learner's optional post-activity check-ins and
+revisit state inside mutable activity-progress JSON. That couples individual
+private observations to an implementation detail, makes the source's bounded
+history difficult to query safely, and lets a browser-oriented API risk
+accepting a bare activity identifier without proving which learner/run owns it.
+
+**Decision:** Store each check-in as an application-database
+`learner_activity_check_ins` row owned by one application principal and one
+activity. It holds only the source-defined feeling (`clearer`, `forming`,
+`stretched`, `stuck`), optional private note (at most 500 characters), optional
+direction (`revisit`, `related`, `settle`), server timestamp and opaque
+server-issued play-run ID. PostgreSQL constrains those values and retains only
+the latest 30 observations for each learner/activity, matching the source's
+bounded history.
+
+`POST /learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins`
+does not trust a browser-supplied activity identity. In one transaction it
+proves the authenticated principal owns the route run, the activity belongs to
+that run's published/visible route, and the principal has already completed it.
+A `revisit` direction schedules a private invitation for three days later;
+every newer non-revisit direction clears that schedule. The migration records
+the schedule explicitly on learner activity progress, rather than deriving it
+from serialized JSON.
+
+**Why:** This preserves the learner-controlled, private behavior while making
+ownership, validation, retention and future journal/competence readers
+reviewable in SQL. A play-run boundary also follows the replatforming rule that
+the browser cannot choose an activity or progression state on its own.
+
+**Alternatives:** Keeping Laravel-compatible metadata would copy a persistence
+format rather than behavior. Taking only an activity slug would make the Rust
+writer depend on a weaker authorization check. Both are rejected.
+
+**Limitations and trigger:** This is a persistence and command foundation only.
+The source check-in panel, journal timeline, due revisit invitations,
+dismiss/snooze actions, review-attempt recording and competence presentation
+are not exposed yet. Lift them together with their source UI and browser
+behavior once the complete revisit/re-entry workflow has a contract; do not add
+a substitute React control before then.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
