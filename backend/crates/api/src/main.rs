@@ -4,6 +4,7 @@ mod csrf;
 mod current_user;
 mod error;
 mod identity;
+mod learner_route_run;
 mod learner_world;
 mod login_rate_limit;
 pub mod media_store;
@@ -205,6 +206,14 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/learner/world", get(learner_world::show))
+        .route(
+            "/api/v1/learner/activity-starts/{start_id}/start",
+            post(learner_route_run::start_or_resume),
+        )
+        .route(
+            "/api/v1/learner/activity-starts/{start_id}/reset",
+            post(learner_route_run::reset),
+        )
         .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/session/logout", post(session_commands::logout))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))

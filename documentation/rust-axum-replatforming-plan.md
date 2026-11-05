@@ -321,9 +321,16 @@ The application schema now distinguishes a route from a node-specific activity
 start, matching the existing `LearningActivityStart` behavior. Read-only starts
 now provide the first contract prerequisite for lifting the original
 `ActivityPanel`; the next prerequisite is a separately approved write contract
-for route starts and resets. Route progress remains temporarily keyed to the route while fresh content has a
-one-to-one route/node relationship; ADR-016 requires an explicit change before
-routes can be offered from more than one node.
+for route starts and resets. Route progress is keyed to the authored activity
+start, so a route can later be offered from more than one node without merging
+those learners' runs.
+
+The local learner-state phase is approved. `POST` start/resume and reset
+commands now resolve an authorized start and generate a server-owned play run
+(ADR-017), but the interim World panel must not enable its controls until a
+playback document and activity writer give the destination a complete,
+authorized behavior. This remains isolated to the local Rust Compose database;
+Laravel and production ownership are unchanged.
 
 ### Reference behavior and implementation autonomy
 

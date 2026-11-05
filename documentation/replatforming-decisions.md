@@ -411,6 +411,36 @@ their authored presentation and node-specific semantics. Delaying the table
 would keep the provisional drawer in place and make the frontend re-create
 server content decisions. Both are rejected.
 
+## ADR-017: Server-owned route-start and reset runs
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** Starting, resuming and resetting an activity route changes
+learner-owned state. A browser-generated run identifier, route-only progress
+key, or client-side visibility decision would allow forged/reused runs and
+would fail once the same route is offered by multiple activity starts.
+
+**Decision:** The first local learner-state writer accepts only an authored
+activity-start UUID. In one PostgreSQL transaction it resolves the
+authenticated application principal, verifies published map/node/asset/route/
+activity visibility and route eligibility, then creates or resumes a
+server-generated UUID play run. Reset always creates a new UUID and clears
+only current-run state. Progress is keyed by `(principal_id, activity_start_id)`
+while retaining `route_id` as a query aid. Unknown and unauthorized starts both
+produce the same not-found result.
+
+**Why:** It preserves Laravel's `LearnerRouteProgressService` behavior while
+keeping authorization, current-run identity and replay prevention in Rust and
+PostgreSQL. The database now has a durable activity type/configuration boundary
+so portal-input starts can be rejected by policy before a browser can invoke
+them.
+
+**Limitations:** This slice exposes start/resume/reset contracts only. It does
+not yet expose a playback document, activity completion, answer/reflection
+writes, transitions, inventory, tools, AI, collaboration, or authoring. Those
+writers must validate an active server-owned run and arrive as separate tested
+increments.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -25,6 +25,7 @@ pub struct LearnerActivityProgress {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerRouteProgress {
+    pub start_id: String,
     pub node_slug: String,
     pub route_slug: String,
     pub current_activity_slug: Option<String>,
@@ -74,4 +75,19 @@ pub struct LearnerActivityStartProgress {
     pub completion_count: i32,
     pub last_completed_at: Option<String>,
     pub last_entered_at: Option<String>,
+}
+
+/// The only data a route-start command returns to the browser. The play-run ID
+/// is generated and authorized by the server; the browser may only present it
+/// back to a later playback endpoint.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRouteRun {
+    pub start_id: String,
+    pub node_slug: String,
+    pub route_slug: String,
+    pub activity_slug: String,
+    pub play_run_id: String,
+    pub status: String,
+    pub completion_count: i32,
+    pub reset_count: i32,
 }

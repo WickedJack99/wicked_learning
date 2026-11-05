@@ -113,6 +113,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/activity-starts/{start_id}/start:
+    post:
+      operationId: startLearnerRoute
+      summary: Start a new server-owned play run or resume the active run for an authorized activity start.
+      parameters:
+        - $ref: '#/components/parameters/ActivityStartId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The server-authorized run to use for playback.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerRouteRun'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The request has a missing/invalid CSRF token or untrusted Origin.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The start is unpublished, not visible to this learner, or does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /learner/activity-starts/{start_id}/reset:
+    post:
+      operationId: resetLearnerRoute
+      summary: Discard the active in-progress state and create a new server-owned play run for an authorized activity start.
+      parameters:
+        - $ref: '#/components/parameters/ActivityStartId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The replacement server-authorized run to use for playback.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerRouteRun'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The request has a missing/invalid CSRF token or untrusted Origin.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The start is unpublished, not visible to this learner, or does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /session/login:
     post:
       operationId: createSession
@@ -360,6 +436,13 @@ components:
       description: Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin.
       schema:
         type: string
+    ActivityStartId:
+      name: start_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     PublicSlugPathWorld:
       name: world_slug
       in: path
@@ -641,8 +724,11 @@ components:
     LearnerRouteProgress:
       type: object
       additionalProperties: false
-      required: [node_slug, route_slug, current_activity_slug, status, completion_count, last_completed_at, last_entered_at]
+      required: [start_id, node_slug, route_slug, current_activity_slug, status, completion_count, last_completed_at, last_entered_at]
       properties:
+        start_id:
+          type: string
+          format: uuid
         node_slug:
           type: string
           pattern: '^[a-z0-9-]+$'
@@ -750,6 +836,35 @@ components:
           oneOf:
             - $ref: '#/components/schemas/LearnerActivityStartProgress'
             - type: 'null'
+    LearnerRouteRun:
+      type: object
+      additionalProperties: false
+      required: [start_id, node_slug, route_slug, activity_slug, play_run_id, status, completion_count, reset_count]
+      properties:
+        start_id:
+          type: string
+          format: uuid
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        route_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        activity_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        play_run_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [in_progress]
+        completion_count:
+          type: integer
+          minimum: 0
+        reset_count:
+          type: integer
+          minimum: 0
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false

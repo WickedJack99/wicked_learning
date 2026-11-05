@@ -89,6 +89,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/activity-starts/{start_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a new server-owned play run or resume the active run for an authorized activity start. */
+        post: operations["startLearnerRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/activity-starts/{start_id}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discard the active in-progress state and create a new server-owned play run for an authorized activity start. */
+        post: operations["resetLearnerRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session/login": {
         parameters: {
             query?: never;
@@ -373,6 +407,8 @@ export interface components {
             completed_at: string | null;
         };
         LearnerRouteProgress: {
+            /** Format: uuid */
+            start_id: string;
             node_slug: string;
             route_slug: string;
             current_activity_slug: string | null;
@@ -417,6 +453,19 @@ export interface components {
             button_border_color_light: string | null;
             sort_order: number;
             progress: components["schemas"]["LearnerActivityStartProgress"] | null;
+        };
+        LearnerRouteRun: {
+            /** Format: uuid */
+            start_id: string;
+            node_slug: string;
+            route_slug: string;
+            activity_slug: string;
+            /** Format: uuid */
+            play_run_id: string;
+            /** @enum {string} */
+            status: "in_progress";
+            completion_count: number;
+            reset_count: number;
         };
         LearnerWorldSnapshot: {
             world: components["schemas"]["PublicWorld"];
@@ -476,6 +525,7 @@ export interface components {
     parameters: {
         /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
         CsrfTokenHeader: string;
+        ActivityStartId: string;
         PublicSlugPathWorld: string;
         PublicSlugPathMap: string;
         PublicSlugPathAsset: string;
@@ -640,6 +690,128 @@ export interface operations {
                 };
             };
             /** @description No World map is visible to this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    startLearnerRoute: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                start_id: components["parameters"]["ActivityStartId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The server-authorized run to use for playback. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerRouteRun"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The request has a missing/invalid CSRF token or untrusted Origin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The start is unpublished, not visible to this learner, or does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resetLearnerRoute: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                start_id: components["parameters"]["ActivityStartId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The replacement server-authorized run to use for playback. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerRouteRun"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The request has a missing/invalid CSRF token or untrusted Origin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The start is unpublished, not visible to this learner, or does not exist. */
             404: {
                 headers: {
                     [name: string]: unknown;

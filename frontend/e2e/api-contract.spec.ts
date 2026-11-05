@@ -256,6 +256,16 @@ test('an anonymous session reveals no credential or identity material', async ({
         code: 'authentication_required',
         title: 'Authentication is required.',
     });
+
+    const routeStartResponse = await request.post(
+        '/api/v1/learner/activity-starts/00000000-0000-4000-8000-000000000000/start',
+        { headers: { Origin: publicOrigin } },
+    );
+    expect(routeStartResponse.status()).toBe(401);
+    await expect(routeStartResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
 });
 
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({
@@ -306,6 +316,73 @@ test('a CI-only fresh identity can login, report its session, and logout', async
         subject_id: session.subject_id,
         roles: ['platform_administrator'],
     });
+
+    const learnerWorld = await request.get('/api/v1/learner/world');
+    expect(learnerWorld.status()).toBe(200);
+    const learnerWorldSnapshot = (await learnerWorld.json()) as {
+        start_routes: Array<{ start_id: string }>;
+    };
+    const firstStart = learnerWorldSnapshot.start_routes[0];
+    expect(firstStart).toBeDefined();
+    if (!firstStart) {
+        throw new Error('the disposable learner needs one published activity start');
+    }
+
+    const start = await request.post(
+        `/api/v1/learner/activity-starts/${firstStart.start_id}/start`,
+        {
+            headers: {
+                Origin: publicOrigin,
+                'X-CSRF-Token': token,
+            },
+        },
+    );
+    expect(start.status()).toBe(200);
+    const firstRun = (await start.json()) as {
+        play_run_id: string;
+        reset_count: number;
+        status: string;
+    };
+    expect(firstRun).toMatchObject({
+        play_run_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        reset_count: expect.any(Number),
+        status: 'in_progress',
+    });
+
+    const resumed = await request.post(
+        `/api/v1/learner/activity-starts/${firstStart.start_id}/start`,
+        {
+            headers: {
+                Origin: publicOrigin,
+                'X-CSRF-Token': token,
+            },
+        },
+    );
+    expect(resumed.status()).toBe(200);
+    await expect(resumed.json()).resolves.toMatchObject({
+        play_run_id: firstRun.play_run_id,
+    });
+
+    const reset = await request.post(
+        `/api/v1/learner/activity-starts/${firstStart.start_id}/reset`,
+        {
+            headers: {
+                Origin: publicOrigin,
+                'X-CSRF-Token': token,
+            },
+        },
+    );
+    expect(reset.status()).toBe(200);
+    const resetRun = (await reset.json()) as {
+        play_run_id: string;
+        reset_count: number;
+        status: string;
+    };
+    expect(resetRun).toMatchObject({
+        reset_count: firstRun.reset_count + 1,
+        status: 'in_progress',
+    });
+    expect(resetRun.play_run_id).not.toBe(firstRun.play_run_id);
 
     const logout = await request.post('/api/v1/session/logout', {
         headers: {
