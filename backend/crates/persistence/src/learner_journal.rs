@@ -7,10 +7,14 @@ use wicked_learning_application::learner_journal::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerJournalDocument, LearnerJournalLearningContext, LearnerJournalPage,
-        LearnerJournalPagination,
+        LearnerJournalCheckIn, LearnerJournalDocument, LearnerJournalLearningContext,
+        LearnerJournalPage, LearnerJournalPagination, LearnerRevisitInvitation,
     },
 };
+
+const CHECK_IN_LIMIT: i64 = 30;
+const REVISIT_INVITATION_LIMIT: i64 = 12;
+const REVISIT_AVAILABLE_AFTER_DAYS: i16 = 3;
 
 pub struct PostgresLearnerJournalRepository<'pool> {
     pool: &'pool PgPool,
@@ -58,6 +62,35 @@ struct PageRow {
     updated_at: String,
 }
 
+#[derive(FromRow)]
+struct CheckInRow {
+    activity_slug: String,
+    activity_title: String,
+    feeling: Option<String>,
+    id: Uuid,
+    map_slug: String,
+    map_title: String,
+    next_direction: Option<String>,
+    node_slug: String,
+    node_title: String,
+    note: Option<String>,
+    recorded_at: String,
+}
+
+#[derive(FromRow)]
+struct RevisitInvitationRow {
+    activity_slug: String,
+    activity_title: String,
+    available_at: String,
+    available_since: String,
+    check_in_id: Uuid,
+    map_slug: String,
+    map_title: String,
+    node_slug: String,
+    node_title: String,
+    revisit_status: String,
+}
+
 fn escape_like(query: &str) -> String {
     query
         .replace('\\', "\\\\")
@@ -97,9 +130,13 @@ async fn load_page(
     .bind(offset)
     .fetch_all(pool)
     .await?;
+    let check_ins = load_check_ins(pool, principal_id, &principal.roles).await?;
+    let revisit_invitations =
+        load_revisit_invitations(pool, principal_id, &principal.roles).await?;
     let last_page = std::cmp::max(1, (total + request.per_page - 1) / request.per_page);
 
     Ok(Some(LearnerJournalDocument {
+        check_ins,
         pages: pages
             .into_iter()
             .map(|page| LearnerJournalPage {
@@ -136,15 +173,94 @@ async fn load_page(
             per_page: request.per_page,
             total,
         },
+        revisit_invitations,
     }))
+}
+
+async fn load_check_ins(
+    pool: &PgPool,
+    principal_id: Uuid,
+    roles: &[String],
+) -> Result<Vec<LearnerJournalCheckIn>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, CheckInRow>(
+        "SELECT check_ins.id, activities.slug AS activity_slug, activities.title AS activity_title, check_ins.feeling, check_ins.note, check_ins.next_direction, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3",
+    )
+    .bind(principal_id)
+    .bind(roles)
+    .bind(CHECK_IN_LIMIT)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| LearnerJournalCheckIn {
+            activity_slug: row.activity_slug,
+            activity_title: row.activity_title,
+            feeling: row.feeling,
+            id: row.id.to_string(),
+            map_slug: row.map_slug,
+            map_title: row.map_title,
+            next_direction: row.next_direction,
+            node_slug: row.node_slug,
+            node_title: row.node_title,
+            note: row.note,
+            recorded_at: row.recorded_at,
+        })
+        .collect())
+}
+
+async fn load_revisit_invitations(
+    pool: &PgPool,
+    principal_id: Uuid,
+    roles: &[String],
+) -> Result<Vec<LearnerRevisitInvitation>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, RevisitInvitationRow>(
+        "SELECT activities.slug AS activity_slug, activities.title AS activity_title, to_char(progress.revisit_available_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS available_at, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS available_since, check_ins.id AS check_in_id, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, progress.revisit_status FROM learner_activity_progress AS progress INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = progress.revisit_check_in_id INNER JOIN learning_activities AS activities ON activities.id = progress.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE progress.principal_id = $1 AND progress.status = 'completed' AND progress.revisit_status IN ('pending', 'snoozed') AND progress.revisit_available_at <= NOW() AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY progress.revisit_available_at DESC, progress.updated_at DESC, progress.activity_id DESC LIMIT $3",
+    )
+    .bind(principal_id)
+    .bind(roles)
+    .bind(REVISIT_INVITATION_LIMIT)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| LearnerRevisitInvitation {
+            activity_slug: row.activity_slug,
+            activity_title: row.activity_title,
+            available_after_days: REVISIT_AVAILABLE_AFTER_DAYS,
+            available_at: row.available_at,
+            available_since: row.available_since,
+            check_in_id: row.check_in_id.to_string(),
+            map_slug: row.map_slug,
+            map_title: row.map_title,
+            node_slug: row.node_slug,
+            node_title: row.node_title,
+            revisit_reason: revisit_reason(&row.revisit_status).to_owned(),
+        })
+        .collect())
+}
+
+fn revisit_reason(status: &str) -> &'static str {
+    if status == "snoozed" {
+        "later"
+    } else {
+        "pause"
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::escape_like;
+    use super::{escape_like, revisit_reason};
 
     #[test]
     fn private_journal_search_escapes_database_wildcards() {
         assert_eq!(escape_like("note%_\\"), "note\\%\\_\\\\");
+    }
+
+    #[test]
+    fn source_revisit_statuses_keep_their_journal_reason() {
+        assert_eq!(revisit_reason("pending"), "pause");
+        assert_eq!(revisit_reason("snoozed"), "later");
     }
 }

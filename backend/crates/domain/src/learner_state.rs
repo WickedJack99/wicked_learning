@@ -444,8 +444,45 @@ pub struct LearnerReflectionResult {
 /// private capabilities with their own writer contracts.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalDocument {
+    pub check_ins: Vec<LearnerJournalCheckIn>,
     pub pages: Vec<LearnerJournalPage>,
     pub pagination: LearnerJournalPagination,
+    pub revisit_invitations: Vec<LearnerRevisitInvitation>,
+}
+
+/// A bounded, private observation shown in the source journal's learning
+/// trail. It contains orientation only; re-entering an activity remains a
+/// separate server-authorized command.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalCheckIn {
+    pub activity_slug: String,
+    pub activity_title: String,
+    pub feeling: Option<String>,
+    pub id: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub next_direction: Option<String>,
+    pub node_slug: String,
+    pub node_title: String,
+    pub note: Option<String>,
+    pub recorded_at: String,
+}
+
+/// A learner-selected return that is ready to act on. The read model does not
+/// itself authorize re-entry; a later command must create a server-owned run.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRevisitInvitation {
+    pub activity_slug: String,
+    pub activity_title: String,
+    pub available_after_days: i16,
+    pub available_at: String,
+    pub available_since: String,
+    pub check_in_id: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub node_slug: String,
+    pub node_title: String,
+    pub revisit_reason: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

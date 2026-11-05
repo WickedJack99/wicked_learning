@@ -1092,8 +1092,45 @@ export interface components {
             status: "in_progress" | "completed";
         };
         LearnerJournalDocument: {
+            check_ins: components["schemas"]["LearnerJournalCheckIn"][];
             pages: components["schemas"]["LearnerJournalPage"][];
             pagination: components["schemas"]["LearnerJournalPagination"];
+            revisit_invitations: components["schemas"]["LearnerRevisitInvitation"][];
+        };
+        LearnerJournalCheckIn: {
+            /** Format: uuid */
+            id: string;
+            activity_slug: string;
+            activity_title: string;
+            /** @enum {string|null} */
+            feeling: "clearer" | "forming" | "stretched" | "stuck" | null;
+            note: string | null;
+            /** @enum {string|null} */
+            next_direction: "revisit" | "related" | "settle" | null;
+            /** Format: date-time */
+            recorded_at: string;
+            map_slug: string;
+            map_title: string;
+            node_slug: string;
+            node_title: string;
+        };
+        LearnerRevisitInvitation: {
+            /** Format: uuid */
+            check_in_id: string;
+            activity_slug: string;
+            activity_title: string;
+            /** @enum {integer} */
+            available_after_days: 3;
+            /** Format: date-time */
+            available_at: string;
+            /** Format: date-time */
+            available_since: string;
+            /** @enum {string} */
+            revisit_reason: "pause" | "later";
+            map_slug: string;
+            map_title: string;
+            node_slug: string;
+            node_title: string;
         };
         CreateLearnerJournalPageRequest: {
             title: string;

@@ -1942,14 +1942,54 @@ components:
     LearnerJournalDocument:
       type: object
       additionalProperties: false
-      required: [pages, pagination]
+      required: [check_ins, pages, pagination, revisit_invitations]
       properties:
+        check_ins:
+          type: array
+          maxItems: 30
+          items: { $ref: '#/components/schemas/LearnerJournalCheckIn' }
         pages:
           type: array
           maxItems: 24
           items: { $ref: '#/components/schemas/LearnerJournalPage' }
         pagination:
           $ref: '#/components/schemas/LearnerJournalPagination'
+        revisit_invitations:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearnerRevisitInvitation' }
+    LearnerJournalCheckIn:
+      type: object
+      additionalProperties: false
+      required: [id, activity_slug, activity_title, feeling, note, next_direction, recorded_at, map_slug, map_title, node_slug, node_title]
+      properties:
+        id: { type: string, format: uuid }
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        activity_title: { type: string }
+        feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
+        note: { type: [string, 'null'], maxLength: 500 }
+        next_direction: { type: [string, 'null'], enum: [revisit, related, settle, null] }
+        recorded_at: { type: string, format: date-time }
+        map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        map_title: { type: string }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_title: { type: string }
+    LearnerRevisitInvitation:
+      type: object
+      additionalProperties: false
+      required: [check_in_id, activity_slug, activity_title, available_after_days, available_at, available_since, revisit_reason, map_slug, map_title, node_slug, node_title]
+      properties:
+        check_in_id: { type: string, format: uuid }
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        activity_title: { type: string }
+        available_after_days: { type: integer, enum: [3] }
+        available_at: { type: string, format: date-time }
+        available_since: { type: string, format: date-time }
+        revisit_reason: { type: string, enum: [pause, later] }
+        map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        map_title: { type: string }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_title: { type: string }
     CreateLearnerJournalPageRequest:
       type: object
       additionalProperties: false

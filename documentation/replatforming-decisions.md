@@ -990,6 +990,13 @@ are not exposed yet. Lift them together with their source UI and browser
 behavior once the complete revisit/re-entry workflow has a contract; do not add
 a substitute React control before then.
 
+The existing authenticated journal read model now carries the bounded private
+check-in trail and due, visible revisit-invitation projection required by that
+future UI. It exposes neither an activity-reentry URL nor invitation actions:
+those remain unavailable until a Rust command can create and complete a
+server-owned revisit run, consume the invitation and record the source review
+attempt atomically.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
