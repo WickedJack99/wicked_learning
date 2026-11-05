@@ -835,13 +835,16 @@ thresholds. Evidence is scoped to one application principal, activity and
 server-owned play-run UUID and has a uniqueness key per topic/evidence-type/
 attempt. It may refer to a private reflection but never stores reflection text.
 JSON metadata is constrained to arrays where applicable; all contributions are
-positive and evidence types are the source-defined intent set. No browser
-reader or completion writer is introduced in this decision.
+positive and evidence types are the source-defined intent set. The supported
+Rust playback writers (`open_practice`, question and base reflection) write the
+normalized snapshot inside their existing active-run transaction. The browser
+does not post evidence or select a topic, contribution, outcome or evidence
+type.
 
 **Why:** This is the minimum durable data boundary from which a future Rust
-writer can produce the source evidence record atomically with activity
-completion, and from which a bounded private competence reader can derive its
-visual ratios without exposing answers or journal writing.
+writer produces the source evidence record atomically with activity completion,
+and from which a bounded private competence reader can derive its visual ratios
+without exposing answers or journal writing.
 
 **Alternatives:** Accumulated points discard event history and cannot reproduce
 recent activity or evidence-ledger behavior. Returning raw completion/progress
@@ -849,10 +852,12 @@ rows would conflate progression with evidence and lose the authored topic
 weights. Both are rejected.
 
 **Limitations and trigger:** Dynamic completion variants, check-ins, review
-attempts and topic transitions are not represented yet. Before enabling the
-competence browser route, add the authorized writer, qualitative aggregation,
-cross-user tests and source-derived UI together; do not expose a numeric score
-or a partial star map from these tables.
+attempts and topic transitions are not represented yet. Explanation and
+transfer evidence remains `participate` unless the matching source response
+type is supported and stored in the same run. Before enabling the competence
+browser route, add qualitative aggregation, cross-user tests and the
+source-derived UI together; do not expose a numeric score or a partial star map
+from these tables.
 
 ## Phase 1 gate
 

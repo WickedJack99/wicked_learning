@@ -8,6 +8,8 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerReflectionResult,
 };
 
+use crate::learner_evidence::{CompletionEvidence, record_completion_evidence};
+
 pub struct PostgresLearnerReflectionRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -87,6 +89,7 @@ async fn save_current_reflection(
         transaction.commit().await?;
         return Ok(None);
     };
+    let evidence_config = current.activity_config.clone();
     let Ok(config) = serde_json::from_value::<ReflectionConfig>(current.activity_config) else {
         transaction.commit().await?;
         return Ok(None);
@@ -127,8 +130,8 @@ async fn save_current_reflection(
     .await?;
 
     let reflection_title = format!("{} - {}", current.node_title, current.activity_title);
-    sqlx::query(
-        "INSERT INTO learner_reflections (principal_id, learner_journal_page_id, activity_id, activity_start_id, play_run_id, title, question, reflection) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    let reflection_id = sqlx::query_scalar::<_, Uuid>(
+        "INSERT INTO learner_reflections (principal_id, learner_journal_page_id, activity_id, activity_start_id, play_run_id, title, question, reflection) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
     )
     .bind(current.principal_id)
     .bind(journal_page_id)
@@ -138,7 +141,26 @@ async fn save_current_reflection(
     .bind(&reflection_title)
     .bind(prompt)
     .bind(reflection)
-    .execute(&mut *transaction)
+    .fetch_one(&mut *transaction)
+    .await?;
+    record_completion_evidence(
+        &mut transaction,
+        CompletionEvidence {
+            activity_config: &evidence_config,
+            activity_id: current.activity_id,
+            activity_type: "reflection",
+            assistance_level: "untracked",
+            attempt_number: 1,
+            calibration: None,
+            confidence: None,
+            confidence_after_feedback: None,
+            learner_reflection_id: Some(reflection_id),
+            outcome: "completed",
+            play_run_id,
+            principal_id: current.principal_id,
+            reflection_response_type: Some("reflection"),
+        },
+    )
     .await?;
     let journal_entry = format!(
         "## {reflection_title}\n\n**Question**  {prompt}\n\n**Reflection**  {reflection}\n"

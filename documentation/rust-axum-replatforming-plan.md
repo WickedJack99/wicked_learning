@@ -365,6 +365,14 @@ to the focused World location. It does not derive or submit a transition
 target. This remains isolated to the local Rust Compose database; Laravel and
 production ownership are unchanged.
 
+The supported local playback writers also append a normalized private evidence
+snapshot when an authored activity config declares competence topics. The
+server derives topic contribution, intent, outcome and attempt context from the
+authorized activity/run transaction; React does not submit or display evidence.
+The fresh Orientation activities exercise this boundary, but the source
+competence map route remains unavailable until its qualitative aggregation,
+cross-user evidence and source UI are migrated together.
+
 ### Reference behavior and implementation autonomy
 
 The Laravel application and its React frontend are the behavioral reference for

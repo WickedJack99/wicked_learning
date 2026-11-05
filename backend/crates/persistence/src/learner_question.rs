@@ -8,6 +8,8 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerQuestionAnswerResult,
 };
 
+use crate::learner_evidence::{CompletionEvidence, record_completion_evidence};
+
 pub struct PostgresLearnerQuestionRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -98,6 +100,7 @@ async fn answer_current_question(
         transaction.commit().await?;
         return Ok(None);
     };
+    let evidence_config = current.activity_config.clone();
     let Ok(config) = serde_json::from_value::<QuestionConfig>(current.activity_config) else {
         transaction.commit().await?;
         return Ok(None);
@@ -138,6 +141,25 @@ async fn answer_current_question(
     let selected_option_keys = option_keys.to_vec();
     sqlx::query("INSERT INTO learner_question_answers (principal_id, activity_id, play_run_id, selected_option_keys, is_correct, confidence, calibration, attempt_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
         .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).execute(&mut *transaction).await?;
+    record_completion_evidence(
+        &mut transaction,
+        CompletionEvidence {
+            activity_config: &evidence_config,
+            activity_id: current.activity_id,
+            activity_type: "question",
+            assistance_level: "untracked",
+            attempt_number,
+            calibration: calibration.as_deref(),
+            confidence,
+            confidence_after_feedback: None,
+            learner_reflection_id: None,
+            outcome: if is_correct { "correct" } else { "incorrect" },
+            play_run_id,
+            principal_id: current.principal_id,
+            reflection_response_type: None,
+        },
+    )
+    .await?;
     let next_activity_id = transition
         .as_ref()
         .and_then(|transition| transition.to_activity_id);

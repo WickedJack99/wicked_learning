@@ -1,0 +1,333 @@
+use serde_json::{Value, json};
+use sqlx::{Postgres, Transaction};
+use uuid::Uuid;
+
+/// A private evidence snapshot written together with an authorized activity
+/// action. It is deliberately not an application service or HTTP command:
+/// callers must already hold the route-progress row lock for the active run.
+pub(crate) struct CompletionEvidence<'config> {
+    pub activity_config: &'config Value,
+    pub activity_id: Uuid,
+    pub activity_type: &'config str,
+    pub assistance_level: &'config str,
+    pub attempt_number: i32,
+    pub calibration: Option<&'config str>,
+    pub confidence: Option<&'config str>,
+    pub confidence_after_feedback: Option<&'config str>,
+    pub learner_reflection_id: Option<Uuid>,
+    pub outcome: &'config str,
+    pub play_run_id: Uuid,
+    pub principal_id: Uuid,
+    pub reflection_response_type: Option<&'config str>,
+}
+
+pub(crate) async fn record_completion_evidence(
+    transaction: &mut Transaction<'_, Postgres>,
+    evidence: CompletionEvidence<'_>,
+) -> Result<(), sqlx::Error> {
+    let policy = EvidencePolicy::from_activity(
+        evidence.activity_config,
+        evidence.activity_type,
+        evidence.reflection_response_type,
+    );
+
+    for topic in policy.topics {
+        sqlx::query(
+            "INSERT INTO learner_evidence_events (principal_id, activity_id, play_run_id, learner_reflection_id, is_independent_check, objective, concepts, topic_slug, topic_name, evidence_type, learning_purpose, evidence_criterion, evidence_rubric, observed_cues, source_references, contribution, outcome, confidence, confidence_after_feedback, calibration, attempt_number, assistance_level) VALUES ($1, $2, $3, $4, FALSE, $5, $6, $7, $8, $9, $10, $11, $12, NULL, $13, $14::numeric, $15, $16, $17, $18, $19, $20) ON CONFLICT (principal_id, activity_id, play_run_id, topic_slug, evidence_type, attempt_number) DO NOTHING",
+        )
+        .bind(evidence.principal_id)
+        .bind(evidence.activity_id)
+        .bind(evidence.play_run_id)
+        .bind(evidence.learner_reflection_id)
+        .bind(&policy.objective)
+        .bind(&policy.concepts)
+        .bind(&topic.slug)
+        .bind(&topic.name)
+        .bind(&policy.evidence_type)
+        .bind(&policy.learning_purpose)
+        .bind(&policy.evidence_criterion)
+        .bind(&policy.evidence_rubric)
+        .bind(&policy.source_references)
+        .bind(topic.contribution)
+        .bind(evidence.outcome)
+        .bind(evidence.confidence)
+        .bind(evidence.confidence_after_feedback)
+        .bind(evidence.calibration)
+        .bind(evidence.attempt_number.max(1))
+        .bind(evidence.assistance_level)
+        .execute(&mut **transaction)
+        .await?;
+    }
+
+    Ok(())
+}
+
+struct EvidencePolicy {
+    concepts: Option<Value>,
+    evidence_criterion: Option<String>,
+    evidence_rubric: Option<Value>,
+    evidence_type: String,
+    learning_purpose: Option<String>,
+    objective: Option<String>,
+    source_references: Option<Value>,
+    topics: Vec<EvidenceTopic>,
+}
+
+struct EvidenceTopic {
+    contribution: String,
+    name: String,
+    slug: String,
+}
+
+impl EvidencePolicy {
+    fn from_activity(
+        config: &Value,
+        activity_type: &str,
+        reflection_response_type: Option<&str>,
+    ) -> Self {
+        let object = config.as_object();
+        let guidance = object
+            .and_then(|config| config.get("feedbackGuidance"))
+            .and_then(Value::as_object);
+        let observable_criterion = guidance
+            .and_then(|guidance| guidance.get("evidence"))
+            .and_then(Value::as_str)
+            .and_then(|value| bounded_text(value, 600));
+        let configured_intent = object
+            .and_then(|config| config.get("learningIntent"))
+            .and_then(Value::as_str)
+            .filter(|intent| evidence_types().contains(intent));
+        let mut evidence_type = configured_intent
+            .unwrap_or_else(|| default_evidence_type(activity_type))
+            .to_owned();
+
+        // Laravel only treats explanation/transfer as observable evidence when
+        // the matching response was recorded for this same activity run.
+        if matches!(evidence_type.as_str(), "explain" | "transfer")
+            && (observable_criterion.is_none()
+                || reflection_response_type != Some(evidence_type.as_str()))
+        {
+            evidence_type = "participate".to_owned();
+        }
+
+        let has_observable_guidance =
+            matches!(evidence_type.as_str(), "explain" | "review" | "transfer");
+        let concepts = object
+            .and_then(|config| config.get("evidenceConcepts"))
+            .and_then(normalized_text_array)
+            .map(Value::Array);
+        let evidence_rubric = has_observable_guidance
+            .then(|| {
+                guidance
+                    .and_then(|guidance| guidance.get("rubric"))
+                    .and_then(normalized_text_array)
+            })
+            .flatten()
+            .map(Value::Array);
+        let source_references = object
+            .and_then(|config| config.get("sourceReferences"))
+            .and_then(normalized_source_references)
+            .map(Value::Array);
+
+        Self {
+            concepts,
+            evidence_criterion: has_observable_guidance
+                .then_some(observable_criterion)
+                .flatten(),
+            evidence_rubric,
+            evidence_type,
+            learning_purpose: guidance
+                .and_then(|guidance| guidance.get("purpose"))
+                .and_then(Value::as_str)
+                .and_then(|value| bounded_text(value, 600)),
+            objective: object
+                .and_then(|config| config.get("evidenceObjective"))
+                .and_then(Value::as_str)
+                .and_then(|value| bounded_text(value, 600)),
+            source_references,
+            topics: object
+                .and_then(|config| config.get("competenceTopics"))
+                .and_then(Value::as_array)
+                .map_or_else(Vec::new, |topics| normalized_topics(topics)),
+        }
+    }
+}
+
+fn evidence_types() -> [&'static str; 7] {
+    [
+        "apply",
+        "explain",
+        "participate",
+        "reflect",
+        "retrieve",
+        "review",
+        "transfer",
+    ]
+}
+
+fn default_evidence_type(activity_type: &str) -> &'static str {
+    match activity_type {
+        "question" => "retrieve",
+        "reflection" => "reflect",
+        "review" => "review",
+        "shared_task" | "message_prompt" | "message_wall" => "explain",
+        "obstacle" | "item_obstacle" | "tool_obstacle" => "apply",
+        _ => "participate",
+    }
+}
+
+fn normalized_topics(values: &[Value]) -> Vec<EvidenceTopic> {
+    let mut topics = Vec::new();
+
+    for value in values {
+        let Some(topic) = value.as_object() else {
+            continue;
+        };
+        let Some(name) = topic
+            .get("topic")
+            .and_then(Value::as_str)
+            .and_then(|value| bounded_text(value, 120))
+        else {
+            continue;
+        };
+        let Some(slug) = topic
+            .get("slug")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| valid_topic_slug(value))
+        else {
+            continue;
+        };
+        let Some(weight) = topic.get("weight").and_then(Value::as_f64) else {
+            continue;
+        };
+        let contribution = (weight * 100.0).round() / 100.0;
+        if !contribution.is_finite() || contribution <= 0.0 || contribution > 9_999_999_999.99 {
+            continue;
+        }
+
+        if let Some(existing) = topics
+            .iter_mut()
+            .find(|existing: &&mut EvidenceTopic| existing.slug == slug)
+        {
+            *existing = EvidenceTopic {
+                contribution: format!("{contribution:.2}"),
+                name,
+                slug: slug.to_owned(),
+            };
+        } else {
+            topics.push(EvidenceTopic {
+                contribution: format!("{contribution:.2}"),
+                name,
+                slug: slug.to_owned(),
+            });
+        }
+    }
+
+    topics
+}
+
+fn normalized_text_array(value: &Value) -> Option<Vec<Value>> {
+    let values = value.as_array()?;
+    let mut normalized = Vec::new();
+    for value in values.iter().take(8) {
+        let Some(text) = value.as_str().and_then(|value| bounded_text(value, 120)) else {
+            continue;
+        };
+        if !normalized.iter().any(|existing: &Value| {
+            existing
+                .as_str()
+                .is_some_and(|existing| existing.eq_ignore_ascii_case(&text))
+        }) {
+            normalized.push(Value::String(text));
+        }
+    }
+
+    (!normalized.is_empty()).then_some(normalized)
+}
+
+fn normalized_source_references(value: &Value) -> Option<Vec<Value>> {
+    let references = value.as_array()?;
+    let normalized = references
+        .iter()
+        .take(5)
+        .filter_map(|reference| {
+            let reference = reference.as_object()?;
+            let title = reference
+                .get("title")
+                .and_then(Value::as_str)
+                .and_then(|value| bounded_text(value, 600))?;
+            let url = reference
+                .get("url")
+                .and_then(Value::as_str)
+                .and_then(|value| bounded_text(value, 2_000))?;
+            Some(json!({
+                "title": title,
+                "url": url,
+                "publisher": reference.get("publisher").and_then(Value::as_str).and_then(|value| bounded_text(value, 600)),
+                "publishedAt": reference.get("publishedAt").and_then(Value::as_str).and_then(|value| bounded_text(value, 600)),
+                "rights": reference.get("rights").and_then(Value::as_str).and_then(|value| bounded_text(value, 600)),
+                "anchor": reference.get("anchor").and_then(Value::as_str).and_then(|value| bounded_text(value, 600)),
+                "excerpt": reference.get("excerpt").and_then(Value::as_str).and_then(|value| bounded_text(value, 800)),
+                "concepts": reference.get("concepts").and_then(normalized_text_array),
+            }))
+        })
+        .collect::<Vec<_>>();
+
+    (!normalized.is_empty()).then_some(normalized)
+}
+
+fn bounded_text(value: &str, maximum_characters: usize) -> Option<String> {
+    let trimmed = value.trim();
+    (!trimmed.is_empty()).then(|| trimmed.chars().take(maximum_characters).collect())
+}
+
+fn valid_topic_slug(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 140
+        && value.bytes().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == b'-'
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::EvidencePolicy;
+
+    #[test]
+    fn uses_source_defaults_and_ignores_invalid_authored_topics() {
+        let policy = EvidencePolicy::from_activity(
+            &json!({
+                "competenceTopics": [
+                    { "topic": "Orientation", "slug": "orientation", "weight": 1.236 },
+                    { "topic": "Ignored", "slug": "Not a slug", "weight": 1 }
+                ]
+            }),
+            "question",
+            None,
+        );
+
+        assert_eq!(policy.evidence_type, "retrieve");
+        assert_eq!(policy.topics.len(), 1);
+        assert_eq!(policy.topics[0].contribution, "1.24");
+    }
+
+    #[test]
+    fn requires_matching_reflection_for_observable_explanation_evidence() {
+        let config = json!({
+            "learningIntent": "explain",
+            "feedbackGuidance": { "evidence": "Explains the connection." }
+        });
+
+        assert_eq!(
+            EvidencePolicy::from_activity(&config, "reflection", Some("reflection")).evidence_type,
+            "participate"
+        );
+        assert_eq!(
+            EvidencePolicy::from_activity(&config, "reflection", Some("explain")).evidence_type,
+            "explain"
+        );
+    }
+}

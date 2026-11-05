@@ -15,6 +15,8 @@ use wicked_learning_domain::{
     },
 };
 
+use crate::learner_evidence::{CompletionEvidence, record_completion_evidence};
+
 pub struct PostgresLearnerPlaybackRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -44,6 +46,7 @@ struct PlaybackRow {
 
 #[derive(FromRow)]
 struct CurrentActivityRow {
+    activity_config: serde_json::Value,
     activity_id: Uuid,
     principal_id: Uuid,
     route_id: Uuid,
@@ -236,6 +239,25 @@ async fn complete_current_open_practice(
     };
 
     mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
+    record_completion_evidence(
+        &mut transaction,
+        CompletionEvidence {
+            activity_config: &current.activity_config,
+            activity_id: current.activity_id,
+            activity_type: "open_practice",
+            assistance_level: "untracked",
+            attempt_number: 1,
+            calibration: None,
+            confidence: None,
+            confidence_after_feedback: None,
+            learner_reflection_id: None,
+            outcome: "completed",
+            play_run_id,
+            principal_id: current.principal_id,
+            reflection_response_type: None,
+        },
+    )
+    .await?;
 
     let status = if let Some(next_activity_id) = next_activity_id {
         mark_activity_reached(&mut transaction, current.principal_id, next_activity_id).await?;
@@ -276,7 +298,7 @@ async fn load_current_activity_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentActivityRow>, sqlx::Error> {
     sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT progress.current_activity_id AS activity_id, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'open_practice' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.activity_config, progress.current_activity_id AS activity_id, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'open_practice' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
