@@ -62,6 +62,64 @@ pub(crate) async fn record_completion_evidence(
     Ok(())
 }
 
+/// Preserve the source's private topic-to-topic history when an authorized
+/// learner enters a supported activity. Visiting a topic is not completion
+/// evidence, so this is deliberately separate from `record_completion_evidence`.
+pub(crate) async fn record_topic_visit(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_config: &Value,
+    activity_type: &str,
+) -> Result<(), sqlx::Error> {
+    let current_topics = EvidencePolicy::from_activity(activity_config, activity_type, None).topics;
+    if current_topics.is_empty() {
+        return Ok(());
+    }
+
+    let previous_topics = sqlx::query_scalar::<_, Value>(
+        "SELECT last_competence_topics FROM application_principals WHERE id = $1 FOR UPDATE",
+    )
+    .bind(principal_id)
+    .fetch_optional(&mut **transaction)
+    .await?
+    .map_or_else(Vec::new, |topics| stored_topics(&topics));
+
+    if !previous_topics.is_empty() && !same_topic_set(&previous_topics, &current_topics) {
+        for from_topic in &previous_topics {
+            for to_topic in &current_topics {
+                if from_topic.slug == to_topic.slug {
+                    continue;
+                }
+                sqlx::query(
+                    "INSERT INTO learner_competence_topic_transitions (principal_id, from_topic_slug, from_topic_name, to_topic_slug, to_topic_name, transition_count) VALUES ($1, $2, $3, $4, $5, 1) ON CONFLICT (principal_id, from_topic_slug, to_topic_slug) DO UPDATE SET from_topic_name = EXCLUDED.from_topic_name, to_topic_name = EXCLUDED.to_topic_name, transition_count = learner_competence_topic_transitions.transition_count + 1, updated_at = NOW()",
+                )
+                .bind(principal_id)
+                .bind(&from_topic.slug)
+                .bind(&from_topic.name)
+                .bind(&to_topic.slug)
+                .bind(&to_topic.name)
+                .execute(&mut **transaction)
+                .await?;
+            }
+        }
+    }
+
+    sqlx::query(
+        "UPDATE application_principals SET last_competence_topics = $2, updated_at = NOW() WHERE id = $1",
+    )
+    .bind(principal_id)
+    .bind(Value::Array(
+        current_topics
+            .iter()
+            .map(|topic| json!({ "slug": topic.slug, "topic": topic.name }))
+            .collect(),
+    ))
+    .execute(&mut **transaction)
+    .await?;
+
+    Ok(())
+}
+
 struct EvidencePolicy {
     concepts: Option<Value>,
     evidence_criterion: Option<String>,
@@ -73,6 +131,7 @@ struct EvidencePolicy {
     topics: Vec<EvidenceTopic>,
 }
 
+#[derive(Clone)]
 struct EvidenceTopic {
     contribution: String,
     name: String,
@@ -227,6 +286,46 @@ fn normalized_topics(values: &[Value]) -> Vec<EvidenceTopic> {
     topics
 }
 
+fn stored_topics(value: &Value) -> Vec<EvidenceTopic> {
+    value.as_array().map_or_else(Vec::new, |topics| {
+        topics
+            .iter()
+            .filter_map(|topic| {
+                let topic = topic.as_object()?;
+                let name = topic
+                    .get("topic")
+                    .and_then(Value::as_str)
+                    .and_then(|value| bounded_text(value, 120))?;
+                let slug = topic
+                    .get("slug")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| valid_topic_slug(value))?;
+                Some(EvidenceTopic {
+                    contribution: "1.00".to_owned(),
+                    name,
+                    slug: slug.to_owned(),
+                })
+            })
+            .fold(Vec::new(), |mut collected, topic| {
+                if !collected
+                    .iter()
+                    .any(|existing: &EvidenceTopic| existing.slug == topic.slug)
+                {
+                    collected.push(topic);
+                }
+                collected
+            })
+    })
+}
+
+fn same_topic_set(first: &[EvidenceTopic], second: &[EvidenceTopic]) -> bool {
+    first.len() == second.len()
+        && first
+            .iter()
+            .all(|topic| second.iter().any(|candidate| candidate.slug == topic.slug))
+}
+
 fn normalized_text_array(value: &Value) -> Option<Vec<Value>> {
     let values = value.as_array()?;
     let mut normalized = Vec::new();
@@ -294,7 +393,7 @@ fn valid_topic_slug(value: &str) -> bool {
 mod tests {
     use serde_json::json;
 
-    use super::EvidencePolicy;
+    use super::{EvidencePolicy, same_topic_set, stored_topics};
 
     #[test]
     fn uses_source_defaults_and_ignores_invalid_authored_topics() {
@@ -329,5 +428,35 @@ mod tests {
             EvidencePolicy::from_activity(&config, "reflection", Some("explain")).evidence_type,
             "explain"
         );
+    }
+
+    #[test]
+    fn changes_in_a_topic_set_are_distinguished_from_a_repeat_visit() {
+        let previous = stored_topics(&json!([
+            { "slug": "orientation", "topic": "Orientation" }
+        ]));
+        let repeated = EvidencePolicy::from_activity(
+            &json!({
+                "competenceTopics": [
+                    { "topic": "Orientation", "slug": "orientation", "weight": 1 }
+                ]
+            }),
+            "open_practice",
+            None,
+        )
+        .topics;
+        let changed = EvidencePolicy::from_activity(
+            &json!({
+                "competenceTopics": [
+                    { "topic": "Direction", "slug": "direction", "weight": 1 }
+                ]
+            }),
+            "open_practice",
+            None,
+        )
+        .topics;
+
+        assert!(same_topic_set(&previous, &repeated));
+        assert!(!same_topic_set(&previous, &changed));
     }
 }

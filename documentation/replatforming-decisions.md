@@ -839,7 +839,11 @@ positive and evidence types are the source-defined intent set. The supported
 Rust playback writers (`open_practice`, question and base reflection) write the
 normalized snapshot inside their existing active-run transaction. The browser
 does not post evidence or select a topic, contribution, outcome or evidence
-type.
+type. Separately, reading an authorized active run serializes on the
+application principal and mirrors the source activity-entry behavior: it stores
+the current private topic set and increments private topic-pair transition
+counts only when that set changes. Topic visits do not create evidence events
+and neither the last-topic value nor transition history is exposed to React.
 
 **Why:** This is the minimum durable data boundary from which a future Rust
 writer produces the source evidence record atomically with activity completion,
@@ -851,13 +855,14 @@ recent activity or evidence-ledger behavior. Returning raw completion/progress
 rows would conflate progression with evidence and lose the authored topic
 weights. Both are rejected.
 
-**Limitations and trigger:** Dynamic completion variants, check-ins, review
-attempts and topic transitions are not represented yet. Explanation and
-transfer evidence remains `participate` unless the matching source response
-type is supported and stored in the same run. Before enabling the competence
-browser route, add qualitative aggregation, cross-user tests and the
-source-derived UI together; do not expose a numeric score or a partial star map
-from these tables.
+**Limitations and trigger:** Dynamic completion variants, check-ins and review
+attempts are not represented yet. The private transition ledger records only
+the supported activity-entry slice; it is not an exposed topic graph or a
+claim of complete navigation parity. Explanation and transfer evidence remains
+`participate` unless the matching source response type is supported and stored
+in the same run. Before enabling the competence browser route, add qualitative
+aggregation, cross-user tests and the source-derived UI together; do not expose
+a numeric score or a partial star map from these tables.
 
 ## Phase 1 gate
 

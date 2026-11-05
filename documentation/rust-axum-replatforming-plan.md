@@ -373,6 +373,13 @@ The fresh Orientation activities exercise this boundary, but the source
 competence map route remains unavailable until its qualitative aggregation,
 cross-user evidence and source UI are migrated together.
 
+Loading an authorized active play run also mirrors the source activity-entry
+topic history: the backend atomically replaces that learner's private last
+topic set and increments private topic-to-topic pairs only when the set has
+changed. A visit remains separate from completion evidence and this history is
+not returned by any Rust contract. It is retained solely as a prerequisite for
+the later source-derived competence map; its UI remains unavailable.
+
 ### Reference behavior and implementation autonomy
 
 The Laravel application and its React frontend are the behavioral reference for
