@@ -80,16 +80,21 @@ export function OriginalLoginPage() {
                             className="flex flex-col items-center gap-2 font-medium"
                             to="/"
                         >
-                            <span
+                            <div
                                 aria-hidden="true"
-                                className="mb-1 flex h-10 w-10 items-center justify-center rounded-md text-lg font-semibold"
+                                className="mb-1 flex h-10 w-10 items-center justify-center rounded-md"
                                 style={{
                                     background: 'var(--auth-logo-background)',
                                     color: 'var(--auth-logo-color)',
                                 }}
                             >
-                                WL
-                            </span>
+                                <img
+                                    alt=""
+                                    className="size-8 object-contain"
+                                    draggable={false}
+                                    src="/images/logo.png"
+                                />
+                            </div>
                             <span className="sr-only">Log in to your account</span>
                         </Link>
                         <div className="space-y-2 text-center">

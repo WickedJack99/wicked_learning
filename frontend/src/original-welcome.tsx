@@ -41,8 +41,6 @@ export function OriginalWelcomePage({
     const [activePage, setActivePage] = useState(0);
     const [isLight, setIsLight] = useState(false);
     const wheelLocked = useRef(false);
-    const activeWelcomePage =
-        defaultWelcomePages[activePage] ?? defaultWelcomePages[0];
     const foreground = isLight ? '#0f172a' : '#f8fafc';
     const body = isLight
         ? 'rgba(51, 65, 85, 0.78)'
@@ -138,14 +136,6 @@ export function OriginalWelcomePage({
                             >
                                 <LogIn className="size-4" /> Log in
                             </Link>
-                            <span
-                                aria-disabled="true"
-                                className="inline-flex cursor-not-allowed items-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm font-medium opacity-60"
-                                style={{ color: foreground }}
-                                title="Registration is not available in the Rust proof of concept yet."
-                            >
-                                Register <ArrowRight className="size-4" />
-                            </span>
                         </>
                     )}
                 </nav>
