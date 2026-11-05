@@ -998,6 +998,7 @@ test('the signed-in explorer starts and completes an original open-practice rout
                 body: JSON.stringify({
                     start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                     play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    run_kind: 'route',
                     context: {
                         node_slug: 'private-place',
                         node_title: 'Private place',
@@ -1025,6 +1026,18 @@ test('the signed-in explorer starts and completes an original open-practice rout
                                 ? null
                                 : 'next-private-activity',
                         },
+                        check_in: {
+                            choice_prompt:
+                                'Choose the kind of continuation that would support your next step.',
+                            concepts: ['Learner choice'],
+                            learning_areas: [
+                                {
+                                    name: 'Orientation',
+                                    slug: 'orientation',
+                                },
+                            ],
+                            objective: 'Keep useful choices visible.',
+                        },
                     },
                 }),
             });
@@ -1050,6 +1063,31 @@ test('the signed-in explorer starts and completes an original open-practice rout
                 body: JSON.stringify({
                     play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
                     status: 'completed',
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66/activities/private-activity/check-ins',
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            expect(route.request().postDataJSON()).toEqual({
+                feeling: null,
+                next_direction: 'related',
+                note: 'I will compare the next options.',
+            });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d80',
+                    activity_slug: 'private-activity',
+                    feeling: null,
+                    note: 'I will compare the next options.',
+                    next_direction: 'related',
+                    recorded_at: '2026-11-05T10:00:00.000000Z',
                 }),
             });
         },
@@ -1115,9 +1153,36 @@ test('the signed-in explorer starts and completes an original open-practice rout
         .getByRole('button', { name: 'Continue to the next step' })
         .click();
     await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after Begin private orientation',
+        }),
+    ).toBeVisible();
+    await expect(page.getByText('Learning focus')).toBeVisible();
+    await page
+        .getByLabel('Add a note (optional)')
+        .fill('I will compare the next options.');
+    const relatedDirection = page.getByRole('button', {
+        name: 'Look for something related',
+    });
+    await expect.poll(async () => {
+        const bounds = await relatedDirection.boundingBox();
+
+        return (bounds?.x ?? 390) + (bounds?.width ?? 0);
+    }).toBeLessThanOrEqual(390);
+    await relatedDirection.click();
+    await page.getByRole('button', { name: 'Save note and continue' }).click();
+    await expect(
         page.getByRole('heading', { name: 'Choose the next step' }),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after Choose the next step',
+        }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Continue without answering' })
+        .click();
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });
 
@@ -1146,6 +1211,7 @@ test('the original question surface posts only selected option keys and waits fo
                 body: JSON.stringify({
                     start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                     play_run_id: playRunId,
+                    run_kind: 'route',
                     context: {
                         node_slug: 'private-place',
                         node_title: 'Private place',
@@ -1175,6 +1241,12 @@ test('the original question surface posts only selected option keys and waits fo
                             ],
                         },
                         completion: { label: null, next_activity_slug: null },
+                        check_in: {
+                            choice_prompt: null,
+                            concepts: [],
+                            learning_areas: [],
+                            objective: null,
+                        },
                     },
                 }),
             });
@@ -1206,6 +1278,7 @@ test('the original question surface posts only selected option keys and waits fo
                     calibration: 'aligned',
                     attempt_number: 1,
                     next_transition_label: null,
+                    status: 'completed',
                 }),
             });
         },
@@ -1241,6 +1314,7 @@ test('the original reflection surface sends private writing only to its active s
                 body: JSON.stringify({
                     start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                     play_run_id: playRunId,
+                    run_kind: 'route',
                     context: {
                         node_slug: 'private-place',
                         node_title: 'Private place',
@@ -1258,6 +1332,12 @@ test('the original reflection surface sends private writing only to its active s
                             note: 'This response stays in your private journal.',
                         },
                         completion: { label: null, next_activity_slug: null },
+                        check_in: {
+                            choice_prompt: null,
+                            concepts: [],
+                            learning_areas: [],
+                            objective: null,
+                        },
                     },
                 }),
             });
@@ -1291,6 +1371,14 @@ test('the original reflection surface sends private writing only to its active s
         .getByRole('textbox', { name: '' })
         .fill('I want to compare the routes before choosing.');
     await page.getByRole('button', { name: 'Keep reflection' }).click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after Connect the direction',
+        }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Continue without answering' })
+        .click();
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });
 

@@ -396,12 +396,29 @@ pub struct LearnerPlaybackActivity {
     pub activity_type: String,
     pub config: serde_json::Value,
     pub completion: LearnerPlaybackCompletion,
+    /// Source-defined, bounded context for the optional conclusion check-in.
+    /// Recording a check-in remains bound to the completed server-owned run.
+    pub check_in: LearnerPlaybackCheckIn,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerPlaybackCompletion {
     pub label: Option<String>,
     pub next_activity_slug: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackCheckIn {
+    pub choice_prompt: Option<String>,
+    pub concepts: Vec<String>,
+    pub learning_areas: Vec<LearnerPlaybackLearningArea>,
+    pub objective: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackLearningArea {
+    pub name: String,
+    pub slug: String,
 }
 
 /// Result of completing the activity that is currently active in a play run.
@@ -441,6 +458,9 @@ pub struct LearnerQuestionAnswerResult {
     pub calibration: Option<String>,
     pub attempt_number: i32,
     pub next_transition_label: Option<String>,
+    /// The question command resolves progression before responding, so React
+    /// uses this server-owned result after the optional conclusion check-in.
+    pub status: String,
 }
 
 /// A private reflection saved for the currently authorized activity. The

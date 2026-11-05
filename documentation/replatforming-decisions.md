@@ -989,13 +989,27 @@ the browser cannot choose an activity or progression state on its own.
 format rather than behavior. Taking only an activity slug would make the Rust
 writer depend on a weaker authorization check. Both are rejected.
 
+**Current browser evidence:** The ordinary route playback page lifts the
+source post-activity check-in panel for open-practice, question and base
+reflection activities. It receives only bounded authored presentation context
+(choice prompt, objective, concept labels and at most three named areas) from
+the playback projection. The browser sends only the source's optional private
+fields after completion; continuing with no choice makes no write. Revisit
+runs do not show this ordinary check-in panel, because their distinct review
+attempt is already server-owned by ADR-033. Browser checks cover the
+CSRF-protected write, no-write continuation and the source panel at desktop
+and narrow widths; local Compose evidence covers the real Axum/PostgreSQL
+transaction for both open-practice and question completion.
+
 **Limitations and trigger:** The bounded read-only source Learning trail is
-available in Journal. The source post-activity check-in panel, activity-replay
+available in Journal. The source check-in panel's hide/show-conclusion behavior
+is deliberately absent until completed-player state can remain available below
+the hidden panel without creating a duplicate completion action. Activity replay
 and competence links, fuller journal timeline and competence presentation
-remain unavailable until their contracts and browser evidence exist. Due
-revisit invitations, their dismiss/snooze actions and review-attempt recording
-are now exposed through the lifted original Journal panel and ADR-033's
-server-owned re-entry flow; no substitute React control was added.
+remain unavailable until their contracts and browser evidence exist. Due revisit
+invitations, their dismiss/snooze actions and review-attempt recording are now
+exposed through the lifted original Journal panel and ADR-033's server-owned
+re-entry flow; no substitute React control was added.
 
 The existing authenticated journal read model now carries the bounded private
 check-in trail and due, visible revisit-invitation projection required by that

@@ -6,12 +6,21 @@ import { Link, useNavigate } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { OriginalLearningCheckIn } from './original-learning-check-in';
 
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
 type LearnerQuestionAnswerResult =
     components['schemas']['LearnerQuestionAnswerResult'];
 type LearnerReflectionResult = components['schemas']['LearnerReflectionResult'];
+type CompletionStatus =
+    components['schemas']['LearnerPlaybackCompletionResult']['status'];
+
+type PendingLearningCheckIn = {
+    activity: LearnerPlaybackDocument['activity'];
+    status: CompletionStatus;
+    transitionLabel: string | null;
+};
 
 const ROUTE_PAGE_SIZE = 3;
 
@@ -256,6 +265,8 @@ export function OriginalOpenPracticePage({
         | { kind: 'unavailable' }
     >({ kind: 'loading' });
     const [completing, setCompleting] = useState(false);
+    const [pendingCheckIn, setPendingCheckIn] =
+        useState<PendingLearningCheckIn | null>(null);
     const headingRef = useRef<HTMLHeadingElement>(null);
 
     const returnToWorld = () => {
@@ -295,6 +306,68 @@ export function OriginalOpenPracticePage({
         }
     }, [state]);
 
+    function presentCheckIn(
+        document: LearnerPlaybackDocument,
+        status: CompletionStatus,
+        transitionLabel: string | null,
+    ): void {
+        if (document.run_kind === 'revisit') {
+            returnToWorld();
+            return;
+        }
+
+        setPendingCheckIn({
+            activity: document.activity,
+            status,
+            transitionLabel,
+        });
+    }
+
+    async function continueAfterCheckIn(
+        feeling: 'clearer' | 'forming' | 'stretched' | 'stuck' | null,
+        note: string,
+        nextDirection: 'revisit' | 'related' | 'settle' | null,
+    ): Promise<void> {
+        const checkIn = pendingCheckIn;
+
+        if (!checkIn || state.kind !== 'loaded') {
+            return;
+        }
+
+        if (feeling || note || nextDirection) {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins',
+                {
+                    body: {
+                        feeling,
+                        next_direction: nextDirection,
+                        note: note || null,
+                    },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: {
+                            activity_slug: checkIn.activity.slug,
+                            play_run_id: state.document.play_run_id,
+                        },
+                    },
+                },
+            );
+
+            if (!response.ok || !data) {
+                throw new Error('Your check-in could not be saved.');
+            }
+        }
+
+        setPendingCheckIn(null);
+        if (checkIn.status === 'completed') {
+            returnToWorld();
+            return;
+        }
+
+        await load();
+    }
+
     async function complete(): Promise<void> {
         if (state.kind !== 'loaded' || completing) {
             return;
@@ -318,11 +391,11 @@ export function OriginalOpenPracticePage({
                 setState({ kind: 'unavailable' });
                 return;
             }
-            if (data.status === 'completed') {
-                returnToWorld();
-                return;
-            }
-            await load();
+            presentCheckIn(
+                state.document,
+                data.status,
+                state.document.activity.completion.label,
+            );
         } catch {
             setState({ kind: 'unavailable' });
         } finally {
@@ -397,23 +470,36 @@ export function OriginalOpenPracticePage({
                                 ) : null}
                             </div>
                         </div>
-                        {state.document.activity.activity_type ===
+                        {pendingCheckIn ? (
+                            <OriginalLearningCheckIn
+                                activityTitle={pendingCheckIn.activity.title}
+                                checkIn={pendingCheckIn.activity.check_in}
+                                onContinue={continueAfterCheckIn}
+                                transitionLabel={pendingCheckIn.transitionLabel}
+                            />
+                        ) : state.document.activity.activity_type ===
                         'question' ? (
                             <QuestionActivity
                                 activity={state.document.activity}
                                 playRunId={state.document.play_run_id}
-                                onContinue={() => void load()}
+                                onContinue={(result) =>
+                                    presentCheckIn(
+                                        state.document,
+                                        result.status,
+                                        result.next_transition_label,
+                                    )
+                                }
                             />
                         ) : state.document.activity.activity_type ===
                           'reflection' ? (
                             <ReflectionActivity
                                 activity={state.document.activity}
                                 onSaved={(result) => {
-                                    if (result.status === 'completed') {
-                                        returnToWorld();
-                                        return;
-                                    }
-                                    void load();
+                                    presentCheckIn(
+                                        state.document,
+                                        result.status,
+                                        state.document.activity.completion.label,
+                                    );
                                 }}
                                 playRunId={state.document.play_run_id}
                             />
@@ -538,7 +624,7 @@ function QuestionActivity({
 }: {
     activity: LearnerPlaybackDocument['activity'];
     playRunId: string;
-    onContinue: () => void;
+    onContinue: (result: LearnerQuestionAnswerResult) => void;
 }) {
     const config = activity.config as {
         allowMultiple?: unknown;
@@ -703,7 +789,7 @@ function QuestionActivity({
                         </button>
                         <button
                             className="rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950"
-                            onClick={onContinue}
+                            onClick={() => onContinue(answer)}
                             type="button"
                         >
                             {answer.next_transition_label || 'Continue'}

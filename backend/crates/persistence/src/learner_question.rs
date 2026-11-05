@@ -205,6 +205,7 @@ async fn answer_current_question(
             calibration,
             attempt_number,
             next_transition_label: None,
+            status: "completed".to_owned(),
         }));
     }
     record_completion_evidence(
@@ -226,10 +227,11 @@ async fn answer_current_question(
         },
     )
     .await?;
+    mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
     let next_activity_id = transition
         .as_ref()
         .and_then(|transition| transition.to_activity_id);
-    if let Some(next_activity_id) = next_activity_id {
+    let status = if let Some(next_activity_id) = next_activity_id {
         let available = sqlx::query_scalar::<_, Uuid>("SELECT activities.id FROM learning_activities AS activities WHERE activities.id = $1 AND activities.route_id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection')")
             .bind(next_activity_id).bind(current.route_id).fetch_optional(&mut *transaction).await?;
         let Some(next_activity_id) = available else {
@@ -238,10 +240,12 @@ async fn answer_current_question(
         };
         sqlx::query("UPDATE learner_route_progress SET current_activity_id = $3, last_entered_at = NOW(), last_exited_at = NOW(), updated_at = NOW() WHERE principal_id = $1 AND current_play_run_id = $2")
             .bind(current.principal_id).bind(play_run_id).bind(next_activity_id).execute(&mut *transaction).await?;
+        "in_progress"
     } else {
         sqlx::query("UPDATE learner_route_progress SET status = 'completed', completion_count = completion_count + 1, last_completed_at = NOW(), last_exited_at = NOW(), updated_at = NOW() WHERE principal_id = $1 AND current_play_run_id = $2")
             .bind(current.principal_id).bind(play_run_id).execute(&mut *transaction).await?;
-    }
+        "completed"
+    };
     transaction.commit().await?;
     let feedback = selected
         .first()
@@ -264,7 +268,24 @@ async fn answer_current_question(
         calibration,
         attempt_number,
         next_transition_label: transition.and_then(|transition| transition.label),
+        status: status.to_owned(),
     }))
+}
+
+async fn mark_activity_completed(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO learner_activity_progress (principal_id, activity_id, status, completed_at) VALUES ($1, $2, 'completed', NOW()) ON CONFLICT (principal_id, activity_id) DO UPDATE SET status = 'completed', completed_at = COALESCE(learner_activity_progress.completed_at, EXCLUDED.completed_at), updated_at = NOW()",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .execute(&mut **transaction)
+    .await?;
+
+    Ok(())
 }
 
 async fn load_current_question(

@@ -1880,7 +1880,7 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, completion]
+      required: [slug, title, description, activity_type, config, completion, check_in]
       properties:
         slug:
           type: string
@@ -1896,6 +1896,8 @@ components:
           type: object
         completion:
           $ref: '#/components/schemas/LearnerPlaybackCompletion'
+        check_in:
+          $ref: '#/components/schemas/LearnerPlaybackCheckIn'
     LearnerPlaybackCompletion:
       type: object
       additionalProperties: false
@@ -1906,6 +1908,28 @@ components:
         next_activity_slug:
           type: [string, 'null']
           pattern: '^[a-z0-9-]+$'
+    LearnerPlaybackCheckIn:
+      type: object
+      additionalProperties: false
+      required: [choice_prompt, concepts, learning_areas, objective]
+      properties:
+        choice_prompt: { type: [string, 'null'], maxLength: 600 }
+        concepts:
+          type: array
+          maxItems: 8
+          items: { type: string, maxLength: 120 }
+        learning_areas:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/LearnerPlaybackLearningArea' }
+        objective: { type: [string, 'null'], maxLength: 600 }
+    LearnerPlaybackLearningArea:
+      type: object
+      additionalProperties: false
+      required: [name, slug]
+      properties:
+        name: { type: string, maxLength: 120 }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
     LearnerPlaybackCompletionResult:
       type: object
       additionalProperties: false
@@ -1959,7 +1983,7 @@ components:
     LearnerQuestionAnswerResult:
       type: object
       additionalProperties: false
-      required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, next_transition_label]
+      required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, next_transition_label, status]
       properties:
         play_run_id: { type: string, format: uuid }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
@@ -1973,6 +1997,9 @@ components:
         calibration: { type: [string, 'null'], enum: [aligned, stronger_than_expected, higher_than_result, uncertainty_made_gap_visible, null] }
         attempt_number: { type: integer, minimum: 1 }
         next_transition_label: { type: [string, 'null'] }
+        status:
+          type: string
+          enum: [in_progress, completed]
     LearnerReflectionRequest:
       type: object
       additionalProperties: false

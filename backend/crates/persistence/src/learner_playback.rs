@@ -10,8 +10,9 @@ use wicked_learning_application::learner_playback::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerPlaybackActivity, LearnerPlaybackCompletion, LearnerPlaybackCompletionResult,
-        LearnerPlaybackContext, LearnerPlaybackDocument, LearnerPlaybackRunKind,
+        LearnerPlaybackActivity, LearnerPlaybackCheckIn, LearnerPlaybackCompletion,
+        LearnerPlaybackCompletionResult, LearnerPlaybackContext, LearnerPlaybackDocument,
+        LearnerPlaybackLearningArea, LearnerPlaybackRunKind,
     },
 };
 
@@ -133,6 +134,100 @@ fn learner_safe_config(
     }
 }
 
+fn check_in_context(config: &serde_json::Value) -> LearnerPlaybackCheckIn {
+    let object = config.as_object();
+    let choice_prompt = object
+        .and_then(|value| value.get("completionChoicePrompt"))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|value| bounded_text(value, 600));
+    let objective = object
+        .and_then(|value| value.get("evidenceObjective"))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|value| bounded_text(value, 600));
+    let concepts = object
+        .and_then(|value| value.get("evidenceConcepts"))
+        .and_then(serde_json::Value::as_array)
+        .map_or_else(Vec::new, |values| normalized_texts(values, 8, 120));
+    let learning_areas = object
+        .and_then(|value| value.get("competenceTopics"))
+        .and_then(serde_json::Value::as_array)
+        .map_or_else(Vec::new, |values| {
+            values
+                .iter()
+                .take(3)
+                .filter_map(|value| {
+                    let value = value.as_object()?;
+                    let name = value
+                        .get("topic")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|value| bounded_text(value, 120))?;
+                    let slug = value
+                        .get("slug")
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::trim)
+                        .filter(|value| valid_topic_slug(value))?;
+
+                    Some(LearnerPlaybackLearningArea {
+                        name,
+                        slug: slug.to_owned(),
+                    })
+                })
+                .fold(Vec::new(), |mut areas, area| {
+                    if !areas
+                        .iter()
+                        .any(|existing: &LearnerPlaybackLearningArea| existing.slug == area.slug)
+                    {
+                        areas.push(area);
+                    }
+
+                    areas
+                })
+        });
+
+    LearnerPlaybackCheckIn {
+        choice_prompt,
+        concepts,
+        learning_areas,
+        objective,
+    }
+}
+
+fn normalized_texts(
+    values: &[serde_json::Value],
+    maximum_items: usize,
+    maximum_characters: usize,
+) -> Vec<String> {
+    values
+        .iter()
+        .take(maximum_items)
+        .filter_map(serde_json::Value::as_str)
+        .filter_map(|value| bounded_text(value, maximum_characters))
+        .fold(Vec::new(), |mut collected, value| {
+            if !collected
+                .iter()
+                .any(|existing: &String| existing.eq_ignore_ascii_case(&value))
+            {
+                collected.push(value);
+            }
+
+            collected
+        })
+}
+
+fn bounded_text(value: &str, maximum_characters: usize) -> Option<String> {
+    let value = value.trim();
+
+    (!value.is_empty()).then(|| value.chars().take(maximum_characters).collect())
+}
+
+fn valid_topic_slug(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 140
+        && value.bytes().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == b'-'
+        })
+}
+
 impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
     fn load_active_run(
         &self,
@@ -164,6 +259,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 return Ok(None);
             };
             let activity_config = row.activity_config.clone();
+            let check_in = check_in_context(&activity_config);
             let Some(config) = learner_safe_config(&row.activity_type, row.activity_config) else {
                 transaction
                     .commit()
@@ -216,6 +312,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                         label: row.transition_label,
                         next_activity_slug: row.next_activity_slug,
                     },
+                    check_in,
                 },
             }))
         }
@@ -442,4 +539,38 @@ async fn mark_activity_reached(
     .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::check_in_context;
+
+    #[test]
+    fn check_in_context_exposes_only_bounded_source_presentation_fields() {
+        let context = check_in_context(&json!({
+            "completionChoicePrompt": " Choose a direction that fits. ",
+            "evidenceObjective": " Notice the next useful choice. ",
+            "evidenceConcepts": ["Choice", "choice", "", 42],
+            "competenceTopics": [
+                { "topic": "Orientation", "slug": "orientation", "weight": 1 },
+                { "topic": "Orientation again", "slug": "orientation", "weight": 2 },
+                { "topic": "Invalid", "slug": "Not-a-slug", "weight": 1 }
+            ]
+        }));
+
+        assert_eq!(
+            context.choice_prompt.as_deref(),
+            Some("Choose a direction that fits.")
+        );
+        assert_eq!(
+            context.objective.as_deref(),
+            Some("Notice the next useful choice.")
+        );
+        assert_eq!(context.concepts, vec!["Choice"]);
+        assert_eq!(context.learning_areas.len(), 1);
+        assert_eq!(context.learning_areas[0].name, "Orientation");
+        assert_eq!(context.learning_areas[0].slug, "orientation");
+    }
 }

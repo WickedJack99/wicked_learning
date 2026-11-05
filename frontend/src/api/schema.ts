@@ -1070,10 +1070,21 @@ export interface components {
             activity_type: "open_practice" | "question" | "reflection";
             config: Record<string, never>;
             completion: components["schemas"]["LearnerPlaybackCompletion"];
+            check_in: components["schemas"]["LearnerPlaybackCheckIn"];
         };
         LearnerPlaybackCompletion: {
             label: string | null;
             next_activity_slug: string | null;
+        };
+        LearnerPlaybackCheckIn: {
+            choice_prompt: string | null;
+            concepts: string[];
+            learning_areas: components["schemas"]["LearnerPlaybackLearningArea"][];
+            objective: string | null;
+        };
+        LearnerPlaybackLearningArea: {
+            name: string;
+            slug: string;
         };
         LearnerPlaybackCompletionResult: {
             /** Format: uuid */
@@ -1119,6 +1130,8 @@ export interface components {
             calibration: "aligned" | "stronger_than_expected" | "higher_than_result" | "uncertainty_made_gap_visible" | null;
             attempt_number: number;
             next_transition_label: string | null;
+            /** @enum {string} */
+            status: "in_progress" | "completed";
         };
         LearnerReflectionRequest: {
             reflection: string;
