@@ -93,6 +93,23 @@ test('the public explorer presents maps and places without requiring a session',
     ).toBeVisible();
 });
 
+test('a public map place keeps the original keyboard focus and selection path', async ({
+    page,
+}) => {
+    await page.goto('/world');
+
+    const place = page.getByRole('button', {
+        name: 'Choose a direction, open location',
+    });
+    await place.focus();
+    await expect(place).toHaveAttribute('data-map-asset-highlighted', 'true');
+    await page.keyboard.press('Enter');
+
+    await expect(page).toHaveURL(
+        /\/world\?map=first-path&focused=choose-a-direction$/,
+    );
+});
+
 test('a learner can open a map place and inspect its route previews', async ({
     page,
 }) => {

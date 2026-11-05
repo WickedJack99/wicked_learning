@@ -355,6 +355,9 @@ function PublicMapSurface({
 }) {
     const theme = map.background_config;
     const [toggledAssetSlugs, setToggledAssetSlugs] = useState<string[]>([]);
+    const [focusedAssetSlug, setFocusedAssetSlug] = useState<string | null>(
+        null,
+    );
     const [mapPointer, setMapPointer] = useState<{
         height: number;
         width: number;
@@ -421,6 +424,42 @@ function PublicMapSurface({
             })
             .map((asset) => asset.slug),
     );
+    const pointerAssetSlug = mapPointer
+        ? map.assets.reduce<string | null>((currentSlug, asset, index) => {
+              const isInteractive =
+                  asset.interaction_mode === 'focusable' ||
+                  asset.interaction_mode === 'toggle';
+
+              if (
+                  !isInteractive ||
+                  !pointInsideMapAsset(
+                      currentSurfaces[index],
+                      mapPointer,
+                      mapPointer,
+                      imageAlphaMaskFor(
+                          alphaMaskRequests[index],
+                          alphaMasks,
+                      ),
+                  )
+              ) {
+                  return currentSlug;
+              }
+
+              if (currentSlug === null) {
+                  return asset.slug;
+              }
+
+              const currentIndex = map.assets.findIndex(
+                  (candidate) => candidate.slug === currentSlug,
+              );
+              const currentAsset = map.assets[currentIndex];
+
+              return asset.z > currentAsset.z ||
+                  (asset.z === currentAsset.z && index > currentIndex)
+                  ? asset.slug
+                  : currentSlug;
+          }, null)
+        : null;
 
     return (
         <div
@@ -472,10 +511,15 @@ function PublicMapSurface({
                     const assetTheme = assetThemes[index];
                     const label =
                         stringConfig(assetTheme, 'label') ?? node?.title ?? asset.text ?? asset.title;
+                    const isHighlighted =
+                        selected ||
+                        pointerAssetSlug === asset.slug ||
+                        focusedAssetSlug === asset.slug;
                     const style = {
                         left: `${surface.x}%`,
                         opacity: isHidden ? 0 : asset.opacity,
                         top: `${surface.y}%`,
+                        transition: 'opacity 140ms ease',
                         width: `${surface.width}%`,
                         zIndex: asset.z + 20,
                     };
@@ -515,9 +559,12 @@ function PublicMapSurface({
                                     : `${label}, ${node?.state === 'locked' ? 'locked' : 'open location'}`
                             }
                             aria-pressed={canToggle ? isToggled : undefined}
-                            className={`pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-left transition-transform duration-200 hover:z-20 hover:-translate-y-[calc(50%+0.25rem)] focus-visible:z-20 focus-visible:outline-none ${isHidden ? 'pointer-events-none' : ''}`}
+                            className={`pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none ${isHidden ? 'pointer-events-none' : ''}`}
                             data-map-asset-mode={asset.interaction_mode}
                             data-map-asset-slug={asset.slug}
+                            data-map-asset-highlighted={
+                                isHighlighted ? 'true' : 'false'
+                            }
                             data-map-asset-visibility={isHidden ? 'hidden' : 'visible'}
                             key={asset.slug}
                             onClick={(event) => {
@@ -536,6 +583,13 @@ function PublicMapSurface({
                                     onSelectNode(node);
                                 }
                             }}
+                            onBlur={() =>
+                                setFocusedAssetSlug((current) =>
+                                    current === asset.slug ? null : current,
+                                )
+                            }
+                            onFocus={() => setFocusedAssetSlug(asset.slug)}
+                            onPointerDown={(event) => event.stopPropagation()}
                             style={style}
                             type="button"
                         >
@@ -545,7 +599,7 @@ function PublicMapSurface({
                                 highlightColor={stringConfig(assetTheme, 'highlightColor')}
                                 highlightImageEnabled={assetTheme.highlightImageEnabled === true}
                                 highlightImageUrl={stringConfig(assetTheme, 'highlightImageUrl')}
-                                highlighted={selected || canToggle}
+                                highlighted={isHighlighted}
                                 highlightedLabelColor={stringConfig(assetTheme, 'highlightedLabelColor')}
                                 imageFit={stringConfig(assetTheme, 'imageFit')}
                                 imagePosition={stringConfig(assetTheme, 'imagePosition')}
