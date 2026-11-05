@@ -462,6 +462,21 @@ test('learner paths require an authenticated application principal', async ({
     expect(response.status()).toBe(401);
 });
 
+test('using a learner tool requires an authenticated application principal', async ({
+    request,
+}) => {
+    const response = await request.post(
+        '/api/v1/learner/maps/first-path/nodes/hidden-place/use-tool',
+        { data: { tool_slug: 'magnifier' } },
+    );
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+});
+
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({
     request,
 }) => {

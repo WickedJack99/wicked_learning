@@ -150,6 +150,31 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The map node is unknown or not accessible to this learner. }
         '503': { description: The application database is unavailable. }
+  /learner/maps/{map_slug}/nodes/{node_slug}/use-tool:
+    post:
+      operationId: useLearnerToolOnNode
+      summary: Use one of the signed-in learner's owned tools on an accessible World node.
+      parameters:
+        - $ref: '#/components/parameters/MapSlug'
+        - $ref: '#/components/parameters/NodeSlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerNodeToolRequest'
+      responses:
+        '200':
+          description: The source-defined result of the equipped-tool attempt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerNodeToolResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The map node is unknown, inaccessible, or the tool is not owned by this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/bookmarks:
     get:
       operationId: getLearnerBookmarkMap
@@ -1423,6 +1448,68 @@ components:
         node_slug:
           type: string
           pattern: '^[a-z0-9-]+$'
+    LearnerItem:
+      type: object
+      additionalProperties: false
+      required: [config, description, image_dark, image_light, quantity, slug, title]
+      properties:
+        config:
+          type: object
+          additionalProperties: true
+        description:
+          type: [string, 'null']
+        image_dark:
+          type: [string, 'null']
+        image_light:
+          type: [string, 'null']
+        quantity:
+          type: integer
+          minimum: 1
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+    LearnerTool:
+      type: object
+      additionalProperties: false
+      required: [animation_dark, animation_light, config, description, image_dark, image_light, slug, title]
+      properties:
+        animation_dark:
+          type: [string, 'null']
+        animation_light:
+          type: [string, 'null']
+        config:
+          type: object
+          additionalProperties: true
+        description:
+          type: [string, 'null']
+        image_dark:
+          type: [string, 'null']
+        image_light:
+          type: [string, 'null']
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
+    LearnerNodeToolRequest:
+      type: object
+      additionalProperties: false
+      required: [tool_slug]
+      properties:
+        tool_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          maxLength: 80
+    LearnerNodeToolResult:
+      type: object
+      additionalProperties: false
+      required: [discovered, is_unlocked, is_useful]
+      properties:
+        discovered: { type: boolean }
+        is_unlocked: { type: boolean }
+        is_useful: { type: boolean }
     LearnerBookmarkMap:
       type: object
       additionalProperties: false
@@ -2285,10 +2372,20 @@ components:
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false
-      required: [world, bookmarked_nodes, activity_progress, route_progress, available_routes, start_routes]
+      required: [world, items, tools, bookmarked_nodes, activity_progress, route_progress, available_routes, start_routes]
       properties:
         world:
           $ref: '#/components/schemas/PublicWorld'
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/LearnerItem'
+        tools:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/LearnerTool'
         bookmarked_nodes:
           type: array
           maxItems: 500

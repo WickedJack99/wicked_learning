@@ -7,6 +7,7 @@ pub mod learner_check_in;
 pub mod learner_competence;
 pub mod learner_journal;
 pub mod learner_journal_page;
+pub mod learner_node_tool;
 pub mod learner_paths;
 pub mod learner_playback;
 pub mod learner_question;

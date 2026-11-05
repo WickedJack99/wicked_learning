@@ -10,6 +10,7 @@ mod learner_check_in;
 mod learner_competence;
 mod learner_journal;
 mod learner_journal_page;
+mod learner_node_tool;
 mod learner_paths;
 mod learner_playback;
 mod learner_question;
@@ -246,6 +247,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/maps/{map_slug}/nodes/{node_slug}/bookmark",
             post(learner_bookmark::create).delete(learner_bookmark::delete),
+        )
+        .route(
+            "/api/v1/learner/maps/{map_slug}/nodes/{node_slug}/use-tool",
+            post(learner_node_tool::use_on_node),
         )
         .route("/api/v1/learner/journal", get(learner_journal::index))
         .route(

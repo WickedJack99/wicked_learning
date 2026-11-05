@@ -106,7 +106,7 @@ impl PostgresLearnerNodeAvailability {
         facts.role_slugs = self.role_slugs.clone();
 
         learner_node_state(
-            authored_state(state),
+            authored_node_state(state),
             &LearnerNodeAvailabilityConfig::from_visual_config(visual_config),
             &facts,
         )
@@ -126,7 +126,9 @@ async fn load_node_ids(
         .collect())
 }
 
-fn authored_state(state: &str) -> LearnerNodeState {
+/// Converts the persisted source enum to the framework-free availability
+/// state. Unknown authored values fail closed rather than becoming playable.
+pub fn authored_node_state(state: &str) -> LearnerNodeState {
     match state {
         "available" => LearnerNodeState::Available,
         "locked" => LearnerNodeState::Locked,

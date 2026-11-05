@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use serde_json::Value;
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::learner_world::{
@@ -9,7 +10,8 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
         LearnerActivityProgress, LearnerActivityStart, LearnerActivityStartProgress,
-        LearnerBookmark, LearnerRouteProgress, LearnerWorldRoute, LearnerWorldSnapshot,
+        LearnerBookmark, LearnerItem, LearnerRouteProgress, LearnerTool, LearnerWorldRoute,
+        LearnerWorldSnapshot,
     },
 };
 
@@ -100,6 +102,29 @@ struct BookmarkRow {
     node_slug: String,
 }
 
+#[derive(FromRow)]
+struct ItemRow {
+    config: Value,
+    description: Option<String>,
+    image_dark: Option<String>,
+    image_light: Option<String>,
+    quantity: i32,
+    slug: String,
+    title: String,
+}
+
+#[derive(FromRow)]
+struct ToolRow {
+    animation_dark: Option<String>,
+    animation_light: Option<String>,
+    config: Value,
+    description: Option<String>,
+    image_dark: Option<String>,
+    image_light: Option<String>,
+    slug: String,
+    title: String,
+}
+
 async fn load_first_visible(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -112,6 +137,18 @@ async fn load_first_visible(
     };
     let principal_id = availability.principal_id();
     let playable_nodes = apply_learner_node_states(&mut loaded_world.world, &availability);
+    let items = sqlx::query_as::<_, ItemRow>(
+        "SELECT items.config, items.description, items.image_dark, items.image_light, holdings.quantity, items.slug, items.title FROM learner_item_holdings AS holdings INNER JOIN learning_items AS items ON items.id = holdings.item_id WHERE holdings.principal_id = $1 AND holdings.quantity > 0 ORDER BY holdings.acquired_at ASC NULLS LAST, items.slug ASC LIMIT 100",
+    )
+    .bind(principal_id)
+    .fetch_all(pool)
+    .await?;
+    let tools = sqlx::query_as::<_, ToolRow>(
+        "SELECT tools.animation_dark, tools.animation_light, tools.config, tools.description, tools.image_dark, tools.image_light, tools.slug, tools.title FROM learner_tools AS holdings INNER JOIN learning_tools AS tools ON tools.id = holdings.tool_id WHERE holdings.principal_id = $1 ORDER BY holdings.acquired_at ASC, tools.slug ASC LIMIT 100",
+    )
+    .bind(principal_id)
+    .fetch_all(pool)
+    .await?;
 
     let bookmarked_nodes = sqlx::query_as::<_, BookmarkRow>(
         "SELECT maps.slug AS map_slug, nodes.slug AS node_slug FROM learner_node_bookmarks AS bookmarks INNER JOIN learning_nodes AS nodes ON nodes.id = bookmarks.node_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE bookmarks.principal_id = $1 AND nodes.map_id = ANY($2) AND nodes.published_at IS NOT NULL AND nodes.state <> 'hidden' AND NOT (nodes.visual_config @> '{\"hideEmptySpace\": true}'::jsonb) ORDER BY bookmarks.created_at ASC, maps.slug ASC, nodes.slug ASC LIMIT 500",
@@ -150,6 +187,31 @@ async fn load_first_visible(
 
     Ok(Some(LearnerWorldSnapshot {
         world: loaded_world.world,
+        items: items
+            .into_iter()
+            .map(|item| LearnerItem {
+                config: item.config,
+                description: item.description,
+                image_dark: item.image_dark,
+                image_light: item.image_light,
+                quantity: item.quantity,
+                slug: item.slug,
+                title: item.title,
+            })
+            .collect(),
+        tools: tools
+            .into_iter()
+            .map(|tool| LearnerTool {
+                animation_dark: tool.animation_dark,
+                animation_light: tool.animation_light,
+                config: tool.config,
+                description: tool.description,
+                image_dark: tool.image_dark,
+                image_light: tool.image_light,
+                slug: tool.slug,
+                title: tool.title,
+            })
+            .collect(),
         bookmarked_nodes: bookmarked_nodes
             .into_iter()
             .filter(|row| playable_nodes.contains(&(row.map_slug.clone(), row.node_slug.clone())))

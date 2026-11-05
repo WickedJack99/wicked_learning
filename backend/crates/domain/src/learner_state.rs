@@ -8,11 +8,49 @@ use crate::world_content::{PublicMapAsset, PublicWorld};
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerWorldSnapshot {
     pub world: PublicWorld,
+    pub items: Vec<LearnerItem>,
+    pub tools: Vec<LearnerTool>,
     pub bookmarked_nodes: Vec<LearnerBookmark>,
     pub activity_progress: Vec<LearnerActivityProgress>,
     pub route_progress: Vec<LearnerRouteProgress>,
     pub available_routes: Vec<LearnerWorldRoute>,
     pub start_routes: Vec<LearnerActivityStart>,
+}
+
+/// One learner-owned inventory item, bounded to presentation fields the
+/// source action bar renders. Quantity remains server-owned.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerItem {
+    pub config: serde_json::Value,
+    pub description: Option<String>,
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub quantity: i32,
+    pub slug: String,
+    pub title: String,
+}
+
+/// One learner-owned tool. The slug is the public, authored reference; the
+/// database UUID stays internal and is never accepted from the browser.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTool {
+    pub animation_dark: Option<String>,
+    pub animation_light: Option<String>,
+    pub config: serde_json::Value,
+    pub description: Option<String>,
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub slug: String,
+    pub title: String,
+}
+
+/// The bounded result of using an owned tool on an accessible map node. The
+/// browser can refresh its snapshot but cannot infer or alter policy itself.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNodeToolResult {
+    pub discovered: bool,
+    pub is_unlocked: bool,
+    pub is_useful: bool,
 }
 
 /// A visible bookmarked node. A node slug is unique only within its map, so

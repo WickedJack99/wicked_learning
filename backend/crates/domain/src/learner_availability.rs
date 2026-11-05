@@ -67,6 +67,7 @@ pub fn schedule_facts(visual_config: &Value, now: OffsetDateTime) -> LearnerNode
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct LearnerNodeAvailabilityConfig {
     pub has_reveal_tool: bool,
+    reveal_tool_reference: Option<String>,
     pub unlock: UnlockConfiguration,
 }
 
@@ -77,6 +78,7 @@ pub struct UnlockConfiguration {
     pub legacy_node_references: Vec<String>,
     pub legacy_role_slug: Option<String>,
     pub legacy_tool_configured: bool,
+    legacy_tool_reference: Option<String>,
     pub legacy_top_operator: RuleOperator,
     /// `Some` means an authored nested rule tree was supplied. A malformed
     /// tree remains `Some(None)`, which safely stays locked rather than
@@ -110,6 +112,15 @@ pub enum UnlockRule {
     ToolUsed,
 }
 
+/// The only source-defined map actions a learner may perform with an equipped
+/// tool. The stable tool reference comes from authored configuration; callers
+/// must still prove that the current learner owns that exact tool.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LearnerNodeToolAction {
+    Reveal { tool_reference: String },
+    Unlock { tool_reference: String },
+}
+
 impl LearnerNodeAvailabilityConfig {
     /// Reads only the subset of `visual_config` that affects learner
     /// availability. Unknown and malformed values are deliberately ignored;
@@ -122,24 +133,30 @@ impl LearnerNodeAvailabilityConfig {
         let unlock = visual_config
             .and_then(|config| config.get("unlock"))
             .and_then(object);
-        let has_reveal_tool = reveal.is_some_and(|reveal| {
-            enabled(reveal.get("enabled")) && reference(reveal.get("toolId")).is_some()
-        });
+        let reveal_tool_reference = reveal
+            .filter(|reveal| enabled(reveal.get("enabled")))
+            .and_then(|reveal| reference(reveal.get("toolId")));
+        let has_reveal_tool = reveal_tool_reference.is_some();
 
         let Some(unlock) = unlock else {
             return Self {
                 has_reveal_tool,
+                reveal_tool_reference,
                 unlock: UnlockConfiguration::default(),
             };
         };
         let legacy_tool = unlock.get("tool").and_then(object);
         let legacy_item = unlock.get("item").and_then(object);
+        let legacy_tool_reference = legacy_tool
+            .filter(|tool| enabled(tool.get("enabled")))
+            .and_then(|tool| reference(tool.get("toolId")));
         let authored_rule = unlock
             .get("rules")
             .and_then(|rules| (!empty_rule_tree(rules)).then(|| parse_rule(rules)));
 
         Self {
             has_reveal_tool,
+            reveal_tool_reference,
             unlock: UnlockConfiguration {
                 enabled: enabled(unlock.get("enabled")),
                 legacy_item_reference: legacy_item
@@ -153,12 +170,30 @@ impl LearnerNodeAvailabilityConfig {
                     .filter_map(|value| reference(Some(value)))
                     .collect(),
                 legacy_role_slug: reference(unlock.get("roleSlug")),
-                legacy_tool_configured: legacy_tool.is_some_and(|tool| {
-                    enabled(tool.get("enabled")) && reference(tool.get("toolId")).is_some()
-                }),
+                legacy_tool_configured: legacy_tool_reference.is_some(),
+                legacy_tool_reference,
                 legacy_top_operator: operator(unlock.get("topOperator")),
                 authored_rule,
             },
+        }
+    }
+
+    /// Returns the source action that the authored node permits. New Rust
+    /// content refers to tools by their unique slug in `toolId`; source-style
+    /// numeric identifiers are deliberately not remapped in this greenfield
+    /// platform.
+    pub fn tool_action(&self, authored_state: LearnerNodeState) -> Option<LearnerNodeToolAction> {
+        match authored_state {
+            LearnerNodeState::Hidden => self
+                .reveal_tool_reference
+                .clone()
+                .map(|tool_reference| LearnerNodeToolAction::Reveal { tool_reference }),
+            LearnerNodeState::Locked => self
+                .unlock
+                .legacy_tool_reference
+                .clone()
+                .map(|tool_reference| LearnerNodeToolAction::Unlock { tool_reference }),
+            LearnerNodeState::Available => None,
         }
     }
 }
@@ -354,7 +389,7 @@ fn parse_timestamp(value: &Value) -> Option<OffsetDateTime> {
 mod tests {
     use super::{
         LearnerNodeAvailabilityConfig, LearnerNodeAvailabilityFacts, LearnerNodeState,
-        learner_node_state, schedule_facts,
+        LearnerNodeToolAction, learner_node_state, schedule_facts,
     };
     use serde_json::json;
     use time::macros::datetime;
@@ -415,6 +450,31 @@ mod tests {
             ),
             LearnerNodeState::Locked
         );
+    }
+
+    #[test]
+    fn tool_actions_require_a_source_enabled_reference_for_the_authored_state() {
+        let reveal = LearnerNodeAvailabilityConfig::from_visual_config(&json!({
+            "reveal": { "enabled": true, "toolId": "magnifier" }
+        }));
+        let unlock = LearnerNodeAvailabilityConfig::from_visual_config(&json!({
+            "unlock": { "tool": { "enabled": true, "toolId": "key" } }
+        }));
+
+        assert_eq!(
+            reveal.tool_action(LearnerNodeState::Hidden),
+            Some(LearnerNodeToolAction::Reveal {
+                tool_reference: "magnifier".to_owned(),
+            })
+        );
+        assert_eq!(
+            unlock.tool_action(LearnerNodeState::Locked),
+            Some(LearnerNodeToolAction::Unlock {
+                tool_reference: "key".to_owned(),
+            })
+        );
+        assert_eq!(reveal.tool_action(LearnerNodeState::Locked), None);
+        assert_eq!(unlock.tool_action(LearnerNodeState::Available), None);
     }
 
     #[test]

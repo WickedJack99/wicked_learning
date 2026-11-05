@@ -829,20 +829,24 @@ source query values normalize to no filter as the Laravel controller does.
 
 The first availability increment supplies the policy with the authenticated
 principal's roles, completed nodes and current RFC 3339 schedule instants.
-Malformed availability configuration fails closed. Source discovery, answer
-events, tool use, item ownership and staff manual openings have no Rust writer
-yet; absent facts therefore remain unavailable instead of being treated as
-satisfied.
+Malformed availability configuration fails closed. The source tool-belt and
+its map-node reveal/unlock command now write only a verified owned tool's
+discovery or tool-use fact. Answer events, item grants and staff manual
+openings still have no Rust writer; absent facts remain unavailable instead of
+being treated as satisfied.
 
 **State-model evolution:** Application migration `0029` creates normalized
 tool, item, ownership, discovery, tool-use and manual-opening records before
-their source writers are lifted. The reader can now consume a fact once its
-authorized writer exists, without turning Laravel's mixed discovery metadata
-into an opaque cross-purpose JSON contract. The tables alone do not enable a
-control or make a node available: no Rust tool, item, answer-event or support
-writer exists yet, so those sets are empty and remain fail-closed. This is the
-deliberate next architecture boundary for the source tool/discovery slice, not
-permission to publish the standalone Paths screen.
+their source writers are lifted. The reader consumes each fact without turning
+Laravel's mixed discovery metadata into an opaque cross-purpose JSON contract.
+The first writer verifies map visibility, CSRF, learner ownership and the
+configured tool before it records a source-equivalent reveal or unlock attempt.
+Author-facing `toolId` configuration now names the unique tool slug—not an
+internal Rust UUID or a Laravel numeric key—because this is a greenfield
+platform. Tool acquisition, item grants, answer events and staff overrides
+remain absent and fail closed. This is the deliberate architecture boundary
+for the source tool/discovery slice, not permission to publish the standalone
+Paths screen.
 
 **Why:** This retains server authority for availability and creates one bounded
 reader that both the future `/paths` page and topic Routes panel can consume.
@@ -856,9 +860,11 @@ Publishing a card-list `/paths` page now would be a substitute for the source
 Paths workflow. Both are rejected.
 
 **Limitations and trigger:** This is not yet full dynamic availability parity.
-Rows requiring source discovery, answer events, tool use, item ownership or
-staff manual openings remain unavailable until their learner-state writers,
-authorization tests and source controls exist in Rust. The standalone React
+Rows requiring answer events, item ownership or staff manual openings remain
+unavailable until their learner-state writers, authorization tests and source
+controls exist in Rust. Tool-dependent reveal and unlock are available only to
+the current learner who already owns the exact configured tool; source tool
+grant flows remain a separate slice. The standalone React
 `/paths` route remains absent until its complete source page and every source
 eligibility input are represented. The topic Routes tab may consume only the
 facts Rust can currently prove and starts runs through the same server-owned

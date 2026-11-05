@@ -425,10 +425,53 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(
         page.getByRole('button', { name: 'Open user menu' }),
     ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open inventory' })).toBeVisible();
+    await page.getByRole('button', { name: 'Open tools' }).click();
+    await expect(page.getByRole('dialog', { name: 'Select a tool' })).toContainText(
+        'No tools acquired yet.',
+    );
     await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Open user menu' }).click();
     await expect(page.getByRole('menuitem', { name: 'Log out' })).toBeVisible();
     await expect(page.getByRole('menu')).toContainText('learner@example.test');
+});
+
+test('the lifted tool belt and its panel remain inside desktop and narrow World viewports', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['learner'],
+            }),
+        });
+    });
+
+    await page.goto('/world');
+    await page.getByRole('button', { name: 'Open tools' }).click();
+    const desktopPanel = page.getByRole('dialog', { name: 'Select a tool' });
+    await expect(desktopPanel).toBeVisible();
+    const desktopBox = await desktopPanel.boundingBox();
+    expect(desktopBox).not.toBeNull();
+    if (!desktopBox) return;
+    expect(desktopBox.x).toBeGreaterThanOrEqual(0);
+    expect(desktopBox.y).toBeGreaterThanOrEqual(0);
+    expect(desktopBox.x + desktopBox.width).toBeLessThanOrEqual(1280);
+    expect(desktopBox.y + desktopBox.height).toBeLessThanOrEqual(720);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('button', { name: 'Close' }).click();
+    await page.getByRole('button', { name: 'Open tools' }).click();
+    const narrowBox = await desktopPanel.boundingBox();
+    expect(narrowBox).not.toBeNull();
+    if (!narrowBox) return;
+    expect(narrowBox.x).toBeGreaterThanOrEqual(0);
+    expect(narrowBox.y).toBeGreaterThanOrEqual(0);
+    expect(narrowBox.x + narrowBox.width).toBeLessThanOrEqual(390);
+    expect(narrowBox.y + narrowBox.height).toBeLessThanOrEqual(844);
 });
 
 test('the authenticated World restores the original bookmark toggle with a server-owned result', async ({

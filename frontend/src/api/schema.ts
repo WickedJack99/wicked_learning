@@ -107,6 +107,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/maps/{map_slug}/nodes/{node_slug}/use-tool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Use one of the signed-in learner's owned tools on an accessible World node. */
+        post: operations["useLearnerToolOnNode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/bookmarks": {
         parameters: {
             query?: never;
@@ -815,6 +832,37 @@ export interface components {
             map_slug: string;
             node_slug: string;
         };
+        LearnerItem: {
+            config: {
+                [key: string]: unknown;
+            };
+            description: string | null;
+            image_dark: string | null;
+            image_light: string | null;
+            quantity: number;
+            slug: string;
+            title: string;
+        };
+        LearnerTool: {
+            animation_dark: string | null;
+            animation_light: string | null;
+            config: {
+                [key: string]: unknown;
+            };
+            description: string | null;
+            image_dark: string | null;
+            image_light: string | null;
+            slug: string;
+            title: string;
+        };
+        LearnerNodeToolRequest: {
+            tool_slug: string;
+        };
+        LearnerNodeToolResult: {
+            discovered: boolean;
+            is_unlocked: boolean;
+            is_useful: boolean;
+        };
         LearnerBookmarkMap: {
             background_config: {
                 [key: string]: unknown;
@@ -1324,6 +1372,8 @@ export interface components {
         };
         LearnerWorldSnapshot: {
             world: components["schemas"]["PublicWorld"];
+            items: components["schemas"]["LearnerItem"][];
+            tools: components["schemas"]["LearnerTool"][];
             bookmarked_nodes: components["schemas"]["LearnerBookmark"][];
             activity_progress: components["schemas"]["LearnerActivityProgress"][];
             route_progress: components["schemas"]["LearnerRouteProgress"][];
@@ -1663,6 +1713,64 @@ export interface operations {
                 content?: never;
             };
             /** @description The map node is unknown or not accessible to this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    useLearnerToolOnNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_slug: components["parameters"]["MapSlug"];
+                node_slug: components["parameters"]["NodeSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerNodeToolRequest"];
+            };
+        };
+        responses: {
+            /** @description The source-defined result of the equipped-tool attempt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerNodeToolResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map node is unknown */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -28,6 +28,7 @@ import { PublicMapAssetVisual } from './public-map-asset-visual';
 import { OriginalRouteStartButtons } from './original-activity-playback';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalJournalOverlay } from './original-journal';
+import { OriginalToolBelt } from './original-tool-belt';
 import { resolveOriginalWorldTheme } from './original-world-theme';
 
 type PublicMap = components['schemas']['PublicMap'];
@@ -50,8 +51,10 @@ type LearnerWorldState = Pick<
     | 'activity_progress'
     | 'available_routes'
     | 'bookmarked_nodes'
+    | 'items'
     | 'route_progress'
     | 'start_routes'
+    | 'tools'
 >;
 type PanelSwipe = {
     isDragging: boolean;
@@ -81,6 +84,7 @@ export function PublicWorldPage({
     const [worldState, setWorldState] = useState<WorldState>({
         kind: 'loading',
     });
+    const [worldRevision, setWorldRevision] = useState(0);
 
     useEffect(() => {
         let isCurrent = true;
@@ -110,8 +114,10 @@ export function PublicWorldPage({
                                 activity_progress: data.activity_progress,
                                 available_routes: data.available_routes,
                                 bookmarked_nodes: data.bookmarked_nodes,
+                                items: data.items,
                                 route_progress: data.route_progress,
                                 start_routes: data.start_routes,
+                                tools: data.tools,
                             },
                             world: data.world,
                         });
@@ -149,7 +155,7 @@ export function PublicWorldPage({
         return () => {
             isCurrent = false;
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, worldRevision]);
 
     if (worldState.kind === 'loading') {
         return <WorldMessage message="Loading the learning world…" />;
@@ -173,6 +179,7 @@ export function PublicWorldPage({
             appearance={appearance}
             isAuthenticated={isAuthenticated}
             learnerState={worldState.learnerState}
+            onRefresh={() => setWorldRevision((revision) => revision + 1)}
             onSignedOut={onSignedOut}
             userEmail={userEmail}
             world={worldState.world}
@@ -192,6 +199,7 @@ function PublicWorldSurface({
     appearance,
     isAuthenticated,
     learnerState,
+    onRefresh,
     onSignedOut,
     userEmail,
     world,
@@ -199,6 +207,7 @@ function PublicWorldSurface({
     appearance: OriginalAppearance;
     isAuthenticated: boolean;
     learnerState: LearnerWorldState | null;
+    onRefresh: () => void;
     onSignedOut: () => void;
     userEmail: string | null;
     world: PublicWorld;
@@ -225,11 +234,23 @@ function PublicWorldSurface({
     );
     const [isBookmarking, setIsBookmarking] = useState(false);
     const [panelSwipe, setPanelSwipe] = useState<PanelSwipe | null>(null);
+    const [selectedTool, setSelectedTool] = useState<
+        components['schemas']['LearnerTool'] | null
+    >(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         setBookmarkedNodes(learnerState?.bookmarked_nodes ?? []);
     }, [learnerState?.bookmarked_nodes]);
+
+    useEffect(() => {
+        if (
+            selectedTool &&
+            !learnerState?.tools.some((tool) => tool.slug === selectedTool.slug)
+        ) {
+            setSelectedTool(null);
+        }
+    }, [learnerState?.tools, selectedTool]);
 
     function selectNode(node: PublicNode | null, map = selectedMap): void {
         if (!map) {
@@ -329,6 +350,39 @@ function PublicWorldSurface({
         [bookmarkedNodes, isAuthenticated, isBookmarking, selectedMap],
     );
 
+    const useToolOnNode = useCallback(
+        async (node: PublicNode): Promise<void> => {
+            if (!isAuthenticated || !selectedMap || !selectedTool) {
+                return;
+            }
+
+            setSelectedTool(null);
+            try {
+                const token = await getCsrfToken();
+                const { data, response } = await apiClient.POST(
+                    '/learner/maps/{map_slug}/nodes/{node_slug}/use-tool',
+                    {
+                        body: { tool_slug: selectedTool.slug },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: {
+                                map_slug: selectedMap.slug,
+                                node_slug: node.slug,
+                            },
+                        },
+                    },
+                );
+                if (response.ok && data && (data.discovered || data.is_unlocked)) {
+                    onRefresh();
+                }
+            } catch {
+                // Matching the source control, a failed attempt leaves the
+                // World visible and lets the learner choose another tool.
+            }
+        },
+        [isAuthenticated, onRefresh, selectedMap, selectedTool],
+    );
+
     if (!selectedMap) {
         return (
             <WorldMessage message="The learning world has no published maps yet." />
@@ -355,6 +409,8 @@ function PublicWorldSurface({
                     map={selectedMap}
                     onClearFocus={() => selectNode(null)}
                     onSelectNode={selectNode}
+                    onUseToolOnNode={(node) => void useToolOnNode(node)}
+                    selectedTool={selectedTool}
                     selectedNode={selectedNode}
                     theme={selectedMapTheme!}
                 />
@@ -366,6 +422,16 @@ function PublicWorldSurface({
                 theme={selectedMapTheme!}
                 world={world}
             />
+
+            {isAuthenticated ? (
+                <OriginalToolBelt
+                    appearance={appearance}
+                    items={learnerState?.items ?? []}
+                    onSelectTool={setSelectedTool}
+                    selectedTool={selectedTool}
+                    tools={learnerState?.tools ?? []}
+                />
+            ) : null}
 
             {world.maps.length > 1 ? (
                 <nav
@@ -590,6 +656,8 @@ function PublicMapSurface({
     map,
     onClearFocus,
     onSelectNode,
+    onUseToolOnNode,
+    selectedTool,
     selectedNode,
     theme,
 }: {
@@ -599,6 +667,8 @@ function PublicMapSurface({
     map: PublicMap;
     onClearFocus: () => void;
     onSelectNode: (node: PublicNode) => void;
+    onUseToolOnNode: (node: PublicNode) => void;
+    selectedTool: components['schemas']['LearnerTool'] | null;
     selectedNode: PublicNode | null;
     theme: Record<string, unknown>;
 }) {
@@ -860,6 +930,11 @@ function PublicMapSurface({
                             aria-label={
                                 canToggle
                                     ? `${label}, ${isToggled ? 'second state' : 'first state'}`
+                                    : selectedTool &&
+                                        node &&
+                                        (node.state === 'locked' ||
+                                            node.state === 'hidden')
+                                      ? `Use ${selectedTool.title} on ${label}`
                                     : `${label}, ${node?.state === 'locked' ? 'locked' : 'open location'}`
                             }
                             aria-pressed={canToggle ? isToggled : undefined}
@@ -883,12 +958,19 @@ function PublicMapSurface({
                                               )
                                             : [...current, asset.slug],
                                     );
-                                } else if (
-                                    node &&
-                                    node.state !== 'locked' &&
-                                    node.state !== 'hidden'
-                                ) {
-                                    onSelectNode(node);
+                                } else if (node) {
+                                    if (
+                                        selectedTool &&
+                                        (node.state === 'locked' ||
+                                            node.state === 'hidden')
+                                    ) {
+                                        onUseToolOnNode(node);
+                                    } else if (
+                                        node.state !== 'locked' &&
+                                        node.state !== 'hidden'
+                                    ) {
+                                        onSelectNode(node);
+                                    }
                                 }
                             }}
                             onBlur={() =>
