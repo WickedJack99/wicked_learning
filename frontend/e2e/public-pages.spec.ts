@@ -541,7 +541,7 @@ test('unknown browser routes render the client-side not-found state', async ({
     ).toBeVisible();
     await expect(
         page.getByText(
-            'The requested public information page is not available.',
+            'This route is not available in the Rust replatform yet.',
         ),
     ).toBeVisible();
 });
