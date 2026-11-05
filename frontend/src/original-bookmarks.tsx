@@ -5,7 +5,9 @@ import { Link, Navigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import type { OriginalAppearance } from './original-appearance';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
+import { resolveOriginalWorldTheme } from './original-world-theme';
 
 type BookmarkMap = components['schemas']['LearnerBookmarkMap'];
 type BookmarkPlace = components['schemas']['LearnerBookmarkPlace'];
@@ -21,9 +23,11 @@ type BookmarkState =
  * replacing Inertia props and JSON helpers with the typed Rust API client.
  */
 export function OriginalBookmarksPage({
+    appearance,
     isAuthenticationLoading,
     isAuthenticated,
 }: {
+    appearance: OriginalAppearance;
     isAuthenticationLoading: boolean;
     isAuthenticated: boolean;
 }) {
@@ -63,6 +67,9 @@ export function OriginalBookmarksPage({
 
     const bookmarkMap =
         bookmarkState.kind === 'loaded' ? bookmarkState.bookmarkMap : null;
+    const bookmarkTheme = bookmarkMap
+        ? resolveOriginalWorldTheme(bookmarkMap.background_config, appearance)
+        : null;
     const selectedPlace = useMemo(
         () =>
             bookmarkMap?.places.find(
@@ -129,12 +136,13 @@ export function OriginalBookmarksPage({
             className="relative min-h-svh overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
             data-wl-id="learner.bookmarks.page"
             id="learner-main-content"
-            style={bookmarkMapStyle(bookmarkMap.background_config)}
+            style={bookmarkMapStyle(bookmarkTheme!)}
             tabIndex={-1}
         >
             <section className="absolute inset-0 overflow-hidden">
                 {bookmarkMap.places.length > 0 ? (
                     <BookmarkMapSurface
+                        appearance={appearance}
                         bookmarkMap={bookmarkMap}
                         onClearFocus={() => setSelectedPlaceKey(null)}
                         onSelectPlace={(place) =>
@@ -150,7 +158,7 @@ export function OriginalBookmarksPage({
             <aside
                 aria-label="Selected bookmarked place"
                 className={`absolute inset-x-0 top-28 bottom-0 z-50 w-full border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out sm:top-16 md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100 ${selectedPlace ? 'translate-x-0' : 'pointer-events-none translate-x-full'}`}
-                style={bookmarkPanelStyle(bookmarkMap.background_config)}
+                style={bookmarkPanelStyle(bookmarkTheme!)}
             >
                 {selectedPlace ? (
                     <BookmarkPanel
@@ -173,17 +181,22 @@ function BookmarksMessage({ message }: { message: string }) {
 }
 
 function BookmarkMapSurface({
+    appearance,
     bookmarkMap,
     onClearFocus,
     onSelectPlace,
     selectedPlace,
 }: {
+    appearance: OriginalAppearance;
     bookmarkMap: BookmarkMap;
     onClearFocus: () => void;
     onSelectPlace: (place: BookmarkPlace) => void;
     selectedPlace: BookmarkPlace | null;
 }) {
-    const background = bookmarkMap.background_config;
+    const background = resolveOriginalWorldTheme(
+        bookmarkMap.background_config,
+        appearance,
+    );
 
     return (
         <div
@@ -219,8 +232,14 @@ function BookmarkMapSurface({
                     }
 
                     const visualConfig = mergeConfig(
-                        place.visual_config,
-                        asset.visual_config,
+                        resolveOriginalWorldTheme(
+                            place.visual_config,
+                            appearance,
+                        ),
+                        resolveOriginalWorldTheme(
+                            asset.visual_config,
+                            appearance,
+                        ),
                     );
                     const selected =
                         bookmarkPlaceKey(place) ===

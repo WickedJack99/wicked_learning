@@ -98,6 +98,7 @@ export function App() {
     if (location.pathname === '/world') {
         return (
             <PublicWorldPage
+                appearance={appearance}
                 isAuthenticated={currentUser.kind === 'loaded'}
                 onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
                 userEmail={
@@ -110,6 +111,7 @@ export function App() {
     if (location.pathname === '/bookmarks') {
         return (
             <OriginalBookmarksPage
+                appearance={appearance}
                 isAuthenticationLoading={currentUser.kind === 'loading'}
                 isAuthenticated={currentUser.kind === 'loaded'}
             />

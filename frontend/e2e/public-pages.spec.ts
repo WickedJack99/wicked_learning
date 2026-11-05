@@ -729,12 +729,12 @@ test('the signed-in explorer starts and completes an original open-practice rout
         label,
         description:
             'A read-only route presentation from the learner snapshot.',
-        image_dark: null,
-        image_light: null,
-        button_color_dark: null,
-        button_border_color_dark: null,
-        button_color_light: null,
-        button_border_color_light: null,
+        image_dark: 'https://example.test/dark-route.png',
+        image_light: 'https://example.test/light-route.png',
+        button_color_dark: '#112233',
+        button_border_color_dark: '#223344',
+        button_color_light: '#ddeeff',
+        button_border_color_light: '#ccddee',
         sort_order: sortOrder,
         progress:
             sortOrder === 0
@@ -772,7 +772,10 @@ test('the signed-in explorer starts and completes an original open-practice rout
                             slug: 'private-path',
                             title: 'A private path',
                             description: '',
-                            background_config: {},
+                            background_config: {
+                                dark: { pageBackground: '#0b1117' },
+                                light: { pageBackground: '#f0fdfa' },
+                            },
                             grid_config: {},
                             map_assets_locked: false,
                             assets: [
@@ -930,6 +933,12 @@ test('the signed-in explorer starts and completes an original open-practice rout
         },
     );
 
+    await page.addInitScript(() => {
+        window.localStorage.setItem(
+            'theme-preference-unauthenticated',
+            'light',
+        );
+    });
     await page.goto('/world');
 
     await expect(
@@ -941,6 +950,13 @@ test('the signed-in explorer starts and completes an original open-practice rout
     await page
         .getByRole('button', { name: 'Private place, open location' })
         .click();
+    await expect(page.locator('[data-wl-id="public-world"]')).toHaveCSS(
+        'background-color',
+        'rgb(240, 253, 250)',
+    );
+    await expect(
+        page.locator('[data-wl-id="learner.world.route-starts"] img').first(),
+    ).toHaveAttribute('src', 'https://example.test/light-route.png');
     await expect(page.getByLabel('Saved place')).toBeVisible();
     await expect(page.getByLabel('Node completed')).toBeVisible();
     await expect(page.getByText('Begin private orientation')).toBeVisible();

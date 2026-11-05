@@ -26,7 +26,9 @@ import {
 import type { components } from './api/schema';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
 import { OriginalRouteStartButtons } from './original-activity-playback';
+import type { OriginalAppearance } from './original-appearance';
 import { OriginalJournalOverlay } from './original-journal';
+import { resolveOriginalWorldTheme } from './original-world-theme';
 
 type PublicMap = components['schemas']['PublicMap'];
 type PublicMapAsset = components['schemas']['PublicMapAsset'];
@@ -66,10 +68,12 @@ type SearchState =
     | { kind: 'unavailable' };
 
 export function PublicWorldPage({
+    appearance,
     isAuthenticated,
     onSignedOut,
     userEmail,
 }: {
+    appearance: OriginalAppearance;
     isAuthenticated: boolean;
     onSignedOut: () => void;
     userEmail: string | null;
@@ -166,6 +170,7 @@ export function PublicWorldPage({
 
     return (
         <PublicWorldSurface
+            appearance={appearance}
             isAuthenticated={isAuthenticated}
             learnerState={worldState.learnerState}
             onSignedOut={onSignedOut}
@@ -184,12 +189,14 @@ function WorldMessage({ message, role }: { message: string; role?: string }) {
 }
 
 function PublicWorldSurface({
+    appearance,
     isAuthenticated,
     learnerState,
     onSignedOut,
     userEmail,
     world,
 }: {
+    appearance: OriginalAppearance;
     isAuthenticated: boolean;
     learnerState: LearnerWorldState | null;
     onSignedOut: () => void;
@@ -206,6 +213,9 @@ function PublicWorldSurface({
     const selectedNode =
         selectedMap?.nodes.find((node) => node.slug === requestedNodeSlug) ??
         null;
+    const selectedMapTheme = selectedMap
+        ? resolveOriginalWorldTheme(selectedMap.background_config, appearance)
+        : null;
     const completedNodeSlugs = useMemo(
         () => completedNodeSlugsFrom(learnerState),
         [learnerState],
@@ -329,7 +339,7 @@ function PublicWorldSurface({
         <main
             className="public-world relative min-h-svh overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
             data-wl-id="public-world"
-            style={worldSurfaceStyle(selectedMap.background_config)}
+            style={worldSurfaceStyle(selectedMapTheme!)}
         >
             <WorldNavigation
                 isAuthenticated={isAuthenticated}
@@ -338,19 +348,21 @@ function PublicWorldSurface({
             />
             <section className="absolute inset-0 overflow-hidden">
                 <PublicMapSurface
+                    appearance={appearance}
                     bookmarkedNodes={bookmarkedNodes}
                     completedNodeSlugs={completedNodeSlugs}
                     map={selectedMap}
                     onClearFocus={() => selectNode(null)}
                     onSelectNode={selectNode}
                     selectedNode={selectedNode}
+                    theme={selectedMapTheme!}
                 />
             </section>
 
             <WorldSearch
-                map={selectedMap}
                 onSelectMap={selectMap}
                 onSelectNode={selectNode}
+                theme={selectedMapTheme!}
                 world={world}
             />
 
@@ -358,7 +370,7 @@ function PublicWorldSurface({
                 <nav
                     aria-label="Published maps"
                     className="absolute right-5 bottom-5 z-20 flex max-w-[calc(100%-2.5rem)] gap-2 overflow-x-auto rounded-xl border p-2 shadow-2xl backdrop-blur-md"
-                    style={floatingPanelStyle(selectedMap.background_config)}
+                    style={floatingPanelStyle(selectedMapTheme!)}
                 >
                     {world.maps.map((map) => (
                         <button
@@ -379,6 +391,7 @@ function PublicWorldSurface({
             ) : null}
 
             <NodeDrawer
+                appearance={appearance}
                 bookmarked={
                     selectedNode
                         ? bookmarkedNodes.some(
@@ -393,7 +406,6 @@ function PublicWorldSurface({
                         ? completedNodeSlugs.has(selectedNode.slug)
                         : false
                 }
-                map={selectedMap}
                 canBookmark={isAuthenticated}
                 isBookmarking={isBookmarking}
                 node={selectedNode}
@@ -406,6 +418,7 @@ function PublicWorldSurface({
                     isAuthenticated ? (learnerState?.start_routes ?? []) : []
                 }
                 swipe={panelSwipe}
+                theme={selectedMapTheme!}
             />
         </main>
     );
@@ -571,21 +584,24 @@ function WorldNavigation({
 }
 
 function PublicMapSurface({
+    appearance,
     bookmarkedNodes,
     completedNodeSlugs,
     map,
     onClearFocus,
     onSelectNode,
     selectedNode,
+    theme,
 }: {
+    appearance: OriginalAppearance;
     bookmarkedNodes: components['schemas']['LearnerBookmark'][];
     completedNodeSlugs: Set<string>;
     map: PublicMap;
     onClearFocus: () => void;
     onSelectNode: (node: PublicNode) => void;
     selectedNode: PublicNode | null;
+    theme: Record<string, unknown>;
 }) {
-    const theme = map.background_config;
     const [toggledAssetSlugs, setToggledAssetSlugs] = useState<string[]>([]);
     const [focusedAssetSlug, setFocusedAssetSlug] = useState<string | null>(
         null,
@@ -607,8 +623,11 @@ function PublicMapSurface({
     );
     const assetThemes = map.assets.map((asset) =>
         mergedThemeConfig(
-            nodesByAssetSlug.get(asset.slug)?.visual_config,
-            asset.visual_config,
+            resolveOriginalWorldTheme(
+                nodesByAssetSlug.get(asset.slug)?.visual_config ?? {},
+                appearance,
+            ),
+            resolveOriginalWorldTheme(asset.visual_config, appearance),
         ),
     );
     const currentSurfaces = map.assets.map((asset) =>
@@ -1007,14 +1026,14 @@ function assetSurface(
 }
 
 function WorldSearch({
-    map,
     onSelectMap,
     onSelectNode,
+    theme,
     world,
 }: {
-    map: PublicMap;
     onSelectMap: (map: PublicMap) => void;
     onSelectNode: (node: PublicNode, map: PublicMap) => void;
+    theme: Record<string, unknown>;
     world: PublicWorld;
 }) {
     const [term, setTerm] = useState('');
@@ -1066,7 +1085,6 @@ function WorldSearch({
         setIsMobilePanelOpen(false);
     }
 
-    const theme = map.background_config;
     const hasSearch = term.trim().length > 0;
     const searchLabel = 'Search maps and places';
     const searchResults = () => {
@@ -1253,11 +1271,11 @@ function WorldSearch({
 }
 
 function NodeDrawer({
+    appearance,
     bookmarked,
     canBookmark,
     completed,
     isBookmarking,
-    map,
     node,
     onClose,
     onReset,
@@ -1266,12 +1284,13 @@ function NodeDrawer({
     onToggleBookmark,
     startRoutes,
     swipe,
+    theme,
 }: {
+    appearance: OriginalAppearance;
     bookmarked: boolean;
     canBookmark: boolean;
     completed: boolean;
     isBookmarking: boolean;
-    map: PublicMap;
     node: PublicNode | null;
     onClose: () => void;
     onReset: (start: components['schemas']['LearnerActivityStart']) => void;
@@ -1280,8 +1299,8 @@ function NodeDrawer({
     onToggleBookmark: (node: PublicNode) => void;
     startRoutes: components['schemas']['LearnerActivityStart'][];
     swipe: PanelSwipe | null;
+    theme: Record<string, unknown>;
 }) {
-    const theme = map.background_config;
 
     return (
         <aside
@@ -1414,6 +1433,7 @@ function NodeDrawer({
                     ) : null}
                     {node.state !== 'locked' ? (
                         <OriginalRouteStartButtons
+                            appearance={appearance}
                             onReset={onReset}
                             onStart={onStart}
                             starts={startRoutes.filter(

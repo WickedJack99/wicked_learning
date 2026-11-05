@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import type { OriginalAppearance } from './original-appearance';
 
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
@@ -19,10 +20,12 @@ const ROUTE_PAGE_SIZE = 3;
  * the authored start presentation and owns all start/reset authorization.
  */
 export function OriginalRouteStartButtons({
+    appearance,
     starts,
     onReset,
     onStart,
 }: {
+    appearance: OriginalAppearance;
     starts: LearnerActivityStart[];
     onReset: (start: LearnerActivityStart) => void;
     onStart: (start: LearnerActivityStart) => void;
@@ -47,6 +50,7 @@ export function OriginalRouteStartButtons({
             <div className="grid gap-2 px-1 pt-2 pb-1">
                 {visibleStarts.map((start) => (
                     <RouteStartOption
+                        appearance={appearance}
                         key={start.start_id}
                         onReset={() => onReset(start)}
                         onStart={() => onStart(start)}
@@ -87,27 +91,38 @@ export function OriginalRouteStartButtons({
 }
 
 function RouteStartOption({
+    appearance,
     onReset,
     onStart,
     start,
 }: {
+    appearance: OriginalAppearance;
     onReset: () => void;
     onStart: () => void;
     start: LearnerActivityStart;
 }) {
+    const image =
+        appearance === 'light' ? start.image_light : start.image_dark;
+    const buttonColor =
+        appearance === 'light'
+            ? start.button_color_light
+            : start.button_color_dark;
+    const buttonBorderColor =
+        appearance === 'light'
+            ? start.button_border_color_light
+            : start.button_border_color_dark;
     const routeBorderColor =
-        start.button_border_color_dark ?? 'rgba(255, 255, 255, 0.1)';
+        buttonBorderColor ??
+        (appearance === 'light' ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)');
     const buttonStyle = {
-        ...(start.button_color_dark
-            ? { backgroundColor: start.button_color_dark }
-            : {}),
+        ...(buttonColor ? { backgroundColor: buttonColor } : {}),
         backgroundClip: 'padding-box',
         boxShadow: `inset 0 0 0 2px ${routeBorderColor}`,
     };
     const frameStyle = { boxShadow: `inset 0 0 0 2px ${routeBorderColor}` };
     const progressText = routeProgressText(start);
 
-    if (start.image_dark) {
+    if (image) {
         return (
             <div className="grid gap-1.5">
                 <button
@@ -120,7 +135,7 @@ function RouteStartOption({
                         className="h-32 w-full object-cover"
                         decoding="async"
                         loading="lazy"
-                        src={start.image_dark}
+                        src={image}
                     />
                     <span
                         className="absolute inset-x-0 top-0 z-[1] flex min-h-10 items-center justify-between gap-3 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-slate-950 backdrop-blur-md dark:bg-slate-950/82 dark:text-white"
