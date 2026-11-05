@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::world_content::PublicWorld;
+use crate::world_content::{PublicMapAsset, PublicWorld};
 
 /// A bounded, authenticated projection for the World screen. It deliberately
 /// excludes activity configuration, answer history, play-run identifiers and
@@ -30,6 +30,28 @@ pub struct LearnerBookmark {
 pub struct LearnerBookmarkResult {
     pub bookmarked: bool,
     pub bookmarked_nodes: Vec<LearnerBookmark>,
+}
+
+/// The source-defined personal map of places a learner chose to save. It uses
+/// the first currently visible map only for presentation, while every place
+/// keeps its own map context for the return link.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerBookmarkMap {
+    pub background_config: serde_json::Value,
+    pub grid_config: serde_json::Value,
+    pub places: Vec<LearnerBookmarkPlace>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerBookmarkPlace {
+    pub asset: Option<PublicMapAsset>,
+    pub description: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub node_slug: String,
+    pub state: String,
+    pub title: String,
+    pub visual_config: serde_json::Value,
 }
 
 #[derive(Clone, Debug, Serialize)]

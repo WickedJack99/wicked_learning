@@ -703,6 +703,41 @@ content or create records for a hidden location. Both are rejected.
 drawer. The dedicated bookmark-map page, Learning Desk integration, tools,
 groups, audio and unlock/reveal rules remain separate source-defined slices.
 
+## ADR-026: Personal bookmark map reads current visible context
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original `/bookmarks` route is not a generic saved-item list.
+It arranges saved places on a personal map, retains each place's source-map
+context and lets the learner remove a bookmark or return to that location.
+The existing Rust World snapshot intentionally does not expose all of the
+presentation fields this separate route needs.
+
+**Decision:** Add authenticated `GET /learner/bookmarks`. PostgreSQL derives
+the caller's allowed maps first, then returns at most 500 bookmarked nodes that
+are still published, visible and not empty-space placeholders. Each result
+contains only the place's map slug/title, learner-safe node presentation and
+its published map asset when one exists. The first currently visible map
+supplies the personal map's background/grid presentation, matching the
+original serializer's template-map purpose without disclosing an inaccessible
+map. React adapts the original bookmarks page and sends removal through the
+existing CSRF-protected bookmark command.
+
+**Why:** This preserves the original personal-map workflow while keeping
+authorization and visibility on the server. Reusing the existing mutation
+avoids two writers for the same learner bookmark relation.
+
+**Alternatives:** Building the view from a browser-filtered full World payload
+would couple it to unrelated reader fields and omit the original source-map
+context. Returning a generic item list would redesign the existing learner
+workflow. Returning the source world's first map regardless of visibility
+could disclose role-restricted presentation. All are rejected.
+
+**Limitations and trigger:** The original optional topic link is not exposed
+until the authenticated topics reader is migrated. Learning Desk's separate
+bookmark rail and the remaining learner navigation need their own
+source-derived contracts.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

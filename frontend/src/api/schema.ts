@@ -107,6 +107,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/bookmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the signed-in learner's source-defined personal bookmark map. */
+        get: operations["getLearnerBookmarkMap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/journal": {
         parameters: {
             query?: never;
@@ -556,6 +573,28 @@ export interface components {
         LearnerBookmark: {
             map_slug: string;
             node_slug: string;
+        };
+        LearnerBookmarkMap: {
+            background_config: {
+                [key: string]: unknown;
+            };
+            grid_config: {
+                [key: string]: unknown;
+            };
+            places: components["schemas"]["LearnerBookmarkPlace"][];
+        };
+        LearnerBookmarkPlace: {
+            asset: components["schemas"]["PublicMapAsset"] | null;
+            description: string;
+            map_slug: string;
+            map_title: string;
+            node_slug: string;
+            /** @enum {string} */
+            state: "locked" | "hinted" | "available" | "recommended" | "completed";
+            title: string;
+            visual_config: {
+                [key: string]: unknown;
+            };
         };
         LearnerRouteProgress: {
             /** Format: uuid */
@@ -1077,6 +1116,47 @@ export interface operations {
             };
             /** @description The map node is unknown or not accessible to this learner. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerBookmarkMap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Visible bookmarks with their original map context and presentation assets. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerBookmarkMap"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

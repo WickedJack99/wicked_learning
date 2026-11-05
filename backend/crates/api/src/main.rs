@@ -5,6 +5,7 @@ mod current_user;
 mod error;
 mod identity;
 mod learner_bookmark;
+mod learner_bookmark_map;
 mod learner_journal;
 mod learner_journal_page;
 mod learner_playback;
@@ -212,6 +213,10 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/learner/world", get(learner_world::show))
+        .route(
+            "/api/v1/learner/bookmarks",
+            get(learner_bookmark_map::show),
+        )
         .route(
             "/api/v1/learner/maps/{map_slug}/nodes/{node_slug}/bookmark",
             post(learner_bookmark::create).delete(learner_bookmark::delete),

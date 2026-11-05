@@ -150,6 +150,20 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The map node is unknown or not accessible to this learner. }
         '503': { description: The application database is unavailable. }
+  /learner/bookmarks:
+    get:
+      operationId: getLearnerBookmarkMap
+      summary: Read the signed-in learner's source-defined personal bookmark map.
+      responses:
+        '200':
+          description: Visible bookmarks with their original map context and presentation assets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerBookmarkMap'
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
   /learner/journal:
     get:
       operationId: getLearnerJournal
@@ -1061,6 +1075,46 @@ components:
         node_slug:
           type: string
           pattern: '^[a-z0-9-]+$'
+    LearnerBookmarkMap:
+      type: object
+      additionalProperties: false
+      required: [background_config, grid_config, places]
+      properties:
+        background_config:
+          type: object
+          additionalProperties: true
+        grid_config:
+          type: object
+          additionalProperties: true
+        places:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/LearnerBookmarkPlace'
+    LearnerBookmarkPlace:
+      type: object
+      additionalProperties: false
+      required: [asset, description, map_slug, map_title, node_slug, state, title, visual_config]
+      properties:
+        asset:
+          oneOf:
+            - $ref: '#/components/schemas/PublicMapAsset'
+            - type: 'null'
+        description: { type: string }
+        map_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        map_title: { type: string }
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        state:
+          type: string
+          enum: [locked, hinted, available, recommended, completed]
+        title: { type: string }
+        visual_config:
+          type: object
+          additionalProperties: true
     LearnerRouteProgress:
       type: object
       additionalProperties: false

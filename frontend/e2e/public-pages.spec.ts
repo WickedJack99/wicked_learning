@@ -376,6 +376,118 @@ test('the authenticated World restores the original bookmark toggle with a serve
     ).toBeVisible();
 });
 
+test('the original bookmark map keeps a saved place, return link, and removal flow', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['learner'],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/bookmarks', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                background_config: {},
+                grid_config: {},
+                places: [
+                    {
+                        asset: {
+                            slug: 'saved-place-asset',
+                            title: 'Saved place',
+                            description: 'A visual bookmark asset.',
+                            x: 50,
+                            y: 50,
+                            z: 1,
+                            image_url: null,
+                            text: 'Saved place',
+                            width: 24,
+                            opacity: 1,
+                            locked: false,
+                            visual_config: {},
+                            interaction_config: {},
+                            sound_config: {},
+                            interaction_mode: 'focusable',
+                        },
+                        description: 'Return here when you want to continue.',
+                        map_slug: 'first-path',
+                        map_title: 'The First Path',
+                        node_slug: 'saved-place',
+                        state: 'available',
+                        title: 'Saved place',
+                        visual_config: {},
+                    },
+                ],
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'bookmark-map-csrf-token' }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/maps/first-path/nodes/saved-place/bookmark',
+        async (route) => {
+            expect(route.request().method()).toBe('DELETE');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'bookmark-map-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    bookmarked: false,
+                    bookmarked_nodes: [],
+                }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/bookmarks');
+    await expect
+        .poll(() => page.evaluate(() => window.innerWidth))
+        .toBe(390);
+    await page
+        .getByRole('button', {
+            name: 'Saved place, open bookmarked place',
+        })
+        .click();
+    await expect(
+        page.getByRole('heading', { name: 'Saved place' }),
+    ).toBeVisible();
+    await expect(page.getByText('The First Path')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Go to node' })).toHaveAttribute(
+        'href',
+        '/world?map=first-path&focused=saved-place',
+    );
+    const removeBookmarkButton = page.getByRole('button', {
+        name: 'Remove bookmark',
+    });
+    await expect.poll(async () => {
+        const bounds = await removeBookmarkButton.boundingBox();
+
+        return (bounds?.x ?? 390) + (bounds?.width ?? 0);
+    }).toBeLessThanOrEqual(390);
+    const removeBookmarkBounds = await removeBookmarkButton.boundingBox();
+    expect(removeBookmarkBounds).not.toBeNull();
+    expect(removeBookmarkBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(removeBookmarkBounds?.y).toBeGreaterThanOrEqual(0);
+    expect(
+        (removeBookmarkBounds?.y ?? 0) + (removeBookmarkBounds?.height ?? 0),
+    ).toBeLessThanOrEqual(844);
+    await removeBookmarkButton.click();
+    await expect(
+        page.getByRole('heading', { name: 'No bookmarks yet' }),
+    ).toBeVisible();
+});
+
 test('the original journal overlay reads only its private paginated contract', async ({
     page,
 }) => {

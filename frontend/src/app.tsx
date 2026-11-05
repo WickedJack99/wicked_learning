@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
 import { OriginalWelcomePage } from './original-welcome';
 import {
@@ -50,6 +51,15 @@ export function App() {
                 userEmail={
                     currentUser.kind === 'loaded' ? currentUser.email : null
                 }
+            />
+        );
+    }
+
+    if (location.pathname === '/bookmarks') {
+        return (
+            <OriginalBookmarksPage
+                isAuthenticationLoading={currentUser.kind === 'loading'}
+                isAuthenticated={currentUser.kind === 'loaded'}
             />
         );
     }
