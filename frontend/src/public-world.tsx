@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
+    ArrowRight,
     BookOpen,
     Bookmark,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
     LockKeyhole,
     Map as MapIcon,
     MapPin,
@@ -835,16 +838,7 @@ function NodeDrawer({
                         <p className="flex items-center gap-2 rounded-lg border border-white/10 p-3 text-sm"><LockKeyhole className="size-4" /> This place is locked.</p>
                     ) : null}
                     {isAuthenticated ? (
-                        <section className="relative mt-auto flex shrink-0 flex-col pb-12 md:pb-14" data-wl-id="learner.world.activity-starts">
-                            <h3 className="px-1 text-sm font-semibold">Available routes</h3>
-                            {starts.length ? (
-                                <ul className="mt-3 grid list-none gap-2 p-0">
-                                    {starts.map((start) => <ActivityStartPreview key={start.start_id} start={start} />)}
-                                </ul>
-                            ) : (
-                                <p className="mt-3 mb-0 text-sm opacity-80">No route is available here yet.</p>
-                            )}
-                        </section>
+                        <ActivityStartButtons starts={starts} />
                     ) : placePath ? (
                         <Link className="mt-auto inline-flex items-center gap-2 text-sm font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current" to={placePath}>
                             <BookOpen className="size-4" />
@@ -857,8 +851,56 @@ function NodeDrawer({
     );
 }
 
+function ActivityStartButtons({
+    starts,
+}: {
+    starts: LearnerActivityStart[];
+}) {
+    const [pageState, setPageState] = useState({
+        nodeSlug: starts[0]?.node_slug ?? null,
+        page: 1,
+    });
+    const pageCount = Math.max(1, Math.ceil(starts.length / 3));
+    const currentPage = Math.min(
+        pageState.nodeSlug === (starts[0]?.node_slug ?? null)
+            ? pageState.page
+            : 1,
+        pageCount,
+    );
+    const visibleStarts = starts.slice((currentPage - 1) * 3, currentPage * 3);
+
+    if (!starts.length) {
+        return (
+            <EmptyActivityState message="No activity configured yet" />
+        );
+    }
+
+    return (
+        <section
+            className="relative mt-auto flex shrink-0 flex-col pb-12 md:pb-14"
+            data-wl-id="learner.world.activity-starts"
+        >
+            <div className="grid gap-2 px-1 pt-2 pb-1">
+                {visibleStarts.map((start) => (
+                    <ActivityStartPreview key={start.start_id} start={start} />
+                ))}
+            </div>
+            <PaginationControls
+                currentPage={currentPage}
+                onPageChange={(page) =>
+                    setPageState({
+                        nodeSlug: starts[0]?.node_slug ?? null,
+                        page,
+                    })
+                }
+                pageCount={pageCount}
+            />
+        </section>
+    );
+}
+
 function ActivityStartPreview({ start }: { start: LearnerActivityStart }) {
-    const image = start.image_dark;
+    const image = start.image_dark ?? start.image_light;
     const borderColor =
         start.button_border_color_dark ?? 'rgba(255, 255, 255, 0.1)';
     const buttonStyle = {
@@ -873,22 +915,96 @@ function ActivityStartPreview({ start }: { start: LearnerActivityStart }) {
     return (
         <li className="grid gap-1.5">
             {image ? (
-                <div className="relative overflow-hidden rounded-lg bg-slate-950 text-left" style={buttonStyle}>
+                <button
+                    aria-describedby={`activity-start-${start.start_id}-availability`}
+                    aria-label={`Start ${start.label}`}
+                    className="group relative overflow-hidden rounded-lg bg-slate-950 text-left transition duration-200 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-80 dark:focus-visible:ring-teal-200"
+                    disabled
+                    type="button"
+                >
                     <img alt="" className="h-32 w-full object-cover" decoding="async" loading="lazy" src={image} />
-                    <span className="absolute inset-x-0 top-0 flex min-h-10 items-center gap-2 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-slate-950 backdrop-blur-md dark:bg-slate-950/82 dark:text-white">
+                    <span className="absolute inset-x-0 top-0 z-[1] flex min-h-10 items-center justify-between gap-3 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-slate-950 backdrop-blur-md dark:bg-slate-950/82 dark:text-white" style={buttonStyle}>
+                        <span className="inline-flex min-w-0 items-center gap-2">
+                            <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                            <span className="truncate">{start.label}</span>
+                        </span>
+                        <ArrowRight className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                    </span>
+                    <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-[2] rounded-lg" style={{ boxShadow: `inset 0 0 0 2px ${borderColor}` }} />
+                </button>
+            ) : (
+                <button
+                    aria-describedby={`activity-start-${start.start_id}-availability`}
+                    aria-label={`Start ${start.label}`}
+                    className="flex h-10 w-full items-center justify-between gap-3 rounded-md border border-transparent bg-white/90 px-3 text-sm font-medium text-slate-950 shadow-none transition duration-200 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-80 dark:bg-slate-950 dark:text-white dark:focus-visible:ring-teal-200"
+                    disabled
+                    style={buttonStyle}
+                    type="button"
+                >
+                    <span className="inline-flex min-w-0 items-center gap-2">
                         <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
                         <span className="truncate">{start.label}</span>
                     </span>
-                </div>
-            ) : (
-                <div className="flex h-10 items-center gap-2 rounded-md border border-transparent bg-white/90 px-3 text-sm font-medium text-slate-950 dark:bg-slate-950 dark:text-white" style={buttonStyle}>
-                    <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
-                    <span className="truncate">{start.label}</span>
-                </div>
+                    <ArrowRight className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                </button>
             )}
             {progress ? <p className="m-0 px-1 text-xs opacity-70">{progress}</p> : null}
             {start.description ? <p className="m-0 px-1 text-xs leading-5 opacity-80">{start.description}</p> : null}
+            <p className="m-0 px-1 text-xs leading-5 opacity-70" id={`activity-start-${start.start_id}-availability`}>
+                Starting activities is not available in this preview yet.
+            </p>
         </li>
+    );
+}
+
+function EmptyActivityState({ message }: { message: string }) {
+    return (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/15 dark:bg-slate-950/24">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                {message}
+            </p>
+        </div>
+    );
+}
+
+function PaginationControls({
+    currentPage,
+    onPageChange,
+    pageCount,
+}: {
+    currentPage: number;
+    onPageChange: (page: number) => void;
+    pageCount: number;
+}) {
+    if (pageCount <= 1) {
+        return null;
+    }
+
+    return (
+        <nav
+            aria-label="Activity start pagination"
+            className="mt-2 flex min-h-8 items-center justify-between gap-3 px-1 text-xs text-slate-500 dark:text-slate-400"
+        >
+            <button
+                className="inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)] disabled:pointer-events-none disabled:opacity-40"
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
+                type="button"
+            >
+                <ChevronLeft aria-hidden="true" className="size-4" />
+                Previous
+            </button>
+            <span aria-live="polite">Page {currentPage} of {pageCount}</span>
+            <button
+                className="inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)] disabled:pointer-events-none disabled:opacity-40"
+                disabled={currentPage === pageCount}
+                onClick={() => onPageChange(currentPage + 1)}
+                type="button"
+            >
+                Next
+                <ChevronRight aria-hidden="true" className="size-4" />
+            </button>
+        </nav>
     );
 }
 

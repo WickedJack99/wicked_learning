@@ -373,9 +373,12 @@ model tool inventory, groups, answer-derived reveal/unlock rules, route start
 or activity playback. The interim `/world` React route uses this snapshot for a
 signed-in session and the public contract otherwise, rendering its authorized
 route previews in place of a link to a public-only endpoint. It has not yet
-lifted the original `ActivityPanel`; its node drawer geometry, close control,
-scroll ownership and touch swipe behavior are now lifted from the original
-`NodeDetailDrawer`. Those capabilities need their own complete
+lifted the original `ActivityPanel`'s writer behavior. Its node drawer geometry,
+close control, scroll ownership and touch swipe behavior are lifted from the
+original `NodeDetailDrawer`; the ActivityPanel's read-only start-card,
+progress and pagination presentation is lifted as well. Route start and reset
+remain visibly unavailable until their server-owned learner-state policy, write
+contract and browser evidence exist. These capabilities need their own complete
 policy, schema and browser evidence before this endpoint can be described as
 full World parity.
 
@@ -392,8 +395,8 @@ and prevent the original `ActivityPanel` from being lifted faithfully.
 **Decision:** Add `learning_activity_starts` to the application database. It
 links a node to an activity and holds the learner-facing presentation fields.
 The existing fresh orientation content receives one start per route's first
-published activity. The later authenticated World contract will expose starts,
-not synthesize them in React from generic route rows.
+published activity. The authenticated World contract exposes starts, so the
+React ActivityPanel lift does not synthesize them from generic route rows.
 
 **Temporary limitation and trigger:** The first learner-progress schema keys
 route progress by `(principal_id, route_id)`. That is safe for the current

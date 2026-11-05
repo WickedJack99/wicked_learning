@@ -297,15 +297,19 @@ signed-in session and the public contract for an anonymous visitor. The
 authenticated contract provides a server-owned snapshot of visible maps plus
 the current principal's bookmark, activity-progress and route-progress
 summaries. The interim view renders read-only saved-place and completed-activity
-signals and its authorized route previews from that snapshot. It intentionally
+signals, its authorized route previews, and the original ActivityPanel's
+read-only start-card/progress/pagination presentation from that snapshot. Its
+start and reset controls remain visibly unavailable: they are learner-state
+writes, not a browser-only substitute. It intentionally
 does not yet supply equipped tools, group data, audio configuration, route-start
 commands or server-evaluated reveal/unlock
 state consumed by Laravel's
 `LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
 `ActivityPanel` components. The original `NodeDetailDrawer` geometry, close
-control, scroll ownership and touch-swipe behavior are now lifted onto the
-interim route, but its original `ActivityPanel` and `WorldMap` remain to be
-migrated. It must therefore not be described as a completed World migration.
+control, scroll ownership and touch-swipe behavior, plus the ActivityPanel's
+start-card presentation, are now lifted onto the interim route. Its route
+start/reset policy and `WorldMap` remain to be migrated. It must therefore not
+be described as a completed World migration.
 
 Before treating the route as visually or functionally migrated, define the
 corresponding Rust read contract from that serializer, preserve its bounded and
@@ -315,8 +319,9 @@ new substitute controls or styling to mask missing behavior.
 
 The application schema now distinguishes a route from a node-specific activity
 start, matching the existing `LearningActivityStart` behavior. Read-only starts
-are the next contract prerequisite for lifting the original `ActivityPanel`.
-Route progress remains temporarily keyed to the route while fresh content has a
+now provide the first contract prerequisite for lifting the original
+`ActivityPanel`; the next prerequisite is a separately approved write contract
+for route starts and resets. Route progress remains temporarily keyed to the route while fresh content has a
 one-to-one route/node relationship; ADR-016 requires an explicit change before
 routes can be offered from more than one node.
 

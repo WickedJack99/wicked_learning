@@ -302,6 +302,37 @@ test('the learner shell exposes the account link for an authenticated session', 
 test('the signed-in explorer uses the principal-scoped World snapshot', async ({
     page,
 }) => {
+    const activityStarts = [
+        ['018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e', 'Begin private orientation'],
+        ['018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d60', 'Notice the private map'],
+        ['018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d61', 'Find a quiet route'],
+        ['018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d62', 'Reflect on the next step'],
+    ].map(([startId, label], sortOrder) => ({
+        start_id: startId,
+        node_slug: 'private-place',
+        route_slug: 'private-orientation-route',
+        activity_slug: 'private-activity',
+        label,
+        description: 'A read-only route presentation from the learner snapshot.',
+        image_dark: null,
+        image_light: null,
+        button_color_dark: null,
+        button_border_color_dark: null,
+        button_color_light: null,
+        button_border_color_light: null,
+        sort_order: sortOrder,
+        progress:
+            sortOrder === 0
+                ? {
+                      current_activity_slug: 'private-activity',
+                      status: 'completed',
+                      completion_count: 1,
+                      last_completed_at: '2026-11-04T00:00:00.000000Z',
+                      last_entered_at: '2026-11-04T00:00:00.000000Z',
+                  }
+                : null,
+    }));
+
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -372,30 +403,7 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
                     },
                 ],
                 route_progress: [],
-                start_routes: [
-                    {
-                        start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
-                        node_slug: 'private-place',
-                        route_slug: 'private-orientation-route',
-                        activity_slug: 'private-activity',
-                        label: 'Begin private orientation',
-                        description: 'A read-only route presentation from the learner snapshot.',
-                        image_dark: null,
-                        image_light: null,
-                        button_color_dark: null,
-                        button_border_color_dark: null,
-                        button_color_light: null,
-                        button_border_color_light: null,
-                        sort_order: 0,
-                        progress: {
-                            current_activity_slug: 'private-activity',
-                            status: 'completed',
-                            completion_count: 1,
-                            last_completed_at: '2026-11-04T00:00:00.000000Z',
-                            last_entered_at: '2026-11-04T00:00:00.000000Z',
-                        },
-                    },
-                ],
+                start_routes: activityStarts,
                 available_routes: [
                     {
                         node_slug: 'private-place',
@@ -421,12 +429,21 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
     await expect(page.getByLabel('Saved place')).toBeVisible();
     await expect(page.getByLabel('Node completed')).toBeVisible();
     await expect(
-        page.getByRole('heading', { name: 'Available routes' }),
-    ).toBeVisible();
-    await expect(
         page.getByText('Begin private orientation'),
     ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Start Begin private orientation' }),
+    ).toBeDisabled();
+    await expect(
+        page
+            .getByText('Starting activities is not available in this preview yet.')
+            .first(),
+    ).toBeVisible();
     await expect(page.getByText('Completed 1×')).toBeVisible();
+    await expect(page.getByText('Find a quiet route')).toBeVisible();
+    await expect(page.getByText('Reflect on the next step')).not.toBeVisible();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect(page.getByText('Reflect on the next step')).toBeVisible();
 });
 
 test('a missing public map place has its own recoverable not-found state', async ({
