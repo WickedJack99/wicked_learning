@@ -795,9 +795,10 @@ unavailable. Trail intentionally omits unavailable historical activity replay,
 competence-destination and direct-Journal controls rather than inventing a
 substitute; the journal is currently an overlay, not a direct document URL.
 The management control is also absent because the administration route has no
-Rust contract. Dynamic schedule, reveal and tool-unlock parity remains a Paths
-reader gate; rows needing those capabilities must not become visible merely
-because this static source slice is available.
+Rust contract. The shared Paths/World/start policy now covers roles, completed
+nodes and valid schedules, but discovery, answer-event, tool, item and manual
+opening parity remains a gate; rows needing those capabilities must not become
+visible merely because the represented subset is available.
 
 ## ADR-028: Paths reader preserves source filtering without publishing a partial page
 
@@ -812,32 +813,46 @@ principal-scoped route progress, but it has no Rust model yet for the source
 schedule, reveal and tool-unlock state.
 
 **Decision:** Add authenticated `GET /learner/paths` as an unexposed contract
-foundation. PostgreSQL applies publication, map-role visibility, static
-available-node, empty-space, portal-input, topic, intent and time-guide
-predicates before pagination. It returns at most six source-ordered starts,
-their server-owned World destinations, authored presentation, valid
-competence-topic metadata and only the caller's route progress. Intent defaults
-match the source activity-type rules when configuration is absent; only 15- and
-30-minute filters are retained. Unknown source query values normalize to no
-filter as the Laravel controller does.
+foundation. PostgreSQL applies publication, map-role visibility, empty-space,
+portal-input, topic, intent and time-guide predicates before a bounded
+source-ordered scan. A framework-free Rust availability policy then resolves
+the source's authored node state, nested AND/OR conditions, role and completed
+node requirements, timed lock/unlock conditions, and the precedence of hidden,
+scheduled, answer and manual openings. It is reused by the learner World
+snapshot and the route start/reset command, so a displayed route and a direct
+start request cannot disagree about the conditions currently represented by
+Rust. It returns at most six starts, their server-owned World destinations,
+authored presentation, valid competence-topic metadata and only the caller's
+route progress. Intent defaults match the source activity-type rules when
+configuration is absent; only 15- and 30-minute filters are retained. Unknown
+source query values normalize to no filter as the Laravel controller does.
+
+The first availability increment supplies the policy with the authenticated
+principal's roles, completed nodes and current RFC 3339 schedule instants.
+Malformed availability configuration fails closed. Source discovery, answer
+events, tool use, item ownership and staff manual openings have no Rust writer
+or persisted fact yet; their conditions therefore remain unavailable instead
+of being treated as satisfied.
 
 **Why:** This retains server authority for availability and creates one bounded
 reader that both the future `/paths` page and topic Routes panel can consume.
-It avoids browser-side joins of map access, node state, start presentation and
-private progress.
+One policy also prevents a common migration failure where the browser hides a
+route but a direct command still opens it. It avoids browser-side joins of map
+access, node state, start presentation and private progress.
 
 **Alternatives:** A browser-filtered World snapshot would disclose more content
 than the source Paths reader needs and make eligibility client-controlled.
 Publishing a card-list `/paths` page now would be a substitute for the source
 Paths workflow. Both are rejected.
 
-**Limitations and trigger:** The endpoint intentionally does not claim dynamic
-schedule, reveal or unlock parity; rows using those source capabilities must
-remain unavailable until their learner-state model and authorization evidence
-exist in Rust. The standalone React `/paths` route remains absent until its
-complete source page and every source eligibility input are represented. The
-topic Routes tab may consume only the already represented static eligibility
-slice and starts runs through the existing server-owned command.
+**Limitations and trigger:** This is not yet full dynamic availability parity.
+Rows requiring source discovery, answer events, tool use, item ownership or
+staff manual openings remain unavailable until their learner-state writers,
+authorization tests and source controls exist in Rust. The standalone React
+`/paths` route remains absent until its complete source page and every source
+eligibility input are represented. The topic Routes tab may consume only the
+facts Rust can currently prove and starts runs through the same server-owned
+policy.
 
 ## ADR-029: Competence uses an append-only private evidence ledger
 

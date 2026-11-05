@@ -3303,6 +3303,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "time",
  "uuid",
 ]
 
@@ -3320,6 +3321,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "time",
  "tracing",
  "uuid",
  "wicked-learning-application",

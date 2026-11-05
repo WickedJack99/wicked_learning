@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::learner_world::{
@@ -11,6 +13,7 @@ use wicked_learning_domain::{
     },
 };
 
+use crate::learner_node_availability::PostgresLearnerNodeAvailability;
 use crate::public_world::load_first_visible as load_visible_world;
 
 pub struct PostgresLearnerWorldRepository<'pool> {
@@ -62,6 +65,7 @@ struct RouteProgressRow {
 struct AvailableRouteRow {
     activity_count: i64,
     description: String,
+    map_slug: String,
     node_slug: String,
     route_slug: String,
     title: String,
@@ -82,6 +86,7 @@ struct ActivityStartRow {
     label: String,
     last_completed_at: Option<String>,
     last_entered_at: Option<String>,
+    map_slug: String,
     node_slug: String,
     route_slug: String,
     sort_order: i16,
@@ -99,18 +104,14 @@ async fn load_first_visible(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
 ) -> Result<Option<LearnerWorldSnapshot>, sqlx::Error> {
-    let Some(loaded_world) = load_visible_world(pool, &principal.roles).await? else {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
     };
-    let principal_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT id FROM application_principals WHERE identity_subject_id = $1",
-    )
-    .bind(principal.subject_id)
-    .fetch_optional(pool)
-    .await?;
-    let Some(principal_id) = principal_id else {
+    let Some(mut loaded_world) = load_visible_world(pool, &principal.roles).await? else {
         return Ok(None);
     };
+    let principal_id = availability.principal_id();
+    let playable_nodes = apply_learner_node_states(&mut loaded_world.world, &availability);
 
     let bookmarked_nodes = sqlx::query_as::<_, BookmarkRow>(
         "SELECT maps.slug AS map_slug, nodes.slug AS node_slug FROM learner_node_bookmarks AS bookmarks INNER JOIN learning_nodes AS nodes ON nodes.id = bookmarks.node_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE bookmarks.principal_id = $1 AND nodes.map_id = ANY($2) AND nodes.published_at IS NOT NULL AND nodes.state <> 'hidden' AND NOT (nodes.visual_config @> '{\"hideEmptySpace\": true}'::jsonb) ORDER BY bookmarks.created_at ASC, maps.slug ASC, nodes.slug ASC LIMIT 500",
@@ -134,13 +135,13 @@ async fn load_first_visible(
     .fetch_all(pool)
     .await?;
     let available_routes = sqlx::query_as::<_, AvailableRouteRow>(
-        "SELECT COUNT(activities.id) AS activity_count, routes.description, nodes.slug AS node_slug, routes.slug AS route_slug, routes.title FROM learning_routes AS routes INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id LEFT JOIN learning_activities AS activities ON activities.route_id = routes.id AND activities.published_at IS NOT NULL WHERE nodes.map_id = ANY($1) AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL GROUP BY routes.id, nodes.slug HAVING COUNT(activities.id) > 0 ORDER BY nodes.slug ASC, routes.position ASC, routes.slug ASC",
+        "SELECT COUNT(activities.id) AS activity_count, routes.description, maps.slug AS map_slug, nodes.slug AS node_slug, routes.slug AS route_slug, routes.title FROM learning_routes AS routes INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS activities ON activities.route_id = routes.id AND activities.published_at IS NOT NULL WHERE nodes.map_id = ANY($1) AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL GROUP BY routes.id, maps.slug, nodes.slug HAVING COUNT(activities.id) > 0 ORDER BY nodes.slug ASC, routes.position ASC, routes.slug ASC",
     )
     .bind(&loaded_world.map_ids)
     .fetch_all(pool)
     .await?;
     let start_routes = sqlx::query_as::<_, ActivityStartRow>(
-        "SELECT activities.slug AS activity_slug, starts.button_border_color_dark, starts.button_border_color_light, starts.button_color_dark, starts.button_color_light, progress.completion_count, current_activity.slug AS current_activity_slug, starts.description, starts.image_dark, starts.image_light, COALESCE(starts.label, activities.title) AS label, to_char(progress.last_completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_completed_at, to_char(progress.last_entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_entered_at, nodes.slug AS node_slug, routes.slug AS route_slug, starts.sort_order, starts.id AS start_id, progress.status FROM learning_activity_starts AS starts INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id LEFT JOIN learner_route_progress AS progress ON progress.principal_id = $1 AND progress.activity_start_id = starts.id LEFT JOIN learning_activities AS current_activity ON current_activity.id = progress.current_activity_id WHERE nodes.map_id = ANY($2) AND nodes.map_asset_id = assets.id AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') ORDER BY nodes.slug ASC, starts.sort_order ASC, starts.id ASC",
+        "SELECT activities.slug AS activity_slug, starts.button_border_color_dark, starts.button_border_color_light, starts.button_color_dark, starts.button_color_light, progress.completion_count, current_activity.slug AS current_activity_slug, starts.description, starts.image_dark, starts.image_light, COALESCE(starts.label, activities.title) AS label, to_char(progress.last_completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_completed_at, to_char(progress.last_entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_entered_at, maps.slug AS map_slug, nodes.slug AS node_slug, routes.slug AS route_slug, starts.sort_order, starts.id AS start_id, progress.status FROM learning_activity_starts AS starts INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learner_route_progress AS progress ON progress.principal_id = $1 AND progress.activity_start_id = starts.id LEFT JOIN learning_activities AS current_activity ON current_activity.id = progress.current_activity_id WHERE nodes.map_id = ANY($2) AND nodes.map_asset_id = assets.id AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') ORDER BY nodes.slug ASC, starts.sort_order ASC, starts.id ASC",
     )
     .bind(principal_id)
     .bind(&loaded_world.map_ids)
@@ -151,6 +152,7 @@ async fn load_first_visible(
         world: loaded_world.world,
         bookmarked_nodes: bookmarked_nodes
             .into_iter()
+            .filter(|row| playable_nodes.contains(&(row.map_slug.clone(), row.node_slug.clone())))
             .map(|row| LearnerBookmark {
                 map_slug: row.map_slug,
                 node_slug: row.node_slug,
@@ -180,6 +182,7 @@ async fn load_first_visible(
             .collect(),
         available_routes: available_routes
             .into_iter()
+            .filter(|row| playable_nodes.contains(&(row.map_slug.clone(), row.node_slug.clone())))
             .map(|row| LearnerWorldRoute {
                 node_slug: row.node_slug,
                 route_slug: row.route_slug,
@@ -190,6 +193,7 @@ async fn load_first_visible(
             .collect(),
         start_routes: start_routes
             .into_iter()
+            .filter(|row| playable_nodes.contains(&(row.map_slug.clone(), row.node_slug.clone())))
             .map(|row| LearnerActivityStart {
                 start_id: row.start_id.to_string(),
                 node_slug: row.node_slug,
@@ -214,4 +218,33 @@ async fn load_first_visible(
             })
             .collect(),
     }))
+}
+
+fn apply_learner_node_states(
+    world: &mut wicked_learning_domain::world_content::PublicWorld,
+    availability: &PostgresLearnerNodeAvailability,
+) -> HashSet<(String, String)> {
+    let mut playable_nodes = HashSet::new();
+
+    for map in &mut world.maps {
+        for node in &mut map.nodes {
+            let state = availability.state_for_node(&node.state, &node.visual_config);
+            node.state = match state {
+                wicked_learning_domain::learner_availability::LearnerNodeState::Available => {
+                    "available".to_owned()
+                }
+                wicked_learning_domain::learner_availability::LearnerNodeState::Hidden => {
+                    "hidden".to_owned()
+                }
+                wicked_learning_domain::learner_availability::LearnerNodeState::Locked => {
+                    "locked".to_owned()
+                }
+            };
+            if state.can_play() {
+                playable_nodes.insert((map.slug.clone(), node.slug.clone()));
+            }
+        }
+    }
+
+    playable_nodes
 }

@@ -13,7 +13,10 @@ use wicked_learning_domain::{
     },
 };
 
+use crate::learner_node_availability::PostgresLearnerNodeAvailability;
+
 const PATHS_PER_PAGE: i64 = 6;
+const PATH_SCAN_CHUNK_SIZE: i64 = 100;
 
 pub struct PostgresLearnerPathsRepository<'pool> {
     pool: &'pool PgPool,
@@ -38,7 +41,9 @@ struct PathRow {
     map_slug: String,
     map_title: String,
     node_slug: String,
+    node_state: String,
     node_title: String,
+    node_visual_config: Value,
     progress_status: Option<String>,
     route_description: String,
     start_id: Uuid,
@@ -85,24 +90,22 @@ async fn load_paths(
         Some(topic_slug) => load_topic_context(pool, topic_slug).await?,
         None => None,
     };
-    let total = sqlx::query_scalar::<_, i64>(PATH_COUNT_SQL)
-        .bind(&principal.roles)
-        .bind(&request.topic_slug)
-        .bind(&request.purpose)
-        .bind(request.time_budget)
-        .fetch_one(pool)
-        .await?;
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(empty_paths(request, topic_context));
+    };
+    let (mut rows, total) =
+        scan_paths(pool, &availability, principal, request, request.page).await?;
     let pagination = pagination(request.page, total);
-    let rows = sqlx::query_as::<_, PathRow>(PATH_ROWS_SQL)
-        .bind(principal.subject_id)
-        .bind(&principal.roles)
-        .bind(&request.topic_slug)
-        .bind(&request.purpose)
-        .bind(request.time_budget)
-        .bind(pagination.per_page)
-        .bind((pagination.current_page - 1) * pagination.per_page)
-        .fetch_all(pool)
+    if pagination.current_page != request.page {
+        (rows, _) = scan_paths(
+            pool,
+            &availability,
+            principal,
+            request,
+            pagination.current_page,
+        )
         .await?;
+    }
 
     Ok(LearnerPaths {
         pagination,
@@ -111,6 +114,66 @@ async fn load_paths(
         selected_time_budget: request.time_budget,
         topic_context,
     })
+}
+
+fn empty_paths(
+    request: &LearnerPathsRequest,
+    topic_context: Option<LearnerTopicDetailHeader>,
+) -> LearnerPaths {
+    LearnerPaths {
+        pagination: pagination(request.page, 0),
+        paths: Vec::new(),
+        selected_purpose: request.purpose.clone(),
+        selected_time_budget: request.time_budget,
+        topic_context,
+    }
+}
+
+async fn scan_paths(
+    pool: &PgPool,
+    availability: &PostgresLearnerNodeAvailability,
+    principal: &AuthorizedPrincipal,
+    request: &LearnerPathsRequest,
+    page: i64,
+) -> Result<(Vec<PathRow>, i64), sqlx::Error> {
+    let first_match = (page - 1) * PATHS_PER_PAGE;
+    let mut candidate_offset = 0;
+    let mut paths = Vec::with_capacity(PATHS_PER_PAGE as usize);
+    let mut total = 0;
+
+    loop {
+        let candidates = sqlx::query_as::<_, PathRow>(PATH_CANDIDATE_SQL)
+            .bind(availability.principal_id())
+            .bind(&principal.roles)
+            .bind(&request.topic_slug)
+            .bind(&request.purpose)
+            .bind(request.time_budget)
+            .bind(PATH_SCAN_CHUNK_SIZE)
+            .bind(candidate_offset)
+            .fetch_all(pool)
+            .await?;
+        let candidate_count = candidates.len();
+
+        for candidate in candidates {
+            if !availability
+                .state_for_node(&candidate.node_state, &candidate.node_visual_config)
+                .can_play()
+            {
+                continue;
+            }
+            if total >= first_match && paths.len() < PATHS_PER_PAGE as usize {
+                paths.push(candidate);
+            }
+            total += 1;
+        }
+
+        if candidate_count < PATH_SCAN_CHUNK_SIZE as usize {
+            break;
+        }
+        candidate_offset += PATH_SCAN_CHUNK_SIZE;
+    }
+
+    Ok((paths, total))
 }
 
 async fn load_topic_context(
@@ -142,40 +205,13 @@ async fn load_topic_context(
     }))
 }
 
-const PATH_COUNT_SQL: &str = r#"
-SELECT COUNT(*) FROM learning_activity_starts AS starts
-INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id
-INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id
-INNER JOIN learning_routes AS routes ON routes.id = activities.route_id
-INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id
-INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id
-LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id
-WHERE nodes.map_asset_id = assets.id
-  AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL
-  AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL
-  AND activities.published_at IS NOT NULL AND nodes.state = 'available'
-  AND NOT (nodes.visual_config @> '{"hideEmptySpace": true}'::jsonb)
-  AND (activities.activity_type <> 'portal' OR COALESCE(activities.activity_config->>'portalMode', 'output') <> 'input')
-  AND (maps.access_roles @> '["public"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($1)))
-  AND ($2::text IS NULL OR topics.slug = $2)
-  AND ($3::text IS NULL OR CASE
-      WHEN activities.activity_config->>'learningIntent' IN ('apply', 'explain', 'participate', 'reflect', 'retrieve', 'review', 'transfer') THEN activities.activity_config->>'learningIntent'
-      WHEN activities.activity_type = 'question' THEN 'retrieve'
-      WHEN activities.activity_type = 'reflection' THEN 'reflect'
-      WHEN activities.activity_type = 'review' THEN 'review'
-      WHEN activities.activity_type IN ('shared_task', 'message_prompt', 'message_wall') THEN 'explain'
-      WHEN activities.activity_type IN ('obstacle', 'item_obstacle', 'tool_obstacle') THEN 'apply'
-      ELSE 'participate' END = $3)
-  AND ($4::smallint IS NULL OR CASE WHEN activities.activity_config->>'timeGuideMinutes' ~ '^[1-9][0-9]*$' THEN (activities.activity_config->>'timeGuideMinutes')::integer ELSE NULL END <= $4)
-"#;
-
-const PATH_ROWS_SQL: &str = r#"
+const PATH_CANDIDATE_SQL: &str = r#"
 SELECT activities.activity_config, activities.title AS activity_title, activities.activity_type,
   current_activities.title AS current_activity_title,
   COALESCE(NULLIF(activities.description, ''), nodes.description) AS description,
   assets.image_url, COALESCE(starts.label, activities.title) AS label,
   to_char(progress.last_entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS last_entered_at,
-  maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title,
+  maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.state AS node_state, nodes.title AS node_title, nodes.visual_config AS node_visual_config,
   progress.status AS progress_status, routes.description AS route_description, starts.id AS start_id,
   CASE WHEN activities.activity_config->>'timeGuideMinutes' ~ '^[1-9][0-9]*$' THEN (activities.activity_config->>'timeGuideMinutes')::smallint ELSE NULL END AS time_guide_minutes,
   topics.slug AS topic_slug, topics.title AS topic_title
@@ -186,13 +222,12 @@ INNER JOIN learning_routes AS routes ON routes.id = activities.route_id
 INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id
 INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id
 LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id
-LEFT JOIN application_principals AS principals ON principals.identity_subject_id = $1
-LEFT JOIN learner_route_progress AS progress ON progress.principal_id = principals.id AND progress.activity_start_id = starts.id
+LEFT JOIN learner_route_progress AS progress ON progress.principal_id = $1 AND progress.activity_start_id = starts.id
 LEFT JOIN learning_activities AS current_activities ON current_activities.id = progress.current_activity_id
 WHERE nodes.map_asset_id = assets.id
   AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL
   AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL
-  AND activities.published_at IS NOT NULL AND nodes.state = 'available'
+  AND activities.published_at IS NOT NULL
   AND NOT (nodes.visual_config @> '{"hideEmptySpace": true}'::jsonb)
   AND (activities.activity_type <> 'portal' OR COALESCE(activities.activity_config->>'portalMode', 'output') <> 'input')
   AND (maps.access_roles @> '["public"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2)))
