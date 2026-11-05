@@ -137,6 +137,7 @@ test('an anonymous visitor can inspect a map place without substitute route page
     await expect(
         page.getByRole('link', { name: 'View available routes' }),
     ).toHaveCount(0);
+    await expect(page.getByText('Choose your next step')).toHaveCount(0);
 });
 
 test('the learner shell keeps public navigation available on a narrow viewport', async ({
@@ -308,7 +309,7 @@ test('the learner World exposes the original-style user menu for an authenticate
     ).not.toBeVisible();
 });
 
-test('the signed-in explorer uses the principal-scoped World snapshot without substitute activity controls', async ({
+test('the signed-in explorer starts and completes an original open-practice route through server-owned playback', async ({
     page,
 }) => {
     const activityStarts = [
@@ -426,6 +427,84 @@ test('the signed-in explorer uses the principal-scoped World snapshot without su
             }),
         });
     });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/activity-starts/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e/start',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    node_slug: 'private-place',
+                    route_slug: 'private-orientation-route',
+                    activity_slug: 'private-activity',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    status: 'in_progress',
+                    completion_count: 0,
+                    reset_count: 0,
+                }),
+            });
+        },
+    );
+    let playbackReadCount = 0;
+    await page.route(
+        '**/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+        async (route) => {
+            playbackReadCount += 1;
+            const secondActivity = playbackReadCount > 1;
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    activity: {
+                        slug: secondActivity ? 'next-private-activity' : 'private-activity',
+                        title: secondActivity ? 'Choose the next step' : 'Begin private orientation',
+                        description: 'A server-authorized activity.',
+                        activity_type: 'open_practice',
+                        config: {
+                            nextStep: 'Pause here, then continue when ready.',
+                        },
+                        completion: {
+                            label: secondActivity ? null : 'Continue to the next step',
+                            next_activity_slug: secondActivity
+                                ? null
+                                : 'next-private-activity',
+                        },
+                    },
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66/activities/private-activity/complete',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66/activities/next-private-activity/complete',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    status: 'completed',
+                }),
+            });
+        },
+    );
 
     await page.goto('/world');
 
@@ -442,10 +521,32 @@ test('the signed-in explorer uses the principal-scoped World snapshot without su
     await expect(page.getByLabel('Node completed')).toBeVisible();
     await expect(
         page.getByText('Begin private orientation'),
-    ).not.toBeVisible();
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Begin private orientation' }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/private-place\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66$/,
+    );
     await expect(
-        page.getByText('Starting activities is not available in this preview yet.'),
-    ).not.toBeVisible();
+        page.getByRole('heading', { name: 'Begin private orientation' }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const continueButton = page.getByRole('button', {
+        name: 'Continue to the next step',
+    });
+    const continueBounds = await continueButton.boundingBox();
+    expect(continueBounds).not.toBeNull();
+    expect(continueBounds?.x).toBeGreaterThanOrEqual(0);
+    expect((continueBounds?.x ?? 0) + (continueBounds?.width ?? 0)).toBeLessThanOrEqual(390);
+    expect(continueBounds?.y).toBeGreaterThanOrEqual(0);
+    expect((continueBounds?.y ?? 0) + (continueBounds?.height ?? 0)).toBeLessThanOrEqual(844);
+    await page
+        .getByRole('button', { name: 'Continue to the next step' })
+        .click();
+    await expect(
+        page.getByRole('heading', { name: 'Choose the next step' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });
 
 test('a removed substitute map-place URL returns to the retained welcome surface', async ({

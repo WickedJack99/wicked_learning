@@ -302,20 +302,20 @@ The current `/world` React route uses `GET /api/v1/learner/world` for a
 signed-in session and the public contract for an anonymous visitor. The
 authenticated contract provides a server-owned snapshot of visible maps plus
 the current principal's bookmark, activity-progress and route-progress
-summaries. The interim view renders read-only saved-place and completed-activity
-signals. It deliberately does not render activity start cards until the Rust
-playback endpoint and completion command can give the lifted original controls
-their complete, authorized behavior. A disabled imitation of the original
-controls is not acceptable. It intentionally
-does not yet supply equipped tools, group data, audio configuration, route-start
-commands or server-evaluated reveal/unlock
+summaries. It renders saved-place and completed-activity signals, and now
+renders only server-authorized `open_practice` start cards for a signed-in
+learner. Each lifted original start/reset control calls a Rust command with its
+authored start UUID; the browser then navigates to the matching server-owned
+play run. Anonymous visitors receive no start control. A disabled imitation of
+the original controls is not acceptable. The route intentionally does not yet
+supply equipped tools, group data, audio configuration, or server-evaluated
+reveal/unlock
 state consumed by Laravel's
 `LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
 `ActivityPanel` components. The original `NodeDetailDrawer` geometry, close
-control, scroll ownership and touch-swipe behavior are now lifted onto the
-interim route. Its activity-panel controls, route start/reset policy and
-`WorldMap` remain to be migrated. It must therefore not
-be described as a completed World migration.
+control, scroll ownership and touch-swipe behavior, plus the supported
+start-card presentation, are lifted onto the interim route. It must therefore
+not be described as a completed World migration.
 
 Before treating the route as visually or functionally migrated, define the
 corresponding Rust read contract from that serializer, preserve its bounded and
@@ -324,21 +324,21 @@ replace only their Inertia/Laravel glue. Do not extend the provisional map with
 new substitute controls or styling to mask missing behavior.
 
 The application schema now distinguishes a route from a node-specific activity
-start, matching the existing `LearningActivityStart` behavior. Read-only starts
-now provide the first contract prerequisite for lifting the original
-`ActivityPanel`; the next prerequisite is a separately approved write contract
-for route starts and resets. Route progress is keyed to the authored activity
-start, so a route can later be offered from more than one node without merging
-those learners' runs.
+start, matching the existing `LearningActivityStart` behavior. Route progress
+is keyed to the authored activity start, so a route can later be offered from
+more than one node without merging those learners' runs.
 
 The local learner-state phase is approved. `POST` start/resume and reset
 commands now resolve an authorized start and generate a server-owned play run
 (ADR-017). `GET /api/v1/learner/play-runs/{play_run_id}` now supplies the
 authorized current `open_practice` document (ADR-019), and its completion
-command advances only the active server-owned run (ADR-020). The interim World
-panel remains read-only until the lifted original player route connects those
-two complete contracts. This remains isolated to the local Rust Compose
-database; Laravel and production ownership are unchanged.
+command advances only the active server-owned run (ADR-020). React now uses
+those contracts on the legacy player URL family with a lifted original
+open-practice activity frame: after an in-progress completion it re-reads the
+same run, and after a terminal completion it returns to the focused World
+location. It does not derive or submit a transition target. This remains
+isolated to the local Rust Compose database; Laravel and production ownership
+are unchanged.
 
 ### Reference behavior and implementation autonomy
 
@@ -381,9 +381,9 @@ private or identifier-based links will resolve in a deployed cutover.
 | ------------------------------------------------------------------------- | ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |
 | `/`                                                                       | `/`                | Available      | A standalone React welcome screen provides public orientation and routes into exploration or local sign-in.    |
 | `/about`, `/imprint`, `/data-protection`, `/source`                       | Same path          | Available      | Public presentation/source endpoints provide their content.                                                    |
-| `/world`                                                                  | `/world`           | Available      | Read-only world/map exploration. It consumes the principal-scoped snapshot after local sign-in and the public contract otherwise; the original World UI has not yet been lifted onto it. |
+| `/world`                                                                  | `/world`           | Available      | Public exploration plus signed-in, server-authorized start/reset controls for supported `open_practice` starts; broader World behavior remains incomplete. |
 | `/learning/search?query={term}`                                           | —                  | Not available  | Search is retained inside the lifted `/world` surface; no substitute standalone search page is exposed.       |
-| `/learning/nodes/{node}/play`                                             | —                  | Not available  | Activity playback needs the later learner-state/write slice and server-owned transition rules.                 |
+| `/learning/nodes/{node}/play?run={uuid}`                                  | Same path          | Available      | Signed-in playback for a server-owned `open_practice` run only. The node path segment preserves the source URL family; the opaque run UUID remains the only API authority. |
 | `/home`, `/journal`, `/paths`, `/topics`, `/bookmarks`, `/competence`     | —                  | Not available  | These require authenticated data and, in several cases, APIs that have not yet been implemented.               |
 | `/organizations/*`, `/learning/groups/*`, authoring/settings/admin routes | —                  | Not available  | These belong to later collaboration, authoring and administration slices with their own authorization tests.   |
 | `/access-links/{token}`, `/protected-media/*`                             | —                  | Not available  | Security-sensitive access-link and media-serving contracts are deliberately deferred.                          |

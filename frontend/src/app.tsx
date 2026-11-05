@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalOpenPracticePage } from './original-activity-playback';
 import { OriginalWelcomePage } from './original-welcome';
 import {
     PublicInformationPage,
@@ -55,6 +56,18 @@ export function App() {
 
     if (location.pathname === '/login') {
         return <OriginalLoginPage />;
+    }
+
+    const playerMatch = location.pathname.match(
+        /^\/learning\/nodes\/([^/]+)\/play$/,
+    );
+    if (playerMatch) {
+        return (
+            <OriginalOpenPracticePage
+                nodeSlug={decodeURIComponent(playerMatch[1])}
+                playRunId={new URLSearchParams(location.search).get('run')}
+            />
+        );
     }
 
     if (location.pathname === '/source') {

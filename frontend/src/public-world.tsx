@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
     Bookmark,
     CheckCircle2,
@@ -22,6 +22,7 @@ import {
 } from './public-map-asset-interaction';
 import type { components } from './api/schema';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
+import { OriginalRouteStartButtons } from './original-activity-playback';
 
 type PublicMap = components['schemas']['PublicMap'];
 type PublicMapAsset = components['schemas']['PublicMapAsset'];
@@ -44,6 +45,7 @@ type LearnerWorldState = Pick<
     | 'available_routes'
     | 'bookmarked_node_slugs'
     | 'route_progress'
+    | 'start_routes'
 >;
 type PanelSwipe = {
     isDragging: boolean;
@@ -103,6 +105,7 @@ export function PublicWorldPage({
                                 bookmarked_node_slugs:
                                     data.bookmarked_node_slugs,
                                 route_progress: data.route_progress,
+                                start_routes: data.start_routes,
                             },
                             world: data.world,
                         });
@@ -204,6 +207,7 @@ function PublicWorldSurface({
         [learnerState],
     );
     const [panelSwipe, setPanelSwipe] = useState<PanelSwipe | null>(null);
+    const navigate = useNavigate();
 
     function selectNode(node: PublicNode | null, map = selectedMap): void {
         if (!map) {
@@ -227,6 +231,33 @@ function PublicWorldSurface({
         next.set('map', map.slug);
         next.delete('focused');
         setSearchParams(next, { replace: true });
+    }
+
+    async function startRoute(
+        start: components['schemas']['LearnerActivityStart'],
+        reset = false,
+    ): Promise<void> {
+        try {
+            const token = await getCsrfToken();
+            const endpoint = reset
+                ? '/learner/activity-starts/{start_id}/reset'
+                : '/learner/activity-starts/{start_id}/start';
+            const { data, response } = await apiClient.POST(endpoint, {
+                params: {
+                    header: { 'X-CSRF-Token': token },
+                    path: { start_id: start.start_id },
+                },
+            });
+            if (!response.ok || !data) {
+                return;
+            }
+            navigate(
+                `/learning/nodes/${encodeURIComponent(start.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
+            );
+        } catch {
+            // The original controls keep their presentation on a transient
+            // request failure; the next selection is safe to retry.
+        }
     }
 
     if (!selectedMap) {
@@ -288,7 +319,14 @@ function PublicWorldSurface({
                 map={selectedMap}
                 node={selectedNode}
                 onClose={() => selectNode(null)}
+                onReset={(start) => void startRoute(start, true)}
+                onStart={(start) => void startRoute(start)}
                 onSwipeChange={setPanelSwipe}
+                startRoutes={
+                    isAuthenticated
+                        ? (learnerState?.start_routes ?? [])
+                        : []
+                }
                 swipe={panelSwipe}
             />
         </main>
@@ -851,7 +889,10 @@ function NodeDrawer({
     map,
     node,
     onClose,
+    onReset,
+    onStart,
     onSwipeChange,
+    startRoutes,
     swipe,
 }: {
     bookmarked: boolean;
@@ -859,7 +900,10 @@ function NodeDrawer({
     map: PublicMap;
     node: PublicNode | null;
     onClose: () => void;
+    onReset: (start: components['schemas']['LearnerActivityStart']) => void;
+    onStart: (start: components['schemas']['LearnerActivityStart']) => void;
     onSwipeChange: (swipe: PanelSwipe | null) => void;
+    startRoutes: components['schemas']['LearnerActivityStart'][];
     swipe: PanelSwipe | null;
 }) {
     const theme = map.background_config;
@@ -955,6 +999,15 @@ function NodeDrawer({
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/6"><p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{node.description}</p></div>
                     {node.state === 'locked' ? (
                         <p className="flex items-center gap-2 rounded-lg border border-white/10 p-3 text-sm"><LockKeyhole className="size-4" /> This place is locked.</p>
+                    ) : null}
+                    {node.state !== 'locked' ? (
+                        <OriginalRouteStartButtons
+                            onReset={onReset}
+                            onStart={onStart}
+                            starts={startRoutes.filter(
+                                (start) => start.node_slug === node.slug,
+                            )}
+                        />
                     ) : null}
                 </div>
             ) : null}
