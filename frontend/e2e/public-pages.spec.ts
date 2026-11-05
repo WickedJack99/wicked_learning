@@ -462,6 +462,13 @@ test('the signed-in explorer starts and completes an original open-practice rout
                 body: JSON.stringify({
                     start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                     play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    context: {
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        map_slug: 'private-path',
+                        map_title: 'A private path',
+                        route_label: 'Begin private orientation',
+                    },
                     activity: {
                         slug: secondActivity ? 'next-private-activity' : 'private-activity',
                         title: secondActivity ? 'Choose the next step' : 'Begin private orientation',
@@ -529,6 +536,13 @@ test('the signed-in explorer starts and completes an original open-practice rout
     await expect(
         page.getByRole('heading', { name: 'Begin private orientation' }),
     ).toBeVisible();
+    await expect(page.locator('aside[aria-label="Learning context"]')).toContainText(
+        'Private place',
+    );
+    await expect(page.getByRole('link', { name: 'A private path' })).toHaveAttribute(
+        'href',
+        '/world?map=private-path&focused=private-place',
+    );
     await page.setViewportSize({ width: 390, height: 844 });
     const continueButton = page.getByRole('button', {
         name: 'Continue to the next step',

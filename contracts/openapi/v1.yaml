@@ -934,7 +934,7 @@ components:
     LearnerPlaybackDocument:
       type: object
       additionalProperties: false
-      required: [start_id, play_run_id, activity]
+      required: [start_id, play_run_id, context, activity]
       properties:
         start_id:
           type: string
@@ -942,8 +942,27 @@ components:
         play_run_id:
           type: string
           format: uuid
+        context:
+          $ref: '#/components/schemas/LearnerPlaybackContext'
         activity:
           $ref: '#/components/schemas/LearnerPlaybackActivity'
+    LearnerPlaybackContext:
+      type: object
+      additionalProperties: false
+      required: [node_slug, node_title, map_slug, map_title, route_label]
+      properties:
+        node_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        node_title:
+          type: string
+        map_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        map_title:
+          type: string
+        route_label:
+          type: string
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false

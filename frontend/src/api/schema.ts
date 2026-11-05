@@ -498,7 +498,15 @@ export interface components {
             start_id: string;
             /** Format: uuid */
             play_run_id: string;
+            context: components["schemas"]["LearnerPlaybackContext"];
             activity: components["schemas"]["LearnerPlaybackActivity"];
+        };
+        LearnerPlaybackContext: {
+            node_slug: string;
+            node_title: string;
+            map_slug: string;
+            map_title: string;
+            route_label: string;
         };
         LearnerPlaybackActivity: {
             slug: string;

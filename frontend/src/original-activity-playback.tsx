@@ -318,7 +318,7 @@ export function OriginalOpenPracticePage({
             style={learnerSurfaceStyle}
             tabIndex={-1}
         >
-            <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+            <section className="mx-auto grid w-full max-w-6xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] md:grid-rows-1">
                 {state.kind === 'loading' ? (
                     <p aria-live="polite" className="text-sm text-slate-300">
                         Loading activity…
@@ -338,6 +338,9 @@ export function OriginalOpenPracticePage({
                     </div>
                 ) : null}
                 {state.kind === 'loaded' ? (
+                    <PlaybackContext context={state.document.context} />
+                ) : null}
+                {state.kind === 'loaded' ? (
                     <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
                         <div className="flex items-start gap-3">
                             <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)] text-[var(--learner-action-accent)]">
@@ -347,13 +350,13 @@ export function OriginalOpenPracticePage({
                                 <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
                                     Open practice
                                 </p>
-                                <h1
+                                <h3
                                     className="mt-1 scroll-mt-4 rounded-sm text-base font-semibold text-[var(--learner-heading-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-page-background)]"
                                     ref={headingRef}
                                     tabIndex={-1}
                                 >
                                     {state.document.activity.title}
-                                </h1>
+                                </h3>
                                 {state.document.activity.description ? (
                                     <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
                                         {state.document.activity.description}
@@ -370,6 +373,52 @@ export function OriginalOpenPracticePage({
                 ) : null}
             </section>
         </main>
+    );
+}
+
+/** Source-adapted from the original NodePlay learning-context aside. */
+function PlaybackContext({
+    context,
+}: {
+    context: LearnerPlaybackDocument['context'];
+}) {
+    const mapHref = `/world?map=${encodeURIComponent(context.map_slug)}&focused=${encodeURIComponent(context.node_slug)}`;
+
+    return (
+        <aside
+            aria-label="Learning context"
+            className="flex min-h-0 flex-col rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4"
+        >
+            <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
+                Learning context
+            </p>
+            <h1 className="mt-2 text-base font-semibold text-[var(--learner-heading-text)]">
+                {context.node_title}
+            </h1>
+            <dl className="mt-5 space-y-4 border-t border-[var(--learner-border-color)] pt-4">
+                <div>
+                    <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
+                        Map
+                    </dt>
+                    <dd className="mt-1 text-sm text-[var(--learner-body-text)]">
+                        <Link
+                            className="transition hover:text-[var(--learner-heading-text)]"
+                            to={mapHref}
+                        >
+                            {context.map_title}
+                        </Link>
+                    </dd>
+                </div>
+                <div>
+                    <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
+                        Route
+                    </dt>
+                    <dd className="mt-1 text-sm text-[var(--learner-action-accent)]">
+                        {context.route_label}
+                    </dd>
+                </div>
+            </dl>
+        </aside>
     );
 }
 
@@ -411,6 +460,7 @@ const learnerSurfaceStyle = {
     '--learner-action-accent': '#5eead4',
     '--learner-border-color': 'rgba(255, 255, 255, 0.1)',
     '--learner-heading-text': '#f8fafc',
+    '--learner-body-text': '#e2e8f0',
     '--learner-muted-text': '#cbd5e1',
     '--learner-page-background': '#0b1117',
     '--learner-panel-background': '#111820',

@@ -99,7 +99,20 @@ pub struct LearnerRouteRun {
 pub struct LearnerPlaybackDocument {
     pub start_id: String,
     pub play_run_id: String,
+    pub context: LearnerPlaybackContext,
     pub activity: LearnerPlaybackActivity,
+}
+
+/// Read-only orientation data for an already-authorized play run. It is not
+/// sufficient to start, resume, or navigate a run: those choices remain
+/// server-owned commands.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackContext {
+    pub node_slug: String,
+    pub node_title: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub route_label: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
