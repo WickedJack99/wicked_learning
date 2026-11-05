@@ -359,6 +359,14 @@ test('an anonymous session reveals no credential or identity material', async ({
     });
 });
 
+test('learner paths require an authenticated application principal', async ({
+    request,
+}) => {
+    const response = await request.get('/api/v1/learner/paths');
+
+    expect(response.status()).toBe(401);
+});
+
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({
     request,
 }) => {

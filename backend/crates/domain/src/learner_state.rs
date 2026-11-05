@@ -130,6 +130,65 @@ pub struct LearnerTopicMapSummary {
     pub title: String,
 }
 
+/// The source-defined Paths read model. A path is offered from an authored
+/// activity start, rather than from a generic route, so its learner progress
+/// remains scoped to the location where it was offered.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPaths {
+    pub pagination: LearnerPathPagination,
+    pub paths: Vec<LearnerPathSummary>,
+    pub selected_purpose: Option<String>,
+    pub selected_time_budget: Option<i16>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPathPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPathSummary {
+    pub activity_title: String,
+    pub activity_type: String,
+    pub description: String,
+    pub image_url: Option<String>,
+    pub label: String,
+    pub learning_areas: Vec<LearnerPathLearningArea>,
+    pub learning_intent: String,
+    pub map_href: String,
+    pub map_title: String,
+    pub node_href: String,
+    pub node_title: String,
+    pub progress: Option<LearnerPathProgress>,
+    pub route_description: Option<String>,
+    pub start_id: String,
+    pub time_guide_minutes: Option<i16>,
+    pub topic: Option<LearnerPathTopic>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct LearnerPathLearningArea {
+    pub name: String,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPathProgress {
+    pub current_activity_title: Option<String>,
+    pub last_entered_at: Option<String>,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPathTopic {
+    pub href: String,
+    pub slug: String,
+    pub title: String,
+}
+
 /// The lazy Maps section from the source topic page.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerTopicMaps {

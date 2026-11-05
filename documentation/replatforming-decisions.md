@@ -779,6 +779,45 @@ topic-map browsing. The contracts are local authenticated backend foundations
 until every source-defined section required by the browser flow has matching
 reads and browser evidence.
 
+## ADR-028: Paths reader preserves source filtering without publishing a partial page
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original `/paths` screen and the topic-detail Routes section
+offer authored activity starts only when their map is visible, their node is
+playable, their activity can start, and their optional learning-intent and
+time-guide filters match. The Rust database already has published starts,
+map-role access, static node state, authored activity configuration and
+principal-scoped route progress, but it has no Rust model yet for the source
+schedule, reveal and tool-unlock state.
+
+**Decision:** Add authenticated `GET /learner/paths` as an unexposed contract
+foundation. PostgreSQL applies publication, map-role visibility, static
+available-node, empty-space, portal-input, topic, intent and time-guide
+predicates before pagination. It returns at most six source-ordered starts,
+their server-owned World destinations, authored presentation, valid
+competence-topic metadata and only the caller's route progress. Intent defaults
+match the source activity-type rules when configuration is absent; only 15- and
+30-minute filters are retained. Unknown source query values normalize to no
+filter as the Laravel controller does.
+
+**Why:** This retains server authority for availability and creates one bounded
+reader that both the future `/paths` page and topic Routes panel can consume.
+It avoids browser-side joins of map access, node state, start presentation and
+private progress.
+
+**Alternatives:** A browser-filtered World snapshot would disclose more content
+than the source Paths reader needs and make eligibility client-controlled.
+Publishing a card-list `/paths` page now would be a substitute for the source
+Paths workflow. Both are rejected.
+
+**Limitations and trigger:** The endpoint intentionally does not claim dynamic
+schedule, reveal or unlock parity; rows using those source capabilities must
+remain unavailable until their learner-state model and authorization evidence
+exist in Rust. The React `/paths` route and the topic Routes tab remain absent
+until the source controls can start a server-authorized run and every source
+eligibility input is represented.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

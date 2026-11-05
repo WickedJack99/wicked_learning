@@ -141,6 +141,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read source-defined, currently eligible learner paths. */
+        get: operations["getLearnerPaths"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/topics/{topic_slug}/overview": {
         parameters: {
             query?: never;
@@ -704,6 +721,57 @@ export interface components {
             description: string;
             href: string;
             node_count: number;
+            slug: string;
+            title: string;
+        };
+        LearnerPaths: {
+            pagination: components["schemas"]["LearnerPathPagination"];
+            paths: components["schemas"]["LearnerPathSummary"][];
+            /** @enum {string|null} */
+            selected_purpose: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer" | null;
+            /** @enum {integer|null} */
+            selected_time_budget: 15 | 30 | null;
+        };
+        LearnerPathPagination: {
+            current_page: number;
+            last_page: number;
+            /** @enum {integer} */
+            per_page: 6;
+            total: number;
+        };
+        LearnerPathSummary: {
+            activity_title: string;
+            activity_type: string;
+            description: string;
+            image_url: string | null;
+            label: string;
+            learning_areas: components["schemas"]["LearnerPathLearningArea"][];
+            /** @enum {string} */
+            learning_intent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
+            map_href: string;
+            map_title: string;
+            node_href: string;
+            node_title: string;
+            progress: components["schemas"]["LearnerPathProgress"] | null;
+            route_description: string | null;
+            /** Format: uuid */
+            start_id: string;
+            time_guide_minutes: number | null;
+            topic: components["schemas"]["LearnerPathTopic"] | null;
+        };
+        LearnerPathLearningArea: {
+            name: string;
+            slug: string;
+        };
+        LearnerPathProgress: {
+            current_activity_title: string | null;
+            /** Format: date-time */
+            last_entered_at: string | null;
+            /** @enum {string} */
+            status: "in_progress" | "completed";
+        };
+        LearnerPathTopic: {
+            href: string;
             slug: string;
             title: string;
         };
@@ -1311,6 +1379,52 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerPaths: {
+        parameters: {
+            query?: {
+                page?: number;
+                purpose?: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
+                time?: 15 | 30;
+                topic?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded paths from visible maps and currently playable nodes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPaths"];
+                };
             };
             /** @description Authentication is required. */
             401: {

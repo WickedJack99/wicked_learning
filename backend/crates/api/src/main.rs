@@ -8,6 +8,7 @@ mod learner_bookmark;
 mod learner_bookmark_map;
 mod learner_journal;
 mod learner_journal_page;
+mod learner_paths;
 mod learner_playback;
 mod learner_question;
 mod learner_reflection;
@@ -220,6 +221,7 @@ fn router(state: AppState) -> Router {
             get(learner_bookmark_map::show),
         )
         .route("/api/v1/learner/topics", get(learner_topics::index))
+        .route("/api/v1/learner/paths", get(learner_paths::index))
         .route(
             "/api/v1/learner/topics/{topic_slug}/overview",
             get(learner_topic_detail::overview),

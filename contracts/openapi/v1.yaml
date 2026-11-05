@@ -189,6 +189,33 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application database is unavailable. }
+  /learner/paths:
+    get:
+      operationId: getLearnerPaths
+      summary: Read source-defined, currently eligible learner paths.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: purpose
+          in: query
+          schema: { type: string, enum: [apply, explain, participate, reflect, retrieve, review, transfer] }
+        - name: time
+          in: query
+          schema: { type: integer, enum: [15, 30] }
+        - name: topic
+          in: query
+          schema: { type: string, pattern: '^[a-z0-9-]+$', maxLength: 80 }
+      responses:
+        '200':
+          description: Bounded paths from visible maps and currently playable nodes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerPaths'
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
   /learner/topics/{topic_slug}/overview:
     get:
       operationId: getLearnerTopicOverview
@@ -1296,6 +1323,84 @@ components:
         description: { type: string }
         href: { type: string, pattern: '^/world\?map=[a-z0-9-]+$' }
         node_count: { type: integer, minimum: 0 }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+    LearnerPaths:
+      type: object
+      additionalProperties: false
+      required: [pagination, paths, selected_purpose, selected_time_budget]
+      properties:
+        pagination: { $ref: '#/components/schemas/LearnerPathPagination' }
+        paths:
+          type: array
+          maxItems: 6
+          items: { $ref: '#/components/schemas/LearnerPathSummary' }
+        selected_purpose:
+          type: [string, 'null']
+          enum: [apply, explain, participate, reflect, retrieve, review, transfer, null]
+        selected_time_budget:
+          type: [integer, 'null']
+          enum: [15, 30, null]
+    LearnerPathPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, enum: [6] }
+        total: { type: integer, minimum: 0 }
+    LearnerPathSummary:
+      type: object
+      additionalProperties: false
+      required: [activity_title, activity_type, description, image_url, label, learning_areas, learning_intent, map_href, map_title, node_href, node_title, progress, route_description, start_id, time_guide_minutes, topic]
+      properties:
+        activity_title: { type: string }
+        activity_type: { type: string }
+        description: { type: string }
+        image_url: { type: [string, 'null'] }
+        label: { type: string }
+        learning_areas:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/LearnerPathLearningArea' }
+        learning_intent: { type: string, enum: [apply, explain, participate, reflect, retrieve, review, transfer] }
+        map_href: { type: string, pattern: '^/world\\?map=[a-z0-9-]+$' }
+        map_title: { type: string }
+        node_href: { type: string, pattern: '^/world\\?map=[a-z0-9-]+&focused=[a-z0-9-]+$' }
+        node_title: { type: string }
+        progress:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerPathProgress'
+            - type: 'null'
+        route_description: { type: [string, 'null'] }
+        start_id: { type: string, format: uuid }
+        time_guide_minutes: { type: [integer, 'null'], minimum: 1 }
+        topic:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerPathTopic'
+            - type: 'null'
+    LearnerPathLearningArea:
+      type: object
+      additionalProperties: false
+      required: [name, slug]
+      properties:
+        name: { type: string }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+    LearnerPathProgress:
+      type: object
+      additionalProperties: false
+      required: [current_activity_title, last_entered_at, status]
+      properties:
+        current_activity_title: { type: [string, 'null'] }
+        last_entered_at: { type: [string, 'null'], format: date-time }
+        status: { type: string, enum: [in_progress, completed] }
+    LearnerPathTopic:
+      type: object
+      additionalProperties: false
+      required: [href, slug, title]
+      properties:
+        href: { type: string, pattern: '^/topics/[a-z0-9-]+$' }
         slug: { type: string, pattern: '^[a-z0-9-]+$' }
         title: { type: string }
     LearnerRouteProgress:

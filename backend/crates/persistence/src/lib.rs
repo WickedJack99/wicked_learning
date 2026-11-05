@@ -5,6 +5,7 @@ pub mod learner_bookmark;
 pub mod learner_bookmark_map;
 pub mod learner_journal;
 pub mod learner_journal_page;
+pub mod learner_paths;
 pub mod learner_playback;
 pub mod learner_question;
 pub mod learner_reflection;
