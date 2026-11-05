@@ -19,6 +19,7 @@ use wicked_learning_domain::{
 use crate::{
     learner_evidence::{CompletionEvidence, record_completion_evidence, record_topic_visit},
     learner_revisit_completion::{RevisitCompletion, complete_active_revisit},
+    learner_tool_grant::configured_tool_slug,
 };
 
 pub struct PostgresLearnerPlaybackRepository<'pool> {
@@ -54,6 +55,7 @@ struct PlaybackRow {
 struct CurrentActivityRow {
     activity_config: serde_json::Value,
     activity_id: Uuid,
+    activity_type: String,
     is_revisit: bool,
     principal_id: Uuid,
     route_id: Uuid,
@@ -62,6 +64,18 @@ struct CurrentActivityRow {
 #[derive(FromRow)]
 struct CompletionTransitionRow {
     to_activity_id: Option<Uuid>,
+}
+
+#[derive(FromRow)]
+struct ToolPlaybackRow {
+    animation_dark: Option<String>,
+    animation_light: Option<String>,
+    config: serde_json::Value,
+    description: Option<String>,
+    image_dark: Option<String>,
+    image_light: Option<String>,
+    slug: String,
+    title: String,
 }
 
 #[derive(Deserialize)]
@@ -130,8 +144,141 @@ fn learner_safe_config(
                 "prompt": config.prompt,
             }))
         }
+        "tool_grant" => tool_grant_safe_config(config),
         _ => None,
     }
+}
+
+fn tool_grant_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
+    let tool_id = configured_tool_slug(&config)?.to_owned();
+    let object = config.as_object()?;
+    let text = optional_bounded_config_text(object, "text", 2_000)?.unwrap_or_default();
+    let slide_direction = object
+        .get("slideDirection")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("left");
+    if !matches!(
+        slide_direction,
+        "left" | "right" | "top" | "bottom" | "none"
+    ) {
+        return None;
+    }
+    let colors = [
+        ("bubbleBorderColorDark", "#2dd4bf"),
+        ("bubbleBorderColorLight", "#0891b2"),
+        ("bubbleColorDark", "#0f172a"),
+        ("bubbleColorLight", "#ffffff"),
+    ]
+    .into_iter()
+    .map(|(name, fallback)| {
+        let value = object
+            .get(name)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or(fallback);
+        valid_hex_color(value).then_some((name, value))
+    })
+    .collect::<Option<Vec<_>>>()?;
+
+    Some(json!({
+        "backgroundDark": optional_bounded_config_text(object, "backgroundDark", 2_048)?,
+        "backgroundLight": optional_bounded_config_text(object, "backgroundLight", 2_048)?,
+        "backgroundMirrored": object.get("backgroundMirrored").and_then(serde_json::Value::as_bool).unwrap_or(false),
+        "bubbleBorderColorDark": colors[0].1,
+        "bubbleBorderColorLight": colors[1].1,
+        "bubbleColorDark": colors[2].1,
+        "bubbleColorLight": colors[3].1,
+        "bubbleOpacityDark": bounded_config_number(object, "bubbleOpacityDark", 92.0, 0.0, 100.0)?,
+        "bubbleOpacityLight": bounded_config_number(object, "bubbleOpacityLight", 94.0, 0.0, 100.0)?,
+        "fadeDurationSeconds": bounded_config_number(object, "fadeDurationSeconds", 0.4, 0.0, 30.0)?,
+        "slideDirection": slide_direction,
+        "slideDurationSeconds": bounded_config_number(object, "slideDurationSeconds", 0.6, 0.0, 30.0)?,
+        "text": text,
+        "toolId": tool_id,
+        "toolMirrored": object.get("toolMirrored").and_then(serde_json::Value::as_bool).unwrap_or(false),
+        "toolX": bounded_config_number(object, "toolX", 50.0, 0.0, 100.0)?,
+        "toolY": bounded_config_number(object, "toolY", 50.0, 0.0, 100.0)?,
+        "typingSpeed": bounded_config_number(object, "typingSpeed", 24.0, 1.0, 250.0)?,
+    }))
+}
+
+fn optional_bounded_config_text(
+    object: &serde_json::Map<String, serde_json::Value>,
+    name: &str,
+    maximum_characters: usize,
+) -> Option<Option<String>> {
+    match object.get(name) {
+        Some(value) => {
+            let value = value.as_str()?;
+            (value.chars().count() <= maximum_characters).then(|| Some(value.to_owned()))
+        }
+        None => Some(None),
+    }
+}
+
+fn bounded_config_number(
+    object: &serde_json::Map<String, serde_json::Value>,
+    name: &str,
+    fallback: f64,
+    minimum: f64,
+    maximum: f64,
+) -> Option<f64> {
+    let value = object
+        .get(name)
+        .map_or(Some(fallback), serde_json::Value::as_f64)?;
+    (value.is_finite() && (minimum..=maximum).contains(&value)).then_some(value)
+}
+
+fn valid_hex_color(value: &str) -> bool {
+    value.len() == 7
+        && value.starts_with('#')
+        && value
+            .bytes()
+            .skip(1)
+            .all(|character| character.is_ascii_hexdigit())
+}
+
+async fn enrich_tool_grant_config(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    config: &mut serde_json::Value,
+) -> Result<(), sqlx::Error> {
+    let Some(tool_slug) = configured_tool_slug(config).map(str::to_owned) else {
+        return Ok(());
+    };
+    let tool = sqlx::query_as::<_, ToolPlaybackRow>(
+        "SELECT animation_dark, animation_light, config, description, image_dark, image_light, slug, title FROM learning_tools WHERE slug = $1",
+    )
+    .bind(&tool_slug)
+    .fetch_optional(&mut **transaction)
+    .await?;
+    let owned = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS (SELECT 1 FROM learner_tools AS holdings INNER JOIN learning_tools AS tools ON tools.id = holdings.tool_id WHERE holdings.principal_id = $1 AND tools.slug = $2)",
+    )
+    .bind(principal_id)
+    .bind(&tool_slug)
+    .fetch_one(&mut **transaction)
+    .await?;
+    let Some(object) = config.as_object_mut() else {
+        return Ok(());
+    };
+    object.insert("alreadyOwned".to_owned(), json!(owned));
+    object.insert(
+        "tool".to_owned(),
+        tool.map(|tool| {
+            json!({
+                "animation_dark": tool.animation_dark,
+                "animation_light": tool.animation_light,
+                "config": tool.config,
+                "description": tool.description,
+                "image_dark": tool.image_dark,
+                "image_light": tool.image_light,
+                "slug": tool.slug,
+                "title": tool.title,
+            })
+        })
+        .unwrap_or(serde_json::Value::Null),
+    );
+    Ok(())
 }
 
 fn check_in_context(config: &serde_json::Value) -> LearnerPlaybackCheckIn {
@@ -243,7 +390,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 .await
                 .map_err(|_| LearnerPlaybackReadError)?;
             let row = sqlx::query_as::<_, PlaybackRow>(
-                "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'revisit'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
+                "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'tool_grant') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'revisit'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
             )
             .bind(principal.subject_id)
             .bind(play_run_id)
@@ -260,13 +407,19 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
             };
             let activity_config = row.activity_config.clone();
             let check_in = check_in_context(&activity_config);
-            let Some(config) = learner_safe_config(&row.activity_type, row.activity_config) else {
+            let Some(mut config) = learner_safe_config(&row.activity_type, row.activity_config)
+            else {
                 transaction
                     .commit()
                     .await
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
+            if row.activity_type == "tool_grant" {
+                enrich_tool_grant_config(&mut transaction, row.principal_id, &mut config)
+                    .await
+                    .map_err(|_| LearnerPlaybackReadError)?;
+            }
             let run_kind = match row.run_kind.as_str() {
                 "route" => LearnerPlaybackRunKind::Route,
                 "revisit" => LearnerPlaybackRunKind::Revisit,
@@ -320,7 +473,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
 }
 
 impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
-    fn complete_current_open_practice(
+    fn complete_current_activity(
         &self,
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
@@ -329,7 +482,7 @@ impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackReposito
         Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
     > + Send {
         async move {
-            complete_current_open_practice(self.pool, principal, play_run_id, activity_slug)
+            complete_current_activity(self.pool, principal, play_run_id, activity_slug)
                 .await
                 .map_err(|error| {
                     tracing::error!(%error, "could not complete learner playback activity");
@@ -339,7 +492,7 @@ impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackReposito
     }
 }
 
-async fn complete_current_open_practice(
+async fn complete_current_activity(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
     play_run_id: Uuid,
@@ -353,6 +506,18 @@ async fn complete_current_open_practice(
         transaction.commit().await?;
         return Ok(None);
     };
+
+    if current.activity_type == "tool_grant"
+        && !learner_owns_configured_tool(
+            &mut transaction,
+            current.principal_id,
+            &current.activity_config,
+        )
+        .await?
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
 
     if current.is_revisit {
         let Some(attempt_number) = complete_active_revisit(
@@ -377,7 +542,7 @@ async fn complete_current_open_practice(
             CompletionEvidence {
                 activity_config: &current.activity_config,
                 activity_id: current.activity_id,
-                activity_type: "open_practice",
+                activity_type: &current.activity_type,
                 assistance_level: "untracked",
                 attempt_number,
                 calibration: None,
@@ -409,7 +574,7 @@ async fn complete_current_open_practice(
     let next_activity_id = match transition.and_then(|transition| transition.to_activity_id) {
         Some(next_activity_id) => {
             let next_activity_id = sqlx::query_scalar::<_, Uuid>(
-                "SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection')",
+                "SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'tool_grant')",
             )
             .bind(next_activity_id)
             .bind(current.route_id)
@@ -432,7 +597,7 @@ async fn complete_current_open_practice(
         CompletionEvidence {
             activity_config: &current.activity_config,
             activity_id: current.activity_id,
-            activity_type: "open_practice",
+            activity_type: &current.activity_type,
             assistance_level: "untracked",
             attempt_number: 1,
             calibration: None,
@@ -486,7 +651,7 @@ async fn load_current_activity_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentActivityRow>, sqlx::Error> {
     let route = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, progress.current_activity_id AS activity_id, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'open_practice' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'tool_grant') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -499,13 +664,30 @@ async fn load_current_activity_for_update(
     }
 
     sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, TRUE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'open_practice' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT activities.activity_config, activities.activity_type, activities.id AS activity_id, TRUE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'open_practice' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
     .bind(activity_slug)
     .bind(&principal.roles)
     .fetch_optional(&mut **transaction)
+    .await
+}
+
+async fn learner_owns_configured_tool(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    config: &serde_json::Value,
+) -> Result<bool, sqlx::Error> {
+    let Some(tool_slug) = configured_tool_slug(config) else {
+        return Ok(false);
+    };
+    sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS (SELECT 1 FROM learner_tools AS holdings INNER JOIN learning_tools AS tools ON tools.id = holdings.tool_id WHERE holdings.principal_id = $1 AND tools.slug = $2)",
+    )
+    .bind(principal_id)
+    .bind(tool_slug)
+    .fetch_one(&mut **transaction)
     .await
 }
 

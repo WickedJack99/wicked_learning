@@ -147,6 +147,7 @@ export function App() {
     if (playerMatch) {
         return (
             <OriginalOpenPracticePage
+                appearance={appearance}
                 nodeSlug={decodeURIComponent(playerMatch[1])}
                 playRunId={new URLSearchParams(location.search).get('run')}
             />

@@ -35,7 +35,7 @@ pub async fn show(
         .ok_or_else(ApiError::not_found)
 }
 
-pub async fn complete_open_practice(
+pub async fn complete_current_activity(
     State(state): State<AppState>,
     Path((play_run_id, activity_slug)): Path<(String, String)>,
     headers: HeaderMap,

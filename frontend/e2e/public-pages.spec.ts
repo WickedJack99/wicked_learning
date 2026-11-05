@@ -1659,6 +1659,137 @@ test('the original reflection surface sends private writing only to its active s
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });
 
+test('the original tool-grant surface claims only its active configured tool before completing', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d99';
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    play_run_id: playRunId,
+                    run_kind: 'route',
+                    context: {
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        map_slug: 'private-path',
+                        map_title: 'A private path',
+                        route_label: 'Tool route',
+                    },
+                    activity: {
+                        slug: 'receive-magnifier',
+                        title: 'A closer look',
+                        description: 'A source-authored tool grant.',
+                        activity_type: 'tool_grant',
+                        config: {
+                            alreadyOwned: false,
+                            backgroundDark: null,
+                            backgroundLight: null,
+                            backgroundMirrored: false,
+                            bubbleBorderColorDark: '#2dd4bf',
+                            bubbleBorderColorLight: '#0891b2',
+                            bubbleColorDark: '#0f172a',
+                            bubbleColorLight: '#ffffff',
+                            bubbleOpacityDark: 92,
+                            bubbleOpacityLight: 94,
+                            fadeDurationSeconds: 0,
+                            slideDirection: 'left',
+                            slideDurationSeconds: 0,
+                            text: 'Use this magnifier to notice hidden details.',
+                            toolId: 'magnifier',
+                            toolMirrored: false,
+                            toolX: 50,
+                            toolY: 40,
+                            typingSpeed: 1,
+                            tool: {
+                                animation_dark: null,
+                                animation_light: null,
+                                config: { imageWidthPercent: 18 },
+                                description: 'A tool for closer inspection.',
+                                image_dark: null,
+                                image_light: null,
+                                slug: 'magnifier',
+                                title: 'Magnifier',
+                            },
+                        },
+                        completion: { label: null, next_activity_slug: null },
+                        check_in: {
+                            choice_prompt: null,
+                            concepts: [],
+                            learning_areas: [],
+                            objective: null,
+                        },
+                    },
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/receive-magnifier/grant-tool`,
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    already_owned: false,
+                    tool: {
+                        animation_dark: null,
+                        animation_light: null,
+                        config: { imageWidthPercent: 18 },
+                        description: 'A tool for closer inspection.',
+                        image_dark: null,
+                        image_light: null,
+                        slug: 'magnifier',
+                        title: 'Magnifier',
+                    },
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/receive-magnifier/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    status: 'completed',
+                }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByRole('heading', { name: 'A closer look' })).toBeVisible();
+    await expect(page.getByText('Magnifier').first()).toBeVisible();
+    const takeTool = page.getByRole('button', { name: 'Take tool' });
+    await expect(takeTool).toBeVisible();
+    const bounds = await takeTool.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect((bounds?.x ?? 390) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
+    await takeTool.click();
+    await expect(
+        page.getByRole('heading', { name: 'A small pause after A closer look' }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Continue without answering' })
+        .click();
+    await expect(page).toHaveURL(/\/world\?focused=private-place$/);
+});
+
 test('the public explorer search is bounded and presents matching places', async ({
     page,
 }) => {

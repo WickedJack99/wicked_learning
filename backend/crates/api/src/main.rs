@@ -18,6 +18,7 @@ mod learner_reflection;
 mod learner_revisit_invitation;
 mod learner_revisit_run;
 mod learner_route_run;
+mod learner_tool_grant;
 mod learner_topic_detail;
 mod learner_topics;
 mod learner_world;
@@ -283,7 +284,11 @@ fn router(state: AppState) -> Router {
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
-            post(learner_playback::complete_open_practice),
+            post(learner_playback::complete_current_activity),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool",
+            post(learner_tool_grant::grant_current_tool),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins",

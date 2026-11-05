@@ -21,7 +21,10 @@ pub trait LearnerPlaybackRepository {
 pub struct LearnerPlaybackCompletionError;
 
 pub trait LearnerPlaybackCompletionRepository {
-    fn complete_current_open_practice(
+    /// Completes one of the explicitly supported source activity types. The
+    /// persistence boundary verifies the current type and any prerequisite
+    /// learner state; callers cannot turn this into a generic completion.
+    fn complete_current_activity(
         &self,
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
@@ -54,7 +57,7 @@ where
         activity_slug: &str,
     ) -> Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError> {
         self.repository
-            .complete_current_open_practice(principal, play_run_id, activity_slug)
+            .complete_current_activity(principal, play_run_id, activity_slug)
             .await
     }
 }
@@ -101,7 +104,7 @@ mod tests {
     struct CompletionAbsentRepository;
 
     impl LearnerPlaybackCompletionRepository for CompletionAbsentRepository {
-        fn complete_current_open_practice(
+        fn complete_current_activity(
             &self,
             _principal: &AuthorizedPrincipal,
             _play_run_id: Uuid,

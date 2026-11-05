@@ -44,6 +44,15 @@ pub struct LearnerTool {
     pub title: String,
 }
 
+/// Result of claiming the single authored tool from an active tool-grant
+/// activity. `already_owned` lets the source-derived player advance an
+/// interrupted grant without creating a second ownership record.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerToolGrantResult {
+    pub already_owned: bool,
+    pub tool: LearnerTool,
+}
+
 /// The bounded result of using an owned tool on an accessible map node. The
 /// browser can refresh its snapshot but cannot infer or alter policy itself.
 #[derive(Clone, Debug, Serialize)]

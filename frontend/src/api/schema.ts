@@ -358,8 +358,28 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Complete the current authorized open-practice activity in a play run. */
-        post: operations["completeLearnerOpenPractice"];
+        /** Complete the current authorized simple activity in a play run. */
+        post: operations["completeLearnerCurrentActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim the one configured tool from the current authorized tool-grant activity.
+         * @description The server resolves the active run, activity, configured tool and learner identity. It does not accept a browser-selected tool.
+         */
+        post: operations["grantLearnerTool"];
         delete?: never;
         options?: never;
         head?: never;
@@ -855,6 +875,10 @@ export interface components {
             slug: string;
             title: string;
         };
+        LearnerToolGrantResult: {
+            already_owned: boolean;
+            tool: components["schemas"]["LearnerTool"];
+        };
         LearnerNodeToolRequest: {
             tool_slug: string;
         };
@@ -1170,8 +1194,10 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection";
-            config: Record<string, never>;
+            activity_type: "open_practice" | "question" | "reflection" | "tool_grant";
+            config: {
+                [key: string]: unknown;
+            };
             completion: components["schemas"]["LearnerPlaybackCompletion"];
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
         };
@@ -2548,7 +2574,7 @@ export interface operations {
             };
         };
     };
-    completeLearnerOpenPractice: {
+    completeLearnerCurrentActivity: {
         parameters: {
             query?: never;
             header: {
@@ -2607,6 +2633,60 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    grantLearnerTool: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The configured tool is now owned by this learner, or was already owned after an interrupted attempt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerToolGrantResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

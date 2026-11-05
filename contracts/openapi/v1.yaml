@@ -517,8 +517,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/complete:
     post:
-      operationId: completeLearnerOpenPractice
-      summary: Complete the current authorized open-practice activity in a play run.
+      operationId: completeLearnerCurrentActivity
+      summary: Complete the current authorized simple activity in a play run.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -554,6 +554,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool:
+    post:
+      operationId: grantLearnerTool
+      summary: Claim the one configured tool from the current authorized tool-grant activity.
+      description: The server resolves the active run, activity, configured tool and learner identity. It does not accept a browser-selected tool.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The configured tool is now owned by this learner, or was already owned after an interrupted attempt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerToolGrantResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins:
     post:
       operationId: recordLearnerActivityCheckIn
@@ -1493,6 +1513,15 @@ components:
           pattern: '^[a-z0-9-]+$'
         title:
           type: string
+    LearnerToolGrantResult:
+      type: object
+      additionalProperties: false
+      required: [already_owned, tool]
+      properties:
+        already_owned:
+          type: boolean
+        tool:
+          $ref: '#/components/schemas/LearnerTool'
     LearnerNodeToolRequest:
       type: object
       additionalProperties: false
@@ -2070,9 +2099,10 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection]
+          enum: [open_practice, question, reflection, tool_grant]
         config:
           type: object
+          additionalProperties: true
         completion:
           $ref: '#/components/schemas/LearnerPlaybackCompletion'
         check_in:

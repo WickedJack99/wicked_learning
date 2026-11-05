@@ -843,8 +843,13 @@ The first writer verifies map visibility, CSRF, learner ownership and the
 configured tool before it records a source-equivalent reveal or unlock attempt.
 Author-facing `toolId` configuration now names the unique tool slug—not an
 internal Rust UUID or a Laravel numeric key—because this is a greenfield
-platform. Tool acquisition, item grants, answer events and staff overrides
-remain absent and fail closed. This is the deliberate architecture boundary
+platform. The source `tool_grant` activity is now the sole Rust acquisition
+writer: it derives the current active activity and configured public tool slug
+from the authorized play run, inserts one idempotent ownership record, and
+completion rechecks ownership before advancing the authored transition. Its
+React component is lifted from the original activity rather than being a new
+inventory workflow. Item grants, NPC dialogue grants, answer events and staff
+overrides remain absent and fail closed. This is the deliberate architecture boundary
 for the source tool/discovery slice, not permission to publish the standalone
 Paths screen.
 

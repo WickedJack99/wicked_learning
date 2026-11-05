@@ -477,6 +477,20 @@ test('using a learner tool requires an authenticated application principal', asy
     });
 });
 
+test('claiming a configured tool requires an authenticated active learner run', async ({
+    request,
+}) => {
+    const response = await request.post(
+        '/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e/activities/receive-magnifier/grant-tool',
+    );
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+});
+
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({
     request,
 }) => {

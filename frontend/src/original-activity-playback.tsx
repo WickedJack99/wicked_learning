@@ -7,6 +7,7 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalLearningCheckIn } from './original-learning-check-in';
+import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
@@ -252,9 +253,11 @@ function routeProgressText(start: LearnerActivityStart): string | null {
  * never used as API authority: Rust authorizes the play run on every request.
  */
 export function OriginalOpenPracticePage({
+    appearance,
     nodeSlug,
     playRunId,
 }: {
+    appearance: OriginalAppearance;
     nodeSlug: string;
     playRunId: string | null;
 }) {
@@ -454,6 +457,10 @@ export function OriginalOpenPracticePage({
                                         : state.document.activity
                                                 .activity_type === 'reflection'
                                           ? 'Reflection'
+                                          : state.document.activity
+                                                    .activity_type ===
+                                              'tool_grant'
+                                            ? 'Tool grant'
                                           : 'Open practice'}
                                 </p>
                                 <h3
@@ -501,6 +508,14 @@ export function OriginalOpenPracticePage({
                                         state.document.activity.completion.label,
                                     );
                                 }}
+                                playRunId={state.document.play_run_id}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'tool_grant' ? (
+                            <OriginalToolGrantActivity
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                onComplete={complete}
                                 playRunId={state.document.play_run_id}
                             />
                         ) : (
