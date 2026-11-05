@@ -17,6 +17,7 @@ pub mod learner_topics;
 pub mod learner_world;
 pub mod public_map_asset;
 pub mod public_page;
+pub mod public_presentation;
 pub mod public_route;
 pub mod public_search;
 pub mod public_source_links;

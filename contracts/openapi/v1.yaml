@@ -699,6 +699,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /public/presentation:
+    get:
+      operationId: getPublicPresentation
+      summary: Read the safe, deployment-owned public presentation model.
+      responses:
+        '200':
+          description: The resolved branding, public palette, base auth themes and welcome pages needed by the anonymous browser shell.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPresentation'
+        '503':
+          description: The application database is unavailable or the public presentation singleton is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /public/source-links:
     get:
       operationId: getPublicSourceLinks
@@ -1004,6 +1021,126 @@ components:
         body:
           type: string
           description: Plain text with paragraph breaks; the client must render it as text, not HTML.
+    PublicPresentation:
+      type: object
+      additionalProperties: false
+      required: [branding, auth, welcome, public_palette]
+      properties:
+        branding:
+          $ref: '#/components/schemas/PublicBranding'
+        auth:
+          $ref: '#/components/schemas/PublicPresentationAuth'
+        welcome:
+          $ref: '#/components/schemas/PublicWelcome'
+        public_palette:
+          $ref: '#/components/schemas/PublicPaletteModes'
+    PublicBranding:
+      type: object
+      additionalProperties: false
+      required: [logo]
+      properties:
+        logo:
+          type: string
+          maxLength: 2048
+          description: Deployment-provided logo URL or same-origin asset path.
+    PublicPresentationAuth:
+      type: object
+      additionalProperties: false
+      required: [login, welcome]
+      properties:
+        login:
+          $ref: '#/components/schemas/PublicAppearanceThemes'
+        welcome:
+          $ref: '#/components/schemas/PublicAppearanceThemes'
+    PublicAppearanceThemes:
+      type: object
+      additionalProperties: false
+      required: [dark, light]
+      properties:
+        dark:
+          $ref: '#/components/schemas/PublicAuthTheme'
+        light:
+          $ref: '#/components/schemas/PublicAuthTheme'
+    PublicAuthTheme:
+      type: object
+      additionalProperties: false
+      required: [background_color, background_image, background_overlay, border_line_color, button_text_color, input_background, panel_background]
+      properties:
+        background_color: { type: string, maxLength: 128 }
+        background_image: { type: [string, 'null'], maxLength: 2048 }
+        background_overlay: { type: string, maxLength: 2048 }
+        border_line_color: { type: string, maxLength: 128 }
+        button_text_color: { type: string, maxLength: 128 }
+        input_background: { type: string, maxLength: 256 }
+        panel_background: { type: string, maxLength: 256 }
+    PublicWelcome:
+      type: object
+      additionalProperties: false
+      required: [pages]
+      properties:
+        pages:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items:
+            $ref: '#/components/schemas/PublicWelcomePage'
+    PublicWelcomePage:
+      type: object
+      additionalProperties: false
+      required: [backgrounds, body, buttons, eyebrow, title]
+      properties:
+        backgrounds:
+          $ref: '#/components/schemas/PublicAppearanceImages'
+        body: { type: string, maxLength: 1200 }
+        buttons:
+          type: array
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/PublicWelcomeButton'
+        eyebrow: { type: string, maxLength: 120 }
+        title: { type: string, maxLength: 160 }
+    PublicWelcomeButton:
+      type: object
+      additionalProperties: false
+      required: [target, text]
+      properties:
+        target: { type: string, maxLength: 2048 }
+        text: { type: string, maxLength: 80 }
+    PublicAppearanceImages:
+      type: object
+      additionalProperties: false
+      required: [dark, light]
+      properties:
+        dark: { type: [string, 'null'], maxLength: 2048 }
+        light: { type: [string, 'null'], maxLength: 2048 }
+    PublicPaletteModes:
+      type: object
+      additionalProperties: false
+      required: [dark, light]
+      properties:
+        dark:
+          $ref: '#/components/schemas/PublicPalette'
+        light:
+          $ref: '#/components/schemas/PublicPalette'
+    PublicPalette:
+      type: object
+      additionalProperties: false
+      required: [accent_text, accent_text_opacity, body_text, body_text_opacity, control_border, control_border_opacity, control_text, control_text_opacity, heading_text, heading_text_opacity, muted_text, muted_text_opacity, welcome_overlay, welcome_overlay_opacity]
+      properties:
+        accent_text: { type: string, maxLength: 128 }
+        accent_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        body_text: { type: string, maxLength: 128 }
+        body_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        control_border: { type: string, maxLength: 128 }
+        control_border_opacity: { type: integer, minimum: 0, maximum: 100 }
+        control_text: { type: string, maxLength: 128 }
+        control_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        heading_text: { type: string, maxLength: 128 }
+        heading_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        muted_text: { type: string, maxLength: 128 }
+        muted_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        welcome_overlay: { type: string, maxLength: 128 }
+        welcome_overlay_opacity: { type: integer, minimum: 0, maximum: 100 }
     PublicSourceLink:
       type: object
       additionalProperties: false

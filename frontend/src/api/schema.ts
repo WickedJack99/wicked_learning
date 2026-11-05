@@ -431,6 +431,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/presentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the safe, deployment-owned public presentation model. */
+        get: operations["getPublicPresentation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/source-links": {
         parameters: {
             query?: never;
@@ -568,6 +585,71 @@ export interface components {
             title: string;
             /** @description Plain text with paragraph breaks; the client must render it as text, not HTML. */
             body: string;
+        };
+        PublicPresentation: {
+            branding: components["schemas"]["PublicBranding"];
+            auth: components["schemas"]["PublicPresentationAuth"];
+            welcome: components["schemas"]["PublicWelcome"];
+            public_palette: components["schemas"]["PublicPaletteModes"];
+        };
+        PublicBranding: {
+            /** @description Deployment-provided logo URL or same-origin asset path. */
+            logo: string;
+        };
+        PublicPresentationAuth: {
+            login: components["schemas"]["PublicAppearanceThemes"];
+            welcome: components["schemas"]["PublicAppearanceThemes"];
+        };
+        PublicAppearanceThemes: {
+            dark: components["schemas"]["PublicAuthTheme"];
+            light: components["schemas"]["PublicAuthTheme"];
+        };
+        PublicAuthTheme: {
+            background_color: string;
+            background_image: string | null;
+            background_overlay: string;
+            border_line_color: string;
+            button_text_color: string;
+            input_background: string;
+            panel_background: string;
+        };
+        PublicWelcome: {
+            pages: components["schemas"]["PublicWelcomePage"][];
+        };
+        PublicWelcomePage: {
+            backgrounds: components["schemas"]["PublicAppearanceImages"];
+            body: string;
+            buttons: components["schemas"]["PublicWelcomeButton"][];
+            eyebrow: string;
+            title: string;
+        };
+        PublicWelcomeButton: {
+            target: string;
+            text: string;
+        };
+        PublicAppearanceImages: {
+            dark: string | null;
+            light: string | null;
+        };
+        PublicPaletteModes: {
+            dark: components["schemas"]["PublicPalette"];
+            light: components["schemas"]["PublicPalette"];
+        };
+        PublicPalette: {
+            accent_text: string;
+            accent_text_opacity: number;
+            body_text: string;
+            body_text_opacity: number;
+            control_border: string;
+            control_border_opacity: number;
+            control_text: string;
+            control_text_opacity: number;
+            heading_text: string;
+            heading_text_opacity: number;
+            muted_text: string;
+            muted_text_opacity: number;
+            welcome_overlay: string;
+            welcome_overlay_opacity: number;
         };
         PublicSourceLink: {
             label: string;
@@ -2442,6 +2524,35 @@ export interface operations {
                 };
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPublicPresentation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The resolved branding, public palette, base auth themes and welcome pages needed by the anonymous browser shell. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPresentation"];
+                };
+            };
+            /** @description The application database is unavailable or the public presentation singleton is invalid. */
             503: {
                 headers: {
                     [name: string]: unknown;

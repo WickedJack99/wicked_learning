@@ -19,6 +19,50 @@ test('the root renders the public welcome screen and offers exploration', async 
     await expect(page).toHaveURL(/\/world$/);
 });
 
+test('the lifted welcome uses the server-owned presentation model', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/public/presentation', async (route) => {
+        const response = await route.fetch();
+        const presentation = await response.json();
+        presentation.welcome.pages[0].title = 'Server-owned welcome title';
+        presentation.welcome.pages[0].eyebrow = 'Rust presentation contract';
+
+        await route.fulfill({ response, json: presentation });
+    });
+
+    await page.goto('/');
+
+    await expect(
+        page.getByRole('heading', { name: 'Server-owned welcome title' }),
+    ).toBeVisible();
+    await expect(page.getByText('Rust presentation contract')).toBeVisible();
+});
+
+test('a missing public presentation does not fall back to copied page settings', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/public/presentation', async (route) => {
+        await route.fulfill({
+            status: 503,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                code: 'dependency_unavailable',
+                title: 'A required service is unavailable.',
+            }),
+        });
+    });
+
+    await page.goto('/');
+
+    await expect(page.getByRole('alert')).toHaveText(
+        'Public presentation is temporarily unavailable.',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Learning Worlds' }),
+    ).toHaveCount(0);
+});
+
 test('the public welcome screen offers its alternative orientation messages', async ({
     page,
 }) => {

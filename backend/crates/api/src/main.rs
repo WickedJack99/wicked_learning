@@ -22,6 +22,7 @@ pub mod media_store;
 mod passwords;
 mod public_map_assets;
 mod public_pages;
+mod public_presentation;
 mod public_routes;
 mod public_search;
 mod public_source_links;
@@ -275,6 +276,10 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/session/logout", post(session_commands::logout))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))
+        .route(
+            "/api/v1/public/presentation",
+            get(public_presentation::show),
+        )
         .route(
             "/api/v1/public/source-links",
             get(public_source_links::index),

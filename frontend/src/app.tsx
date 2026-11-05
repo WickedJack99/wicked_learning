@@ -10,12 +10,18 @@ import {
     PublicInformationPage,
     PublicSourceCodePage,
 } from './public-information';
+import type { PublicPresentation } from './public-presentation';
 import { PublicWorldPage } from './public-world';
 
 type CurrentUserState =
     | { kind: 'loading' }
     | { kind: 'anonymous' }
     | { kind: 'loaded'; email: string }
+    | { kind: 'unavailable' };
+
+type PublicPresentationState =
+    | { kind: 'loading' }
+    | { kind: 'loaded'; presentation: PublicPresentation }
     | { kind: 'unavailable' };
 
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
@@ -30,15 +36,57 @@ export function App() {
     const [currentUser, setCurrentUser] = useState<CurrentUserState>({
         kind: 'loading',
     });
+    const [presentationState, setPresentationState] =
+        useState<PublicPresentationState>({ kind: 'loading' });
 
     useEffect(() => {
         void loadCurrentUser().then(setCurrentUser);
     }, [location.pathname]);
 
+    useEffect(() => {
+        let isCurrent = true;
+
+        void apiClient.GET('/public/presentation').then(({ data, response }) => {
+            if (!isCurrent) {
+                return;
+            }
+            setPresentationState(
+                response.ok && data
+                    ? { kind: 'loaded', presentation: data }
+                    : { kind: 'unavailable' },
+            );
+        }).catch(() => {
+            if (isCurrent) {
+                setPresentationState({ kind: 'unavailable' });
+            }
+        });
+
+        return () => {
+            isCurrent = false;
+        };
+    }, []);
+
+    const isPublicPresentationRoute =
+        location.pathname === '/' ||
+        location.pathname === '/login' ||
+        location.pathname === '/source' ||
+        publicSlugs.includes(
+            location.pathname.slice(1) as (typeof publicSlugs)[number],
+        );
+    if (isPublicPresentationRoute && presentationState.kind !== 'loaded') {
+        return <PublicPresentationStatus state={presentationState.kind} />;
+    }
+
+    const presentation =
+        presentationState.kind === 'loaded'
+            ? presentationState.presentation
+            : null;
+
     if (location.pathname === '/') {
         return (
             <OriginalWelcomePage
                 isAuthenticated={currentUser.kind === 'loaded'}
+                presentation={presentation!}
             />
         );
     }
@@ -65,7 +113,7 @@ export function App() {
     }
 
     if (location.pathname === '/login') {
-        return <OriginalLoginPage />;
+        return <OriginalLoginPage presentation={presentation!} />;
     }
 
     const playerMatch = location.pathname.match(
@@ -81,7 +129,7 @@ export function App() {
     }
 
     if (location.pathname === '/source') {
-        return <PublicSourceCodePage />;
+        return <PublicSourceCodePage presentation={presentation!} />;
     }
 
     const publicInformationSlug = location.pathname.slice(1);
@@ -90,13 +138,37 @@ export function App() {
             publicInformationSlug as (typeof publicSlugs)[number],
         )
     ) {
-        return <PublicInformationPage slug={publicInformationSlug} />;
+        return (
+            <PublicInformationPage
+                presentation={presentation!}
+                slug={publicInformationSlug}
+            />
+        );
     }
 
     // The Laravel application has no generic client-side not-found surface for
     // these public routes. Keep an unsupported deep link on a retained public
     // page rather than introducing another substitute design.
     return <Navigate replace to="/" />;
+}
+
+function PublicPresentationStatus({
+    state,
+}: {
+    state: 'loading' | 'unavailable';
+}) {
+    const message =
+        state === 'loading'
+            ? 'Loading public presentation…'
+            : 'Public presentation is temporarily unavailable.';
+
+    return (
+        <main className="flex min-h-svh items-center justify-center bg-[#07111f] p-6 text-slate-100">
+            <p aria-live={state === 'loading' ? 'polite' : undefined} role={state === 'unavailable' ? 'alert' : undefined}>
+                {message}
+            </p>
+        </main>
+    );
 }
 async function loadCurrentUser(): Promise<CurrentUserState> {
     try {

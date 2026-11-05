@@ -903,6 +903,49 @@ no React route uses it. Before adding `/competence`, migrate those applicable
 inputs, preserve server-authorized re-entry, lift the original star-map
 components, and add cross-user/browser parity evidence together.
 
+## ADR-031: Public presentation is a server-owned, source-derived read model
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The lifted public React pages previously duplicated Laravel's
+welcome copy, logo path, dark/light palette and auth-theme values in separate
+frontend modules. That made the same public presentation configuration exist
+in two places and prevented the Rust frontend from rendering a deployment's
+stored presentation values faithfully.
+
+**Decision:** Add application-database singleton
+`public_presentation_settings` and anonymous `GET /public/presentation`.
+The value is a strict, resolved public model containing only the logo, welcome
+pages and per-page backgrounds, dark/light public palette, and the login and
+welcome base auth-theme values required by the existing lifted UI. Migration
+26 seeds it from the source application's current defaults. The application
+layer and PostgreSQL repository deserialize it into typed Rust domain values;
+a missing or malformed singleton returns `503` rather than silently reverting
+to a looser or hand-coded frontend fallback.
+
+React retrieves the model once for public presentation routes and passes it to
+the lifted Welcome, Login, Information and Source components. The shared
+presentation helper resolves the source palette opacity and background
+selection rules. A temporary loading/unavailable state is shown only while the
+required public read is unavailable; the old duplicated values are removed.
+
+**Why:** This creates an explicit reviewable browser/API boundary for the
+source presentation model, removes divergent frontend defaults, and keeps
+deployment configuration in the application database without exposing private
+administration metadata. It is deliberately read-only, so it changes neither
+Laravel production routing nor administrator behavior.
+
+**Alternatives:** Keeping copied TypeScript constants would continue to drift
+from the deployment setting. Returning the legacy Laravel setting wholesale
+would expose unrelated configuration and preserve its storage format as a
+Rust contract. Both are rejected.
+
+**Limitations and trigger:** This does not add an administrator writer,
+presentation audit history, validation UI, configured information-page
+ordering, or the full source cursor/theme set. A later administrator slice
+must validate and write this typed model under appropriate authorization;
+until then, the seeded source defaults are the only supported configuration.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

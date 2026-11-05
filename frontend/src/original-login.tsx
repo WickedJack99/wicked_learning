@@ -3,52 +3,28 @@ import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalAppearanceToggle } from './original-appearance-toggle';
+import {
+    publicPresentationStyle,
+    type PublicPresentation,
+} from './public-presentation';
 
 /**
  * Lifted from `resources/js/pages/auth/login.tsx` and
  * `resources/js/layouts/auth/auth-simple-layout.tsx`.  Only the Inertia form
  * submission is replaced by the typed Rust session command.
  */
-export function OriginalLoginPage() {
+export function OriginalLoginPage({
+    presentation,
+}: {
+    presentation: PublicPresentation;
+}) {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [password, setPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [isLight, setIsLight] = useState(false);
-    const authTheme = isLight
-        ? {
-              backgroundColor: '#ecfeff',
-              backgroundOverlay:
-                  'linear-gradient(120deg, rgba(236, 254, 255, 0.94), rgba(240, 249, 255, 0.82), rgba(219, 234, 254, 0.62))',
-              borderLineColor: 'rgba(8, 145, 178, 0.24)',
-              buttonBackground: '#0e7490',
-              buttonTextColor: '#ffffff',
-              descriptionTextColor: 'rgba(51, 65, 85, 0.78)',
-              inputBackground: 'rgba(255, 255, 255, 0.7)',
-              inputBorderColor: 'rgba(14, 116, 144, 0.28)',
-              labelTextColor: '#0f172a',
-              logoBackground: '#0e7490',
-              logoColor: '#ffffff',
-              panelBackground: 'rgba(255, 255, 255, 0.86)',
-              titleTextColor: '#0f172a',
-          }
-        : {
-              backgroundColor: '#07111f',
-              backgroundOverlay:
-                  'linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))',
-              borderLineColor: 'rgba(94, 234, 212, 0.24)',
-              buttonBackground: '#5eead4',
-              buttonTextColor: '#06111f',
-              descriptionTextColor: 'rgba(203, 213, 225, 0.78)',
-              inputBackground: 'rgba(2, 6, 23, 0.36)',
-              inputBorderColor: 'rgba(125, 211, 252, 0.32)',
-              labelTextColor: '#e2e8f0',
-              logoBackground: '#5eead4',
-              logoColor: '#06111f',
-              panelBackground: 'rgba(7, 17, 31, 0.82)',
-              titleTextColor: '#f8fafc',
-          };
+    const appearance = isLight ? 'light' : 'dark';
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -82,27 +58,13 @@ export function OriginalLoginPage() {
     return (
         <main
             className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-[var(--auth-background-color)] p-6 md:p-10"
-            style={
-                {
-                    '--auth-background-color': authTheme.backgroundColor,
-                    '--auth-background-overlay': authTheme.backgroundOverlay,
-                    '--auth-border-line-color': authTheme.borderLineColor,
-                    '--auth-button-background': authTheme.buttonBackground,
-                    '--auth-button-text-color': authTheme.buttonTextColor,
-                    '--auth-description-text-color':
-                        authTheme.descriptionTextColor,
-                    '--auth-input-background': authTheme.inputBackground,
-                    '--auth-input-border-color': authTheme.inputBorderColor,
-                    '--auth-label-text-color': authTheme.labelTextColor,
-                    '--auth-logo-background': authTheme.logoBackground,
-                    '--auth-logo-color': authTheme.logoColor,
-                    '--auth-panel-background': authTheme.panelBackground,
-                    '--auth-title-text-color': authTheme.titleTextColor,
-                    '--public-control-border': isLight ? '#0f172a' : '#ffffff',
-                    '--public-control-text': isLight ? '#0f172a' : '#ffffff',
-                } as React.CSSProperties
-            }
+            style={publicPresentationStyle(presentation, appearance, 'login')}
         >
+            <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: 'var(--auth-background-image)' }}
+            />
             <div
                 aria-hidden="true"
                 className="absolute inset-0"
@@ -142,7 +104,7 @@ export function OriginalLoginPage() {
                                     alt=""
                                     className="size-8 object-contain"
                                     draggable={false}
-                                    src="/images/logo.png"
+                                    src={presentation.branding.logo}
                                 />
                             </div>
                             <span className="sr-only">Log in to your account</span>

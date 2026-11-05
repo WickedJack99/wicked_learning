@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { ArrowLeft, Compass, ExternalLink, Github } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 
 import { apiClient } from './api/client';
 import { OriginalMarkdownRenderer } from './original-markdown';
+import {
+    publicPresentationStyle,
+    type PublicPresentation,
+} from './public-presentation';
 
 const pageLabels: Record<string, string> = {
     about: 'About',
@@ -27,7 +30,13 @@ type SourceLinksState =
       }
     | { kind: 'unavailable' };
 
-export function PublicInformationPage({ slug }: { slug: string }) {
+export function PublicInformationPage({
+    presentation,
+    slug,
+}: {
+    presentation: PublicPresentation;
+    slug: string;
+}) {
     const [page, setPage] = useState<PageState>({ kind: 'loading' });
 
     useEffect(() => {
@@ -50,7 +59,7 @@ export function PublicInformationPage({ slug }: { slug: string }) {
     }, [slug]);
 
     return (
-        <PublicInformationSurface activeSlug={slug}>
+        <PublicInformationSurface activeSlug={slug} presentation={presentation}>
             <section className="relative z-10 flex min-h-[calc(100svh-5rem)] items-center px-6 py-8 md:px-10">
                 <div className="w-full max-w-3xl">
                     {page.kind === 'loading' ? (
@@ -83,20 +92,28 @@ export function PublicInformationPage({ slug }: { slug: string }) {
                     ) : null}
                     {page.kind === 'loaded' ? (
                         <InformationCard>
-                            <p className="m-0 text-xs font-medium tracking-[0.18em] text-teal-300 uppercase">
+                            <p
+                                className="m-0 text-xs font-medium tracking-[0.18em] uppercase"
+                                style={{ color: 'var(--public-accent)' }}
+                            >
                                 {pageLabels[slug] ?? page.title}
                             </p>
                             <div className="mt-4">
                                 {hasDocumentTitle(page.body) ? null : (
-                                    <h1 className="text-3xl font-semibold tracking-normal text-slate-50 md:text-5xl">
+                                    <h1
+                                        className="text-3xl font-semibold tracking-normal md:text-5xl"
+                                        style={{
+                                            color: 'var(--public-heading-text)',
+                                        }}
+                                    >
                                         {page.title}
                                     </h1>
                                 )}
                                 <OriginalMarkdownRenderer
-                                    headingColor="#f8fafc"
+                                    headingColor="var(--public-heading-text)"
                                     inheritColor
                                     markdown={page.body}
-                                    style={{ color: '#e2e8f0' }}
+                                    style={{ color: 'var(--public-body-text)' }}
                                 />
                             </div>
                         </InformationCard>
@@ -111,7 +128,11 @@ function hasDocumentTitle(markdown: string): boolean {
     return markdown.split(/\r?\n/).some((line) => /^#\s+/.test(line));
 }
 
-export function PublicSourceCodePage() {
+export function PublicSourceCodePage({
+    presentation,
+}: {
+    presentation: PublicPresentation;
+}) {
     const navigate = useNavigate();
     const [links, setLinks] = useState<SourceLinksState>({ kind: 'loading' });
 
@@ -137,7 +158,7 @@ export function PublicSourceCodePage() {
         <main
             className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
             data-wl-id="public.source-code"
-            style={originalPublicPresentationStyle}
+            style={publicPresentationStyle(presentation, 'dark', 'welcome')}
         >
             <div
                 aria-hidden="true"
@@ -251,15 +272,17 @@ export function PublicSourceCodePage() {
 function PublicInformationSurface({
     activeSlug,
     children,
+    presentation,
 }: {
     activeSlug?: string;
     children: React.ReactNode;
+    presentation: PublicPresentation;
 }) {
     return (
         <main
             className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
             data-wl-id="public.information"
-            style={originalPublicPresentationStyle}
+            style={publicPresentationStyle(presentation, 'dark', 'welcome')}
         >
             <div
                 aria-hidden="true"
@@ -358,24 +381,3 @@ function SourceButton({ link }: { link: { label: string; url: string } }) {
         </a>
     );
 }
-
-/**
- * Exact default values from the original public-presentation and auth themes.
- * This remains intentionally static until the matching Rust presentation
- * contract can carry administrator-configured palettes, media and cursors.
- */
-const originalPublicPresentationStyle = {
-    '--auth-background-color': '#07111f',
-    '--auth-background-image': 'none',
-    '--auth-background-overlay':
-        'linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))',
-    '--auth-border-line-color': 'rgba(94, 234, 212, 0.24)',
-    '--auth-button-text-color': '#06111f',
-    '--auth-panel-background': 'transparent',
-    '--public-accent': '#5eead4',
-    '--public-body-text': '#cbd5e1',
-    '--public-control-border': '#ffffff',
-    '--public-control-text': '#ffffff',
-    '--public-heading-text': '#f8fafc',
-    '--public-muted-text': '#94a3b8',
-} as CSSProperties;

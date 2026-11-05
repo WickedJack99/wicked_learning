@@ -71,6 +71,47 @@ test('the public source-links endpoint returns only browser-safe link data', asy
     });
 });
 
+test('the public-presentation endpoint returns the source-derived browser shell model', async ({
+    request,
+}) => {
+    const response = await request.get('/api/v1/public/presentation');
+
+    expect(response.status()).toBe(200);
+    const presentation = await response.json();
+
+    expect(presentation).toMatchObject({
+        branding: { logo: '/images/logo.png' },
+        auth: {
+            login: {
+                dark: {
+                    background_color: '#07111f',
+                    background_image: null,
+                    input_background: 'rgba(2, 6, 23, 0.36)',
+                },
+                light: {
+                    background_color: '#ecfeff',
+                    input_background: 'rgba(255, 255, 255, 0.7)',
+                },
+            },
+        },
+        public_palette: {
+            dark: { accent_text: '#5eead4', welcome_overlay_opacity: 62 },
+            light: { accent_text: '#0891b2', welcome_overlay_opacity: 72 },
+        },
+    });
+    expect(presentation.welcome.pages).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                eyebrow: 'Explorable learning platform',
+                title: 'Learning Worlds',
+                buttons: expect.arrayContaining([
+                    { text: 'Enter the first world', target: '/world' },
+                ]),
+            }),
+        ]),
+    );
+});
+
 test('the public world endpoint returns a bounded fresh exploration graph', async ({
     request,
 }) => {
