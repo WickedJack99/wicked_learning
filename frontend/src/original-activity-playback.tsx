@@ -749,14 +749,16 @@ function PlaybackContext({
                         </Link>
                     </dd>
                 </div>
-                <div>
-                    <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
-                        Route
-                    </dt>
-                    <dd className="mt-1 text-sm text-[var(--learner-action-accent)]">
-                        {context.route_label}
-                    </dd>
-                </div>
+                {context.route_label ? (
+                    <div>
+                        <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
+                            Route
+                        </dt>
+                        <dd className="mt-1 text-sm text-[var(--learner-action-accent)]">
+                            {context.route_label}
+                        </dd>
+                    </div>
+                ) : null}
             </dl>
         </aside>
     );

@@ -1041,10 +1041,12 @@ activity identifier in a normal completion request would weaken the ownership
 boundary. Consuming on open would punish a learner for leaving or refreshing a
 review. All are rejected.
 
-**Current foundation:** The normalized revisit-run and review-attempt tables
-and an internal owner/due/visibility-scoped open-or-resume command now exist.
-They are intentionally not routed to the browser yet; an incomplete run cannot
-be opened through the UI.
+**Current foundation:** The normalized revisit-run and review-attempt tables,
+an internal owner/due/visibility-scoped open-or-resume command, and the
+run-kind-aware playback reader now exist. The reader returns an active revisit
+as an activity-only run: it deliberately has no authored start or route label.
+It is intentionally not routed to the browser yet; an incomplete run cannot be
+opened through the UI, and no existing completion writer may complete it.
 
 **Implementation trigger:** Add run-kind-aware playback resolution and
 transactional completion for open-practice, question and reflection activities

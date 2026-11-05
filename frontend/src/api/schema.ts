@@ -1027,9 +1027,11 @@ export interface components {
         };
         LearnerPlaybackDocument: {
             /** Format: uuid */
-            start_id: string;
+            start_id: string | null;
             /** Format: uuid */
             play_run_id: string;
+            /** @enum {string} */
+            run_kind: "route" | "revisit";
             context: components["schemas"]["LearnerPlaybackContext"];
             activity: components["schemas"]["LearnerPlaybackActivity"];
         };
@@ -1038,7 +1040,7 @@ export interface components {
             node_title: string;
             map_slug: string;
             map_title: string;
-            route_label: string;
+            route_label: string | null;
         };
         LearnerPlaybackActivity: {
             slug: string;

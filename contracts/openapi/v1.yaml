@@ -1823,14 +1823,17 @@ components:
     LearnerPlaybackDocument:
       type: object
       additionalProperties: false
-      required: [start_id, play_run_id, context, activity]
+      required: [start_id, play_run_id, run_kind, context, activity]
       properties:
         start_id:
-          type: string
+          type: [string, 'null']
           format: uuid
         play_run_id:
           type: string
           format: uuid
+        run_kind:
+          type: string
+          enum: [route, revisit]
         context:
           $ref: '#/components/schemas/LearnerPlaybackContext'
         activity:
@@ -1851,7 +1854,7 @@ components:
         map_title:
           type: string
         route_label:
-          type: string
+          type: [string, 'null']
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false

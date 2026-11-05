@@ -356,10 +356,22 @@ pub struct LearnerRouteRun {
 /// authored completion transition.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerPlaybackDocument {
-    pub start_id: String,
+    /// An authored route start owns ordinary route runs. A private revisit has
+    /// no start because it must not be mistaken for a route reset.
+    pub start_id: Option<String>,
     pub play_run_id: String,
+    pub run_kind: LearnerPlaybackRunKind,
     pub context: LearnerPlaybackContext,
     pub activity: LearnerPlaybackActivity,
+}
+
+/// Playback ownership determines which transaction is allowed to complete the
+/// activity. It is server-resolved; a browser never chooses this value.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LearnerPlaybackRunKind {
+    Route,
+    Revisit,
 }
 
 /// Read-only orientation data for an already-authorized play run. It is not
@@ -371,7 +383,9 @@ pub struct LearnerPlaybackContext {
     pub node_title: String,
     pub map_slug: String,
     pub map_title: String,
-    pub route_label: String,
+    /// The source player shows a route only when the current run was started
+    /// from an authored route start.
+    pub route_label: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
