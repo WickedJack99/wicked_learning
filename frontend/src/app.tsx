@@ -1,14 +1,12 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 import {
     Link,
-    Navigate,
     NavLink,
     Route,
     Routes,
     useLocation,
     useNavigate,
     useParams,
-    useSearchParams,
 } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
@@ -44,13 +42,6 @@ type WorldState =
     | { kind: 'loading' }
     | { kind: 'loaded'; world: PublicWorld }
     | { kind: 'empty' }
-    | { kind: 'unavailable' };
-type PublicSearch = components['schemas']['PublicSearch'];
-type SearchState =
-    | { kind: 'idle' }
-    | { kind: 'loading' }
-    | { kind: 'loaded'; search: PublicSearch }
-    | { kind: 'invalid' }
     | { kind: 'unavailable' };
 type PublicMapAssetDetail = components['schemas']['PublicMapAssetDetail'];
 type MapAssetState =
@@ -123,8 +114,7 @@ export function App() {
                         aria-label="Learner navigation"
                         className="learner-navigation"
                     >
-                        <NavLink to="/world">Explore</NavLink>
-                        <NavLink to="/search">Search</NavLink>
+                        <NavLink to="/world">World</NavLink>
                         <NavLink to="/about">About</NavLink>
                         {publicSlugs.slice(1).map((slug) => (
                             <NavLink key={slug} to={`/${slug}`}>
@@ -141,10 +131,6 @@ export function App() {
                 id="learner-main-content"
             >
                 <Routes>
-                    <Route
-                        path="/learning/search"
-                        element={<LegacySearchRedirect />}
-                    />
                     <Route path="/login" element={<LoginPage />} />
                     <Route
                         path="/account"
@@ -167,7 +153,6 @@ export function App() {
                         path="/world/:worldSlug/maps/:mapSlug/assets/:assetSlug/routes/:routeSlug"
                         element={<RoutePage />}
                     />
-                    <Route path="/search" element={<SearchPage />} />
                     <Route path="/:slug" element={<PublicPage />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
@@ -195,125 +180,6 @@ function SessionNavigation({ currentUser }: { currentUser: CurrentUserState }) {
             Local sign in
         </NavLink>
     );
-}
-
-function SearchPage() {
-    const [searchParams, setSearchParams] = useSearchParams();
-    const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
-    const [search, setSearch] = useState<SearchState>({ kind: 'idle' });
-
-    async function searchPlaces(queryToSearch: string) {
-        const normalizedQuery = queryToSearch.trim();
-        if (normalizedQuery.length < 2 || normalizedQuery.length > 80) {
-            setSearch({ kind: 'invalid' });
-            return;
-        }
-
-        setSearch({ kind: 'loading' });
-        try {
-            const { data, response } = await apiClient.GET('/public/search', {
-                params: { query: { q: normalizedQuery } },
-            });
-            if (response.status === 400) {
-                setSearch({ kind: 'invalid' });
-                return;
-            }
-            if (!response.ok || !data) {
-                setSearch({ kind: 'unavailable' });
-                return;
-            }
-
-            setSearch({ kind: 'loaded', search: data });
-        } catch {
-            setSearch({ kind: 'unavailable' });
-        }
-    }
-
-    useEffect(() => {
-        const requestedQuery = searchParams.get('q');
-        if (!requestedQuery) {
-            return;
-        }
-
-        setQuery(requestedQuery);
-        void searchPlaces(requestedQuery);
-    }, [searchParams]);
-
-    function submit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        const normalizedQuery = query.trim();
-        setSearchParams(normalizedQuery ? { q: normalizedQuery } : {});
-    }
-
-    return (
-        <article>
-            <h1>Search the learning world</h1>
-            <p>
-                Searches only look through published places in this fresh public
-                world.
-            </p>
-            <form className="credential-form" onSubmit={submit}>
-                <label>
-                    Search places
-                    <input
-                        maxLength={80}
-                        minLength={2}
-                        onChange={(event) =>
-                            setQuery(event.currentTarget.value)
-                        }
-                        required
-                        type="search"
-                        value={query}
-                    />
-                </label>
-                <button type="submit">Search</button>
-            </form>
-            {search.kind === 'loading' ? (
-                <p aria-live="polite">Searching places…</p>
-            ) : null}
-            {search.kind === 'invalid' ? (
-                <p role="alert">
-                    Enter between 2 and 80 characters to search places.
-                </p>
-            ) : null}
-            {search.kind === 'unavailable' ? (
-                <p role="alert">Search is temporarily unavailable.</p>
-            ) : null}
-            {search.kind === 'loaded' ? (
-                search.search.results.length ? (
-                    <ul className="search-results">
-                        {search.search.results.map((result) => (
-                            <li key={`${result.map_slug}-${result.asset_slug}`}>
-                                <h2>
-                                    <Link
-                                        to={mapAssetPath(
-                                            result.world_slug,
-                                            result.map_slug,
-                                            result.asset_slug,
-                                        )}
-                                    >
-                                        {result.title}
-                                    </Link>
-                                </h2>
-                                <p>{result.description}</p>
-                                <p className="eyebrow">{result.map_title}</p>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p>No published places match “{search.search.query}”.</p>
-                )
-            ) : null}
-        </article>
-    );
-}
-
-function LegacySearchRedirect() {
-    const location = useLocation();
-    const legacyQuery = new URLSearchParams(location.search).get('query');
-    const search = legacyQuery ? `?q=${encodeURIComponent(legacyQuery)}` : '';
-
-    return <Navigate replace to={`/search${search}`} />;
 }
 
 function WorldPage() {
