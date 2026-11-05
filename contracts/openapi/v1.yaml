@@ -189,6 +189,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/answer:
+    post:
+      operationId: answerLearnerQuestion
+      summary: Answer the current authorized question in a play run.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerQuestionAnswerRequest'
+      responses:
+        '200':
+          description: Server-evaluated answer feedback and authored transition label.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerQuestionAnswerResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active run, question, or submitted choices are unavailable. }
+        '503': { description: The application database is unavailable. }
   /learner/activity-starts/{start_id}/start:
     post:
       operationId: startLearnerRoute
@@ -977,7 +1002,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice]
+          enum: [open_practice, question]
         config:
           type: object
         completion:
@@ -1003,6 +1028,37 @@ components:
         status:
           type: string
           enum: [in_progress, completed]
+    LearnerQuestionAnswerRequest:
+      type: object
+      additionalProperties: false
+      required: [option_keys]
+      properties:
+        option_keys:
+          type: array
+          minItems: 1
+          maxItems: 24
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 120 }
+        confidence:
+          type: [string, 'null']
+          enum: [exploring, leaning, settled, null]
+    LearnerQuestionAnswerResult:
+      type: object
+      additionalProperties: false
+      required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, next_transition_label]
+      properties:
+        play_run_id: { type: string, format: uuid }
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        selected_option_keys:
+          type: array
+          items: { type: string }
+        is_correct: { type: boolean }
+        feedback: { type: [string, 'null'] }
+        explanation: { type: [string, 'null'] }
+        confidence: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
+        calibration: { type: [string, 'null'], enum: [aligned, stronger_than_expected, higher_than_result, uncertainty_made_gap_visible, null] }
+        attempt_number: { type: integer, minimum: 1 }
+        next_transition_label: { type: [string, 'null'] }
     LearnerRouteRun:
       type: object
       additionalProperties: false

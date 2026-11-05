@@ -139,3 +139,20 @@ pub struct LearnerPlaybackCompletionResult {
     pub play_run_id: String,
     pub status: String,
 }
+
+/// A learner's evaluated attempt at the question currently authorized by a
+/// play run. Choice keys are opaque authored identifiers; correctness and the
+/// next transition are resolved by the server, never the browser.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerQuestionAnswerResult {
+    pub play_run_id: String,
+    pub activity_slug: String,
+    pub selected_option_keys: Vec<String>,
+    pub is_correct: bool,
+    pub feedback: Option<String>,
+    pub explanation: Option<String>,
+    pub confidence: Option<String>,
+    pub calibration: Option<String>,
+    pub attempt_number: i32,
+    pub next_transition_label: Option<String>,
+}

@@ -123,6 +123,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer the current authorized question in a play run. */
+        post: operations["answerLearnerQuestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/activity-starts/{start_id}/start": {
         parameters: {
             query?: never;
@@ -513,7 +530,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice";
+            activity_type: "open_practice" | "question";
             config: Record<string, never>;
             completion: components["schemas"]["LearnerPlaybackCompletion"];
         };
@@ -526,6 +543,26 @@ export interface components {
             play_run_id: string;
             /** @enum {string} */
             status: "in_progress" | "completed";
+        };
+        LearnerQuestionAnswerRequest: {
+            option_keys: string[];
+            /** @enum {string|null} */
+            confidence?: "exploring" | "leaning" | "settled" | null;
+        };
+        LearnerQuestionAnswerResult: {
+            /** Format: uuid */
+            play_run_id: string;
+            activity_slug: string;
+            selected_option_keys: string[];
+            is_correct: boolean;
+            feedback: string | null;
+            explanation: string | null;
+            /** @enum {string|null} */
+            confidence: "exploring" | "leaning" | "settled" | null;
+            /** @enum {string|null} */
+            calibration: "aligned" | "stronger_than_expected" | "higher_than_result" | "uncertainty_made_gap_visible" | null;
+            attempt_number: number;
+            next_transition_label: string | null;
         };
         LearnerRouteRun: {
             /** Format: uuid */
@@ -901,6 +938,64 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    answerLearnerQuestion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerQuestionAnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Server-evaluated answer feedback and authored transition label. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerQuestionAnswerResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active run */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

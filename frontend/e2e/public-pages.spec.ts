@@ -574,6 +574,73 @@ test('a removed substitute map-place URL returns to the retained welcome surface
     await expect(page.getByRole('heading', { name: 'Learning Worlds' })).toBeVisible();
 });
 
+test('the original question surface posts only selected option keys and waits for server feedback', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77';
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                play_run_id: playRunId,
+                context: {
+                    node_slug: 'private-place',
+                    node_title: 'Private place',
+                    map_slug: 'private-path',
+                    map_title: 'A private path',
+                    route_label: 'Question route',
+                },
+                activity: {
+                    slug: 'learner-choice',
+                    title: 'Keep choice visible',
+                    description: 'A server-authorized question.',
+                    activity_type: 'question',
+                    config: {
+                        allowMultiple: false,
+                        prompt: 'Which choice keeps exploration learner-directed?',
+                        options: [
+                            { key: 'choice', label: 'A', body: 'Keep useful choices visible.' },
+                            { key: 'sequence', label: 'B', body: 'Hide all other routes.' },
+                        ],
+                    },
+                    completion: { label: null, next_activity_slug: null },
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ token: 'test-csrf-token' }) });
+    });
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}/activities/learner-choice/answer`, async (route) => {
+        expect(route.request().postDataJSON()).toEqual({ confidence: 'settled', option_keys: ['choice'] });
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                play_run_id: playRunId,
+                activity_slug: 'learner-choice',
+                selected_option_keys: ['choice'],
+                is_correct: true,
+                feedback: 'This keeps the learner in charge.',
+                explanation: 'Maps support orientation and choice.',
+                confidence: 'settled',
+                calibration: 'aligned',
+                attempt_number: 1,
+                next_transition_label: null,
+            }),
+        });
+    });
+
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByText('Which choice keeps exploration learner-directed?')).toBeVisible();
+    await page.getByRole('button', { name: 'Settled' }).click();
+    await page.getByRole('button', { name: /Keep useful choices visible/ }).click();
+    await expect(page.getByText('Useful clue found')).toBeVisible();
+    await expect(page.getByText('This keeps the learner in charge.')).toBeVisible();
+    await page.getByRole('button', { name: 'Try again independently' }).click();
+    await expect(page.getByText('Which choice keeps exploration learner-directed?')).toBeVisible();
+});
+
 test('the public explorer search is bounded and presents matching places', async ({
     page,
 }) => {

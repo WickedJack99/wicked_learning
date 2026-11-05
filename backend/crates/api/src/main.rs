@@ -5,6 +5,7 @@ mod current_user;
 mod error;
 mod identity;
 mod learner_playback;
+mod learner_question;
 mod learner_route_run;
 mod learner_world;
 mod login_rate_limit;
@@ -222,6 +223,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
             post(learner_playback::complete_open_practice),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/answer",
+            post(learner_question::answer),
         )
         .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/session/logout", post(session_commands::logout))
