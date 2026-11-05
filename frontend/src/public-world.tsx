@@ -459,18 +459,21 @@ function WorldNavigation({
                 Skip to content
             </a>
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:px-6 lg:px-8 xl:flex-nowrap">
-                <Link
-                    className="flex shrink-0 items-center gap-3 text-slate-100 no-underline"
-                    to="/world"
+                <div
+                    className="flex shrink-0 items-center gap-3 text-slate-100"
+                    data-wl-id="learner.navigation.brand"
                 >
-                    <MapIcon
+                    <img
+                        alt=""
                         aria-hidden="true"
-                        className="size-8 text-teal-300"
+                        className="size-8 object-contain"
+                        draggable={false}
+                        src="/images/logo.png"
                     />
                     <span className="hidden text-sm font-semibold tracking-wide sm:block">
-                        Wicked Learning
+                        Learning Worlds
                     </span>
-                </Link>
+                </div>
                 <nav
                     aria-label="Learner navigation"
                     className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full flex-wrap gap-0 border-t px-4 xl:order-none xl:mx-0 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:border-t-0 xl:px-0"
