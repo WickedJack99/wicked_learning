@@ -110,7 +110,7 @@ test('a public map place keeps the original keyboard focus and selection path', 
     );
 });
 
-test('a learner can open a map place and inspect its route previews', async ({
+test('an anonymous visitor can inspect a map place without substitute route pages', async ({
     page,
 }) => {
     await page.goto('/world');
@@ -127,25 +127,7 @@ test('a learner can open a map place and inspect its route previews', async ({
     ).toBeVisible();
     await expect(
         page.getByRole('link', { name: 'View available routes' }),
-    ).toBeVisible();
-    await page.getByRole('link', { name: 'View available routes' }).click();
-    await expect(page).toHaveURL(
-        /\/world\/orientation-garden\/maps\/first-path\/assets\/choose-a-direction$/,
-    );
-    await expect(
-        page.getByRole('heading', { name: 'Available routes' }),
-    ).toBeVisible();
-    await expect(page.getByText('1 activity')).toBeVisible();
-    await page.getByRole('link', { name: 'Choose your next step' }).click();
-    await expect(page).toHaveURL(
-        /\/world\/orientation-garden\/maps\/first-path\/assets\/choose-a-direction\/routes\/choose-your-next-step$/,
-    );
-    await expect(
-        page.getByRole('heading', { name: 'Activities in this route' }),
-    ).toBeVisible();
-    await expect(
-        page.getByRole('heading', { name: 'Consider a direction' }),
-    ).toBeVisible();
+    ).toHaveCount(0);
 });
 
 test('the learner shell keeps public navigation available on a narrow viewport', async ({
@@ -463,18 +445,14 @@ test('the signed-in explorer uses the principal-scoped World snapshot', async ({
     await expect(page.getByText('Reflect on the next step')).toBeVisible();
 });
 
-test('a missing public map place has its own recoverable not-found state', async ({
+test('a removed substitute map-place URL does not create a replacement page', async ({
     page,
 }) => {
     await page.goto(
         '/world/orientation-garden/maps/first-path/assets/not-published',
     );
 
-    await expect(
-        page.getByRole('heading', { name: 'Place not found' }),
-    ).toBeVisible();
-    await page.getByRole('link', { name: 'Back to exploration' }).click();
-    await expect(page).toHaveURL(/\/world$/);
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
 });
 
 test('the public explorer search is bounded and presents matching places', async ({

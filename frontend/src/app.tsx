@@ -144,16 +144,6 @@ export function App() {
                         }
                     />
                     <Route path="/source" element={<SourceCodePage />} />
-                    <Route path="/world" element={<WorldPage />} />
-                    <Route
-                        path="/world/:worldSlug/maps/:mapSlug/assets/:assetSlug"
-                        element={<MapAssetPage />}
-                    />
-                    <Route
-                        path="/world/:worldSlug/maps/:mapSlug/assets/:assetSlug/routes/:routeSlug"
-                        element={<RoutePage />}
-                    />
-                    <Route path="/:slug" element={<PublicPage />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </main>

@@ -3,7 +3,6 @@ import type { CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
     ArrowRight,
-    BookOpen,
     Bookmark,
     CheckCircle2,
     ChevronLeft,
@@ -286,7 +285,6 @@ function PublicWorldSurface({
                 onSwipeChange={setPanelSwipe}
                 starts={selectedNode ? learnerState?.start_routes.filter((start) => start.node_slug === selectedNode.slug) ?? [] : []}
                 swipe={panelSwipe}
-                world={world}
             />
         </main>
     );
@@ -780,7 +778,6 @@ function NodeDrawer({
     onSwipeChange,
     starts,
     swipe,
-    world,
 }: {
     bookmarked: boolean;
     completed: boolean;
@@ -791,13 +788,8 @@ function NodeDrawer({
     onSwipeChange: (swipe: PanelSwipe | null) => void;
     starts: LearnerActivityStart[];
     swipe: PanelSwipe | null;
-    world: PublicWorld;
 }) {
     const theme = map.background_config;
-    const asset = node?.asset_slug ? map.assets.find((candidate) => candidate.slug === node.asset_slug) : null;
-    const placePath = asset
-        ? `/world/${world.slug}/maps/${map.slug}/assets/${asset.slug}`
-        : null;
 
     return (
         <aside
@@ -893,11 +885,6 @@ function NodeDrawer({
                     ) : null}
                     {isAuthenticated ? (
                         <ActivityStartButtons starts={starts} />
-                    ) : placePath ? (
-                        <Link className="mt-auto inline-flex items-center gap-2 text-sm font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current" to={placePath}>
-                            <BookOpen className="size-4" />
-                            View available routes
-                        </Link>
                     ) : null}
                 </div>
             ) : null}
