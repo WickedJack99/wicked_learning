@@ -1042,16 +1042,22 @@ boundary. Consuming on open would punish a learner for leaving or refreshing a
 review. All are rejected.
 
 **Current foundation:** The normalized revisit-run and review-attempt tables,
-an internal owner/due/visibility-scoped open-or-resume command, and the
-run-kind-aware playback reader now exist. The reader returns an active revisit
-as an activity-only run: it deliberately has no authored start or route label.
-It is intentionally not routed to the browser yet; an incomplete run cannot be
-opened through the UI, and no existing completion writer may complete it.
+an internal owner/due/visibility-scoped open-or-resume command, a
+run-kind-aware playback reader, and transactional writers now exist. The
+reader returns an active revisit as an activity-only run: it deliberately has
+no authored start or route label. The three supported activity writers
+(`open_practice`, question and reflection) resolve the run kind under lock.
+For a revisit they complete only that run, increment its existing activity
+attempt count, write one review attempt and record completion evidence through
+the existing activity-evidence policy, and consume the matching invitation;
+they do not advance or reset route progress. This was
+verified against a rebuilt local Compose stack with disposable owner-scoped
+records for all three activity types.
 
-**Implementation trigger:** Add run-kind-aware playback resolution and
-transactional completion for open-practice, question and reflection activities
-before exposing the lifted Journal invitation controls. Do not expose a partial
-re-entry link or an `is_revisit` browser parameter.
+**Implementation trigger:** Add the owner-scoped browser command that opens
+or resumes a due invitation, then lift the corresponding original Journal
+invitation controls and their navigation. Do not expose a partial re-entry
+link or an `is_revisit` browser parameter.
 
 ## Phase 1 gate
 

@@ -8,7 +8,10 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerQuestionAnswerResult,
 };
 
-use crate::learner_evidence::{CompletionEvidence, record_completion_evidence};
+use crate::{
+    learner_evidence::{CompletionEvidence, record_completion_evidence},
+    learner_revisit_completion::{RevisitCompletion, complete_active_revisit},
+};
 
 pub struct PostgresLearnerQuestionRepository<'pool> {
     pool: &'pool PgPool,
@@ -24,6 +27,7 @@ impl<'pool> PostgresLearnerQuestionRepository<'pool> {
 struct CurrentQuestionRow {
     activity_config: serde_json::Value,
     activity_id: Uuid,
+    is_revisit: bool,
     principal_id: Uuid,
     route_id: Uuid,
 }
@@ -141,6 +145,68 @@ async fn answer_current_question(
     let selected_option_keys = option_keys.to_vec();
     sqlx::query("INSERT INTO learner_question_answers (principal_id, activity_id, play_run_id, selected_option_keys, is_correct, confidence, calibration, attempt_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
         .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).execute(&mut *transaction).await?;
+    if current.is_revisit {
+        let Some(review_attempt_number) = complete_active_revisit(
+            &mut transaction,
+            RevisitCompletion {
+                activity_id: current.activity_id,
+                confidence,
+                confidence_after_feedback: None,
+                learner_reflection_id: None,
+                outcome: if is_correct { "correct" } else { "incorrect" },
+                play_run_id,
+                principal_id: current.principal_id,
+            },
+        )
+        .await?
+        else {
+            transaction.commit().await?;
+            return Ok(None);
+        };
+        record_completion_evidence(
+            &mut transaction,
+            CompletionEvidence {
+                activity_config: &evidence_config,
+                activity_id: current.activity_id,
+                activity_type: "question",
+                assistance_level: "untracked",
+                attempt_number: review_attempt_number,
+                calibration: calibration.as_deref(),
+                confidence,
+                confidence_after_feedback: None,
+                learner_reflection_id: None,
+                outcome: if is_correct { "correct" } else { "incorrect" },
+                play_run_id,
+                principal_id: current.principal_id,
+                reflection_response_type: None,
+            },
+        )
+        .await?;
+        transaction.commit().await?;
+        let feedback = selected
+            .first()
+            .and_then(|option| option.feedback.clone())
+            .or_else(|| {
+                if is_correct {
+                    config.feedback_correct
+                } else {
+                    config.feedback_incorrect
+                }
+            });
+
+        return Ok(Some(LearnerQuestionAnswerResult {
+            play_run_id: play_run_id.to_string(),
+            activity_slug: activity_slug.to_owned(),
+            selected_option_keys,
+            is_correct,
+            feedback,
+            explanation: config.explanation,
+            confidence: confidence.map(str::to_owned),
+            calibration,
+            attempt_number,
+            next_transition_label: None,
+        }));
+    }
     record_completion_evidence(
         &mut transaction,
         CompletionEvidence {
@@ -207,7 +273,13 @@ async fn load_current_question(
     play_run_id: Uuid,
     activity_slug: &str,
 ) -> Result<Option<CurrentQuestionRow>, sqlx::Error> {
-    sqlx::query_as::<_, CurrentQuestionRow>("SELECT activities.activity_config, activities.id AS activity_id, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'question' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress")
+    let route = sqlx::query_as::<_, CurrentQuestionRow>("SELECT activities.activity_config, activities.id AS activity_id, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'question' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress")
+        .bind(principal.subject_id).bind(play_run_id).bind(activity_slug).bind(&principal.roles).fetch_optional(&mut **transaction).await?;
+    if route.is_some() {
+        return Ok(route);
+    }
+
+    sqlx::query_as::<_, CurrentQuestionRow>("SELECT activities.activity_config, activities.id AS activity_id, TRUE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'question' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs")
         .bind(principal.subject_id).bind(play_run_id).bind(activity_slug).bind(&principal.roles).fetch_optional(&mut **transaction).await
 }
 

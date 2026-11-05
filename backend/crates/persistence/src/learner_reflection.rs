@@ -8,7 +8,10 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerReflectionResult,
 };
 
-use crate::learner_evidence::{CompletionEvidence, record_completion_evidence};
+use crate::{
+    learner_evidence::{CompletionEvidence, record_completion_evidence},
+    learner_revisit_completion::{RevisitCompletion, complete_active_revisit},
+};
 
 pub struct PostgresLearnerReflectionRepository<'pool> {
     pool: &'pool PgPool,
@@ -22,10 +25,11 @@ impl<'pool> PostgresLearnerReflectionRepository<'pool> {
 
 #[derive(FromRow)]
 struct CurrentReflectionRow {
-    activity_start_id: Uuid,
+    activity_start_id: Option<Uuid>,
     activity_config: serde_json::Value,
     activity_id: Uuid,
     activity_title: String,
+    is_revisit: bool,
     node_title: String,
     principal_id: Uuid,
     route_id: Uuid,
@@ -143,25 +147,6 @@ async fn save_current_reflection(
     .bind(reflection)
     .fetch_one(&mut *transaction)
     .await?;
-    record_completion_evidence(
-        &mut transaction,
-        CompletionEvidence {
-            activity_config: &evidence_config,
-            activity_id: current.activity_id,
-            activity_type: "reflection",
-            assistance_level: "untracked",
-            attempt_number: 1,
-            calibration: None,
-            confidence: None,
-            confidence_after_feedback: None,
-            learner_reflection_id: Some(reflection_id),
-            outcome: "completed",
-            play_run_id,
-            principal_id: current.principal_id,
-            reflection_response_type: Some("reflection"),
-        },
-    )
-    .await?;
     let journal_entry = format!(
         "## {reflection_title}\n\n**Question**  {prompt}\n\n**Reflection**  {reflection}\n"
     );
@@ -175,6 +160,56 @@ async fn save_current_reflection(
         .bind(markdown)
         .execute(&mut *transaction)
         .await?;
+
+    let evidence_attempt_number = if current.is_revisit {
+        let Some(attempt_number) = complete_active_revisit(
+            &mut transaction,
+            RevisitCompletion {
+                activity_id: current.activity_id,
+                confidence: None,
+                confidence_after_feedback: None,
+                learner_reflection_id: Some(reflection_id),
+                outcome: "completed",
+                play_run_id,
+                principal_id: current.principal_id,
+            },
+        )
+        .await?
+        else {
+            transaction.commit().await?;
+            return Ok(None);
+        };
+        attempt_number
+    } else {
+        1
+    };
+    record_completion_evidence(
+        &mut transaction,
+        CompletionEvidence {
+            activity_config: &evidence_config,
+            activity_id: current.activity_id,
+            activity_type: "reflection",
+            assistance_level: "untracked",
+            attempt_number: evidence_attempt_number,
+            calibration: None,
+            confidence: None,
+            confidence_after_feedback: None,
+            learner_reflection_id: Some(reflection_id),
+            outcome: "completed",
+            play_run_id,
+            principal_id: current.principal_id,
+            reflection_response_type: Some("reflection"),
+        },
+    )
+    .await?;
+    if current.is_revisit {
+        transaction.commit().await?;
+        return Ok(Some(LearnerReflectionResult {
+            play_run_id: play_run_id.to_string(),
+            activity_slug: activity_slug.to_owned(),
+            status: "completed".to_owned(),
+        }));
+    }
 
     let transition = sqlx::query_as::<_, TransitionRow>(
         "SELECT to_activity_id FROM learning_activity_transitions WHERE from_activity_id = $1 AND from_connector = 'completed' AND trigger = 'completed' ORDER BY created_at ASC, id ASC LIMIT 1",
@@ -278,8 +313,21 @@ async fn load_current_reflection(
     play_run_id: Uuid,
     activity_slug: &str,
 ) -> Result<Option<CurrentReflectionRow>, sqlx::Error> {
+    let route = sqlx::query_as::<_, CurrentReflectionRow>(
+        "SELECT progress.activity_start_id, activities.activity_config, activities.id AS activity_id, activities.title AS activity_title, FALSE AS is_revisit, nodes.title AS node_title, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'reflection' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(activity_slug)
+    .bind(&principal.roles)
+    .fetch_optional(&mut **transaction)
+    .await?;
+    if route.is_some() {
+        return Ok(route);
+    }
+
     sqlx::query_as::<_, CurrentReflectionRow>(
-        "SELECT progress.activity_start_id, activities.activity_config, activities.id AS activity_id, activities.title AS activity_title, nodes.title AS node_title, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'reflection' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT NULL::uuid AS activity_start_id, activities.activity_config, activities.id AS activity_id, activities.title AS activity_title, TRUE AS is_revisit, nodes.title AS node_title, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'reflection' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
