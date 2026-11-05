@@ -153,7 +153,7 @@ test('an anonymous visitor can inspect a map place without substitute route page
     await expect(page.getByText('Choose your next step')).toHaveCount(0);
 });
 
-test('the learner shell keeps public navigation available on a narrow viewport', async ({
+test('the learner shell keeps the source-derived public navigation available on a narrow viewport', async ({
     page,
 }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -162,7 +162,7 @@ test('the learner shell keeps public navigation available on a narrow viewport',
     await expect(
         page.getByRole('navigation', { name: 'Learner navigation' }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
     await expect(
         page.getByRole('heading', { name: 'The First Path' }),
     ).toBeVisible();
@@ -323,7 +323,7 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(
         page.getByRole('button', { name: 'Open user menu' }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Log in' })).not.toBeVisible();
+    await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
 });
 
 test('the authenticated World restores the original bookmark toggle with a server-owned result', async ({
@@ -1099,7 +1099,7 @@ test('a CI-only local administrator can use the React sign-in and sign-out flow'
     await expect(page).toHaveURL(/\/world$/);
     await page.getByRole('button', { name: 'Open user menu' }).click();
     await page.getByRole('menuitem', { name: 'Log out' }).click();
-    await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
 });
 
 test('an unavailable public-page API is presented without a stale page', async ({
