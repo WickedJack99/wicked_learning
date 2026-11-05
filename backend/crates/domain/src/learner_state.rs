@@ -485,6 +485,15 @@ pub struct LearnerRevisitInvitation {
     pub revisit_reason: String,
 }
 
+/// The private invitation state after a learner chooses to defer or hide a
+/// due return. Re-entry is intentionally a separate, server-owned operation.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRevisitInvitationActionResult {
+    pub check_in_id: String,
+    pub revisit_status: String,
+    pub available_at: Option<String>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalPage {
     pub id: String,

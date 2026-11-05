@@ -226,6 +226,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/revisit-invitations/{check_in_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Defer or hide a due private revisit invitation. */
+        post: operations["updateLearnerRevisitInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/journal/pages": {
         parameters: {
             query?: never;
@@ -1132,6 +1149,18 @@ export interface components {
             node_slug: string;
             node_title: string;
         };
+        UpdateLearnerRevisitInvitationRequest: {
+            /** @enum {string} */
+            action: "dismiss" | "snooze";
+        };
+        LearnerRevisitInvitationActionResult: {
+            /** Format: uuid */
+            check_in_id: string;
+            /** @enum {string} */
+            revisit_status: "dismissed" | "snoozed";
+            /** Format: date-time */
+            available_at: string | null;
+        };
         CreateLearnerJournalPageRequest: {
             title: string;
             topic: string;
@@ -1906,6 +1935,70 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    updateLearnerRevisitInvitation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                check_in_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerRevisitInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description The invitation has been deferred or hidden. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerRevisitInvitationActionResult"];
+                };
+            };
+            /** @description The invitation action is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The due */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -12,6 +12,7 @@ pub mod learner_paths;
 pub mod learner_playback;
 pub mod learner_question;
 pub mod learner_reflection;
+pub mod learner_revisit_invitation;
 pub mod learner_route_run;
 pub mod learner_topic_detail;
 pub mod learner_topics;

@@ -320,6 +320,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/revisit-invitations/{check_in_id}:
+    post:
+      operationId: updateLearnerRevisitInvitation
+      summary: Defer or hide a due private revisit invitation.
+      parameters:
+        - name: check_in_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLearnerRevisitInvitationRequest'
+      responses:
+        '200':
+          description: The invitation has been deferred or hidden.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerRevisitInvitationActionResult'
+        '400': { description: The invitation action is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The due, visible invitation is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/journal/pages:
     post:
       operationId: createLearnerJournalPage
@@ -1990,6 +2018,20 @@ components:
         map_title: { type: string }
         node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         node_title: { type: string }
+    UpdateLearnerRevisitInvitationRequest:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { type: string, enum: [dismiss, snooze] }
+    LearnerRevisitInvitationActionResult:
+      type: object
+      additionalProperties: false
+      required: [check_in_id, revisit_status, available_at]
+      properties:
+        check_in_id: { type: string, format: uuid }
+        revisit_status: { type: string, enum: [dismissed, snoozed] }
+        available_at: { type: [string, 'null'], format: date-time }
     CreateLearnerJournalPageRequest:
       type: object
       additionalProperties: false

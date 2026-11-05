@@ -14,6 +14,7 @@ mod learner_paths;
 mod learner_playback;
 mod learner_question;
 mod learner_reflection;
+mod learner_revisit_invitation;
 mod learner_route_run;
 mod learner_topic_detail;
 mod learner_topics;
@@ -242,6 +243,10 @@ fn router(state: AppState) -> Router {
             post(learner_bookmark::create).delete(learner_bookmark::delete),
         )
         .route("/api/v1/learner/journal", get(learner_journal::index))
+        .route(
+            "/api/v1/learner/revisit-invitations/{check_in_id}",
+            post(learner_revisit_invitation::update),
+        )
         .route(
             "/api/v1/learner/journal/pages",
             post(learner_journal_page::create),

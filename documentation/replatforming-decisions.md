@@ -992,10 +992,14 @@ a substitute React control before then.
 
 The existing authenticated journal read model now carries the bounded private
 check-in trail and due, visible revisit-invitation projection required by that
-future UI. It exposes neither an activity-reentry URL nor invitation actions:
-those remain unavailable until a Rust command can create and complete a
-server-owned revisit run, consume the invitation and record the source review
-attempt atomically.
+future UI. Its private command now also permits only the source's two due
+invitation actions: `snooze` postpones the same invitation for seven days and
+`dismiss` hides it. The command resolves the invitation from the authenticated
+principal, current map visibility and completed progress; it never accepts a
+bare activity writer. It exposes neither an activity-reentry URL nor browser
+controls: those remain unavailable until a Rust command can create and
+complete a server-owned revisit run, consume the invitation and record the
+source review attempt atomically.
 
 ## Phase 1 gate
 
