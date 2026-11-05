@@ -494,6 +494,35 @@ the entire route graph would duplicate authorization and transition policy in
 the browser. Enabling every existing activity type through an untyped JSON
 payload would misrepresent unsupported behavior. Both are rejected.
 
+## ADR-020: Open-practice completion advances only the active run
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The original `OpenPracticeActivity` completes the current
+activity, then follows its authored `completed` transition. A browser command
+that supplies a next activity or a run-wide “complete” action could skip an
+activity after a stale refresh or a double click.
+
+**Decision:** `POST /api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete`
+accepts the displayed activity slug only as an expected-current-value. In one
+PostgreSQL transaction Rust locks the matching active run, verifies that its
+current activity is the supported published open-practice activity, marks it
+completed, and resolves its authored completed transition. A valid target is
+marked reached and becomes the run's current activity; no target completes the
+run and increments its completion count. The response reports only whether the
+same run is still in progress or completed. The browser reloads the playback
+document for an in-progress run and never supplies a target activity.
+
+**Why:** This retains Laravel's state progression while making stale activity
+submissions safe: once the server advances or completes a run, the old
+activity-slug command is no longer eligible. It also keeps per-activity and
+per-route progress updates atomic.
+
+**Alternatives:** Posting a client-selected next activity would duplicate graph
+policy in React. Returning an arbitrary next-page URL would couple API policy
+to browser routing. A generic completion endpoint without the expected current
+activity would make stale submissions ambiguous. All are rejected.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

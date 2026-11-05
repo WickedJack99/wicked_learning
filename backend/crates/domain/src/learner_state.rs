@@ -117,3 +117,12 @@ pub struct LearnerPlaybackCompletion {
     pub label: Option<String>,
     pub next_activity_slug: Option<String>,
 }
+
+/// Result of completing the activity that is currently active in a play run.
+/// `in_progress` means the server advanced to another authored activity; the
+/// browser must fetch the same run again rather than choosing that activity.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackCompletionResult {
+    pub play_run_id: String,
+    pub status: String,
+}

@@ -219,6 +219,10 @@ fn router(state: AppState) -> Router {
             "/api/v1/learner/play-runs/{play_run_id}",
             get(learner_playback::show),
         )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
+            post(learner_playback::complete_open_practice),
+        )
         .route("/api/v1/session", get(session_status::show))
         .route("/api/v1/session/logout", post(session_commands::logout))
         .route("/api/v1/public/pages/{slug}", get(public_pages::show))

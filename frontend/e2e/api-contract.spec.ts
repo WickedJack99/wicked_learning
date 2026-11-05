@@ -275,6 +275,16 @@ test('an anonymous session reveals no credential or identity material', async ({
         code: 'authentication_required',
         title: 'Authentication is required.',
     });
+
+    const completePlaybackResponse = await request.post(
+        '/api/v1/learner/play-runs/00000000-0000-4000-8000-000000000000/activities/open-practice/complete',
+        { headers: { Origin: publicOrigin } },
+    );
+    expect(completePlaybackResponse.status()).toBe(401);
+    await expect(completePlaybackResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
 });
 
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({
@@ -365,6 +375,7 @@ test('a CI-only fresh identity can login, report its session, and logout', async
     expect(playback.status()).toBe(200);
     const playbackDocument = (await playback.json()) as {
         activity: {
+            slug: string;
             completion: {
                 label: string | null;
                 next_activity_slug: string | null;
@@ -413,6 +424,38 @@ test('a CI-only fresh identity can login, report its session, and logout', async
     await expect(resumed.json()).resolves.toMatchObject({
         play_run_id: firstRun.play_run_id,
     });
+
+    const completion = await request.post(
+        `/api/v1/learner/play-runs/${firstRun.play_run_id}/activities/${playbackDocument.activity.slug}/complete`,
+        {
+            headers: {
+                Origin: publicOrigin,
+                'X-CSRF-Token': token,
+            },
+        },
+    );
+    expect(completion.status()).toBe(200);
+    const completionResult = (await completion.json()) as {
+        play_run_id: string;
+        status: 'completed' | 'in_progress';
+    };
+    expect(completionResult.play_run_id).toBe(firstRun.play_run_id);
+    expect(['completed', 'in_progress']).toContain(completionResult.status);
+
+    const playbackAfterCompletion = await request.get(
+        `/api/v1/learner/play-runs/${firstRun.play_run_id}`,
+    );
+    if (completionResult.status === 'in_progress') {
+        expect(playbackDocument.activity.completion.next_activity_slug).not.toBeNull();
+        expect(playbackAfterCompletion.status()).toBe(200);
+        await expect(playbackAfterCompletion.json()).resolves.toMatchObject({
+            activity: {
+                slug: playbackDocument.activity.completion.next_activity_slug,
+            },
+        });
+    } else {
+        expect(playbackAfterCompletion.status()).toBe(404);
+    }
 
     const reset = await request.post(
         `/api/v1/learner/activity-starts/${firstStart.start_id}/reset`,

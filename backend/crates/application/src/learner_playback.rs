@@ -2,7 +2,8 @@ use std::future::Future;
 
 use uuid::Uuid;
 use wicked_learning_domain::{
-    identity_access::AuthorizedPrincipal, learner_state::LearnerPlaybackDocument,
+    identity_access::AuthorizedPrincipal,
+    learner_state::{LearnerPlaybackCompletionResult, LearnerPlaybackDocument},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -16,8 +17,46 @@ pub trait LearnerPlaybackRepository {
     ) -> impl Future<Output = Result<Option<LearnerPlaybackDocument>, LearnerPlaybackReadError>> + Send;
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LearnerPlaybackCompletionError;
+
+pub trait LearnerPlaybackCompletionRepository {
+    fn complete_current_open_practice(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> impl Future<
+        Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
+    > + Send;
+}
+
 pub struct LearnerPlaybackQuery<'repository, Repository> {
     repository: &'repository Repository,
+}
+
+pub struct LearnerPlaybackCompletionCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> LearnerPlaybackCompletionCommand<'repository, Repository>
+where
+    Repository: LearnerPlaybackCompletionRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError> {
+        self.repository
+            .complete_current_open_practice(principal, play_run_id, activity_slug)
+            .await
+    }
 }
 
 impl<'repository, Repository> LearnerPlaybackQuery<'repository, Repository>
@@ -45,13 +84,36 @@ mod tests {
 
     use uuid::Uuid;
     use wicked_learning_domain::{
-        identity_access::AuthorizedPrincipal, learner_state::LearnerPlaybackDocument,
+        identity_access::AuthorizedPrincipal,
+        learner_state::{LearnerPlaybackCompletionResult, LearnerPlaybackDocument},
     };
 
-    use super::{LearnerPlaybackQuery, LearnerPlaybackReadError, LearnerPlaybackRepository};
+    use super::{
+        LearnerPlaybackCompletionCommand, LearnerPlaybackCompletionError,
+        LearnerPlaybackCompletionRepository, LearnerPlaybackQuery, LearnerPlaybackReadError,
+        LearnerPlaybackRepository,
+    };
 
     struct RecordingRepository {
         received: Mutex<Option<(Uuid, Uuid)>>,
+    }
+
+    struct CompletionAbsentRepository;
+
+    impl LearnerPlaybackCompletionRepository for CompletionAbsentRepository {
+        fn complete_current_open_practice(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _play_run_id: Uuid,
+            _activity_slug: &str,
+        ) -> impl Future<
+            Output = Result<
+                Option<LearnerPlaybackCompletionResult>,
+                LearnerPlaybackCompletionError,
+            >,
+        > + Send {
+            async { Ok(None) }
+        }
     }
 
     impl LearnerPlaybackRepository for RecordingRepository {
@@ -89,5 +151,19 @@ mod tests {
             *repository.received.lock().expect("test mutex is available"),
             Some((principal.subject_id, play_run_id)),
         );
+    }
+
+    #[tokio::test]
+    async fn keeps_a_stale_or_unauthorized_completion_indistinguishable() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".to_owned()],
+        };
+
+        let result = LearnerPlaybackCompletionCommand::new(&CompletionAbsentRepository)
+            .execute(&principal, Uuid::new_v4(), "open-practice")
+            .await;
+
+        assert!(matches!(result, Ok(None)));
     }
 }

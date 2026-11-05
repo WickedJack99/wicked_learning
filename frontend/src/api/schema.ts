@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete the current authorized open-practice activity in a play run. */
+        post: operations["completeLearnerOpenPractice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/activity-starts/{start_id}/start": {
         parameters: {
             query?: never;
@@ -496,6 +513,12 @@ export interface components {
             label: string | null;
             next_activity_slug: string | null;
         };
+        LearnerPlaybackCompletionResult: {
+            /** Format: uuid */
+            play_run_id: string;
+            /** @enum {string} */
+            status: "in_progress" | "completed";
+        };
         LearnerRouteRun: {
             /** Format: uuid */
             start_id: string;
@@ -569,6 +592,7 @@ export interface components {
         CsrfTokenHeader: string;
         ActivityStartId: string;
         PlayRunId: string;
+        ActivitySlug: string;
         PublicSlugPathWorld: string;
         PublicSlugPathMap: string;
         PublicSlugPathAsset: string;
@@ -791,6 +815,68 @@ export interface operations {
                 };
             };
             /** @description The run is unknown, completed, unavailable, or not owned by this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    completeLearnerOpenPractice: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The server advanced the run or completed it at an authored terminal activity. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPlaybackCompletionResult"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The request has a missing/invalid CSRF token or untrusted Origin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The run/activity pair is stale, unavailable, not owned by this learner, or does not exist. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -1,11 +1,16 @@
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::learner_playback::{
+    LearnerPlaybackCompletionError,
+    LearnerPlaybackCompletionRepository as LearnerPlaybackCompletionRepositoryPort,
     LearnerPlaybackReadError, LearnerPlaybackRepository as LearnerPlaybackRepositoryPort,
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
-    learner_state::{LearnerPlaybackActivity, LearnerPlaybackCompletion, LearnerPlaybackDocument},
+    learner_state::{
+        LearnerPlaybackActivity, LearnerPlaybackCompletion, LearnerPlaybackCompletionResult,
+        LearnerPlaybackDocument,
+    },
 };
 
 pub struct PostgresLearnerPlaybackRepository<'pool> {
@@ -28,6 +33,18 @@ struct PlaybackRow {
     start_id: Uuid,
     title: String,
     transition_label: Option<String>,
+}
+
+#[derive(FromRow)]
+struct CurrentActivityRow {
+    activity_id: Uuid,
+    principal_id: Uuid,
+    route_id: Uuid,
+}
+
+#[derive(FromRow)]
+struct CompletionTransitionRow {
+    to_activity_id: Option<Uuid>,
 }
 
 impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
@@ -66,4 +83,149 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
             }))
         }
     }
+}
+
+impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
+    fn complete_current_open_practice(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> impl std::future::Future<
+        Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
+    > + Send {
+        async move {
+            complete_current_open_practice(self.pool, principal, play_run_id, activity_slug)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not complete learner playback activity");
+                    LearnerPlaybackCompletionError
+                })
+        }
+    }
+}
+
+async fn complete_current_open_practice(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+    activity_slug: &str,
+) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    let Some(current) =
+        load_current_activity_for_update(&mut transaction, principal, play_run_id, activity_slug)
+            .await?
+    else {
+        transaction.commit().await?;
+        return Ok(None);
+    };
+
+    let transition = sqlx::query_as::<_, CompletionTransitionRow>(
+        "SELECT to_activity_id FROM learning_activity_transitions WHERE from_activity_id = $1 AND from_connector = 'completed' AND trigger = 'completed' ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    .bind(current.activity_id)
+    .fetch_optional(&mut *transaction)
+    .await?;
+
+    let next_activity_id = match transition.and_then(|transition| transition.to_activity_id) {
+        Some(next_activity_id) => {
+            let next_activity_id = sqlx::query_scalar::<_, Uuid>(
+                "SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type = 'open_practice'",
+            )
+            .bind(next_activity_id)
+            .bind(current.route_id)
+            .fetch_optional(&mut *transaction)
+            .await?;
+
+            let Some(next_activity_id) = next_activity_id else {
+                transaction.commit().await?;
+                return Ok(None);
+            };
+
+            Some(next_activity_id)
+        }
+        None => None,
+    };
+
+    mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
+
+    let status = if let Some(next_activity_id) = next_activity_id {
+        mark_activity_reached(&mut transaction, current.principal_id, next_activity_id).await?;
+        sqlx::query(
+            "UPDATE learner_route_progress SET current_activity_id = $3, status = 'in_progress', last_entered_at = NOW(), last_exited_at = NOW(), updated_at = NOW() WHERE principal_id = $1 AND current_play_run_id = $2",
+        )
+        .bind(current.principal_id)
+        .bind(play_run_id)
+        .bind(next_activity_id)
+        .execute(&mut *transaction)
+        .await?;
+
+        "in_progress"
+    } else {
+        sqlx::query(
+            "UPDATE learner_route_progress SET status = 'completed', completion_count = completion_count + 1, last_completed_at = NOW(), last_exited_at = NOW(), updated_at = NOW() WHERE principal_id = $1 AND current_play_run_id = $2",
+        )
+        .bind(current.principal_id)
+        .bind(play_run_id)
+        .execute(&mut *transaction)
+        .await?;
+
+        "completed"
+    };
+
+    transaction.commit().await?;
+
+    Ok(Some(LearnerPlaybackCompletionResult {
+        play_run_id: play_run_id.to_string(),
+        status: status.to_owned(),
+    }))
+}
+
+async fn load_current_activity_for_update(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+    activity_slug: &str,
+) -> Result<Option<CurrentActivityRow>, sqlx::Error> {
+    sqlx::query_as::<_, CurrentActivityRow>(
+        "SELECT progress.current_activity_id AS activity_id, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'open_practice' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(activity_slug)
+    .bind(&principal.roles)
+    .fetch_optional(&mut **transaction)
+    .await
+}
+
+async fn mark_activity_completed(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO learner_activity_progress (principal_id, activity_id, status, completed_at) VALUES ($1, $2, 'completed', NOW()) ON CONFLICT (principal_id, activity_id) DO UPDATE SET status = 'completed', completed_at = COALESCE(learner_activity_progress.completed_at, EXCLUDED.completed_at), updated_at = NOW()",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .execute(&mut **transaction)
+    .await?;
+
+    Ok(())
+}
+
+async fn mark_activity_reached(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO learner_activity_progress (principal_id, activity_id, status) VALUES ($1, $2, 'reached') ON CONFLICT (principal_id, activity_id) DO UPDATE SET updated_at = NOW()",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .execute(&mut **transaction)
+    .await?;
+
+    Ok(())
 }

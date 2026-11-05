@@ -150,6 +150,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/complete:
+    post:
+      operationId: completeLearnerOpenPractice
+      summary: Complete the current authorized open-practice activity in a play run.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The server advanced the run or completed it at an authored terminal activity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerPlaybackCompletionResult'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The request has a missing/invalid CSRF token or untrusted Origin.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The run/activity pair is stale, unavailable, not owned by this learner, or does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /learner/activity-starts/{start_id}/start:
     post:
       operationId: startLearnerRoute
@@ -487,6 +526,14 @@ components:
       schema:
         type: string
         format: uuid
+    ActivitySlug:
+      name: activity_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
     PublicSlugPathWorld:
       name: world_slug
       in: path
@@ -926,6 +973,17 @@ components:
         next_activity_slug:
           type: [string, 'null']
           pattern: '^[a-z0-9-]+$'
+    LearnerPlaybackCompletionResult:
+      type: object
+      additionalProperties: false
+      required: [play_run_id, status]
+      properties:
+        play_run_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [in_progress, completed]
     LearnerRouteRun:
       type: object
       additionalProperties: false
