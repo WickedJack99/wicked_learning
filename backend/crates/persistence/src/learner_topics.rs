@@ -103,7 +103,11 @@ async fn load(
     let last_page = (total + TOPICS_PER_PAGE - 1)
         .div_euclid(TOPICS_PER_PAGE)
         .max(1);
-    let page = request.page.min(last_page);
+    let page = if total > 0 {
+        request.page.min(last_page)
+    } else {
+        request.page
+    };
     let offset = (page - 1) * TOPICS_PER_PAGE;
     let topics = sqlx::query_as::<_, TopicRow>(
         "SELECT topics.description, COUNT(maps.id) AS map_count, topics.slug, topics.title FROM learning_topics AS topics LEFT JOIN learning_maps AS maps ON maps.topic_id = topics.id AND maps.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) WHERE topics.area_id = (SELECT id FROM learning_topic_areas WHERE slug = $1) AND topics.parent_id IS NULL AND topics.published_at IS NOT NULL AND (LOWER(topics.title) LIKE LOWER($2) ESCAPE '\\' OR LOWER(COALESCE(topics.description, '')) LIKE LOWER($2) ESCAPE '\\' OR LOWER(topics.slug) LIKE LOWER($2) ESCAPE '\\') GROUP BY topics.id ORDER BY topics.title ASC LIMIT $4 OFFSET $5",
@@ -133,6 +137,7 @@ async fn load(
                 .into_iter()
                 .map(|topic| LearnerTopicSummary {
                     description: topic.description,
+                    href: topic_href(&topic.slug),
                     map_count: topic.map_count,
                     slug: topic.slug,
                     title: topic.title,
@@ -140,6 +145,10 @@ async fn load(
                 .collect(),
         }),
     })
+}
+
+fn topic_href(slug: &str) -> String {
+    format!("/topics/{slug}")
 }
 
 fn like_pattern(search: &str) -> String {

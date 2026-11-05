@@ -12,6 +12,7 @@ mod learner_playback;
 mod learner_question;
 mod learner_reflection;
 mod learner_route_run;
+mod learner_topic_detail;
 mod learner_topics;
 mod learner_world;
 mod login_rate_limit;
@@ -219,6 +220,14 @@ fn router(state: AppState) -> Router {
             get(learner_bookmark_map::show),
         )
         .route("/api/v1/learner/topics", get(learner_topics::index))
+        .route(
+            "/api/v1/learner/topics/{topic_slug}/overview",
+            get(learner_topic_detail::overview),
+        )
+        .route(
+            "/api/v1/learner/topics/{topic_slug}/maps",
+            get(learner_topic_detail::maps),
+        )
         .route(
             "/api/v1/learner/maps/{map_slug}/nodes/{node_slug}/bookmark",
             post(learner_bookmark::create).delete(learner_bookmark::delete),

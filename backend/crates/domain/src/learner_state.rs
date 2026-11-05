@@ -79,6 +79,7 @@ pub struct LearnerTopicArea {
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerTopicSummary {
     pub description: Option<String>,
+    pub href: String,
     pub map_count: i64,
     pub slug: String,
     pub title: String,
@@ -90,6 +91,51 @@ pub struct LearnerTopicPagination {
     pub last_page: i64,
     pub per_page: i64,
     pub total: i64,
+}
+
+/// The shared source-defined orientation shown above every topic detail
+/// section. It deliberately contains no learner evidence or route state.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicDetailHeader {
+    pub area_slug: String,
+    pub area_title: String,
+    pub content: Option<String>,
+    pub description: Option<String>,
+    pub parent: Option<LearnerTopicParent>,
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicParent {
+    pub href: String,
+    pub slug: String,
+    pub title: String,
+}
+
+/// The lazy Overview section from the source topic page.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicOverview {
+    pub subtopics: Vec<LearnerTopicSummary>,
+    pub subtopics_pagination: LearnerTopicPagination,
+    pub topic: LearnerTopicDetailHeader,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicMapSummary {
+    pub description: String,
+    pub href: String,
+    pub node_count: i64,
+    pub slug: String,
+    pub title: String,
+}
+
+/// The lazy Maps section from the source topic page.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicMaps {
+    pub maps: Vec<LearnerTopicMapSummary>,
+    pub maps_pagination: LearnerTopicPagination,
+    pub topic: LearnerTopicDetailHeader,
 }
 
 #[derive(Clone, Debug, Serialize)]

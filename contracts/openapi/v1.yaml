@@ -189,6 +189,48 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application database is unavailable. }
+  /learner/topics/{topic_slug}/overview:
+    get:
+      operationId: getLearnerTopicOverview
+      summary: Read the authenticated learner's published topic overview and bounded subtopics.
+      parameters:
+        - $ref: '#/components/parameters/TopicSlug'
+        - name: subtopics_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000 }
+      responses:
+        '200':
+          description: A published topic's source-defined overview section.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerTopicOverview'
+        '400': { description: The topic or pagination parameter is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '404': { description: The requested topic is unpublished or does not exist. }
+        '503': { description: The application database is unavailable. }
+  /learner/topics/{topic_slug}/maps:
+    get:
+      operationId: getLearnerTopicMaps
+      summary: Read the authenticated learner's visible maps for a published topic.
+      parameters:
+        - $ref: '#/components/parameters/TopicSlug'
+        - name: maps_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000 }
+      responses:
+        '200':
+          description: A published topic's source-defined Maps section, scoped to visible maps.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerTopicMaps'
+        '400': { description: The topic or pagination parameter is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '404': { description: The requested topic is unpublished or does not exist. }
+        '503': { description: The application database is unavailable. }
   /learner/journal:
     get:
       operationId: getLearnerJournal
@@ -773,6 +815,14 @@ components:
         type: string
         pattern: '^[a-z0-9-]+$'
         maxLength: 80
+    TopicSlug:
+      name: topic_slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        maxLength: 80
     NodeSlug:
       name: node_slug
       in: path
@@ -1177,9 +1227,10 @@ components:
     LearnerTopicSummary:
       type: object
       additionalProperties: false
-      required: [description, map_count, slug, title]
+      required: [description, href, map_count, slug, title]
       properties:
         description: { type: [string, 'null'] }
+        href: { type: string, pattern: '^/topics/[a-z0-9-]+$' }
         map_count: { type: integer, minimum: 0 }
         slug: { type: string, pattern: '^[a-z0-9-]+$' }
         title: { type: string }
@@ -1192,6 +1243,61 @@ components:
         last_page: { type: integer, minimum: 1 }
         per_page: { type: integer, minimum: 1, maximum: 6 }
         total: { type: integer, minimum: 0 }
+    LearnerTopicDetailHeader:
+      type: object
+      additionalProperties: false
+      required: [area_slug, area_title, content, description, parent, slug, title]
+      properties:
+        area_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        area_title: { type: string }
+        content: { type: [string, 'null'] }
+        description: { type: [string, 'null'] }
+        parent:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerTopicParent'
+            - type: 'null'
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+    LearnerTopicParent:
+      type: object
+      additionalProperties: false
+      required: [href, slug, title]
+      properties:
+        href: { type: string, pattern: '^/topics/[a-z0-9-]+$' }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+    LearnerTopicOverview:
+      type: object
+      additionalProperties: false
+      required: [topic, subtopics, subtopics_pagination]
+      properties:
+        topic: { $ref: '#/components/schemas/LearnerTopicDetailHeader' }
+        subtopics:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/LearnerTopicSummary' }
+        subtopics_pagination: { $ref: '#/components/schemas/LearnerTopicPagination' }
+    LearnerTopicMaps:
+      type: object
+      additionalProperties: false
+      required: [topic, maps, maps_pagination]
+      properties:
+        topic: { $ref: '#/components/schemas/LearnerTopicDetailHeader' }
+        maps:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/LearnerTopicMapSummary' }
+        maps_pagination: { $ref: '#/components/schemas/LearnerTopicPagination' }
+    LearnerTopicMapSummary:
+      type: object
+      additionalProperties: false
+      required: [description, href, node_count, slug, title]
+      properties:
+        description: { type: string }
+        href: { type: string, pattern: '^/world\?map=[a-z0-9-]+$' }
+        node_count: { type: integer, minimum: 0 }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
     LearnerRouteProgress:
       type: object
       additionalProperties: false

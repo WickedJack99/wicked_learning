@@ -281,6 +281,24 @@ test('an anonymous session reveals no credential or identity material', async ({
         title: 'Authentication is required.',
     });
 
+    const learnerTopicOverviewResponse = await request.get(
+        '/api/v1/learner/topics/map-orientation/overview',
+    );
+    expect(learnerTopicOverviewResponse.status()).toBe(401);
+    await expect(learnerTopicOverviewResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+
+    const learnerTopicMapsResponse = await request.get(
+        '/api/v1/learner/topics/map-orientation/maps',
+    );
+    expect(learnerTopicMapsResponse.status()).toBe(401);
+    await expect(learnerTopicMapsResponse.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+
     const learnerJournalResponse = await request.get('/api/v1/learner/journal');
     expect(learnerJournalResponse.status()).toBe(401);
     await expect(learnerJournalResponse.json()).resolves.toEqual({
@@ -389,6 +407,55 @@ test('a CI-only fresh identity can login, report its session, and logout', async
         email,
         subject_id: session.subject_id,
         roles: ['platform_administrator'],
+    });
+
+    const topicDirectory = await request.get('/api/v1/learner/topics');
+    expect(topicDirectory.status()).toBe(200);
+    await expect(topicDirectory.json()).resolves.toMatchObject({
+        areas: [{ slug: 'orientation', title: 'Orientation' }],
+        pagination: { per_page: 6, total: 1 },
+        selected_area: {
+            slug: 'orientation',
+            topics: [
+                {
+                    href: '/topics/map-orientation',
+                    map_count: 1,
+                    slug: 'map-orientation',
+                    title: 'Map orientation',
+                },
+            ],
+        },
+    });
+
+    const topicOverview = await request.get(
+        '/api/v1/learner/topics/map-orientation/overview',
+    );
+    expect(topicOverview.status()).toBe(200);
+    await expect(topicOverview.json()).resolves.toMatchObject({
+        subtopics: [],
+        subtopics_pagination: { per_page: 4, total: 0 },
+        topic: {
+            area_slug: 'orientation',
+            slug: 'map-orientation',
+            title: 'Map orientation',
+        },
+    });
+
+    const topicMaps = await request.get(
+        '/api/v1/learner/topics/map-orientation/maps',
+    );
+    expect(topicMaps.status()).toBe(200);
+    await expect(topicMaps.json()).resolves.toMatchObject({
+        maps: [
+            {
+                href: '/world?map=first-path',
+                node_count: 2,
+                slug: 'first-path',
+                title: 'The First Path',
+            },
+        ],
+        maps_pagination: { per_page: 4, total: 1 },
+        topic: { slug: 'map-orientation' },
     });
 
     const learnerWorld = await request.get('/api/v1/learner/world');

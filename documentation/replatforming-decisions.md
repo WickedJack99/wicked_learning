@@ -748,11 +748,14 @@ Publishing a Rust `/topics` page before that flow exists would create links to
 an invented reader, a generic card page, or a non-functional destination.
 
 **Decision:** Create the greenfield topic-area/topic schema and authenticated
-`GET /learner/topics` contract first, while keeping the browser `/topics`
-route unavailable. The contract returns only published root topics in a
+`GET /learner/topics` contract first, plus the source detail page's separate
+authenticated Overview and Maps reads, while keeping the browser `/topics`
+route unavailable. The directory returns only published root topics in a
 source-ordered area, applies literal bounded search and six-item pagination in
 PostgreSQL, and derives each map count from maps the authenticated principal
-may currently view. The browser does not receive topic IDs, unpublished
+may currently view. Overview returns a published topic header and bounded
+published subtopics; Maps returns only maps currently visible to the
+authenticated principal. The browser does not receive topic IDs, unpublished
 records, arbitrary map access, or a client-filtered collection.
 
 The next browser slice must add the source topic-detail reader and preserve
@@ -770,10 +773,11 @@ unpublished or inaccessible context and lose source pagination semantics.
 Publishing a directory whose links lead to a simplified topic summary would
 make an unfinished substitute part of the product. Both are rejected.
 
-**Limitations and trigger:** This does not migrate topic detail, trails,
-competence, paths, subtopics or topic-map browsing. The endpoint is a local
-authenticated backend foundation until those source-defined reads and their
-browser evidence are available.
+**Limitations and trigger:** This does not migrate the topic-detail browser
+surface, its default Trail, competence, Paths, learner progress or
+topic-map browsing. The contracts are local authenticated backend foundations
+until every source-defined section required by the browser flow has matching
+reads and browser evidence.
 
 ## Phase 1 gate
 

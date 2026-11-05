@@ -141,6 +141,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/topics/{topic_slug}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authenticated learner's published topic overview and bounded subtopics. */
+        get: operations["getLearnerTopicOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/topics/{topic_slug}/maps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authenticated learner's visible maps for a published topic. */
+        get: operations["getLearnerTopicMaps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/journal": {
         parameters: {
             query?: never;
@@ -631,6 +665,7 @@ export interface components {
         };
         LearnerTopicSummary: {
             description: string | null;
+            href: string;
             map_count: number;
             slug: string;
             title: string;
@@ -640,6 +675,37 @@ export interface components {
             last_page: number;
             per_page: number;
             total: number;
+        };
+        LearnerTopicDetailHeader: {
+            area_slug: string;
+            area_title: string;
+            content: string | null;
+            description: string | null;
+            parent: components["schemas"]["LearnerTopicParent"] | null;
+            slug: string;
+            title: string;
+        };
+        LearnerTopicParent: {
+            href: string;
+            slug: string;
+            title: string;
+        };
+        LearnerTopicOverview: {
+            topic: components["schemas"]["LearnerTopicDetailHeader"];
+            subtopics: components["schemas"]["LearnerTopicSummary"][];
+            subtopics_pagination: components["schemas"]["LearnerTopicPagination"];
+        };
+        LearnerTopicMaps: {
+            topic: components["schemas"]["LearnerTopicDetailHeader"];
+            maps: components["schemas"]["LearnerTopicMapSummary"][];
+            maps_pagination: components["schemas"]["LearnerTopicPagination"];
+        };
+        LearnerTopicMapSummary: {
+            description: string;
+            href: string;
+            node_count: number;
+            slug: string;
+            title: string;
         };
         LearnerRouteProgress: {
             /** Format: uuid */
@@ -881,6 +947,7 @@ export interface components {
         ActivityStartId: string;
         LearnerJournalPageId: string;
         MapSlug: string;
+        TopicSlug: string;
         NodeSlug: string;
         PlayRunId: string;
         ActivitySlug: string;
@@ -1254,6 +1321,124 @@ export interface operations {
             };
             /** @description The current identity has no learner application principal. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerTopicOverview: {
+        parameters: {
+            query?: {
+                subtopics_page?: number;
+            };
+            header?: never;
+            path: {
+                topic_slug: components["parameters"]["TopicSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A published topic's source-defined overview section. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerTopicOverview"];
+                };
+            };
+            /** @description The topic or pagination parameter is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The requested topic is unpublished or does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerTopicMaps: {
+        parameters: {
+            query?: {
+                maps_page?: number;
+            };
+            header?: never;
+            path: {
+                topic_slug: components["parameters"]["TopicSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A published topic's source-defined Maps section, scoped to visible maps. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerTopicMaps"];
+                };
+            };
+            /** @description The topic or pagination parameter is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The requested topic is unpublished or does not exist. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
