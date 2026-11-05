@@ -320,6 +320,31 @@ product UI. This audit records source provenance, not completion: every row
 still needs the contract, browser and behavior-parity evidence required by its
 slice.
 
+### Follow-up UI audit — 5 November 2026
+
+The reachable standalone frontend was rechecked after the removal of the early
+proof-of-concept navigation. No public `Explore` page, public `Search` page,
+generic dashboard, or substitute route shell remains. The original application
+does not expose those as public destinations: map search belongs within the
+World surface, and the current frontend retains it there through the lifted
+`features/world/world-search.tsx` structure, including its narrow-screen
+panel.
+
+The audit found no visible page that should be removed for being an invented
+screen. The remaining adaptations are limited to replacing Laravel transport
+glue with the typed Rust client and omitting original controls whose complete
+contract is not available yet:
+
+| Reachable area | Source-derived elements retained | Intentionally absent rather than imitated |
+| --- | --- | --- |
+| Public welcome, login and information | Original page hierarchy, Tailwind classes, icons, pager, appearance control, footer and source/info layouts | Invitation registration, password recovery, remembered login, passkeys, MFA and deployment-configured presentation values |
+| World | Original map renderer, alpha-aware interaction, asset visual, map search, node drawer, bookmark control, route-start cards, journal trigger and account-menu shape | Notifications, profile/settings entries, tools, groups, audio and other navigation destinations without a Rust route/contract |
+| Bookmarks, playback and journal | Original personal-map, activity-frame, question/reflection, markdown and journal editor/list structures | Source controls for unavailable data such as review history, export, feedback requests, check-ins and revisit invitations |
+
+An omitted control is not permission to add a newly designed replacement. A
+later slice must first provide its Rust contract, then lift its corresponding
+source component and verify the result at desktop and narrow viewports.
+
 ### World parity boundary
 
 The current `/world` React route uses `GET /api/v1/learner/world` for a
