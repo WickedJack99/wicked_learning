@@ -1001,6 +1001,52 @@ controls: those remain unavailable until a Rust command can create and
 complete a server-owned revisit run, consume the invitation and record the
 source review attempt atomically.
 
+## ADR-033: Revisit runs are separate from authored route progress
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** A source revisit begins from a due private invitation for one
+already completed activity. It is not a reset of every activity in the route.
+Reusing `learner_route_progress` for it would overwrite an ordinary active
+route selected from a World drawer, let an invitation choose a generic route
+start, or consume the invitation before the learner actually completed the
+review. It would also make a revisit of an activity which is not an authored
+start impossible.
+
+**Decision:** Model a revisit as a distinct, server-owned run, anchored to the
+check-in that scheduled it. Opening an invitation will lock and re-validate the
+owner, due time, published content and map visibility, then create or resume
+one active revisit run for that check-in. The browser receives only its opaque
+run ID and normal playback context; it cannot select an activity, check-in or
+review state.
+
+A revisit run plays the invited activity only. It does not advance or reset an
+ordinary authored route. On successful completion, in the same transaction,
+the server records the source-defined review attempt and evidence attempt,
+increments the activity attempt count, completes the revisit run, and consumes
+the matching invitation. Leaving a run unfinished does not consume it, so it
+can safely resume. While such a run is active, snooze/dismiss commands must
+not alter the invitation underneath it. The existing playback endpoint family
+may serve either authorized run kind, but every writer must resolve the run
+kind under lock; the browser never supplies an `is_revisit` flag.
+
+**Why:** This preserves the learner-visible source behavior while retaining
+the Rust rule that every activity write is tied to a server-owned run. It
+avoids corrupting unrelated route progress and makes review-attempt creation
+auditable and retry-safe.
+
+**Alternatives:** Reusing a route start/reset would change unrelated learner
+state and excludes activities without a start. Accepting a check-in or
+activity identifier in a normal completion request would weaken the ownership
+boundary. Consuming on open would punish a learner for leaving or refreshing a
+review. All are rejected.
+
+**Implementation trigger:** Add the normalized revisit-run and review-attempt
+tables, run-kind-aware playback resolution, and transactional completion for
+open-practice, question and reflection activities before exposing the lifted
+Journal invitation controls. Do not expose a partial re-entry link or an
+`is_revisit` browser parameter.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
