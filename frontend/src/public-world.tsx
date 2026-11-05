@@ -344,6 +344,7 @@ function PublicWorldSurface({
             <WorldNavigation
                 isAuthenticated={isAuthenticated}
                 onSignedOut={onSignedOut}
+                theme={selectedMapTheme!}
                 userEmail={userEmail}
             />
             <section className="absolute inset-0 overflow-hidden">
@@ -427,10 +428,12 @@ function PublicWorldSurface({
 function WorldNavigation({
     isAuthenticated,
     onSignedOut,
+    theme,
     userEmail,
 }: {
     isAuthenticated: boolean;
     onSignedOut: () => void;
+    theme: Record<string, unknown>;
     userEmail: string | null;
 }) {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -462,20 +465,17 @@ function WorldNavigation({
         <header
             className="fixed top-0 right-0 left-0 z-[70] border-b backdrop-blur-xl"
             data-wl-id="learner.navigation.header"
-            style={{
-                background: 'rgba(7, 17, 31, 0.84)',
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-            }}
+            style={learnerNavigationStyle(theme)}
         >
             <a
-                className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-[80] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-slate-950"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-[80] focus:rounded-md focus:bg-[var(--learner-panel-background)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--learner-heading-text)] focus:ring-2 focus:ring-[var(--learner-action-accent)] focus:outline-none"
                 href="#learner-main-content"
             >
                 Skip to content
             </a>
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:px-6 lg:px-8 xl:flex-nowrap">
                 <div
-                    className="flex shrink-0 items-center gap-3 text-slate-100"
+                    className="flex shrink-0 items-center gap-3"
                     data-wl-id="learner.navigation.brand"
                 >
                     <img
@@ -485,18 +485,18 @@ function WorldNavigation({
                         draggable={false}
                         src="/images/logo.png"
                     />
-                    <span className="hidden text-sm font-semibold tracking-wide sm:block">
+                    <span className="hidden text-sm font-semibold tracking-wide text-[var(--learner-heading-text)] sm:block">
                         Learning Worlds
                     </span>
                 </div>
                 <nav
                     aria-label="Learner navigation"
                     className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full flex-wrap gap-0 border-t px-4 xl:order-none xl:mx-0 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:border-t-0 xl:px-0"
-                    style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
+                    style={{ borderColor: 'var(--learner-border-color)' }}
                 >
                     <Link
                         aria-current="page"
-                        className="relative inline-flex shrink-0 items-center gap-2 px-3 py-3 text-sm text-teal-200 no-underline after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-teal-300 xl:py-[1.35rem]"
+                        className="relative inline-flex shrink-0 items-center gap-2 px-2 py-3 text-sm text-[var(--learner-heading-text)] transition hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-[var(--learner-accent)] xl:py-[1.35rem] 2xl:px-3"
                         to="/world"
                     >
                         Current map
@@ -508,9 +508,9 @@ function WorldNavigation({
                             aria-controls="learning-journal-panel"
                             aria-expanded={isJournalOpen}
                             aria-label="Journal"
-                            className="grid size-10 place-items-center rounded-lg border text-slate-100 transition hover:bg-white/10"
+                            className="grid size-10 place-items-center rounded-lg border bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)] hover:text-[var(--learner-heading-text)]"
                             onClick={() => setIsJournalOpen(true)}
-                            style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
+                            style={{ borderColor: 'var(--learner-border-color)' }}
                             type="button"
                         >
                             <NotebookPen className="size-4" />
@@ -519,41 +519,41 @@ function WorldNavigation({
                             aria-expanded={isUserMenuOpen}
                             aria-haspopup="menu"
                             aria-label="Open user menu"
-                            className="flex h-10 items-center gap-2 rounded-lg border px-2.5 text-slate-100 transition hover:bg-white/10"
+                            className="flex h-10 items-center gap-2 rounded-lg border bg-[var(--learner-panel-background)] px-2.5 text-[var(--learner-heading-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)]"
                             onClick={() => setIsUserMenuOpen((open) => !open)}
-                            style={{ borderColor: 'rgba(255, 255, 255, 0.14)' }}
+                            style={{ borderColor: 'var(--learner-border-color)' }}
                             type="button"
                         >
-                            <span className="grid size-7 place-items-center rounded-full bg-teal-300/12 text-xs text-teal-200">
+                            <span className="grid size-7 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">
                                 {userEmail.slice(0, 1).toUpperCase()}
                             </span>
                             <span className="hidden max-w-32 truncate text-sm sm:block">
                                 {userEmail}
                             </span>
-                            <ChevronDown className="hidden size-3.5 text-slate-400 sm:block" />
+                            <ChevronDown className="hidden size-3.5 text-[var(--learner-muted-text)] sm:block" />
                         </button>
                         {isUserMenuOpen ? (
                             <div
-                                className="absolute top-12 right-0 z-[80] w-60 rounded-lg border bg-slate-950 p-1 shadow-2xl"
+                                className="absolute top-12 right-0 z-[80] w-60 rounded-lg border bg-[var(--learner-panel-background)] p-1 shadow-2xl"
                                 role="menu"
                                 style={{
-                                    borderColor: 'rgba(255, 255, 255, 0.14)',
+                                    borderColor: 'var(--learner-border-color)',
                                 }}
                             >
                                 <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
-                                    <span className="grid size-8 place-items-center rounded-full bg-teal-300/12 text-xs text-teal-200">
+                                    <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">
                                         {userEmail.slice(0, 1).toUpperCase()}
                                     </span>
-                                    <span className="min-w-0 truncate font-medium text-slate-100">
+                                    <span className="min-w-0 truncate font-medium text-[var(--learner-heading-text)]">
                                         {userEmail}
                                     </span>
                                 </div>
                                 <div
                                     aria-hidden="true"
-                                    className="my-1 h-px bg-white/10"
+                                    className="my-1 h-px bg-[var(--learner-border-color)]"
                                 />
                                 <button
-                                    className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium text-slate-100 transition hover:bg-white/10"
+                                    className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium text-[var(--learner-heading-text)] transition hover:bg-[var(--learner-panel-muted-background)]"
                                     onClick={() => void signOut()}
                                     role="menuitem"
                                     type="button"
@@ -1516,6 +1516,41 @@ function mapPanelStyle(config: Record<string, unknown>) {
             'rgba(255,255,255,0.1)',
         color: stringConfig(config, 'panelTextColor') ?? '#e2e8f0',
     };
+}
+
+/**
+ * The source learner header is parameterized by these variables. Keep the
+ * same component-level contract while deriving its values from the selected
+ * server-owned map theme instead of preserving the old Laravel page props.
+ */
+function learnerNavigationStyle(
+    config: Record<string, unknown>,
+): CSSProperties {
+    const panelBackground =
+        stringConfig(config, 'panelBackground') ?? 'rgba(5, 15, 22, 0.86)';
+    const borderColor =
+        stringConfig(config, 'panelBorderColor') ??
+        stringConfig(config, 'cardBorderColor') ??
+        'rgba(255,255,255,0.1)';
+    const headingText =
+        stringConfig(config, 'panelTextColor') ??
+        stringConfig(config, 'sidePanelTextColor') ??
+        '#e2e8f0';
+    const accent = stringConfig(config, 'accentColor') ?? '#2dd4bf';
+
+    return {
+        background: 'var(--learner-header-background)',
+        borderColor: 'var(--learner-border-color)',
+        '--learner-accent': accent,
+        '--learner-action-accent': accent,
+        '--learner-border-color': borderColor,
+        '--learner-header-background': panelBackground,
+        '--learner-heading-text': headingText,
+        '--learner-muted-text':
+            stringConfig(config, 'panelMutedTextColor') ?? headingText,
+        '--learner-panel-background': panelBackground,
+        '--learner-panel-muted-background': `color-mix(in srgb, ${accent} 16%, transparent)`,
+    } as CSSProperties;
 }
 
 function floatingPanelStyle(config: Record<string, unknown>) {

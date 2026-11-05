@@ -242,6 +242,9 @@ test('the learner shell keeps the source-derived public navigation available on 
         page.getByRole('navigation', { name: 'Learner navigation' }),
     ).toBeVisible();
     await expect(
+        page.locator('[data-wl-id="learner.navigation.header"]'),
+    ).toHaveAttribute('style', /--learner-header-background:/);
+    await expect(
         page.locator('[data-wl-id="learner.navigation.brand"] img'),
     ).toHaveAttribute('src', '/images/logo.png');
     await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
