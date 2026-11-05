@@ -15,6 +15,7 @@ mod learner_playback;
 mod learner_question;
 mod learner_reflection;
 mod learner_revisit_invitation;
+mod learner_revisit_run;
 mod learner_route_run;
 mod learner_topic_detail;
 mod learner_topics;
@@ -246,6 +247,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/revisit-invitations/{check_in_id}",
             post(learner_revisit_invitation::update),
+        )
+        .route(
+            "/api/v1/learner/revisit-invitations/{check_in_id}/open",
+            post(learner_revisit_run::open_or_resume),
         )
         .route(
             "/api/v1/learner/journal/pages",

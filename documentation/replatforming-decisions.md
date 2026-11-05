@@ -1042,11 +1042,14 @@ boundary. Consuming on open would punish a learner for leaving or refreshing a
 review. All are rejected.
 
 **Current foundation:** The normalized revisit-run and review-attempt tables,
-an internal owner/due/visibility-scoped open-or-resume command, a
-run-kind-aware playback reader, and transactional writers now exist. The
-reader returns an active revisit as an activity-only run: it deliberately has
-no authored start or route label. The three supported activity writers
-(`open_practice`, question and reflection) resolve the run kind under lock.
+an owner/due/visibility-scoped open-or-resume command exposed only at
+`POST /learner/revisit-invitations/{check_in_id}/open`, a run-kind-aware
+playback reader, and transactional writers now exist. The open command accepts
+only the opaque check-in ID, resolves its activity/run server-side, and is
+idempotent while the run remains active. The reader returns an active revisit
+as an activity-only run: it deliberately has no authored start or route label.
+The three supported activity writers (`open_practice`, question and reflection)
+resolve the run kind under lock.
 For a revisit they complete only that run, increment its existing activity
 attempt count, write one review attempt and record completion evidence through
 the existing activity-evidence policy, and consume the matching invitation;
@@ -1054,10 +1057,10 @@ they do not advance or reset route progress. This was
 verified against a rebuilt local Compose stack with disposable owner-scoped
 records for all three activity types.
 
-**Implementation trigger:** Add the owner-scoped browser command that opens
-or resumes a due invitation, then lift the corresponding original Journal
-invitation controls and their navigation. Do not expose a partial re-entry
-link or an `is_revisit` browser parameter.
+**Implementation trigger:** Lift the corresponding original Journal invitation
+controls and their navigation using this command, then verify the full browser
+flow. Do not expose a partial re-entry link or an `is_revisit` browser
+parameter.
 
 ## Phase 1 gate
 

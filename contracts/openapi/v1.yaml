@@ -348,6 +348,28 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The due, visible invitation is unavailable or not owned by this learner. }
         '503': { description: The application database is unavailable. }
+  /learner/revisit-invitations/{check_in_id}/open:
+    post:
+      operationId: openLearnerRevisitInvitation
+      summary: Open or resume an authorized due private revisit.
+      description: The server derives the invited activity and opaque playback run from the authenticated learner's due invitation. The browser cannot choose an activity, route start, or revisit mode.
+      parameters:
+        - name: check_in_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The server-owned revisit run is ready for the existing playback endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerRevisitRun'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The due, visible invitation is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/journal/pages:
     post:
       operationId: createLearnerJournalPage
@@ -2035,6 +2057,15 @@ components:
         check_in_id: { type: string, format: uuid }
         revisit_status: { type: string, enum: [dismissed, snoozed] }
         available_at: { type: [string, 'null'], format: date-time }
+    LearnerRevisitRun:
+      type: object
+      additionalProperties: false
+      required: [activity_slug, node_slug, play_run_id, status]
+      properties:
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        play_run_id: { type: string, format: uuid }
+        status: { type: string, enum: [in_progress] }
     CreateLearnerJournalPageRequest:
       type: object
       additionalProperties: false

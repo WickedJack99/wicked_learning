@@ -243,6 +243,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/revisit-invitations/{check_in_id}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open or resume an authorized due private revisit.
+         * @description The server derives the invited activity and opaque playback run from the authenticated learner's due invitation. The browser cannot choose an activity, route start, or revisit mode.
+         */
+        post: operations["openLearnerRevisitInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/journal/pages": {
         parameters: {
             query?: never;
@@ -1163,6 +1183,14 @@ export interface components {
             /** Format: date-time */
             available_at: string | null;
         };
+        LearnerRevisitRun: {
+            activity_slug: string;
+            node_slug: string;
+            /** Format: uuid */
+            play_run_id: string;
+            /** @enum {string} */
+            status: "in_progress";
+        };
         CreateLearnerJournalPageRequest: {
             title: string;
             topic: string;
@@ -1973,6 +2001,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The due */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    openLearnerRevisitInvitation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                check_in_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The server-owned revisit run is ready for the existing playback endpoint. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerRevisitRun"];
+                };
             };
             /** @description Authentication is required. */
             401: {
