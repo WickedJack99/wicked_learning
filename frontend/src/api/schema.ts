@@ -124,6 +124,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a bounded, authenticated directory of published topic areas. */
+        get: operations["getLearnerTopicDirectory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/journal": {
         parameters: {
             query?: never;
@@ -595,6 +612,34 @@ export interface components {
             visual_config: {
                 [key: string]: unknown;
             };
+        };
+        LearnerTopicDirectory: {
+            areas: components["schemas"]["LearnerTopicAreaOption"][];
+            pagination: components["schemas"]["LearnerTopicPagination"];
+            search: string;
+            selected_area: components["schemas"]["LearnerTopicArea"] | null;
+        };
+        LearnerTopicAreaOption: {
+            slug: string;
+            title: string;
+        };
+        LearnerTopicArea: {
+            description: string | null;
+            slug: string;
+            title: string;
+            topics: components["schemas"]["LearnerTopicSummary"][];
+        };
+        LearnerTopicSummary: {
+            description: string | null;
+            map_count: number;
+            slug: string;
+            title: string;
+        };
+        LearnerTopicPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
         };
         LearnerRouteProgress: {
             /** Format: uuid */
@@ -1147,6 +1192,58 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LearnerBookmarkMap"];
                 };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerTopicDirectory: {
+        parameters: {
+            query?: {
+                area?: string;
+                page?: number;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published root topics in the selected area, with visible-map counts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerTopicDirectory"];
+                };
+            };
+            /** @description Directory query parameters are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Authentication is required. */
             401: {

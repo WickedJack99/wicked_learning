@@ -55,6 +55,44 @@ pub struct LearnerBookmarkPlace {
 }
 
 #[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicDirectory {
+    pub areas: Vec<LearnerTopicAreaOption>,
+    pub pagination: LearnerTopicPagination,
+    pub search: String,
+    pub selected_area: Option<LearnerTopicArea>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicAreaOption {
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicArea {
+    pub description: Option<String>,
+    pub slug: String,
+    pub title: String,
+    pub topics: Vec<LearnerTopicSummary>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicSummary {
+    pub description: Option<String>,
+    pub map_count: i64,
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerTopicPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct LearnerActivityProgress {
     pub node_slug: String,
     pub activity_slug: String,

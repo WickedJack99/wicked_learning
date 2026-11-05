@@ -738,6 +738,43 @@ until the authenticated topics reader is migrated. Learning Desk's separate
 bookmark rail and the remaining learner navigation need their own
 source-derived contracts.
 
+## ADR-027: Topics directory is a private contract foundation, not a partial route
+
+**Status:** Accepted — 5 November 2026
+
+**Problem:** The source topic directory is authenticated, paginated and
+searchable, but every listed topic navigates to the source topic-detail flow.
+Publishing a Rust `/topics` page before that flow exists would create links to
+an invented reader, a generic card page, or a non-functional destination.
+
+**Decision:** Create the greenfield topic-area/topic schema and authenticated
+`GET /learner/topics` contract first, while keeping the browser `/topics`
+route unavailable. The contract returns only published root topics in a
+source-ordered area, applies literal bounded search and six-item pagination in
+PostgreSQL, and derives each map count from maps the authenticated principal
+may currently view. The browser does not receive topic IDs, unpublished
+records, arbitrary map access, or a client-filtered collection.
+
+The next browser slice must add the source topic-detail reader and preserve
+the directory's original links before exposing `/topics`. It must not replace
+those links with an unrelated list, disabled control, or a changed default
+section merely because only one detail panel is ready.
+
+**Why:** This makes the data, authorization and URL boundary reviewable now
+without presenting an incomplete workflow as migrated. It also preserves the
+original separation between topic discovery and the learner-specific detail
+trail.
+
+**Alternatives:** Returning all topics to React for filtering would expose
+unpublished or inaccessible context and lose source pagination semantics.
+Publishing a directory whose links lead to a simplified topic summary would
+make an unfinished substitute part of the product. Both are rejected.
+
+**Limitations and trigger:** This does not migrate topic detail, trails,
+competence, paths, subtopics or topic-map browsing. The endpoint is a local
+authenticated backend foundation until those source-defined reads and their
+browser evidence are available.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

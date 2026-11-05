@@ -164,6 +164,31 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application database is unavailable. }
+  /learner/topics:
+    get:
+      operationId: getLearnerTopicDirectory
+      summary: Read a bounded, authenticated directory of published topic areas.
+      parameters:
+        - name: area
+          in: query
+          schema: { type: string, pattern: '^[a-z0-9-]+$', maxLength: 80 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000 }
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 120 }
+      responses:
+        '200':
+          description: Published root topics in the selected area, with visible-map counts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerTopicDirectory'
+        '400': { description: Directory query parameters are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
   /learner/journal:
     get:
       operationId: getLearnerJournal
@@ -1115,6 +1140,58 @@ components:
         visual_config:
           type: object
           additionalProperties: true
+    LearnerTopicDirectory:
+      type: object
+      additionalProperties: false
+      required: [areas, pagination, search, selected_area]
+      properties:
+        areas:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/LearnerTopicAreaOption' }
+        pagination: { $ref: '#/components/schemas/LearnerTopicPagination' }
+        search: { type: string, maxLength: 120 }
+        selected_area:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerTopicArea'
+            - type: 'null'
+    LearnerTopicAreaOption:
+      type: object
+      additionalProperties: false
+      required: [slug, title]
+      properties:
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+    LearnerTopicArea:
+      type: object
+      additionalProperties: false
+      required: [description, slug, title, topics]
+      properties:
+        description: { type: [string, 'null'] }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        topics:
+          type: array
+          maxItems: 6
+          items: { $ref: '#/components/schemas/LearnerTopicSummary' }
+    LearnerTopicSummary:
+      type: object
+      additionalProperties: false
+      required: [description, map_count, slug, title]
+      properties:
+        description: { type: [string, 'null'] }
+        map_count: { type: integer, minimum: 0 }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+    LearnerTopicPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 6 }
+        total: { type: integer, minimum: 0 }
     LearnerRouteProgress:
       type: object
       additionalProperties: false
