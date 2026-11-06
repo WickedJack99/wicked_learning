@@ -401,6 +401,7 @@ pub struct LearnerCompetenceReviewAttempt {
     pub node_title: String,
     pub observed_cues: Vec<String>,
     pub outcome: Option<String>,
+    pub response_type: Option<String>,
     pub revisit_reason: String,
 }
 

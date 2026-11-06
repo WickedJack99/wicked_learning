@@ -649,20 +649,109 @@ function ReflectionActivity({
     onSaved: (status: CompletionStatus) => void;
     playRunId: string;
 }) {
-    const config = activity.config as { note?: unknown; prompt?: unknown };
+    const config = activity.config as {
+        feedbackGuidance?: unknown;
+        learningIntent?: unknown;
+        note?: unknown;
+        prompt?: unknown;
+    };
+    const guidance = asReflectionGuidance(config.feedbackGuidance);
     const prompt = typeof config.prompt === 'string' ? config.prompt : '';
     const note = typeof config.note === 'string' ? config.note : '';
+    const responseType =
+        config.learningIntent === 'explain' || config.learningIntent === 'transfer'
+            ? config.learningIntent
+            : null;
+    const isTransfer = responseType === 'transfer';
+    const hasPostResponseGuidance = Boolean(
+        responseType &&
+            guidance &&
+            (guidance.purpose ||
+                guidance.evidence ||
+                guidance.responseFeedback ||
+                guidance.nextAction ||
+                guidance.independentCheckPrompt ||
+                guidance.rubric.length),
+    );
     const [reflection, setReflection] = useState('');
+    const [responseContext, setResponseContext] = useState('');
+    const [observedCues, setObservedCues] = useState<string[]>([]);
+    const [confidence, setConfidence] = useState<
+        'exploring' | 'leaning' | 'settled' | null
+    >(null);
+    const [confidenceAfterFeedback, setConfidenceAfterFeedback] = useState<
+        'exploring' | 'leaning' | 'settled' | null
+    >(null);
+    const [reflectionSaved, setReflectionSaved] = useState(false);
+    const [independentResponse, setIndependentResponse] = useState('');
+    const [independentResponseContext, setIndependentResponseContext] =
+        useState('');
+    const [independentResponseSaved, setIndependentResponseSaved] =
+        useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const postResponseContinueRef = useRef<HTMLButtonElement>(null);
+    const independentComparisonRef = useRef<HTMLHeadingElement>(null);
+
+    useEffect(() => {
+        if (reflectionSaved) {
+            postResponseContinueRef.current?.focus();
+        }
+    }, [reflectionSaved]);
+
+    useEffect(() => {
+        if (independentResponseSaved) {
+            independentComparisonRef.current?.focus();
+        }
+    }, [independentResponseSaved]);
 
     if (!prompt) {
         return null;
     }
 
-    async function save(): Promise<void> {
-        const response = reflection.trim();
-        if (!response || saving) {
+    async function complete(): Promise<void> {
+        const token = await getCsrfToken();
+        const completion = await apiClient.POST(
+            '/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete',
+            {
+                ...(confidence || confidenceAfterFeedback
+                    ? {
+                          body: {
+                              ...(confidence ? { confidence } : {}),
+                              ...(confidenceAfterFeedback
+                                  ? { confidence_after_feedback: confidenceAfterFeedback }
+                                  : {}),
+                          },
+                      }
+                    : {}),
+                params: {
+                    header: { 'X-CSRF-Token': token },
+                    path: {
+                        activity_slug: activity.slug,
+                        play_run_id: playRunId,
+                    },
+                },
+            },
+        );
+        if (!completion.response.ok || !completion.data) {
+            throw new Error('complete reflection');
+        }
+        onSaved(completion.data.status);
+    }
+
+    async function save(independentCheck = false): Promise<void> {
+        const response = independentCheck
+            ? independentResponse.trim()
+            : reflection.trim();
+        const context = independentCheck
+            ? independentResponseContext.trim()
+            : responseContext.trim();
+        if (
+            !response ||
+            saving ||
+            (isTransfer && !context) ||
+            (independentCheck && !guidance?.independentCheckPrompt)
+        ) {
             return;
         }
         setSaving(true);
@@ -672,7 +761,12 @@ function ReflectionActivity({
             const { data, response: apiResponse } = await apiClient.POST(
                 '/learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection',
                 {
-                    body: { reflection: response, independent_check: false },
+                    body: {
+                        reflection: response,
+                        ...(isTransfer ? { response_context: context } : {}),
+                        ...(independentCheck ? {} : { observed_cues: observedCues }),
+                        independent_check: independentCheck,
+                    },
                     params: {
                         header: { 'X-CSRF-Token': token },
                         path: {
@@ -688,30 +782,183 @@ function ReflectionActivity({
                 );
                 return;
             }
-            const completion = await apiClient.POST(
-                '/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete',
-                {
-                    params: {
-                        header: { 'X-CSRF-Token': token },
-                        path: {
-                            activity_slug: activity.slug,
-                            play_run_id: playRunId,
-                        },
-                    },
-                },
-            );
-            if (!completion.response.ok || !completion.data) {
-                setError(
-                    'Your private reflection was saved, but the activity could not continue. Try again.',
-                );
+            if (independentCheck) {
+                setIndependentResponseSaved(true);
                 return;
             }
-            onSaved(completion.data.status);
+            if (hasPostResponseGuidance) {
+                setReflectionSaved(true);
+                return;
+            }
+            await complete();
         } catch {
             setError('Your private reflection could not be saved. Try again.');
         } finally {
             setSaving(false);
         }
+    }
+
+    if (reflectionSaved) {
+        return (
+            <div className="flex flex-1 flex-col gap-4 rounded-lg border border-cyan-500/25 bg-cyan-50/60 p-4 dark:border-teal-200/20 dark:bg-teal-100/6">
+                <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-cyan-700 dark:text-teal-200" />
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-100">
+                            Response saved privately
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            Take a moment to compare your response with the observation guidance before you continue.
+                        </p>
+                    </div>
+                </div>
+                {guidance ? <ReflectionGuidance guidance={guidance} /> : null}
+                {guidance?.independentCheckPrompt ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            Independent check (optional)
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {guidance.independentCheckPrompt}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
+                            Try a fresh response without looking back. This stays private and is recorded separately; you can continue without it.
+                        </p>
+                        <label
+                            className="mt-3 block text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
+                            htmlFor="activity-independent-response"
+                        >
+                            Fresh response
+                        </label>
+                        <textarea
+                            className="mt-2 min-h-24 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                            disabled={independentResponseSaved}
+                            id="activity-independent-response"
+                            onChange={(event) =>
+                                setIndependentResponse(event.currentTarget.value)
+                            }
+                            placeholder="Write what you can explain or apply on your own now."
+                            value={independentResponse}
+                        />
+                        {isTransfer ? (
+                            <>
+                                <label
+                                    className="mt-3 block text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
+                                    htmlFor="activity-independent-context"
+                                >
+                                    Changed context
+                                </label>
+                                <textarea
+                                    className="mt-2 min-h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                                    disabled={independentResponseSaved}
+                                    id="activity-independent-context"
+                                    onChange={(event) =>
+                                        setIndependentResponseContext(
+                                            event.currentTarget.value,
+                                        )
+                                    }
+                                    placeholder="Where would this idea work in a new situation?"
+                                    value={independentResponseContext}
+                                />
+                            </>
+                        ) : null}
+                        <button
+                            className="mt-3 inline-flex h-9 items-center justify-center rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                            disabled={
+                                independentResponseSaved ||
+                                saving ||
+                                !independentResponse.trim() ||
+                                (isTransfer && !independentResponseContext.trim())
+                            }
+                            onClick={() => void save(true)}
+                            type="button"
+                        >
+                            {independentResponseSaved
+                                ? 'Independent response saved'
+                                : 'Save independent response'}
+                        </button>
+                    </div>
+                ) : null}
+                {independentResponseSaved ? (
+                    <section
+                        aria-labelledby="activity-independent-comparison"
+                        className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20"
+                    >
+                        <h3
+                            className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase outline-none focus:ring-2 focus:ring-cyan-500 dark:text-teal-100 dark:focus:ring-teal-200"
+                            id="activity-independent-comparison"
+                            ref={independentComparisonRef}
+                            tabIndex={-1}
+                        >
+                            Compare your responses
+                        </h3>
+                        <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
+                            Notice what changed or stayed consistent. Both responses remain private.
+                        </p>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <ReflectionResponseComparison
+                                context={responseContext}
+                                isTransfer={isTransfer}
+                                label="First response"
+                                response={reflection}
+                            />
+                            <ReflectionResponseComparison
+                                context={independentResponseContext}
+                                isTransfer={isTransfer}
+                                label="Fresh response"
+                                response={independentResponse}
+                            />
+                        </div>
+                    </section>
+                ) : null}
+                {independentResponseSaved && guidance?.independentCheckFeedback ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            After your independent check
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {guidance.independentCheckFeedback}
+                        </p>
+                    </div>
+                ) : null}
+                {responseType ? (
+                    <fieldset className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <legend className="px-1 text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            After comparing, how settled does this feel now? (optional)
+                        </legend>
+                        <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
+                            This is a reflection on your understanding, not a grade.
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {reflectionConfidenceOptions.map((option) => (
+                                <button
+                                    aria-pressed={confidenceAfterFeedback === option.value}
+                                    className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300"
+                                    key={option.value}
+                                    onClick={() => setConfidenceAfterFeedback(option.value)}
+                                    type="button"
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </fieldset>
+                ) : null}
+                {error ? <p className="text-sm text-red-300" role="alert">{error}</p> : null}
+                <p className="text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
+                    This response stays in your private journal.
+                </p>
+                <button
+                    className="mt-auto inline-flex h-9 items-center justify-center rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+                    disabled={saving}
+                    onClick={() => void complete().catch(() => setError('The activity could not continue. Try again.'))}
+                    ref={postResponseContinueRef}
+                    type="button"
+                >
+                    Continue
+                </button>
+            </div>
+        );
     }
 
     return (
@@ -723,13 +970,99 @@ function ReflectionActivity({
             <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
                 {prompt}
             </p>
+            {responseType ? (
+                <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
+                        Response focus
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
+                        {isTransfer
+                            ? 'Name the changed context and explain how the idea worked there.'
+                            : 'Explain the idea in your own words and connect it to a reason or example.'}
+                    </p>
+                </div>
+            ) : null}
+            {responseType ? (
+                <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                    <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                        How settled does your starting understanding feel? (optional)
+                    </legend>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {reflectionConfidenceOptions.map((option) => (
+                            <button
+                                aria-pressed={confidence === option.value}
+                                className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300"
+                                key={option.value}
+                                onClick={() => setConfidence(option.value)}
+                                type="button"
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </fieldset>
+            ) : null}
             <textarea
+                aria-describedby={
+                    responseType ? 'activity-response-help' : undefined
+                }
                 className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
                 id="activity-reflection-response"
                 onChange={(event) => setReflection(event.currentTarget.value)}
-                placeholder="Write a short note for yourself."
+                placeholder={
+                    isTransfer
+                        ? 'Explain how the idea worked in the changed context.'
+                        : responseType
+                          ? 'Write the idea in your own words.'
+                          : 'Write a short note for yourself.'
+                }
                 value={reflection}
             />
+            {isTransfer ? (
+                <div>
+                    <label
+                        className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200"
+                        htmlFor="activity-reflection-context"
+                    >
+                        Changed context
+                    </label>
+                    <textarea
+                        aria-describedby="activity-response-help"
+                        className="mt-2 min-h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                        id="activity-reflection-context"
+                        onChange={(event) =>
+                            setResponseContext(event.currentTarget.value)
+                        }
+                        placeholder="Where did you try the idea?"
+                        required
+                        value={responseContext}
+                    />
+                </div>
+            ) : null}
+            {responseType && guidance?.rubric.length ? (
+                <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                    <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                        What did you notice in your response? (optional)
+                    </legend>
+                    <p
+                        className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400"
+                        id="activity-response-help"
+                    >
+                        Select any cues that feel visible in your explanation. This records your observation, not a grade.
+                    </p>
+                    <div className="mt-2 grid gap-2">
+                        {guidance.rubric.map((cue) => {
+                            const checked = observedCues.includes(cue);
+                            return (
+                                <label className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-white/60 px-2.5 py-2 text-xs leading-5 text-slate-600 dark:border-white/10 dark:bg-slate-950/20 dark:text-slate-300" key={cue}>
+                                    <input checked={checked} onChange={() => setObservedCues((current) => checked ? current.filter((value) => value !== cue) : [...current, cue])} type="checkbox" />
+                                    <span>{cue}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </fieldset>
+            ) : null}
             {note ? (
                 <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
                     {note}
@@ -742,13 +1075,124 @@ function ReflectionActivity({
             ) : null}
             <button
                 className="mt-auto inline-flex h-9 items-center justify-center rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-                disabled={saving || reflection.trim().length === 0}
+                disabled={saving || reflection.trim().length === 0 || (isTransfer && !responseContext.trim())}
                 onClick={() => void save()}
                 type="button"
             >
                 {saving ? 'Keeping reflection…' : 'Keep reflection'}
             </button>
         </div>
+    );
+}
+
+type ReflectionGuidance = {
+    evidence: string | null;
+    independentCheckFeedback: string | null;
+    independentCheckPrompt: string | null;
+    nextAction: string | null;
+    purpose: string | null;
+    responseFeedback: string | null;
+    rubric: string[];
+};
+
+const reflectionConfidenceOptions: Array<{
+    label: string;
+    value: 'exploring' | 'leaning' | 'settled';
+}> = [
+    { label: 'Exploring', value: 'exploring' },
+    { label: 'I have a hunch', value: 'leaning' },
+    { label: 'Settled', value: 'settled' },
+];
+
+function asReflectionGuidance(value: unknown): ReflectionGuidance | null {
+    if (typeof value !== 'object' || value === null) {
+        return null;
+    }
+    const guidance = value as Record<string, unknown>;
+    const text = (key: string): string | null =>
+        typeof guidance[key] === 'string' && guidance[key].trim()
+            ? guidance[key]
+            : null;
+    const rubric = Array.isArray(guidance.rubric)
+        ? guidance.rubric.filter(
+              (cue): cue is string =>
+                  typeof cue === 'string' && cue.trim().length > 0,
+          )
+        : [];
+    const normalized = {
+        evidence: text('evidence'),
+        independentCheckFeedback: text('independentCheckFeedback'),
+        independentCheckPrompt: text('independentCheckPrompt'),
+        nextAction: text('nextAction'),
+        purpose: text('purpose'),
+        responseFeedback: text('responseFeedback'),
+        rubric,
+    };
+    return Object.values(normalized).some(
+        (entry) => Array.isArray(entry) ? entry.length > 0 : entry !== null,
+    )
+        ? normalized
+        : null;
+}
+
+function ReflectionResponseComparison({
+    context,
+    isTransfer,
+    label,
+    response,
+}: {
+    context: string;
+    isTransfer: boolean;
+    label: string;
+    response: string;
+}) {
+    return (
+        <div className="rounded-md border border-cyan-500/15 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-black/10">
+            <p className="text-xs font-medium text-cyan-900 dark:text-teal-100">
+                {label}
+            </p>
+            <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-cyan-950/80 dark:text-teal-50/80">
+                {response}
+            </p>
+            {isTransfer ? (
+                <>
+                    <p className="mt-3 text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                        Changed context
+                    </p>
+                    <p className="mt-1 text-xs leading-5 whitespace-pre-wrap text-cyan-950/70 dark:text-teal-50/70">
+                        {context}
+                    </p>
+                </>
+            ) : null}
+        </div>
+    );
+}
+
+function ReflectionGuidance({ guidance }: { guidance: ReflectionGuidance }) {
+    const entries = [
+        ['Purpose', guidance.purpose],
+        ['What to notice', guidance.evidence],
+        ['Compare your response', guidance.responseFeedback],
+        ['A possible next action', guidance.nextAction],
+    ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+
+    return (
+        <>
+            {entries.map(([label, value]) => (
+                <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20" key={label}>
+                    <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">{label}</p>
+                    <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">{value}</p>
+                </div>
+            ))}
+            {guidance.rubric.length ? (
+                <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                    <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">Observable cues</p>
+                    <ul className="mt-1 grid gap-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                        {guidance.rubric.map((cue) => <li key={cue}>{cue}</li>)}
+                    </ul>
+                </div>
+            ) : null}
+        </>
     );
 }
 

@@ -2075,7 +2075,7 @@ components:
     LearnerCompetenceReviewAttempt:
       type: object
       additionalProperties: false
-      required: [activity_slug, activity_title, assistance_level, attempted_at, attempt_number, confidence, confidence_after_feedback, node_slug, node_title, observed_cues, outcome, revisit_reason]
+      required: [activity_slug, activity_title, assistance_level, attempted_at, attempt_number, confidence, confidence_after_feedback, node_slug, node_title, observed_cues, outcome, response_type, revisit_reason]
       properties:
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         activity_title: { type: string, maxLength: 240 }
@@ -2088,6 +2088,7 @@ components:
         node_title: { type: string, maxLength: 240 }
         observed_cues: { type: array, maxItems: 8, items: { type: string, maxLength: 120 } }
         outcome: { type: [string, 'null'], enum: [completed, correct, incorrect, null] }
+        response_type: { type: [string, 'null'], enum: [reflection, explain, transfer, null] }
         revisit_reason: { type: string, enum: [pause, later] }
     LearnerCompetenceTopic:
       type: object
@@ -2562,6 +2563,10 @@ components:
       type: object
       additionalProperties: false
       properties:
+        confidence:
+          type: string
+          enum: [exploring, leaning, settled]
+          description: Optional starting understanding for a reflection response. The server accepts it only for the active supported activity.
         confidence_after_feedback:
           type: [string, 'null']
           enum: [exploring, leaning, settled, null]

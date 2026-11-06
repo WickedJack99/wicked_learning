@@ -1237,6 +1237,8 @@ export interface components {
             observed_cues: string[];
             /** @enum {string|null} */
             outcome: "completed" | "correct" | "incorrect" | null;
+            /** @enum {string|null} */
+            response_type: "reflection" | "explain" | "transfer" | null;
             /** @enum {string} */
             revisit_reason: "pause" | "later";
         };
@@ -1510,6 +1512,11 @@ export interface components {
             status: "in_progress" | "completed";
         };
         LearnerPlaybackCompletionRequest: {
+            /**
+             * @description Optional starting understanding for a reflection response. The server accepts it only for the active supported activity.
+             * @enum {string}
+             */
+            confidence?: "exploring" | "leaning" | "settled";
             /** @enum {string|null} */
             confidence_after_feedback?: "exploring" | "leaning" | "settled" | null;
         };

@@ -1382,11 +1382,17 @@ Returning legacy href strings would make Laravel routing a durable contract.
 Guessing `responseType` from other fields would present a claim the new data
 model did not record. These alternatives are rejected.
 
+**Review-attempt response detail:** A completed revisit now snapshots the
+source-derived response type (`reflection`, `explain`, or `transfer`) alongside
+the already bounded cue list. It is nullable for activity kinds without a
+private reflection. The reader can therefore describe the completed attempt
+without reading journal text or consulting mutable activity configuration.
+
 **Limitations and trigger:** This is a contract foundation only. `/competence`
 remains unavailable until the actual source React page and star-layout are
 lifted and all of their links have authorized Rust destinations. The required
-playback-opening contract and any future persisted review response type must be
-implemented and tested before their original controls are exposed.
+playback-opening contract still needs to be implemented and tested before its
+original controls are exposed.
 
 ## ADR-039: Reflection saving and activity completion remain separate commands
 
@@ -1415,7 +1421,18 @@ cues that are currently authored, and rejects an independent check unless an
 `explain` or `transfer` activity has its authored prompt. Completion uses the
 latest matching saved explain/transfer response for its private evidence link,
 including whether it was independent; base reflection remains qualitative
-private writing rather than an observable explanation claim.
+private writing rather than an observable explanation claim. The generic
+completion command also accepts source confidence before and after feedback
+only for question/reflection runs. For a revisit, it snapshots the matching
+private response type and selected cues in the immutable review attempt.
+
+The React player now lifts the source explain/transfer sequence: response focus,
+optional initial confidence, transfer context, bounded authored cues, private
+save, authored guidance, optional independent response, private side-by-side
+comparison, independent-check feedback and optional later confidence. These
+controls use the existing source markup/classes and the browser still has no
+authority to choose a response type, activity, journal record, transition or
+evidence claim.
 
 **Why:** This preserves the source's learner agency and order of operations,
 keeps route progression server-owned, and prevents stale or browser-invented
@@ -1427,13 +1444,13 @@ response type would make private evidence forgeable. Creating a second
 completion endpoint just for reflection would duplicate the established
 server-owned activity-completion boundary. These alternatives are rejected.
 
-**Limitations and trigger:** The original source explain/transfer/review UI,
-including confidence, after-save guidance, independent response comparison and
-review outcome controls, is not yet lifted. The Rust contract and safe
-projection now preserve the required save/then-complete foundation, but those
-controls stay absent until their source UI and complete review-attempt contract
-are migrated together. The base reflection UI continues to use its original
-immediate save-then-continue behavior.
+**Limitations and trigger:** The source authored-review presentation remains
+unavailable. It needs its own earlier-private-response context and source
+outcome controls; rendering an authored `learningIntent: review` as an ordinary
+reflection would be a behavioral substitution, so playback refuses that
+configuration until the complete contract and source UI are migrated together.
+The base reflection UI continues to use its original immediate
+save-then-continue behavior.
 
 ## Phase 1 gate
 

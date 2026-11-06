@@ -21,6 +21,7 @@ use crate::{
 
 #[derive(Default, Deserialize)]
 pub struct CompleteCurrentActivityRequest {
+    confidence: Option<String>,
     confidence_after_feedback: Option<String>,
 }
 
@@ -53,15 +54,15 @@ pub async fn complete_current_activity(
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresLearnerPlaybackRepository::new(&state.application_database);
+    let request = request.map(|Json(request)| request).unwrap_or_default();
 
     LearnerPlaybackCompletionCommand::new(&repository)
         .execute(
             &principal,
             play_run_id,
             &activity_slug,
-            request
-                .and_then(|Json(request)| request.confidence_after_feedback)
-                .as_deref(),
+            request.confidence.as_deref(),
+            request.confidence_after_feedback.as_deref(),
         )
         .await
         .map_err(|_| ApiError::service_unavailable())?

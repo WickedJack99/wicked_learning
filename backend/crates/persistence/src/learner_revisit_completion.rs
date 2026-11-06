@@ -1,3 +1,4 @@
+use serde_json::Value;
 use sqlx::{FromRow, Postgres, Transaction};
 use uuid::Uuid;
 
@@ -9,9 +10,11 @@ pub(crate) struct RevisitCompletion<'value> {
     pub confidence: Option<&'value str>,
     pub confidence_after_feedback: Option<&'value str>,
     pub learner_reflection_id: Option<Uuid>,
+    pub observed_cues: Option<Value>,
     pub outcome: &'value str,
     pub play_run_id: Uuid,
     pub principal_id: Uuid,
+    pub response_type: Option<&'value str>,
 }
 
 #[derive(FromRow)]
@@ -58,7 +61,7 @@ pub(crate) async fn complete_active_revisit(
     .execute(&mut **transaction)
     .await?;
     sqlx::query(
-        "INSERT INTO learner_review_attempts (revisit_run_id, principal_id, activity_id, learner_reflection_id, attempt_number, outcome, confidence, confidence_after_feedback, revisit_reason, latency_seconds) SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at))::integer) FROM learner_revisit_runs WHERE id = $1",
+        "INSERT INTO learner_review_attempts (revisit_run_id, principal_id, activity_id, learner_reflection_id, attempt_number, outcome, confidence, confidence_after_feedback, observed_cues, revisit_reason, response_type, latency_seconds) SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at))::integer) FROM learner_revisit_runs WHERE id = $1",
     )
     .bind(completion.play_run_id)
     .bind(completion.principal_id)
@@ -68,7 +71,9 @@ pub(crate) async fn complete_active_revisit(
     .bind(completion.outcome)
     .bind(completion.confidence)
     .bind(completion.confidence_after_feedback)
+    .bind(completion.observed_cues)
     .bind(locked.revisit_reason)
+    .bind(completion.response_type)
     .execute(&mut **transaction)
     .await?;
 

@@ -105,6 +105,7 @@ struct ReviewAttemptRow {
     node_title: String,
     observed_cues: Option<Value>,
     outcome: Option<String>,
+    response_type: Option<String>,
     revisit_reason: String,
 }
 
@@ -288,7 +289,7 @@ async fn load_review_attempts(
     principal_id: Uuid,
     roles: &[String],
 ) -> Result<Vec<LearnerCompetenceReviewAttempt>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, ReviewAttemptRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, attempts.assistance_level, to_char(attempts.attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS attempted_at, attempts.attempt_number, attempts.confidence, attempts.confidence_after_feedback, nodes.slug AS node_slug, nodes.title AS node_title, attempts.observed_cues, attempts.outcome, attempts.revisit_reason FROM learner_review_attempts AS attempts INNER JOIN learning_activities AS activities ON activities.id = attempts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE attempts.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY attempts.attempted_at DESC, attempts.id DESC LIMIT $3")
+    let rows = sqlx::query_as::<_, ReviewAttemptRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, attempts.assistance_level, to_char(attempts.attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS attempted_at, attempts.attempt_number, attempts.confidence, attempts.confidence_after_feedback, nodes.slug AS node_slug, nodes.title AS node_title, attempts.observed_cues, attempts.outcome, attempts.response_type, attempts.revisit_reason FROM learner_review_attempts AS attempts INNER JOIN learning_activities AS activities ON activities.id = attempts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE attempts.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY attempts.attempted_at DESC, attempts.id DESC LIMIT $3")
         .bind(principal_id).bind(roles).bind(REVIEW_ATTEMPT_LIMIT).fetch_all(pool).await?;
     Ok(rows
         .into_iter()
@@ -304,6 +305,7 @@ async fn load_review_attempts(
             node_title: row.node_title,
             observed_cues: normalized_texts(row.observed_cues, 8, 120),
             outcome: row.outcome,
+            response_type: row.response_type,
             revisit_reason: row.revisit_reason,
         })
         .collect())

@@ -163,6 +163,16 @@ fn learner_safe_config(
 
 fn reflection_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
     let config = config.as_object()?;
+    // Review requires earlier private-response context and a source-defined
+    // outcome flow. Do not silently render it as an ordinary reflection while
+    // that separate source contract is unavailable.
+    if config
+        .get("learningIntent")
+        .and_then(serde_json::Value::as_str)
+        == Some("review")
+    {
+        return None;
+    }
     let prompt = config
         .get("prompt")
         .and_then(serde_json::Value::as_str)
@@ -175,7 +185,7 @@ fn reflection_safe_config(config: serde_json::Value) -> Option<serde_json::Value
     let learning_intent = config
         .get("learningIntent")
         .and_then(serde_json::Value::as_str)
-        .filter(|intent| matches!(*intent, "explain" | "transfer" | "review"))
+        .filter(|intent| matches!(*intent, "explain" | "transfer"))
         .map(ToOwned::to_owned);
     let feedback_guidance = config
         .get("feedbackGuidance")
@@ -987,6 +997,7 @@ impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackReposito
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
         activity_slug: &str,
+        confidence: Option<&str>,
         confidence_after_feedback: Option<&str>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
@@ -997,6 +1008,7 @@ impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackReposito
                 principal,
                 play_run_id,
                 activity_slug,
+                confidence,
                 confidence_after_feedback,
             )
             .await
@@ -1013,9 +1025,10 @@ async fn complete_current_activity(
     principal: &AuthorizedPrincipal,
     play_run_id: Uuid,
     activity_slug: &str,
+    confidence: Option<&str>,
     confidence_after_feedback: Option<&str>,
 ) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
-    if !valid_confidence(confidence_after_feedback) {
+    if !valid_confidence(confidence) || !valid_confidence(confidence_after_feedback) {
         return Ok(None);
     }
     let mut transaction = pool.begin().await?;
@@ -1029,7 +1042,7 @@ async fn complete_current_activity(
 
     if current.activity_type != "question"
         && current.activity_type != "reflection"
-        && confidence_after_feedback.is_some()
+        && (confidence.is_some() || confidence_after_feedback.is_some())
     {
         transaction.commit().await?;
         return Ok(None);
@@ -1127,9 +1140,10 @@ async fn complete_current_activity(
         let observable_reflection = reflection.as_ref().filter(|reflection| {
             matches!(reflection.response_type.as_str(), "explain" | "transfer")
         });
-        let confidence = question_attempt
+        let attempt_confidence = question_attempt
             .as_ref()
-            .and_then(|attempt| attempt.confidence.as_deref());
+            .and_then(|attempt| attempt.confidence.as_deref())
+            .or(confidence);
         let calibration = question_attempt
             .as_ref()
             .and_then(|attempt| attempt.calibration.as_deref());
@@ -1144,12 +1158,18 @@ async fn complete_current_activity(
             &mut transaction,
             RevisitCompletion {
                 activity_id: current.activity_id,
-                confidence,
+                confidence: attempt_confidence,
                 confidence_after_feedback,
-                learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
+                learner_reflection_id: reflection.as_ref().map(|reflection| reflection.id),
+                observed_cues: reflection
+                    .as_ref()
+                    .and_then(|reflection| reflection.observed_cues.clone()),
                 outcome,
                 play_run_id,
                 principal_id: current.principal_id,
+                response_type: reflection
+                    .as_ref()
+                    .map(|reflection| reflection.response_type.as_str()),
             },
         )
         .await?
@@ -1170,7 +1190,7 @@ async fn complete_current_activity(
                 },
                 attempt_number,
                 calibration,
-                confidence,
+                confidence: attempt_confidence,
                 confidence_after_feedback,
                 learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
                 reflection_is_independent_check: observable_reflection
@@ -1260,9 +1280,10 @@ async fn complete_current_activity(
     };
 
     mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
-    let confidence = question_attempt
+    let attempt_confidence = question_attempt
         .as_ref()
-        .and_then(|attempt| attempt.confidence.as_deref());
+        .and_then(|attempt| attempt.confidence.as_deref())
+        .or(confidence);
     let calibration = question_attempt
         .as_ref()
         .and_then(|attempt| attempt.calibration.as_deref());
@@ -1291,7 +1312,7 @@ async fn complete_current_activity(
                 .as_ref()
                 .map_or(1, |attempt| attempt.attempt_number),
             calibration,
-            confidence,
+            confidence: attempt_confidence,
             confidence_after_feedback,
             learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
             reflection_is_independent_check: observable_reflection
@@ -1481,7 +1502,7 @@ async fn mark_activity_reached(
 mod tests {
     use serde_json::json;
 
-    use super::{check_in_context, markdown_safe_config};
+    use super::{check_in_context, markdown_safe_config, reflection_safe_config};
 
     #[test]
     fn check_in_context_exposes_only_bounded_source_presentation_fields() {
@@ -1566,6 +1587,41 @@ mod tests {
                 { "from": "first", "to": "second" },
                 { "from": "second", "to": "end" }
             ])
+        );
+    }
+
+    #[test]
+    fn reflection_projection_does_not_disguise_an_unavailable_review_as_base_reflection() {
+        assert!(
+            reflection_safe_config(json!({
+                "prompt": "Review this idea.",
+                "learningIntent": "review",
+            }))
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn reflection_projection_retains_only_source_safe_explanation_guidance() {
+        let config = reflection_safe_config(json!({
+            "prompt": "Explain the idea.",
+            "learningIntent": "explain",
+            "feedbackGuidance": {
+                "purpose": "Make your reasoning visible.",
+                "independentCheckFeedback": "Compare your fresh response.",
+                "rubric": ["Names a reason", "Names a reason", 4]
+            }
+        }))
+        .expect("explanation has a safe learner projection");
+
+        assert_eq!(config["learningIntent"], "explain");
+        assert_eq!(
+            config["feedbackGuidance"]["independentCheckFeedback"],
+            "Compare your fresh response."
+        );
+        assert_eq!(
+            config["feedbackGuidance"]["rubric"],
+            json!(["Names a reason"])
         );
     }
 }
