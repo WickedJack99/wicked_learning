@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import {
     Bookmark,
     CheckCircle2,
@@ -70,6 +70,15 @@ type SearchState =
     | { kind: 'loading' }
     | { kind: 'loaded'; results: components['schemas']['PublicSearchResult'][] }
     | { kind: 'unavailable' };
+
+const learnerNavigationItems = [
+    { href: '/home', label: 'Learning desk' },
+    { href: '/paths', label: 'Paths' },
+    { href: '/topics', label: 'Topics' },
+    { href: '/competence', label: 'Competence map' },
+    { href: '/bookmarks', label: 'Bookmarks' },
+    { href: '/world', label: 'Current map' },
+] as const;
 
 export function PublicWorldPage({
     appearance,
@@ -503,6 +512,7 @@ function WorldNavigation({
     theme: Record<string, unknown>;
     userEmail: string | null;
 }) {
+    const location = useLocation();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
@@ -561,13 +571,20 @@ function WorldNavigation({
                     className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full flex-wrap gap-0 border-t px-4 xl:order-none xl:mx-0 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:border-t-0 xl:px-0"
                     style={{ borderColor: 'var(--learner-border-color)' }}
                 >
-                    <Link
-                        aria-current="page"
-                        className="relative inline-flex shrink-0 items-center gap-2 px-2 py-3 text-sm text-[var(--learner-heading-text)] transition hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-[var(--learner-accent)] xl:py-[1.35rem] 2xl:px-3"
-                        to="/world"
-                    >
-                        Current map
-                    </Link>
+                    {learnerNavigationItems.map((item) => {
+                        const active = item.href === '/home'
+                            ? location.pathname === item.href
+                            : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+
+                        return <Link
+                            aria-current={active ? 'page' : undefined}
+                            className={`relative inline-flex shrink-0 items-center gap-2 px-2 py-3 text-sm transition hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none xl:py-[1.35rem] 2xl:px-3 ${active ? 'text-[var(--learner-heading-text)] after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-[var(--learner-accent)]' : 'text-[var(--learner-muted-text)]'}`}
+                            key={item.href}
+                            to={item.href}
+                        >
+                            {item.label}
+                        </Link>;
+                    })}
                 </nav>
                 {isAuthenticated && userEmail ? (
                     <div className="relative ml-auto flex shrink-0 items-center gap-2">

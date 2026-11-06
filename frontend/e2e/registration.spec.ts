@@ -36,6 +36,11 @@ test('a one-use local invitation creates a signed-in identity', async ({ page })
     await page.getByRole('button', { name: 'Create account' }).click();
 
     await expect(page).toHaveURL(/\/world$/);
+    await expect(page.getByRole('link', { name: 'Learning desk' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Paths' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Topics' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Competence map' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bookmarks' })).toBeVisible();
     const session = await page.request.get('/api/v1/session');
     await expect(session.json()).resolves.toMatchObject({ authenticated: true });
     await expect(page.getByRole('button', { name: 'Open user menu' })).toBeVisible();
