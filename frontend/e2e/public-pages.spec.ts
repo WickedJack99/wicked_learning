@@ -1782,6 +1782,9 @@ test('the source Recall Queue opens an opaque private recall run', async ({
         page.getByRole('heading', { name: 'Recall queue' }),
     ).toBeVisible();
     await expect(
+        page.getByRole('link', { name: 'Learning desk' }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(
         page.getByText('Which choice keeps exploration learner-directed?'),
     ).toBeVisible();
     await expect(page.getByText('Ready to recall')).toBeVisible();

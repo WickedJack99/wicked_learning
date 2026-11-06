@@ -136,7 +136,12 @@ export function App() {
             return <Navigate replace to="/login" />;
         }
 
-        return <OriginalRecallDeskPage />;
+        return (
+            <OriginalRecallDeskPage
+                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                userEmail={currentUser.email}
+            />
+        );
     }
 
     if (location.pathname === '/paths') {

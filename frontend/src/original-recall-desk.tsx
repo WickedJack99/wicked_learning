@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalPaginatedItems } from './original-paginated-items';
+import { OriginalLearnerHeader } from './original-learner-header';
 
 type LearnerRecallItem = components['schemas']['LearnerRecallItem'];
 type LearnerRecallQueue = components['schemas']['LearnerRecallQueue'];
@@ -27,7 +28,13 @@ const learnerStyle = {
  * have their own completed Rust contracts; it does not add replacement cards
  * or navigation for unavailable work.
  */
-export function OriginalRecallDeskPage() {
+export function OriginalRecallDeskPage({
+    onSignedOut,
+    userEmail,
+}: {
+    onSignedOut: () => void;
+    userEmail: string;
+}) {
     const navigate = useNavigate();
     const [queue, setQueue] = useState<LearnerRecallQueue | null>(null);
     const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>(
@@ -155,10 +162,16 @@ export function OriginalRecallDeskPage() {
     }
 
     return (
-        <main
-            className="min-h-svh bg-[var(--learner-page-background)] px-5 py-10 text-[var(--learner-heading-text)] sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]"
-            style={learnerStyle}
-        >
+        <div style={learnerStyle}>
+            <OriginalLearnerHeader
+                onSignedOut={onSignedOut}
+                userEmail={userEmail}
+            />
+            <main
+                className="min-h-svh bg-[var(--learner-page-background)] px-5 py-10 text-[var(--learner-heading-text)] sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]"
+                id="learner-main-content"
+                tabIndex={-1}
+            >
             <div className="mx-auto max-w-4xl">
                 <header>
                     <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
@@ -205,7 +218,8 @@ export function OriginalRecallDeskPage() {
                     </section>
                 ) : null}
             </div>
-        </main>
+            </main>
+        </div>
     );
 }
 
