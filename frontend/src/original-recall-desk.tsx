@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { OriginalLearningDeskSearch } from './original-learning-desk-search';
 import { OriginalPaginatedItems } from './original-paginated-items';
 import { OriginalLearnerHeader } from './original-learner-header';
 
@@ -691,6 +692,8 @@ export function OriginalRecallDeskPage({
                         {focusView ? 'Show pinned' : 'Focus view'}
                     </button>
                 </header>
+
+                <OriginalLearningDeskSearch />
 
                 <nav
                     aria-label="Learning desk areas"

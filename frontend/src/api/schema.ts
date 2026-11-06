@@ -192,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search published topics, visible maps and visible places for the Learning Desk. */
+        get: operations["searchLearnerDesk"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/topics/{topic_slug}/overview": {
         parameters: {
             query?: never;
@@ -1450,6 +1467,26 @@ export interface components {
             selected_time_budget: 15 | 30 | null;
             topic_context: components["schemas"]["LearnerTopicDetailHeader"] | null;
         };
+        LearnerDeskSearch: {
+            pagination: components["schemas"]["LearnerDeskSearchPagination"];
+            results: components["schemas"]["LearnerDeskSearchResult"][];
+        };
+        LearnerDeskSearchPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+        LearnerDeskSearchResult: {
+            href: string;
+            id: string;
+            /** @enum {string} */
+            kind: "topic" | "map" | "node";
+            map_slug: string | null;
+            node_slug: string | null;
+            subtitle: string;
+            title: string;
+        };
         LearnerPathPagination: {
             current_page: number;
             last_page: number;
@@ -2522,6 +2559,58 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LearnerPaths"];
                 };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    searchLearnerDesk: {
+        parameters: {
+            query: {
+                query: string;
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Source-ordered, bounded Learning Desk results. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerDeskSearch"];
+                };
+            };
+            /** @description The search query or pagination parameter is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Authentication is required. */
             401: {

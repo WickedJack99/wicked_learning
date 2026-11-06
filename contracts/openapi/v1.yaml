@@ -255,6 +255,32 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application database is unavailable. }
+  /learner/search:
+    get:
+      operationId: searchLearnerDesk
+      summary: Search published topics, visible maps and visible places for the Learning Desk.
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 80 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 24, default: 5 }
+      responses:
+        '200':
+          description: Source-ordered, bounded Learning Desk results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerDeskSearch'
+        '400': { description: The search query or pagination parameter is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
   /learner/topics/{topic_slug}/overview:
     get:
       operationId: getLearnerTopicOverview
@@ -2374,6 +2400,41 @@ components:
           oneOf:
             - $ref: '#/components/schemas/LearnerTopicDetailHeader'
             - type: 'null'
+    LearnerDeskSearch:
+      type: object
+      additionalProperties: false
+      required: [pagination, results]
+      properties:
+        pagination: { $ref: '#/components/schemas/LearnerDeskSearchPagination' }
+        results:
+          type: array
+          maxItems: 24
+          items: { $ref: '#/components/schemas/LearnerDeskSearchResult' }
+    LearnerDeskSearchPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+    LearnerDeskSearchResult:
+      type: object
+      additionalProperties: false
+      required: [href, id, kind, map_slug, node_slug, subtitle, title]
+      properties:
+        href: { type: string, pattern: '^/(topics/[a-z0-9-]+|world\\?map=[a-z0-9-]+(&focused=[a-z0-9-]+)?)$' }
+        id: { type: string, pattern: '^(topic|map|node):[0-9a-f-]{36}$' }
+        kind: { type: string, enum: [topic, map, node] }
+        map_slug:
+          type: [string, 'null']
+          pattern: '^[a-z0-9-]+$'
+        node_slug:
+          type: [string, 'null']
+          pattern: '^[a-z0-9-]+$'
+        subtitle: { type: string, maxLength: 260 }
+        title: { type: string, maxLength: 240 }
     LearnerPathPagination:
       type: object
       additionalProperties: false

@@ -1781,6 +1781,52 @@ browser journey verifies the Desk with a real authorized World snapshot. This
 is read-only presentation parity: it does not change progression, route
 selection, topic publication, data ownership or media storage.
 
+## ADR-047: Learning Desk content search is an authenticated source-ordered reader
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Learning Desk contains a compact content search above
+its local Desk areas. It returns published topics first, followed by maps and
+places the current learner may see. The existing Rust public search instead
+returns map assets for the World explorer. Reusing it would omit topics, apply
+the wrong result shape and blur the public/learner visibility boundary.
+
+**Decision:** Add the typed authenticated `GET /api/v1/learner/search`
+reader. It accepts the source `query`, `page` and `per_page` parameters and
+preserves the source's 5-item frontend default, 24-item server maximum,
+literal case-insensitive matching, deterministic topic/map/node category
+order, title/identifier ordering within a category, visible-map role scope,
+hidden-place exclusion and locked-place label. The result contains only a
+presentation key, title/subtitle and source-equivalent destination slugs; no
+database identifier is accepted by a writer. React lifts the original Desk
+search markup, debounce, result-panel pagination and first-result submit
+behavior, navigating only to existing typed React destinations. The legacy
+standalone `/learning/search` URL stays unavailable.
+
+The fresh schema currently has one published World. The reader selects that
+sole current World deterministically (earliest published-world record) instead
+of silently broadening search across future Worlds. Before more than one
+published World is supported, replace that temporary locator with explicit
+current-World metadata or a resolver contract; this is an extraction trigger,
+not a permanent multi-World policy.
+
+**Why:** A small authenticated reader keeps search policy in PostgreSQL, lets
+the browser reuse the original component without reconstructing content or
+role policy, and leaves public World asset search independent. It restores a
+visible source interaction without inventing a generic search page.
+
+**Alternatives:** Extending public asset search would expose the wrong content
+model and cannot express learner map scope. Fetching topics, maps and nodes
+separately in React would duplicate ordering and access policy outside the
+server. Introducing a new standalone search route would change the source
+information architecture. All are rejected.
+
+**Evidence and boundary:** Application and persistence tests cover bounds,
+literal wildcard escaping and cross-category pagination. The generated OpenAPI
+client and browser test cover the original Desk field, typed request and
+source destination. This reader neither creates learner state nor grants a
+play run; private Learning Support replies remain a later contract.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

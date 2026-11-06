@@ -968,6 +968,35 @@ pub struct LearnerDeskPlanningPreference {
     pub time_budget: LearnerDeskTimeBudget,
 }
 
+/// The source Learning Desk's authenticated content search. Its result order
+/// is significant: published topics, then maps in the current World, then
+/// visible places in those maps. Result handles are presentation keys only;
+/// navigation continues to use public slugs rather than database authority.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerDeskSearch {
+    pub pagination: LearnerDeskSearchPagination,
+    pub results: Vec<LearnerDeskSearchResult>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerDeskSearchPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerDeskSearchResult {
+    pub href: String,
+    pub id: String,
+    pub kind: String,
+    pub map_slug: Option<String>,
+    pub node_slug: Option<String>,
+    pub subtitle: String,
+    pub title: String,
+}
+
 /// Preserve the source's `"any" | 15 | 30` browser contract while keeping the
 /// database representation normalized as a nullable small integer.
 #[derive(Clone, Debug, Serialize)]

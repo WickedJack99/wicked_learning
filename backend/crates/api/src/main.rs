@@ -10,6 +10,7 @@ mod learner_bookmark_map;
 mod learner_check_in;
 mod learner_competence;
 mod learner_desk_planning;
+mod learner_desk_search;
 mod learner_item_grant;
 mod learner_item_obstacle;
 mod learner_journal;
@@ -266,6 +267,7 @@ fn router(state: AppState) -> Router {
             "/api/v1/learner/desk-planning-preference",
             get(learner_desk_planning::show).patch(learner_desk_planning::update),
         )
+        .route("/api/v1/learner/search", get(learner_desk_search::index))
         .route("/api/v1/learner/recall-items", get(learner_recall::index))
         .route(
             "/api/v1/learner/activities/{activity_slug}/replay",

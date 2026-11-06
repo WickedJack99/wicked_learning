@@ -92,8 +92,10 @@ export function OriginalPaginationControls({
     focusOutlineClassName = 'focus-visible:outline-[var(--journal-accent)]',
     focusRingClassName = 'focus-visible:ring-[var(--journal-accent)]',
     label,
+    nextLabel = 'Next items',
     onPageChange,
     pageCount,
+    previousLabel = 'Previous items',
     textClassName,
 }: {
     buttonClassName: string;
@@ -102,8 +104,10 @@ export function OriginalPaginationControls({
     focusOutlineClassName?: string;
     focusRingClassName?: string;
     label: string;
+    nextLabel?: string;
     onPageChange: (page: number) => void;
     pageCount: number;
+    previousLabel?: string;
     textClassName: string;
 }) {
     const inputId = `pagination-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
@@ -148,7 +152,7 @@ export function OriginalPaginationControls({
             className={`flex min-h-8 items-center justify-between gap-3 ${className}`}
         >
             <button
-                aria-label="Previous items"
+                aria-label={previousLabel}
                 className={`inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 ${focusOutlineClassName} ${buttonClassName}`}
                 disabled={safeCurrentPage === 1}
                 onClick={() => onPageChange(safeCurrentPage - 1)}
@@ -218,7 +222,7 @@ export function OriginalPaginationControls({
                 <span aria-hidden="true">of {safePageCount}</span>
             </span>
             <button
-                aria-label="Next items"
+                aria-label={nextLabel}
                 className={`inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 ${focusOutlineClassName} ${buttonClassName}`}
                 disabled={safeCurrentPage === safePageCount}
                 onClick={() => onPageChange(safeCurrentPage + 1)}

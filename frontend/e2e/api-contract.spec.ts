@@ -476,6 +476,54 @@ test('learner paths require an authenticated application principal', async ({
     expect(response.status()).toBe(401);
 });
 
+test('Learning Desk content search requires an authenticated application principal', async ({
+    request,
+}) => {
+    const response = await request.get('/api/v1/learner/search?query=map');
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+});
+
+test('a CI-only fresh identity receives source-ordered Learning Desk search results', async ({
+    request,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    test.skip(!email || !password, 'requires the disposable CI identity');
+
+    const csrfResponse = await request.get('/api/v1/security/csrf');
+    const { token } = await csrfResponse.json();
+    const login = await request.post('/api/v1/session/login', {
+        headers: {
+            Origin: publicOrigin,
+            'X-CSRF-Token': token,
+        },
+        data: { email, password },
+    });
+    expect(login.status()).toBe(200);
+
+    const response = await request.get('/api/v1/learner/search?query=map');
+    expect(response.status()).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+        pagination: { current_page: 1, last_page: 1, per_page: 5 },
+        results: expect.arrayContaining([
+            expect.objectContaining({
+                href: '/topics/map-orientation',
+                id: expect.stringMatching(/^topic:[0-9a-f-]{36}$/),
+                kind: 'topic',
+                map_slug: null,
+                node_slug: null,
+                subtitle: 'Topic',
+                title: 'Map orientation',
+            }),
+        ]),
+    });
+});
+
 test('using a learner tool requires an authenticated application principal', async ({
     request,
 }) => {
