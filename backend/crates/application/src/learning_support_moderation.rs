@@ -53,6 +53,16 @@ pub trait LearningSupportModerationRepository {
         reply_id: Uuid,
         hidden: bool,
     ) -> impl Future<Output = Result<bool, LearningSupportModerationError>> + Send;
+
+    fn delete_message(
+        &self,
+        message_id: Uuid,
+    ) -> impl Future<Output = Result<bool, LearningSupportModerationError>> + Send;
+
+    fn delete_reply(
+        &self,
+        reply_id: Uuid,
+    ) -> impl Future<Output = Result<bool, LearningSupportModerationError>> + Send;
 }
 
 pub struct LearningSupportTopicsQuery<'repository, Repository> {
@@ -68,6 +78,10 @@ pub struct SaveLearningSupportReply<'repository, Repository> {
 }
 
 pub struct SetLearningSupportVisibility<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+pub struct DeleteLearningSupportContent<'repository, Repository> {
     repository: &'repository Repository,
 }
 
@@ -185,6 +199,39 @@ where
     }
 }
 
+impl<'repository, Repository> DeleteLearningSupportContent<'repository, Repository>
+where
+    Repository: LearningSupportModerationRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn message(
+        &self,
+        principal: &AuthorizedPrincipal,
+        message_id: Uuid,
+    ) -> Result<bool, LearningSupportModerationError> {
+        if !principal.has_capability(ApplicationCapability::ModerateLearnerMessages) {
+            return Ok(false);
+        }
+
+        self.repository.delete_message(message_id).await
+    }
+
+    pub async fn reply(
+        &self,
+        principal: &AuthorizedPrincipal,
+        reply_id: Uuid,
+    ) -> Result<bool, LearningSupportModerationError> {
+        if !principal.has_capability(ApplicationCapability::ModerateLearnerMessages) {
+            return Ok(false);
+        }
+
+        self.repository.delete_reply(reply_id).await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{future::Future, sync::Mutex};
@@ -198,12 +245,14 @@ mod tests {
     };
 
     use super::{
-        LearningSupportModerationError, LearningSupportModerationRepository,
-        SaveLearningSupportReply, SetLearningSupportVisibility,
+        DeleteLearningSupportContent, LearningSupportModerationError,
+        LearningSupportModerationRepository, SaveLearningSupportReply,
+        SetLearningSupportVisibility,
     };
 
     #[derive(Default)]
     struct RecordingRepository {
+        deletions: Mutex<Vec<(bool, Uuid)>>,
         received: Mutex<Option<(Uuid, String)>>,
         visibility_updates: Mutex<Vec<(bool, Uuid, bool)>>,
     }
@@ -266,6 +315,28 @@ mod tests {
                 .push((false, reply_id, hidden));
             async { Ok(false) }
         }
+
+        fn delete_message(
+            &self,
+            message_id: Uuid,
+        ) -> impl Future<Output = Result<bool, LearningSupportModerationError>> + Send {
+            self.deletions
+                .lock()
+                .expect("test mutex is available")
+                .push((true, message_id));
+            async { Ok(false) }
+        }
+
+        fn delete_reply(
+            &self,
+            reply_id: Uuid,
+        ) -> impl Future<Output = Result<bool, LearningSupportModerationError>> + Send {
+            self.deletions
+                .lock()
+                .expect("test mutex is available")
+                .push((false, reply_id));
+            async { Ok(false) }
+        }
     }
 
     fn moderator() -> AuthorizedPrincipal {
@@ -279,6 +350,7 @@ mod tests {
     #[tokio::test]
     async fn trims_a_reply_before_the_capability_scoped_repository_receives_it() {
         let repository = RecordingRepository {
+            deletions: Mutex::new(Vec::new()),
             received: Mutex::new(None),
             visibility_updates: Mutex::new(Vec::new()),
         };
@@ -298,6 +370,7 @@ mod tests {
     #[tokio::test]
     async fn cannot_save_a_reply_without_the_explicit_capability() {
         let repository = RecordingRepository {
+            deletions: Mutex::new(Vec::new()),
             received: Mutex::new(None),
             visibility_updates: Mutex::new(Vec::new()),
         };
@@ -368,6 +441,30 @@ mod tests {
                 .lock()
                 .expect("test mutex is available"),
             vec![(true, message_id, true), (false, reply_id, false)]
+        );
+    }
+
+    #[tokio::test]
+    async fn deletion_does_not_reach_the_repository_without_the_explicit_capability() {
+        let repository = RecordingRepository::default();
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".to_owned()],
+            capabilities: vec![],
+        };
+
+        assert_eq!(
+            DeleteLearningSupportContent::new(&repository)
+                .message(&principal, Uuid::new_v4())
+                .await,
+            Ok(false)
+        );
+        assert!(
+            repository
+                .deletions
+                .lock()
+                .expect("test mutex is available")
+                .is_empty()
         );
     }
 }

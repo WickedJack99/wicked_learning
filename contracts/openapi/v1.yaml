@@ -519,6 +519,19 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The request is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
         '503': { description: The application database is unavailable. }
+  /learning-support/messages/{message_id}:
+    delete:
+      operationId: deleteLearningSupportMessage
+      summary: Permanently delete a private learner support request and its staff replies.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportMessageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The private learner request and its replies were deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The request is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '503': { description: The application database is unavailable. }
   /learning-support/responses/{response_id}/visibility:
     patch:
       operationId: updateLearningSupportResponseVisibility
@@ -533,6 +546,19 @@ paths:
             schema: { $ref: '#/components/schemas/UpdateLearningSupportVisibilityRequest' }
       responses:
         '204': { description: The private staff reply visibility was updated. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The reply is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '503': { description: The application database is unavailable. }
+  /learning-support/responses/{response_id}:
+    delete:
+      operationId: deleteLearningSupportResponse
+      summary: Permanently delete a private staff reply to a learner support request.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportResponseId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The private staff reply was deleted. }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The reply is unknown, is not private Learning Support, or moderation is unavailable to this principal. }

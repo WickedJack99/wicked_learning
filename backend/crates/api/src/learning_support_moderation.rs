@@ -7,8 +7,8 @@ use axum_login::AuthSession;
 use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::learning_support_moderation::{
-    LearningSupportRequestsQuery, LearningSupportTopicsQuery, SaveLearningSupportReply,
-    SetLearningSupportVisibility,
+    DeleteLearningSupportContent, LearningSupportRequestsQuery, LearningSupportTopicsQuery,
+    SaveLearningSupportReply, SetLearningSupportVisibility,
 };
 use wicked_learning_domain::learner_state::{
     LearningSupportReplySaveResult, LearningSupportRequestPage, LearningSupportTopic,
@@ -158,6 +158,58 @@ pub async fn set_reply_visibility(
         .await
         .map_err(|_| ApiError::service_unavailable())?;
     if !updated {
+        return Err(ApiError::not_found());
+    }
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn delete_message(
+    State(state): State<AppState>,
+    Path(message_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let message_id = Uuid::parse_str(&message_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearningSupportModerationRepository::new(
+        &state.application_database,
+        &state.identity_database,
+    );
+
+    let deleted = DeleteLearningSupportContent::new(&repository)
+        .message(&principal, message_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    if !deleted {
+        return Err(ApiError::not_found());
+    }
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn delete_reply(
+    State(state): State<AppState>,
+    Path(reply_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let reply_id = Uuid::parse_str(&reply_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearningSupportModerationRepository::new(
+        &state.application_database,
+        &state.identity_database,
+    );
+
+    let deleted = DeleteLearningSupportContent::new(&repository)
+        .reply(&principal, reply_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    if !deleted {
         return Err(ApiError::not_found());
     }
 

@@ -380,6 +380,23 @@ export interface paths {
         patch: operations["updateLearningSupportMessageVisibility"];
         trace?: never;
     };
+    "/learning-support/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Permanently delete a private learner support request and its staff replies. */
+        delete: operations["deleteLearningSupportMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learning-support/responses/{response_id}/visibility": {
         parameters: {
             query?: never;
@@ -395,6 +412,23 @@ export interface paths {
         head?: never;
         /** Hide or restore a private staff reply for learner-facing readers. */
         patch: operations["updateLearningSupportResponseVisibility"];
+        trace?: never;
+    };
+    "/learning-support/responses/{response_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Permanently delete a private staff reply to a learner support request. */
+        delete: operations["deleteLearningSupportResponse"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/learner/recall-items": {
@@ -3445,6 +3479,57 @@ export interface operations {
             };
         };
     };
+    deleteLearningSupportMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                message_id: components["parameters"]["LearningSupportMessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The private learner request and its replies were deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     updateLearningSupportResponseVisibility: {
         parameters: {
             query?: never;
@@ -3464,6 +3549,57 @@ export interface operations {
         };
         responses: {
             /** @description The private staff reply visibility was updated. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The reply is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteLearningSupportResponse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                response_id: components["parameters"]["LearningSupportResponseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The private staff reply was deleted. */
             204: {
                 headers: {
                     [name: string]: unknown;

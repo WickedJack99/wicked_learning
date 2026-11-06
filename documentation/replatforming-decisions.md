@@ -1913,14 +1913,17 @@ this projection. A staff member can create or update only their own bounded
 reply; the SQL uniqueness constraint on `(message_id, responder_principal_id)`
 preserves the source's per-responder update behavior.
 
-The same capability now guards dedicated hide/restore commands for a private
-request and a private reply. They update `hidden_at` and the accountable
-application principal atomically in the application database; they never
-delete content. Learner readers omit hidden replies and omit a hidden request
-body, while the request's existence still enforces the source one-request
-limit. Authorized staff readers retain the hidden records so they can restore
-them. The source Settings controls will use these contracts only when their
-surrounding source UI has been lifted.
+The same capability now guards dedicated hide/restore and deletion commands
+for a private request and a private reply. Visibility commands update
+`hidden_at` and the accountable application principal atomically in the
+application database. Deleting a request uses the established database
+cascade to delete its replies; deleting a reply affects only that reply. This
+matches the source controller's deletion ownership without applying it to
+unmigrated peer messages. Learner readers omit hidden replies and omit a
+hidden request body, while the request's existence still enforces the source
+one-request limit. Authorized staff readers retain hidden records so they can
+restore them. The source Settings controls will use these contracts only when
+their surrounding source UI has been lifted.
 
 **Why:** This retains source ownership, audience, first-request and reply
 semantics while keeping credentials, password hashes and message data in their
@@ -1938,13 +1941,13 @@ capability boundary. All are rejected.
 capability denial paths. The local Compose API journey starts the original
 orientation route, submits a first-only request, lists it through the staff
 contract, creates then updates a staff reply, hides/restores both kinds of
-record, and confirms that the learner reader withholds hidden content while
-retaining the one-request rule before completing the activity. The
-learner-facing request and Desk panels reuse lifted original components. The
-full source Settings shell and staff moderation UI have not yet migrated, so
-the new visibility contracts are intentionally not exposed through a substitute
-React panel. Peer message walls, helpfulness and deletion controls remain
-unmigrated.
+record, deletes the reply and then the request, and confirms those deletions
+through the staff reader. It also confirms that the learner reader withholds
+hidden content while retaining the one-request rule before completing the
+activity. The learner-facing request and Desk panels reuse lifted original
+components. The full source Settings shell and staff moderation UI have not
+yet migrated, so the moderation controls are intentionally not exposed through
+a substitute React panel. Peer message walls and helpfulness remain unmigrated.
 
 ## Phase 1 gate
 

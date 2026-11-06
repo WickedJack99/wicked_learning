@@ -161,6 +161,36 @@ impl LearningSupportModerationRepositoryPort for PostgresLearningSupportModerati
             })
         }
     }
+
+    fn delete_message(
+        &self,
+        message_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<bool, LearningSupportModerationError>> + Send
+    {
+        async move {
+            delete_message(self.application_pool, message_id)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not delete private Learning Support request");
+                    LearningSupportModerationError
+                })
+        }
+    }
+
+    fn delete_reply(
+        &self,
+        reply_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<bool, LearningSupportModerationError>> + Send
+    {
+        async move {
+            delete_reply(self.application_pool, reply_id)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not delete private Learning Support reply");
+                    LearningSupportModerationError
+                })
+        }
+    }
 }
 
 async fn set_visibility(
@@ -182,6 +212,28 @@ async fn set_visibility(
         .execute(pool)
         .await?
         .rows_affected()
+        == 1)
+}
+
+async fn delete_message(pool: &PgPool, message_id: Uuid) -> Result<bool, sqlx::Error> {
+    Ok(
+        sqlx::query("DELETE FROM learner_messages WHERE id = $1 AND audience = 'support'")
+            .bind(message_id)
+            .execute(pool)
+            .await?
+            .rows_affected()
+            == 1,
+    )
+}
+
+async fn delete_reply(pool: &PgPool, reply_id: Uuid) -> Result<bool, sqlx::Error> {
+    Ok(sqlx::query(
+        "DELETE FROM learner_message_responses AS responses USING learner_messages AS messages WHERE responses.id = $1 AND responses.message_id = messages.id AND messages.audience = 'support'",
+    )
+    .bind(reply_id)
+    .execute(pool)
+    .await?
+    .rows_affected()
         == 1)
 }
 

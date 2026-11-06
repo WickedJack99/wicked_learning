@@ -340,11 +340,12 @@ cross-database rationale and the exact boundary.
 
 This is not Settings parity: the original staff moderation panel and surrounding
 Settings shell are not yet available in React. The capability-gated Rust
-contract can now hide or restore a private request or reply, preserving the
-source rule that hidden material is withheld from learner readers while a
-hidden request still consumes its single contribution. Its original controls
-will be lifted only with their source Settings shell, not replaced with a
-stand-in. Peer message walls, helpfulness and deletion remain later
+contract can now hide, restore, or delete a private request or reply,
+preserving the source rule that hidden material is withheld from learner
+readers while a hidden request still consumes its single contribution.
+Deleting a request deletes its replies, matching the source's ownership
+semantics. These controls will be lifted only with their source Settings shell,
+not replaced with a stand-in. Peer message walls and helpfulness remain later
 collaboration work.
 
 ### NPC dialogue slice — 6 November 2026

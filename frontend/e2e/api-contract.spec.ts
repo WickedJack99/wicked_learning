@@ -747,6 +747,44 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     await expect(completion.json()).resolves.toMatchObject({
         status: 'completed',
     });
+
+    const deleteReply = await request.delete(
+        `/api/v1/learning-support/responses/${updatedStaffReplyDocument.response.id}`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(deleteReply.status()).toBe(204);
+
+    const moderationWithoutReply = await request.get(
+        `/api/v1/learning-support/topics/${supportTopic!.id}/requests`,
+    );
+    expect(moderationWithoutReply.status()).toBe(200);
+    await expect(moderationWithoutReply.json()).resolves.toMatchObject({
+        requests: expect.arrayContaining([
+            expect.objectContaining({
+                id: submittedRequest!.id,
+                responses: [],
+            }),
+        ]),
+    });
+
+    const deleteRequest = await request.delete(
+        `/api/v1/learning-support/messages/${submittedRequest!.id}`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(deleteRequest.status()).toBe(204);
+
+    const moderationWithoutRequest = await request.get(
+        `/api/v1/learning-support/topics/${supportTopic!.id}/requests`,
+    );
+    expect(moderationWithoutRequest.status()).toBe(200);
+    const moderationWithoutRequestDocument = (await moderationWithoutRequest.json()) as {
+        requests: Array<{ id: string }>;
+    };
+    expect(
+        moderationWithoutRequestDocument.requests.some(
+            (candidate) => candidate.id === submittedRequest!.id,
+        ),
+    ).toBe(false);
 });
 
 test('using a learner tool requires an authenticated application principal', async ({

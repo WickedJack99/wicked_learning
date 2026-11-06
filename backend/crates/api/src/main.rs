@@ -53,7 +53,7 @@ use axum::{
     extract::State,
     http::{HeaderName, Method},
     response::IntoResponse,
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
 };
 use axum_login::AuthManagerLayerBuilder;
 use serde::Serialize;
@@ -293,6 +293,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learning-support/responses/{response_id}/visibility",
             patch(learning_support_moderation::set_reply_visibility),
+        )
+        .route(
+            "/api/v1/learning-support/messages/{message_id}",
+            delete(learning_support_moderation::delete_message),
+        )
+        .route(
+            "/api/v1/learning-support/responses/{response_id}",
+            delete(learning_support_moderation::delete_reply),
         )
         .route("/api/v1/learner/recall-items", get(learner_recall::index))
         .route(
