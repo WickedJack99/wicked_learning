@@ -1342,6 +1342,52 @@ Full desk sections, recall authoring/settings, media/audio and non-question
 recall remain deferred until their source contracts and direct UI adaptations
 exist.
 
+## ADR-038: Competence remains a private qualitative reader with source context
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Competence page combines a bounded private evidence
+map with recent learner check-ins, revisit history, optional links to a formal
+Topic with the same competence-category slug, and a link back to the newest
+evidence activity. Returning only visual ratios would not supply the original
+page's explanatory context. Conversely, generating Laravel URLs or exposing
+unbounded event metadata would couple the new client to the old framework and
+leak private material that the source page intentionally omits.
+
+**Decision:** Keep `GET /api/v1/learner/competence` private and read-only. Its
+bounded contract now carries the source-visible check-in direction and up to
+three authored learning areas, plus review-attempt assistance and up to eight
+observed cues. Each competence category independently resolves an optionally
+published formal Topic with the same slug. Its revisit context comes from its
+newest evidence event only when that activity is still published and visible to
+the current learner; it does not fall back to an older event. Rust transports
+public slugs and titles, not Laravel-generated URLs or database IDs. A later
+lifted React page must obtain any opaque play run through the existing
+server-authorized start/open contracts before navigating to activity playback.
+
+The legacy `responseType` field is not represented in the greenfield review
+attempt schema. It is deliberately absent rather than inferred from activity
+configuration or invented in React. Reflection bodies, arbitrary review
+metadata and evidence values outside the source reader remain absent as well.
+
+**Why:** This retains the source page's qualitative explanations and its
+separation between a competence category, a formal Topic, and the activity
+where evidence happened. Slug-based transport keeps the API framework-neutral,
+while the visibility check prevents an old private event from becoming a route
+into content the learner cannot currently access.
+
+**Alternatives:** Using the evidence activity's map Topic as the related Topic
+would change the source behavior; the category and encounter Topic can differ.
+Returning legacy href strings would make Laravel routing a durable contract.
+Guessing `responseType` from other fields would present a claim the new data
+model did not record. These alternatives are rejected.
+
+**Limitations and trigger:** This is a contract foundation only. `/competence`
+remains unavailable until the actual source React page and star-layout are
+lifted and all of their links have authorized Rust destinations. The required
+playback-opening contract and any future persisted review response type must be
+implemented and tested before their original controls are exposed.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

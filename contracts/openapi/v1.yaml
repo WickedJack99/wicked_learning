@@ -2057,39 +2057,77 @@ components:
     LearnerCompetenceCheckIn:
       type: object
       additionalProperties: false
-      required: [activity_slug, activity_title, feeling, map_slug, node_slug, node_title, note, recorded_at]
+      required: [activity_slug, activity_title, feeling, map_slug, next_direction, node_slug, node_title, note, recorded_at, topics]
       properties:
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         activity_title: { type: string, maxLength: 240 }
         feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
         map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        next_direction: { type: [string, 'null'], enum: [revisit, related, settle, null] }
         node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         node_title: { type: string, maxLength: 240 }
         note: { type: [string, 'null'], maxLength: 4000 }
         recorded_at: { type: string, format: date-time }
+        topics:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/LearnerCompetenceLearningArea' }
     LearnerCompetenceReviewAttempt:
       type: object
       additionalProperties: false
-      required: [activity_slug, activity_title, attempted_at, attempt_number, confidence, confidence_after_feedback, node_slug, node_title, outcome, revisit_reason]
+      required: [activity_slug, activity_title, assistance_level, attempted_at, attempt_number, confidence, confidence_after_feedback, node_slug, node_title, observed_cues, outcome, revisit_reason]
       properties:
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         activity_title: { type: string, maxLength: 240 }
+        assistance_level: { type: [string, 'null'], enum: [independent, hint, questions_only, post_attempt_support, null] }
         attempted_at: { type: string, format: date-time }
         attempt_number: { type: integer, minimum: 2 }
         confidence: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
         confidence_after_feedback: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
         node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         node_title: { type: string, maxLength: 240 }
+        observed_cues: { type: array, maxItems: 8, items: { type: string, maxLength: 120 } }
         outcome: { type: [string, 'null'], enum: [completed, correct, incorrect, null] }
         revisit_reason: { type: string, enum: [pause, later] }
     LearnerCompetenceTopic:
       type: object
       additionalProperties: false
-      required: [name, slug, visual]
+      required: [name, related_topic, revisit, slug, visual]
+      properties:
+        name: { type: string, maxLength: 120 }
+        related_topic:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerCompetenceRelatedTopic'
+            - type: 'null'
+        revisit:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerCompetenceRevisit'
+            - type: 'null'
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        visual: { $ref: '#/components/schemas/LearnerCompetenceVisual' }
+    LearnerCompetenceLearningArea:
+      type: object
+      additionalProperties: false
+      required: [name, slug]
       properties:
         name: { type: string, maxLength: 120 }
         slug: { type: string, pattern: '^[a-z0-9-]+$' }
-        visual: { $ref: '#/components/schemas/LearnerCompetenceVisual' }
+    LearnerCompetenceRelatedTopic:
+      type: object
+      additionalProperties: false
+      required: [slug, title]
+      properties:
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string, maxLength: 240 }
+    LearnerCompetenceRevisit:
+      type: object
+      additionalProperties: false
+      required: [activity_slug, activity_title, node_slug, node_title]
+      properties:
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        activity_title: { type: string, maxLength: 240 }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_title: { type: string, maxLength: 240 }
     LearnerCompetenceVisual:
       type: object
       additionalProperties: false

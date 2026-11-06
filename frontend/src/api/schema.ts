@@ -1211,15 +1211,20 @@ export interface components {
             /** @enum {string|null} */
             feeling: "clearer" | "forming" | "stretched" | "stuck" | null;
             map_slug: string;
+            /** @enum {string|null} */
+            next_direction: "revisit" | "related" | "settle" | null;
             node_slug: string;
             node_title: string;
             note: string | null;
             /** Format: date-time */
             recorded_at: string;
+            topics: components["schemas"]["LearnerCompetenceLearningArea"][];
         };
         LearnerCompetenceReviewAttempt: {
             activity_slug: string;
             activity_title: string;
+            /** @enum {string|null} */
+            assistance_level: "independent" | "hint" | "questions_only" | "post_attempt_support" | null;
             /** Format: date-time */
             attempted_at: string;
             attempt_number: number;
@@ -1229,6 +1234,7 @@ export interface components {
             confidence_after_feedback: "exploring" | "leaning" | "settled" | null;
             node_slug: string;
             node_title: string;
+            observed_cues: string[];
             /** @enum {string|null} */
             outcome: "completed" | "correct" | "incorrect" | null;
             /** @enum {string} */
@@ -1236,8 +1242,24 @@ export interface components {
         };
         LearnerCompetenceTopic: {
             name: string;
+            related_topic: components["schemas"]["LearnerCompetenceRelatedTopic"] | null;
+            revisit: components["schemas"]["LearnerCompetenceRevisit"] | null;
             slug: string;
             visual: components["schemas"]["LearnerCompetenceVisual"];
+        };
+        LearnerCompetenceLearningArea: {
+            name: string;
+            slug: string;
+        };
+        LearnerCompetenceRelatedTopic: {
+            slug: string;
+            title: string;
+        };
+        LearnerCompetenceRevisit: {
+            activity_slug: string;
+            activity_title: string;
+            node_slug: string;
+            node_title: string;
         };
         LearnerCompetenceVisual: {
             aura_ratio: number;

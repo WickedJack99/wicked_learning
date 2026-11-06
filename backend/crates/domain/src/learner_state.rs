@@ -378,10 +378,12 @@ pub struct LearnerCompetenceCheckIn {
     pub activity_title: String,
     pub feeling: Option<String>,
     pub map_slug: String,
+    pub next_direction: Option<String>,
     pub node_slug: String,
     pub node_title: String,
     pub note: Option<String>,
     pub recorded_at: String,
+    pub topics: Vec<LearnerCompetenceLearningArea>,
 }
 
 /// A bounded source revisit summary. It intentionally excludes reflection
@@ -390,21 +392,45 @@ pub struct LearnerCompetenceCheckIn {
 pub struct LearnerCompetenceReviewAttempt {
     pub activity_slug: String,
     pub activity_title: String,
+    pub assistance_level: Option<String>,
     pub attempted_at: String,
     pub attempt_number: i32,
     pub confidence: Option<String>,
     pub confidence_after_feedback: Option<String>,
     pub node_slug: String,
     pub node_title: String,
+    pub observed_cues: Vec<String>,
     pub outcome: Option<String>,
     pub revisit_reason: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct LearnerCompetenceTopic {
+pub struct LearnerCompetenceLearningArea {
     pub name: String,
     pub slug: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceTopic {
+    pub name: String,
+    pub related_topic: Option<LearnerCompetenceRelatedTopic>,
+    pub revisit: Option<LearnerCompetenceRevisit>,
+    pub slug: String,
     pub visual: LearnerCompetenceVisual,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceRelatedTopic {
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceRevisit {
+    pub activity_slug: String,
+    pub activity_title: String,
+    pub node_slug: String,
+    pub node_title: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

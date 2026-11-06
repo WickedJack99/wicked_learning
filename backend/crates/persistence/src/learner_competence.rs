@@ -9,8 +9,9 @@ use wicked_learning_application::learner_competence::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerCompetenceCheckIn, LearnerCompetenceEvidence, LearnerCompetenceMap,
-        LearnerCompetenceReviewAttempt, LearnerCompetenceSource, LearnerCompetenceTopic,
+        LearnerCompetenceCheckIn, LearnerCompetenceEvidence, LearnerCompetenceLearningArea,
+        LearnerCompetenceMap, LearnerCompetenceRelatedTopic, LearnerCompetenceReviewAttempt,
+        LearnerCompetenceRevisit, LearnerCompetenceSource, LearnerCompetenceTopic,
         LearnerCompetenceTransition, LearnerCompetenceVisual,
     },
 };
@@ -81,8 +82,10 @@ struct TransitionRow {
 struct CheckInRow {
     activity_slug: String,
     activity_title: String,
+    competence_topics: Option<Value>,
     feeling: Option<String>,
     map_slug: String,
+    next_direction: Option<String>,
     node_slug: String,
     node_title: String,
     note: Option<String>,
@@ -93,14 +96,31 @@ struct CheckInRow {
 struct ReviewAttemptRow {
     activity_slug: String,
     activity_title: String,
+    assistance_level: String,
     attempted_at: String,
     attempt_number: i32,
     confidence: Option<String>,
     confidence_after_feedback: Option<String>,
     node_slug: String,
     node_title: String,
+    observed_cues: Option<Value>,
     outcome: Option<String>,
     revisit_reason: String,
+}
+
+#[derive(FromRow)]
+struct TopicContextRow {
+    activity_slug: String,
+    activity_title: String,
+    node_slug: String,
+    node_title: String,
+    topic_slug: String,
+}
+
+#[derive(FromRow)]
+struct RelatedTopicRow {
+    slug: String,
+    title: String,
 }
 
 impl LearnerCompetenceRepositoryPort for PostgresLearnerCompetenceRepository<'_> {
@@ -151,6 +171,8 @@ async fn load(
     let transitions = load_transitions(pool, principal_id, &topic_slugs).await?;
     let check_ins = load_check_ins(pool, principal_id, &principal.roles).await?;
     let review_attempts = load_review_attempts(pool, principal_id, &principal.roles).await?;
+    let revisits = load_revisits(pool, principal_id, &principal.roles, &topic_slugs).await?;
+    let related_topics = load_related_topics(pool, &topic_slugs).await?;
 
     Ok(Some(LearnerCompetenceMap {
         check_ins,
@@ -159,23 +181,82 @@ async fn load(
         review_attempts,
         topics: topic_rows
             .into_iter()
-            .map(|topic| LearnerCompetenceTopic {
-                name: topic.name,
-                slug: topic.slug.clone(),
-                visual: visual_for_topic(
-                    topic.total_signal,
-                    topic.recent_signal,
-                    topic.growth_threshold,
-                    topic.brightness_threshold,
-                    topic.aura_threshold,
-                    topic.evidence_types,
-                    topic.learning_periods,
-                    ledger.get(&topic.slug).cloned().unwrap_or_default(),
-                ),
+            .map(|topic| {
+                let revisit = revisits.get(&topic.slug);
+                LearnerCompetenceTopic {
+                    name: topic.name,
+                    related_topic: related_topics.get(&topic.slug).map(|topic| {
+                        LearnerCompetenceRelatedTopic {
+                            slug: topic.slug.clone(),
+                            title: topic.title.clone(),
+                        }
+                    }),
+                    revisit: revisit.map(|revisit| LearnerCompetenceRevisit {
+                        activity_slug: revisit.activity_slug.clone(),
+                        activity_title: revisit.activity_title.clone(),
+                        node_slug: revisit.node_slug.clone(),
+                        node_title: revisit.node_title.clone(),
+                    }),
+                    slug: topic.slug.clone(),
+                    visual: visual_for_topic(
+                        topic.total_signal,
+                        topic.recent_signal,
+                        topic.growth_threshold,
+                        topic.brightness_threshold,
+                        topic.aura_threshold,
+                        topic.evidence_types,
+                        topic.learning_periods,
+                        ledger.get(&topic.slug).cloned().unwrap_or_default(),
+                    ),
+                }
             })
             .collect(),
         transitions,
     }))
+}
+
+/// Finds the activity behind the most recent evidence event for each
+/// competence category. Access is evaluated after choosing that event so an
+/// inaccessible newest event never falls back to an older activity.
+async fn load_revisits(
+    pool: &PgPool,
+    principal_id: Uuid,
+    roles: &[String],
+    topic_slugs: &[String],
+) -> Result<HashMap<String, TopicContextRow>, sqlx::Error> {
+    if topic_slugs.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let rows = sqlx::query_as::<_, TopicContextRow>("WITH ranked_events AS (SELECT events.topic_slug, events.activity_id, ROW_NUMBER() OVER (PARTITION BY events.topic_slug ORDER BY events.created_at DESC, events.id DESC) AS topic_position FROM learner_evidence_events AS events WHERE events.principal_id = $1 AND events.topic_slug = ANY($2)) SELECT ranked_events.topic_slug, activities.slug AS activity_slug, activities.title AS activity_title, nodes.slug AS node_slug, nodes.title AS node_title FROM ranked_events INNER JOIN learning_activities AS activities ON activities.id = ranked_events.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE ranked_events.topic_position = 1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))")
+        .bind(principal_id).bind(topic_slugs).bind(roles).fetch_all(pool).await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| (row.topic_slug.clone(), row))
+        .collect())
+}
+
+/// A competence category can intentionally differ from the Topic where its
+/// evidence was encountered. The source page links a category only to a
+/// separately published Topic with the same slug.
+async fn load_related_topics(
+    pool: &PgPool,
+    topic_slugs: &[String],
+) -> Result<HashMap<String, RelatedTopicRow>, sqlx::Error> {
+    if topic_slugs.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let rows = sqlx::query_as::<_, RelatedTopicRow>(
+        "SELECT slug, title FROM learning_topics WHERE slug = ANY($1) AND published_at IS NOT NULL",
+    )
+    .bind(topic_slugs)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| (row.slug.clone(), row))
+        .collect())
 }
 
 async fn load_check_ins(
@@ -183,7 +264,7 @@ async fn load_check_ins(
     principal_id: Uuid,
     roles: &[String],
 ) -> Result<Vec<LearnerCompetenceCheckIn>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, CheckInRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, check_ins.feeling, maps.slug AS map_slug, nodes.slug AS node_slug, nodes.title AS node_title, check_ins.note, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3")
+    let rows = sqlx::query_as::<_, CheckInRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, activities.activity_config -> 'competenceTopics' AS competence_topics, check_ins.feeling, maps.slug AS map_slug, check_ins.next_direction, nodes.slug AS node_slug, nodes.title AS node_title, check_ins.note, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3")
         .bind(principal_id).bind(roles).bind(CHECK_IN_LIMIT).fetch_all(pool).await?;
     Ok(rows
         .into_iter()
@@ -192,10 +273,12 @@ async fn load_check_ins(
             activity_title: row.activity_title,
             feeling: row.feeling,
             map_slug: row.map_slug,
+            next_direction: row.next_direction,
             node_slug: row.node_slug,
             node_title: row.node_title,
             note: row.note,
             recorded_at: row.recorded_at,
+            topics: competence_topics(row.competence_topics),
         })
         .collect())
 }
@@ -205,19 +288,21 @@ async fn load_review_attempts(
     principal_id: Uuid,
     roles: &[String],
 ) -> Result<Vec<LearnerCompetenceReviewAttempt>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, ReviewAttemptRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, to_char(attempts.attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS attempted_at, attempts.attempt_number, attempts.confidence, attempts.confidence_after_feedback, nodes.slug AS node_slug, nodes.title AS node_title, attempts.outcome, attempts.revisit_reason FROM learner_review_attempts AS attempts INNER JOIN learning_activities AS activities ON activities.id = attempts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE attempts.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY attempts.attempted_at DESC, attempts.id DESC LIMIT $3")
+    let rows = sqlx::query_as::<_, ReviewAttemptRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, attempts.assistance_level, to_char(attempts.attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS attempted_at, attempts.attempt_number, attempts.confidence, attempts.confidence_after_feedback, nodes.slug AS node_slug, nodes.title AS node_title, attempts.observed_cues, attempts.outcome, attempts.revisit_reason FROM learner_review_attempts AS attempts INNER JOIN learning_activities AS activities ON activities.id = attempts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE attempts.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY attempts.attempted_at DESC, attempts.id DESC LIMIT $3")
         .bind(principal_id).bind(roles).bind(REVIEW_ATTEMPT_LIMIT).fetch_all(pool).await?;
     Ok(rows
         .into_iter()
         .map(|row| LearnerCompetenceReviewAttempt {
             activity_slug: row.activity_slug,
             activity_title: row.activity_title,
+            assistance_level: assistance_level(&row.assistance_level),
             attempted_at: row.attempted_at,
             attempt_number: row.attempt_number,
             confidence: row.confidence,
             confidence_after_feedback: row.confidence_after_feedback,
             node_slug: row.node_slug,
             node_title: row.node_title,
+            observed_cues: normalized_texts(row.observed_cues, 8, 120),
             outcome: row.outcome,
             revisit_reason: row.revisit_reason,
         })
@@ -397,6 +482,72 @@ fn string_array(value: Option<Value>) -> Vec<String> {
         .collect()
 }
 
+fn competence_topics(value: Option<Value>) -> Vec<LearnerCompetenceLearningArea> {
+    value
+        .and_then(|value| value.as_array().cloned())
+        .unwrap_or_default()
+        .into_iter()
+        .take(3)
+        .filter_map(|value| {
+            let topic = value.as_object()?;
+            let slug = topic.get("slug")?.as_str()?.trim();
+            let name = bounded_text(topic.get("topic")?.as_str()?, 120)?;
+
+            valid_topic_slug(slug).then(|| LearnerCompetenceLearningArea {
+                name,
+                slug: slug.to_owned(),
+            })
+        })
+        .fold(Vec::new(), |mut topics, topic| {
+            if !topics
+                .iter()
+                .any(|existing: &LearnerCompetenceLearningArea| existing.slug == topic.slug)
+            {
+                topics.push(topic);
+            }
+            topics
+        })
+}
+
+fn normalized_texts(
+    value: Option<Value>,
+    maximum_items: usize,
+    maximum_characters: usize,
+) -> Vec<String> {
+    value
+        .and_then(|value| value.as_array().cloned())
+        .unwrap_or_default()
+        .into_iter()
+        .take(maximum_items)
+        .filter_map(|value| {
+            value
+                .as_str()
+                .and_then(|value| bounded_text(value, maximum_characters))
+        })
+        .fold(Vec::new(), |mut texts, value| {
+            if !texts
+                .iter()
+                .any(|existing: &String| existing.eq_ignore_ascii_case(&value))
+            {
+                texts.push(value);
+            }
+            texts
+        })
+}
+
+fn bounded_text(value: &str, maximum_characters: usize) -> Option<String> {
+    let value = value.trim();
+    (!value.is_empty()).then(|| value.chars().take(maximum_characters).collect())
+}
+
+fn valid_topic_slug(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 140
+        && value.bytes().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == b'-'
+        })
+}
+
 fn source_references(value: Option<Value>) -> Vec<LearnerCompetenceSource> {
     value
         .and_then(|value| value.as_array().cloned())
@@ -424,7 +575,9 @@ fn optional_text(value: Option<&Value>) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::visual_for_topic;
+    use serde_json::json;
+
+    use super::{competence_topics, normalized_texts, visual_for_topic};
 
     #[test]
     fn visual_ratios_remain_qualitative_and_match_the_source_thresholds() {
@@ -439,5 +592,37 @@ mod tests {
             visual.recent_description,
             "Recent learning moments are gently lighting this area."
         );
+    }
+
+    #[test]
+    fn check_in_topics_keep_the_source_defined_bounded_unique_areas() {
+        let topics = competence_topics(Some(json!([
+            { "slug": "orientation", "topic": "Orientation" },
+            { "slug": "orientation", "topic": "A duplicate" },
+            { "slug": "valid-area", "topic": "Valid area" },
+            { "slug": "ignored-after-bound", "topic": "Ignored after bound" }
+        ])));
+
+        assert_eq!(topics.len(), 2);
+        assert_eq!(topics[0].slug, "orientation");
+        assert_eq!(topics[0].name, "Orientation");
+        assert_eq!(topics[1].slug, "valid-area");
+    }
+
+    #[test]
+    fn review_cues_are_bounded_and_do_not_repeat_case_insensitively() {
+        let cues = normalized_texts(
+            Some(json!([
+                "Names the pattern",
+                "names the pattern",
+                "  ",
+                9,
+                "Connects it"
+            ])),
+            8,
+            120,
+        );
+
+        assert_eq!(cues, vec!["Names the pattern", "Connects it"]);
     }
 }
