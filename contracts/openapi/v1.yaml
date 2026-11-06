@@ -495,6 +495,27 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '503': { description: The application database is unavailable. }
+  /learner/appearance:
+    patch:
+      operationId: updateLearnerAppearance
+      summary: Save the current learner's private resolved Light or Dark preference.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLearnerAppearanceRequest' }
+      responses:
+        '200':
+          description: The saved private appearance preference.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerAppearancePreference' }
+        '400': { description: Appearance must be the resolved source light or dark value. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application database is unavailable. }
   /learning-support/topics:
     get:
       operationId: getLearningSupportTopics
@@ -2028,6 +2049,22 @@ components:
           items:
             type: string
             enum: [learner, learning_support, platform_administrator]
+    UpdateLearnerAppearanceRequest:
+      type: object
+      additionalProperties: false
+      required: [appearance]
+      properties:
+        appearance:
+          type: string
+          enum: [dark, light]
+    LearnerAppearancePreference:
+      type: object
+      additionalProperties: false
+      required: [appearance]
+      properties:
+        appearance:
+          type: string
+          enum: [dark, light]
     LoginRequest:
       type: object
       additionalProperties: false

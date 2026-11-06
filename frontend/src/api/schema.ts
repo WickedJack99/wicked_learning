@@ -350,6 +350,23 @@ export interface paths {
         patch: operations["updateLearnerSoundPreferences"];
         trace?: never;
     };
+    "/learner/appearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save the current learner's private resolved Light or Dark preference. */
+        patch: operations["updateLearnerAppearance"];
+        trace?: never;
+    };
     "/learning-support/topics": {
         parameters: {
             query?: never;
@@ -1384,6 +1401,14 @@ export interface components {
             subject_id: string;
             /** @description Application roles, not credentials or profile data. */
             roles: ("learner" | "learning_support" | "platform_administrator")[];
+        };
+        UpdateLearnerAppearanceRequest: {
+            /** @enum {string} */
+            appearance: "dark" | "light";
+        };
+        LearnerAppearancePreference: {
+            /** @enum {string} */
+            appearance: "dark" | "light";
         };
         LoginRequest: {
             /** Format: email */
@@ -3852,6 +3877,61 @@ export interface operations {
                 };
             };
             /** @description A volume was outside the source-defined range. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerAppearance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerAppearanceRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved private appearance preference. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerAppearancePreference"];
+                };
+            };
+            /** @description Appearance must be the resolved source light or dark value. */
             400: {
                 headers: {
                     [name: string]: unknown;

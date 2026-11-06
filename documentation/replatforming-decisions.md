@@ -2268,9 +2268,10 @@ principalâ€”not with the password, profile or session in the identity databaseâ€
 and includes it in the authenticated current-user response. The React shell
 therefore restores an account's saved choice after registration or a later
 login, while its existing browser storage continues to make the public shell
-respond immediately. A general preference-update endpoint is intentionally
-deferred until the original Personal settings UI is lifted; adding a new
-backend-only settings workflow would not be parity work.
+respond immediately. The lifted, single-section source Appearance settings
+surface updates that same value through a CSRF-protected owner-scoped command.
+The other Personal settings controls remain unavailable until their own source
+UI and Rust contracts are ready.
 
 An operator-only `issue-registration-token` command creates a high-entropy
 token and writes it once to an explicit private file; it stores neither the

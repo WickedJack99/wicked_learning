@@ -47,6 +47,14 @@ test('a one-use local invitation creates a signed-in identity', async ({ page })
     });
     await expect(page.locator('html')).toHaveClass(/dark/);
 
+    await page.goto('/settings?panel=personal&personal=appearance');
+    await expect(page.getByRole('heading', { name: 'Appearance' })).toBeVisible();
+    await page.getByRole('button', { name: 'Light' }).click();
+    await expect.poll(async () => (await page.request.get('/api/v1/me')).json()).toMatchObject({
+        appearance: 'light',
+    });
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+
     await page.goto('/register');
     await page.getByLabel('Name').fill('Second registration attempt');
     await page

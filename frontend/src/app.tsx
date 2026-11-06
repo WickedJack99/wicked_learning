@@ -1,12 +1,13 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router';
 
-import { apiClient } from './api/client';
+import { apiClient, getCsrfToken } from './api/client';
 import { OriginalLoginPage } from './original-login';
 import { OriginalRegisterPage } from './original-register';
 import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
+import { OriginalPersonalAppearancePage } from './original-personal-appearance';
 import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
@@ -72,6 +73,21 @@ export function App() {
             setAppearance(currentUser.appearance);
         }
     }, [appearance, currentUser, setAppearance]);
+
+    async function saveAppearance(nextAppearance: OriginalAppearance): Promise<void> {
+        const token = await getCsrfToken();
+        const { data, response } = await apiClient.PATCH('/learner/appearance', {
+            body: { appearance: nextAppearance },
+            params: { header: { 'X-CSRF-Token': token } },
+        });
+        if (!response.ok || !data) {
+            throw new Error('appearance unavailable');
+        }
+        setAppearance(data.appearance);
+        setCurrentUser((current) => current.kind === 'loaded'
+            ? { ...current, appearance: data.appearance }
+            : current);
+    }
 
     useEffect(() => {
         let isCurrent = true;
@@ -230,6 +246,7 @@ export function App() {
     }
 
     if (location.pathname === '/settings') {
+        const supportPanel = new URLSearchParams(location.search).get('panel') === 'admin-learning-support';
         if (
             currentUser.kind === 'loading' ||
             currentUser.kind === 'unavailable'
@@ -239,6 +256,10 @@ export function App() {
 
         if (currentUser.kind === 'anonymous') {
             return <Navigate replace to="/login" />;
+        }
+
+        if (!supportPanel) {
+            return <OriginalPersonalAppearancePage appearance={appearance} onAppearanceChange={saveAppearance} />;
         }
 
         if (

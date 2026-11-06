@@ -6,6 +6,7 @@ mod error;
 mod identity;
 mod identity_registration;
 mod learner_activity_replay_run;
+mod learner_appearance_preference;
 mod learner_bookmark;
 mod learner_bookmark_map;
 mod learner_check_in;
@@ -304,6 +305,10 @@ fn router(state: AppState) -> Router {
             post(learner_node_tool::use_on_node),
         )
         .route("/api/v1/learner/journal", get(learner_journal::index))
+        .route(
+            "/api/v1/learner/appearance",
+            patch(learner_appearance_preference::update),
+        )
         .route(
             "/api/v1/learner/desk-planning-preference",
             get(learner_desk_planning::show).patch(learner_desk_planning::update),
