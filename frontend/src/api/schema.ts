@@ -133,6 +133,46 @@ export interface paths {
         patch: operations["updateAccountProfile"];
         trace?: never;
     };
+    "/account/profile/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stage a source-supported profile image for the current subject.
+         * @description The upload is private to its owner until its returned profile_image_id is saved with PATCH /account/profile. The server accepts GIF, JPEG, PNG, SVG and WebP only after inspecting its bytes; uploaded SVG is served with a restrictive content-security policy.
+         */
+        post: operations["uploadAccountProfileImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profile-images/{profile_image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an authorized profile image.
+         * @description A pending image is visible only to its owner. A saved image is visible to signed-in users for use in shared learning spaces.
+         */
+        get: operations["getProfileImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/world": {
         parameters: {
             query?: never;
@@ -1549,12 +1589,22 @@ export interface components {
             /** Format: email */
             email: string;
             username: string | null;
+            /** Format: uuid */
+            profile_image_id: string | null;
+            profile_image_url: string | null;
         };
         UpdateAccountProfileRequest: {
             name: string;
             /** Format: email */
             email: string;
             username?: string | null;
+            /** Format: uuid */
+            profile_image_id: string | null;
+        };
+        ProfileImageUpload: {
+            /** Format: uuid */
+            profile_image_id: string;
+            url: string;
         };
         SessionStatus: {
             authenticated: boolean;
@@ -3415,6 +3465,121 @@ export interface operations {
                 content?: never;
             };
             /** @description An identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    uploadAccountProfileImage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description GIF, JPEG, PNG, SVG or WebP image, up to 5 MiB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A private staged image which may be selected by the current subject's next profile save. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileImageUpload"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The upload exceeds the 5 MiB profile-image limit. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The upload is empty */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or mounted media store is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getProfileImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes with an inspected image content type and anti-sniffing headers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/gif": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/svg+xml": string;
+                    "image/webp": string;
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The image is unavailable to this subject. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or mounted media store is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

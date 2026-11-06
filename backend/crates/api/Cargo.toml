@@ -8,11 +8,12 @@ publish = false
 [dependencies]
 async-openai = { version = "0.43", default-features = false, features = ["responses"] }
 argon2 = "0.5"
-axum = "0.8"
+axum = { version = "0.8", features = ["multipart"] }
 axum_csrf = { version = "0.12", features = ["layer"] }
 axum-login = "0.18"
 email_address = "0.2"
 object_store = { version = "0.14", default-features = false, features = ["fs"] }
+infer = "0.19"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.11"

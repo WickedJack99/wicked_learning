@@ -22,8 +22,18 @@ test('a disposable local identity updates source-shaped profile details', async 
     await page.getByLabel('Name', { exact: true }).fill('Profile settings browser check');
     await page.getByLabel('Public username').fill(`profile_${Date.now()}`);
     await page.getByLabel('Email address').fill(updatedEmail!);
+    await page.locator('#profile-image-upload').setInputFiles({
+        name: 'profile.gif',
+        mimeType: 'image/gif',
+        buffer: Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64'),
+    });
+    await expect(page.locator('img[src^="/api/v1/profile-images/"]')).toBeVisible();
     await page.getByRole('button', { name: 'Save profile' }).click();
     await expect(page.getByRole('status')).toHaveText('Profile updated.');
+    const savedProfile = await page.request.get('/api/v1/account/profile');
+    await expect(savedProfile.json()).resolves.toMatchObject({
+        profile_image_url: expect.stringMatching(/^\/api\/v1\/profile-images\//),
+    });
     const currentUser = await page.request.get('/api/v1/me');
     await expect(currentUser.json()).resolves.toMatchObject({
         email: updatedEmail,

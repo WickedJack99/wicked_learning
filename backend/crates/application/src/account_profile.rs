@@ -7,6 +7,7 @@ pub struct AccountProfile {
     pub display_name: String,
     pub email: String,
     pub public_username: Option<String>,
+    pub profile_image_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,6 +15,7 @@ pub struct AccountProfileDraft {
     pub display_name: String,
     pub email: String,
     pub public_username: Option<String>,
+    pub profile_image_id: Option<Uuid>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

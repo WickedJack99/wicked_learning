@@ -1,5 +1,6 @@
 mod account_password;
 mod account_profile;
+mod account_profile_image;
 mod admin_learning_group;
 mod bootstrap;
 mod config;
@@ -61,7 +62,7 @@ use std::{process::ExitCode, time::Duration};
 
 use axum::{
     Json, Router,
-    extract::State,
+    extract::{DefaultBodyLimit, State},
     http::{HeaderName, Method},
     response::IntoResponse,
     routing::{delete, get, patch, post},
@@ -281,6 +282,15 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/account/profile",
             get(account_profile::show).patch(account_profile::update),
+        )
+        .route(
+            "/api/v1/account/profile/image",
+            post(account_profile_image::upload)
+                .layer(DefaultBodyLimit::max(account_profile_image::MAX_PROFILE_IMAGE_BYTES + 16 * 1024)),
+        )
+        .route(
+            "/api/v1/profile-images/{profile_image_id}",
+            get(account_profile_image::show),
         )
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
         .route(
@@ -551,7 +561,7 @@ fn router(state: AppState) -> Router {
                 .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestUuid))
                 .layer(TraceLayer::new_for_http())
                 .layer(PropagateRequestIdLayer::new(REQUEST_ID_HEADER))
-                .layer(RequestBodyLimitLayer::new(64 * 1024))
+                .layer(RequestBodyLimitLayer::new(account_profile_image::MAX_PROFILE_IMAGE_BYTES + 16 * 1024))
                 .layer(TimeoutLayer::with_status_code(
                     axum::http::StatusCode::REQUEST_TIMEOUT,
                     Duration::from_secs(10),

@@ -2451,12 +2451,9 @@ when the subsequent identity update cannot complete, rather than duplicating
 identity data. The current session is refreshed with a changed email, while
 its password verifier remains unchanged.
 
-The source image UI is intentionally not exposed yet. Its source behavior
-uploads before profile-save and requires a complete mounted-volume lifecycle:
-type-safe ingest, bounded object storage, owner preview/download, public
-shared-space serving, replacement/deletion and abandoned-upload cleanup. That
-is one media slice, not a text-field substitute. The source profile form is
-therefore adapted only with the complete Name, username and Email controls.
+The profile-image behavior is completed by ADR-062. The source form keeps an
+upload private until the person presses Save profile; the Rust contract retains
+that staging boundary rather than attaching the object immediately.
 
 **Why:** This restores useful profile maintenance and changes the default
 Settings destination back to the original Profile panel while retaining the
@@ -2470,9 +2467,53 @@ application data would duplicate the sign-in address. Showing an arbitrary
 profile-image URL field or a disabled upload button would imitate rather than
 migrate the source workflow. These are rejected.
 
-**Limits and follow-up:** Profile image upload/serving is the next media
-sub-slice. Email-verification delivery, profile deletion and the remaining
-Personal sections remain separate identity/account work.
+**Limits and follow-up:** Email-verification delivery, profile deletion and the
+remaining Personal sections remain separate identity/account work.
+
+## ADR-062: Profile images use owner-scoped staging and mounted-volume serving
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The original Profile form accepts a GIF, JPEG, PNG, SVG or WebP
+upload, previews it immediately, and does not apply it to the profile until
+the person submits the rest of the form. Storing arbitrary browser-supplied
+paths or serving all bytes publicly would break the greenfield media boundary
+and allow a pending upload to leak into a shared learning space.
+
+**Decision:** `POST /account/profile/image` is authenticated and same-origin
+CSRF protected. It accepts exactly one `file` field, enforces the source 5 MiB
+limit, and validates bytes with the maintained `infer` library for GIF, JPEG,
+PNG and WebP; a bounded UTF-8 SVG root check supplies the source SVG format.
+The server ignores client filenames and claimed content types, writes the bytes
+using the existing mounted-volume `MediaStore`, and records an opaque object key
+and inspected content type in application-database `application_profile_images`.
+
+The response gives the owner an opaque image id and same-origin URL. A pending
+image is readable only by that owner. `PATCH /account/profile` may attach only
+an image owned by that subject; a null id clears it. Once attached, an image is
+available to signed-in people for the same shared-learning-space use as the
+source profile avatar. Delivery sets the inspected content type, `nosniff`, a
+restrictive SVG-safe content-security policy, and private cache controls. The
+source-adapted React field retains upload, immediate preview, download, clear,
+and the explicit Save profile boundary.
+
+**Why:** This preserves the visible source flow without using a public storage
+path as an application data model. Opaque server keys keep storage-provider
+details out of contracts. Byte inspection and response hardening are stronger
+than accepting an extension or browser MIME type alone, while still supporting
+the formats the original picker advertises.
+
+**Alternatives:** Attaching on upload would change the source save/cancel
+meaning. Saving a browser-provided URL would bypass storage ownership and type
+validation. A public anonymous object route would disclose a pending upload and
+make future media policy harder to change. These are rejected.
+
+**Limits and follow-up:** The original source does not clean an unselected file
+when the form is abandoned; this slice intentionally retains that behavior, so
+an explicit expiry/reconciliation job is needed before broad author media
+uploads. Account deletion cascades metadata but needs the same object cleanup
+worker. General media, authorization scopes beyond signed-in shared spaces,
+and object-storage delivery remain separate later slices.
 
 ## Phase 1 gate
 

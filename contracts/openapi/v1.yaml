@@ -161,8 +161,62 @@ paths:
                 $ref: '#/components/schemas/AccountProfile'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '422': { description: The name, email address, or public username was rejected or is already in use. }
+        '422': { description: The name, email address, public username, or selected image was rejected. }
         '503': { description: An identity or application database is unavailable. }
+  /account/profile/image:
+    post:
+      operationId: uploadAccountProfileImage
+      summary: Stage a source-supported profile image for the current subject.
+      description: The upload is private to its owner until its returned profile_image_id is saved with PATCH /account/profile. The server accepts GIF, JPEG, PNG, SVG and WebP only after inspecting its bytes; uploaded SVG is served with a restrictive content-security policy.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: GIF, JPEG, PNG, SVG or WebP image, up to 5 MiB.
+      responses:
+        '200':
+          description: A private staged image which may be selected by the current subject's next profile save.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileImageUpload'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '413': { description: The upload exceeds the 5 MiB profile-image limit. }
+        '422': { description: The upload is empty, has an unsupported byte signature, or has an invalid multipart shape. }
+        '503': { description: The application database or mounted media store is unavailable. }
+  /profile-images/{profile_image_id}:
+    get:
+      operationId: getProfileImage
+      summary: Read an authorized profile image.
+      description: A pending image is visible only to its owner. A saved image is visible to signed-in users for use in shared learning spaces.
+      parameters:
+        - name: profile_image_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Image bytes with an inspected image content type and anti-sniffing headers.
+          content:
+            image/gif: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/svg+xml: { schema: { type: string, format: binary } }
+            image/webp: { schema: { type: string, format: binary } }
+        '401': { description: Authentication is required. }
+        '404': { description: The image is unavailable to this subject. }
+        '503': { description: The application database or mounted media store is unavailable. }
   /learner/world:
     get:
       operationId: getLearnerWorld
@@ -2278,7 +2332,7 @@ components:
     AccountProfile:
       type: object
       additionalProperties: false
-      required: [name, email, username]
+      required: [name, email, username, profile_image_id, profile_image_url]
       properties:
         name:
           type: string
@@ -2293,10 +2347,16 @@ components:
           minLength: 3
           maxLength: 32
           pattern: '^[A-Za-z0-9_-]+$'
+        profile_image_id:
+          type: [string, 'null']
+          format: uuid
+        profile_image_url:
+          type: [string, 'null']
+          pattern: '^/api/v1/profile-images/[0-9a-f-]{36}$'
     UpdateAccountProfileRequest:
       type: object
       additionalProperties: false
-      required: [name, email]
+      required: [name, email, profile_image_id]
       properties:
         name:
           type: string
@@ -2311,6 +2371,20 @@ components:
           minLength: 3
           maxLength: 32
           pattern: '^[A-Za-z0-9_-]+$'
+        profile_image_id:
+          type: [string, 'null']
+          format: uuid
+    ProfileImageUpload:
+      type: object
+      additionalProperties: false
+      required: [profile_image_id, url]
+      properties:
+        profile_image_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          pattern: '^/api/v1/profile-images/[0-9a-f-]{36}$'
     SessionStatus:
       type: object
       additionalProperties: false

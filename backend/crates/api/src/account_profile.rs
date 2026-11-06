@@ -4,6 +4,7 @@ use axum::{Json, extract::State, http::HeaderMap};
 use axum_login::AuthSession;
 use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 use wicked_learning_application::account_profile::{
     AccountProfile, AccountProfileDraft, AccountProfileError, AccountProfileQuery,
     UpdateAccountProfileCommand,
@@ -20,6 +21,7 @@ pub struct UpdateAccountProfileRequest {
     name: String,
     email: String,
     username: Option<String>,
+    profile_image_id: Option<Uuid>,
 }
 
 #[derive(Serialize)]
@@ -27,6 +29,8 @@ pub struct AccountProfileResponse {
     pub name: String,
     pub email: String,
     pub username: Option<String>,
+    pub profile_image_id: Option<Uuid>,
+    pub profile_image_url: Option<String>,
 }
 
 pub async fn show(
@@ -101,6 +105,7 @@ fn normalize_request(request: UpdateAccountProfileRequest) -> Option<AccountProf
         display_name: display_name.to_owned(),
         email,
         public_username,
+        profile_image_id: request.profile_image_id,
     })
 }
 
@@ -117,6 +122,10 @@ fn profile_response(profile: AccountProfile) -> AccountProfileResponse {
         name: profile.display_name,
         email: profile.email,
         username: profile.public_username,
+        profile_image_id: profile.profile_image_id,
+        profile_image_url: profile
+            .profile_image_id
+            .map(|id| format!("/api/v1/profile-images/{id}")),
     }
 }
 
@@ -130,6 +139,7 @@ mod tests {
             name: "  Learner Name ".to_owned(),
             email: " Learner@Example.test ".to_owned(),
             username: Some(" learner_name ".to_owned()),
+            profile_image_id: None,
         })
         .expect("valid source profile fields");
 
@@ -146,6 +156,7 @@ mod tests {
                     name: "Learner".to_owned(),
                     email: "learner@example.test".to_owned(),
                     username: Some(username.to_owned()),
+                    profile_image_id: None,
                 })
                 .is_none()
             );

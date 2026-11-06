@@ -79,6 +79,16 @@ impl MediaObjectKey {
         Self(Path::from(format!("media/{}", Uuid::new_v4())))
     }
 
+    pub fn stored_value(&self) -> String {
+        self.0.to_string()
+    }
+
+    pub fn from_stored_value(value: &str) -> Option<Self> {
+        let identifier = value.strip_prefix("media/")?;
+        Uuid::parse_str(identifier).ok()?;
+        Some(Self(Path::from(value)))
+    }
+
     fn path(&self) -> &Path {
         &self.0
     }

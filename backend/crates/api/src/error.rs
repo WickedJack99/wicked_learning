@@ -98,6 +98,14 @@ impl ApiError {
         }
     }
 
+    pub fn profile_image_rejected() -> Self {
+        Self {
+            code: "profile_image_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The profile image could not be accepted.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",
