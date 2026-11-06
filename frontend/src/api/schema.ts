@@ -1339,6 +1339,10 @@ export interface components {
             /** @enum {string} */
             status: "in_progress" | "completed";
         };
+        LearnerPlaybackCompletionRequest: {
+            /** @enum {string|null} */
+            confidence_after_feedback?: "exploring" | "leaning" | "settled" | null;
+        };
         LearnerActivityCheckInRequest: {
             /** @enum {string|null} */
             feeling?: "clearer" | "forming" | "stretched" | "stuck" | null;
@@ -1376,9 +1380,21 @@ export interface components {
             /** @enum {string|null} */
             calibration: "aligned" | "stronger_than_expected" | "higher_than_result" | "uncertainty_made_gap_visible" | null;
             attempt_number: number;
+            earlier_attempts: components["schemas"]["LearnerQuestionEarlierAttempt"][];
             next_transition_label: string | null;
             /** @enum {string} */
             status: "in_progress" | "completed";
+        };
+        LearnerQuestionEarlierAttempt: {
+            /** Format: date-time */
+            answered_at: string;
+            /** @enum {string|null} */
+            calibration: "aligned" | "stronger_than_expected" | "higher_than_result" | "uncertainty_made_gap_visible" | null;
+            /** @enum {string|null} */
+            confidence: "exploring" | "leaning" | "settled" | null;
+            is_correct: boolean;
+            option_label: string | null;
+            option_labels: string[];
         };
         LearnerReflectionRequest: {
             reflection: string;
@@ -2705,7 +2721,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LearnerPlaybackCompletionRequest"];
+            };
+        };
         responses: {
             /** @description The server advanced the run or completed it at an authored terminal activity. */
             200: {

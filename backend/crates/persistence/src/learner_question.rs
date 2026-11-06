@@ -5,7 +5,8 @@ use wicked_learning_application::learner_question::{
     LearnerQuestionAnswerError, LearnerQuestionRepository as LearnerQuestionRepositoryPort,
 };
 use wicked_learning_domain::{
-    identity_access::AuthorizedPrincipal, learner_state::LearnerQuestionAnswerResult,
+    identity_access::AuthorizedPrincipal,
+    learner_state::{LearnerQuestionAnswerResult, LearnerQuestionEarlierAttempt},
 };
 
 pub struct PostgresLearnerQuestionRepository<'pool> {
@@ -40,6 +41,15 @@ struct CompletionAnswerRow {
     selected_option_keys: serde_json::Value,
 }
 
+#[derive(FromRow)]
+struct EarlierAnswerRow {
+    answered_at: String,
+    calibration: Option<String>,
+    confidence: Option<String>,
+    is_correct: bool,
+    selected_option_keys: serde_json::Value,
+}
+
 /// The final question-completion command reuses the latest answer from the
 /// same server-owned run. It never accepts a browser-supplied outcome or
 /// transition after feedback has been shown.
@@ -67,6 +77,7 @@ struct QuestionOption {
     feedback: Option<String>,
     is_correct: bool,
     key: String,
+    label: String,
     outcome_key: Option<String>,
 }
 
@@ -157,6 +168,14 @@ async fn answer_current_question(
     let selected_option_keys = option_keys.to_vec();
     sqlx::query("INSERT INTO learner_question_answers (principal_id, activity_id, play_run_id, selected_option_keys, is_correct, confidence, calibration, attempt_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
         .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).execute(&mut *transaction).await?;
+    let earlier_attempts = earlier_attempts(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+        attempt_number,
+        &config.options,
+    )
+    .await?;
     transaction.commit().await?;
     let feedback = selected
         .first()
@@ -178,9 +197,56 @@ async fn answer_current_question(
         confidence: confidence.map(str::to_owned),
         calibration,
         attempt_number,
+        earlier_attempts,
         next_transition_label: transition.and_then(|transition| transition.label),
         status: "in_progress".to_owned(),
     }))
+}
+
+async fn earlier_attempts(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+    current_attempt_number: i32,
+    options: &[QuestionOption],
+) -> Result<Vec<LearnerQuestionEarlierAttempt>, sqlx::Error> {
+    let attempts = sqlx::query_as::<_, EarlierAnswerRow>(
+        "SELECT to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS answered_at, calibration, confidence, is_correct, selected_option_keys FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2 AND attempt_number < $3 ORDER BY attempt_number DESC LIMIT 3",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .bind(current_attempt_number)
+    .fetch_all(&mut **transaction)
+    .await?;
+
+    Ok(attempts
+        .into_iter()
+        .filter_map(|attempt| {
+            let selected_keys =
+                serde_json::from_value::<Vec<String>>(attempt.selected_option_keys).ok()?;
+            if selected_keys.is_empty() || duplicate(&selected_keys) {
+                return None;
+            }
+            let option_labels = selected_keys
+                .iter()
+                .map(|key| {
+                    options
+                        .iter()
+                        .find(|option| option.key == *key)
+                        .map(|option| option.label.clone())
+                })
+                .collect::<Option<Vec<_>>>()?;
+
+            Some(LearnerQuestionEarlierAttempt {
+                answered_at: attempt.answered_at,
+                calibration: attempt.calibration,
+                confidence: attempt.confidence,
+                is_correct: attempt.is_correct,
+                option_label: option_labels.first().cloned(),
+                option_labels,
+            })
+        })
+        .collect())
 }
 
 pub(crate) async fn latest_answer_for_completion(
@@ -278,7 +344,7 @@ fn duplicate(keys: &[String]) -> bool {
         .enumerate()
         .any(|(index, key)| keys[..index].contains(key))
 }
-fn valid_confidence(value: Option<&str>) -> bool {
+pub(crate) fn valid_confidence(value: Option<&str>) -> bool {
     value.is_none_or(|value| matches!(value, "exploring" | "leaning" | "settled"))
 }
 fn calibration(correct: bool, confidence: &str) -> &'static str {
@@ -287,5 +353,19 @@ fn calibration(correct: bool, confidence: &str) -> &'static str {
         (true, _) => "stronger_than_expected",
         (false, "settled") => "higher_than_result",
         (false, _) => "uncertainty_made_gap_visible",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::valid_confidence;
+
+    #[test]
+    fn accepts_only_the_source_defined_confidence_values() {
+        assert!(valid_confidence(None));
+        assert!(valid_confidence(Some("exploring")));
+        assert!(valid_confidence(Some("leaning")));
+        assert!(valid_confidence(Some("settled")));
+        assert!(!valid_confidence(Some("certain")));
     }
 }

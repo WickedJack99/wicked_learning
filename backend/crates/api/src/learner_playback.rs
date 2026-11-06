@@ -4,6 +4,7 @@ use axum::{
     http::HeaderMap,
 };
 use axum_login::AuthSession;
+use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::learner_playback::{
     LearnerPlaybackCompletionCommand, LearnerPlaybackQuery,
@@ -17,6 +18,11 @@ use crate::{
     AppState, csrf, error::ApiError, identity::IdentityBackend,
     learner_route_run::authenticated_principal,
 };
+
+#[derive(Default, Deserialize)]
+pub struct CompleteCurrentActivityRequest {
+    confidence_after_feedback: Option<String>,
+}
 
 pub async fn show(
     State(state): State<AppState>,
@@ -41,6 +47,7 @@ pub async fn complete_current_activity(
     headers: HeaderMap,
     csrf_token: axum_csrf::CsrfToken,
     auth_session: AuthSession<IdentityBackend>,
+    request: Option<Json<CompleteCurrentActivityRequest>>,
 ) -> Result<Json<LearnerPlaybackCompletionResult>, ApiError> {
     let play_run_id = Uuid::parse_str(&play_run_id).map_err(|_| ApiError::not_found())?;
     let principal = authenticated_principal(&state, auth_session).await?;
@@ -48,7 +55,14 @@ pub async fn complete_current_activity(
     let repository = PostgresLearnerPlaybackRepository::new(&state.application_database);
 
     LearnerPlaybackCompletionCommand::new(&repository)
-        .execute(&principal, play_run_id, &activity_slug)
+        .execute(
+            &principal,
+            play_run_id,
+            &activity_slug,
+            request
+                .and_then(|Json(request)| request.confidence_after_feedback)
+                .as_deref(),
+        )
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

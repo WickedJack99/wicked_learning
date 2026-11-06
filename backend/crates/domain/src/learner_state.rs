@@ -625,10 +625,27 @@ pub struct LearnerQuestionAnswerResult {
     pub confidence: Option<String>,
     pub calibration: Option<String>,
     pub attempt_number: i32,
+    /// At most three earlier answers by this learner to this authored
+    /// question. These are a private reflection aid, never a staff-facing
+    /// assessment feed.
+    pub earlier_attempts: Vec<LearnerQuestionEarlierAttempt>,
     pub next_transition_label: Option<String>,
     /// The question command resolves progression before responding, so React
     /// uses this server-owned result after the optional conclusion check-in.
     pub status: String,
+}
+
+/// A bounded, learner-owned summary of an answer that preceded the current
+/// feedback. Option labels are authored display labels rather than database
+/// identifiers, so the frontend does not need access to private option rows.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerQuestionEarlierAttempt {
+    pub answered_at: String,
+    pub calibration: Option<String>,
+    pub confidence: Option<String>,
+    pub is_correct: bool,
+    pub option_label: Option<String>,
+    pub option_labels: Vec<String>,
 }
 
 /// A private reflection saved for the currently authorized activity. The

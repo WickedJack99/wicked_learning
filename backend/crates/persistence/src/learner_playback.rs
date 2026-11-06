@@ -27,7 +27,7 @@ use crate::{
         configured_tool_slugs as configured_obstacle_tool_slugs, obstacle_is_persistently_resolved,
         obstacle_passed_for_run, persists_after_solved,
     },
-    learner_question::latest_answer_for_completion,
+    learner_question::{latest_answer_for_completion, valid_confidence},
     learner_revisit_completion::{RevisitCompletion, complete_active_revisit},
     learner_tool_grant::configured_tool_slug,
 };
@@ -874,16 +874,23 @@ impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackReposito
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
         activity_slug: &str,
+        confidence_after_feedback: Option<&str>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
     > + Send {
         async move {
-            complete_current_activity(self.pool, principal, play_run_id, activity_slug)
-                .await
-                .map_err(|error| {
-                    tracing::error!(%error, "could not complete learner playback activity");
-                    LearnerPlaybackCompletionError
-                })
+            complete_current_activity(
+                self.pool,
+                principal,
+                play_run_id,
+                activity_slug,
+                confidence_after_feedback,
+            )
+            .await
+            .map_err(|error| {
+                tracing::error!(%error, "could not complete learner playback activity");
+                LearnerPlaybackCompletionError
+            })
         }
     }
 }
@@ -893,7 +900,11 @@ async fn complete_current_activity(
     principal: &AuthorizedPrincipal,
     play_run_id: Uuid,
     activity_slug: &str,
+    confidence_after_feedback: Option<&str>,
 ) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
+    if !valid_confidence(confidence_after_feedback) {
+        return Ok(None);
+    }
     let mut transaction = pool.begin().await?;
     let Some(current) =
         load_current_activity_for_update(&mut transaction, principal, play_run_id, activity_slug)
@@ -902,6 +913,11 @@ async fn complete_current_activity(
         transaction.commit().await?;
         return Ok(None);
     };
+
+    if current.activity_type != "question" && confidence_after_feedback.is_some() {
+        transaction.commit().await?;
+        return Ok(None);
+    }
 
     if current.activity_type == "tool_grant"
         && !learner_owns_configured_tool(
@@ -991,7 +1007,7 @@ async fn complete_current_activity(
             RevisitCompletion {
                 activity_id: current.activity_id,
                 confidence,
-                confidence_after_feedback: None,
+                confidence_after_feedback,
                 learner_reflection_id: None,
                 outcome,
                 play_run_id,
@@ -1017,7 +1033,7 @@ async fn complete_current_activity(
                 attempt_number,
                 calibration,
                 confidence,
-                confidence_after_feedback: None,
+                confidence_after_feedback,
                 learner_reflection_id: None,
                 outcome,
                 play_run_id,
@@ -1096,7 +1112,7 @@ async fn complete_current_activity(
                 .map_or(1, |attempt| attempt.attempt_number),
             calibration,
             confidence,
-            confidence_after_feedback: None,
+            confidence_after_feedback,
             learner_reflection_id: None,
             outcome,
             play_run_id,

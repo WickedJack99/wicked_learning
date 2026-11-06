@@ -29,6 +29,7 @@ pub trait LearnerPlaybackCompletionRepository {
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
         activity_slug: &str,
+        confidence_after_feedback: Option<&str>,
     ) -> impl Future<
         Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
     > + Send;
@@ -55,9 +56,15 @@ where
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
         activity_slug: &str,
+        confidence_after_feedback: Option<&str>,
     ) -> Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError> {
         self.repository
-            .complete_current_activity(principal, play_run_id, activity_slug)
+            .complete_current_activity(
+                principal,
+                play_run_id,
+                activity_slug,
+                confidence_after_feedback,
+            )
             .await
     }
 }
@@ -109,6 +116,7 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _play_run_id: Uuid,
             _activity_slug: &str,
+            _confidence_after_feedback: Option<&str>,
         ) -> impl Future<
             Output = Result<
                 Option<LearnerPlaybackCompletionResult>,
@@ -164,7 +172,7 @@ mod tests {
         };
 
         let result = LearnerPlaybackCompletionCommand::new(&CompletionAbsentRepository)
-            .execute(&principal, Uuid::new_v4(), "open-practice")
+            .execute(&principal, Uuid::new_v4(), "open-practice", None)
             .await;
 
         assert!(matches!(result, Ok(None)));

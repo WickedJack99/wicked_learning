@@ -1558,6 +1558,20 @@ test('the original question surface posts only selected option keys and waits fo
                     confidence: 'settled',
                     calibration: 'aligned',
                     attempt_number: answerAttempt,
+                    earlier_attempts:
+                        answerAttempt === 1
+                            ? []
+                            : [
+                                  {
+                                      answered_at:
+                                          '2026-11-06T10:00:00.000Z',
+                                      calibration: 'aligned',
+                                      confidence: 'settled',
+                                      is_correct: true,
+                                      option_label: 'A',
+                                      option_labels: ['A'],
+                                  },
+                              ],
                     next_transition_label: null,
                     status: 'in_progress',
                 }),
@@ -1567,6 +1581,9 @@ test('the original question surface posts only selected option keys and waits fo
     await page.route(
         `**/api/v1/learner/play-runs/${playRunId}/activities/learner-choice/complete`,
         async (route) => {
+            expect(route.request().postDataJSON()).toEqual({
+                confidence_after_feedback: 'settled',
+            });
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
@@ -1598,6 +1615,17 @@ test('the original question surface posts only selected option keys and waits fo
         .getByRole('button', { name: /Keep useful choices visible/ })
         .click();
     await expect(page.getByText('This keeps the learner in charge.')).toBeVisible();
+    await expect(page.getByText('Confidence reflection:')).toBeVisible();
+    await expect(
+        page.getByText('Your confidence matched this result.'),
+    ).toBeVisible();
+    await expect(page.getByText('Earlier tries (1)')).toBeVisible();
+    await page
+        .getByRole('group', {
+            name: 'After comparing, how settled does this feel now?',
+        })
+        .getByRole('button', { name: 'Settled' })
+        .click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(
         page.getByRole('heading', {

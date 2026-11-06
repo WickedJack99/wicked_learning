@@ -1,4 +1,4 @@
-import { ArrowRight, PlayCircle, RotateCcw } from 'lucide-react';
+import { ArrowRight, CheckCircle2, PlayCircle, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -392,6 +392,11 @@ export function OriginalOpenPracticePage({
 
     async function complete(
         transitionLabel?: string | null,
+        confidenceAfterFeedback?:
+            | 'exploring'
+            | 'leaning'
+            | 'settled'
+            | null,
     ): Promise<void> {
         if (state.kind !== 'loaded' || completing) {
             return;
@@ -402,6 +407,10 @@ export function OriginalOpenPracticePage({
             const { data, response } = await apiClient.POST(
                 '/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete',
                 {
+                    body: {
+                        confidence_after_feedback:
+                            confidenceAfterFeedback ?? null,
+                    },
                     params: {
                         header: { 'X-CSRF-Token': token },
                         path: {
@@ -526,8 +535,11 @@ export function OriginalOpenPracticePage({
                             <QuestionActivity
                                 activity={state.document.activity}
                                 playRunId={state.document.play_run_id}
-                                onComplete={(result) =>
-                                    complete(result.next_transition_label)
+                                onComplete={(result, confidenceAfterFeedback) =>
+                                    complete(
+                                        result.next_transition_label,
+                                        confidenceAfterFeedback,
+                                    )
                                 }
                             />
                         ) : state.document.activity.activity_type ===
@@ -724,7 +736,10 @@ function QuestionActivity({
 }: {
     activity: LearnerPlaybackDocument['activity'];
     playRunId: string;
-    onComplete: (result: LearnerQuestionAnswerResult) => Promise<void>;
+    onComplete: (
+        result: LearnerQuestionAnswerResult,
+        confidenceAfterFeedback: 'exploring' | 'leaning' | 'settled' | null,
+    ) => Promise<void>;
 }) {
     const config = activity.config as {
         allowMultiple?: unknown;
@@ -754,6 +769,9 @@ function QuestionActivity({
     );
     const [submitting, setSubmitting] = useState(false);
     const [completing, setCompleting] = useState(false);
+    const [confidenceAfterFeedback, setConfidenceAfterFeedback] = useState<
+        'exploring' | 'leaning' | 'settled' | null
+    >(null);
 
     if (!prompt || options.length === 0) {
         return null;
@@ -799,7 +817,7 @@ function QuestionActivity({
         if (!answer || completing) return;
         setCompleting(true);
         try {
-            await onComplete(answer);
+            await onComplete(answer, confidenceAfterFeedback);
         } finally {
             setCompleting(false);
         }
@@ -871,11 +889,18 @@ function QuestionActivity({
                 </>
             ) : (
                 <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">
-                    <p className="text-sm font-medium text-cyan-700 dark:text-teal-100">
-                        {answer.is_correct
-                            ? 'Useful clue found'
-                            : 'Adjust the hypothesis'}
-                    </p>
+                    <div className="flex items-center gap-2 text-sm font-medium text-cyan-700 dark:text-teal-100">
+                        {answer.is_correct ? (
+                            <CheckCircle2 className="size-4" />
+                        ) : (
+                            <RotateCcw className="size-4" />
+                        )}
+                        <span>
+                            {answer.is_correct
+                                ? 'Useful clue found'
+                                : 'Adjust the hypothesis'}
+                        </span>
+                    </div>
                     {answer.feedback ? (
                         <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
                             {answer.feedback}
@@ -886,6 +911,90 @@ function QuestionActivity({
                             {answer.explanation}
                         </p>
                     ) : null}
+                    {answer.calibration ? (
+                        <p className="mt-3 rounded-md border border-cyan-500/15 bg-cyan-50/60 p-3 text-xs leading-5 text-cyan-950 dark:border-teal-100/15 dark:bg-teal-100/6 dark:text-teal-50">
+                            <span className="font-medium">
+                                Confidence reflection:
+                            </span>{' '}
+                            {calibrationMessage(answer.calibration)}
+                        </p>
+                    ) : null}
+                    <fieldset className="mt-4 rounded-md border border-slate-200 p-3 dark:border-white/10">
+                        <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                            After comparing, how settled does this feel now?
+                            <span className="normal-case"> (optional)</span>
+                        </legend>
+                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            This is a reflection on your understanding, not a grade.
+                        </p>
+                        <div
+                            aria-label="After comparing, how settled does this feel now?"
+                            className="mt-2 flex flex-wrap gap-2"
+                            role="group"
+                        >
+                            {(['exploring', 'leaning', 'settled'] as const).map(
+                                (value) => (
+                                    <button
+                                        aria-pressed={
+                                            confidenceAfterFeedback === value
+                                        }
+                                        className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200"
+                                        key={value}
+                                        onClick={() =>
+                                            setConfidenceAfterFeedback(value)
+                                        }
+                                        type="button"
+                                    >
+                                        {confidenceLabel(value)}
+                                    </button>
+                                ),
+                            )}
+                        </div>
+                    </fieldset>
+                    {answer.confidence ? (
+                        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                            Starting sense: {confidenceLabel(answer.confidence)}
+                            {answer.attempt_number > 1
+                                ? ` · Attempt ${answer.attempt_number}`
+                                : ''}
+                        </p>
+                    ) : null}
+                    {answer.earlier_attempts.length ? (
+                        <details className="mt-4 rounded-md border border-slate-200 px-3 py-2 dark:border-white/10">
+                            <summary className="cursor-pointer text-xs font-medium text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:text-slate-300 dark:focus-visible:ring-teal-200">
+                                Earlier tries ({answer.earlier_attempts.length})
+                            </summary>
+                            <div className="mt-2 grid gap-2">
+                                {answer.earlier_attempts.map((attempt) => (
+                                    <div
+                                        className="rounded-md bg-slate-50 px-2.5 py-2 dark:bg-white/5"
+                                        key={`${attempt.answered_at}-${attempt.option_labels.join('-')}`}
+                                    >
+                                        <div className="flex items-center justify-between gap-2 text-xs">
+                                            <span className="font-medium text-slate-700 dark:text-slate-200">
+                                                {attempt.option_labels.length
+                                                    ? `Chose ${attempt.option_labels.join(', ')}`
+                                                    : 'Earlier answer'}
+                                            </span>
+                                            <span className="shrink-0 text-slate-500 dark:text-slate-400">
+                                                {new Date(
+                                                    attempt.answered_at,
+                                                ).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                            {attempt.is_correct
+                                                ? 'Useful clue found'
+                                                : 'Adjust the hypothesis'}
+                                            {attempt.confidence
+                                                ? ` · Starting sense: ${confidenceLabel(attempt.confidence)}`
+                                                : ''}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </details>
+                    ) : null}
                     <div className="mt-4 flex flex-wrap gap-3">
                         <button
                             className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:text-slate-100"
@@ -894,6 +1003,7 @@ function QuestionActivity({
                                 setAnswer(null);
                                 setSelection([]);
                                 setConfidence(null);
+                                setConfidenceAfterFeedback(null);
                             }}
                             disabled={completing}
                             type="button"
@@ -916,6 +1026,32 @@ function QuestionActivity({
             )}
         </div>
     );
+}
+
+function confidenceLabel(
+    confidence: 'exploring' | 'leaning' | 'settled',
+): string {
+    return confidence === 'exploring'
+        ? 'Exploring'
+        : confidence === 'leaning'
+          ? 'I have a hunch'
+          : 'Settled';
+}
+
+function calibrationMessage(
+    calibration:
+        | 'aligned'
+        | 'stronger_than_expected'
+        | 'higher_than_result'
+        | 'uncertainty_made_gap_visible',
+): string {
+    return calibration === 'aligned'
+        ? 'Your confidence matched this result.'
+        : calibration === 'stronger_than_expected'
+          ? 'This result was stronger than your starting sense.'
+          : calibration === 'higher_than_result'
+            ? 'Your starting confidence was higher than this result. Compare the explanation with your reasoning.'
+            : 'Your uncertainty helped make this gap visible. Use the explanation to adjust your reasoning.';
 }
 
 /** Source-adapted from the original NodePlay learning-context aside. */

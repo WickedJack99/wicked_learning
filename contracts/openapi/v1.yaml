@@ -523,6 +523,12 @@ paths:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
         - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerPlaybackCompletionRequest'
       responses:
         '200':
           description: The server advanced the run or completed it at an authored terminal activity.
@@ -2332,6 +2338,13 @@ components:
         status:
           type: string
           enum: [in_progress, completed]
+    LearnerPlaybackCompletionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        confidence_after_feedback:
+          type: [string, 'null']
+          enum: [exploring, leaning, settled, null]
     LearnerActivityCheckInRequest:
       type: object
       additionalProperties: false
@@ -2374,7 +2387,7 @@ components:
     LearnerQuestionAnswerResult:
       type: object
       additionalProperties: false
-      required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, next_transition_label, status]
+      required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, earlier_attempts, next_transition_label, status]
       properties:
         play_run_id: { type: string, format: uuid }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
@@ -2387,10 +2400,28 @@ components:
         confidence: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
         calibration: { type: [string, 'null'], enum: [aligned, stronger_than_expected, higher_than_result, uncertainty_made_gap_visible, null] }
         attempt_number: { type: integer, minimum: 1 }
+        earlier_attempts:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/LearnerQuestionEarlierAttempt' }
         next_transition_label: { type: [string, 'null'] }
         status:
           type: string
           enum: [in_progress, completed]
+    LearnerQuestionEarlierAttempt:
+      type: object
+      additionalProperties: false
+      required: [answered_at, calibration, confidence, is_correct, option_label, option_labels]
+      properties:
+        answered_at: { type: string, format: date-time }
+        calibration: { type: [string, 'null'], enum: [aligned, stronger_than_expected, higher_than_result, uncertainty_made_gap_visible, null] }
+        confidence: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
+        is_correct: { type: boolean }
+        option_label: { type: [string, 'null'], maxLength: 120 }
+        option_labels:
+          type: array
+          maxItems: 24
+          items: { type: string, maxLength: 120 }
     LearnerReflectionRequest:
       type: object
       additionalProperties: false
