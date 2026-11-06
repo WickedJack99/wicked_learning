@@ -1665,7 +1665,7 @@ route node through the existing CSRF-protected bookmark command, loads `/home`,
 and verifies the Pinned for later rail and its View all bookmarks destination.
 This restores the rail, saved-place list and Possible connections empty state;
 topic labels, check-in reflections, planning preferences and private Learning
-Support replies remain separate work.
+Support replies remain separate work at this decision's boundary.
 
 ## ADR-044: Learning Desk reflections reuse the private Journal reader
 
@@ -1704,6 +1704,43 @@ server-owned NPC dialogue, records a private check-in through the existing
 post-completion command, finds its reflection on `/home`, and opens it through
 an opaque replay run. This is a bounded reflection trail, not complete Desk
 or Journal-history parity.
+
+## ADR-045: Learning Desk planning choices are private application preferences
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Continue learning section lets a learner narrow their
+own in-progress routes by one authored learning purpose and optional time
+guide, then explicitly remember those choices for their account. Browser-only
+state loses the cross-device account behavior; storing it with passwords or
+sessions would violate the accepted identity/application database boundary.
+
+**Decision:** Add an application-database `learner_desk_planning_preferences`
+row keyed only by the existing opaque application principal. The typed
+same-origin `GET`/CSRF-protected `PATCH /learner/desk-planning-preference`
+contract permits only the Laravel values: `any` or one of the seven authored
+purposes, and `any`, 15 or 30 minutes. A missing row returns source defaults
+with `is_saved: false`; an explicit save upserts the private row. The World
+start projection reuses the same bounded purpose and time-guide interpretation
+already used by Paths. React applies filters only to visible in-progress
+routes, offers the original recovery controls, and never treats either value
+as intent, progress, a deadline, or a recommendation.
+
+**Why:** The preference belongs to learner application data, but is distinct
+from activity progression and credentials. A normalized row is narrower and
+more inspectable than copying Laravel's general JSON settings blob. Reusing
+the Paths projection avoids divergent interpretations of authored metadata.
+
+**Alternatives:** A local-only preference loses the original account behavior.
+Putting it in the identity database mixes learning presentation with credential
+and session concerns. A new recommendation endpoint would change the product
+meaning. All are rejected.
+
+**Evidence and boundary:** The local Compose Playwright journey creates an
+in-progress source route, chooses `Participate`, saves it through the
+CSRF-protected contract, reloads `/home`, and observes the retained selected
+filter. The slice does not add scheduling, route ranking, new authored data or
+Learning Support replies.
 
 ## Phase 1 gate
 

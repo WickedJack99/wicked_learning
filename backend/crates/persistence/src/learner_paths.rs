@@ -300,7 +300,7 @@ impl From<PathRow> for LearnerPathSummary {
     }
 }
 
-fn learning_intent(activity_type: &str, config: &Value) -> String {
+pub(crate) fn learning_intent(activity_type: &str, config: &Value) -> String {
     config
         .get("learningIntent")
         .and_then(Value::as_str)
@@ -330,6 +330,14 @@ fn learning_intent(activity_type: &str, config: &Value) -> String {
         })
 }
 
+pub(crate) fn time_guide_minutes(config: &Value) -> Option<i16> {
+    config
+        .get("timeGuideMinutes")
+        .and_then(Value::as_i64)
+        .and_then(|value| i16::try_from(value).ok())
+        .filter(|value| *value > 0)
+}
+
 fn learning_areas(config: &Value) -> Vec<LearnerPathLearningArea> {
     config
         .get("competenceTopics")
@@ -357,7 +365,7 @@ fn valid_slug(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{learning_areas, learning_intent, pagination};
+    use super::{learning_areas, learning_intent, pagination, time_guide_minutes};
     use serde_json::json;
 
     #[test]
@@ -379,5 +387,14 @@ mod tests {
             ]
         );
         assert_eq!(pagination(9, 1).current_page, 1);
+        assert_eq!(
+            time_guide_minutes(&json!({ "timeGuideMinutes": 15 })),
+            Some(15)
+        );
+        assert_eq!(time_guide_minutes(&json!({ "timeGuideMinutes": 0 })), None);
+        assert_eq!(
+            time_guide_minutes(&json!({ "timeGuideMinutes": "15" })),
+            None
+        );
     }
 }

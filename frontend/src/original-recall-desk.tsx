@@ -16,6 +16,25 @@ type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerBookmarkMap = components['schemas']['LearnerBookmarkMap'];
 type LearnerBookmarkPlace = components['schemas']['LearnerBookmarkPlace'];
 type LearnerJournalCheckIn = components['schemas']['LearnerJournalCheckIn'];
+type LearnerDeskPlanningPreference =
+    components['schemas']['LearnerDeskPlanningPreference'];
+
+type DeskPurposeFilter = LearnerDeskPlanningPreference['purpose_filter'];
+type DeskTimeBudget = LearnerDeskPlanningPreference['time_budget'];
+type DeskPlanningSelection = {
+    purposeFilter: DeskPurposeFilter;
+    timeBudget: DeskTimeBudget;
+};
+
+const deskLearningPurposes: Exclude<DeskPurposeFilter, 'any'>[] = [
+    'apply',
+    'explain',
+    'participate',
+    'reflect',
+    'retrieve',
+    'review',
+    'transfer',
+];
 
 const learnerStyle = {
     '--learner-action-accent': '#5eead4',
@@ -88,9 +107,11 @@ function recentRouteRows(world: LearnerWorldSnapshot | null): RecentRouteRow[] {
 export function OriginalRecallDeskPage({
     onSignedOut,
     userEmail,
+    userSubjectId,
 }: {
     onSignedOut: () => void;
     userEmail: string;
+    userSubjectId: string;
 }) {
     const navigate = useNavigate();
     const [queue, setQueue] = useState<LearnerRecallQueue | null>(null);
@@ -115,6 +136,19 @@ export function OriginalRecallDeskPage({
         string | null
     >(null);
     const [error, setError] = useState('');
+    const planningPreferenceKey = `wicked-learning:desk-planning:${userSubjectId}`;
+    const [savedPlanningPreference, setSavedPlanningPreference] =
+        useState<DeskPlanningSelection>(() =>
+            readDeskPlanningPreference(planningPreferenceKey),
+        );
+    const [planningPreferenceSaveState, setPlanningPreferenceSaveState] =
+        useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [timeBudget, setTimeBudget] = useState<DeskTimeBudget>(
+        savedPlanningPreference.timeBudget,
+    );
+    const [purposeFilter, setPurposeFilter] = useState<DeskPurposeFilter>(
+        savedPlanningPreference.purposeFilter,
+    );
 
     useEffect(() => {
         let active = true;
@@ -134,6 +168,32 @@ export function OriginalRecallDeskPage({
             active = false;
         };
     }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        void apiClient.GET('/learner/desk-planning-preference').then(
+            ({ data, response }) => {
+                if (!active || !response.ok || !data || !data.is_saved) {
+                    return;
+                }
+                const preference = {
+                    purposeFilter: data.purpose_filter,
+                    timeBudget: data.time_budget,
+                };
+                setSavedPlanningPreference(preference);
+                setPurposeFilter(preference.purposeFilter);
+                setTimeBudget(preference.timeBudget);
+            },
+        ).catch(() => {
+            // The local source fallback remains useful when this independent
+            // optional account-preference reader is temporarily unavailable.
+        });
+
+        return () => {
+            active = false;
+        };
+    }, [planningPreferenceKey]);
 
     useEffect(() => {
         let active = true;
@@ -180,6 +240,70 @@ export function OriginalRecallDeskPage({
         [bookmarkPlaces, featuredBookmark],
     );
     const recentCheckIns = useMemo(() => checkIns.slice(0, 4), [checkIns]);
+    const learningPurposeOptions = deskLearningPurposes.filter((purpose) =>
+        currentRoutes.some((route) => route.start.learning_intent === purpose),
+    );
+    const hasTimeGuides = currentRoutes.some(
+        (route) => route.start.time_guide_minutes !== null,
+    );
+    const activePurposeFilter = learningPurposeOptions.includes(
+        purposeFilter as Exclude<DeskPurposeFilter, 'any'>,
+    )
+        ? purposeFilter
+        : 'any';
+    const activeTimeBudget = hasTimeGuides ? timeBudget : 'any';
+    const visibleCurrentRoutes = currentRoutes.filter((route) =>
+        fitsDeskFilters(
+            route.start.time_guide_minutes,
+            route.start.learning_intent,
+            activeTimeBudget,
+            activePurposeFilter,
+        ),
+    );
+    const hasActiveRouteFilter =
+        activeTimeBudget !== 'any' || activePurposeFilter !== 'any';
+
+    function updateTimeBudget(nextTimeBudget: DeskTimeBudget) {
+        setTimeBudget(nextTimeBudget);
+        setPlanningPreferenceSaveState('idle');
+    }
+
+    function updatePurposeFilter(nextPurposeFilter: DeskPurposeFilter) {
+        setPurposeFilter(nextPurposeFilter);
+        setPlanningPreferenceSaveState('idle');
+    }
+
+    function clearPlanningChoices() {
+        updateTimeBudget('any');
+        updatePurposeFilter('any');
+    }
+
+    async function savePlanningChoices(): Promise<void> {
+        setPlanningPreferenceSaveState('saving');
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.PATCH(
+                '/learner/desk-planning-preference',
+                {
+                    body: {
+                        purpose_filter: activePurposeFilter,
+                        time_budget: activeTimeBudget,
+                    },
+                    params: { header: { 'X-CSRF-Token': token } },
+                },
+            );
+            if (!response.ok || !data) {
+                throw new Error('save failed');
+            }
+            setSavedPlanningPreference({
+                purposeFilter: data.purpose_filter,
+                timeBudget: data.time_budget,
+            });
+            setPlanningPreferenceSaveState('saved');
+        } catch {
+            setPlanningPreferenceSaveState('error');
+        }
+    }
 
     useEffect(() => {
         let active = true;
@@ -514,9 +638,119 @@ export function OriginalRecallDeskPage({
                                 Continue learning
                             </h2>
                         </div>
-                        <div className="mt-4 divide-y divide-[var(--learner-border-color)] border-y border-[var(--learner-border-color)]">
-                            {currentRoutes.map((route) => <ContinueRouteRow key={route.start.start_id} onContinue={continueRoute} opening={openingItemId === route.start.start_id} route={route} />)}
-                        </div>
+                        {hasTimeGuides || learningPurposeOptions.length ? (
+                            <div className="mt-4 grid gap-4 border-b border-[var(--learner-border-color)] pb-4 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.7fr)]">
+                                <p className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
+                                    Planning choices are optional and can be remembered for your account.
+                                </p>
+                                {hasTimeGuides ? (
+                                    <fieldset>
+                                        <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
+                                            Plan by suggested time
+                                        </legend>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {([
+                                                ['Any time', 'any'],
+                                                ['Up to 15 minutes', 15],
+                                                ['Up to 30 minutes', 30],
+                                            ] as const).map(([label, value]) => (
+                                                <button
+                                                    aria-pressed={activeTimeBudget === value}
+                                                    className={planningChoiceClass(activeTimeBudget === value)}
+                                                    key={value}
+                                                    onClick={() => updateTimeBudget(value)}
+                                                    type="button"
+                                                >
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                                            This only narrows routes with an author-provided guide; it is not a deadline.
+                                        </p>
+                                    </fieldset>
+                                ) : null}
+                                {learningPurposeOptions.length ? (
+                                    <fieldset>
+                                        <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
+                                            Plan by learning purpose
+                                        </legend>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            <button
+                                                aria-pressed={activePurposeFilter === 'any'}
+                                                className={planningChoiceClass(activePurposeFilter === 'any')}
+                                                onClick={() => updatePurposeFilter('any')}
+                                                type="button"
+                                            >
+                                                Any purpose
+                                            </button>
+                                            {learningPurposeOptions.map((purpose) => (
+                                                <button
+                                                    aria-pressed={activePurposeFilter === purpose}
+                                                    className={planningChoiceClass(activePurposeFilter === purpose)}
+                                                    key={purpose}
+                                                    onClick={() => updatePurposeFilter(purpose)}
+                                                    type="button"
+                                                >
+                                                    {learningPurposeLabel(purpose)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                                            This only narrows routes with an author-provided purpose; it is not a recommendation.
+                                        </p>
+                                    </fieldset>
+                                ) : null}
+                                {hasActiveRouteFilter ? (
+                                    <button
+                                        className="justify-self-start text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] md:col-span-2"
+                                        onClick={clearPlanningChoices}
+                                        type="button"
+                                    >
+                                        Clear planning choices
+                                    </button>
+                                ) : null}
+                                {activeTimeBudget !== savedPlanningPreference.timeBudget || activePurposeFilter !== savedPlanningPreference.purposeFilter ? (
+                                    <button
+                                        className="min-h-11 justify-self-start rounded-md border border-[var(--learner-action-accent)] px-3 text-sm font-medium text-[var(--learner-heading-text)] transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] disabled:opacity-50 md:col-span-2"
+                                        disabled={planningPreferenceSaveState === 'saving'}
+                                        onClick={() => void savePlanningChoices()}
+                                        type="button"
+                                    >
+                                        {planningPreferenceSaveState === 'saving' ? 'Remembering choices...' : 'Remember these choices'}
+                                    </button>
+                                ) : null}
+                                {planningPreferenceSaveState === 'saved' ? (
+                                    <p aria-live="polite" className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
+                                        Planning choices remembered for your account.
+                                    </p>
+                                ) : null}
+                                {planningPreferenceSaveState === 'error' ? (
+                                    <p aria-live="polite" className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
+                                        Could not remember these choices. The current view still works.
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
+                        {visibleCurrentRoutes.length ? (
+                            <div className="mt-4 divide-y divide-[var(--learner-border-color)] border-y border-[var(--learner-border-color)]">
+                                {visibleCurrentRoutes.map((route) => <ContinueRouteRow key={route.start.start_id} onContinue={continueRoute} opening={openingItemId === route.start.start_id} route={route} />)}
+                            </div>
+                        ) : (
+                            <div className="border-b border-[var(--learner-border-color)] py-7">
+                                <p className="font-medium">No current routes match these choices yet</p>
+                                <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                    Try another time or purpose, or show every current route again.
+                                </p>
+                                <button
+                                    className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
+                                    onClick={clearPlanningChoices}
+                                    type="button"
+                                >
+                                    Show all routes
+                                </button>
+                            </div>
+                        )}
                     </section>
                 ) : null}
 
@@ -1136,6 +1370,72 @@ function competenceTopicHref(
     return originTopicSlug
         ? `/competence?${topicQuery}&from=${encodeURIComponent(originTopicSlug)}`
         : `/competence?${topicQuery}`;
+}
+
+function fitsDeskFilters(
+    timeGuideMinutes: number | null,
+    learningIntent: string,
+    timeBudget: DeskTimeBudget,
+    purposeFilter: DeskPurposeFilter,
+): boolean {
+    return (
+        (timeBudget === 'any' ||
+            (timeGuideMinutes !== null && timeGuideMinutes <= timeBudget)) &&
+        (purposeFilter === 'any' || learningIntent === purposeFilter)
+    );
+}
+
+function planningChoiceClass(selected: boolean): string {
+    return [
+        'min-h-11 rounded-md border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none',
+        selected
+            ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-heading-text)]'
+            : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
+    ].join(' ');
+}
+
+function learningPurposeLabel(
+    purpose: Exclude<DeskPurposeFilter, 'any'>,
+): string {
+    return {
+        apply: 'Apply',
+        explain: 'Explain',
+        participate: 'Participate',
+        reflect: 'Reflect',
+        retrieve: 'Retrieve',
+        review: 'Review',
+        transfer: 'Transfer',
+    }[purpose];
+}
+
+function readDeskPlanningPreference(key: string): DeskPlanningSelection {
+    const fallback: DeskPlanningSelection = {
+        purposeFilter: 'any',
+        timeBudget: 'any',
+    };
+
+    if (typeof window === 'undefined') {
+        return fallback;
+    }
+
+    try {
+        const value = JSON.parse(window.localStorage.getItem(key) ?? 'null');
+        const purposeFilter =
+            value?.purposeFilter === 'any' ||
+            deskLearningPurposes.includes(value?.purposeFilter)
+                ? value.purposeFilter
+                : fallback.purposeFilter;
+        const timeBudget =
+            value?.timeBudget === 'any' ||
+            value?.timeBudget === 15 ||
+            value?.timeBudget === 30
+                ? value.timeBudget
+                : fallback.timeBudget;
+
+        return { purposeFilter, timeBudget };
+    } catch {
+        return fallback;
+    }
 }
 
 function formatRecallDate(value: string): string {

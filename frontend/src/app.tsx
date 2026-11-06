@@ -20,7 +20,7 @@ import { PublicWorldPage } from './public-world';
 type CurrentUserState =
     | { kind: 'loading' }
     | { kind: 'anonymous' }
-    | { kind: 'loaded'; email: string }
+    | { kind: 'loaded'; email: string; subjectId: string }
     | { kind: 'unavailable' };
 
 type PublicPresentationState =
@@ -140,6 +140,7 @@ export function App() {
             <OriginalRecallDeskPage
                 onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
                 userEmail={currentUser.email}
+                userSubjectId={currentUser.subjectId}
             />
         );
     }
@@ -269,7 +270,11 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
             return { kind: 'unavailable' };
         }
 
-        return { kind: 'loaded', email: data.email };
+        return {
+            kind: 'loaded',
+            email: data.email,
+            subjectId: data.subject_id,
+        };
     } catch {
         return { kind: 'unavailable' };
     }

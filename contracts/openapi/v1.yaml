@@ -363,6 +363,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/desk-planning-preference:
+    get:
+      operationId: getLearnerDeskPlanningPreference
+      summary: Read the current learner's optional private Learning Desk filters.
+      responses:
+        '200':
+          description: The saved filters, or the source defaults when the learner has not saved a choice.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerDeskPlanningPreference' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateLearnerDeskPlanningPreference
+      summary: Remember explicit private Learning Desk filters for the current learner.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLearnerDeskPlanningPreferenceRequest' }
+      responses:
+        '200':
+          description: The saved private filter choice.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerDeskPlanningPreference' }
+        '400': { description: The source-defined filter values are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application database is unavailable. }
   /learner/recall-items:
     get:
       operationId: getLearnerRecallQueue
@@ -2476,7 +2509,7 @@ components:
     LearnerActivityStart:
       type: object
       additionalProperties: false
-      required: [start_id, map_slug, node_slug, route_slug, activity_slug, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, sort_order, progress]
+      required: [start_id, map_slug, node_slug, route_slug, activity_slug, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, learning_intent, sort_order, time_guide_minutes, progress]
       properties:
         start_id:
           type: string
@@ -2515,9 +2548,15 @@ components:
         button_border_color_light:
           type: [string, 'null']
           maxLength: 32
+        learning_intent:
+          type: string
+          enum: [apply, explain, participate, reflect, retrieve, review, transfer]
         sort_order:
           type: integer
           minimum: 0
+        time_guide_minutes:
+          type: [integer, 'null']
+          minimum: 1
         progress:
           oneOf:
             - $ref: '#/components/schemas/LearnerActivityStartProgress'
@@ -2950,6 +2989,37 @@ components:
           type: array
           maxItems: 12
           items: { $ref: '#/components/schemas/LearnerRevisitInvitation' }
+    LearnerDeskPlanningPreference:
+      type: object
+      additionalProperties: false
+      required: [is_saved, purpose_filter, time_budget]
+      properties:
+        is_saved:
+          type: boolean
+          description: Whether the learner explicitly saved these filters for their account.
+        purpose_filter:
+          type: string
+          enum: [any, apply, explain, participate, reflect, retrieve, review, transfer]
+        time_budget:
+          oneOf:
+            - type: string
+              enum: [any]
+            - type: integer
+              enum: [15, 30]
+    UpdateLearnerDeskPlanningPreferenceRequest:
+      type: object
+      additionalProperties: false
+      required: [purpose_filter, time_budget]
+      properties:
+        purpose_filter:
+          type: string
+          enum: [any, apply, explain, participate, reflect, retrieve, review, transfer]
+        time_budget:
+          oneOf:
+            - type: string
+              enum: [any]
+            - type: integer
+              enum: [15, 30]
     LearnerJournalCheckIn:
       type: object
       additionalProperties: false

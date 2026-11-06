@@ -219,6 +219,40 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
         '/competence?topic=orientation&from=map-orientation',
     );
 
+    const resetDeskRoute = await request.post(
+        `/api/v1/learner/activity-starts/${orientationStart.start_id}/reset`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(resetDeskRoute.status()).toBe(200);
+    const startDeskRoute = await request.post(
+        `/api/v1/learner/activity-starts/${orientationStart.start_id}/start`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(startDeskRoute.status()).toBe(200);
+
+    await page.goto('/home');
+    await expect(page.getByText('Plan by learning purpose')).toBeVisible();
+    const participate = page.getByRole('button', { name: 'Participate' });
+    await participate.click();
+    await expect(
+        page.getByRole('button', { name: 'Remember these choices' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Remember these choices' }).click();
+    await expect(
+        page.getByText('Planning choices remembered for your account.'),
+    ).toBeVisible();
+    const savedPlanning = await request.get(
+        '/api/v1/learner/desk-planning-preference',
+    );
+    expect(savedPlanning.status()).toBe(200);
+    await expect(savedPlanning.json()).resolves.toMatchObject({
+        is_saved: true,
+        purpose_filter: 'participate',
+        time_budget: 'any',
+    });
+    await page.reload();
+    await expect(participate).toHaveAttribute('aria-pressed', 'true');
+
     const resetForBrowser = await request.post(
         `/api/v1/learner/activity-starts/${start.start_id}/reset`,
         { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },

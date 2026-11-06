@@ -547,7 +547,12 @@ pub struct LearnerActivityStart {
     pub button_border_color_dark: Option<String>,
     pub button_color_light: Option<String>,
     pub button_border_color_light: Option<String>,
+    /// The bounded authored/default purpose used by the source Desk's optional
+    /// local planning filter. It neither recommends nor authorizes a route.
+    pub learning_intent: String,
     pub sort_order: i16,
+    /// An optional authored orientation guide, never a deadline.
+    pub time_guide_minutes: Option<i16>,
     pub progress: Option<LearnerActivityStartProgress>,
 }
 
@@ -935,6 +940,35 @@ pub struct LearnerActivityReplayRun {
     pub node_slug: String,
     pub play_run_id: String,
     pub status: String,
+}
+
+/// The source Learning Desk's optional account-level route-filter preference.
+/// It is deliberately application data: the identity database owns no learner
+/// preferences, content, or activity state.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerDeskPlanningPreference {
+    pub is_saved: bool,
+    pub purpose_filter: String,
+    pub time_budget: LearnerDeskTimeBudget,
+}
+
+/// Preserve the source's `"any" | 15 | 30` browser contract while keeping the
+/// database representation normalized as a nullable small integer.
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
+pub enum LearnerDeskTimeBudget {
+    Any(String),
+    Minutes(i16),
+}
+
+impl LearnerDeskPlanningPreference {
+    pub fn defaults() -> Self {
+        Self {
+            is_saved: false,
+            purpose_filter: "any".to_owned(),
+            time_budget: LearnerDeskTimeBudget::Any("any".to_owned()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]

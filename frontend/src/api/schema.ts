@@ -260,6 +260,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/desk-planning-preference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's optional private Learning Desk filters. */
+        get: operations["getLearnerDeskPlanningPreference"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Remember explicit private Learning Desk filters for the current learner. */
+        patch: operations["updateLearnerDeskPlanningPreference"];
+        trace?: never;
+    };
     "/learner/recall-items": {
         parameters: {
             query?: never;
@@ -1522,7 +1540,10 @@ export interface components {
             button_border_color_dark: string | null;
             button_color_light: string | null;
             button_border_color_light: string | null;
+            /** @enum {string} */
+            learning_intent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
             sort_order: number;
+            time_guide_minutes: number | null;
             progress: components["schemas"]["LearnerActivityStartProgress"] | null;
         };
         LearnerPlaybackDocument: {
@@ -1786,6 +1807,18 @@ export interface components {
             pages: components["schemas"]["LearnerJournalPage"][];
             pagination: components["schemas"]["LearnerJournalPagination"];
             revisit_invitations: components["schemas"]["LearnerRevisitInvitation"][];
+        };
+        LearnerDeskPlanningPreference: {
+            /** @description Whether the learner explicitly saved these filters for their account. */
+            is_saved: boolean;
+            /** @enum {string} */
+            purpose_filter: "any" | "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
+            time_budget: "any" | (15 | 30);
+        };
+        UpdateLearnerDeskPlanningPreferenceRequest: {
+            /** @enum {string} */
+            purpose_filter: "any" | "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
+            time_budget: "any" | (15 | 30);
         };
         LearnerJournalCheckIn: {
             /** Format: uuid */
@@ -2736,6 +2769,102 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getLearnerDeskPlanningPreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The saved filters, or the source defaults when the learner has not saved a choice. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerDeskPlanningPreference"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerDeskPlanningPreference: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerDeskPlanningPreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved private filter choice. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerDeskPlanningPreference"];
+                };
+            };
+            /** @description The source-defined filter values are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
