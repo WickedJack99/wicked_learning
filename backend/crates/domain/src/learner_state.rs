@@ -680,6 +680,34 @@ pub struct LearnerSupportRequestState {
     pub topic_title: String,
 }
 
+/// The source peer-message wall resolved from an active learner run. It never
+/// exposes authors, hidden content, or messages from another topic.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPeerMessageWall {
+    pub has_contributed: bool,
+    pub messages: Vec<LearnerPeerMessage>,
+    pub pagination: LearningSupportPagination,
+    pub topic_title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPeerMessage {
+    pub body: String,
+    pub can_respond: bool,
+    pub has_responded: bool,
+    pub id: String,
+    pub responses: Vec<LearnerPeerMessageResponse>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPeerMessageResponse {
+    pub body: String,
+    pub can_mark_helpful: bool,
+    pub id: String,
+    pub is_helpful: bool,
+    pub response_type: Option<String>,
+}
+
 /// A private-support topic that an authorized staff member may open. This is
 /// deliberately distinct from learner playback data: it contains the small
 /// amount of identity context required to answer a request, and is never sent
