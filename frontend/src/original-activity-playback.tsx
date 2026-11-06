@@ -536,7 +536,12 @@ export function OriginalOpenPracticePage({
                                                     : state.document.activity
                                                               .activity_type ===
                                                       'message_prompt'
-                                                    ? 'Learning Support'
+                                                    ? (state.document.activity
+                                                          .config as {
+                                                          messageAudience?: unknown;
+                                                      }).messageAudience === 'peers'
+                                                      ? 'Learner messages'
+                                                      : 'Learning Support'
                                                     : state.document.activity
                                                               .activity_type ===
                                                           'message_wall'
