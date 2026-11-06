@@ -2501,7 +2501,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection, tool_grant, item_grant, item_obstacle, obstacle, markdown]
+          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown]
         config:
           type: object
           additionalProperties: true

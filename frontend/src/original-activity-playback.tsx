@@ -490,6 +490,9 @@ export function OriginalOpenPracticePage({
                                     'question'
                                         ? 'Question'
                                         : state.document.activity
+                                                .activity_type === 'review'
+                                          ? 'Review'
+                                          : state.document.activity
                                                 .activity_type === 'reflection'
                                           ? 'Reflection'
                                           : state.document.activity
@@ -549,7 +552,8 @@ export function OriginalOpenPracticePage({
                                 }
                             />
                         ) : state.document.activity.activity_type ===
-                          'reflection' ? (
+                          'reflection' ||
+                          state.document.activity.activity_type === 'review' ? (
                             <ReflectionActivity
                                 activity={state.document.activity}
                                 onSaved={(status) => {
@@ -662,7 +666,8 @@ function ReflectionActivity({
         config.learningIntent === 'explain' || config.learningIntent === 'transfer'
             ? config.learningIntent
             : null;
-    const isReview = config.learningIntent === 'review';
+    const isReview =
+        activity.activity_type === 'review' || config.learningIntent === 'review';
     const isTransfer = responseType === 'transfer';
     const independentCheckPrompt =
         responseType && guidance?.independentCheckPrompt

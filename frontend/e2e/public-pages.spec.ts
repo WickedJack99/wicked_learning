@@ -1855,7 +1855,7 @@ test('the original review reflection keeps earlier notes private and records onl
                         slug: 'review-the-direction',
                         title: 'Review the direction',
                         description: 'A private learner review.',
-                        activity_type: 'reflection',
+                        activity_type: 'review',
                         config: {
                             prompt: 'What feels clearer about the direction now?',
                             learningIntent: 'review',

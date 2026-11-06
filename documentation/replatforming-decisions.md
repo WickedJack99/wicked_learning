@@ -1447,12 +1447,20 @@ response type would make private evidence forgeable. Creating a second
 completion endpoint just for reflection would duplicate the established
 server-owned activity-completion boundary. These alternatives are rejected.
 
-**Limitations and trigger:** The standalone source `review` activity type is
-not yet a Rust playback type; current greenfield content represents its
-supported behavior through a reflection with `learningIntent: review`. Before
-adding the standalone type, extend the typed activity/authoring contracts and
-its authorization/browser evidence together. The base reflection UI continues
-to use its original immediate save-then-continue behavior.
+**Extension:** The standalone source `review` activity type is now an explicit
+Rust playback type. It uses the same bounded reflection configuration and
+private persistence workflow as the source, but remains distinct in the
+OpenAPI activity union, server authorization/query allowlists, review-context
+lookup, completion evidence and revisit eligibility. React lifts the original
+review branch for either that activity type or an authored reflection review
+intent; it does not infer review from browser input.
+
+**Limitations and trigger:** Rust authoring APIs are not yet migrated, so
+fresh review activities currently enter through the reviewed greenfield content
+schema rather than a substitute authoring form. When authoring moves, expose
+the same typed review configuration and add its authoring/browser evidence.
+The base reflection UI continues to use its original immediate
+save-then-continue behavior.
 
 ## Phase 1 gate
 
