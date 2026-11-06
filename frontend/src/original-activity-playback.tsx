@@ -587,6 +587,9 @@ export function OriginalOpenPracticePage({
                                         {state.document.activity.description}
                                     </p>
                                 ) : null}
+                                <PlaybackEvidenceContext
+                                    checkIn={state.document.activity.check_in}
+                                />
                             </div>
                         </div>
                         {state.document.activity.activity_type ===
@@ -1930,6 +1933,75 @@ function PlaybackContext({
                 ) : null}
             </dl>
         </aside>
+    );
+}
+
+/**
+ * Source-adapted from `features/world/activity-panel.tsx`'s
+ * `ActivityEvidenceContext` and the related-learning-area portion of
+ * `ActivityFrame`. The source-authored values are already projected as the
+ * bounded playback check-in context; this only places that existing data in
+ * the original pre-activity location rather than treating it as completion
+ * information alone.
+ */
+function PlaybackEvidenceContext({
+    checkIn,
+}: {
+    checkIn: LearnerPlaybackDocument['activity']['check_in'];
+}) {
+    const hasFocus = Boolean(checkIn.objective) || checkIn.concepts.length > 0;
+
+    if (!hasFocus && checkIn.learning_areas.length === 0) {
+        return null;
+    }
+
+    return (
+        <>
+            {hasFocus ? (
+                <div
+                    aria-label="Learning focus"
+                    className="mt-3 grid gap-2 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_20%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_5%,transparent)] px-3 py-2"
+                >
+                    {checkIn.objective ? (
+                        <div>
+                            <p className="text-xs font-medium text-[var(--learner-action-accent)]">
+                                What this activity invites
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                                {checkIn.objective}
+                            </p>
+                        </div>
+                    ) : null}
+                    {checkIn.concepts.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs leading-5 text-[var(--learner-muted-text)]">
+                            <span className="font-medium">Concepts</span>
+                            {checkIn.concepts.map((concept) => (
+                                <span
+                                    className="rounded-full border border-[var(--learner-border-color)] px-2 py-0.5 text-[var(--learner-body-text)]"
+                                    key={concept}
+                                >
+                                    {concept}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
+            {checkIn.learning_areas.length > 0 ? (
+                <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-[var(--learner-action-accent)]">
+                    <span className="font-medium">Related learning areas:</span>
+                    {checkIn.learning_areas.map((area) => (
+                        <Link
+                            className="rounded-sm underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
+                            key={area.slug}
+                            to={`/competence?topic=${encodeURIComponent(area.slug)}`}
+                        >
+                            {area.name}
+                        </Link>
+                    ))}
+                </div>
+            ) : null}
+        </>
     );
 }
 
