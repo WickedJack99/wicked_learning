@@ -1,10 +1,9 @@
-import { ChevronDown, LogOut, NotebookPen, Settings, Volume2 } from 'lucide-react';
+import { ChevronDown, LogOut, NotebookPen, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalJournalOverlay } from './original-journal';
-import { OriginalSoundPreferences } from './original-sound-preferences';
 
 const primaryItems = [
     { href: '/home', id: 'learning-desk', label: 'Learning desk' },
@@ -30,7 +29,6 @@ export function OriginalLearnerHeader({
     const location = useLocation();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const [isSoundPreferencesOpen, setIsSoundPreferencesOpen] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
 
     async function signOut(): Promise<void> {
@@ -125,7 +123,6 @@ export function OriginalLearnerHeader({
                             <div className="flex items-center gap-2 px-2 py-2 text-left text-sm"><span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{userEmail.slice(0, 1).toUpperCase()}</span><span className="min-w-0 truncate font-medium">{userEmail}</span></div>
                             <div aria-hidden="true" className="my-1 h-px bg-[var(--learner-border-color)]" />
                             <Link className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => setIsUserMenuOpen(false)} role="menuitem" to="/settings?panel=personal&personal=appearance"><Settings className="mr-2 size-4" />Settings</Link>
-                            <button className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => { setIsUserMenuOpen(false); setIsSoundPreferencesOpen(true); }} role="menuitem" type="button"><Volume2 className="mr-2 size-4" />Sound preferences</button>
                             <button className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => void signOut()} role="menuitem" type="button"><LogOut className="mr-2 size-4" />Log out</button>
                             {signOutError ? <p className="px-2 text-sm text-red-300" role="alert">{signOutError}</p> : null}
                         </div>
@@ -133,7 +130,6 @@ export function OriginalLearnerHeader({
                 </div>
             </div>
             {isJournalOpen ? <OriginalJournalOverlay onClose={() => setIsJournalOpen(false)} /> : null}
-            {isSoundPreferencesOpen ? <OriginalSoundPreferences onClose={() => setIsSoundPreferencesOpen(false)} /> : null}
         </header>
     );
 }

@@ -1585,9 +1585,8 @@ matching letter sound during text reveal, otherwise selects one available sound
 from the set. The initial fresh set points only to the original bundled WAV
 assets, which the standalone frontend image now serves. It is not a general
 media feature and does not add audio upload, authoring, or a replacement sound
-settings screen. Until source sound preferences are migrated, it uses the
-source default of unmuted effects at full volume; that bounded limitation is
-explicit rather than silently inventing a new preference model.
+settings screen. The private Rust sound-preference contract retains source
+defaults until its original Personal Settings UI is lifted.
 
 ## ADR-042: Learning Desk route continuation reuses World authority
 
@@ -2145,8 +2144,10 @@ not migrate portal authoring, arbitrary map navigation or production routing.
 **Decision:** Store mute, effects volume and ambience volume in an
 application-database record owned by the application principal. Rust exposes
 only owner-scoped read/save endpoints with source-equivalent defaults and
-0–100 validation. The original account-menu sound panel uses that contract;
-dialogue typing audio reads the saved effects setting.
+0–100 validation. Dialogue typing audio reads the saved effects setting. The
+earlier standalone account-menu modal was removed because it was not the
+original Personal Settings UI; the contract remains for the later
+source-derived Sound settings slice.
 
 **Why:** Audio comfort is personal and must neither be coupled to identity
 credentials nor alter shared authored content. One small preference contract
