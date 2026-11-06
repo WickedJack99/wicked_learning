@@ -334,6 +334,7 @@ pub struct LearnerTopicLearningArea {
 /// published map remains visible. It deliberately does not authorize replay.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerTopicLearningPulse {
+    pub activity_slug: String,
     pub activity_title: String,
     pub feeling: Option<String>,
     pub node_title: String,

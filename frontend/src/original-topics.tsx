@@ -50,9 +50,11 @@ export const topicSurfaceStyle = {
  * Source-adapted from `features/topics/topic-directory.tsx` and
  * `features/topics/topic-detail.tsx`. The server owns topic visibility,
  * pagination, learner history and route start authorization. Source controls
- * that require an unavailable Rust destination (competence drill-down,
- * historical activity replay and the Journal overlay) are intentionally not
- * rendered rather than replaced with a new interaction.
+ * that require an unavailable Rust destination (competence drill-down and
+ * the Journal overlay) are intentionally not rendered rather than replaced
+ * with a new interaction. Historical activity replay uses the shared opaque
+ * command, so it remains an original learner control without exposing an
+ * activity URL from the read model.
  */
 export function OriginalTopicsPage({
     isAuthenticationLoading,
@@ -335,6 +337,9 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
     >('loading');
     const [startingId, setStartingId] = useState<string | null>(null);
     const [startError, setStartError] = useState<string | null>(null);
+    const [openingActivitySlug, setOpeningActivitySlug] = useState<string | null>(
+        null,
+    );
 
     const routesPage = positiveInteger(searchParams.get('page'));
     const purpose = learningIntent(searchParams.get('purpose'));
@@ -493,6 +498,32 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
         }
     }
 
+    async function openHistoricalActivity(activitySlug: string): Promise<void> {
+        if (openingActivitySlug !== null) return;
+        setOpeningActivitySlug(activitySlug);
+        try {
+            const token = await getCsrfToken();
+            const { data: result, response } = await apiClient.POST(
+                '/learner/activities/{activity_slug}/replay',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { activity_slug: activitySlug },
+                    },
+                },
+            );
+            if (response.ok && result) {
+                navigate(
+                    `/learning/nodes/${encodeURIComponent(result.node_slug)}/play?run=${encodeURIComponent(result.play_run_id)}`,
+                );
+            }
+        } catch {
+            // Keep the lifted source activity control available for a retry.
+        } finally {
+            setOpeningActivitySlug(null);
+        }
+    }
+
     if (status === 'loading' && !data)
         return <TopicsMessage message="Loading this section…" />;
     if (status === 'not-found')
@@ -572,6 +603,8 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
                             data={
                                 data as components['schemas']['LearnerTopicTrail']
                             }
+                            onOpenActivity={openHistoricalActivity}
+                            openingActivitySlug={openingActivitySlug}
                         />
                     ) : null}
                     {status === 'ready' && section === 'routes' ? (
@@ -624,8 +657,12 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
 
 function TrailPanel({
     data,
+    onOpenActivity,
+    openingActivitySlug,
 }: {
     data: components['schemas']['LearnerTopicTrail'];
+    onOpenActivity: (activitySlug: string) => Promise<void>;
+    openingActivitySlug: string | null;
 }) {
     const competence = data.competence;
     const connected = data.subtopic_competence.filter(
@@ -725,9 +762,12 @@ function TrailPanel({
                     </h2>
                     <div className="mt-4 divide-y divide-[var(--learner-border-color)]">
                         {data.learning_pulse.map((entry) => (
-                            <article
-                                className="flex items-start justify-between gap-4 py-3"
+                            <button
+                                className="flex w-full items-start justify-between gap-4 py-3 text-left transition hover:text-[var(--learner-accent)] disabled:opacity-50"
+                                disabled={openingActivitySlug !== null}
                                 key={`${entry.activity_title}:${entry.recorded_at}`}
+                                onClick={() => void onOpenActivity(entry.activity_slug)}
+                                type="button"
                             >
                                 <span className="min-w-0">
                                     <span className="block truncate text-sm font-medium">
@@ -749,7 +789,7 @@ function TrailPanel({
                                 >
                                     {formatDate(entry.recorded_at)}
                                 </time>
-                            </article>
+                            </button>
                         ))}
                     </div>
                 </section>

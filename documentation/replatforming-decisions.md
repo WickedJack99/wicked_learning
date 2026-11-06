@@ -766,9 +766,10 @@ Trail resolves the source topic's published descendants server-side and returns
 only the current learner's bounded qualitative evidence, recent check-ins and
 private reflection comparison whose activities remain in currently visible,
 published maps. It derives the source learning-area list from visible authored
-activity configuration, rather than asking React to parse or filter it. It
-does not provide historical activity replay or a generic activity writer. The
-browser does not receive topic IDs, unpublished records, arbitrary map access,
+activity configuration, rather than asking React to parse or filter it. Its
+recent-reflection rows may use the shared opaque replay command, but it does
+not provide a generic activity writer. The browser does not receive topic IDs,
+unpublished records, arbitrary map access,
 or a client-filtered collection. The detail reader retains the source default
 Trail tab, tabs/keyboard behavior, section-specific query parameters, filters
 and bounded pagination. The Routes tab invokes the existing CSRF-protected
@@ -791,9 +792,11 @@ Publishing a directory whose links lead to a simplified topic summary would
 make an unfinished substitute part of the product. Both are rejected.
 
 **Limitations and trigger:** The standalone source `/paths` page remains
-unavailable. Trail intentionally omits unavailable historical activity replay,
-competence-destination and direct-Journal controls rather than inventing a
-substitute; the journal is currently an overlay, not a direct document URL.
+unavailable. Trail intentionally omits unavailable competence-destination and
+direct-Journal controls rather than inventing a substitute; the journal is
+currently an overlay, not a direct document URL. Its evidence ledger and
+broader reflection-history controls need their own contracts and browser
+evidence before they are restored.
 The management control is also absent because the administration route has no
 Rust contract. The shared Paths/World/start policy now covers roles, completed
 nodes and valid schedules, but discovery, answer-event, tool, item and manual
@@ -1479,8 +1482,9 @@ separate from route, recall and due-revisit runs; they do not change an authored
 route's position or satisfy a recall/revisit queue. A completed replay marks
 the source activity complete, matching Laravel's direct historical entry, but
 does not create route-run evidence or follow an authored transition. Question
-and reflection/review writers resolve the same replay run under lock; browser
-input never chooses a different activity or run kind.
+and reflection/review writers, plus the migrated tool/item grant and obstacle
+writers, resolve the same replay run under lock; browser input never chooses a
+different activity or run kind.
 
 **Why:** This preserves the original learner affordance while retaining
 server-owned authorization and keeping independent learning-state meanings
@@ -1492,15 +1496,20 @@ unrelated learner state. These are rejected.
 
 **Implementation evidence:** `POST /learner/activities/{activity_slug}/replay`
 now mints the run only after principal, current publication and map-role
-visibility checks. The playback reader and all applicable activity writers
-recognize its separate `replay` kind, and the application-level unavailable
-case remains intentionally indistinguishable from an unknown activity. The
+visibility checks. It accepts the same currently migrated player types as an
+ordinary route run: practice, question, reflection/review, Markdown, tool and
+item grants, item obstacles and tool obstacles. The playback reader and their
+applicable writers recognize its separate `replay` kind, and the
+application-level unavailable case remains intentionally indistinguishable
+from an unknown activity. The
 lifted source Journal Learning trail and Competence learning-pulse, review and
 topic-return controls restore their original activity-opening affordances
 through that command. Browser tests verify their CSRF requests and opaque
 navigation. The local Compose migration was applied and verified against the
-separate application PostgreSQL database. Topic-history controls remain
-unavailable until their own lifted source UI and browser evidence are added.
+separate application PostgreSQL database. The lifted Topic Trail's recent
+reflection rows now use the same command; evidence-ledger and broader
+reflection-history controls remain unavailable until their own source data and
+browser evidence are added.
 
 ## Phase 1 gate
 

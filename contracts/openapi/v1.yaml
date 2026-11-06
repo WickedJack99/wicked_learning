@@ -2021,8 +2021,9 @@ components:
     LearnerTopicLearningPulse:
       type: object
       additionalProperties: false
-      required: [activity_title, feeling, node_title, note, recorded_at]
+      required: [activity_slug, activity_title, feeling, node_title, note, recorded_at]
       properties:
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         activity_title: { type: string, maxLength: 240 }
         feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
         node_title: { type: string, maxLength: 240 }

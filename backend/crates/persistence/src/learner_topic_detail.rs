@@ -72,6 +72,7 @@ struct TrailActivityRow {
 #[derive(FromRow)]
 struct TrailPulseRow {
     activity_config: Value,
+    activity_slug: String,
     activity_title: String,
     feeling: Option<String>,
     node_title: String,
@@ -381,7 +382,7 @@ async fn load_learning_pulse(
         return Ok(Vec::new());
     }
     let rows = sqlx::query_as::<_, TrailPulseRow>(
-        "SELECT activities.activity_config, activities.title AS activity_title, check_ins.feeling, nodes.title AS node_title, check_ins.note, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT 30",
+        "SELECT activities.activity_config, activities.slug AS activity_slug, activities.title AS activity_title, check_ins.feeling, nodes.title AS node_title, check_ins.note, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT 30",
     )
     .bind(principal_id)
     .bind(roles)
@@ -397,6 +398,7 @@ async fn load_learning_pulse(
         })
         .take(4)
         .map(|row| LearnerTopicLearningPulse {
+            activity_slug: row.activity_slug,
             activity_title: row.activity_title,
             feeling: row.feeling,
             node_title: row.node_title,

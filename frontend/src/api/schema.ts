@@ -1194,6 +1194,7 @@ export interface components {
             slug: string;
         };
         LearnerTopicLearningPulse: {
+            activity_slug: string;
             activity_title: string;
             /** @enum {string|null} */
             feeling: "clearer" | "forming" | "stretched" | "stuck" | null;

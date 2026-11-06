@@ -924,6 +924,12 @@ test('the authenticated Topics reader keeps the source directory, topic Trail an
         page.getByRole('heading', { name: 'Your trail in this topic' }),
     ).toBeVisible();
     await expect(page.getByText('Recent reflections')).toBeVisible();
+    await page.getByRole('button', { name: /Consider a direction/ }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/choose-a-direction\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d74$/,
+    );
+
+    await page.goto('/topics/map-orientation');
 
     await page.getByRole('tab', { name: 'Routes' }).click();
     await expect(page).toHaveURL(/\/topics\/map-orientation\?section=routes$/);
@@ -1257,6 +1263,24 @@ async function mockTopicReader(page: import('@playwright/test').Page) {
             }),
         });
     });
+    await page.route(
+        '**/api/v1/learner/activities/consider-a-direction/replay',
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    activity_slug: 'consider-a-direction',
+                    node_slug: 'choose-a-direction',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d74',
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
     await page.route('**/api/v1/learner/topics', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -1297,6 +1321,7 @@ async function mockTopicReader(page: import('@playwright/test').Page) {
                     ],
                     learning_pulse: [
                         {
+                            activity_slug: 'consider-a-direction',
                             activity_title: 'Consider a direction',
                             feeling: 'clearer',
                             node_title: 'Choose a direction',
