@@ -2953,7 +2953,7 @@ components:
     LearnerJournalCheckIn:
       type: object
       additionalProperties: false
-      required: [id, activity_slug, activity_title, feeling, note, next_direction, recorded_at, map_slug, map_title, node_slug, node_title]
+      required: [id, activity_slug, activity_title, feeling, note, next_direction, origin_topic_slug, recorded_at, map_slug, map_title, node_slug, node_title, topics]
       properties:
         id: { type: string, format: uuid }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
@@ -2961,11 +2961,16 @@ components:
         feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
         note: { type: [string, 'null'], maxLength: 500 }
         next_direction: { type: [string, 'null'], enum: [revisit, related, settle, null] }
+        origin_topic_slug: { type: [string, 'null'], pattern: '^[a-z0-9-]+$' }
         recorded_at: { type: string, format: date-time }
         map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         map_title: { type: string }
         node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         node_title: { type: string }
+        topics:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/LearnerCompetenceLearningArea' }
     LearnerRevisitInvitation:
       type: object
       additionalProperties: false

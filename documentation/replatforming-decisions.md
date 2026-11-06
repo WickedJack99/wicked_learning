@@ -1692,13 +1692,12 @@ command remains the single authorization point for historical activity access.
 This restores a source interaction without adding an overlapping read model or
 trusting a client-created player URL.
 
-**Limitation and trigger:** Laravel's Desk also conditionally links a
-`related` check-in to its learning areas. The current Rust Journal check-in
-contract intentionally carries no topic/area projection, so the migration
-does not invent such links from public data. Add that source control only when
-the Journal contract can return authorized related-area context and the topic
-destination can preserve it. Planning preferences and Learning Support remain
-separate slices.
+**Related-area context:** Journal check-ins carry at most three validated,
+authored learning areas plus the published source map-topic slug. React renders
+these source links only for a `related` check-in and enters the existing Star
+Map with the original `topic` and `from` context preserved. An unpublished map
+topic remains null and cannot become a browser link authority. Planning
+preferences and Learning Support remain separate slices.
 
 **Evidence and boundary:** The local Compose browser journey completes the
 server-owned NPC dialogue, records a private check-in through the existing

@@ -1,3 +1,4 @@
+use serde_json::Value;
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::learner_journal::{
@@ -66,6 +67,7 @@ struct PageRow {
 struct CheckInRow {
     activity_slug: String,
     activity_title: String,
+    competence_topics: Option<Value>,
     feeling: Option<String>,
     id: Uuid,
     map_slug: String,
@@ -74,6 +76,7 @@ struct CheckInRow {
     node_slug: String,
     node_title: String,
     note: Option<String>,
+    origin_topic_slug: Option<String>,
     recorded_at: String,
 }
 
@@ -183,7 +186,7 @@ async fn load_check_ins(
     roles: &[String],
 ) -> Result<Vec<LearnerJournalCheckIn>, sqlx::Error> {
     let rows = sqlx::query_as::<_, CheckInRow>(
-        "SELECT check_ins.id, activities.slug AS activity_slug, activities.title AS activity_title, check_ins.feeling, check_ins.note, check_ins.next_direction, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3",
+        "SELECT check_ins.id, activities.slug AS activity_slug, activities.title AS activity_title, activities.activity_config -> 'competenceTopics' AS competence_topics, check_ins.feeling, check_ins.note, check_ins.next_direction, topics.slug AS origin_topic_slug, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3",
     )
     .bind(principal_id)
     .bind(roles)
@@ -204,7 +207,9 @@ async fn load_check_ins(
             node_slug: row.node_slug,
             node_title: row.node_title,
             note: row.note,
+            origin_topic_slug: row.origin_topic_slug,
             recorded_at: row.recorded_at,
+            topics: crate::learner_competence::competence_topics(row.competence_topics),
         })
         .collect())
 }

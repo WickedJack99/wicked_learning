@@ -701,6 +701,25 @@ function RecentReflectionRow({
                         </span>
                     </p>
                 ) : null}
+                {checkIn.next_direction === 'related' && checkIn.topics.length ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                        <span className="text-[var(--learner-muted-text)]">
+                            Explore a connected learning area:
+                        </span>
+                        {checkIn.topics.map((topic) => (
+                            <Link
+                                className="underline decoration-[var(--learner-border-color)] underline-offset-2 hover:text-[var(--learner-heading-text)]"
+                                key={topic.slug}
+                                to={competenceTopicHref(
+                                    topic.slug,
+                                    checkIn.origin_topic_slug,
+                                )}
+                            >
+                                {topic.name}
+                            </Link>
+                        ))}
+                    </div>
+                ) : null}
             </div>
             <button
                 aria-busy={opening}
@@ -1106,6 +1125,17 @@ function checkInDirectionLabel(
             settle: 'Let it settle',
         }[value] ?? value
     );
+}
+
+function competenceTopicHref(
+    topicSlug: string,
+    originTopicSlug: string | null,
+): string {
+    const topicQuery = `topic=${encodeURIComponent(topicSlug)}`;
+
+    return originTopicSlug
+        ? `/competence?${topicQuery}&from=${encodeURIComponent(originTopicSlug)}`
+        : `/competence?${topicQuery}`;
 }
 
 function formatRecallDate(value: string): string {

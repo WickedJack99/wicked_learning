@@ -1797,12 +1797,14 @@ export interface components {
             note: string | null;
             /** @enum {string|null} */
             next_direction: "revisit" | "related" | "settle" | null;
+            origin_topic_slug: string | null;
             /** Format: date-time */
             recorded_at: string;
             map_slug: string;
             map_title: string;
             node_slug: string;
             node_title: string;
+            topics: components["schemas"]["LearnerCompetenceLearningArea"][];
         };
         LearnerRevisitInvitation: {
             /** Format: uuid */

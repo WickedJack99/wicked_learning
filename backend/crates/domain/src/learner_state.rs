@@ -879,7 +879,15 @@ pub struct LearnerJournalCheckIn {
     pub node_slug: String,
     pub node_title: String,
     pub note: Option<String>,
+    /// The source Desk retains its map-topic return context when opening a
+    /// related competence area. It is absent when the map's topic is not
+    /// currently published.
+    pub origin_topic_slug: Option<String>,
     pub recorded_at: String,
+    /// Bounded authored competence areas for the activity that produced this
+    /// private observation. They are presentation context only, not browser
+    /// authority to create an activity run.
+    pub topics: Vec<LearnerCompetenceLearningArea>,
 }
 
 /// A learner-selected return that is ready to act on. The read model does not

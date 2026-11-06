@@ -36,6 +36,11 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
             candidate.activity_slug === 'miras-observation',
     );
     expect(start).toBeDefined();
+    const orientationStart = worldDocument.start_routes.find(
+        (candidate: { activity_slug: string }) =>
+            candidate.activity_slug === 'find-your-place',
+    );
+    expect(orientationStart).toBeDefined();
 
     const bookmarkResponse = await request.post(
         `/api/v1/learner/maps/${start.map_slug}/nodes/${start.node_slug}/bookmark`,
@@ -174,6 +179,45 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
             }),
         ]),
     });
+
+    const resetOrientation = await request.post(
+        `/api/v1/learner/activity-starts/${orientationStart.start_id}/reset`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(resetOrientation.status()).toBe(200);
+    const startOrientation = await request.post(
+        `/api/v1/learner/activity-starts/${orientationStart.start_id}/start`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(startOrientation.status()).toBe(200);
+    const orientationRun = await startOrientation.json();
+    const completeOrientation = await request.post(
+        `/api/v1/learner/play-runs/${orientationRun.play_run_id}/activities/find-your-place/complete`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token }, data: {} },
+    );
+    expect(completeOrientation.status()).toBe(200);
+    const relatedCheckIn = await request.post(
+        `/api/v1/learner/play-runs/${orientationRun.play_run_id}/activities/find-your-place/check-ins`,
+        {
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            data: {
+                feeling: 'forming',
+                note: 'I want to connect this orientation with another idea.',
+                next_direction: 'related',
+            },
+        },
+    );
+    expect(relatedCheckIn.status()).toBe(200);
+
+    await page.goto('/home');
+    await expect(page.getByText('Still taking shape')).toBeVisible();
+    await expect(
+        page.getByText('Explore a connected learning area:'),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Orientation' })).toHaveAttribute(
+        'href',
+        '/competence?topic=orientation&from=map-orientation',
+    );
 
     const resetForBrowser = await request.post(
         `/api/v1/learner/activity-starts/${start.start_id}/reset`,

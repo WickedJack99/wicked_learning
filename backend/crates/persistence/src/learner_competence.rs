@@ -488,7 +488,11 @@ fn string_array(value: Option<Value>) -> Vec<String> {
         .collect()
 }
 
-fn competence_topics(value: Option<Value>) -> Vec<LearnerCompetenceLearningArea> {
+/// Parses the same bounded authored competence-area projection for every
+/// learner-owned reader that presents a check-in. Keeping this validation in
+/// one place prevents the Journal and Star Map from disagreeing about which
+/// source configuration is safe to render.
+pub(crate) fn competence_topics(value: Option<Value>) -> Vec<LearnerCompetenceLearningArea> {
     value
         .and_then(|value| value.as_array().cloned())
         .unwrap_or_default()
