@@ -56,6 +56,60 @@ pub fn valid_response_type(value: Option<&str>) -> Option<Option<&str>> {
     }
 }
 
+pub struct PeerWallCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> PeerWallCommand<'repository, Repository>
+where
+    Repository: LearnerPeerMessageRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn contribute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        body: &str,
+    ) -> Result<Option<LearnerPeerMessageWall>, LearnerPeerMessageError> {
+        let Some(body) = valid_body(body) else {
+            return Ok(None);
+        };
+        self.repository
+            .contribute(principal, play_run_id, activity_slug, body)
+            .await
+    }
+
+    pub async fn respond(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        message_id: Uuid,
+        body: &str,
+        response_type: Option<&str>,
+    ) -> Result<Option<LearnerPeerMessageWall>, LearnerPeerMessageError> {
+        let (Some(body), Some(response_type)) =
+            (valid_body(body), valid_response_type(response_type))
+        else {
+            return Ok(None);
+        };
+        self.repository
+            .respond(
+                principal,
+                play_run_id,
+                activity_slug,
+                message_id,
+                body,
+                response_type,
+            )
+            .await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{valid_body, valid_response_type};
