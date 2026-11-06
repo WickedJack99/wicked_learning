@@ -126,6 +126,43 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '422': { description: The current password, replacement password, or confirmation was rejected. }
         '503': { description: The identity database is unavailable. }
+  /account/profile:
+    get:
+      operationId: getAccountProfile
+      summary: Read the current subject's source-shaped profile fields.
+      responses:
+        '200':
+          description: Identity-owned name/email and application-owned public username for the current subject only.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountProfile'
+        '401': { description: Authentication is required. }
+        '403': { description: The identity has no application principal. }
+        '503': { description: An identity or application database is unavailable. }
+    patch:
+      operationId: updateAccountProfile
+      summary: Update the current subject's identity and public profile fields.
+      description: The update is CSRF protected and never exposes another person's identity profile. The application compensates a failed cross-database update rather than duplicating identity data.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountProfileRequest'
+      responses:
+        '200':
+          description: The saved current-subject profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountProfile'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The name, email address, or public username was rejected or is already in use. }
+        '503': { description: An identity or application database is unavailable. }
   /learner/world:
     get:
       operationId: getLearnerWorld
@@ -2238,6 +2275,42 @@ components:
           format: password
           minLength: 12
           maxLength: 1024
+    AccountProfile:
+      type: object
+      additionalProperties: false
+      required: [name, email, username]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        username:
+          type: [string, 'null']
+          minLength: 3
+          maxLength: 32
+          pattern: '^[A-Za-z0-9_-]+$'
+    UpdateAccountProfileRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        username:
+          type: [string, 'null']
+          minLength: 3
+          maxLength: 32
+          pattern: '^[A-Za-z0-9_-]+$'
     SessionStatus:
       type: object
       additionalProperties: false

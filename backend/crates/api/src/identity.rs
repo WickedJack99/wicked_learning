@@ -114,6 +114,14 @@ impl IdentitySubject {
             session_auth_hash: password_hash,
         }
     }
+
+    pub fn with_normalized_email(&self, normalized_email: String) -> Self {
+        Self {
+            id: self.id,
+            normalized_email,
+            session_auth_hash: self.session_auth_hash.clone(),
+        }
+    }
 }
 
 fn subject_from_row(row: IdentityRow) -> IdentitySubject {

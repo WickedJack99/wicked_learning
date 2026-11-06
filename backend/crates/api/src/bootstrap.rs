@@ -58,6 +58,14 @@ pub async fn create_administrator(
             subject_id
         }
     };
+    // Bootstrap identities predate invitation registration but must still own
+    // the same identity-profile record as every other signed-in subject.
+    sqlx::query(
+        "INSERT INTO identity_profiles (subject_id, display_name) VALUES ($1, 'Administrator') ON CONFLICT (subject_id) DO NOTHING",
+    )
+    .bind(subject_id)
+    .execute(&mut *identity_transaction)
+    .await?;
     identity_transaction.commit().await?;
 
     let mut application_transaction = application_database.begin().await?;

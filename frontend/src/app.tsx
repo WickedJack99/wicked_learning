@@ -8,6 +8,7 @@ import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
 import { OriginalPersonalAppearancePage } from './original-personal-appearance';
+import { OriginalPersonalProfilePage } from './original-personal-profile';
 import { OriginalPersonalSoundPage } from './original-personal-sound';
 import { OriginalPersonalSecurityPage } from './original-personal-security';
 import { OriginalPathsPage } from './original-paths';
@@ -286,7 +287,10 @@ export function App() {
             if (new URLSearchParams(location.search).get('personal') === 'security') {
                 return <OriginalPersonalSecurityPage appearance={appearance} />;
             }
-            return <OriginalPersonalAppearancePage appearance={appearance} onAppearanceChange={saveAppearance} />;
+            if (new URLSearchParams(location.search).get('personal') === 'appearance') {
+                return <OriginalPersonalAppearancePage appearance={appearance} onAppearanceChange={saveAppearance} />;
+            }
+            return <OriginalPersonalProfilePage appearance={appearance} />;
         }
 
         if (

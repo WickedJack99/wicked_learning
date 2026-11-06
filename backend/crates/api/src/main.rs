@@ -1,4 +1,5 @@
 mod account_password;
+mod account_profile;
 mod admin_learning_group;
 mod bootstrap;
 mod config;
@@ -277,6 +278,10 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/account/password", patch(account_password::update))
+        .route(
+            "/api/v1/account/profile",
+            get(account_profile::show).patch(account_profile::update),
+        )
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
         .route(
             "/api/v1/admin/learning-groups/{group_id}",

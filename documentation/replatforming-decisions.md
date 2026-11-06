@@ -2433,6 +2433,47 @@ password minimum remains twelve characters, matching the existing replatform
 registration policy. Password recovery, durable access-change auditing and a
 full password-strength policy review remain identity cutover work.
 
+## ADR-061: Profile core preserves the identity/application boundary
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Profile settings panel updates a name, sign-in email,
+optional public username and profile image. The replatform deliberately keeps
+identity records and application records in separate databases, so treating all
+four as one application row would recreate the coupling it is meant to remove.
+
+**Decision:** The source Name and Email fields update `identity_profiles` and
+`identity_subjects`; the optional ASCII alpha-dash Public username is held in a
+new application-database public-profile row with a case-insensitive uniqueness
+constraint. `GET/PATCH /account/profile` is owner-scoped, typed and CSRF
+protected. Its persistence adapter compensates an application username update
+when the subsequent identity update cannot complete, rather than duplicating
+identity data. The current session is refreshed with a changed email, while
+its password verifier remains unchanged.
+
+The source image UI is intentionally not exposed yet. Its source behavior
+uploads before profile-save and requires a complete mounted-volume lifecycle:
+type-safe ingest, bounded object storage, owner preview/download, public
+shared-space serving, replacement/deletion and abandoned-upload cleanup. That
+is one media slice, not a text-field substitute. The source profile form is
+therefore adapted only with the complete Name, username and Email controls.
+
+**Why:** This restores useful profile maintenance and changes the default
+Settings destination back to the original Profile panel while retaining the
+accepted credential/identity/application separation. The existing platform has
+no Rust email-verification delivery flow, so an email edit remains usable and
+does not mark the identity unauthenticatable merely by changing its address.
+
+**Alternatives:** Keeping all profile fields in identity data would make a
+public learning-space handle an authentication concern. Keeping all fields in
+application data would duplicate the sign-in address. Showing an arbitrary
+profile-image URL field or a disabled upload button would imitate rather than
+migrate the source workflow. These are rejected.
+
+**Limits and follow-up:** Profile image upload/serving is the next media
+sub-slice. Email-verification delivery, profile deletion and the remaining
+Personal sections remain separate identity/account work.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

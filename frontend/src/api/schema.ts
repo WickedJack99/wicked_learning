@@ -112,6 +112,27 @@ export interface paths {
         patch: operations["updateAccountPassword"];
         trace?: never;
     };
+    "/account/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current subject's source-shaped profile fields. */
+        get: operations["getAccountProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the current subject's identity and public profile fields.
+         * @description The update is CSRF protected and never exposes another person's identity profile. The application compensates a failed cross-database update rather than duplicating identity data.
+         */
+        patch: operations["updateAccountProfile"];
+        trace?: never;
+    };
     "/learner/world": {
         parameters: {
             query?: never;
@@ -1522,6 +1543,18 @@ export interface components {
             password: string;
             /** Format: password */
             password_confirmation: string;
+        };
+        AccountProfile: {
+            name: string;
+            /** Format: email */
+            email: string;
+            username: string | null;
+        };
+        UpdateAccountProfileRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            username?: string | null;
         };
         SessionStatus: {
             authenticated: boolean;
@@ -3286,6 +3319,102 @@ export interface operations {
                 content?: never;
             };
             /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAccountProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Identity-owned name/email and application-owned public username for the current subject only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountProfile"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAccountProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAccountProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved current-subject profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountProfile"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The name */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An identity or application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
