@@ -1589,6 +1589,43 @@ settings screen. Until source sound preferences are migrated, it uses the
 source default of unmuted effects at full volume; that bounded limitation is
 explicit rather than silently inventing a new preference model.
 
+## ADR-042: Learning Desk route continuation reuses World authority
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Learning Desk separates an unfinished route from a
+completed trace and lets the learner continue it. A client-created activity
+URL, or a new desk-specific route-progress endpoint, could either bypass the
+existing visibility checks or create a second owner of route resumption.
+
+**Decision:** The first restored Learning Desk section reads the existing
+authenticated World snapshot, which already applies map visibility and returns
+the learner's in-progress route-start handles. Selecting Continue invokes the
+existing CSRF-protected `start` command for that opaque handle. Rust returns
+the current server-owned play-run identifier; React merely navigates to the
+resulting player URL. The desk does not determine the activity, reset state or
+construct a run identity.
+
+**Why:** This preserves the source interaction while retaining one route
+authorization/read model and one writer. It also gives the migration a small,
+testable first Learning Desk section without representing the unavailable
+connections, history, reflection, preference or support sections as a new
+dashboard.
+
+**Alternatives:** A new desk-specific continuation API would duplicate the
+same access and resume policy. A direct browser URL based on route or activity
+slugs would be forgeable and would not resume the durable current run. Both are
+rejected.
+
+**Evidence and boundary:** The local Compose Playwright journey starts the
+greenfield NPC dialogue, loads `/home`, finds its source-derived Continue
+learning row, presses Continue, and verifies navigation uses the server-returned
+opaque run. The earlier lifted Recall Queue and Return when useful sections are
+unchanged. This is not a claim of complete Desk parity: source bookmarks,
+connections, completed-route traces, check-in reflections, saved planning and
+private Learning Support replies still await their own safe read contracts and
+direct source UI adaptations.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -258,6 +258,7 @@ async fn load_first_visible(
             .filter(|row| playable_nodes.contains(&(row.map_slug.clone(), row.node_slug.clone())))
             .map(|row| LearnerActivityStart {
                 start_id: row.start_id.to_string(),
+                map_slug: row.map_slug,
                 node_slug: row.node_slug,
                 route_slug: row.route_slug,
                 activity_slug: row.activity_slug,

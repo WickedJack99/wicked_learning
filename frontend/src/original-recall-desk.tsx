@@ -1,5 +1,5 @@
-import { ArrowRight, Bookmark, Clock3, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowRight, Bookmark, BookOpenText, Clock3, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -11,6 +11,8 @@ import { OriginalLearnerHeader } from './original-learner-header';
 type LearnerRecallItem = components['schemas']['LearnerRecallItem'];
 type LearnerRecallQueue = components['schemas']['LearnerRecallQueue'];
 type RevisitInvitation = components['schemas']['LearnerRevisitInvitation'];
+type LearnerWorldSnapshot = components['schemas']['LearnerWorldSnapshot'];
+type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 
 const learnerStyle = {
     '--learner-action-accent': '#5eead4',
@@ -23,12 +25,33 @@ const learnerStyle = {
     '--learner-panel-background': '#111820',
 } as CSSProperties;
 
+type ActiveRouteRow = {
+    mapTitle: string;
+    nodeTitle: string;
+    start: LearnerActivityStart;
+};
+
+function activeRouteRows(world: LearnerWorldSnapshot | null): ActiveRouteRow[] {
+    if (!world) return [];
+    const nodeTitles = new Map(
+        world.world.maps.flatMap((map) =>
+            map.nodes.map((node) => [`${map.slug}/${node.slug}`, { mapTitle: map.title, nodeTitle: node.title }] as const),
+        ),
+    );
+    return world.start_routes
+        .filter((start) => start.progress?.status === 'in_progress')
+        .sort((first, second) => (second.progress?.last_entered_at ?? '').localeCompare(first.progress?.last_entered_at ?? ''))
+        .slice(0, 3)
+        .flatMap((start) => {
+            const node = nodeTitles.get(`${start.map_slug}/${start.node_slug}`);
+            return node ? [{ start, ...node }] : [];
+        });
+}
+
 /**
- * The Recall Queue and Return when useful sections lifted from
- * `features/home/learning-desk.tsx`. This remains a deliberately narrow desk
- * surface until the other source sections have their own completed Rust
- * contracts; it does not add replacement cards or navigation for unavailable
- * work.
+ * Source-adapted Learning Desk sections from `features/home/learning-desk.tsx`.
+ * Active-route continuation reuses the existing World snapshot and its opaque
+ * route-start command; the browser never constructs a play-run identity.
  */
 export function OriginalRecallDeskPage({
     onSignedOut,
@@ -39,6 +62,7 @@ export function OriginalRecallDeskPage({
 }) {
     const navigate = useNavigate();
     const [queue, setQueue] = useState<LearnerRecallQueue | null>(null);
+    const [world, setWorld] = useState<LearnerWorldSnapshot | null>(null);
     const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>(
         'loading',
     );
@@ -73,6 +97,23 @@ export function OriginalRecallDeskPage({
             active = false;
         };
     }, []);
+
+    useEffect(() => {
+        let active = true;
+        void apiClient.GET('/learner/world').then(({ data, response }) => {
+            if (active && response.ok && data) {
+                setWorld(data);
+            }
+        }).catch(() => {
+            // Recall and revisit remain usable when this independent source
+            // section is temporarily unavailable.
+        });
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const currentRoutes = useMemo(() => activeRouteRows(world), [world]);
 
     useEffect(() => {
         let active = true;
@@ -189,6 +230,31 @@ export function OriginalRecallDeskPage({
         }
     }
 
+    async function continueRoute(start: LearnerActivityStart): Promise<void> {
+        if (openingItemId) return;
+        setOpeningItemId(start.start_id);
+        setError('');
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/activity-starts/{start_id}/start',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { start_id: start.start_id },
+                    },
+                },
+            );
+            if (!response.ok || !data) throw new Error('resume failed');
+            navigate(
+                `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
+            );
+        } catch {
+            setError('That route could not be continued. Try again.');
+            setOpeningItemId(null);
+        }
+    }
+
     async function updateRevisit(
         invitation: RevisitInvitation,
         action: 'dismiss' | 'snooze',
@@ -279,15 +345,24 @@ export function OriginalRecallDeskPage({
                     <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
                         Your learning desk
                     </p>
-                    <h1 className="mt-3 text-3xl font-medium tracking-tight">
-                        Recall queue
-                    </h1>
+                    <h1 className="mt-3 text-3xl font-medium tracking-tight">What would you like to think about next?</h1>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                        Questions you chose to keep nearby for another look.
-                        There is no deadline; remove one whenever it no longer
-                        helps.
+                        Continue a route, return to a question you kept nearby, or revisit a place when it becomes useful.
                     </p>
                 </header>
+
+                {currentRoutes.length ? (
+                    <section aria-labelledby="continue-learning-heading" className="mt-8">
+                        <div className="flex items-center gap-5 pb-3">
+                            <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="continue-learning-heading" tabIndex={-1}>
+                                Continue learning
+                            </h2>
+                        </div>
+                        <div className="mt-4 divide-y divide-[var(--learner-border-color)] border-y border-[var(--learner-border-color)]">
+                            {currentRoutes.map((route) => <ContinueRouteRow key={route.start.start_id} onContinue={continueRoute} opening={openingItemId === route.start.start_id} route={route} />)}
+                        </div>
+                    </section>
+                ) : null}
 
                 {status === 'ready' && queue?.items.length ? (
                     <section aria-labelledby="recall-heading" className="mt-8">
@@ -367,6 +442,31 @@ export function OriginalRecallDeskPage({
             </div>
             </main>
         </div>
+    );
+}
+
+function ContinueRouteRow({
+    onContinue,
+    opening,
+    route,
+}: {
+    onContinue: (start: LearnerActivityStart) => Promise<void>;
+    opening: boolean;
+    route: ActiveRouteRow;
+}) {
+    return (
+        <article className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
+            <div className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-accent)]">
+                <BookOpenText className="size-5" />
+            </div>
+            <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{route.start.label}</p>
+                <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">{route.nodeTitle} · {route.mapTitle}</p>
+            </div>
+            <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-accent)] disabled:opacity-50 sm:justify-self-end" disabled={opening} onClick={() => void onContinue(route.start)} type="button">
+                {opening ? 'Opening…' : 'Continue'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </button>
+        </article>
     );
 }
 

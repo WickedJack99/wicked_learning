@@ -51,6 +51,15 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     const run = await startResponse.json();
     const basePath = `/api/v1/learner/play-runs/${run.play_run_id}/activities/miras-observation`;
 
+    const storageState = await request.storageState();
+    await page.context().addCookies(storageState.cookies);
+    await page.goto('/home');
+    await expect(page.getByRole('heading', { name: 'Continue learning' })).toBeVisible();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page).toHaveURL(
+        new RegExp(`/learning/nodes/notice-the-map/play\\?run=${run.play_run_id}`),
+    );
+
     let playback = await request.get(`/api/v1/learner/play-runs/${run.play_run_id}`);
     expect(playback.status()).toBe(200);
     let document = await playback.json();
@@ -134,8 +143,6 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     expect(browserStart.status()).toBe(200);
     const { play_run_id: browserPlayRunId } = await browserStart.json();
 
-    const storageState = await request.storageState();
-    await page.context().addCookies(storageState.cookies);
     await page.goto(`/learning/nodes/notice-the-map/play?run=${browserPlayRunId}`);
 
     await expect(page.getByText('Mira opens the observation')).toBeVisible();

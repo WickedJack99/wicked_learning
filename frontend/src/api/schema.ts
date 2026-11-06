@@ -1510,6 +1510,7 @@ export interface components {
         LearnerActivityStart: {
             /** Format: uuid */
             start_id: string;
+            map_slug: string;
             node_slug: string;
             route_slug: string;
             activity_slug: string;

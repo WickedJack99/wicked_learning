@@ -2476,11 +2476,14 @@ components:
     LearnerActivityStart:
       type: object
       additionalProperties: false
-      required: [start_id, node_slug, route_slug, activity_slug, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, sort_order, progress]
+      required: [start_id, map_slug, node_slug, route_slug, activity_slug, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, sort_order, progress]
       properties:
         start_id:
           type: string
           format: uuid
+        map_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
         node_slug:
           type: string
           pattern: '^[a-z0-9-]+$'

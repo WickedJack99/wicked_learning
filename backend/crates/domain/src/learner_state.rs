@@ -535,6 +535,7 @@ pub struct LearnerWorldRoute {
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerActivityStart {
     pub start_id: String,
+    pub map_slug: String,
     pub node_slug: String,
     pub route_slug: String,
     pub activity_slug: String,
