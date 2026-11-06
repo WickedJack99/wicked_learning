@@ -716,17 +716,58 @@ pub struct LearnerPeerMessageResponse {
     pub response_type: Option<String>,
 }
 
-/// A private-support topic that an authorized staff member may open. This is
+/// A staff-moderation topic that an authorized worker may open. This is
 /// deliberately distinct from learner playback data: it contains the small
-/// amount of identity context required to answer a request, and is never sent
-/// to another learner.
+/// amount of identity context needed for moderation, and is never sent to
+/// another learner.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearningSupportTopic {
+    pub helpful_message_count: i64,
     pub id: String,
     pub map_title: String,
     pub map_asset_title: String,
-    pub request_count: i64,
+    pub message_count: i64,
     pub title: String,
+    pub unconfirmed_message_count: i64,
+}
+
+/// The source Learning Support workspace groups both private-support requests
+/// and peer-wall contributions by their authored topic. The staff-only
+/// projection contains a limited identity contact field; it is never reused by
+/// learner playback readers.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportModerationPage {
+    pub counts: LearningSupportModerationCounts,
+    pub messages: Vec<LearningSupportModerationMessage>,
+    pub pagination: LearningSupportPagination,
+    pub topic: LearningSupportTopic,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportModerationCounts {
+    pub all: i64,
+    pub helpful: i64,
+    pub unconfirmed: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportModerationMessage {
+    pub audience: String,
+    pub author: LearningSupportIdentity,
+    pub body: String,
+    pub created_at: String,
+    pub hidden_at: Option<String>,
+    pub id: String,
+    pub response_count: i64,
+    pub response_pagination: LearningSupportPagination,
+    pub responses: Vec<LearningSupportModerationReply>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportModerationResponsesPage {
+    pub message_id: String,
+    pub pagination: LearningSupportPagination,
+    pub responses: Vec<LearningSupportModerationReply>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -771,6 +812,8 @@ pub struct LearningSupportModerationReply {
     pub created_at: String,
     pub hidden_at: Option<String>,
     pub id: String,
+    pub is_helpful: bool,
+    pub response_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]

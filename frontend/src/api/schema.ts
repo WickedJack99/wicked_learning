@@ -319,7 +319,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read private-support topics with learner requests for an authorized Learning Support worker. */
+        /** Read learner-message topics with contributions for an authorized Learning Support worker. */
         get: operations["getLearningSupportTopics"];
         put?: never;
         post?: never;
@@ -346,6 +346,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learning-support/topics/{topic_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a bounded source-shaped learner-message moderation page for an authorized Learning Support worker. */
+        get: operations["getLearningSupportMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learning-support/messages/{message_id}/responses": {
         parameters: {
             query?: never;
@@ -353,7 +370,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Read a bounded page of staff-moderated responses to one learner message. */
+        get: operations["getLearningSupportMessageResponses"];
         put?: never;
         /** Create or update the current authorized worker's private reply to a learner support request. */
         post: operations["saveLearningSupportResponse"];
@@ -376,7 +394,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Hide or restore a private learner support request for learner-facing readers. */
+        /** Hide or restore a learner message for learner-facing readers. */
         patch: operations["updateLearningSupportMessageVisibility"];
         trace?: never;
     };
@@ -390,7 +408,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Permanently delete a private learner support request and its staff replies. */
+        /** Permanently delete a learner message and its responses. */
         delete: operations["deleteLearningSupportMessage"];
         options?: never;
         head?: never;
@@ -410,7 +428,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Hide or restore a private staff reply for learner-facing readers. */
+        /** Hide or restore a learner-message response for learner-facing readers. */
         patch: operations["updateLearningSupportResponseVisibility"];
         trace?: never;
     };
@@ -424,7 +442,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Permanently delete a private staff reply to a learner support request. */
+        /** Permanently delete a learner-message response. */
         delete: operations["deleteLearningSupportResponse"];
         options?: never;
         head?: never;
@@ -2158,12 +2176,14 @@ export interface components {
             helpful: boolean;
         };
         LearningSupportTopic: {
+            helpful_message_count: number;
             /** Format: uuid */
             id: string;
             map_asset_title: string;
             map_title: string;
-            request_count: number;
+            message_count: number;
             title: string;
+            unconfirmed_message_count: number;
         };
         /** @description A limited identity projection disclosed only through a Learning Support moderation endpoint to a principal with the matching server capability. */
         LearningSupportIdentity: {
@@ -2180,6 +2200,39 @@ export interface components {
             hidden_at: string | null;
             /** Format: uuid */
             id: string;
+            is_helpful: boolean;
+            response_type: ("explanation" | "example" | "question" | "counterexample") | null;
+        };
+        LearningSupportModerationCounts: {
+            all: number;
+            helpful: number;
+            unconfirmed: number;
+        };
+        LearningSupportModerationMessage: {
+            /** @enum {string} */
+            audience: "peers" | "support";
+            author: components["schemas"]["LearningSupportIdentity"];
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            hidden_at: string | null;
+            /** Format: uuid */
+            id: string;
+            response_count: number;
+            response_pagination: components["schemas"]["LearningSupportPagination"];
+            responses: components["schemas"]["LearningSupportModerationReply"][];
+        };
+        LearningSupportModerationPage: {
+            counts: components["schemas"]["LearningSupportModerationCounts"];
+            messages: components["schemas"]["LearningSupportModerationMessage"][];
+            pagination: components["schemas"]["LearningSupportPagination"];
+            topic: components["schemas"]["LearningSupportTopic"];
+        };
+        LearningSupportModerationResponsesPage: {
+            /** Format: uuid */
+            message_id: string;
+            pagination: components["schemas"]["LearningSupportPagination"];
+            responses: components["schemas"]["LearningSupportModerationReply"][];
         };
         LearningSupportModerationRequest: {
             author: components["schemas"]["LearningSupportIdentity"];
@@ -3369,7 +3422,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Support-only topics with at least one learner request. */
+            /** @description Topics with at least one private-support request or peer contribution. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3445,6 +3498,119 @@ export interface operations {
                 content?: never;
             };
             /** @description The topic is unknown or moderation is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearningSupportMessages: {
+        parameters: {
+            query?: {
+                filter?: "all" | "helpful" | "unconfirmed";
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                topic_id: components["parameters"]["LearningSupportTopicId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded peer and support messages, with their first source-ordered responses and staff-only identity contact projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningSupportModerationPage"];
+                };
+            };
+            /** @description The filter or pagination values are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The topic is unknown or moderation is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearningSupportMessageResponses: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                message_id: components["parameters"]["LearningSupportMessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Responses and staff-only limited identity projections for one message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningSupportModerationResponsesPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The message is unknown or moderation is unavailable to this principal. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3551,7 +3717,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The private learner request visibility was updated. */
+            /** @description The learner message visibility was updated. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -3572,7 +3738,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The request is unknown */
+            /** @description The message is unknown or moderation is unavailable to this principal. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3602,7 +3768,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The private learner request and its replies were deleted. */
+            /** @description The learner message and its responses were deleted. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -3623,7 +3789,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The request is unknown */
+            /** @description The message is unknown or moderation is unavailable to this principal. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3657,7 +3823,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The private staff reply visibility was updated. */
+            /** @description The learner-message response visibility was updated. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -3678,7 +3844,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The reply is unknown */
+            /** @description The response is unknown or moderation is unavailable to this principal. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3708,7 +3874,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The private staff reply was deleted. */
+            /** @description The learner-message response was deleted. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -3729,7 +3895,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The reply is unknown */
+            /** @description The response is unknown or moderation is unavailable to this principal. */
             404: {
                 headers: {
                     [name: string]: unknown;

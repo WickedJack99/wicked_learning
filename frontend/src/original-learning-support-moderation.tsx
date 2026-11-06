@@ -14,15 +14,16 @@ import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
 
 type Topic = components['schemas']['LearningSupportTopic'];
-type RequestPage = components['schemas']['LearningSupportRequestPage'];
-type SupportRequest = components['schemas']['LearningSupportModerationRequest'];
+type ModerationPage = components['schemas']['LearningSupportModerationPage'];
+type ModerationMessage = components['schemas']['LearningSupportModerationMessage'];
 type SupportReply = components['schemas']['LearningSupportModerationReply'];
+type ResponseFilter = 'all' | 'helpful' | 'unconfirmed';
 
 /**
- * Source-adapted from the private-support branch of
- * `learner-message-moderation-panel.tsx`. The full Settings index and its
- * other panels are not available yet, so this keeps the original topic
- * navigation and moderation controls without inventing an alternative panel.
+ * Source-adapted from `learner-message-moderation-panel.tsx`. The complete
+ * Settings shell is not available yet, so this retains the source workspace's
+ * topic navigation, resolution filters and moderation controls without
+ * inventing an alternative admin flow.
  */
 export function OriginalLearningSupportModerationPage({
     appearance,
@@ -31,7 +32,7 @@ export function OriginalLearningSupportModerationPage({
 }) {
     const [topics, setTopics] = useState<Topic[]>([]);
     const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
-    const [page, setPage] = useState<RequestPage | null>(null);
+    const [page, setPage] = useState<ModerationPage | null>(null);
     const [loadingTopics, setLoadingTopics] = useState(true);
     const [loadingRequests, setLoadingRequests] = useState(false);
     const [error, setError] = useState('');
@@ -41,6 +42,7 @@ export function OriginalLearningSupportModerationPage({
     const [replyBody, setReplyBody] = useState('');
     const [submittingReply, setSubmittingReply] = useState(false);
     const [actionError, setActionError] = useState('');
+    const [responseFilter, setResponseFilter] = useState<ResponseFilter>('all');
 
     useEffect(() => {
         let active = true;
@@ -78,9 +80,10 @@ export function OriginalLearningSupportModerationPage({
         };
     }, []);
 
-    async function loadRequests(
+    async function loadMessages(
         topicId: string,
         requestedPage: number,
+        filter: ResponseFilter = responseFilter,
     ): Promise<void> {
         setLoadingRequests(true);
         setError('');
@@ -88,16 +91,16 @@ export function OriginalLearningSupportModerationPage({
 
         try {
             const { data, response } = await apiClient.GET(
-                '/learning-support/topics/{topic_id}/requests',
+                '/learning-support/topics/{topic_id}/messages',
                 {
                     params: {
                         path: { topic_id: topicId },
-                        query: { page: requestedPage },
+                        query: { filter, page: requestedPage, per_page: 6 },
                     },
                 },
             );
             if (!response.ok || !data) {
-                throw new Error('requests unavailable');
+                throw new Error('messages unavailable');
             }
             setPage(data);
         } catch {
@@ -110,18 +113,57 @@ export function OriginalLearningSupportModerationPage({
 
     useEffect(() => {
         if (selectedTopicId) {
-            void loadRequests(selectedTopicId, 1);
+            void loadMessages(selectedTopicId, 1);
         } else {
             setPage(null);
         }
-    }, [selectedTopicId]);
+    }, [responseFilter, selectedTopicId]);
 
     async function refresh(): Promise<void> {
         if (selectedTopicId) {
-            await loadRequests(
+            await loadMessages(
                 selectedTopicId,
                 page?.pagination.current_page ?? 1,
             );
+        }
+    }
+
+    async function loadResponses(
+        messageId: string,
+        requestedPage: number,
+    ): Promise<void> {
+        setActionError('');
+        try {
+            const { data, response } = await apiClient.GET(
+                '/learning-support/messages/{message_id}/responses',
+                {
+                    params: {
+                        path: { message_id: messageId },
+                        query: { page: requestedPage },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                throw new Error('responses unavailable');
+            }
+            setPage((current) =>
+                current === null
+                    ? current
+                    : {
+                          ...current,
+                          messages: current.messages.map((message) =>
+                              message.id === messageId
+                                  ? {
+                                        ...message,
+                                        response_pagination: data.pagination,
+                                        responses: data.responses,
+                                    }
+                                  : message,
+                          ),
+                      },
+            );
+        } catch {
+            setActionError('The message responses could not be loaded.');
         }
     }
 
@@ -160,7 +202,7 @@ export function OriginalLearningSupportModerationPage({
     }
 
     async function setRequestVisibility(
-        message: SupportRequest,
+        message: ModerationMessage,
     ): Promise<void> {
         await mutate(async (csrfToken) =>
             apiClient.PATCH(
@@ -191,7 +233,7 @@ export function OriginalLearningSupportModerationPage({
         );
     }
 
-    async function deleteRequest(message: SupportRequest): Promise<void> {
+    async function deleteRequest(message: ModerationMessage): Promise<void> {
         if (!window.confirm('Permanently delete this learner message?')) {
             return;
         }
@@ -266,7 +308,10 @@ export function OriginalLearningSupportModerationPage({
                                 <button
                                     className={`relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${topic.id === selectedTopicId ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]'}`}
                                     key={topic.id}
-                                    onClick={() => setSelectedTopicId(topic.id)}
+                                    onClick={() => {
+                                        setSelectedTopicId(topic.id);
+                                        setResponseFilter('all');
+                                    }}
                                     type="button"
                                 >
                                     <span
@@ -281,8 +326,8 @@ export function OriginalLearningSupportModerationPage({
                                         </span>
                                         <span className="mt-1 block text-xs leading-5 text-[var(--settings-muted-text)]">
                                             {topic.map_title} ·{' '}
-                                            {topic.request_count}{' '}
-                                            {topic.request_count === 1
+                                            {topic.message_count}{' '}
+                                            {topic.message_count === 1
                                                 ? 'message'
                                                 : 'messages'}
                                         </span>
@@ -322,6 +367,37 @@ export function OriginalLearningSupportModerationPage({
                                 </header>
 
                                 <div
+                                    aria-label="Resolution view"
+                                    className="mt-4 flex flex-wrap items-center gap-2 border-b border-[var(--settings-border-color)] pb-3"
+                                    role="group"
+                                >
+                                    <span className="mr-1 text-xs font-semibold tracking-wide text-[var(--settings-muted-text)] uppercase">
+                                        Resolution view
+                                    </span>
+                                    {[
+                                        ['all', `All (${page?.counts.all ?? 0})`],
+                                        [
+                                            'unconfirmed',
+                                            `Needs learner confirmation (${page?.counts.unconfirmed ?? 0})`,
+                                        ],
+                                        [
+                                            'helpful',
+                                            `Learner-confirmed helpful (${page?.counts.helpful ?? 0})`,
+                                        ],
+                                    ].map(([filter, label]) => (
+                                        <button
+                                            aria-pressed={responseFilter === filter}
+                                            className={`min-h-9 rounded-md border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${responseFilter === filter ? 'border-[var(--settings-accent)] bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'border-[var(--settings-border-color)] text-[var(--settings-muted-text)] hover:border-[var(--settings-accent)] hover:text-[var(--settings-accent)]'}`}
+                                            key={filter}
+                                            onClick={() => setResponseFilter(filter as ResponseFilter)}
+                                            type="button"
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div
                                     aria-busy={loadingRequests}
                                     className="mt-4 flex min-h-0 flex-1 flex-col"
                                 >
@@ -349,7 +425,7 @@ export function OriginalLearningSupportModerationPage({
                                     {!loadingRequests && page ? (
                                         <>
                                             <div className="grid gap-3">
-                                                {page.requests.map(
+                                                {page.messages.map(
                                                     (message) => (
                                                         <RequestCard
                                                             key={message.id}
@@ -413,10 +489,18 @@ export function OriginalLearningSupportModerationPage({
                                                                     reply,
                                                                 )
                                                             }
+                                                            onResponsePageChange={(
+                                                                responsePage,
+                                                            ) =>
+                                                                void loadResponses(
+                                                                    message.id,
+                                                                    responsePage,
+                                                                )
+                                                            }
                                                         />
                                                     ),
                                                 )}
-                                                {page.requests.length === 0 ? (
+                                                {page.messages.length === 0 ? (
                                                     <p className="border-b border-[var(--settings-border-color)] px-1 py-8 text-sm text-[var(--settings-muted-text)]">
                                                         No messages match this
                                                         view.
@@ -426,7 +510,7 @@ export function OriginalLearningSupportModerationPage({
                                             <Pagination
                                                 pagination={page.pagination}
                                                 onPageChange={(nextPage) =>
-                                                    void loadRequests(
+                                                    void loadMessages(
                                                         selectedTopic.id,
                                                         nextPage,
                                                     )
@@ -450,6 +534,7 @@ function RequestCard({
     onDeleteReply,
     onReply,
     onSaveReply,
+    onResponsePageChange,
     onSetReplyVisibility,
     onSetVisibility,
     replying,
@@ -457,11 +542,12 @@ function RequestCard({
     setReplyBody,
     submittingReply,
 }: {
-    message: SupportRequest;
+    message: ModerationMessage;
     onDelete: () => void;
     onDeleteReply: (reply: SupportReply) => void;
     onReply: () => void;
     onSaveReply: () => void;
+    onResponsePageChange: (page: number) => void;
     onSetReplyVisibility: (reply: SupportReply) => void;
     onSetVisibility: () => void;
     replying: boolean;
@@ -479,12 +565,18 @@ function RequestCard({
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                    <span className="rounded-full border border-amber-400/40 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-300/30 dark:text-amber-200">
-                        Support request
+                    <span
+                        className={`rounded-full border px-2 py-1 text-xs font-medium ${message.audience === 'support' ? 'border-amber-400/40 text-amber-700 dark:border-amber-300/30 dark:text-amber-200' : 'border-sky-400/40 text-sky-700 dark:border-sky-300/30 dark:text-sky-200'}`}
+                    >
+                        {message.audience === 'support'
+                            ? 'Support request'
+                            : 'Peer message'}
                     </span>
-                    <ActionButton onClick={onReply}>
-                        {replying ? 'Close reply' : 'Reply privately'}
-                    </ActionButton>
+                    {message.audience === 'support' ? (
+                        <ActionButton onClick={onReply}>
+                            {replying ? 'Close reply' : 'Reply privately'}
+                        </ActionButton>
+                    ) : null}
                     <ActionButton
                         icon={
                             message.hidden_at ? (
@@ -516,7 +608,7 @@ function RequestCard({
                     Hidden from learners
                 </p>
             ) : null}
-            {replying ? (
+            {replying && message.audience === 'support' ? (
                 <form
                     className="mt-4 grid gap-2 rounded-lg border border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-accent)_5%,transparent)] p-3"
                     onSubmit={(event) => {
@@ -597,6 +689,16 @@ function RequestCard({
                             >
                                 {reply.body}
                             </p>
+                            {reply.response_type ? (
+                                <p className="text-xs font-medium tracking-wide text-[var(--settings-muted-text)] uppercase">
+                                    {reply.response_type}
+                                </p>
+                            ) : null}
+                            {reply.is_helpful ? (
+                                <p className="text-xs font-medium text-teal-700 dark:text-teal-300">
+                                    Learner-confirmed helpful
+                                </p>
+                            ) : null}
                             {reply.hidden_at ? (
                                 <p className="text-xs text-amber-600 dark:text-amber-300">
                                     Hidden from learners
@@ -604,6 +706,12 @@ function RequestCard({
                             ) : null}
                         </div>
                     ))}
+                    {message.response_pagination.last_page > 1 ? (
+                        <Pagination
+                            pagination={message.response_pagination}
+                            onPageChange={onResponsePageChange}
+                        />
+                    ) : null}
                 </div>
             ) : null}
         </article>
@@ -636,7 +744,7 @@ function Pagination({
     pagination,
     onPageChange,
 }: {
-    pagination: RequestPage['pagination'];
+    pagination: ModerationPage['pagination'];
     onPageChange: (page: number) => void;
 }) {
     if (pagination.last_page <= 1) return null;

@@ -441,10 +441,10 @@ paths:
   /learning-support/topics:
     get:
       operationId: getLearningSupportTopics
-      summary: Read private-support topics with learner requests for an authorized Learning Support worker.
+      summary: Read learner-message topics with contributions for an authorized Learning Support worker.
       responses:
         '200':
-          description: Support-only topics with at least one learner request.
+          description: Topics with at least one private-support request or peer contribution.
           content:
             application/json:
               schema:
@@ -473,7 +473,51 @@ paths:
         '403': { description: The current identity has no application principal. }
         '404': { description: The topic is unknown or moderation is unavailable to this principal. }
         '503': { description: The application or identity database is unavailable. }
+  /learning-support/topics/{topic_id}/messages:
+    get:
+      operationId: getLearningSupportMessages
+      summary: Read a bounded source-shaped learner-message moderation page for an authorized Learning Support worker.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportTopicId'
+        - name: filter
+          in: query
+          schema: { type: string, enum: [all, helpful, unconfirmed], default: all }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12 }
+      responses:
+        '200':
+          description: Bounded peer and support messages, with their first source-ordered responses and staff-only identity contact projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearningSupportModerationPage' }
+        '400': { description: The filter or pagination values are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no application principal. }
+        '404': { description: The topic is unknown or moderation is unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
   /learning-support/messages/{message_id}/responses:
+    get:
+      operationId: getLearningSupportMessageResponses
+      summary: Read a bounded page of staff-moderated responses to one learner message.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportMessageId'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000 }
+      responses:
+        '200':
+          description: Responses and staff-only limited identity projections for one message.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearningSupportModerationResponsesPage' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no application principal. }
+        '404': { description: The message is unknown or moderation is unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
     post:
       operationId: saveLearningSupportResponse
       summary: Create or update the current authorized worker's private reply to a learner support request.
@@ -504,7 +548,7 @@ paths:
   /learning-support/messages/{message_id}/visibility:
     patch:
       operationId: updateLearningSupportMessageVisibility
-      summary: Hide or restore a private learner support request for learner-facing readers.
+      summary: Hide or restore a learner message for learner-facing readers.
       parameters:
         - $ref: '#/components/parameters/LearningSupportMessageId'
         - $ref: '#/components/parameters/CsrfTokenHeader'
@@ -514,28 +558,28 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateLearningSupportVisibilityRequest' }
       responses:
-        '204': { description: The private learner request visibility was updated. }
+        '204': { description: The learner message visibility was updated. }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The request is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '404': { description: The message is unknown or moderation is unavailable to this principal. }
         '503': { description: The application database is unavailable. }
   /learning-support/messages/{message_id}:
     delete:
       operationId: deleteLearningSupportMessage
-      summary: Permanently delete a private learner support request and its staff replies.
+      summary: Permanently delete a learner message and its responses.
       parameters:
         - $ref: '#/components/parameters/LearningSupportMessageId'
         - $ref: '#/components/parameters/CsrfTokenHeader'
       responses:
-        '204': { description: The private learner request and its replies were deleted. }
+        '204': { description: The learner message and its responses were deleted. }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The request is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '404': { description: The message is unknown or moderation is unavailable to this principal. }
         '503': { description: The application database is unavailable. }
   /learning-support/responses/{response_id}/visibility:
     patch:
       operationId: updateLearningSupportResponseVisibility
-      summary: Hide or restore a private staff reply for learner-facing readers.
+      summary: Hide or restore a learner-message response for learner-facing readers.
       parameters:
         - $ref: '#/components/parameters/LearningSupportResponseId'
         - $ref: '#/components/parameters/CsrfTokenHeader'
@@ -545,23 +589,23 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateLearningSupportVisibilityRequest' }
       responses:
-        '204': { description: The private staff reply visibility was updated. }
+        '204': { description: The learner-message response visibility was updated. }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The reply is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '404': { description: The response is unknown or moderation is unavailable to this principal. }
         '503': { description: The application database is unavailable. }
   /learning-support/responses/{response_id}:
     delete:
       operationId: deleteLearningSupportResponse
-      summary: Permanently delete a private staff reply to a learner support request.
+      summary: Permanently delete a learner-message response.
       parameters:
         - $ref: '#/components/parameters/LearningSupportResponseId'
         - $ref: '#/components/parameters/CsrfTokenHeader'
       responses:
-        '204': { description: The private staff reply was deleted. }
+        '204': { description: The learner-message response was deleted. }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The reply is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '404': { description: The response is unknown or moderation is unavailable to this principal. }
         '503': { description: The application database is unavailable. }
   /learner/recall-items:
     get:
@@ -3489,13 +3533,15 @@ components:
     LearningSupportTopic:
       type: object
       additionalProperties: false
-      required: [id, map_asset_title, map_title, request_count, title]
+      required: [helpful_message_count, id, map_asset_title, map_title, message_count, title, unconfirmed_message_count]
       properties:
+        helpful_message_count: { type: integer, minimum: 0 }
         id: { type: string, format: uuid }
         map_asset_title: { type: string, maxLength: 240 }
         map_title: { type: string, maxLength: 240 }
-        request_count: { type: integer, minimum: 0 }
+        message_count: { type: integer, minimum: 0 }
         title: { type: string, maxLength: 240 }
+        unconfirmed_message_count: { type: integer, minimum: 0 }
     LearningSupportIdentity:
       type: object
       additionalProperties: false
@@ -3507,7 +3553,7 @@ components:
     LearningSupportModerationReply:
       type: object
       additionalProperties: false
-      required: [author, body, created_at, hidden_at, id]
+      required: [author, body, created_at, hidden_at, id, is_helpful, response_type]
       properties:
         author: { $ref: '#/components/schemas/LearningSupportIdentity' }
         body: { type: string, minLength: 2, maxLength: 280 }
@@ -3518,6 +3564,64 @@ components:
               format: date-time
             - type: 'null'
         id: { type: string, format: uuid }
+        is_helpful: { type: boolean }
+        response_type:
+          oneOf:
+            - type: string
+              enum: [explanation, example, question, counterexample]
+            - type: 'null'
+    LearningSupportModerationCounts:
+      type: object
+      additionalProperties: false
+      required: [all, helpful, unconfirmed]
+      properties:
+        all: { type: integer, minimum: 0 }
+        helpful: { type: integer, minimum: 0 }
+        unconfirmed: { type: integer, minimum: 0 }
+    LearningSupportModerationMessage:
+      type: object
+      additionalProperties: false
+      required: [audience, author, body, created_at, hidden_at, id, response_count, response_pagination, responses]
+      properties:
+        audience: { type: string, enum: [peers, support] }
+        author: { $ref: '#/components/schemas/LearningSupportIdentity' }
+        body: { type: string, minLength: 2, maxLength: 280 }
+        created_at: { type: string, format: date-time }
+        hidden_at:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        id: { type: string, format: uuid }
+        response_count: { type: integer, minimum: 0 }
+        response_pagination: { $ref: '#/components/schemas/LearningSupportPagination' }
+        responses:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearningSupportModerationReply' }
+    LearningSupportModerationPage:
+      type: object
+      additionalProperties: false
+      required: [counts, messages, pagination, topic]
+      properties:
+        counts: { $ref: '#/components/schemas/LearningSupportModerationCounts' }
+        messages:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearningSupportModerationMessage' }
+        pagination: { $ref: '#/components/schemas/LearningSupportPagination' }
+        topic: { $ref: '#/components/schemas/LearningSupportTopic' }
+    LearningSupportModerationResponsesPage:
+      type: object
+      additionalProperties: false
+      required: [message_id, pagination, responses]
+      properties:
+        message_id: { type: string, format: uuid }
+        pagination: { $ref: '#/components/schemas/LearningSupportPagination' }
+        responses:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearningSupportModerationReply' }
     LearningSupportModerationRequest:
       type: object
       additionalProperties: false

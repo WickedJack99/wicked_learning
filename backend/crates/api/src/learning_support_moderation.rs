@@ -7,10 +7,13 @@ use axum_login::AuthSession;
 use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::learning_support_moderation::{
-    DeleteLearningSupportContent, LearningSupportRequestsQuery, LearningSupportTopicsQuery,
-    SaveLearningSupportReply, SetLearningSupportVisibility,
+    DeleteLearningSupportContent, LearningSupportMessageFilter,
+    LearningSupportMessageResponsesQuery, LearningSupportMessagesQuery,
+    LearningSupportRequestsQuery, LearningSupportTopicsQuery, SaveLearningSupportReply,
+    SetLearningSupportVisibility,
 };
 use wicked_learning_domain::learner_state::{
+    LearningSupportModerationPage, LearningSupportModerationResponsesPage,
     LearningSupportReplySaveResult, LearningSupportRequestPage, LearningSupportTopic,
 };
 use wicked_learning_persistence::learning_support_moderation::PostgresLearningSupportModerationRepository;
@@ -23,6 +26,13 @@ use crate::{
 #[derive(Deserialize)]
 pub struct RequestsQuery {
     page: Option<i64>,
+}
+
+#[derive(Deserialize)]
+pub struct MessagesQuery {
+    filter: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -68,6 +78,56 @@ pub async fn requests(
 
     LearningSupportRequestsQuery::new(&repository)
         .execute(&principal, topic_id, query.page.unwrap_or(1))
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
+pub async fn messages(
+    State(state): State<AppState>,
+    Path(topic_id): Path<String>,
+    Query(query): Query<MessagesQuery>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearningSupportModerationPage>, ApiError> {
+    let topic_id = Uuid::parse_str(&topic_id).map_err(|_| ApiError::not_found())?;
+    let filter = LearningSupportMessageFilter::parse(query.filter.as_deref().unwrap_or("all"))
+        .ok_or_else(ApiError::invalid_request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = PostgresLearningSupportModerationRepository::new(
+        &state.application_database,
+        &state.identity_database,
+    );
+
+    LearningSupportMessagesQuery::new(&repository)
+        .execute(
+            &principal,
+            topic_id,
+            query.page.unwrap_or(1),
+            query.per_page.unwrap_or(6),
+            filter,
+        )
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
+pub async fn message_responses(
+    State(state): State<AppState>,
+    Path(message_id): Path<String>,
+    Query(query): Query<RequestsQuery>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearningSupportModerationResponsesPage>, ApiError> {
+    let message_id = Uuid::parse_str(&message_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = PostgresLearningSupportModerationRepository::new(
+        &state.application_database,
+        &state.identity_database,
+    );
+
+    LearningSupportMessageResponsesQuery::new(&repository)
+        .execute(&principal, message_id, query.page.unwrap_or(1), 3)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

@@ -4,13 +4,32 @@ use uuid::Uuid;
 use wicked_learning_domain::{
     identity_access::{ApplicationCapability, AuthorizedPrincipal},
     learner_state::{
-        LearningSupportModerationReply, LearningSupportReplySaveResult, LearningSupportRequestPage,
-        LearningSupportTopic,
+        LearningSupportModerationPage, LearningSupportModerationReply,
+        LearningSupportModerationResponsesPage, LearningSupportReplySaveResult,
+        LearningSupportRequestPage, LearningSupportTopic,
     },
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearningSupportModerationError;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LearningSupportMessageFilter {
+    All,
+    Helpful,
+    Unconfirmed,
+}
+
+impl LearningSupportMessageFilter {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "all" => Some(Self::All),
+            "helpful" => Some(Self::Helpful),
+            "unconfirmed" => Some(Self::Unconfirmed),
+            _ => None,
+        }
+    }
+}
 
 /// This port is capability-scoped at the use-case boundary. Its adapter may
 /// read the separate identity database only to attach the limited author
@@ -26,6 +45,28 @@ pub trait LearningSupportModerationRepository {
         page: i64,
     ) -> impl Future<
         Output = Result<Option<LearningSupportRequestPage>, LearningSupportModerationError>,
+    > + Send;
+
+    fn list_messages(
+        &self,
+        topic_id: Uuid,
+        page: i64,
+        per_page: i64,
+        filter: LearningSupportMessageFilter,
+    ) -> impl Future<
+        Output = Result<Option<LearningSupportModerationPage>, LearningSupportModerationError>,
+    > + Send;
+
+    fn list_message_responses(
+        &self,
+        message_id: Uuid,
+        page: i64,
+        per_page: i64,
+    ) -> impl Future<
+        Output = Result<
+            Option<LearningSupportModerationResponsesPage>,
+            LearningSupportModerationError,
+        >,
     > + Send;
 
     fn save_reply(
@@ -70,6 +111,14 @@ pub struct LearningSupportTopicsQuery<'repository, Repository> {
 }
 
 pub struct LearningSupportRequestsQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+pub struct LearningSupportMessagesQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+pub struct LearningSupportMessageResponsesQuery<'repository, Repository> {
     repository: &'repository Repository,
 }
 
@@ -126,6 +175,64 @@ where
         }
 
         self.repository.list_requests(topic_id, page).await
+    }
+}
+
+impl<'repository, Repository> LearningSupportMessagesQuery<'repository, Repository>
+where
+    Repository: LearningSupportModerationRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        topic_id: Uuid,
+        page: i64,
+        per_page: i64,
+        filter: LearningSupportMessageFilter,
+    ) -> Result<Option<LearningSupportModerationPage>, LearningSupportModerationError> {
+        if !principal.has_capability(ApplicationCapability::ModerateLearnerMessages)
+            || !(1..=10_000).contains(&page)
+            || !(1..=12).contains(&per_page)
+        {
+            return Ok(None);
+        }
+
+        self.repository
+            .list_messages(topic_id, page, per_page, filter)
+            .await
+    }
+}
+
+impl<'repository, Repository> LearningSupportMessageResponsesQuery<'repository, Repository>
+where
+    Repository: LearningSupportModerationRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        message_id: Uuid,
+        page: i64,
+        per_page: i64,
+    ) -> Result<Option<LearningSupportModerationResponsesPage>, LearningSupportModerationError>
+    {
+        if !principal.has_capability(ApplicationCapability::ModerateLearnerMessages)
+            || !(1..=10_000).contains(&page)
+            || !(1..=12).contains(&per_page)
+        {
+            return Ok(None);
+        }
+
+        self.repository
+            .list_message_responses(message_id, page, per_page)
+            .await
     }
 }
 
@@ -240,12 +347,14 @@ mod tests {
     use wicked_learning_domain::{
         identity_access::AuthorizedPrincipal,
         learner_state::{
-            LearningSupportModerationReply, LearningSupportRequestPage, LearningSupportTopic,
+            LearningSupportModerationPage, LearningSupportModerationReply,
+            LearningSupportModerationResponsesPage, LearningSupportRequestPage,
+            LearningSupportTopic,
         },
     };
 
     use super::{
-        DeleteLearningSupportContent, LearningSupportModerationError,
+        DeleteLearningSupportContent, LearningSupportMessageFilter, LearningSupportModerationError,
         LearningSupportModerationRepository, SaveLearningSupportReply,
         SetLearningSupportVisibility,
     };
@@ -271,6 +380,32 @@ mod tests {
             _page: i64,
         ) -> impl Future<
             Output = Result<Option<LearningSupportRequestPage>, LearningSupportModerationError>,
+        > + Send {
+            async { Ok(None) }
+        }
+
+        fn list_messages(
+            &self,
+            _topic_id: Uuid,
+            _page: i64,
+            _per_page: i64,
+            _filter: super::LearningSupportMessageFilter,
+        ) -> impl Future<
+            Output = Result<Option<LearningSupportModerationPage>, LearningSupportModerationError>,
+        > + Send {
+            async { Ok(None) }
+        }
+
+        fn list_message_responses(
+            &self,
+            _message_id: Uuid,
+            _page: i64,
+            _per_page: i64,
+        ) -> impl Future<
+            Output = Result<
+                Option<LearningSupportModerationResponsesPage>,
+                LearningSupportModerationError,
+            >,
         > + Send {
             async { Ok(None) }
         }
@@ -345,6 +480,23 @@ mod tests {
             roles: vec!["learning_support".to_owned()],
             capabilities: vec!["learner_messages_moderate".to_owned()],
         }
+    }
+
+    #[test]
+    fn accepts_only_source_defined_moderation_filters() {
+        assert_eq!(
+            LearningSupportMessageFilter::parse("all"),
+            Some(LearningSupportMessageFilter::All),
+        );
+        assert_eq!(
+            LearningSupportMessageFilter::parse("helpful"),
+            Some(LearningSupportMessageFilter::Helpful),
+        );
+        assert_eq!(
+            LearningSupportMessageFilter::parse("unconfirmed"),
+            Some(LearningSupportMessageFilter::Unconfirmed),
+        );
+        assert_eq!(LearningSupportMessageFilter::parse("peer"), None);
     }
 
     #[tokio::test]

@@ -99,4 +99,57 @@ test('a learner follows the source peer-message prompt into the original wall ac
         page.locator('article:visible').filter({ hasText: peerNote }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Close message wall' })).toBeVisible();
+
+    const topics = await request.get('/api/v1/learning-support/topics');
+    expect(topics.status()).toBe(200);
+    const peerTopic = (await topics.json()).find(
+        (topic: { title: string }) => topic.title === 'Orientation notes',
+    );
+    expect(peerTopic).toBeDefined();
+
+    const moderation = await request.get(
+        `/api/v1/learning-support/topics/${peerTopic.id}/messages?filter=unconfirmed&page=1&per_page=6`,
+    );
+    expect(moderation.status()).toBe(200);
+    const moderationDocument = await moderation.json();
+    expect(moderationDocument).toMatchObject({
+        counts: { all: expect.any(Number), unconfirmed: expect.any(Number) },
+        messages: expect.arrayContaining([
+            expect.objectContaining({ audience: 'peers', body: peerNote }),
+        ]),
+    });
+    const moderatedPeerMessage = moderationDocument.messages.find(
+        (message: { body: string }) => message.body === peerNote,
+    );
+    expect(moderatedPeerMessage).toBeDefined();
+
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=learner-messages',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Learning Support' }),
+    ).toBeVisible();
+    await expect(
+        page.locator('article:visible').filter({ hasText: peerNote }),
+    ).toBeVisible();
+    const moderationCard = page
+        .locator('article:visible')
+        .filter({ hasText: peerNote });
+    await moderationCard.getByRole('button', { name: 'Hide' }).click();
+    await expect(moderationCard.getByText('Hidden from learners')).toBeVisible();
+
+    const hiddenWall = await request.get(
+        `${base}/explore-peer-wall/peer-wall?page=1&per_page=10`,
+    );
+    expect(hiddenWall.status()).toBe(200);
+    expect(
+        (await hiddenWall.json()).messages.some(
+            (message: { body: string }) => message.body === peerNote,
+        ),
+    ).toBe(false);
+
+    await moderationCard.getByRole('button', { name: 'Show' }).click();
+    await expect(
+        moderationCard.getByText('Hidden from learners'),
+    ).not.toBeVisible();
 });

@@ -671,6 +671,9 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     await expect(
         page.getByRole('heading', { name: 'Learning Support' }),
     ).toBeVisible();
+    await page
+        .getByRole('button', { name: /Orientation support/ })
+        .click();
     await expect(
         page.getByText('The First Path · Orientation support', { exact: true }),
     ).toBeVisible();
@@ -762,7 +765,14 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     );
     expect(completion.status()).toBe(200);
     await expect(completion.json()).resolves.toMatchObject({
-        status: 'completed',
+        status: 'in_progress',
+    });
+    const peerPromptPlayback = await request.get(
+        `/api/v1/learner/play-runs/${run.play_run_id}`,
+    );
+    expect(peerPromptPlayback.status()).toBe(200);
+    await expect(peerPromptPlayback.json()).resolves.toMatchObject({
+        activity: { slug: 'share-orientation-note' },
     });
 
     const deleteReply = await request.delete(

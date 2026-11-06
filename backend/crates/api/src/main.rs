@@ -284,8 +284,13 @@ fn router(state: AppState) -> Router {
             get(learning_support_moderation::requests),
         )
         .route(
+            "/api/v1/learning-support/topics/{topic_id}/messages",
+            get(learning_support_moderation::messages),
+        )
+        .route(
             "/api/v1/learning-support/messages/{message_id}/responses",
-            post(learning_support_moderation::save_reply),
+            get(learning_support_moderation::message_responses)
+                .post(learning_support_moderation::save_reply),
         )
         .route(
             "/api/v1/learning-support/messages/{message_id}/visibility",

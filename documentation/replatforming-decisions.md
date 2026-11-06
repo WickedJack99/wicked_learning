@@ -1918,15 +1918,14 @@ for a private request and a private reply. Visibility commands update
 `hidden_at` and the accountable application principal atomically in the
 application database. Deleting a request uses the established database
 cascade to delete its replies; deleting a reply affects only that reply. This
-matches the source controller's deletion ownership without applying it to
-unmigrated peer messages. Learner readers omit hidden replies and omit a
-hidden request body, while the request's existence still enforces the source
-one-request limit. Authorized staff readers retain hidden records so they can
-restore them. The source-derived private-support portion of that control is
-now exposed at `/settings?panel=admin-learning-support&support=learner-messages`.
-It keeps the source moderation layout and actions, while deliberately omitting
-the source's peer-message filters, helpfulness signals and unrelated Settings
-sections because their data contracts have not migrated. The browser uses the
+matches the source controller's deletion ownership. Learner readers omit
+hidden replies and omit a hidden request body, while the request's existence
+still enforces the source one-request limit. Authorized staff readers retain
+hidden records so they can restore them. The source-derived private-support
+portion of that control is exposed at
+`/settings?panel=admin-learning-support&support=learner-messages`. The
+subsequent peer-message extension is recorded separately in ADR-051 so this
+private-support decision stays reviewable on its own. The browser uses the
 currently known Learning Support and platform-administrator roles only to keep
 the incomplete route out of ordinary learner navigation; the API capability
 check remains the access-control authority.
@@ -1953,8 +1952,8 @@ hidden content while retaining the one-request rule before completing the
 activity. The learner-facing request and Desk panels reuse lifted original
 components. A local Compose browser test signs in an authorized worker and
 opens the source-derived private-support moderation workspace. The full source
-Settings shell and staff peer-message moderation remain unmigrated; the
-separate learner-facing peer prompt/wall activity is recorded in ADR-050.
+Settings shell remains unmigrated; the separate learner-facing peer prompt/wall
+activity is recorded in ADR-050 and its staff moderation extension in ADR-051.
 
 ## ADR-050: Learner peer messages preserve source activity and visibility boundaries
 
@@ -2007,9 +2006,59 @@ input bounds and source response types; the OpenAPI-generated client checks
 the request/response boundary. A local Compose browser test takes a new
 learner from the source-shaped support prompt through the peer prompt, the
 ordinary optional check-in and the rendered original wall, confirming the
-posted note in both its wall API response and visible card. This does not
-migrate staff peer moderation, arbitrary topic browsing, legacy data or
-production routing.
+posted note in both its wall API response and visible card. Staff moderation
+of that note is recorded in ADR-051. This does not migrate arbitrary topic
+browsing, legacy data or production routing.
+
+## ADR-051: One capability-gated staff workspace moderates source learner messages
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Learner Messages workspace moderates both private
+support requests and peer-wall contributions. Leaving the existing Rust staff
+surface restricted to `support` audience messages after peer-wall playback
+existed would prevent an authorized worker from applying the source
+hide/restore and deletion controls to peer content. Creating a separate,
+newly designed peer administration view would repeat the earlier UI deviation
+and split one source authorization boundary across unrelated contracts.
+
+**Decision:** Extend the existing `learner_messages_moderate` capability and
+source-adapted staff workspace rather than adding a peer-specific role or
+screen. The staff topic reader now includes both `support` and `peers`
+messages and exposes the source's six-message page, three-response page and
+three filters: all, learner-confirmed helpful and needing learner
+confirmation. An authorized worker may hide, restore or delete either kind of
+message or response. Staff may still create/update a reply only for a private
+support request; peer responses remain learner-to-learner activity behavior.
+
+The application database remains authoritative for message, response,
+visibility, helpfulness and accountable-moderator state. Only after the
+capability check does the persistence adapter read the identity database to
+show the already-accepted limited opaque-subject and email projection. It does
+not manufacture profile names. The OpenAPI contract calls the shared topic
+total `message_count`, rather than carrying the earlier support-only
+`request_count` name into the broader reader.
+
+**Why:** This preserves the source's single workspace and capability boundary,
+reuses the proven two-database privacy model, and lets moderation immediately
+affect the learner wall without exposing browser-selected audience, identity or
+message ownership controls.
+
+**Alternatives:** A separate peer moderator role would invent a distinction
+absent from the source. Allowing staff to reply publicly to peer notes would
+change the source interaction model. Returning full learner profiles or
+copying email into application message rows would violate the accepted
+identity/application database separation. All are rejected.
+
+**Evidence and boundary:** Application tests constrain the source filter
+vocabulary; the workspace, contract and generated client build together. A
+local Compose browser journey creates a peer note through its original
+playback, verifies it on the wall, hides it through the capability-gated staff
+endpoint and confirms it disappears from the wall, restores it, then confirms
+it in the source-derived staff panel. The existing private-support journey
+remains covered separately. This is not full Settings, organization, authoring
+or user-management migration, and does not make peer messages a public
+browsing surface.
 
 ## Phase 1 gate
 
