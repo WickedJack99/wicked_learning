@@ -82,6 +82,14 @@ impl ApiError {
         }
     }
 
+    pub fn password_update_rejected() -> Self {
+        Self {
+            code: "password_update_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The password could not be updated with these details.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",

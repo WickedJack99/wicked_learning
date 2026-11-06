@@ -102,6 +102,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /account/password:
+    patch:
+      operationId: updateAccountPassword
+      summary: Replace the current authenticated subject's Rust-owned password.
+      description: The current password is required. Successful replacement keeps this browser signed in and invalidates sessions authenticated with the prior password verifier.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountPasswordRequest'
+      responses:
+        '200':
+          description: The refreshed authenticated session state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatus'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The current password, replacement password, or confirmation was rejected. }
+        '503': { description: The identity database is unavailable. }
   /learner/world:
     get:
       operationId: getLearnerWorld
@@ -2194,6 +2218,26 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+    UpdateAccountPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [current_password, password, password_confirmation]
+      properties:
+        current_password:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 1024
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 1024
+        password_confirmation:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 1024
     SessionStatus:
       type: object
       additionalProperties: false

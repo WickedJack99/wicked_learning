@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace the current authenticated subject's Rust-owned password.
+         * @description The current password is required. Successful replacement keeps this browser signed in and invalidates sessions authenticated with the prior password verifier.
+         */
+        patch: operations["updateAccountPassword"];
+        trace?: never;
+    };
     "/learner/world": {
         parameters: {
             query?: never;
@@ -1494,6 +1514,14 @@ export interface components {
             /** Format: password */
             password_confirmation: string;
             registration_token: string;
+        };
+        UpdateAccountPasswordRequest: {
+            /** Format: password */
+            current_password: string;
+            /** Format: password */
+            password: string;
+            /** Format: password */
+            password_confirmation: string;
         };
         SessionStatus: {
             authenticated: boolean;
@@ -3208,6 +3236,61 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    updateAccountPassword: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAccountPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description The refreshed authenticated session state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatus"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current password */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

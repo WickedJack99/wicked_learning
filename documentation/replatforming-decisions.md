@@ -2394,6 +2394,45 @@ slice. The group editor does not assign `manager` membership roles because the
 source UI also preserves rather than edits them. Map editing-group assignments
 and broader staff moderation remain separate authoring/support slices.
 
+## ADR-060: Password replacement remains an identity-owned, session-safe operation
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The original Personal Security panel requires the current password,
+a replacement password and matching confirmation. Credential hashes must remain
+in the separate identity database, yet a successful replacement must not leave
+the active browser unexpectedly signed out or preserve other sessions that
+were authenticated with the prior password.
+
+**Decision:** The typed `PATCH /account/password` contract is authenticated,
+same-origin CSRF protected and accepts only the three source form fields. It
+checks the current password with the maintained Argon2id verifier, validates
+the existing bounded password policy, and atomically replaces only the matching
+credential hash in the identity database. It then refreshes the initiating
+browser's server-side session with the replacement verifier. Existing sessions
+are already bound to that verifier by `axum-login`; sessions carrying the
+prior verifier therefore cease to authenticate on their next request. The React page is adapted from
+the source Security panel and exposes only its usable password form.
+
+**Why:** This retains the source's current-password confirmation journey while
+respecting the accepted identity/application database boundary. Reusing the
+existing Argon2id library and server-side session machinery avoids custom
+cryptography, client-held credentials, or an application-data copy of a
+password hash.
+
+**Alternatives:** Signing every browser out after a successful password change
+would be a visible regression from the source journey. Leaving every session
+valid would weaken the existing password-verifier session model. A generic
+profile/preferences endpoint would conflate credentials with application data.
+All are rejected.
+
+**Limits and follow-up:** The source two-factor and passkey controls remain
+absent until their Rust-owned WebAuthn/TOTP contracts and recovery/audit policy
+are ready; the page does not imitate unavailable controls. The current Rust
+password minimum remains twelve characters, matching the existing replatform
+registration policy. Password recovery, durable access-change auditing and a
+full password-strength policy review remain identity cutover work.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

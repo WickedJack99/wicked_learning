@@ -98,6 +98,22 @@ impl IdentitySubject {
     pub fn normalized_email(&self) -> &str {
         &self.normalized_email
     }
+
+    pub fn verifies_password(&self, password: &str) -> Result<bool, passwords::PasswordError> {
+        passwords::verify(password, &self.session_auth_hash)
+    }
+
+    pub fn password_verifier(&self) -> &str {
+        &self.session_auth_hash
+    }
+
+    pub fn with_replaced_password_hash(&self, password_hash: String) -> Self {
+        Self {
+            id: self.id,
+            normalized_email: self.normalized_email.clone(),
+            session_auth_hash: password_hash,
+        }
+    }
 }
 
 fn subject_from_row(row: IdentityRow) -> IdentitySubject {
