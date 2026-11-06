@@ -1827,6 +1827,51 @@ client and browser test cover the original Desk field, typed request and
 source destination. This reader neither creates learner state nor grants a
 play run; private Learning Support replies remain a later contract.
 
+## ADR-048: Learning Support requires an application capability boundary before migration
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The remaining Learning Desk Support section is not an independent
+list of text. In the source it is the learner-facing endpoint of a complete
+message flow: a learner submits one private request through a message-prompt
+activity, authorized support staff moderate it and create a private reply, and
+only that learner can see the response in the activity or on the Desk. The
+current Rust foundation has a single `platform_administrator` application role
+and no capability model equivalent to the source `learner_messages` read/
+update/delete permissions. Treating every administrator as permanent Learning
+Support, or exposing a reply writer before that boundary exists, would change
+the source authorization behavior.
+
+**Decision:** Do not add an empty Desk Support reader or a browser-side
+substitute. Before migrating `message_prompt`, private support replies and the
+source moderation panel, extend the application role model with an explicit
+server-owned capability boundary for learner-message moderation. The bootstrap
+administrator may hold that capability as part of its full platform authority,
+but support access must be independently assignable and checked at every
+message, response, visibility and deletion command. The learner's private
+message reader remains separate: it must be scoped by the requesting
+application principal, published map visibility and the support audience.
+
+**Why:** This preserves the existing distinction between a learner requesting
+help, a support worker responding, and a platform administrator maintaining
+the service. It also gives peer walls, shared tasks and later organizations a
+reusable application authorization boundary without putting permissions or
+learner data in the identity database.
+
+**Alternatives:** Mapping message moderation permanently to
+`platform_administrator` would omit a source role boundary. Replaying Laravel
+role tables would contradict the greenfield persistence decision. Building the
+Desk response reader first would create a visible but unreachable feature and
+would encourage bypassing moderation to populate it. All are rejected.
+
+**Implementation trigger and boundary:** The next collaboration slice begins
+with the capability/role migration, then migrates the complete private support
+request and reply path with source-derived activity and moderation UI, CSRF,
+ownership, map-scope and cross-learner authorization tests. Peer walls,
+peer-to-peer responses, helpfulness markers and shared-task moderation remain
+separate follow-on capabilities; none may be represented as completed by the
+private-support slice.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
