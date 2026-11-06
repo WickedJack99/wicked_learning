@@ -524,6 +524,164 @@ test('a CI-only fresh identity receives source-ordered Learning Desk search resu
     });
 });
 
+test('a CI-only fresh identity can submit its one private Learning Support request', async ({
+    request,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    test.skip(!email || !password, 'requires the disposable CI identity');
+
+    const csrfResponse = await request.get('/api/v1/security/csrf');
+    const { token } = await csrfResponse.json();
+    const login = await request.post('/api/v1/session/login', {
+        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        data: { email, password },
+    });
+    expect(login.status()).toBe(200);
+
+    const world = await request.get('/api/v1/learner/world');
+    expect(world.status()).toBe(200);
+    const worldDocument = await world.json();
+    const orientationStart = worldDocument.start_routes.find(
+        (candidate: { activity_slug: string }) =>
+            candidate.activity_slug === 'find-your-place',
+    );
+    expect(orientationStart).toBeDefined();
+
+    const reset = await request.post(
+        `/api/v1/learner/activity-starts/${orientationStart.start_id}/reset`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(reset.status()).toBe(200);
+    const run = await reset.json();
+    const activityPath = `/api/v1/learner/play-runs/${run.play_run_id}/activities`;
+
+    for (const activitySlug of ['find-your-place', 'name-a-landmark']) {
+        const completion = await request.post(
+            `${activityPath}/${activitySlug}/complete`,
+            { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+        );
+        expect(completion.status()).toBe(200);
+        await expect(completion.json()).resolves.toMatchObject({
+            status: 'in_progress',
+        });
+    }
+
+    const playback = await request.get(`/api/v1/learner/play-runs/${run.play_run_id}`);
+    expect(playback.status()).toBe(200);
+    await expect(playback.json()).resolves.toMatchObject({
+        activity: {
+            activity_type: 'message_prompt',
+            slug: 'ask-learning-support',
+        },
+    });
+
+    const requestPath = `${activityPath}/ask-learning-support/support-request`;
+    const before = await request.get(requestPath);
+    expect(before.status()).toBe(200);
+    await expect(before.json()).resolves.toMatchObject({
+        has_contributed: false,
+        message: null,
+        topic_title: 'Orientation support',
+    });
+
+    const submission = await request.post(requestPath, {
+        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        data: { body: 'Could you help me notice the useful map details?' },
+    });
+    expect(submission.status()).toBe(200);
+    await expect(submission.json()).resolves.toMatchObject({
+        has_contributed: true,
+        message: {
+            body: 'Could you help me notice the useful map details?',
+            responses: [],
+        },
+    });
+
+    const repeat = await request.post(requestPath, {
+        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        data: { body: 'This replacement must not be stored.' },
+    });
+    expect(repeat.status()).toBe(200);
+    await expect(repeat.json()).resolves.toMatchObject({
+        message: { body: 'Could you help me notice the useful map details?' },
+    });
+
+    const topics = await request.get('/api/v1/learning-support/topics');
+    expect(topics.status()).toBe(200);
+    const topicList = (await topics.json()) as Array<{
+        id: string;
+        title: string;
+    }>;
+    const supportTopic = topicList.find(
+        (candidate) => candidate.title === 'Orientation support',
+    );
+    expect(supportTopic).toBeDefined();
+
+    const moderation = await request.get(
+        `/api/v1/learning-support/topics/${supportTopic!.id}/requests`,
+    );
+    expect(moderation.status()).toBe(200);
+    const moderationDocument = (await moderation.json()) as {
+        requests: Array<{
+            author: { email: string };
+            body: string;
+            id: string;
+        }>;
+    };
+    const submittedRequest = moderationDocument.requests.find(
+        (candidate) =>
+            candidate.body ===
+            'Could you help me notice the useful map details?',
+    );
+    expect(submittedRequest).toMatchObject({ author: { email } });
+
+    const staffReply = await request.post(
+        `/api/v1/learning-support/messages/${submittedRequest!.id}/responses`,
+        {
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            data: { body: 'Look for the landmarks that make the map easier to revisit.' },
+        },
+    );
+    expect(staffReply.status()).toBe(201);
+    await expect(staffReply.json()).resolves.toMatchObject({
+        response: {
+            body: 'Look for the landmarks that make the map easier to revisit.',
+            author: { email },
+        },
+    });
+
+    const updatedStaffReply = await request.post(
+        `/api/v1/learning-support/messages/${submittedRequest!.id}/responses`,
+        {
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            data: { body: 'Look for one landmark that will make this map easier to revisit.' },
+        },
+    );
+    expect(updatedStaffReply.status()).toBe(200);
+
+    const learnerView = await request.get(requestPath);
+    expect(learnerView.status()).toBe(200);
+    await expect(learnerView.json()).resolves.toMatchObject({
+        message: {
+            responses: [
+                {
+                    body: 'Look for one landmark that will make this map easier to revisit.',
+                },
+            ],
+        },
+    });
+
+    const completion = await request.post(
+        `${activityPath}/ask-learning-support/complete`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(completion.status()).toBe(200);
+    await expect(completion.json()).resolves.toMatchObject({
+        status: 'completed',
+    });
+});
+
 test('using a learner tool requires an authenticated application principal', async ({
     request,
 }) => {

@@ -1879,8 +1879,61 @@ does not make the former redundant, because a support assignment can be made
 without full platform administration. The authenticated application principal
 loads its effective capabilities alongside its map-audience roles, and future
 message commands must use the typed capability check rather than matching a
-role name. This is only the authorization foundation: no message reader,
-writer, moderation route or browser element is represented as migrated yet.
+role name. This foundation now supports the separately documented private
+support slice below.
+
+## ADR-049: Private Learning Support is a bounded two-database moderation slice
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** A private support request belongs to application data and must
+remain visible only to its author and authorized support staff. Staff still
+need enough identity context to answer a request, but the separate identity
+database intentionally owns sign-in addresses while the application database
+owns message records and authorization roles. Returning author data from the
+learner reader, or copying profiles into message rows, would weaken either the
+privacy boundary or the accepted database separation.
+
+**Decision:** The learner path is modelled as one source-derived private
+`message_prompt`: an owned active route/replay run resolves its configured
+support topic; one trimmed 2–280 character request is inserted per
+topic/principal; only visible replies are returned to that same learner, both
+in activity playback and as a bounded twelve-item Learning Desk reader. A
+hidden request still consumes the learner's one contribution, matching the
+source moderation behavior without re-exposing its body.
+
+The staff path is a separate capability-gated contract. It lists only topics
+with private-support requests and pages six requests at a time, with at most
+three replies per request. Every route checks
+`learner_messages_moderate` through the typed application principal before its
+repository is called. The adapter joins application records to the identity
+database only after that check, projecting the author's opaque subject ID and
+normalized email for that authorized staff response. No learner endpoint uses
+this projection. A staff member can create or update only their own bounded
+reply; the SQL uniqueness constraint on `(message_id, responder_principal_id)`
+preserves the source's per-responder update behavior.
+
+**Why:** This retains source ownership, audience, first-request and reply
+semantics while keeping credentials, password hashes and message data in their
+respective databases. The narrow identity projection makes the exceptional
+cross-database read auditable instead of creating a duplicate profile store or
+letting the browser join two sources.
+
+**Alternatives:** Storing email with each message would duplicate identity
+profile data and make future correction/removal harder. Giving learners a
+generic message listing would reveal other requests or staff identity.
+Treating the staff browser as a database client would bypass the server-owned
+capability boundary. All are rejected.
+
+**Evidence and boundary:** Unit tests prove reply validation and the explicit
+capability denial path. The local Compose API journey starts the original
+orientation route, submits a first-only request, lists it through the staff
+contract, creates then updates a staff reply, and confirms the learner sees
+the updated body through the private request reader before completing the
+activity. The learner-facing request and Desk panels reuse lifted original
+components. The full source Settings shell, peer message walls, helpfulness,
+visibility/deletion controls and staff moderation UI have not yet migrated and
+must not be represented as available merely because the staff contract exists.
 
 ## Phase 1 gate
 

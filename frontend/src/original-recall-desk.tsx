@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, BookOpenText, Clock3, Focus, Pin, Trash2 } from 'lucide-react';
+import { ArrowRight, Bookmark, BookOpenText, Clock3, Focus, MessageCircle, Pin, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -19,6 +19,8 @@ type LearnerBookmarkPlace = components['schemas']['LearnerBookmarkPlace'];
 type LearnerJournalCheckIn = components['schemas']['LearnerJournalCheckIn'];
 type LearnerDeskPlanningPreference =
     components['schemas']['LearnerDeskPlanningPreference'];
+type LearnerDeskSupportResponse =
+    components['schemas']['LearnerDeskSupportResponse'];
 
 type DeskPurposeFilter = LearnerDeskPlanningPreference['purpose_filter'];
 type DeskTimeBudget = LearnerDeskPlanningPreference['time_budget'];
@@ -64,6 +66,7 @@ type LearningDeskArea =
     | 'recent'
     | 'recall'
     | 'reflections'
+    | 'support'
     | 'revisit';
 
 function routeRows(
@@ -149,6 +152,9 @@ export function OriginalRecallDeskPage({
         RevisitInvitation[]
     >([]);
     const [checkIns, setCheckIns] = useState<LearnerJournalCheckIn[]>([]);
+    const [supportResponses, setSupportResponses] = useState<
+        LearnerDeskSupportResponse[]
+    >([]);
     const [updatingRevisitId, setUpdatingRevisitId] = useState<string | null>(
         null,
     );
@@ -293,6 +299,7 @@ export function OriginalRecallDeskPage({
         recall: 'Recall queue',
         reflections: 'Recent reflections',
         revisit: 'Return when useful',
+        support: 'Learning Support',
     };
     const availableAreas: LearningDeskArea[] = [
         'connections',
@@ -300,6 +307,7 @@ export function OriginalRecallDeskPage({
         ...(queue?.items.length ? (['recall'] as const) : []),
         ...(revisitInvitations.length ? (['revisit'] as const) : []),
         ...(recentRoutes.length ? (['recent'] as const) : []),
+        ...(supportResponses.length ? (['support'] as const) : []),
         'continue',
     ];
     const defaultArea = availableAreas[0] ?? 'connections';
@@ -406,6 +414,23 @@ export function OriginalRecallDeskPage({
                 // The recall queue stays usable if this independent desk slice
                 // is temporarily unavailable.
             });
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+        void apiClient.GET('/learner/desk/support-responses').then(
+            ({ data, response }) => {
+                if (active && response.ok && data) {
+                    setSupportResponses(data);
+                }
+            },
+        ).catch(() => {
+            // The remaining Learning Desk sections stay useful while this
+            // independent private reader is temporarily unavailable.
+        });
         return () => {
             active = false;
         };
@@ -945,6 +970,38 @@ export function OriginalRecallDeskPage({
                         ) : null}
                     </section>
                 ) : null}
+                {visibleArea === 'support' && supportResponses.length ? (
+                    <section
+                        aria-labelledby="support-heading"
+                        className="mt-8"
+                        id="support-section"
+                    >
+                        <div className="flex items-center gap-5 pb-3">
+                            <h2
+                                className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none"
+                                id="support-heading"
+                                tabIndex={-1}
+                            >
+                                Learning Support replies
+                            </h2>
+                        </div>
+                        <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
+                            Private replies to your support requests are kept here so you can return when the guidance is useful.
+                        </p>
+                        <OriginalPaginatedItems
+                            className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                            items={supportResponses}
+                            pageSize={2}
+                            paginationLabel="Learning Support replies"
+                            renderItem={(response) => (
+                                <SupportResponseRow
+                                    key={response.id}
+                                    response={response}
+                                />
+                            )}
+                        />
+                    </section>
+                ) : null}
                 {visibleArea === 'revisit' && revisitInvitations.length ? (
                     <section
                         aria-labelledby="revisit-heading"
@@ -1221,6 +1278,49 @@ function RecentRouteRow({
                     {opening ? 'Opening…' : 'Revisit'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </button>
             </span>
+        </article>
+    );
+}
+
+/** Source-adapted Learning Desk private-reply row. The server determines the
+ * map/node destination and never exposes the staff member's identity here. */
+function SupportResponseRow({
+    response,
+}: {
+    response: LearnerDeskSupportResponse;
+}) {
+    return (
+        <article className="grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-start">
+            <MessageCircle
+                aria-hidden="true"
+                className="size-5 text-[var(--learner-action-accent)]"
+            />
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-sm font-medium text-[var(--learner-heading-text)]">
+                        Private reply from Learning Support
+                    </span>
+                    <time
+                        className="text-xs text-[var(--learner-muted-text)]"
+                        dateTime={response.created_at}
+                    >
+                        {formatDeskDate(response.created_at)}
+                    </time>
+                </div>
+                <p className="mt-2 line-clamp-4 text-sm leading-6 text-[var(--learner-body-text)]">
+                    {response.body}
+                </p>
+                <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
+                    {response.topic_title} · {response.map_title}
+                </p>
+            </div>
+            <Link
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] sm:justify-self-end"
+                to={`/world?map=${encodeURIComponent(response.map_slug)}&focused=${encodeURIComponent(response.node_slug)}`}
+            >
+                Return to place
+                <ArrowRight className="size-4" />
+            </Link>
         </article>
     );
 }

@@ -18,6 +18,7 @@ import { OriginalItemObstacleActivity } from './original-item-obstacle-activity'
 import { OriginalMarkdownActivity } from './original-markdown-activity';
 import { OriginalNpcDialogueActivity } from './original-npc-dialogue-activity';
 import { OriginalObstacleActivity } from './original-obstacle-activity';
+import { OriginalLearningSupportRequest } from './original-learning-support-request';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
 
@@ -532,6 +533,10 @@ export function OriginalOpenPracticePage({
                                                     ? 'Reading'
                                                     : state.document.activity
                                                               .activity_type ===
+                                                      'message_prompt'
+                                                    ? 'Learning Support'
+                                                    : state.document.activity
+                                                              .activity_type ===
                                                           'npc_dialogue'
                                                       ? 'Dialogue'
                                                 : 'Open practice'}
@@ -620,6 +625,14 @@ export function OriginalOpenPracticePage({
                                 activity={state.document.activity}
                                 appearance={appearance}
                                 onComplete={complete}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'message_prompt' ? (
+                            <OriginalLearningSupportRequest
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                onComplete={complete}
+                                playRunId={state.document.play_run_id}
                             />
                         ) : state.document.activity.activity_type ===
                           'npc_dialogue' ? (

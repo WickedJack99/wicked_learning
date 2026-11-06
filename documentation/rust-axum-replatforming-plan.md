@@ -325,6 +325,23 @@ not replace it with a newly invented workflow.
 | Playback                     | `pages/learning/node-play.tsx`, `features/world/standard-activities.tsx`, `features/world/markdown-activity.tsx`, `features/world/tool-grant-activity.tsx`, `features/world/item-grant-activity.tsx`, `features/world/item-obstacle-activity.tsx`, `features/world/obstacle-activity.tsx`, `features/world/learning-check-in.tsx` | Source-adapted open-practice, question, base-reflection, Markdown page graph, tool-grant, item-grant, item-obstacle and base obstacle frames, followed on ordinary route runs by the lifted optional source check-in pause. Rust owns answer evaluation, reflection persistence, safe bounded authored Markdown pages, configured-tool ownership, configured-item probability rolls/holdings, item-obstacle slot consumption/locks, owned configured-tool obstacle resolution and completed-activity transitions; it exposes only bounded authored check-in context, and accepts a check-in only after server-side completion. Reflection persistence now follows the source save-then-complete boundary: the migrated base surface saves then immediately uses the server-owned completion command, while the typed Rust contract keeps source-derived transfer context, authored cues and independent-check eligibility for the later exact explain/transfer/review UI lift. Revisit runs deliberately return to World rather than recording a second ordinary check-in. Question feedback now includes the source confidence reflection, an up-to-three private earlier-attempt summary, optional post-feedback confidence, and the source keep/remove-recall control. Reloading an active question restores only that run's latest evaluated answer and its bounded earlier-attempt context; a fresh run does not inherit it. Recall attempts are separate one-question runs: they never advance a route or create evidence. Obstacle audio and unsupported activity types remain separate contracts and are not silently represented as complete. |
 | Private journal              | `components/learner-account-controls.tsx`, `components/learner-paginated-items.tsx`, `features/journal/journal-overlay.tsx`, `features/platform-info/markdown-renderer.tsx` | Source-adapted learner-owned overlay, reached from the original journal control. Rust scopes and paginates private page markdown and durable learning context, and supports the source add/edit/view/save/delete controls. The bounded source Learning trail now shows recent check-ins, preserves its source competence destination and reopens an activity only through a CSRF-protected opaque replay run. Due revisit invitations use the lifted source sidebar panel, one-at-a-time pagination and `Open activity`/`Later`/`Hide` controls; opening first obtains a server-owned opaque revisit run. Fuller check-in history/timeline, export, feedback requests and configurable presentation remain unavailable. |
 
+### Private Learning Support slice — 6 November 2026
+
+The earlier `/home` migration row below predates this slice; its statement that
+private support responses are absent is superseded. A source-adapted private
+support request panel now appears for the supported `message_prompt` activity,
+and a learner's own visible replies appear in the lifted Learning Desk area.
+The typed Rust contract enforces a single learner request per topic, scoped
+route/replay ownership, published map visibility and a request-before-complete
+rule. A separate capability-gated staff contract can list bounded private
+requests and create/update the current worker's reply, with a narrow
+identity-store email projection only after authorization. See ADR-049 for the
+cross-database rationale and the exact boundary.
+
+This is not Settings parity: the original staff moderation panel and surrounding
+Settings shell are not yet available in React, and peer message walls,
+helpfulness plus visibility/deletion controls remain later collaboration work.
+
 ### NPC dialogue slice — 6 November 2026
 
 Published `npc_dialogue` activities now join the supported ordinary route-run

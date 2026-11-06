@@ -671,6 +671,105 @@ pub struct LearnerPlaybackActivity {
     pub npc_dialogue: Option<LearnerNpcDialogue>,
 }
 
+/// A private support request attached to the current message-prompt activity.
+/// The learner receives only their own request and visible staff replies.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSupportRequestState {
+    pub has_contributed: bool,
+    pub message: Option<LearnerSupportRequest>,
+    pub topic_title: String,
+}
+
+/// A private-support topic that an authorized staff member may open. This is
+/// deliberately distinct from learner playback data: it contains the small
+/// amount of identity context required to answer a request, and is never sent
+/// to another learner.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportTopic {
+    pub id: String,
+    pub map_title: String,
+    pub map_asset_title: String,
+    pub request_count: i64,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportRequestPage {
+    pub pagination: LearningSupportPagination,
+    pub requests: Vec<LearningSupportModerationRequest>,
+    pub topic: LearningSupportTopic,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportModerationRequest {
+    pub author: LearningSupportIdentity,
+    pub body: String,
+    pub created_at: String,
+    pub hidden_at: Option<String>,
+    pub id: String,
+    pub responses: Vec<LearningSupportModerationReply>,
+}
+
+/// The greenfield identity store currently has a verified sign-in address but
+/// no application profile name. This projection intentionally exposes only
+/// that address and opaque subject identifier to staff with the explicit
+/// moderation capability.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportIdentity {
+    pub email: String,
+    pub subject_id: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportModerationReply {
+    pub author: LearningSupportIdentity,
+    pub body: String,
+    pub created_at: String,
+    pub hidden_at: Option<String>,
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningSupportReplySaveResult {
+    pub response: LearningSupportModerationReply,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSupportRequest {
+    pub body: String,
+    pub id: String,
+    pub responses: Vec<LearnerSupportReply>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSupportReply {
+    pub body: String,
+    pub created_at: String,
+    pub id: String,
+}
+
+/// The bounded Learning Desk projection of private staff replies. It contains
+/// no staff identity or learner request content beyond the associated topic.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerDeskSupportResponse {
+    pub body: String,
+    pub created_at: String,
+    pub id: String,
+    pub map_slug: String,
+    pub map_title: String,
+    pub node_slug: String,
+    pub node_title: String,
+    pub topic_title: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerNpcDialogue {
     pub current_node_id: String,

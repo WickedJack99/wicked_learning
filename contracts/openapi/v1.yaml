@@ -422,6 +422,85 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '503': { description: The application database is unavailable. }
+  /learner/desk/support-responses:
+    get:
+      operationId: getLearnerDeskSupportResponses
+      summary: Read the current learner's bounded private Learning Support replies.
+      responses:
+        '200':
+          description: Private replies from authorized Learning Support staff for visible maps only.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 12
+                items: { $ref: '#/components/schemas/LearnerDeskSupportResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
+  /learning-support/topics:
+    get:
+      operationId: getLearningSupportTopics
+      summary: Read private-support topics with learner requests for an authorized Learning Support worker.
+      responses:
+        '200':
+          description: Support-only topics with at least one learner request.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LearningSupportTopic' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no application principal. }
+        '404': { description: Learning Support moderation is unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
+  /learning-support/topics/{topic_id}/requests:
+    get:
+      operationId: getLearningSupportRequests
+      summary: Read a bounded page of private learner requests for an authorized Learning Support worker.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportTopicId'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000 }
+      responses:
+        '200':
+          description: Bounded private requests and their latest staff replies. Author identity is disclosed only to the authorized support worker.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearningSupportRequestPage' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no application principal. }
+        '404': { description: The topic is unknown or moderation is unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
+  /learning-support/messages/{message_id}/responses:
+    post:
+      operationId: saveLearningSupportResponse
+      summary: Create or update the current authorized worker's private reply to a learner support request.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportMessageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveLearningSupportResponseRequest' }
+      responses:
+        '200':
+          description: The current worker's existing reply was updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearningSupportReplySaveResult' }
+        '201':
+          description: A new private reply was created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearningSupportReplySaveResult' }
+        '400': { description: The reply body is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The request is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
   /learner/recall-items:
     get:
       operationId: getLearnerRecallQueue
@@ -725,6 +804,46 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/support-request:
+    get:
+      operationId: getLearnerCurrentSupportRequest
+      summary: Read the current learner's private support request and visible staff replies.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+      responses:
+        '200':
+          description: The active private support prompt state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerSupportRequestState' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '404': { description: The active support prompt is unavailable or is not owned by this learner. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: submitLearnerCurrentSupportRequest
+      summary: Submit the current learner's one private support request.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitLearnerSupportRequest' }
+      responses:
+        '200':
+          description: The source-idempotent request state; an existing request keeps its original body.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerSupportRequestState' }
+        '400': { description: The request body is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active support prompt is unavailable or is not owned by this learner. }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue:
     post:
@@ -1358,6 +1477,20 @@ components:
       schema:
         type: string
         format: uuid
+    LearningSupportTopicId:
+      name: topic_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LearningSupportMessageId:
+      name: message_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     MapSlug:
       name: map_slug
       in: path
@@ -1485,7 +1618,7 @@ components:
           description: Application roles, not credentials or profile data.
           items:
             type: string
-            enum: [platform_administrator]
+            enum: [learning_support, platform_administrator]
     LoginRequest:
       type: object
       additionalProperties: false
@@ -2756,7 +2889,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, npc_dialogue]
+          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, message_prompt, npc_dialogue]
         config:
           type: object
           additionalProperties: true
@@ -3091,6 +3224,137 @@ components:
               enum: [any]
             - type: integer
               enum: [15, 30]
+    LearnerDeskSupportResponse:
+      type: object
+      additionalProperties: false
+      required: [body, created_at, id, map_slug, map_title, node_slug, node_title, topic_title]
+      properties:
+        body: { type: string, minLength: 2, maxLength: 280 }
+        created_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+        map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        map_title: { type: string, maxLength: 240 }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_title: { type: string, maxLength: 240 }
+        topic_title: { type: string, maxLength: 240 }
+    LearnerSupportReply:
+      type: object
+      additionalProperties: false
+      required: [body, created_at, id]
+      properties:
+        body: { type: string, minLength: 2, maxLength: 280 }
+        created_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+    LearnerSupportRequest:
+      type: object
+      additionalProperties: false
+      required: [body, id, responses]
+      properties:
+        body: { type: string, minLength: 2, maxLength: 280 }
+        id: { type: string, format: uuid }
+        responses:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/LearnerSupportReply' }
+    LearnerSupportRequestState:
+      type: object
+      additionalProperties: false
+      required: [has_contributed, message, topic_title]
+      properties:
+        has_contributed: { type: boolean }
+        message:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerSupportRequest'
+            - type: 'null'
+        topic_title: { type: string, maxLength: 240 }
+    SubmitLearnerSupportRequest:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: string, minLength: 2, maxLength: 280 }
+    LearningSupportTopic:
+      type: object
+      additionalProperties: false
+      required: [id, map_asset_title, map_title, request_count, title]
+      properties:
+        id: { type: string, format: uuid }
+        map_asset_title: { type: string, maxLength: 240 }
+        map_title: { type: string, maxLength: 240 }
+        request_count: { type: integer, minimum: 0 }
+        title: { type: string, maxLength: 240 }
+    LearningSupportIdentity:
+      type: object
+      additionalProperties: false
+      required: [email, subject_id]
+      description: A limited identity projection disclosed only through a Learning Support moderation endpoint to a principal with the matching server capability.
+      properties:
+        email: { type: string, format: email }
+        subject_id: { type: string, format: uuid }
+    LearningSupportModerationReply:
+      type: object
+      additionalProperties: false
+      required: [author, body, created_at, hidden_at, id]
+      properties:
+        author: { $ref: '#/components/schemas/LearningSupportIdentity' }
+        body: { type: string, minLength: 2, maxLength: 280 }
+        created_at: { type: string, format: date-time }
+        hidden_at:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        id: { type: string, format: uuid }
+    LearningSupportModerationRequest:
+      type: object
+      additionalProperties: false
+      required: [author, body, created_at, hidden_at, id, responses]
+      properties:
+        author: { $ref: '#/components/schemas/LearningSupportIdentity' }
+        body: { type: string, minLength: 2, maxLength: 280 }
+        created_at: { type: string, format: date-time }
+        hidden_at:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        id: { type: string, format: uuid }
+        responses:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/LearningSupportModerationReply' }
+    LearningSupportPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 12 }
+        total: { type: integer, minimum: 0 }
+    LearningSupportRequestPage:
+      type: object
+      additionalProperties: false
+      required: [pagination, requests, topic]
+      properties:
+        pagination: { $ref: '#/components/schemas/LearningSupportPagination' }
+        requests:
+          type: array
+          maxItems: 6
+          items: { $ref: '#/components/schemas/LearningSupportModerationRequest' }
+        topic: { $ref: '#/components/schemas/LearningSupportTopic' }
+    SaveLearningSupportResponseRequest:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: string, minLength: 2, maxLength: 280 }
+    LearningSupportReplySaveResult:
+      type: object
+      additionalProperties: false
+      required: [response]
+      properties:
+        response: { $ref: '#/components/schemas/LearningSupportModerationReply' }
     UpdateLearnerDeskPlanningPreferenceRequest:
       type: object
       additionalProperties: false

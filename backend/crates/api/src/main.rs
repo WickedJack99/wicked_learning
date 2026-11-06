@@ -27,10 +27,12 @@ mod learner_reflection;
 mod learner_revisit_invitation;
 mod learner_revisit_run;
 mod learner_route_run;
+mod learner_support;
 mod learner_tool_grant;
 mod learner_topic_detail;
 mod learner_topics;
 mod learner_world;
+mod learning_support_moderation;
 mod login_rate_limit;
 pub mod media_store;
 mod passwords;
@@ -268,6 +270,22 @@ fn router(state: AppState) -> Router {
             get(learner_desk_planning::show).patch(learner_desk_planning::update),
         )
         .route("/api/v1/learner/search", get(learner_desk_search::index))
+        .route(
+            "/api/v1/learner/desk/support-responses",
+            get(learner_support::desk_responses),
+        )
+        .route(
+            "/api/v1/learning-support/topics",
+            get(learning_support_moderation::topics),
+        )
+        .route(
+            "/api/v1/learning-support/topics/{topic_id}/requests",
+            get(learning_support_moderation::requests),
+        )
+        .route(
+            "/api/v1/learning-support/messages/{message_id}/responses",
+            post(learning_support_moderation::save_reply),
+        )
         .route("/api/v1/learner/recall-items", get(learner_recall::index))
         .route(
             "/api/v1/learner/activities/{activity_slug}/replay",
@@ -308,6 +326,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}",
             get(learner_playback::show),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/support-request",
+            get(learner_support::show_current_request).post(learner_support::submit_current_request),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",

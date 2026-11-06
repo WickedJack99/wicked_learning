@@ -101,6 +101,21 @@ struct CompletionTransitionRow {
 }
 
 #[derive(FromRow)]
+struct SupportPromptCompletionRow {
+    activity_config: serde_json::Value,
+    activity_id: Uuid,
+    principal_id: Uuid,
+    route_id: Uuid,
+}
+
+#[derive(FromRow)]
+struct NextPlayableActivityRow {
+    activity_config: serde_json::Value,
+    activity_type: String,
+    id: Uuid,
+}
+
+#[derive(FromRow)]
 struct ToolPlaybackRow {
     animation_dark: Option<String>,
     animation_light: Option<String>,
@@ -168,6 +183,26 @@ struct QuestionPlaybackOption {
     label: String,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MessagePromptPlaybackConfig {
+    message_audience: String,
+    message_input_label: Option<String>,
+    message_prompt: Option<String>,
+    message_ui: Option<MessagePromptUiConfig>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MessagePromptUiConfig {
+    accent_color_dark: Option<String>,
+    accent_color_light: Option<String>,
+    card_color_dark: Option<String>,
+    card_color_light: Option<String>,
+    surface_color_dark: Option<String>,
+    surface_color_light: Option<String>,
+}
+
 fn learner_safe_config(
     activity_type: &str,
     config: serde_json::Value,
@@ -202,9 +237,56 @@ fn learner_safe_config(
         "item_obstacle" => item_obstacle_safe_config(config),
         "obstacle" => obstacle_safe_config(config),
         "markdown" => markdown_safe_config(config),
+        "message_prompt" => message_prompt_safe_config(config),
         "npc_dialogue" => Some(config),
         _ => None,
     }
+}
+
+fn message_prompt_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
+    let config = serde_json::from_value::<MessagePromptPlaybackConfig>(config).ok()?;
+    if config.message_audience != "support" {
+        return None;
+    }
+    let prompt = config
+        .message_prompt
+        .as_deref()
+        .and_then(|value| bounded_text(value, 2_000))
+        .unwrap_or_else(|| {
+            "Leave a helpful note or an encouraging thought for the next learner.".to_owned()
+        });
+    let input_label = config
+        .message_input_label
+        .as_deref()
+        .and_then(|value| bounded_text(value, 160))
+        .unwrap_or_else(|| "Your message".to_owned());
+    let colors = config.message_ui.map_or_else(
+        || json!({}),
+        |colors| {
+            json!({
+                "accentColorDark": colors.accent_color_dark.filter(|value| is_hex_color(value)),
+                "accentColorLight": colors.accent_color_light.filter(|value| is_hex_color(value)),
+                "cardColorDark": colors.card_color_dark.filter(|value| is_hex_color(value)),
+                "cardColorLight": colors.card_color_light.filter(|value| is_hex_color(value)),
+                "surfaceColorDark": colors.surface_color_dark.filter(|value| is_hex_color(value)),
+                "surfaceColorLight": colors.surface_color_light.filter(|value| is_hex_color(value)),
+            })
+        },
+    );
+
+    Some(json!({
+        "messageAudience": "support",
+        "messageInputLabel": input_label,
+        "messagePrompt": prompt,
+        "messageUi": colors,
+    }))
+}
+
+fn is_hex_color(value: &String) -> bool {
+    let value = value.as_bytes();
+    (value.len() == 4 || value.len() == 7)
+        && value[0] == b'#'
+        && value[1..].iter().all(u8::is_ascii_hexdigit)
 }
 
 fn reflection_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -1034,6 +1116,41 @@ struct DialoguePlaybackStateRow {
     history: serde_json::Value,
 }
 
+/// The general playback reader intentionally accepts only already-migrated
+/// activity types. Private support prompts have their own reader because the
+/// topic binding is part of the authorization boundary: a malformed authored
+/// topic must not render a browser form that can target another MapAsset.
+async fn load_support_prompt_playback(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+) -> Result<Option<PlaybackRow>, sqlx::Error> {
+    sqlx::query_as::<_, PlaybackRow>(
+        "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug \
+         FROM learner_route_progress AS progress \
+         INNER JOIN application_principals AS principals ON principals.id = progress.principal_id \
+         INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id \
+         INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id \
+         INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id \
+         INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
+         INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id \
+         LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE \
+         LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id \
+         WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
+           AND activities.activity_type = 'message_prompt' AND activities.activity_config ->> 'messageAudience' = 'support' \
+           AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL \
+           AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
+           AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(&principal.roles)
+    .fetch_optional(&mut **transaction)
+    .await
+}
+
 impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
     fn load_active_run(
         &self,
@@ -1048,7 +1165,14 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 .begin()
                 .await
                 .map_err(|_| LearnerPlaybackReadError)?;
-            let row = sqlx::query_as::<_, PlaybackRow>(
+            let row = if let Some(row) =
+                load_support_prompt_playback(&mut transaction, principal, play_run_id)
+                    .await
+                    .map_err(|_| LearnerPlaybackReadError)?
+            {
+                Some(row)
+            } else {
+                sqlx::query_as::<_, PlaybackRow>(
                 "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'revisit'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'recall'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_recall_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'question' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'replay'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
             )
             .bind(principal.subject_id)
@@ -1056,7 +1180,8 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
             .bind(&principal.roles)
             .fetch_optional(&mut *transaction)
             .await
-            .map_err(|_| LearnerPlaybackReadError)?;
+            .map_err(|_| LearnerPlaybackReadError)?
+            };
             let Some(row) = row else {
                 transaction
                     .commit()
@@ -1324,6 +1449,11 @@ async fn complete_current_activity(
         || !valid_review_outcome(outcome)
     {
         return Ok(None);
+    }
+    if let Some(result) =
+        complete_current_support_prompt(pool, principal, play_run_id, activity_slug).await?
+    {
+        return Ok(Some(result));
     }
     let mut transaction = pool.begin().await?;
     let Some(current) =
@@ -1613,20 +1743,27 @@ async fn complete_current_activity(
 
     let next_activity_id = match next_activity_id {
         Some(next_activity_id) => {
-            let next_activity_id = sqlx::query_scalar::<_, Uuid>(
-                "SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue')",
+            let next_activity = sqlx::query_as::<_, NextPlayableActivityRow>(
+                "SELECT activities.activity_config, activities.activity_type, activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL",
             )
             .bind(next_activity_id)
             .bind(current.route_id)
             .fetch_optional(&mut *transaction)
             .await?;
 
-            let Some(next_activity_id) = next_activity_id else {
+            let Some(next_activity) = next_activity else {
                 transaction.commit().await?;
                 return Ok(None);
             };
 
-            Some(next_activity_id)
+            if learner_safe_config(&next_activity.activity_type, next_activity.activity_config)
+                .is_none()
+            {
+                transaction.commit().await?;
+                return Ok(None);
+            }
+
+            Some(next_activity.id)
         }
         None => None,
     };
@@ -1737,6 +1874,124 @@ async fn npc_dialogue_reached_end(
     .bind(activity_id)
     .fetch_one(&mut **transaction)
     .await
+}
+
+/// A support prompt may advance only after the learner has written their one
+/// private request. It has a dedicated path so message-prompt handling cannot
+/// accidentally become a generic completion for peer-wall activities.
+async fn complete_current_support_prompt(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+    activity_slug: &str,
+) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    let current = sqlx::query_as::<_, SupportPromptCompletionRow>(
+        "SELECT activities.activity_config, activities.id AS activity_id, progress.principal_id, routes.id AS route_id \
+         FROM learner_route_progress AS progress \
+         INNER JOIN application_principals AS principals ON principals.id = progress.principal_id \
+         INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id \
+         INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id \
+         INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id \
+         INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
+         INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id \
+         WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
+           AND activities.slug = $3 AND activities.activity_type = 'message_prompt' \
+           AND activities.activity_config ->> 'messageAudience' = 'support' \
+           AND EXISTS (SELECT 1 FROM learner_messages AS messages WHERE messages.topic_id = topics.id AND messages.principal_id = progress.principal_id AND messages.audience = 'support') \
+           AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL \
+           AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
+           AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) \
+         FOR UPDATE OF progress",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(activity_slug)
+    .bind(&principal.roles)
+    .fetch_optional(&mut *transaction)
+    .await?;
+    let Some(current) = current else {
+        transaction.commit().await?;
+        return Ok(None);
+    };
+
+    let next = sqlx::query_as::<_, NextPlayableActivityRow>(
+        "SELECT activities.id, activities.activity_type, activities.activity_config \
+         FROM learning_activity_transitions AS transitions \
+         INNER JOIN learning_activities AS activities ON activities.id = transitions.to_activity_id \
+         WHERE transitions.from_activity_id = $1 AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' \
+           AND activities.route_id = $2 AND activities.published_at IS NOT NULL \
+         ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1",
+    )
+    .bind(current.activity_id)
+    .bind(current.route_id)
+    .fetch_optional(&mut *transaction)
+    .await?;
+    let next_activity_id = match next {
+        Some(next)
+            if learner_safe_config(&next.activity_type, next.activity_config.clone()).is_some() =>
+        {
+            Some(next.id)
+        }
+        Some(_) => {
+            transaction.commit().await?;
+            return Ok(None);
+        }
+        None => None,
+    };
+
+    mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
+    record_completion_evidence(
+        &mut transaction,
+        CompletionEvidence {
+            activity_config: &current.activity_config,
+            activity_id: current.activity_id,
+            activity_type: "message_prompt",
+            assistance_level: "untracked",
+            attempt_number: 1,
+            calibration: None,
+            confidence: None,
+            confidence_after_feedback: None,
+            learner_reflection_id: None,
+            reflection_is_independent_check: false,
+            reflection_observed_cues: None,
+            outcome: "completed",
+            play_run_id,
+            principal_id: current.principal_id,
+            reflection_response_type: None,
+        },
+    )
+    .await?;
+
+    let status = if let Some(next_activity_id) = next_activity_id {
+        mark_activity_reached(&mut transaction, current.principal_id, next_activity_id).await?;
+        sqlx::query(
+            "UPDATE learner_route_progress SET current_activity_id = $3, status = 'in_progress', last_entered_at = NOW(), last_exited_at = NOW(), updated_at = NOW() WHERE principal_id = $1 AND current_play_run_id = $2",
+        )
+        .bind(current.principal_id)
+        .bind(play_run_id)
+        .bind(next_activity_id)
+        .execute(&mut *transaction)
+        .await?;
+        "in_progress"
+    } else {
+        sqlx::query(
+            "UPDATE learner_route_progress SET status = 'completed', completion_count = completion_count + 1, last_completed_at = NOW(), last_exited_at = NOW(), updated_at = NOW() WHERE principal_id = $1 AND current_play_run_id = $2",
+        )
+        .bind(current.principal_id)
+        .bind(play_run_id)
+        .execute(&mut *transaction)
+        .await?;
+        "completed"
+    };
+
+    transaction.commit().await?;
+    Ok(Some(LearnerPlaybackCompletionResult {
+        play_run_id: play_run_id.to_string(),
+        status: status.to_owned(),
+    }))
 }
 
 fn reflection_response_type(config: &serde_json::Value) -> &'static str {

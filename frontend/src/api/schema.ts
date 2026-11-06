@@ -295,6 +295,74 @@ export interface paths {
         patch: operations["updateLearnerDeskPlanningPreference"];
         trace?: never;
     };
+    "/learner/desk/support-responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's bounded private Learning Support replies. */
+        get: operations["getLearnerDeskSupportResponses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learning-support/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read private-support topics with learner requests for an authorized Learning Support worker. */
+        get: operations["getLearningSupportTopics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learning-support/topics/{topic_id}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a bounded page of private learner requests for an authorized Learning Support worker. */
+        get: operations["getLearningSupportRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learning-support/messages/{message_id}/responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or update the current authorized worker's private reply to a learner support request. */
+        post: operations["saveLearningSupportResponse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/recall-items": {
         parameters: {
             query?: never;
@@ -490,6 +558,24 @@ export interface paths {
          * @description The server resolves the active run, activity, configured tool and learner identity. It does not accept a browser-selected tool.
          */
         post: operations["grantLearnerTool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/support-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's private support request and visible staff replies. */
+        get: operations["getLearnerCurrentSupportRequest"];
+        put?: never;
+        /** Submit the current learner's one private support request. */
+        post: operations["submitLearnerCurrentSupportRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -965,7 +1051,7 @@ export interface components {
              */
             subject_id: string;
             /** @description Application roles, not credentials or profile data. */
-            roles: "platform_administrator"[];
+            roles: ("learning_support" | "platform_administrator")[];
         };
         LoginRequest: {
             /** Format: email */
@@ -1663,7 +1749,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "npc_dialogue";
+            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "npc_dialogue";
             config: {
                 [key: string]: unknown;
             };
@@ -1861,6 +1947,90 @@ export interface components {
             purpose_filter: "any" | "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
             time_budget: "any" | (15 | 30);
         };
+        LearnerDeskSupportResponse: {
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            map_slug: string;
+            map_title: string;
+            node_slug: string;
+            node_title: string;
+            topic_title: string;
+        };
+        LearnerSupportReply: {
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+        };
+        LearnerSupportRequest: {
+            body: string;
+            /** Format: uuid */
+            id: string;
+            responses: components["schemas"]["LearnerSupportReply"][];
+        };
+        LearnerSupportRequestState: {
+            has_contributed: boolean;
+            message: components["schemas"]["LearnerSupportRequest"] | null;
+            topic_title: string;
+        };
+        SubmitLearnerSupportRequest: {
+            body: string;
+        };
+        LearningSupportTopic: {
+            /** Format: uuid */
+            id: string;
+            map_asset_title: string;
+            map_title: string;
+            request_count: number;
+            title: string;
+        };
+        /** @description A limited identity projection disclosed only through a Learning Support moderation endpoint to a principal with the matching server capability. */
+        LearningSupportIdentity: {
+            /** Format: email */
+            email: string;
+            /** Format: uuid */
+            subject_id: string;
+        };
+        LearningSupportModerationReply: {
+            author: components["schemas"]["LearningSupportIdentity"];
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            hidden_at: string | null;
+            /** Format: uuid */
+            id: string;
+        };
+        LearningSupportModerationRequest: {
+            author: components["schemas"]["LearningSupportIdentity"];
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            hidden_at: string | null;
+            /** Format: uuid */
+            id: string;
+            responses: components["schemas"]["LearningSupportModerationReply"][];
+        };
+        LearningSupportPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+        LearningSupportRequestPage: {
+            pagination: components["schemas"]["LearningSupportPagination"];
+            requests: components["schemas"]["LearningSupportModerationRequest"][];
+            topic: components["schemas"]["LearningSupportTopic"];
+        };
+        SaveLearningSupportResponseRequest: {
+            body: string;
+        };
+        LearningSupportReplySaveResult: {
+            response: components["schemas"]["LearningSupportModerationReply"];
+        };
         UpdateLearnerDeskPlanningPreferenceRequest: {
             /** @enum {string} */
             purpose_filter: "any" | "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
@@ -2048,6 +2218,8 @@ export interface components {
         CsrfTokenHeader: string;
         ActivityStartId: string;
         LearnerJournalPageId: string;
+        LearningSupportTopicId: string;
+        LearningSupportMessageId: string;
         MapSlug: string;
         TopicSlug: string;
         NodeSlug: string;
@@ -2966,6 +3138,220 @@ export interface operations {
             };
         };
     };
+    getLearnerDeskSupportResponses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Private replies from authorized Learning Support staff for visible maps only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerDeskSupportResponse"][];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearningSupportTopics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Support-only topics with at least one learner request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningSupportTopic"][];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Learning Support moderation is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearningSupportRequests: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                topic_id: components["parameters"]["LearningSupportTopicId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded private requests and their latest staff replies. Author identity is disclosed only to the authorized support worker. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningSupportRequestPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The topic is unknown or moderation is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    saveLearningSupportResponse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                message_id: components["parameters"]["LearningSupportMessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveLearningSupportResponseRequest"];
+            };
+        };
+        responses: {
+            /** @description The current worker's existing reply was updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningSupportReplySaveResult"];
+                };
+            };
+            /** @description A new private reply was created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningSupportReplySaveResult"];
+                };
+            };
+            /** @description The reply body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getLearnerRecallQueue: {
         parameters: {
             query?: never;
@@ -3671,6 +4057,122 @@ export interface operations {
                 content?: never;
             };
             /** @description The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerCurrentSupportRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The active private support prompt state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSupportRequestState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active support prompt is unavailable or is not owned by this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submitLearnerCurrentSupportRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitLearnerSupportRequest"];
+            };
+        };
+        responses: {
+            /** @description The source-idempotent request state; an existing request keeps its original body. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSupportRequestState"];
+                };
+            };
+            /** @description The request body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active support prompt is unavailable or is not owned by this learner. */
             404: {
                 headers: {
                     [name: string]: unknown;
