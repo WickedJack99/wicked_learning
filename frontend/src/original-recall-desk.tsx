@@ -163,6 +163,17 @@ export function OriginalRecallDeskPage({
             null,
         [bookmarkPlaces, currentRoutes],
     );
+    const bookmarkConnections = useMemo(
+        () =>
+            bookmarkPlaces
+                .filter(
+                    (place) =>
+                        featuredBookmark === null ||
+                        bookmarkPlaceKey(place) !== bookmarkPlaceKey(featuredBookmark),
+                )
+                .slice(0, 3),
+        [bookmarkPlaces, featuredBookmark],
+    );
 
     useEffect(() => {
         let active = true;
@@ -419,6 +430,8 @@ export function OriginalRecallDeskPage({
                     </p>
                 </header>
 
+                <PossibleConnections places={bookmarkConnections} />
+
                 {currentRoutes.length ? (
                     <section aria-labelledby="continue-learning-heading" className="mt-8">
                         <div className="flex items-center gap-5 pb-3">
@@ -656,6 +669,52 @@ function LearningDeskRail({
                 </Link>
             </div>
         </aside>
+    );
+}
+
+function PossibleConnections({ places }: { places: LearnerBookmarkPlace[] }) {
+    return (
+        <section aria-labelledby="connections-heading" className="mt-8" id="connections-section">
+            <div className="flex items-center gap-5 pb-3">
+                <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase" id="connections-heading">
+                    Possible connections
+                </h2>
+            </div>
+            {places.length ? (
+                <div className="border-b border-[var(--learner-border-color)] py-6">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
+                        {places.map((place, index) => (
+                            <div className="flex items-center gap-4" key={bookmarkPlaceKey(place)}>
+                                {index > 0 ? <ArrowRight className="size-4 text-[var(--learner-action-accent)]" /> : null}
+                                <Link
+                                    className="underline decoration-transparent underline-offset-4 transition hover:text-[var(--learner-accent)] hover:decoration-[var(--learner-accent)]"
+                                    to={bookmarkWorldHref(place)}
+                                >
+                                    {place.title}
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                        Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.
+                    </p>
+                </div>
+            ) : (
+                <div className="border-b border-[var(--learner-border-color)] py-6">
+                    <p className="font-medium">Connections need a little context</p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                        Save interesting places and this area can reveal useful paths between them.
+                    </p>
+                    <Link
+                        className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
+                        to="/world"
+                    >
+                        Open the map
+                        <ArrowRight className="size-4" />
+                    </Link>
+                </div>
+            )}
+        </section>
     );
 }
 

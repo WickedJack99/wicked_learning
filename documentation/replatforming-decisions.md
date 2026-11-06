@@ -1644,10 +1644,12 @@ from public World data could expose places the learner has not saved.
 **Decision:** The Desk reads the existing authenticated `/learner/bookmarks`
 contract. Its existing persistence reader now returns saved places newest first,
 as the source Desk does. React chooses the first saved place matching the
-current in-progress route as the pin, otherwise the first returned place, and
-uses the source-derived bounded rail markup. Each link returns to the existing
-World with the server-authorized map/node context; no Desk bookmark writer is
-added.
+current in-progress route as the pin, otherwise the first returned place. The
+main-area Possible connections section excludes that pin, keeps at most three
+remaining saved places, and preserves the source empty guidance until there is
+enough context. Both it and the bounded rail use source-derived markup. Each
+link returns to the existing World with the server-authorized map/node context;
+no Desk bookmark writer is added.
 
 **Why:** One reader remains responsible for principal ownership, visibility,
 published-state filtering and bounded presentation data. The frontend keeps the
@@ -1661,9 +1663,9 @@ creates another contract to secure and maintain. Both are rejected.
 **Evidence and boundary:** The local Compose Playwright journey saves the NPC
 route node through the existing CSRF-protected bookmark command, loads `/home`,
 and verifies the Pinned for later rail and its View all bookmarks destination.
-This restores the rail and saved-place list only; the source Possible
-connections main-area section, topic labels, check-in reflections, planning
-preferences and private Learning Support replies remain separate work.
+This restores the rail, saved-place list and Possible connections empty state;
+topic labels, check-in reflections, planning preferences and private Learning
+Support replies remain separate work.
 
 ## Phase 1 gate
 

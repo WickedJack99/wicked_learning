@@ -61,6 +61,8 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     await page.context().addCookies(storageState.cookies);
     await page.goto('/home');
     await expect(page.getByText('Pinned for later')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Possible connections' })).toBeVisible();
+    await expect(page.getByText('Connections need a little context')).toBeVisible();
     await expect(page.getByRole('link', { name: 'View all bookmarks' })).toHaveAttribute(
         'href',
         '/bookmarks',
