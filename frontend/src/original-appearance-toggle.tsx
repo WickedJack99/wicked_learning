@@ -3,10 +3,11 @@ import { Moon, Sun } from 'lucide-react';
 /**
  * Source-adapted from `components/appearance-tabs.tsx`.
  *
- * The Rust frontend has no account-preference contract yet, so appearance is
- * intentionally local to the public/authentication surface. The visible
- * control, labels, focus behavior, and selected-state structure remain the
- * original component's subtle variant.
+ * The public/authentication control updates the document immediately. A fresh
+ * invitation registration includes that resolved choice in its Rust request;
+ * the authenticated Personal-settings writer remains a separate source UI
+ * slice. The visible control, labels, focus behavior, and selected-state
+ * structure remain the original component's subtle variant.
  */
 export function OriginalAppearanceToggle({
     appearance,
