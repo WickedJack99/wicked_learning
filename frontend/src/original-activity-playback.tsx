@@ -390,7 +390,9 @@ export function OriginalOpenPracticePage({
         await load();
     }
 
-    async function complete(): Promise<void> {
+    async function complete(
+        transitionLabel?: string | null,
+    ): Promise<void> {
         if (state.kind !== 'loaded' || completing) {
             return;
         }
@@ -416,7 +418,7 @@ export function OriginalOpenPracticePage({
             presentCheckIn(
                 state.document,
                 data.status,
-                state.document.activity.completion.label,
+                transitionLabel ?? state.document.activity.completion.label,
             );
         } catch {
             setState({ kind: 'unavailable' });
@@ -524,12 +526,8 @@ export function OriginalOpenPracticePage({
                             <QuestionActivity
                                 activity={state.document.activity}
                                 playRunId={state.document.play_run_id}
-                                onContinue={(result) =>
-                                    presentCheckIn(
-                                        state.document,
-                                        result.status,
-                                        result.next_transition_label,
-                                    )
+                                onComplete={(result) =>
+                                    complete(result.next_transition_label)
                                 }
                             />
                         ) : state.document.activity.activity_type ===
@@ -722,11 +720,11 @@ function ReflectionActivity({
 function QuestionActivity({
     activity,
     playRunId,
-    onContinue,
+    onComplete,
 }: {
     activity: LearnerPlaybackDocument['activity'];
     playRunId: string;
-    onContinue: (result: LearnerQuestionAnswerResult) => void;
+    onComplete: (result: LearnerQuestionAnswerResult) => Promise<void>;
 }) {
     const config = activity.config as {
         allowMultiple?: unknown;
@@ -755,6 +753,7 @@ function QuestionActivity({
         null,
     );
     const [submitting, setSubmitting] = useState(false);
+    const [completing, setCompleting] = useState(false);
 
     if (!prompt || options.length === 0) {
         return null;
@@ -773,7 +772,7 @@ function QuestionActivity({
         );
     };
     async function submit(optionKeys: string[]): Promise<void> {
-        if (submitting || optionKeys.length === 0) return;
+        if (submitting || completing || optionKeys.length === 0) return;
         setSubmitting(true);
         try {
             const token = await getCsrfToken();
@@ -793,6 +792,16 @@ function QuestionActivity({
             if (response.ok && data) setAnswer(data);
         } finally {
             setSubmitting(false);
+        }
+    }
+
+    async function completeQuestion(): Promise<void> {
+        if (!answer || completing) return;
+        setCompleting(true);
+        try {
+            await onComplete(answer);
+        } finally {
+            setCompleting(false);
         }
     }
 
@@ -881,20 +890,25 @@ function QuestionActivity({
                         <button
                             className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:text-slate-100"
                             onClick={() => {
+                                if (completing) return;
                                 setAnswer(null);
                                 setSelection([]);
                                 setConfidence(null);
                             }}
+                            disabled={completing}
                             type="button"
                         >
                             Try again independently
                         </button>
                         <button
                             className="rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950"
-                            onClick={() => onContinue(answer)}
+                            disabled={completing}
+                            onClick={() => void completeQuestion()}
                             type="button"
                         >
-                            {answer.next_transition_label || 'Continue'}
+                            {completing
+                                ? 'Saving…'
+                                : answer.next_transition_label || 'Continue'}
                             <ArrowRight className="ml-2 inline size-4" />
                         </button>
                     </div>

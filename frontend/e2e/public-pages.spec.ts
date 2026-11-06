@@ -1482,6 +1482,7 @@ test('the original question surface posts only selected option keys and waits fo
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77';
+    let answerAttempt = 0;
     await page.route(
         `**/api/v1/learner/play-runs/${playRunId}`,
         async (route) => {
@@ -1540,8 +1541,9 @@ test('the original question surface posts only selected option keys and waits fo
     await page.route(
         `**/api/v1/learner/play-runs/${playRunId}/activities/learner-choice/answer`,
         async (route) => {
+            answerAttempt += 1;
             expect(route.request().postDataJSON()).toEqual({
-                confidence: 'settled',
+                confidence: answerAttempt === 1 ? 'settled' : 'leaning',
                 option_keys: ['choice'],
             });
             await route.fulfill({
@@ -1555,8 +1557,20 @@ test('the original question surface posts only selected option keys and waits fo
                     explanation: 'Maps support orientation and choice.',
                     confidence: 'settled',
                     calibration: 'aligned',
-                    attempt_number: 1,
+                    attempt_number: answerAttempt,
                     next_transition_label: null,
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/learner-choice/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
                     status: 'completed',
                 }),
             });
@@ -1578,6 +1592,17 @@ test('the original question surface posts only selected option keys and waits fo
     await page.getByRole('button', { name: 'Try again independently' }).click();
     await expect(
         page.getByText('Which choice keeps exploration learner-directed?'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'I have a hunch' }).click();
+    await page
+        .getByRole('button', { name: /Keep useful choices visible/ })
+        .click();
+    await expect(page.getByText('This keeps the learner in charge.')).toBeVisible();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after Keep choice visible',
+        }),
     ).toBeVisible();
 });
 
