@@ -6,7 +6,9 @@ use axum::{
 use axum_login::AuthSession;
 use serde::Deserialize;
 use uuid::Uuid;
-use wicked_learning_application::learner_reflection::LearnerReflectionCommand;
+use wicked_learning_application::learner_reflection::{
+    LearnerReflectionCommand, LearnerReflectionSubmission,
+};
 use wicked_learning_domain::learner_state::LearnerReflectionResult;
 use wicked_learning_persistence::learner_reflection::PostgresLearnerReflectionRepository;
 
@@ -18,6 +20,12 @@ use crate::{
 #[derive(Deserialize)]
 pub struct SaveReflectionRequest {
     reflection: String,
+    #[serde(default)]
+    response_context: Option<String>,
+    #[serde(default)]
+    observed_cues: Vec<String>,
+    #[serde(default)]
+    independent_check: bool,
 }
 
 pub async fn save(
@@ -34,7 +42,17 @@ pub async fn save(
     let repository = PostgresLearnerReflectionRepository::new(&state.application_database);
 
     LearnerReflectionCommand::new(&repository)
-        .execute(&principal, play_run_id, &activity_slug, &request.reflection)
+        .execute(
+            &principal,
+            play_run_id,
+            &activity_slug,
+            LearnerReflectionSubmission {
+                reflection: &request.reflection,
+                response_context: request.response_context.as_deref(),
+                observed_cues: &request.observed_cues,
+                independent_check: request.independent_check,
+            },
+        )
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

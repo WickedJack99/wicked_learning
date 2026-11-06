@@ -15,6 +15,8 @@ pub(crate) struct CompletionEvidence<'config> {
     pub confidence: Option<&'config str>,
     pub confidence_after_feedback: Option<&'config str>,
     pub learner_reflection_id: Option<Uuid>,
+    pub reflection_is_independent_check: bool,
+    pub reflection_observed_cues: Option<Value>,
     pub outcome: &'config str,
     pub play_run_id: Uuid,
     pub principal_id: Uuid,
@@ -33,12 +35,13 @@ pub(crate) async fn record_completion_evidence(
 
     for topic in policy.topics {
         sqlx::query(
-            "INSERT INTO learner_evidence_events (principal_id, activity_id, play_run_id, learner_reflection_id, is_independent_check, objective, concepts, topic_slug, topic_name, evidence_type, learning_purpose, evidence_criterion, evidence_rubric, observed_cues, source_references, contribution, outcome, confidence, confidence_after_feedback, calibration, attempt_number, assistance_level) VALUES ($1, $2, $3, $4, FALSE, $5, $6, $7, $8, $9, $10, $11, $12, NULL, $13, $14::numeric, $15, $16, $17, $18, $19, $20) ON CONFLICT (principal_id, activity_id, play_run_id, topic_slug, evidence_type, attempt_number) DO NOTHING",
+            "INSERT INTO learner_evidence_events (principal_id, activity_id, play_run_id, learner_reflection_id, is_independent_check, objective, concepts, topic_slug, topic_name, evidence_type, learning_purpose, evidence_criterion, evidence_rubric, observed_cues, source_references, contribution, outcome, confidence, confidence_after_feedback, calibration, attempt_number, assistance_level) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::numeric, $17, $18, $19, $20, $21, $22) ON CONFLICT (principal_id, activity_id, play_run_id, topic_slug, evidence_type, attempt_number) DO NOTHING",
         )
         .bind(evidence.principal_id)
         .bind(evidence.activity_id)
         .bind(evidence.play_run_id)
         .bind(evidence.learner_reflection_id)
+        .bind(evidence.reflection_is_independent_check)
         .bind(&policy.objective)
         .bind(&policy.concepts)
         .bind(&topic.slug)
@@ -47,6 +50,7 @@ pub(crate) async fn record_completion_evidence(
         .bind(&policy.learning_purpose)
         .bind(&policy.evidence_criterion)
         .bind(&policy.evidence_rubric)
+        .bind(evidence.reflection_observed_cues.clone())
         .bind(&policy.source_references)
         .bind(topic.contribution)
         .bind(evidence.outcome)

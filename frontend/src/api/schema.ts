@@ -1375,7 +1375,7 @@ export interface components {
             route_slug: string;
             current_activity_slug: string | null;
             /** @enum {string} */
-            status: "in_progress" | "completed";
+            status: "saved" | "in_progress" | "completed";
             completion_count: number;
             /** Format: date-time */
             last_completed_at: string | null;
@@ -1575,6 +1575,15 @@ export interface components {
         };
         LearnerReflectionRequest: {
             reflection: string;
+            /** @description Required by a server-derived transfer response; otherwise ignored. */
+            response_context?: string | null;
+            /** @description Optional authored cues selected by the learner. The server retains only cues configured for the active activity. */
+            observed_cues?: string[];
+            /**
+             * @description Requests the separately authored optional independent check, when the active activity permits it.
+             * @default false
+             */
+            independent_check: boolean;
         };
         LearnerReflectionResult: {
             /** Format: uuid */

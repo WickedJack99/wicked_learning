@@ -75,6 +75,14 @@ struct CurrentActivityRow {
 }
 
 #[derive(FromRow)]
+struct LatestReflectionRow {
+    id: Uuid,
+    is_independent_check: bool,
+    observed_cues: Option<serde_json::Value>,
+    response_type: String,
+}
+
+#[derive(FromRow)]
 struct CompletionTransitionRow {
     to_activity_id: Option<Uuid>,
 }
@@ -115,12 +123,6 @@ struct QuestionPlaybackOption {
     label: String,
 }
 
-#[derive(Deserialize)]
-struct ReflectionPlaybackConfig {
-    note: Option<String>,
-    prompt: String,
-}
-
 fn learner_safe_config(
     activity_type: &str,
     config: serde_json::Value,
@@ -149,22 +151,7 @@ fn learner_safe_config(
                 })).collect::<Vec<_>>(),
             }))
         }
-        "reflection" => {
-            let config = serde_json::from_value::<ReflectionPlaybackConfig>(config).ok()?;
-            if config.prompt.trim().is_empty()
-                || config.prompt.chars().count() > 2_000
-                || config
-                    .note
-                    .as_deref()
-                    .is_some_and(|note| note.chars().count() > 2_000)
-            {
-                return None;
-            }
-            Some(json!({
-                "note": config.note,
-                "prompt": config.prompt,
-            }))
-        }
+        "reflection" => reflection_safe_config(config),
         "tool_grant" => tool_grant_safe_config(config),
         "item_grant" => item_grant_safe_config(config),
         "item_obstacle" => item_obstacle_safe_config(config),
@@ -172,6 +159,55 @@ fn learner_safe_config(
         "markdown" => markdown_safe_config(config),
         _ => None,
     }
+}
+
+fn reflection_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
+    let config = config.as_object()?;
+    let prompt = config
+        .get("prompt")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|prompt| bounded_text(prompt, 2_000))
+        .unwrap_or_else(|| "What feels clearer now?".to_owned());
+    let note = config
+        .get("note")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|note| bounded_text(note, 2_000));
+    let learning_intent = config
+        .get("learningIntent")
+        .and_then(serde_json::Value::as_str)
+        .filter(|intent| matches!(*intent, "explain" | "transfer" | "review"))
+        .map(ToOwned::to_owned);
+    let feedback_guidance = config
+        .get("feedbackGuidance")
+        .and_then(serde_json::Value::as_object)
+        .map(|guidance| {
+            let text = |key: &str| {
+                guidance
+                    .get(key)
+                    .and_then(serde_json::Value::as_str)
+                    .and_then(|value| bounded_text(value, 2_000))
+            };
+            let rubric = guidance
+                .get("rubric")
+                .and_then(serde_json::Value::as_array)
+                .map_or_else(Vec::new, |values| normalized_texts(values, 3, 300));
+            json!({
+                "purpose": text("purpose"),
+                "evidence": text("evidence"),
+                "responseFeedback": text("responseFeedback"),
+                "nextAction": text("nextAction"),
+                "independentCheckPrompt": text("independentCheckPrompt"),
+                "independentCheckFeedback": text("independentCheckFeedback"),
+                "rubric": rubric,
+            })
+        });
+
+    Some(json!({
+        "note": note,
+        "prompt": prompt,
+        "learningIntent": learning_intent,
+        "feedbackGuidance": feedback_guidance,
+    }))
 }
 
 fn markdown_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -991,10 +1027,32 @@ async fn complete_current_activity(
         return Ok(None);
     };
 
-    if current.activity_type != "question" && confidence_after_feedback.is_some() {
+    if current.activity_type != "question"
+        && current.activity_type != "reflection"
+        && confidence_after_feedback.is_some()
+    {
         transaction.commit().await?;
         return Ok(None);
     }
+
+    let reflection = if current.activity_type == "reflection" {
+        let response_type = reflection_response_type(&current.activity_config);
+        let reflection = latest_reflection_for_completion(
+            &mut transaction,
+            current.principal_id,
+            current.activity_id,
+            play_run_id,
+            response_type,
+        )
+        .await?;
+        let Some(reflection) = reflection else {
+            transaction.commit().await?;
+            return Ok(None);
+        };
+        Some(reflection)
+    } else {
+        None
+    };
 
     if current.activity_type == "tool_grant"
         && !learner_owns_configured_tool(
@@ -1066,6 +1124,9 @@ async fn complete_current_activity(
     };
 
     if current.is_revisit {
+        let observable_reflection = reflection.as_ref().filter(|reflection| {
+            matches!(reflection.response_type.as_str(), "explain" | "transfer")
+        });
         let confidence = question_attempt
             .as_ref()
             .and_then(|attempt| attempt.confidence.as_deref());
@@ -1085,7 +1146,7 @@ async fn complete_current_activity(
                 activity_id: current.activity_id,
                 confidence,
                 confidence_after_feedback,
-                learner_reflection_id: None,
+                learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
                 outcome,
                 play_run_id,
                 principal_id: current.principal_id,
@@ -1111,11 +1172,16 @@ async fn complete_current_activity(
                 calibration,
                 confidence,
                 confidence_after_feedback,
-                learner_reflection_id: None,
+                learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
+                reflection_is_independent_check: observable_reflection
+                    .is_some_and(|reflection| reflection.is_independent_check),
+                reflection_observed_cues: observable_reflection
+                    .and_then(|reflection| reflection.observed_cues.clone()),
                 outcome,
                 play_run_id,
                 principal_id: current.principal_id,
-                reflection_response_type: None,
+                reflection_response_type: observable_reflection
+                    .map(|reflection| reflection.response_type.as_str()),
             },
         )
         .await?;
@@ -1207,6 +1273,9 @@ async fn complete_current_activity(
             "incorrect"
         }
     });
+    let observable_reflection = reflection
+        .as_ref()
+        .filter(|reflection| matches!(reflection.response_type.as_str(), "explain" | "transfer"));
     record_completion_evidence(
         &mut transaction,
         CompletionEvidence {
@@ -1224,11 +1293,16 @@ async fn complete_current_activity(
             calibration,
             confidence,
             confidence_after_feedback,
-            learner_reflection_id: None,
+            learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
+            reflection_is_independent_check: observable_reflection
+                .is_some_and(|reflection| reflection.is_independent_check),
+            reflection_observed_cues: observable_reflection
+                .and_then(|reflection| reflection.observed_cues.clone()),
             outcome,
             play_run_id,
             principal_id: current.principal_id,
-            reflection_response_type: None,
+            reflection_response_type: observable_reflection
+                .map(|reflection| reflection.response_type.as_str()),
         },
     )
     .await?;
@@ -1265,6 +1339,36 @@ async fn complete_current_activity(
     }))
 }
 
+fn reflection_response_type(config: &serde_json::Value) -> &'static str {
+    match config
+        .as_object()
+        .and_then(|config| config.get("learningIntent"))
+        .and_then(serde_json::Value::as_str)
+    {
+        Some("explain") => "explain",
+        Some("transfer") => "transfer",
+        _ => "reflection",
+    }
+}
+
+async fn latest_reflection_for_completion(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+    play_run_id: Uuid,
+    response_type: &str,
+) -> Result<Option<LatestReflectionRow>, sqlx::Error> {
+    sqlx::query_as::<_, LatestReflectionRow>(
+        "SELECT id, is_independent_check, observed_cues, response_type FROM learner_reflections WHERE principal_id = $1 AND activity_id = $2 AND play_run_id = $3 AND response_type = $4 ORDER BY created_at DESC, id DESC LIMIT 1",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .bind(play_run_id)
+    .bind(response_type)
+    .fetch_optional(&mut **transaction)
+    .await
+}
+
 async fn load_current_activity_for_update(
     transaction: &mut Transaction<'_, Postgres>,
     principal: &AuthorizedPrincipal,
@@ -1272,7 +1376,7 @@ async fn load_current_activity_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentActivityRow>, sqlx::Error> {
     let route = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_recall, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_recall, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -1285,7 +1389,7 @@ async fn load_current_activity_for_update(
     }
 
     let revisit = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, activities.id AS activity_id, FALSE AS is_recall, TRUE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT activities.activity_config, activities.activity_type, activities.id AS activity_id, FALSE AS is_recall, TRUE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)

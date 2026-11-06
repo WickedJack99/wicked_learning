@@ -1388,6 +1388,53 @@ lifted and all of their links have authorized Rust destinations. The required
 playback-opening contract and any future persisted review response type must be
 implemented and tested before their original controls are exposed.
 
+## ADR-039: Reflection saving and activity completion remain separate commands
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The initial Rust reflection command wrote a private response and
+advanced the active route in one operation. That matched the narrow seeded
+base-reflection example, but not the source workflow. In the source, a learner
+saves a response first, may read authored guidance and optionally save a
+separate independent response, then deliberately continues the activity. A
+single command would make the latter two steps impossible and would turn a
+private save into an unintended route transition.
+
+**Decision:** `POST /learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection`
+now saves only a bounded private response and returns `saved`. The existing
+server-owned completion command advances a reflection activity only after it
+finds a response for that same principal, run, activity and source-derived
+response type. The client still automatically completes the currently migrated
+base-reflection surface after saving, because it has no authored after-save
+guidance. A future lifted source response surface can instead show its exact
+guidance and independent-check controls before calling completion.
+
+The save command derives `reflection`, `explain`, or `transfer` from authored
+configuration; a transfer requires a changed context. It keeps only selected
+cues that are currently authored, and rejects an independent check unless an
+`explain` or `transfer` activity has its authored prompt. Completion uses the
+latest matching saved explain/transfer response for its private evidence link,
+including whether it was independent; base reflection remains qualitative
+private writing rather than an observable explanation claim.
+
+**Why:** This preserves the source's learner agency and order of operations,
+keeps route progression server-owned, and prevents stale or browser-invented
+cues, response types, journal categories and activity targets.
+
+**Alternatives:** Continuing to advance during the save command would collapse
+the source workflow. Letting the browser nominate a reflection record or
+response type would make private evidence forgeable. Creating a second
+completion endpoint just for reflection would duplicate the established
+server-owned activity-completion boundary. These alternatives are rejected.
+
+**Limitations and trigger:** The original source explain/transfer/review UI,
+including confidence, after-save guidance, independent response comparison and
+review outcome controls, is not yet lifted. The Rust contract and safe
+projection now preserve the required save/then-complete foundation, but those
+controls stay absent until their source UI and complete review-attempt contract
+are migrated together. The base reflection UI continues to use its original
+immediate save-then-continue behavior.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

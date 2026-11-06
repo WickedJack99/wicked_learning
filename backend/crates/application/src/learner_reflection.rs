@@ -5,19 +5,29 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerReflectionResult,
 };
 
+/// Private fields a learner may submit for the already-authorized reflection
+/// activity. The repository derives response type, journal category, guidance
+/// and activity ownership from the active play run; none are browser inputs.
+pub struct LearnerReflectionSubmission<'value> {
+    pub reflection: &'value str,
+    pub response_context: Option<&'value str>,
+    pub observed_cues: &'value [String],
+    pub independent_check: bool,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerReflectionError;
 
 /// A reflection is accepted only for the current activity in a server-owned
-/// run. The browser supplies the learner's private words, never a topic,
-/// journal page, activity target, or transition.
+/// run. The browser supplies private response fields only, never a topic,
+/// journal page, activity target, response type or transition.
 pub trait LearnerReflectionRepository {
     fn save_current_reflection(
         &self,
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
         activity_slug: &str,
-        reflection: &str,
+        submission: LearnerReflectionSubmission<'_>,
     ) -> impl Future<Output = Result<Option<LearnerReflectionResult>, LearnerReflectionError>> + Send;
 }
 
@@ -38,10 +48,10 @@ where
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
         activity_slug: &str,
-        reflection: &str,
+        submission: LearnerReflectionSubmission<'_>,
     ) -> Result<Option<LearnerReflectionResult>, LearnerReflectionError> {
         self.repository
-            .save_current_reflection(principal, play_run_id, activity_slug, reflection)
+            .save_current_reflection(principal, play_run_id, activity_slug, submission)
             .await
     }
 }
@@ -55,10 +65,23 @@ mod tests {
         identity_access::AuthorizedPrincipal, learner_state::LearnerReflectionResult,
     };
 
-    use super::{LearnerReflectionCommand, LearnerReflectionError, LearnerReflectionRepository};
+    use super::{
+        LearnerReflectionCommand, LearnerReflectionError, LearnerReflectionRepository,
+        LearnerReflectionSubmission,
+    };
 
     struct RecordingRepository {
-        received: Mutex<Option<(Uuid, Uuid, String, String)>>,
+        received: Mutex<
+            Option<(
+                Uuid,
+                Uuid,
+                String,
+                String,
+                Option<String>,
+                Vec<String>,
+                bool,
+            )>,
+        >,
     }
 
     impl LearnerReflectionRepository for RecordingRepository {
@@ -67,14 +90,17 @@ mod tests {
             principal: &AuthorizedPrincipal,
             play_run_id: Uuid,
             activity_slug: &str,
-            reflection: &str,
+            submission: LearnerReflectionSubmission<'_>,
         ) -> impl Future<Output = Result<Option<LearnerReflectionResult>, LearnerReflectionError>> + Send
         {
             *self.received.lock().expect("test mutex is available") = Some((
                 principal.subject_id,
                 play_run_id,
                 activity_slug.to_owned(),
-                reflection.to_owned(),
+                submission.reflection.to_owned(),
+                submission.response_context.map(ToOwned::to_owned),
+                submission.observed_cues.to_vec(),
+                submission.independent_check,
             ));
 
             async { Ok(None) }
@@ -97,7 +123,12 @@ mod tests {
                 &principal,
                 play_run_id,
                 "reflect-on-direction",
-                "I want to explore this direction further.",
+                LearnerReflectionSubmission {
+                    reflection: "I want to explore this direction further.",
+                    response_context: None,
+                    observed_cues: &[],
+                    independent_check: false,
+                },
             )
             .await;
 
@@ -109,6 +140,9 @@ mod tests {
                 play_run_id,
                 "reflect-on-direction".to_owned(),
                 "I want to explore this direction further.".to_owned(),
+                None,
+                Vec::new(),
+                false,
             )),
         );
     }

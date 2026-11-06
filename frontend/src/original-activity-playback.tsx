@@ -24,7 +24,6 @@ type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
 type LearnerQuestionAnswerResult =
     components['schemas']['LearnerQuestionAnswerResult'];
-type LearnerReflectionResult = components['schemas']['LearnerReflectionResult'];
 type CompletionStatus =
     components['schemas']['LearnerPlaybackCompletionResult']['status'];
 
@@ -553,10 +552,10 @@ export function OriginalOpenPracticePage({
                           'reflection' ? (
                             <ReflectionActivity
                                 activity={state.document.activity}
-                                onSaved={(result) => {
+                                onSaved={(status) => {
                                     presentCheckIn(
                                         state.document,
-                                        result.status,
+                                        status,
                                         state.document.activity.completion
                                             .label,
                                     );
@@ -647,7 +646,7 @@ function ReflectionActivity({
     playRunId,
 }: {
     activity: LearnerPlaybackDocument['activity'];
-    onSaved: (result: LearnerReflectionResult) => void;
+    onSaved: (status: CompletionStatus) => void;
     playRunId: string;
 }) {
     const config = activity.config as { note?: unknown; prompt?: unknown };
@@ -673,7 +672,7 @@ function ReflectionActivity({
             const { data, response: apiResponse } = await apiClient.POST(
                 '/learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection',
                 {
-                    body: { reflection: response },
+                    body: { reflection: response, independent_check: false },
                     params: {
                         header: { 'X-CSRF-Token': token },
                         path: {
@@ -689,7 +688,25 @@ function ReflectionActivity({
                 );
                 return;
             }
-            onSaved(data);
+            const completion = await apiClient.POST(
+                '/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: {
+                            activity_slug: activity.slug,
+                            play_run_id: playRunId,
+                        },
+                    },
+                },
+            );
+            if (!completion.response.ok || !completion.data) {
+                setError(
+                    'Your private reflection was saved, but the activity could not continue. Try again.',
+                );
+                return;
+            }
+            onSaved(completion.data.status);
         } catch {
             setError('Your private reflection could not be saved. Try again.');
         } finally {
