@@ -297,6 +297,7 @@ export function OriginalOpenPracticePage({
         useState<PendingLearningCheckIn | null>(null);
     const [hiddenCheckInActivitySlug, setHiddenCheckInActivitySlug] =
         useState<string | null>(null);
+    const [restarting, setRestarting] = useState(false);
     const headingRef = useRef<HTMLHeadingElement>(null);
     const showConclusionButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -468,6 +469,41 @@ export function OriginalOpenPracticePage({
             setState({ kind: 'unavailable' });
         } finally {
             setCompleting(false);
+        }
+    }
+
+    async function restartFromBeginning(): Promise<void> {
+        if (
+            restarting ||
+            state.kind !== 'loaded' ||
+            state.document.run_kind !== 'route' ||
+            !state.document.start_id
+        ) {
+            return;
+        }
+
+        setRestarting(true);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/activity-starts/{start_id}/reset',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { start_id: state.document.start_id },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                return;
+            }
+
+            navigate(
+                `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
+                { replace: true },
+            );
+        } finally {
+            setRestarting(false);
         }
     }
 
@@ -731,6 +767,20 @@ export function OriginalOpenPracticePage({
                                 onComplete={() => void complete()}
                             />
                         )}
+                        {state.document.run_kind === 'route' &&
+                        state.document.start_id ? (
+                            <div className="mt-auto flex justify-end border-t border-[var(--learner-border-color)] pt-3">
+                                <button
+                                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--learner-body-text)] transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                                    disabled={restarting}
+                                    onClick={() => void restartFromBeginning()}
+                                    type="button"
+                                >
+                                    <RotateCcw className="size-4" />
+                                    {restarting ? 'Starting again…' : 'From beginning'}
+                                </button>
+                            </div>
+                        ) : null}
                         {pendingCheckIn &&
                         hiddenCheckInActivitySlug !==
                             pendingCheckIn.activity.slug ? (

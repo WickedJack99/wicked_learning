@@ -55,4 +55,21 @@ test('the player shows the original learning focus before an activity begins', a
     await expect(
         page.getByRole('link', { name: 'Orientation' }),
     ).toHaveAttribute('href', '/competence?topic=orientation');
+
+    const replacementRun = page.waitForResponse(
+        (response) =>
+            new URL(response.url()).pathname ===
+                `/api/v1/learner/activity-starts/${orientationStart.start_id}/reset` &&
+            response.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: 'From beginning' }).click();
+    expect((await replacementRun).status()).toBe(200);
+    await expect(page).toHaveURL(
+        new RegExp(
+            `/learning/nodes/${orientationStart.node_slug}/play\\?run=(?!${playRunId}$)`,
+        ),
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Find your place' }),
+    ).toBeVisible();
 });
