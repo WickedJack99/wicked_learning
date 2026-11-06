@@ -5,9 +5,9 @@ export type OriginalAppearance = 'dark' | 'light';
 const unauthenticatedAppearanceStorageKey = 'theme-preference-unauthenticated';
 
 /**
- * Source-adapted anonymous portion of `useAppearance`. Authenticated
- * persistence belongs to the future Rust learner-preferences contract; this
- * preserves the original public shell's local preference in the meantime.
+ * Source-adapted anonymous portion of `useAppearance`. This local value keeps
+ * the public shell responsive; App replaces it with the signed-in learner's
+ * application-side preference once the current-user contract is available.
  */
 export function useOriginalAppearance(): [
     OriginalAppearance,

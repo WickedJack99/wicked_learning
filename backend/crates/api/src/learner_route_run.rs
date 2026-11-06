@@ -69,5 +69,6 @@ pub(crate) async fn authenticated_principal(
         .execute(subject.subject_id())
         .await
         .map_err(|_| ApiError::service_unavailable())?
+        .map(|current_user| current_user.principal)
         .ok_or_else(ApiError::forbidden)
 }

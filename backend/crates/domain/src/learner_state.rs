@@ -2,6 +2,32 @@ use serde::{Deserialize, Serialize};
 
 use crate::world_content::{PublicMapAsset, PublicWorld};
 
+/// A private, account-scoped visual preference. It affects the learner's own
+/// rendering only and is never a shared authored setting.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LearnerAppearance {
+    Dark,
+    Light,
+}
+
+impl LearnerAppearance {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Dark => "dark",
+            Self::Light => "light",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "dark" => Some(Self::Dark),
+            "light" => Some(Self::Light),
+            _ => None,
+        }
+    }
+}
+
 /// A bounded, authenticated projection for the World screen. It deliberately
 /// excludes activity configuration, answer history, play-run identifiers and
 /// all mutation affordances.

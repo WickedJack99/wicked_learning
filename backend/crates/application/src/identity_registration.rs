@@ -1,9 +1,11 @@
 use std::future::Future;
 
 use uuid::Uuid;
+use wicked_learning_domain::learner_state::LearnerAppearance;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityRegistrationDraft {
+    pub appearance: LearnerAppearance,
     pub display_name: String,
     pub normalized_email: String,
     pub password_hash: String,

@@ -952,6 +952,7 @@ test('a CI-only fresh identity can login, report its session, and logout', async
     const currentUser = await request.get('/api/v1/me');
     expect(currentUser.status()).toBe(200);
     await expect(currentUser.json()).resolves.toEqual({
+        appearance: 'light',
         email,
         subject_id: session.subject_id,
         roles: ['platform_administrator'],

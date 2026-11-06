@@ -25,6 +25,7 @@ test('a one-use local invitation creates a signed-in identity', async ({ page })
     const email = `registration-e2e-${Date.now()}@example.test`;
 
     await page.goto('/register');
+    await page.getByRole('button', { name: 'Dark' }).click();
     await page.getByLabel('Name').fill('Registration E2E learner');
     await page.getByLabel('Email address').fill(email);
     await page
@@ -37,6 +38,14 @@ test('a one-use local invitation creates a signed-in identity', async ({ page })
     await expect(page).toHaveURL(/\/world$/);
     const session = await page.request.get('/api/v1/session');
     await expect(session.json()).resolves.toMatchObject({ authenticated: true });
+    await expect(page.getByRole('button', { name: 'Open user menu' })).toBeVisible();
+    const currentUser = await page.request.get('/api/v1/me');
+    await expect(currentUser.json()).resolves.toMatchObject({
+        appearance: 'dark',
+        email,
+        roles: ['learner'],
+    });
+    await expect(page.locator('html')).toHaveClass(/dark/);
 
     await page.goto('/register');
     await page.getByLabel('Name').fill('Second registration attempt');

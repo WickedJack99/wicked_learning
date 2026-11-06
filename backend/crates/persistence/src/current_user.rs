@@ -1,9 +1,11 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 use wicked_learning_application::current_user::{
-    CurrentUserReadError, CurrentUserRepository as CurrentUserRepositoryPort,
+    CurrentUser, CurrentUserReadError, CurrentUserRepository as CurrentUserRepositoryPort,
 };
-use wicked_learning_domain::identity_access::AuthorizedPrincipal;
+use wicked_learning_domain::{
+    identity_access::AuthorizedPrincipal, learner_state::LearnerAppearance,
+};
 
 pub struct PostgresCurrentUserRepository<'pool> {
     pool: &'pool PgPool,
@@ -19,9 +21,29 @@ impl CurrentUserRepositoryPort for PostgresCurrentUserRepository<'_> {
     fn load_authorized_principal(
         &self,
         subject_id: Uuid,
-    ) -> impl std::future::Future<Output = Result<Option<AuthorizedPrincipal>, CurrentUserReadError>>
-    + Send {
+    ) -> impl std::future::Future<Output = Result<Option<CurrentUser>, CurrentUserReadError>> + Send
+    {
         async move {
+            let principal = sqlx::query_as::<_, PrincipalRow>(
+                "SELECT principals.id, preferences.appearance \
+                 FROM application_principals AS principals \
+                 LEFT JOIN learner_appearance_preferences AS preferences \
+                    ON preferences.principal_id = principals.id \
+                 WHERE principals.identity_subject_id = $1",
+            )
+            .bind(subject_id)
+            .fetch_optional(self.pool)
+            .await
+            .map_err(|_| CurrentUserReadError)?;
+            let Some(principal) = principal else {
+                return Ok(None);
+            };
+            let appearance = principal
+                .appearance
+                .as_deref()
+                .and_then(LearnerAppearance::parse)
+                .unwrap_or(LearnerAppearance::Light);
+
             let roles = sqlx::query_scalar::<_, String>(
                 r#"
                     SELECT roles.role_key
@@ -58,11 +80,21 @@ impl CurrentUserRepositoryPort for PostgresCurrentUserRepository<'_> {
             .await
             .map_err(|_| CurrentUserReadError)?;
 
-            Ok((!roles.is_empty()).then_some(AuthorizedPrincipal {
-                subject_id,
-                roles,
-                capabilities,
+            Ok(Some(CurrentUser {
+                appearance,
+                principal: AuthorizedPrincipal {
+                    subject_id,
+                    roles,
+                    capabilities,
+                },
             }))
         }
     }
+}
+
+#[derive(sqlx::FromRow)]
+struct PrincipalRow {
+    #[allow(dead_code)]
+    id: Uuid,
+    appearance: Option<String>,
 }

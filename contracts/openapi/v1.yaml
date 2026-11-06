@@ -1969,6 +1969,9 @@ components:
       additionalProperties: false
       required: [name, email, password, password_confirmation, registration_token]
       properties:
+        appearance:
+          type: string
+          enum: [dark, light]
         name:
           type: string
           minLength: 1
@@ -2005,8 +2008,12 @@ components:
     CurrentUser:
       type: object
       additionalProperties: false
-      required: [email, subject_id, roles]
+      required: [appearance, email, subject_id, roles]
       properties:
+        appearance:
+          type: string
+          enum: [dark, light]
+          description: The authenticated learner's private visual preference.
         email:
           type: string
           format: email
@@ -2020,7 +2027,7 @@ components:
           description: Application roles, not credentials or profile data.
           items:
             type: string
-            enum: [learning_support, platform_administrator]
+            enum: [learner, learning_support, platform_administrator]
     LoginRequest:
       type: object
       additionalProperties: false

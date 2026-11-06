@@ -1347,6 +1347,8 @@ export interface components {
             title: string;
         };
         IdentityRegistrationRequest: {
+            /** @enum {string} */
+            appearance?: "dark" | "light";
             name: string;
             /** Format: email */
             email: string;
@@ -1366,6 +1368,11 @@ export interface components {
         };
         CurrentUser: {
             /**
+             * @description The authenticated learner's private visual preference.
+             * @enum {string}
+             */
+            appearance: "dark" | "light";
+            /**
              * Format: email
              * @description The authenticated subject's normalized sign-in address. It is never returned for another subject.
              */
@@ -1376,7 +1383,7 @@ export interface components {
              */
             subject_id: string;
             /** @description Application roles, not credentials or profile data. */
-            roles: ("learning_support" | "platform_administrator")[];
+            roles: ("learner" | "learning_support" | "platform_administrator")[];
         };
         LoginRequest: {
             /** Format: email */

@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 use wicked_learning_application::identity_registration::{
     IdentityRegistrationCommand, IdentityRegistrationDraft, IdentityRegistrationError,
 };
+use wicked_learning_domain::learner_state::LearnerAppearance;
 use wicked_learning_persistence::identity_registration::PostgresIdentityRegistrationRepository;
 
 use crate::{
@@ -25,6 +26,7 @@ const MAX_DISPLAY_NAME_CHARACTERS: usize = 255;
 
 #[derive(Deserialize)]
 pub struct RegistrationRequest {
+    appearance: Option<String>,
     name: String,
     email: String,
     password: String,
@@ -40,7 +42,8 @@ pub async fn register(
     Json(request): Json<RegistrationRequest>,
 ) -> Result<Json<SessionStatusResponse>, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
-    let Some((display_name, normalized_email, registration_token)) = normalize_request(&request)
+    let Some((appearance, display_name, normalized_email, registration_token)) =
+        normalize_request(&request)
     else {
         return Err(ApiError::registration_rejected());
     };
@@ -58,6 +61,7 @@ pub async fn register(
     );
     let registration = IdentityRegistrationCommand::new(&repository)
         .execute(IdentityRegistrationDraft {
+            appearance,
             display_name,
             normalized_email: normalized_email.clone(),
             password_hash,
@@ -85,7 +89,13 @@ pub async fn register(
     }))
 }
 
-fn normalize_request(request: &RegistrationRequest) -> Option<(String, String, String)> {
+fn normalize_request(
+    request: &RegistrationRequest,
+) -> Option<(LearnerAppearance, String, String, String)> {
+    let appearance = match request.appearance.as_deref() {
+        Some(appearance) => LearnerAppearance::parse(appearance)?,
+        None => LearnerAppearance::Light,
+    };
     let display_name = request.name.trim();
     let normalized_email = request.email.trim().to_lowercase();
     let registration_token = request.registration_token.trim();
@@ -101,6 +111,7 @@ fn normalize_request(request: &RegistrationRequest) -> Option<(String, String, S
     }
 
     Some((
+        appearance,
         display_name.to_owned(),
         normalized_email,
         registration_token.to_owned(),
@@ -127,11 +138,14 @@ fn map_registration_error(error: IdentityRegistrationError) -> ApiError {
 
 #[cfg(test)]
 mod tests {
+    use wicked_learning_domain::learner_state::LearnerAppearance;
+
     use super::{RegistrationRequest, hex_sha256, normalize_request};
 
     #[test]
     fn normalizes_source_registration_input_without_retaining_whitespace() {
         let result = normalize_request(&RegistrationRequest {
+            appearance: Some("dark".to_owned()),
             email: " Learner@Example.test ".to_owned(),
             name: "  Learner Name  ".to_owned(),
             password: "not-used-here".to_owned(),
@@ -142,6 +156,7 @@ mod tests {
         assert_eq!(
             result,
             Some((
+                LearnerAppearance::Dark,
                 "Learner Name".to_owned(),
                 "learner@example.test".to_owned(),
                 "a-valid-invitation".to_owned(),
@@ -152,6 +167,7 @@ mod tests {
     #[test]
     fn rejects_blank_or_malformed_source_registration_fields() {
         let result = normalize_request(&RegistrationRequest {
+            appearance: Some("system".to_owned()),
             email: "not-an-email".to_owned(),
             name: " ".to_owned(),
             password: "not-used-here".to_owned(),

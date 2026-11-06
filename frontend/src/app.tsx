@@ -14,14 +14,17 @@ import {
     PublicInformationPage,
     PublicSourceCodePage,
 } from './public-information';
-import { useOriginalAppearance } from './original-appearance';
+import {
+    type OriginalAppearance,
+    useOriginalAppearance,
+} from './original-appearance';
 import type { PublicPresentation } from './public-presentation';
 import { PublicWorldPage } from './public-world';
 
 type CurrentUserState =
     | { kind: 'loading' }
     | { kind: 'anonymous' }
-    | { kind: 'loaded'; email: string; roles: string[]; subjectId: string }
+    | { kind: 'loaded'; appearance: OriginalAppearance; email: string; roles: string[]; subjectId: string }
     | { kind: 'unavailable' };
 
 type PublicPresentationState =
@@ -60,6 +63,15 @@ export function App() {
     useEffect(() => {
         void loadCurrentUser().then(setCurrentUser);
     }, [location.pathname]);
+
+    useEffect(() => {
+        if (
+            currentUser.kind === 'loaded' &&
+            currentUser.appearance !== appearance
+        ) {
+            setAppearance(currentUser.appearance);
+        }
+    }, [appearance, currentUser, setAppearance]);
 
     useEffect(() => {
         let isCurrent = true;
@@ -321,6 +333,9 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
 
         return {
             kind: 'loaded',
+            // The fallback keeps older mocked contract responses harmless while
+            // live API responses always carry the documented preference.
+            appearance: data.appearance === 'dark' ? 'dark' : 'light',
             email: data.email,
             roles: data.roles,
             subjectId: data.subject_id,

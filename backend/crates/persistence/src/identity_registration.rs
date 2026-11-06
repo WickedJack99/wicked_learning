@@ -110,14 +110,49 @@ async fn register(
         .await
         .map_err(|_| IdentityRegistrationError::Unavailable)?;
 
+    let mut application_transaction = application_database
+        .begin()
+        .await
+        .map_err(|_| IdentityRegistrationError::Unavailable)?;
     if let Err(error) =
         sqlx::query("INSERT INTO application_principals (id, identity_subject_id) VALUES ($1, $2)")
             .bind(Uuid::new_v4())
             .bind(subject_id)
-            .execute(application_database)
+            .execute(&mut *application_transaction)
             .await
     {
         tracing::error!(%error, %subject_id, "could not create application principal during registration");
+        compensate_registration(application_database, identity_database, subject_id).await;
+        return Err(IdentityRegistrationError::Unavailable);
+    }
+    if let Err(error) = sqlx::query(
+        "INSERT INTO application_principal_roles (principal_id, role_key) \
+         SELECT id, 'learner' FROM application_principals WHERE identity_subject_id = $1",
+    )
+    .bind(subject_id)
+    .execute(&mut *application_transaction)
+    .await
+    {
+        tracing::error!(%error, %subject_id, "could not assign the default learner role during registration");
+        let _ = application_transaction.rollback().await;
+        compensate_registration(application_database, identity_database, subject_id).await;
+        return Err(IdentityRegistrationError::Unavailable);
+    }
+    if let Err(error) = sqlx::query(
+        "INSERT INTO learner_appearance_preferences (principal_id, appearance) \
+         SELECT id, $2 FROM application_principals WHERE identity_subject_id = $1",
+    )
+    .bind(subject_id)
+    .bind(draft.appearance.as_str())
+    .execute(&mut *application_transaction)
+    .await
+    {
+        tracing::error!(%error, %subject_id, "could not save the initial learner appearance during registration");
+        let _ = application_transaction.rollback().await;
+        compensate_registration(application_database, identity_database, subject_id).await;
+        return Err(IdentityRegistrationError::Unavailable);
+    }
+    if application_transaction.commit().await.is_err() {
         compensate_registration(application_database, identity_database, subject_id).await;
         return Err(IdentityRegistrationError::Unavailable);
     }

@@ -2256,6 +2256,22 @@ subject and releasing the invitation. The browser receives one generic `422`
 for a duplicate address, bad invitation or malformed usable registration
 detail, preventing identity/token enumeration.
 
+Every fresh invitation account receives the source baseline `learner` role,
+so it is immediately a usable authenticated learner rather than a roleless
+principal. Elevated role grants remain part of the future, authorization-gated
+administration token workflow; the temporary local issuer cannot silently mint
+an administrator.
+
+The lifted source registration form also submits its existing Light/Dark choice.
+Rust persists that non-secret, private preference with the application
+principal—not with the password, profile or session in the identity database—
+and includes it in the authenticated current-user response. The React shell
+therefore restores an account's saved choice after registration or a later
+login, while its existing browser storage continues to make the public shell
+respond immediately. A general preference-update endpoint is intentionally
+deferred until the original Personal settings UI is lifted; adding a new
+backend-only settings workflow would not be parity work.
+
 An operator-only `issue-registration-token` command creates a high-entropy
 token and writes it once to an explicit private file; it stores neither the
 raw token nor a password in the database, logs or repository. The initial
@@ -2271,6 +2287,10 @@ source administrator UI has its own authorization contract.
 **Alternatives:** Activating identity before application provisioning risks an
 account that can authenticate without application authority. Copying profile or
 credential data into the application database breaks the accepted boundary.
+Keeping appearance only in browser storage would lose the source account
+preference; putting it in the identity database would blur credentials and
+application state. Adding a generic setting API before its original UI would
+invent a partial learner workflow.
 Storing plaintext tokens, printing them, or adding a public token-issue route
 would make an invitation secret unnecessarily durable or broadly reachable.
 All are rejected.

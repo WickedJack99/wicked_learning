@@ -18,7 +18,7 @@ pub async fn show(
         .user
         .ok_or_else(ApiError::authentication_required)?;
     let principal_repository = PostgresCurrentUserRepository::new(&state.application_database);
-    let principal = CurrentUserQuery::new(&principal_repository)
+    let current_user = CurrentUserQuery::new(&principal_repository)
         .execute(subject.subject_id())
         .await
         .map_err(|_| ApiError::service_unavailable())?
@@ -26,7 +26,7 @@ pub async fn show(
     let world_repository = PostgresLearnerWorldRepository::new(&state.application_database);
 
     LearnerWorldQuery::new(&world_repository)
-        .execute(&principal)
+        .execute(&current_user.principal)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

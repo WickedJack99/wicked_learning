@@ -44,6 +44,7 @@ export function OriginalRegisterPage({
             const token = await getCsrfToken();
             const { data, response } = await apiClient.POST('/registration', {
                 body: {
+                    appearance,
                     email,
                     name,
                     password,
