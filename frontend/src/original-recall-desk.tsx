@@ -128,12 +128,10 @@ function recentRouteRows(world: LearnerWorldSnapshot | null): RecentRouteRow[] {
  */
 export function OriginalRecallDeskPage({
     onSignedOut,
-    showSettings,
     userEmail,
     userSubjectId,
 }: {
     onSignedOut: () => void;
-    showSettings: boolean;
     userEmail: string;
     userSubjectId: string;
 }) {
@@ -684,7 +682,6 @@ export function OriginalRecallDeskPage({
         <div style={learnerStyle}>
             <OriginalLearnerHeader
                 onSignedOut={onSignedOut}
-                showSettings={showSettings}
                 userEmail={userEmail}
             />
             <main

@@ -1931,9 +1931,8 @@ orientation route, submits a first-only request, lists it through the staff
 contract, creates then updates a staff reply, and confirms the learner sees
 the updated body through the private request reader before completing the
 activity. The learner-facing request and Desk panels reuse lifted original
-components. The source-derived focused staff message panel is available only
-to roles that may use this contract; the full source Settings shell, peer
-message walls, helpfulness and visibility/deletion controls remain unmigrated.
+components. The full source Settings shell, peer message walls, helpfulness,
+visibility/deletion controls and staff moderation UI have not yet migrated.
 
 ## Phase 1 gate
 
