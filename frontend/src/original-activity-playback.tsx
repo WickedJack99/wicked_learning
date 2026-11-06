@@ -20,6 +20,7 @@ import { OriginalNpcDialogueActivity } from './original-npc-dialogue-activity';
 import { OriginalObstacleActivity } from './original-obstacle-activity';
 import { OriginalPeerMessageWall } from './original-peer-message-wall';
 import { OriginalPeerMessagePrompt } from './original-peer-message-prompt';
+import { OriginalPortalActivity } from './original-portal-activity';
 import { OriginalSharedTaskActivity } from './original-shared-task-activity';
 import { OriginalLearningSupportRequest } from './original-learning-support-request';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
@@ -31,11 +32,14 @@ type LearnerQuestionAnswerResult =
     components['schemas']['LearnerQuestionAnswerResult'];
 type CompletionStatus =
     components['schemas']['LearnerPlaybackCompletionResult']['status'];
+type LearnerPortalTravelResult =
+    components['schemas']['LearnerPortalTravelResult'];
 
 type PendingLearningCheckIn = {
     activity: LearnerPlaybackDocument['activity'];
     status: CompletionStatus;
     transitionLabel: string | null;
+    portalTravel?: LearnerPortalTravelResult;
 };
 
 const ROUTE_PAGE_SIZE = 3;
@@ -406,6 +410,12 @@ export function OriginalOpenPracticePage({
 
         setPendingCheckIn(null);
         setHiddenCheckInActivitySlug(null);
+        if (checkIn.portalTravel) {
+            navigate(
+                `/learning/nodes/${encodeURIComponent(checkIn.portalTravel.node_slug)}/play?run=${encodeURIComponent(checkIn.portalTravel.play_run_id)}`,
+            );
+            return;
+        }
         if (checkIn.status === 'completed') {
             returnToWorld();
             return;
@@ -555,6 +565,10 @@ export function OriginalOpenPracticePage({
                                                                 .activity_type ===
                                                             'shared_task'
                                                         ? 'Shared task'
+                                                        : state.document.activity
+                                                                  .activity_type ===
+                                                              'portal'
+                                                          ? 'Portal'
                                                 : 'Open practice'}
                                 </p>
                                 <h3
@@ -683,6 +697,24 @@ export function OriginalOpenPracticePage({
                             <OriginalSharedTaskActivity
                                 activity={state.document.activity}
                                 onComplete={complete}
+                                playRunId={state.document.play_run_id}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'portal' ? (
+                            <OriginalPortalActivity
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                onComplete={complete}
+                                onTravel={(result) => {
+                                    setPendingCheckIn({
+                                        activity: state.document.activity,
+                                        portalTravel: result,
+                                        status: 'completed',
+                                        transitionLabel:
+                                            state.document.activity.completion
+                                                .label,
+                                    });
+                                }}
                                 playRunId={state.document.play_run_id}
                             />
                         ) : (

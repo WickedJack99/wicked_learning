@@ -630,6 +630,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/portal/travel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Traverse the current authored output portal.
+         * @description The server resolves the source portal link, completes the departure route, rechecks destination access, and creates an opaque arrival run. The browser never submits a target map, node, activity, or route start.
+         */
+        post: operations["travelLearnerPortal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool": {
         parameters: {
             query?: never;
@@ -1941,7 +1961,7 @@ export interface components {
             /** Format: uuid */
             play_run_id: string;
             /** @enum {string} */
-            run_kind: "route" | "revisit" | "recall";
+            run_kind: "route" | "portal" | "revisit" | "recall" | "replay";
             context: components["schemas"]["LearnerPlaybackContext"];
             items: components["schemas"]["LearnerItem"][];
             tools: components["schemas"]["LearnerTool"][];
@@ -2006,7 +2026,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "message_wall" | "npc_dialogue" | "shared_task";
+            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "message_wall" | "npc_dialogue" | "portal" | "shared_task";
             config: {
                 [key: string]: unknown;
             };
@@ -2017,7 +2037,24 @@ export interface components {
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
             review_context: components["schemas"]["LearnerPlaybackReviewContext"][];
             npc_dialogue: components["schemas"]["LearnerNpcDialogue"] | null;
+            portal: components["schemas"]["LearnerPortalState"] | null;
             shared_task: components["schemas"]["LearnerSharedTaskState"] | null;
+        };
+        LearnerPortalState: {
+            destination: components["schemas"]["LearnerPortalDestination"] | null;
+        };
+        LearnerPortalDestination: {
+            description: string | null;
+            label: string | null;
+            map_title: string;
+            /** @enum {string} */
+            node_state: "available" | "locked" | "hidden";
+            node_title: string;
+        };
+        LearnerPortalTravelResult: {
+            node_slug: string;
+            /** Format: uuid */
+            play_run_id: string;
         };
         LearnerSharedTaskState: {
             accepted_count: number;
@@ -4779,6 +4816,60 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    travelLearnerPortal: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A server-authorized arrival scene at the linked target portal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPortalTravelResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The portal */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

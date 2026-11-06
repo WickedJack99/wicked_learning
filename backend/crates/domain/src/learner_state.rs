@@ -624,6 +624,7 @@ pub struct LearnerPlaybackDocument {
 #[serde(rename_all = "snake_case")]
 pub enum LearnerPlaybackRunKind {
     Route,
+    Portal,
     Revisit,
     Recall,
     Replay,
@@ -669,9 +670,34 @@ pub struct LearnerPlaybackActivity {
     /// renderable projection; commands still resolve every permitted edge on
     /// the server from the active route run.
     pub npc_dialogue: Option<LearnerNpcDialogue>,
+    /// Present only for a source portal activity. The destination is a safe
+    /// display projection; the travel command still resolves the actual link.
+    pub portal: Option<LearnerPortalState>,
     /// Present only for an authored shared-task activity on an active route
     /// run. Peer identities remain absent from this projection.
     pub shared_task: Option<LearnerSharedTaskState>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPortalState {
+    pub destination: Option<LearnerPortalDestination>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPortalDestination {
+    pub description: Option<String>,
+    pub label: Option<String>,
+    pub map_title: String,
+    pub node_state: String,
+    pub node_title: String,
+}
+
+/// A server-issued route run at the authored target portal. It is returned
+/// only after the source portal and destination visibility were validated.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPortalTravelResult {
+    pub node_slug: String,
+    pub play_run_id: String,
 }
 
 /// A private support request attached to the current message-prompt activity.

@@ -21,6 +21,7 @@ mod learner_obstacle_tool;
 mod learner_paths;
 mod learner_peer_message;
 mod learner_playback;
+mod learner_portal;
 mod learner_question;
 mod learner_recall;
 mod learner_recall_run;
@@ -388,6 +389,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
             post(learner_playback::complete_current_activity),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/portal/travel",
+            post(learner_portal::travel),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool",

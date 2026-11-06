@@ -891,6 +891,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/portal/travel:
+    post:
+      operationId: travelLearnerPortal
+      summary: Traverse the current authored output portal.
+      description: The server resolves the source portal link, completes the departure route, rechecks destination access, and creates an opaque arrival run. The browser never submits a target map, node, activity, or route start.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: A server-authorized arrival scene at the linked target portal.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerPortalTravelResult' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The portal, link, or destination is unavailable to this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool:
     post:
       operationId: grantLearnerTool
@@ -3091,7 +3110,7 @@ components:
           format: uuid
         run_kind:
           type: string
-          enum: [route, revisit, recall]
+          enum: [route, portal, revisit, recall, replay]
         context:
           $ref: '#/components/schemas/LearnerPlaybackContext'
         items:
@@ -3177,7 +3196,7 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue, shared_task]
+      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue, portal, shared_task]
       properties:
         slug:
           type: string
@@ -3188,7 +3207,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, message_prompt, message_wall, npc_dialogue, shared_task]
+          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, message_prompt, message_wall, npc_dialogue, portal, shared_task]
         config:
           type: object
           additionalProperties: true
@@ -3211,10 +3230,40 @@ components:
           anyOf:
             - $ref: '#/components/schemas/LearnerNpcDialogue'
             - type: 'null'
+        portal:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerPortalState'
+            - type: 'null'
         shared_task:
           anyOf:
             - $ref: '#/components/schemas/LearnerSharedTaskState'
             - type: 'null'
+    LearnerPortalState:
+      type: object
+      additionalProperties: false
+      required: [destination]
+      properties:
+        destination:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerPortalDestination'
+            - type: 'null'
+    LearnerPortalDestination:
+      type: object
+      additionalProperties: false
+      required: [description, label, map_title, node_state, node_title]
+      properties:
+        description: { type: [string, 'null'], maxLength: 2000 }
+        label: { type: [string, 'null'], maxLength: 240 }
+        map_title: { type: string, maxLength: 240 }
+        node_state: { type: string, enum: [available, locked, hidden] }
+        node_title: { type: string, maxLength: 240 }
+    LearnerPortalTravelResult:
+      type: object
+      additionalProperties: false
+      required: [node_slug, play_run_id]
+      properties:
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        play_run_id: { type: string, format: uuid }
     LearnerSharedTaskState:
       type: object
       additionalProperties: false

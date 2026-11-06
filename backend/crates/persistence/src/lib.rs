@@ -20,6 +20,7 @@ pub mod learner_obstacle_tool;
 pub mod learner_paths;
 pub mod learner_peer_message;
 pub mod learner_playback;
+pub mod learner_portal;
 pub mod learner_question;
 pub mod learner_recall;
 pub mod learner_recall_run;

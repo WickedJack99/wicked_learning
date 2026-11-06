@@ -16,7 +16,8 @@ use wicked_learning_domain::{
         LearnerNpcDialogueTypingSound, LearnerNpcDialogueTypingSoundSet, LearnerPlaybackActivity,
         LearnerPlaybackCheckIn, LearnerPlaybackCompletion, LearnerPlaybackCompletionResult,
         LearnerPlaybackContext, LearnerPlaybackDocument, LearnerPlaybackLearningArea,
-        LearnerPlaybackReviewContext, LearnerPlaybackRunKind, LearnerTool,
+        LearnerPlaybackReviewContext, LearnerPlaybackRunKind, LearnerPortalDestination,
+        LearnerPortalState, LearnerTool,
     },
 };
 
@@ -27,6 +28,7 @@ use crate::{
         configured_slots, item_obstacle_passed_for_run, load_inventory,
         load_state as load_item_obstacle_state,
     },
+    learner_node_availability::PostgresLearnerNodeAvailability,
     learner_obstacle_tool::{
         configured_tool_slugs as configured_obstacle_tool_slugs, obstacle_is_persistently_resolved,
         obstacle_passed_for_run, persists_after_solved,
@@ -117,6 +119,17 @@ struct NextPlayableActivityRow {
     activity_config: serde_json::Value,
     activity_type: String,
     id: Uuid,
+}
+
+#[derive(FromRow)]
+struct PortalStateRow {
+    description: Option<String>,
+    label: Option<String>,
+    map_title: String,
+    node_id: Uuid,
+    node_state: String,
+    node_title: String,
+    node_visual_config: serde_json::Value,
 }
 
 #[derive(FromRow)]
@@ -247,9 +260,95 @@ fn learner_safe_config(
         "message_prompt" => message_prompt_safe_config(config),
         "message_wall" => message_wall_safe_config(config),
         "npc_dialogue" => Some(config),
+        "portal" => portal_safe_config(config),
         "shared_task" => safe_playback_config(config),
         _ => None,
     }
+}
+
+fn portal_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
+    let object = config.as_object()?;
+    let portal_mode = object
+        .get("portalMode")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("output");
+    if !matches!(portal_mode, "input" | "output") {
+        return None;
+    }
+    let scene_assets = object
+        .get("portalAssets")
+        .and_then(serde_json::Value::as_array)
+        .map_or_else(Vec::new, |assets| {
+            assets
+                .iter()
+                .take(20)
+                .enumerate()
+                .filter_map(|(index, asset)| {
+                    let asset = asset.as_object()?;
+                    let layer = asset
+                        .get("layer")
+                        .and_then(serde_json::Value::as_str)
+                        .filter(|layer| {
+                            matches!(
+                                *layer,
+                                "behind-background"
+                                    | "above-background"
+                                    | "above-foreground"
+                                    | "front"
+                            )
+                        })
+                        .unwrap_or("above-background");
+                    Some(json!({
+                        "id": optional_bounded_config_text(asset, "id", 100)?
+                            .unwrap_or_else(|| format!("portal-asset-{}", index + 1)),
+                        "imageDark": optional_bounded_config_text(asset, "imageDark", 2_048)?,
+                        "imageLight": optional_bounded_config_text(asset, "imageLight", 2_048)?,
+                        "layer": layer,
+                        "mirrored": asset.get("mirrored").and_then(serde_json::Value::as_bool).unwrap_or(false),
+                        "opacity": bounded_config_number(asset, "opacity", 100.0, 0.0, 100.0)?,
+                        "width": bounded_config_number(asset, "width", 28.0, 1.0, 160.0)?,
+                        "x": bounded_config_number(asset, "x", 50.0, 0.0, 100.0)?,
+                        "y": bounded_config_number(asset, "y", 50.0, 0.0, 100.0)?,
+                    }))
+                })
+                .collect()
+        });
+    Some(json!({
+        "portalMode": portal_mode,
+        "portalAssets": scene_assets,
+        "portalBackgroundDark": optional_bounded_config_text(object, "portalBackgroundDark", 2_048)?,
+        "portalBackgroundLight": optional_bounded_config_text(object, "portalBackgroundLight", 2_048)?,
+        "portalBackgroundMirrored": object.get("portalBackgroundMirrored").and_then(serde_json::Value::as_bool).unwrap_or(false),
+        "portalForegroundDark": optional_bounded_config_text(object, "portalForegroundDark", 2_048)?,
+        "portalForegroundLight": optional_bounded_config_text(object, "portalForegroundLight", 2_048)?,
+        "portalForegroundMirrored": object.get("portalForegroundMirrored").and_then(serde_json::Value::as_bool).unwrap_or(false),
+        "portalForegroundWidth": bounded_config_number(object, "portalForegroundWidth", 28.0, 1.0, 100.0)?,
+        "portalForegroundX": bounded_config_number(object, "portalForegroundX", 50.0, 0.0, 100.0)?,
+        "portalForegroundY": bounded_config_number(object, "portalForegroundY", 50.0, 0.0, 100.0)?,
+        "portalShowOnArrival": object.get("portalShowOnArrival").and_then(serde_json::Value::as_bool).unwrap_or(true),
+        "portalSwirlEnabled": object.get("portalSwirlEnabled").and_then(serde_json::Value::as_bool).unwrap_or(true),
+        "portalBubbleText": optional_bounded_config_text(object, "portalBubbleText", 2_000)?,
+        "portalBubbleTypingSpeed": bounded_config_number(object, "portalBubbleTypingSpeed", 24.0, 1.0, 250.0)?,
+        "portalBubbleColorDark": safe_hex_config_color(object, "portalBubbleColorDark", "#0f172a"),
+        "portalBubbleColorLight": safe_hex_config_color(object, "portalBubbleColorLight", "#ffffff"),
+        "portalBubbleBorderColorDark": safe_hex_config_color(object, "portalBubbleBorderColorDark", "#2dd4bf"),
+        "portalBubbleBorderColorLight": safe_hex_config_color(object, "portalBubbleBorderColorLight", "#0891b2"),
+        "portalBubbleTextColorDark": safe_hex_config_color(object, "portalBubbleTextColorDark", "#f8fafc"),
+        "portalBubbleTextColorLight": safe_hex_config_color(object, "portalBubbleTextColorLight", "#0f172a"),
+    }))
+}
+
+fn safe_hex_config_color(
+    object: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    fallback: &str,
+) -> String {
+    object
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| valid_hex_color(value))
+        .unwrap_or(fallback)
+        .to_owned()
 }
 
 fn message_wall_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -1198,6 +1297,96 @@ async fn load_message_activity_playback(
     .await
 }
 
+/// A portal arrival has its own opaque run. It is deliberately not a target
+/// route start: arriving through a link must not reset or resume unrelated
+/// progress at the destination place.
+async fn load_portal_arrival_playback(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+) -> Result<Option<PlaybackRow>, sqlx::Error> {
+    sqlx::query_as::<_, PlaybackRow>(
+        "SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'portal'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug \
+         FROM learner_portal_arrival_runs AS runs \
+         INNER JOIN application_principals AS principals ON principals.id = runs.principal_id \
+         INNER JOIN learning_activities AS activities ON activities.id = runs.target_activity_id \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id \
+         INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id \
+         INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
+         WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' \
+           AND activities.activity_type = 'portal' AND COALESCE(activities.activity_config ->> 'portalMode', 'output') = 'input' \
+           AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL \
+           AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
+           AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(&principal.roles)
+    .fetch_optional(&mut **transaction)
+    .await
+}
+
+/// The browser gets a presentation-only portal destination. It never gets an
+/// ID or a target it may post back; travel resolves the link again under lock.
+async fn load_portal_state(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    availability: &PostgresLearnerNodeAvailability,
+    play_run_id: Uuid,
+    activity_slug: &str,
+) -> Result<LearnerPortalState, sqlx::Error> {
+    let row = sqlx::query_as::<_, PortalStateRow>(
+        "SELECT links.description, links.label, target_maps.title AS map_title, target_nodes.id AS node_id, target_nodes.state AS node_state, target_nodes.title AS node_title, target_nodes.visual_config AS node_visual_config \
+         FROM learner_route_progress AS progress \
+         INNER JOIN application_principals AS principals ON principals.id = progress.principal_id \
+         INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id \
+         INNER JOIN learning_nodes AS source_nodes ON source_nodes.id = starts.node_id \
+         INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id \
+         INNER JOIN learning_portal_links AS links ON links.source_activity_id = activities.id AND links.source_node_id = source_nodes.id \
+         INNER JOIN learning_activities AS target_activities ON target_activities.id = links.target_activity_id \
+         INNER JOIN learning_routes AS target_routes ON target_routes.id = target_activities.route_id \
+         INNER JOIN learning_map_assets AS target_assets ON target_assets.id = target_routes.map_asset_id \
+         INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id AND target_nodes.map_asset_id = target_assets.id \
+         INNER JOIN learning_maps AS target_maps ON target_maps.id = target_nodes.map_id \
+         WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
+           AND activities.slug = $3 AND activities.activity_type = 'portal' \
+           AND COALESCE(activities.activity_config ->> 'portalMode', 'output') = 'output' \
+           AND target_activities.activity_type = 'portal' AND COALESCE(target_activities.activity_config ->> 'portalMode', 'output') = 'input' \
+           AND target_maps.published_at IS NOT NULL AND target_nodes.published_at IS NOT NULL \
+           AND target_assets.published_at IS NOT NULL AND target_routes.published_at IS NOT NULL AND target_activities.published_at IS NOT NULL \
+           AND (target_maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(target_maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4)))",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(activity_slug)
+    .bind(&principal.roles)
+    .fetch_optional(&mut **transaction)
+    .await?;
+    let destination = row.map(|row| LearnerPortalDestination {
+        description: row.description,
+        label: row.label,
+        map_title: row.map_title,
+        node_state: match availability.state_for_node(
+            row.node_id,
+            &row.node_state,
+            &row.node_visual_config,
+        ) {
+            wicked_learning_domain::learner_availability::LearnerNodeState::Available => {
+                "available".to_owned()
+            }
+            wicked_learning_domain::learner_availability::LearnerNodeState::Locked => {
+                "locked".to_owned()
+            }
+            wicked_learning_domain::learner_availability::LearnerNodeState::Hidden => {
+                "hidden".to_owned()
+            }
+        },
+        node_title: row.node_title,
+    });
+    Ok(LearnerPortalState { destination })
+}
+
 impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
     fn load_active_run(
         &self,
@@ -1207,6 +1396,12 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
         Output = Result<Option<LearnerPlaybackDocument>, LearnerPlaybackReadError>,
     > + Send {
         async move {
+            let availability = PostgresLearnerNodeAvailability::load(self.pool, principal)
+                .await
+                .map_err(|_| LearnerPlaybackReadError)?;
+            let Some(availability) = availability else {
+                return Ok(None);
+            };
             let mut transaction = self
                 .pool
                 .begin()
@@ -1218,9 +1413,15 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?
             {
                 Some(row)
+            } else if let Some(row) =
+                load_portal_arrival_playback(&mut transaction, principal, play_run_id)
+                    .await
+                    .map_err(|_| LearnerPlaybackReadError)?
+            {
+                Some(row)
             } else {
                 sqlx::query_as::<_, PlaybackRow>(
-                "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue', 'shared_task') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'revisit'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'recall'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_recall_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'question' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'replay'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
+                "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue', 'shared_task', 'portal') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'revisit'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'recall'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_recall_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = 'question' AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'replay'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
             )
             .bind(principal.subject_id)
             .bind(play_run_id)
@@ -1388,6 +1589,21 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
             } else {
                 None
             };
+            let portal = if row.activity_type == "portal" {
+                Some(
+                    load_portal_state(
+                        &mut transaction,
+                        principal,
+                        &availability,
+                        play_run_id,
+                        &row.activity_slug,
+                    )
+                    .await
+                    .map_err(|_| LearnerPlaybackReadError)?,
+                )
+            } else {
+                None
+            };
             let items = load_inventory(&mut transaction, row.principal_id)
                 .await
                 .map_err(|_| LearnerPlaybackReadError)?;
@@ -1396,6 +1612,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 .map_err(|_| LearnerPlaybackReadError)?;
             let run_kind = match row.run_kind.as_str() {
                 "route" => LearnerPlaybackRunKind::Route,
+                "portal" => LearnerPlaybackRunKind::Portal,
                 "revisit" => LearnerPlaybackRunKind::Revisit,
                 "recall" => LearnerPlaybackRunKind::Recall,
                 "replay" => LearnerPlaybackRunKind::Replay,
@@ -1450,6 +1667,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     check_in,
                     review_context,
                     npc_dialogue,
+                    portal,
                     shared_task,
                 },
             }))
@@ -1523,6 +1741,11 @@ async fn complete_current_activity(
     {
         return Ok(Some(result));
     }
+    if let Some(result) =
+        complete_portal_arrival(pool, principal, play_run_id, activity_slug).await?
+    {
+        return Ok(Some(result));
+    }
     let mut transaction = pool.begin().await?;
     let Some(current) =
         load_current_activity_for_update(&mut transaction, principal, play_run_id, activity_slug)
@@ -1536,6 +1759,20 @@ async fn complete_current_activity(
         && current.activity_type != "reflection"
         && current.activity_type != "review"
         && (confidence.is_some() || confidence_after_feedback.is_some() || outcome.is_some())
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
+    // Output portals complete only through their dedicated travel command so
+    // the browser cannot turn a rendered portal into a client-chosen route
+    // exit. Input portals retain ordinary terminal completion behavior.
+    if current.activity_type == "portal"
+        && current
+            .activity_config
+            .get("portalMode")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("output")
+            == "output"
     {
         transaction.commit().await?;
         return Ok(None);
@@ -2073,6 +2310,63 @@ async fn complete_current_message_activity(
     }))
 }
 
+/// An arrival scene mirrors Laravel's direct target-portal view: it records
+/// the target activity but cannot advance, reset, or join an authored route.
+async fn complete_portal_arrival(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+    activity_slug: &str,
+) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    let current = sqlx::query_as::<_, CurrentActivityRow>(
+        "SELECT activities.activity_config, activities.id AS activity_id, activities.activity_type, FALSE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, runs.principal_id, routes.id AS route_id \
+         FROM learner_portal_arrival_runs AS runs \
+         INNER JOIN application_principals AS principals ON principals.id = runs.principal_id \
+         INNER JOIN learning_activities AS activities ON activities.id = runs.target_activity_id \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id \
+         INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id \
+         INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
+         WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' \
+           AND activities.slug = $3 AND activities.activity_type = 'portal' \
+           AND COALESCE(activities.activity_config ->> 'portalMode', 'output') = 'input' \
+           AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL \
+           AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
+           AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) \
+         FOR UPDATE OF runs",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(activity_slug)
+    .bind(&principal.roles)
+    .fetch_optional(&mut *transaction)
+    .await?;
+    let Some(current) = current else {
+        transaction.commit().await?;
+        return Ok(None);
+    };
+    mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
+    let updated = sqlx::query(
+        "UPDATE learner_portal_arrival_runs SET status = 'completed', completed_at = NOW(), updated_at = NOW() WHERE id = $1 AND principal_id = $2 AND target_activity_id = $3 AND status = 'in_progress'",
+    )
+    .bind(play_run_id)
+    .bind(current.principal_id)
+    .bind(current.activity_id)
+    .execute(&mut *transaction)
+    .await?
+    .rows_affected();
+    if updated != 1 {
+        transaction.commit().await?;
+        return Ok(None);
+    }
+    transaction.commit().await?;
+    Ok(Some(LearnerPlaybackCompletionResult {
+        play_run_id: play_run_id.to_string(),
+        status: "completed".to_owned(),
+    }))
+}
+
 fn reflection_response_type(config: &serde_json::Value) -> &'static str {
     match config
         .as_object()
@@ -2114,7 +2408,7 @@ async fn load_current_activity_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentActivityRow>, sqlx::Error> {
     let route = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue', 'shared_task') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue', 'shared_task', 'portal') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)

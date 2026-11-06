@@ -2104,6 +2104,40 @@ anonymity, review, helpfulness, follow-up, revision, checklist and the lifted
 activity frame. This does not migrate Shared Task authoring/editor UI,
 organizations, generic discussion or production routing.
 
+## ADR-053: Portal travel uses an opaque arrival run, not a target route start
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Portal activity lets a learner leave an ordinary route
+and view an authored input portal at another place. Letting React select a
+node, activity or target route would permit a forged destination and could
+reset or join unrelated learner progress at that place.
+
+**Decision:** Model every authored portal as a source activity/node to target
+input activity/node link. The travel command validates the caller's active
+source route, source and target publication/role scope, exact link, portal
+modes and server-calculated destination availability. It completes the source
+activity and creates one principal-owned opaque arrival run, keyed uniquely to
+the source run/activity. The browser receives only the target node slug needed
+for navigation and that opaque arrival identifier. Retrying while the arrival
+is active returns the same identifier. The arrival playback can complete only
+its input portal; it cannot reset, resume or advance a target route.
+
+**Why:** This preserves the original travel/arrival interaction and optional
+departure check-in while keeping graph authority, availability and all progress
+state on the server. It also avoids treating a visual portal as a generic
+browser navigation link.
+
+**Alternatives:** Posting a target activity or node from the browser would
+trust client graph selection. Starting the target route would incorrectly
+couple travel to route-progress reset/resume semantics. Both are rejected.
+
+**Evidence and boundary:** The OpenAPI contract exposes presentation-only
+destination details and one travel command. Rust tests cover the application
+absence boundary; the local Compose browser/API journey verifies source start,
+idempotent travel, opaque arrival playback and target completion. This does
+not migrate portal authoring, arbitrary map navigation or production routing.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
