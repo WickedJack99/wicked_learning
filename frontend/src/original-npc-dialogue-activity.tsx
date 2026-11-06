@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, MessageCircle } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
@@ -9,6 +9,8 @@ import type { OriginalAppearance } from './original-appearance';
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type Dialogue = components['schemas']['LearnerNpcDialogue'];
 type DialogueNode = components['schemas']['LearnerNpcDialogueNode'];
+type DialogueTypingSoundSet = components['schemas']['LearnerNpcDialogueTypingSoundSet'];
+type DialogueTypingSound = components['schemas']['LearnerNpcDialogueTypingSound'];
 type DialogueSceneAssetLayer = 'behind_npc' | 'front' | 'bubble' | 'overlay';
 
 type DialogueSceneAsset = {
@@ -81,6 +83,12 @@ export function OriginalNpcDialogueActivity({
         [appearance, currentNode.config.sceneAssets],
     );
     const bubbleStyle = speechBubbleStyle(currentNode, appearance);
+    const requestedTypingSoundSetId = nullableString(currentNode.config.typingSoundSetId);
+    const typingSoundSet = dialogue.typing_sound_sets.find(
+        (set) => set.id === requestedTypingSoundSetId,
+    ) ?? dialogue.typing_sound_sets.find((set) => set.is_default);
+    const typingSoundEnabled = booleanConfig(currentNode.config.typingSoundEnabled, false)
+        && typingSoundSet !== undefined;
 
     useEffect(() => {
         if (!isEnd || completedEndNodeId.current === currentNode.id) {
@@ -203,7 +211,7 @@ export function OriginalNpcDialogueActivity({
                 <DialogueSceneAssetLayers assets={sceneAssets} layer="bubble" />
                 <div className="rounded-2xl border p-4 backdrop-blur-md" style={bubbleStyle}>
                     <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><MessageCircle className="size-4" />{currentNode.title}</div>
-                    <TypingText key={currentNode.id} speed={numberConfig(currentNode.config.typingSpeed, 28)} text={currentNode.body ?? ''} />
+                    <TypingText key={currentNode.id} soundSet={typingSoundEnabled ? typingSoundSet : undefined} speed={numberConfig(currentNode.config.typingSpeed, 28)} text={currentNode.body ?? ''} />
                     {grantedToolName ? <p className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100">Added tool: {grantedToolName}</p> : null}
                     {isQuestion ? <div className="mt-4 grid gap-2">
                         {answers.map((answer, index) => <button className={`rounded-lg border p-3 text-left text-sm leading-6 transition ${selectedAnswerId === answer.id ? 'border-cyan-600 bg-cyan-50 text-slate-900 dark:border-teal-200 dark:bg-teal-200/10 dark:text-slate-100' : 'border-white/20 bg-white/70 text-slate-800 hover:bg-white dark:bg-slate-950/50 dark:text-slate-100 dark:hover:bg-slate-950/70'}`} disabled={isSubmitting} key={answer.id} onClick={() => setSelectedAnswerId(answer.id)} type="button"><span className="mr-2 font-semibold">{answer.label ?? String.fromCharCode(65 + index)}</span>{answer.body}</button>)}
@@ -289,8 +297,11 @@ function AnimatedNpcCharacterImage({
     return <img alt="" className="absolute z-10 max-h-[70%] max-w-[55%] object-contain" decoding="async" draggable={false} src={imageUrl} style={{ left: `${x}%`, opacity: isVisible ? 1 : 0, top: `${y}%`, transform: isVisible ? endTransform : imageTransform(startTransform, mirrored), transitionDuration: `${slideDurationMs}ms, ${fadeDurationMs}ms`, transitionProperty: 'transform, opacity', transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1), ease-out' }} />;
 }
 
-function TypingText({ speed, text }: { speed: number; text: string }) {
+const typingAudioCache = new Map<string, HTMLAudioElement>();
+
+function TypingText({ soundSet, speed, text }: { soundSet: DialogueTypingSoundSet | undefined; speed: number; text: string }) {
     const [visibleText, setVisibleText] = useState('');
+    const { play, stop } = useDialogueTypingSoundPlayer();
 
     useEffect(() => {
         if (!text) {
@@ -301,12 +312,46 @@ function TypingText({ speed, text }: { speed: number; text: string }) {
         const timer = window.setInterval(() => {
             index += 1;
             setVisibleText(text.slice(0, index));
+            const character = text[index - 1];
+            if (soundSet && character?.trim()) {
+                const sounds = Object.values(soundSet.sounds);
+                const sound = soundSet.sounds[character.toLowerCase()] ?? sounds[Math.floor(Math.random() * sounds.length)];
+                if (sound) play(sound);
+            }
             if (index >= text.length) window.clearInterval(timer);
         }, clampNumber(speed, 1, 250));
-        return () => window.clearInterval(timer);
-    }, [speed, text]);
+        return () => { window.clearInterval(timer); stop(); };
+    }, [play, soundSet, speed, stop, text]);
 
     return <p className="min-h-16 whitespace-pre-wrap text-sm leading-6">{visibleText}</p>;
+}
+
+/** Source-adapted typing-audio behaviour. User sound preferences have not
+ * yet moved to Rust, so this preserves the source default (effects enabled at
+ * full volume) without introducing a replacement settings control. */
+function useDialogueTypingSoundPlayer(): { play: (sound: DialogueTypingSound) => void; stop: () => void } {
+    const activeAudio = useRef<HTMLAudioElement | null>(null);
+    const stop = useCallback(() => {
+        activeAudio.current?.pause();
+        if (activeAudio.current) {
+            activeAudio.current.currentTime = 0;
+            activeAudio.current = null;
+        }
+    }, []);
+    const play = useCallback((sound: DialogueTypingSound) => {
+        stop();
+        const audio = typingAudioCache.get(sound.url) ?? new Audio(sound.url);
+        audio.preload = 'auto';
+        audio.currentTime = 0;
+        audio.volume = clampNumber(sound.volume, 0, 100) / 100;
+        activeAudio.current = audio;
+        void audio.play().catch(() => {
+            if (activeAudio.current === audio) activeAudio.current = null;
+        });
+        typingAudioCache.set(sound.url, audio);
+    }, [stop]);
+    useEffect(() => stop, [stop]);
+    return { play, stop };
 }
 
 function themedImage(config: Record<string, unknown>, appearance: OriginalAppearance, prefix: 'background' | 'npcImage'): string | null {

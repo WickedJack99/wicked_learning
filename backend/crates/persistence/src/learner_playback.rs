@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
@@ -11,10 +13,10 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
         LearnerNpcDialogue, LearnerNpcDialogueNode, LearnerNpcDialogueTransition,
-        LearnerPlaybackActivity, LearnerPlaybackCheckIn, LearnerPlaybackCompletion,
-        LearnerPlaybackCompletionResult, LearnerPlaybackContext, LearnerPlaybackDocument,
-        LearnerPlaybackLearningArea, LearnerPlaybackReviewContext, LearnerPlaybackRunKind,
-        LearnerTool,
+        LearnerNpcDialogueTypingSound, LearnerNpcDialogueTypingSoundSet, LearnerPlaybackActivity,
+        LearnerPlaybackCheckIn, LearnerPlaybackCompletion, LearnerPlaybackCompletionResult,
+        LearnerPlaybackContext, LearnerPlaybackDocument, LearnerPlaybackLearningArea,
+        LearnerPlaybackReviewContext, LearnerPlaybackRunKind, LearnerTool,
     },
 };
 
@@ -132,6 +134,22 @@ struct NpcDialogueTransitionRow {
     from_connector: String,
     from_node_id: Option<Uuid>,
     to_node_id: Uuid,
+}
+
+#[derive(FromRow)]
+struct NpcDialogueTypingSoundSetRow {
+    id: Uuid,
+    is_default: bool,
+    name: String,
+}
+
+#[derive(FromRow)]
+struct NpcDialogueTypingSoundRow {
+    id: Uuid,
+    letter: String,
+    sound_set_id: Uuid,
+    url: String,
+    volume: i16,
 }
 
 #[derive(Deserialize)]
@@ -926,6 +944,21 @@ async fn load_npc_dialogue(
     {
         return Ok(None);
     }
+    let configured_sound_set_ids = nodes
+        .iter()
+        .filter(|node| node.config["typingSoundEnabled"].as_bool() == Some(true))
+        .filter_map(|node| node.config["typingSoundSetId"].as_str())
+        .filter_map(|id| Uuid::parse_str(id).ok())
+        .collect::<Vec<_>>();
+    let typing_sound_sets = if configured_sound_set_ids.is_empty()
+        && !nodes
+            .iter()
+            .any(|node| node.config["typingSoundEnabled"].as_bool() == Some(true))
+    {
+        Vec::new()
+    } else {
+        load_dialogue_typing_sound_sets(transaction, &configured_sound_set_ids).await?
+    };
     Ok(Some(LearnerNpcDialogue {
         current_node_id: current_node_id.to_string(),
         history: history.into_iter().map(|id| id.to_string()).collect(),
@@ -939,6 +972,7 @@ async fn load_npc_dialogue(
                 config: node.config,
             })
             .collect(),
+        typing_sound_sets,
         transitions: transitions
             .into_iter()
             .map(|transition| LearnerNpcDialogueTransition {
@@ -948,6 +982,50 @@ async fn load_npc_dialogue(
             })
             .collect(),
     }))
+}
+
+async fn load_dialogue_typing_sound_sets(
+    transaction: &mut Transaction<'_, Postgres>,
+    configured_set_ids: &[Uuid],
+) -> Result<Vec<LearnerNpcDialogueTypingSoundSet>, sqlx::Error> {
+    let sets = sqlx::query_as::<_, NpcDialogueTypingSoundSetRow>(
+        "SELECT id, name, is_default FROM learning_dialogue_typing_sound_sets WHERE is_default OR id = ANY($1) ORDER BY is_default DESC, name ASC, id ASC",
+    )
+    .bind(configured_set_ids)
+    .fetch_all(&mut **transaction)
+    .await?;
+    if sets.is_empty() {
+        return Ok(Vec::new());
+    }
+    let set_ids = sets.iter().map(|set| set.id).collect::<Vec<_>>();
+    let sounds = sqlx::query_as::<_, NpcDialogueTypingSoundRow>(
+        "SELECT id, sound_set_id, letter, url, volume FROM learning_dialogue_typing_sounds WHERE sound_set_id = ANY($1) ORDER BY sound_set_id ASC, letter ASC",
+    )
+    .bind(&set_ids)
+    .fetch_all(&mut **transaction)
+    .await?;
+    let mut sounds_by_set =
+        BTreeMap::<Uuid, BTreeMap<String, LearnerNpcDialogueTypingSound>>::new();
+    for sound in sounds {
+        sounds_by_set.entry(sound.sound_set_id).or_default().insert(
+            sound.letter.clone(),
+            LearnerNpcDialogueTypingSound {
+                id: sound.id.to_string(),
+                letter: sound.letter,
+                url: sound.url,
+                volume: sound.volume,
+            },
+        );
+    }
+    Ok(sets
+        .into_iter()
+        .map(|set| LearnerNpcDialogueTypingSoundSet {
+            id: set.id.to_string(),
+            is_default: set.is_default,
+            name: set.name,
+            sounds: sounds_by_set.remove(&set.id).unwrap_or_default(),
+        })
+        .collect())
 }
 
 #[derive(FromRow)]

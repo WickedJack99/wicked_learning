@@ -1576,8 +1576,18 @@ frame, themed background/NPC image, authored per-node scene layers, character
 entrance animation, typed text reveal, speech bubble, answers, reflection, tool-added
 acknowledgement and source keyboard/end behavior. The standalone frontend
 image includes the original public visual assets used by this projection.
-Dialogue audio remains unavailable because its bounded sound contract is not
-yet implemented. It is omitted rather than replaced with a new interaction.
+Dialogue typing audio is now restored as a deliberately bounded contract. The
+new application tables model named, defaultable dialogue typing-sound sets and
+their 26 lowercase-letter sound references. A node may opt in and name a set by
+opaque UUID; Rust projects only the opt-in set and the fallback default to an
+authorized learner. The lifted player follows the source behaviour: it plays a
+matching letter sound during text reveal, otherwise selects one available sound
+from the set. The initial fresh set points only to the original bundled WAV
+assets, which the standalone frontend image now serves. It is not a general
+media feature and does not add audio upload, authoring, or a replacement sound
+settings screen. Until source sound preferences are migrated, it uses the
+source default of unmuted effects at full volume; that bounded limitation is
+explicit rather than silently inventing a new preference model.
 
 ## Phase 1 gate
 

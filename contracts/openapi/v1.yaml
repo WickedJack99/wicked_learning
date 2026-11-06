@@ -2655,7 +2655,7 @@ components:
     LearnerNpcDialogue:
       type: object
       additionalProperties: false
-      required: [current_node_id, history, nodes, transitions]
+      required: [current_node_id, history, nodes, typing_sound_sets, transitions]
       properties:
         current_node_id: { type: string, format: uuid }
         history:
@@ -2666,10 +2666,35 @@ components:
           type: array
           minItems: 1
           items: { $ref: '#/components/schemas/LearnerNpcDialogueNode' }
+        typing_sound_sets:
+          type: array
+          maxItems: 8
+          items: { $ref: '#/components/schemas/LearnerNpcDialogueTypingSoundSet' }
         transitions:
           type: array
           minItems: 1
           items: { $ref: '#/components/schemas/LearnerNpcDialogueTransition' }
+    LearnerNpcDialogueTypingSoundSet:
+      type: object
+      additionalProperties: false
+      required: [id, is_default, name, sounds]
+      properties:
+        id: { type: string, format: uuid }
+        is_default: { type: boolean }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        sounds:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/LearnerNpcDialogueTypingSound' }
+          maxProperties: 26
+    LearnerNpcDialogueTypingSound:
+      type: object
+      additionalProperties: false
+      required: [id, letter, url, volume]
+      properties:
+        id: { type: string, format: uuid }
+        letter: { type: string, pattern: '^[a-z]$' }
+        url: { type: string, minLength: 1, maxLength: 2048 }
+        volume: { type: integer, minimum: 0, maximum: 100 }
     LearnerNpcDialogueNode:
       type: object
       additionalProperties: false

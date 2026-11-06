@@ -11,6 +11,14 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
     test.skip(!email || !password, 'requires the disposable local identity');
+    await page.addInitScript(() => {
+        const pageWindow = window as typeof window & { typingSoundPlayCalls?: number };
+        pageWindow.typingSoundPlayCalls = 0;
+        HTMLMediaElement.prototype.play = function play(): Promise<void> {
+            pageWindow.typingSoundPlayCalls = (pageWindow.typingSoundPlayCalls ?? 0) + 1;
+            return Promise.resolve();
+        };
+    });
 
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
@@ -48,7 +56,19 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     let document = await playback.json();
     expect(document.activity).toMatchObject({
         activity_type: 'npc_dialogue',
-        npc_dialogue: { current_node_id: expect.any(String) },
+        npc_dialogue: {
+            current_node_id: expect.any(String),
+            typing_sound_sets: [
+                expect.objectContaining({
+                    is_default: true,
+                    sounds: expect.objectContaining({
+                        a: expect.objectContaining({
+                            url: '/sounds/dialogue-typing/letter-keyed/curious-double-blip-keyed-a.wav',
+                        }),
+                    }),
+                }),
+            ],
+        },
     });
 
     const advance = await request.post(`${basePath}/npc-dialogue/continue`, {
@@ -132,6 +152,9 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
             'Let us pause with a small observation. We are looking for what changes the next useful step.',
         ),
     ).toBeVisible();
+    await expect.poll(() => page.evaluate(() => (
+        window as typeof window & { typingSoundPlayCalls?: number }
+    ).typingSoundPlayCalls ?? 0)).toBeGreaterThan(0);
     await page.getByRole('button', { name: 'Next dialogue' }).click();
     await expect(page.getByText('Mira asks for the clue')).toBeVisible();
     await page

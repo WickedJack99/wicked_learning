@@ -654,7 +654,27 @@ pub struct LearnerNpcDialogue {
     pub current_node_id: String,
     pub history: Vec<String>,
     pub nodes: Vec<LearnerNpcDialogueNode>,
+    pub typing_sound_sets: Vec<LearnerNpcDialogueTypingSoundSet>,
     pub transitions: Vec<LearnerNpcDialogueTransition>,
+}
+
+/// A bounded source-compatible set of sounds used only while a dialogue node
+/// reveals text. The public URLs refer to approved static presentation assets;
+/// they do not expose arbitrary media-library records.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogueTypingSoundSet {
+    pub id: String,
+    pub is_default: bool,
+    pub name: String,
+    pub sounds: std::collections::BTreeMap<String, LearnerNpcDialogueTypingSound>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogueTypingSound {
+    pub id: String,
+    pub letter: String,
+    pub url: String,
+    pub volume: i16,
 }
 
 #[derive(Clone, Debug, Serialize)]

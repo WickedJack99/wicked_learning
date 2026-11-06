@@ -14,5 +14,6 @@ FROM nginx:1.27-alpine AS runtime
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY public/images/ /usr/share/nginx/html/images/
+COPY public/sounds/ /usr/share/nginx/html/sounds/
 
 EXPOSE 80

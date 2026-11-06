@@ -1612,7 +1612,24 @@ export interface components {
             current_node_id: string;
             history: string[];
             nodes: components["schemas"]["LearnerNpcDialogueNode"][];
+            typing_sound_sets: components["schemas"]["LearnerNpcDialogueTypingSoundSet"][];
             transitions: components["schemas"]["LearnerNpcDialogueTransition"][];
+        };
+        LearnerNpcDialogueTypingSoundSet: {
+            /** Format: uuid */
+            id: string;
+            is_default: boolean;
+            name: string;
+            sounds: {
+                [key: string]: components["schemas"]["LearnerNpcDialogueTypingSound"];
+            };
+        };
+        LearnerNpcDialogueTypingSound: {
+            /** Format: uuid */
+            id: string;
+            letter: string;
+            url: string;
+            volume: number;
         };
         LearnerNpcDialogueNode: {
             /** Format: uuid */
