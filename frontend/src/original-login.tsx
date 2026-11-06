@@ -205,6 +205,16 @@ export function OriginalLoginPage({
                             </button>
                         </div>
                     </form>
+                    <p className="text-center text-sm text-[var(--auth-description-text-color)]">
+                        Don't have an account?{' '}
+                        <Link
+                            className="font-medium underline underline-offset-4"
+                            style={{ color: 'var(--auth-link-text-color)' }}
+                            to="/register"
+                        >
+                            Sign up
+                        </Link>
+                    </p>
                 </div>
             </section>
         </main>

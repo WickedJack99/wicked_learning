@@ -22,6 +22,7 @@ pub struct PublicBranding {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicPresentationAuth {
     pub login: PublicAppearanceThemes,
+    pub register: PublicAppearanceThemes,
     pub welcome: PublicAppearanceThemes,
 }
 

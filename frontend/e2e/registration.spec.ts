@@ -1,0 +1,56 @@
+import { expect, test } from '@playwright/test';
+
+test('registration keeps invalid invitations indistinguishable from other rejected details', async ({
+    page,
+}) => {
+    await page.goto('/register');
+
+    await page.getByLabel('Name').fill('Registration attempt');
+    await page.getByLabel('Email address').fill('registration-attempt@example.test');
+    await page.getByLabel('Registration token').fill('not-a-valid-invitation');
+    await page.getByLabel('Password', { exact: true }).fill('a-long-test-password');
+    await page.getByLabel('Confirm password').fill('a-long-test-password');
+    await page.getByRole('button', { name: 'Create account' }).click();
+
+    await expect(page.getByRole('alert')).toHaveText(
+        'The account could not be created with these details.',
+    );
+});
+
+test('a one-use local invitation creates a signed-in identity', async ({ page }) => {
+    test.skip(
+        !process.env.E2E_REGISTRATION_TOKEN,
+        'requires a freshly issued local invitation token',
+    );
+    const email = `registration-e2e-${Date.now()}@example.test`;
+
+    await page.goto('/register');
+    await page.getByLabel('Name').fill('Registration E2E learner');
+    await page.getByLabel('Email address').fill(email);
+    await page
+        .getByLabel('Registration token')
+        .fill(process.env.E2E_REGISTRATION_TOKEN!);
+    await page.getByLabel('Password', { exact: true }).fill('a-long-test-password');
+    await page.getByLabel('Confirm password').fill('a-long-test-password');
+    await page.getByRole('button', { name: 'Create account' }).click();
+
+    await expect(page).toHaveURL(/\/world$/);
+    const session = await page.request.get('/api/v1/session');
+    await expect(session.json()).resolves.toMatchObject({ authenticated: true });
+
+    await page.goto('/register');
+    await page.getByLabel('Name').fill('Second registration attempt');
+    await page
+        .getByLabel('Email address')
+        .fill(`registration-reuse-${Date.now()}@example.test`);
+    await page
+        .getByLabel('Registration token')
+        .fill(process.env.E2E_REGISTRATION_TOKEN!);
+    await page.getByLabel('Password', { exact: true }).fill('a-long-test-password');
+    await page.getByLabel('Confirm password').fill('a-long-test-password');
+    await page.getByRole('button', { name: 'Create account' }).click();
+
+    await expect(page.getByRole('alert')).toHaveText(
+        'The account could not be created with these details.',
+    );
+});

@@ -101,6 +101,10 @@ mod tests {
                     dark: theme.clone(),
                     light: theme.clone(),
                 },
+                register: PublicAppearanceThemes {
+                    dark: theme.clone(),
+                    light: theme.clone(),
+                },
                 welcome: PublicAppearanceThemes {
                     dark: theme.clone(),
                     light: theme,

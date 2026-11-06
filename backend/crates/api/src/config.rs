@@ -25,6 +25,11 @@ pub struct BootstrapAdminConfig {
     pub password_file: PathBuf,
 }
 
+pub struct RegistrationTokenConfig {
+    pub note: Option<String>,
+    pub output_file: PathBuf,
+}
+
 #[derive(Debug, Error)]
 pub enum ConfigError {
     #[error("{0} must be set")]
@@ -39,6 +44,8 @@ pub enum ConfigError {
     InvalidPublicOrigin,
     #[error("BOOTSTRAP_ADMIN_EMAIL must be a valid email address")]
     InvalidBootstrapAdminEmail,
+    #[error("REGISTRATION_TOKEN_NOTE must contain at most 500 characters")]
+    InvalidRegistrationTokenNote,
 }
 
 impl BootstrapAdminConfig {
@@ -48,6 +55,23 @@ impl BootstrapAdminConfig {
         Ok(Self {
             normalized_email,
             password_file: PathBuf::from(required("BOOTSTRAP_ADMIN_PASSWORD_FILE")?),
+        })
+    }
+}
+
+impl RegistrationTokenConfig {
+    pub fn from_environment() -> Result<Self, ConfigError> {
+        let note = env::var("REGISTRATION_TOKEN_NOTE")
+            .ok()
+            .map(|note| note.trim().to_owned())
+            .filter(|note| !note.is_empty());
+        if note.as_ref().is_some_and(|note| note.chars().count() > 500) {
+            return Err(ConfigError::InvalidRegistrationTokenNote);
+        }
+
+        Ok(Self {
+            note,
+            output_file: PathBuf::from(required("REGISTRATION_TOKEN_OUTPUT_FILE")?),
         })
     }
 }

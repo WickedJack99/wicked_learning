@@ -55,6 +55,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create and sign in a fresh invitation-authorized identity.
+         * @description The server validates and consumes a one-use invitation, creates credential and identity-profile records in the identity database, provisions an application principal through a compensating workflow, then establishes a server-side session.
+         */
+        post: operations["registerIdentity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -1326,6 +1346,16 @@ export interface components {
             /** @example A required service is unavailable. */
             title: string;
         };
+        IdentityRegistrationRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            /** Format: password */
+            password: string;
+            /** Format: password */
+            password_confirmation: string;
+            registration_token: string;
+        };
         SessionStatus: {
             authenticated: boolean;
             /**
@@ -1377,6 +1407,7 @@ export interface components {
         };
         PublicPresentationAuth: {
             login: components["schemas"]["PublicAppearanceThemes"];
+            register: components["schemas"]["PublicAppearanceThemes"];
             welcome: components["schemas"]["PublicAppearanceThemes"];
         };
         PublicAppearanceThemes: {
@@ -2816,6 +2847,61 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SessionStatus"];
                 };
+            };
+        };
+    };
+    registerIdentity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdentityRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description The new identity is signed in with an opaque server-side session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatus"];
+                };
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The registration details */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many registration attempts were made. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An identity or application dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

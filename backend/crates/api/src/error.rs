@@ -74,6 +74,14 @@ impl ApiError {
         }
     }
 
+    pub fn registration_rejected() -> Self {
+        Self {
+            code: "registration_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The account could not be created with these details.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",

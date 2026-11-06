@@ -2231,6 +2231,58 @@ places it in the source-derived obstacle and observes the bundled effect on
 initial and met-state events. This does not migrate base-obstacle audio,
 authoring/upload UI, protected audio delivery or object storage.
 
+## ADR-057: Invitation registration provisions identity before application access
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source registration page is invitation-only: a valid token,
+name, email, matching password and password confirmation create an account.
+The new platform deliberately keeps credentials and profile data in a separate
+identity database, while every signed-in learner also needs an application
+principal. There can be no cross-database foreign key or transaction. The
+Laravel `User` model does not implement `MustVerifyEmail`, so source
+registration is not held pending email verification even though Fortify has
+verification routes.
+
+**Decision:** Lift the source `/register` form and its login cross-link. Its
+typed `POST /registration` contract validates the bounded source-shaped input,
+uses the maintained Argon2id password helper, and accepts only a one-use,
+unexpired invitation whose SHA-256 digest is stored in the identity database.
+It creates the identity profile and credential as `provisioning`, consumes the
+invitation, creates the separate application principal, then activates the
+identity and establishes the normal server-side session. A failure after the
+identity commit compensates by removing the application principal and identity
+subject and releasing the invitation. The browser receives one generic `422`
+for a duplicate address, bad invitation or malformed usable registration
+detail, preventing identity/token enumeration.
+
+An operator-only `issue-registration-token` command creates a high-entropy
+token and writes it once to an explicit private file; it stores neither the
+raw token nor a password in the database, logs or repository. The initial
+public presentation contract has an explicit `register` theme slot rather than
+silently borrowing the login theme.
+
+**Why:** This retains the source journey and the accepted identity/application
+separation without hand-rolled cryptography, credentials in application data,
+or a distributed database transaction. The temporary local operational path
+allows the complete fresh-account browser slice to be exercised before the
+source administrator UI has its own authorization contract.
+
+**Alternatives:** Activating identity before application provisioning risks an
+account that can authenticate without application authority. Copying profile or
+credential data into the application database breaks the accepted boundary.
+Storing plaintext tokens, printing them, or adding a public token-issue route
+would make an invitation secret unnecessarily durable or broadly reachable.
+All are rejected.
+
+**Limits and follow-up:** The workflow compensates ordinary failed operations,
+but a process crash between independent database commits still requires a
+future audited reconciliation job before a pilot. Token expiry selection,
+revocation/listing, role grants and the source administrator token-management
+screen remain separate identity-access work. Password recovery, MFA, passkeys,
+durable account auditing and a complete email-verification policy remain
+cutover gates; this is not production identity authorization.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

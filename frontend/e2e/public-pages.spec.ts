@@ -124,6 +124,22 @@ test('the login surface uses the original platform logo asset', async ({
     );
 });
 
+test('the original login and invitation registration surfaces link to each other', async ({
+    page,
+}) => {
+    await page.goto('/login');
+
+    await page.getByRole('link', { name: 'Sign up' }).click();
+    await expect(page).toHaveURL(/\/register$/);
+    await expect(
+        page.getByRole('heading', { name: 'Create an account' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Registration token')).toBeVisible();
+
+    await page.getByRole('link', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+});
+
 test('all public-information navigation entries resolve to their published pages', async ({
     page,
 }) => {

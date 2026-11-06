@@ -49,6 +49,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionStatus'
+  /registration:
+    post:
+      operationId: registerIdentity
+      summary: Create and sign in a fresh invitation-authorized identity.
+      description: The server validates and consumes a one-use invitation, creates credential and identity-profile records in the identity database, provisions an application principal through a compensating workflow, then establishes a server-side session.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentityRegistrationRequest'
+      responses:
+        '200':
+          description: The new identity is signed in with an opaque server-side session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatus'
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The registration details, address or invitation cannot create an account. }
+        '429': { description: Too many registration attempts were made. }
+        '503': { description: An identity or application dependency is unavailable. }
   /me:
     get:
       operationId: getCurrentUser
@@ -1940,6 +1964,33 @@ components:
         title:
           type: string
           example: A required service is unavailable.
+    IdentityRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, password, password_confirmation, registration_token]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 1024
+        password_confirmation:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 1024
+        registration_token:
+          type: string
+          minLength: 1
+          maxLength: 120
     SessionStatus:
       type: object
       additionalProperties: false
@@ -2030,9 +2081,11 @@ components:
     PublicPresentationAuth:
       type: object
       additionalProperties: false
-      required: [login, welcome]
+      required: [login, register, welcome]
       properties:
         login:
+          $ref: '#/components/schemas/PublicAppearanceThemes'
+        register:
           $ref: '#/components/schemas/PublicAppearanceThemes'
         welcome:
           $ref: '#/components/schemas/PublicAppearanceThemes'

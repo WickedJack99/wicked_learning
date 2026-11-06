@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalRegisterPage } from './original-register';
 import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
@@ -86,6 +87,7 @@ export function App() {
     const isPublicPresentationRoute =
         location.pathname === '/' ||
         location.pathname === '/login' ||
+        location.pathname === '/register' ||
         location.pathname === '/source' ||
         publicSlugs.includes(
             location.pathname.slice(1) as (typeof publicSlugs)[number],
@@ -198,6 +200,16 @@ export function App() {
     if (location.pathname === '/login') {
         return (
             <OriginalLoginPage
+                appearance={appearance}
+                onAppearanceChange={setAppearance}
+                presentation={presentation!}
+            />
+        );
+    }
+
+    if (location.pathname === '/register') {
+        return (
+            <OriginalRegisterPage
                 appearance={appearance}
                 onAppearanceChange={setAppearance}
                 presentation={presentation!}

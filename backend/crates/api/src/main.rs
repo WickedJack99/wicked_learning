@@ -4,6 +4,7 @@ mod csrf;
 mod current_user;
 mod error;
 mod identity;
+mod identity_registration;
 mod learner_activity_replay_run;
 mod learner_bookmark;
 mod learner_bookmark_map;
@@ -47,6 +48,7 @@ mod public_routes;
 mod public_search;
 mod public_source_links;
 mod public_world;
+mod registration_tokens;
 mod session_commands;
 mod session_status;
 
@@ -75,7 +77,7 @@ use tower_sessions_sqlx_store::PostgresStore;
 use tracing::{error, info};
 
 use crate::{
-    config::{BootstrapAdminConfig, Config},
+    config::{BootstrapAdminConfig, Config, RegistrationTokenConfig},
     error::ApiError,
     identity::IdentityBackend,
     media_store::MediaStore,
@@ -117,6 +119,7 @@ async fn main() -> ExitCode {
     match std::env::args().nth(1).as_deref() {
         Some("migrate") => return run_migrations(&configuration).await,
         Some("bootstrap-admin") => return bootstrap_admin(&configuration).await,
+        Some("issue-registration-token") => return issue_registration_token(&configuration).await,
         Some(command) => {
             error!(%command, "unknown command");
             return ExitCode::FAILURE;
@@ -169,6 +172,34 @@ async fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+async fn issue_registration_token(configuration: &Config) -> ExitCode {
+    let token_configuration = match RegistrationTokenConfig::from_environment() {
+        Ok(token_configuration) => token_configuration,
+        Err(error) => {
+            error!(%error, "invalid issue-registration-token configuration");
+            return ExitCode::FAILURE;
+        }
+    };
+    let identity_database = match connect(&configuration.identity_database_url).await {
+        Ok(pool) => pool,
+        Err(error) => {
+            error!(%error, "could not connect to the identity database for registration token issuance");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    match registration_tokens::issue(identity_database, token_configuration).await {
+        Ok(()) => {
+            info!("registration token issued to the selected private output file");
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            error!(%error, "registration token issuance failed");
+            ExitCode::FAILURE
+        }
+    }
 }
 
 async fn bootstrap_admin(configuration: &Config) -> ExitCode {
@@ -226,6 +257,10 @@ fn router(state: AppState) -> Router {
         .expect("a non-zero login rate limit is configured");
     let login_routes = Router::new()
         .route("/api/v1/session/login", post(session_commands::login))
+        .route(
+            "/api/v1/registration",
+            post(identity_registration::register),
+        )
         .layer(
             GovernorLayer::new(login_rate_limit)
                 .error_handler(|_| ApiError::too_many_requests().into_response()),

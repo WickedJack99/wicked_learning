@@ -61,10 +61,9 @@ foundation endpoint. The local proof of concept exposes password
 `POST /api/v1/session/login` and `POST /api/v1/session/logout`, with a small
 React sign-in/sign-out proof: both require the token's `X-CSRF-Token` header
 and the configured `PUBLIC_ORIGIN`. Login accepts only active, email-verified
-Rust identities and has a five-attempt client-IP burst with one attempt
-replenished per minute. Registration, verification, recovery, MFA/passkeys,
-audit records and the full authorization matrix remain separate required work;
-this is not a user cutover.
+Rust identities and shares a small client-IP rate-limit burst with invitation
+registration. Verification/recovery, MFA/passkeys, audit records and the full
+authorization matrix remain separate required work; this is not a user cutover.
 
 The local HTTP stack intentionally does not mark session or CSRF cookies
 `Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser
@@ -110,6 +109,29 @@ safe to re-run to repair the application-principal/role mapping; it never
 replaces the password of an existing identity. The command has not been run by
 this proof-of-concept setup, so no administrator account has been guessed or
 created automatically.
+
+## Local invitation registration
+
+The lifted `/register` page requires a one-use invitation. Issue one to a
+private temporary file in the running backend, then copy that file to a
+private local path. The command writes the plaintext token only to its newly
+created output file (mode `0600` on Linux) and stores only its SHA-256 hash in
+the identity database. It never prints the token.
+
+```bash
+docker compose --env-file .env.rust -f compose.rust.yaml exec -T \
+  -e REGISTRATION_TOKEN_OUTPUT_FILE='/tmp/registration-token' \
+  backend wicked-learning-api issue-registration-token
+docker compose --env-file .env.rust -f compose.rust.yaml cp \
+  backend:/tmp/registration-token ./registration-token
+```
+
+Use the token from that file in the local registration screen, then delete the
+local and container copies yourself when they are no longer needed. To record
+a non-secret operator note, add `-e REGISTRATION_TOKEN_NOTE='purpose'` to the
+`docker compose exec` command. Expiry selection, role grants, token
+listing/revocation and the source administrator UI remain later identity-access
+work.
 
 ## Coolify-shaped deployment
 

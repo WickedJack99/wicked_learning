@@ -93,6 +93,12 @@ test('the public-presentation endpoint returns the source-derived browser shell 
                     input_background: 'rgba(255, 255, 255, 0.7)',
                 },
             },
+            register: {
+                dark: {
+                    background_color: '#07111f',
+                    background_image: null,
+                },
+            },
         },
         public_palette: {
             dark: { accent_text: '#5eead4', welcome_overlay_opacity: 62 },

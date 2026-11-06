@@ -4,7 +4,7 @@ import type { components } from './api/schema';
 
 export type PublicPresentation = components['schemas']['PublicPresentation'];
 export type PublicAppearance = 'dark' | 'light';
-type PublicPage = 'login' | 'welcome';
+type PublicPage = 'login' | 'register' | 'welcome';
 type PublicPalette = components['schemas']['PublicPalette'];
 
 /**
