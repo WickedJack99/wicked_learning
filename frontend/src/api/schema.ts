@@ -1600,11 +1600,8 @@ export interface components {
             response_context?: string | null;
             /** @description Optional authored cues selected by the learner. The server retains only cues configured for the active activity. */
             observed_cues?: string[];
-            /**
-             * @description Requests the separately authored optional independent check, when the active activity permits it.
-             * @default false
-             */
-            independent_check: boolean;
+            /** @description Requests the separately authored optional independent check, when the active activity permits it. */
+            independent_check?: boolean;
         };
         LearnerReflectionResult: {
             /** Format: uuid */

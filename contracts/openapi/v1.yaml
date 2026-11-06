@@ -2698,7 +2698,6 @@ components:
           description: Optional authored cues selected by the learner. The server retains only cues configured for the active activity.
         independent_check:
           type: boolean
-          default: false
           description: Requests the separately authored optional independent check, when the active activity permits it.
     LearnerReflectionResult:
       type: object

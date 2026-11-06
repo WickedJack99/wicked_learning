@@ -1626,6 +1626,7 @@ test('the original question surface posts only selected option keys and waits fo
                             learning_areas: [],
                             objective: null,
                         },
+                        review_context: [],
                     },
                 }),
             });
@@ -1800,6 +1801,19 @@ test('the original reflection surface sends private writing only to its active s
             });
         },
     );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/private-reflection/complete`,
+        async (route) => {
+            expect(route.request().postData()).toBeNull();
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    status: 'completed',
+                }),
+            });
+        },
+    );
 
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
     await page
@@ -1815,6 +1829,146 @@ test('the original reflection surface sends private writing only to its active s
         .getByRole('button', { name: 'Continue without answering' })
         .click();
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
+});
+
+test('the original review reflection keeps earlier notes private and records only source-defined choices', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d89';
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    play_run_id: playRunId,
+                    run_kind: 'route',
+                    context: {
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        map_slug: 'private-path',
+                        map_title: 'A private path',
+                        route_label: 'Review route',
+                    },
+                    activity: {
+                        slug: 'review-the-direction',
+                        title: 'Review the direction',
+                        description: 'A private learner review.',
+                        activity_type: 'reflection',
+                        config: {
+                            prompt: 'What feels clearer about the direction now?',
+                            learningIntent: 'review',
+                            feedbackGuidance: {
+                                purpose: 'Notice what changed without grading yourself.',
+                                rubric: ['Connects the idea to a useful context.'],
+                            },
+                        },
+                        completion: { label: null, next_activity_slug: null },
+                        check_in: {
+                            choice_prompt: null,
+                            concepts: [],
+                            learning_areas: [],
+                            objective: null,
+                        },
+                        review_context: [
+                            {
+                                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d8a',
+                                question: 'What did you notice before?',
+                                reflection: 'The routes seemed separate at first.',
+                                created_at: '2026-11-01T12:00:00.000Z',
+                            },
+                        ],
+                    },
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/review-the-direction/reflection`,
+        async (route) => {
+            expect(route.request().postDataJSON()).toEqual({
+                reflection: 'The route choices now connect to the same purpose.',
+                observed_cues: ['Connects the idea to a useful context.'],
+            });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    activity_slug: 'review-the-direction',
+                    status: 'completed',
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/review-the-direction/complete`,
+        async (route) => {
+            expect(route.request().postDataJSON()).toEqual({
+                confidence: 'leaning',
+                confidence_after_feedback: 'settled',
+                outcome: 'connected',
+            });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    status: 'completed',
+                }),
+            });
+        },
+    );
+
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+
+    await expect(page.getByText('Review / revisit')).toBeVisible();
+    await expect(page.getByText('Earlier notes from you')).toBeVisible();
+    await page
+        .locator('summary')
+        .filter({ hasText: 'What did you notice before?' })
+        .click();
+    await expect(
+        page.getByText('The routes seemed separate at first.'),
+    ).toBeVisible();
+    await page
+        .getByRole('textbox', { name: '' })
+        .fill('The route choices now connect to the same purpose.');
+    await page
+        .getByRole('group', {
+            name: 'After your response, how settled does this feel before comparing with the guidance? (optional)',
+        })
+        .getByRole('button', { name: 'I have a hunch' })
+        .click();
+    await page
+        .getByRole('checkbox', {
+            name: 'Connects the idea to a useful context.',
+        })
+        .check();
+    await page
+        .getByRole('group', { name: 'What changed for you? (optional)' })
+        .getByRole('button', { name: 'More connected' })
+        .click();
+    await page.getByRole('button', { name: 'Save review note' }).click();
+
+    await expect(page.getByText('Response saved privately')).toBeVisible();
+    await page
+        .getByRole('group', {
+            name: 'After comparing, how settled does this feel now? (optional)',
+        })
+        .getByRole('button', { name: 'Settled' })
+        .click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after Review the direction',
+        }),
+    ).toBeVisible();
 });
 
 test('the original tool-grant surface claims only its active configured tool before completing', async ({

@@ -773,8 +773,12 @@ function ReflectionActivity({
                     body: {
                         reflection: response,
                         ...(isTransfer ? { response_context: context } : {}),
-                        ...(independentCheck ? {} : { observed_cues: observedCues }),
-                        independent_check: independentCheck,
+                        ...(!independentCheck && observedCues.length > 0
+                            ? { observed_cues: observedCues }
+                            : {}),
+                        ...(independentCheck
+                            ? { independent_check: true }
+                            : {}),
                     },
                     params: {
                         header: { 'X-CSRF-Token': token },
