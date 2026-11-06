@@ -1598,13 +1598,17 @@ completed trace and lets the learner continue it. A client-created activity
 URL, or a new desk-specific route-progress endpoint, could either bypass the
 existing visibility checks or create a second owner of route resumption.
 
-**Decision:** The first restored Learning Desk section reads the existing
-authenticated World snapshot, which already applies map visibility and returns
-the learner's in-progress route-start handles. Selecting Continue invokes the
-existing CSRF-protected `start` command for that opaque handle. Rust returns
-the current server-owned play-run identifier; React merely navigates to the
-resulting player URL. The desk does not determine the activity, reset state or
-construct a run identity.
+**Decision:** The restored Continue learning and Recent traces sections read
+the existing authenticated World snapshot, which already applies map visibility
+and returns the learner's in-progress and completed route-start handles. A
+completed trace is omitted when the same map/node place has an in-progress
+route, preserving the source Desk's single clear next step. Selecting Continue
+or Revisit invokes the existing CSRF-protected `start` command for that opaque
+handle. Rust returns the current server-owned play-run identifier; React merely
+navigates to the resulting player URL. The desk does not determine the
+activity, reset state or construct a run identity. The established command
+resumes an unfinished run and starts a fresh opaque run for a completed route,
+matching the Laravel controller's `startOrResume` behavior.
 
 **Why:** This preserves the source interaction while retaining one route
 authorization/read model and one writer. It also gives the migration a small,
@@ -1619,12 +1623,13 @@ rejected.
 
 **Evidence and boundary:** The local Compose Playwright journey starts the
 greenfield NPC dialogue, loads `/home`, finds its source-derived Continue
-learning row, presses Continue, and verifies navigation uses the server-returned
-opaque run. The earlier lifted Recall Queue and Return when useful sections are
-unchanged. This is not a claim of complete Desk parity: source bookmarks,
-connections, completed-route traces, check-in reflections, saved planning and
-private Learning Support replies still await their own safe read contracts and
-direct source UI adaptations.
+learning row, presses Continue, completes the route, then finds its Recent
+traces row and presses Revisit. Both routes are verified to navigate only with
+a server-returned opaque run. The earlier lifted Recall Queue and Return when
+useful sections are unchanged. This is not a claim of complete Desk parity:
+source bookmarks/connections, check-in reflections, saved planning and private
+Learning Support replies still await their own safe read contracts and direct
+source UI adaptations.
 
 ## Phase 1 gate
 

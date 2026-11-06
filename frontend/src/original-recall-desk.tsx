@@ -31,7 +31,12 @@ type ActiveRouteRow = {
     start: LearnerActivityStart;
 };
 
-function activeRouteRows(world: LearnerWorldSnapshot | null): ActiveRouteRow[] {
+type RecentRouteRow = ActiveRouteRow;
+
+function routeRows(
+    world: LearnerWorldSnapshot | null,
+    status: 'in_progress' | 'completed',
+): ActiveRouteRow[] {
     if (!world) return [];
     const nodeTitles = new Map(
         world.world.maps.flatMap((map) =>
@@ -39,13 +44,36 @@ function activeRouteRows(world: LearnerWorldSnapshot | null): ActiveRouteRow[] {
         ),
     );
     return world.start_routes
-        .filter((start) => start.progress?.status === 'in_progress')
-        .sort((first, second) => (second.progress?.last_entered_at ?? '').localeCompare(first.progress?.last_entered_at ?? ''))
+        .filter((start) => start.progress?.status === status)
+        .sort((first, second) => {
+            const firstDate = status === 'in_progress'
+                ? first.progress?.last_entered_at
+                : first.progress?.last_completed_at;
+            const secondDate = status === 'in_progress'
+                ? second.progress?.last_entered_at
+                : second.progress?.last_completed_at;
+
+            return (secondDate ?? '').localeCompare(firstDate ?? '');
+        })
         .slice(0, 3)
         .flatMap((start) => {
             const node = nodeTitles.get(`${start.map_slug}/${start.node_slug}`);
             return node ? [{ start, ...node }] : [];
         });
+}
+
+function activeRouteRows(world: LearnerWorldSnapshot | null): ActiveRouteRow[] {
+    return routeRows(world, 'in_progress');
+}
+
+function recentRouteRows(world: LearnerWorldSnapshot | null): RecentRouteRow[] {
+    const activePlaces = new Set(
+        activeRouteRows(world).map((route) => `${route.start.map_slug}/${route.start.node_slug}`),
+    );
+
+    return routeRows(world, 'completed').filter(
+        (route) => !activePlaces.has(`${route.start.map_slug}/${route.start.node_slug}`),
+    );
 }
 
 /**
@@ -114,6 +142,7 @@ export function OriginalRecallDeskPage({
     }, []);
 
     const currentRoutes = useMemo(() => activeRouteRows(world), [world]);
+    const recentRoutes = useMemo(() => recentRouteRows(world), [world]);
 
     useEffect(() => {
         let active = true;
@@ -364,6 +393,25 @@ export function OriginalRecallDeskPage({
                     </section>
                 ) : null}
 
+                {recentRoutes.length ? (
+                    <section aria-labelledby="recent-traces-heading" className="mt-8" id="recent-section">
+                        <div className="flex items-center gap-5 pb-3">
+                            <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="recent-traces-heading" tabIndex={-1}>
+                                Recent traces
+                            </h2>
+                        </div>
+                        <OriginalPaginatedItems
+                            className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                            items={recentRoutes}
+                            pageSize={2}
+                            paginationLabel="Recent traces"
+                            renderItem={(route) => (
+                                <RecentRouteRow key={route.start.start_id} onRevisit={continueRoute} opening={openingItemId === route.start.start_id} route={route} />
+                            )}
+                        />
+                    </section>
+                ) : null}
+
                 {status === 'ready' && queue?.items.length ? (
                     <section aria-labelledby="recall-heading" className="mt-8">
                         <h2 className="sr-only" id="recall-heading">
@@ -466,6 +514,39 @@ function ContinueRouteRow({
             <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-accent)] disabled:opacity-50 sm:justify-self-end" disabled={opening} onClick={() => void onContinue(route.start)} type="button">
                 {opening ? 'Opening…' : 'Continue'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </button>
+        </article>
+    );
+}
+
+function RecentRouteRow({
+    onRevisit,
+    opening,
+    route,
+}: {
+    onRevisit: (start: LearnerActivityStart) => Promise<void>;
+    opening: boolean;
+    route: RecentRouteRow;
+}) {
+    const completedAt = route.start.progress?.last_completed_at;
+
+    return (
+        <article className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
+            <button aria-label={route.start.label} className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-action-accent)] hover:border-[color-mix(in_srgb,var(--learner-action-accent)_55%,var(--learner-border-color))] disabled:opacity-50" disabled={opening} onClick={() => void onRevisit(route.start)} type="button">
+                <Clock3 className="size-5" />
+            </button>
+            <div className="min-w-0">
+                <button className="block truncate text-left text-sm font-medium hover:text-[var(--learner-accent)] disabled:opacity-50" disabled={opening} onClick={() => void onRevisit(route.start)} type="button">
+                    {route.start.label}
+                </button>
+                <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">{route.nodeTitle} · {route.mapTitle}</p>
+                <p className="mt-2 text-xs text-[var(--learner-muted-text)]">Why here: you completed this route recently.</p>
+            </div>
+            <span className="flex items-center gap-4 sm:justify-self-end">
+                {completedAt ? <span className="hidden text-xs text-[var(--learner-muted-text)] xl:inline">{formatDeskDate(completedAt)}</span> : null}
+                <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] disabled:opacity-50" disabled={opening} onClick={() => void onRevisit(route.start)} type="button">
+                    {opening ? 'Opening…' : 'Revisit'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </button>
+            </span>
         </article>
     );
 }
@@ -668,4 +749,12 @@ function formatRevisitDate(value: string): string {
               day: 'numeric',
               month: 'short',
           });
+}
+
+function formatDeskDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
 }

@@ -119,6 +119,13 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     expect(complete.status()).toBe(200);
     await expect(complete.json()).resolves.toMatchObject({ status: 'completed' });
 
+    await page.goto('/home');
+    await expect(page.getByRole('heading', { name: 'Recent traces' })).toBeVisible();
+    await page.getByRole('button', { name: 'Revisit' }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/notice-the-map\/play\?run=[0-9a-f-]{36}$/,
+    );
+
     const journal = await request.get('/api/v1/learner/journal');
     expect(journal.status()).toBe(200);
     await expect(journal.json()).resolves.toMatchObject({
