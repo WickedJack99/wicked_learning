@@ -338,15 +338,17 @@ requests and create/update the current worker's reply, with a narrow
 identity-store email projection only after authorization. See ADR-049 for the
 cross-database rationale and the exact boundary.
 
-This is not Settings parity: the original staff moderation panel and surrounding
-Settings shell are not yet available in React. The capability-gated Rust
-contract can now hide, restore, or delete a private request or reply,
-preserving the source rule that hidden material is withheld from learner
-readers while a hidden request still consumes its single contribution.
-Deleting a request deletes its replies, matching the source's ownership
-semantics. These controls will be lifted only with their source Settings shell,
-not replaced with a stand-in. Peer message walls and helpfulness remain later
-collaboration work.
+This is not full Settings parity. The source-derived private-support portion of
+the original Learner Messages workspace is now available to locally authorized
+Learning Support staff at
+`/settings?panel=admin-learning-support&support=learner-messages`. It retains
+the source topic navigation, private reply editor, hide/restore and deletion
+controls; it deliberately does not create empty replacement controls for peer
+messages, helpfulness, or the other Settings panels whose contracts are still
+unmigrated. The capability-gated Rust contract preserves the source rule that
+hidden material is withheld from learner readers while a hidden request still
+consumes its single contribution. Deleting a request deletes its replies,
+matching the source's ownership semantics.
 
 ### NPC dialogue slice — 6 November 2026
 

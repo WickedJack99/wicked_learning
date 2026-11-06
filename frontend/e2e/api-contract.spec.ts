@@ -526,6 +526,7 @@ test('a CI-only fresh identity receives source-ordered Learning Desk search resu
 
 test('a CI-only fresh identity can submit its one private Learning Support request', async ({
     request,
+    page,
 }) => {
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
@@ -662,6 +663,22 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     const updatedStaffReplyDocument = (await updatedStaffReply.json()) as {
         response: { id: string };
     };
+
+    await page.context().addCookies((await request.storageState()).cookies);
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=learner-messages',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Learning Support' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('The First Path · Orientation support', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        page
+            .getByText('Could you help me notice the useful map details?')
+            .first(),
+    ).toBeVisible();
 
     const learnerView = await request.get(requestPath);
     expect(learnerView.status()).toBe(200);

@@ -36,6 +36,12 @@ const OriginalCompetencePage = lazy(async () => {
     return { default: module.OriginalCompetencePage };
 });
 
+const OriginalLearningSupportModerationPage = lazy(async () => {
+    const module = await import('./original-learning-support-moderation');
+
+    return { default: module.OriginalLearningSupportModerationPage };
+});
+
 /**
  * Each active route is a source-derived React surface with an available Rust
  * contract. Do not add placeholder pages here: extract the corresponding
@@ -196,6 +202,37 @@ export function App() {
                 onAppearanceChange={setAppearance}
                 presentation={presentation!}
             />
+        );
+    }
+
+    if (location.pathname === '/settings') {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        if (currentUser.kind === 'anonymous') {
+            return <Navigate replace to="/login" />;
+        }
+
+        if (
+            !currentUser.roles.some(
+                (role) =>
+                    role === 'learning_support' ||
+                    role === 'platform_administrator',
+            )
+        ) {
+            return <Navigate replace to="/home" />;
+        }
+
+        return (
+            <Suspense fallback={null}>
+                <OriginalLearningSupportModerationPage
+                    appearance={appearance}
+                />
+            </Suspense>
         );
     }
 

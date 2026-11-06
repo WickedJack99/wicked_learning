@@ -1922,8 +1922,14 @@ matches the source controller's deletion ownership without applying it to
 unmigrated peer messages. Learner readers omit hidden replies and omit a
 hidden request body, while the request's existence still enforces the source
 one-request limit. Authorized staff readers retain hidden records so they can
-restore them. The source Settings controls will use these contracts only when
-their surrounding source UI has been lifted.
+restore them. The source-derived private-support portion of that control is
+now exposed at `/settings?panel=admin-learning-support&support=learner-messages`.
+It keeps the source moderation layout and actions, while deliberately omitting
+the source's peer-message filters, helpfulness signals and unrelated Settings
+sections because their data contracts have not migrated. The browser uses the
+currently known Learning Support and platform-administrator roles only to keep
+the incomplete route out of ordinary learner navigation; the API capability
+check remains the access-control authority.
 
 **Why:** This retains source ownership, audience, first-request and reply
 semantics while keeping credentials, password hashes and message data in their
@@ -1945,9 +1951,9 @@ record, deletes the reply and then the request, and confirms those deletions
 through the staff reader. It also confirms that the learner reader withholds
 hidden content while retaining the one-request rule before completing the
 activity. The learner-facing request and Desk panels reuse lifted original
-components. The full source Settings shell and staff moderation UI have not
-yet migrated, so the moderation controls are intentionally not exposed through
-a substitute React panel. Peer message walls and helpfulness remain unmigrated.
+components. A local Compose browser test signs in an authorized worker and
+opens the source-derived private-support moderation workspace. The full source
+Settings shell, peer message walls and helpfulness remain unmigrated.
 
 ## Phase 1 gate
 
