@@ -72,8 +72,10 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
         'href',
         '/bookmarks',
     );
+    await page.getByRole('button', { name: 'Continue learning' }).click();
+    await expect(page).toHaveURL(/\/home\?area=continue$/);
     await expect(page.getByRole('heading', { name: 'Continue learning' })).toBeVisible();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page).toHaveURL(
         new RegExp(`/learning/nodes/notice-the-map/play\\?run=${run.play_run_id}`),
     );
@@ -148,6 +150,8 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     expect(checkIn.status()).toBe(200);
 
     await page.goto('/home');
+    await page.getByRole('button', { name: 'Recent reflections' }).click();
+    await expect(page).toHaveURL(/\/home\?area=reflections$/);
     await expect(page.getByRole('heading', { name: 'Recent reflections' })).toBeVisible();
     await expect(page.getByText('Something clicked')).toBeVisible();
     await expect(
@@ -162,6 +166,7 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     await expect(page.getByText('Mira asks for the clue')).toBeVisible();
 
     await page.goto('/home');
+    await page.getByRole('button', { name: 'Recent traces' }).click();
     await expect(page.getByRole('heading', { name: 'Recent traces' })).toBeVisible();
     await page.getByRole('button', { name: 'Revisit' }).click();
     await expect(page).toHaveURL(
@@ -210,6 +215,7 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     expect(relatedCheckIn.status()).toBe(200);
 
     await page.goto('/home');
+    await page.getByRole('button', { name: 'Recent reflections' }).click();
     await expect(page.getByText('Still taking shape')).toBeVisible();
     await expect(
         page.getByText('Explore a connected learning area:'),
@@ -231,6 +237,7 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     expect(startDeskRoute.status()).toBe(200);
 
     await page.goto('/home');
+    await page.getByRole('button', { name: 'Continue learning' }).click();
     await expect(page.getByText('Plan by learning purpose')).toBeVisible();
     const participate = page.getByRole('button', { name: 'Participate' });
     await participate.click();

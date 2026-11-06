@@ -1,5 +1,5 @@
 import { ArrowRight, Bookmark, BookOpenText, Clock3, Pin, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router';
 
@@ -55,6 +55,14 @@ type ActiveRouteRow = {
 };
 
 type RecentRouteRow = ActiveRouteRow;
+
+type LearningDeskArea =
+    | 'connections'
+    | 'continue'
+    | 'recent'
+    | 'recall'
+    | 'reflections'
+    | 'revisit';
 
 function routeRows(
     world: LearnerWorldSnapshot | null,
@@ -114,6 +122,7 @@ export function OriginalRecallDeskPage({
     userSubjectId: string;
 }) {
     const navigate = useNavigate();
+    const shouldFocusAreaHeadingRef = useRef(false);
     const [queue, setQueue] = useState<LearnerRecallQueue | null>(null);
     const [world, setWorld] = useState<LearnerWorldSnapshot | null>(null);
     const [bookmarkMap, setBookmarkMap] = useState<LearnerBookmarkMap | null>(null);
@@ -262,6 +271,29 @@ export function OriginalRecallDeskPage({
     );
     const hasActiveRouteFilter =
         activeTimeBudget !== 'any' || activePurposeFilter !== 'any';
+    const areaLabels: Record<LearningDeskArea, string> = {
+        connections: 'Connections',
+        continue: 'Continue learning',
+        recent: 'Recent traces',
+        recall: 'Recall queue',
+        reflections: 'Recent reflections',
+        revisit: 'Return when useful',
+    };
+    const availableAreas: LearningDeskArea[] = [
+        'connections',
+        ...(recentCheckIns.length ? (['reflections'] as const) : []),
+        ...(queue?.items.length ? (['recall'] as const) : []),
+        ...(revisitInvitations.length ? (['revisit'] as const) : []),
+        ...(recentRoutes.length ? (['recent'] as const) : []),
+        'continue',
+    ];
+    const defaultArea = availableAreas[0] ?? 'connections';
+    const [activeArea, setActiveArea] = useState<LearningDeskArea>(
+        () => deskAreaFromUrl() ?? defaultArea,
+    );
+    const visibleArea = availableAreas.includes(activeArea)
+        ? activeArea
+        : defaultArea;
 
     function updateTimeBudget(nextTimeBudget: DeskTimeBudget) {
         setTimeBudget(nextTimeBudget);
@@ -276,6 +308,22 @@ export function OriginalRecallDeskPage({
     function clearPlanningChoices() {
         updateTimeBudget('any');
         updatePurposeFilter('any');
+    }
+
+    function selectArea(area: LearningDeskArea) {
+        if (area === visibleArea) {
+            return;
+        }
+        shouldFocusAreaHeadingRef.current = true;
+        setActiveArea(area);
+
+        const url = new URL(window.location.href);
+        if (area === 'connections') {
+            url.searchParams.delete('area');
+        } else {
+            url.searchParams.set('area', area);
+        }
+        window.history.pushState(window.history.state, '', url);
     }
 
     async function savePlanningChoices(): Promise<void> {
@@ -304,6 +352,23 @@ export function OriginalRecallDeskPage({
             setPlanningPreferenceSaveState('error');
         }
     }
+
+    useEffect(() => {
+        const handlePopState = () => {
+            setActiveArea(deskAreaFromUrl() ?? defaultArea);
+        };
+        window.addEventListener('popstate', handlePopState);
+
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [defaultArea]);
+
+    useEffect(() => {
+        if (!shouldFocusAreaHeadingRef.current) {
+            return;
+        }
+        shouldFocusAreaHeadingRef.current = false;
+        document.getElementById(`${visibleArea}-heading`)?.focus();
+    }, [visibleArea]);
 
     useEffect(() => {
         let active = true;
@@ -592,9 +657,34 @@ export function OriginalRecallDeskPage({
                     </p>
                 </header>
 
-                <PossibleConnections places={bookmarkConnections} />
+                <nav
+                    aria-label="Learning desk areas"
+                    className="mt-8 shrink-0 border-y border-[var(--learner-border-color)] py-3"
+                >
+                    <p className="text-xs font-semibold tracking-[0.18em] text-[var(--learner-muted-text)] uppercase">
+                        Learning desk areas
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {availableAreas.map((area) => (
+                            <button
+                                aria-controls={`${area}-section`}
+                                aria-pressed={visibleArea === area}
+                                className={planningChoiceClass(visibleArea === area)}
+                                key={area}
+                                onClick={() => selectArea(area)}
+                                type="button"
+                            >
+                                {areaLabels[area]}
+                            </button>
+                        ))}
+                    </div>
+                </nav>
 
-                {recentCheckIns.length ? (
+                {visibleArea === 'connections' ? (
+                    <PossibleConnections places={bookmarkConnections} />
+                ) : null}
+
+                {visibleArea === 'reflections' && recentCheckIns.length ? (
                     <section
                         aria-labelledby="reflections-heading"
                         className="mt-8"
@@ -631,14 +721,14 @@ export function OriginalRecallDeskPage({
                     </section>
                 ) : null}
 
-                {currentRoutes.length ? (
-                    <section aria-labelledby="continue-learning-heading" className="mt-8">
+                {visibleArea === 'continue' ? (
+                    <section aria-labelledby="continue-heading" className="mt-8" id="continue-section">
                         <div className="flex items-center gap-5 pb-3">
-                            <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="continue-learning-heading" tabIndex={-1}>
+                            <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="continue-heading" tabIndex={-1}>
                                 Continue learning
                             </h2>
                         </div>
-                        {hasTimeGuides || learningPurposeOptions.length ? (
+                        {currentRoutes.length && (hasTimeGuides || learningPurposeOptions.length) ? (
                             <div className="mt-4 grid gap-4 border-b border-[var(--learner-border-color)] pb-4 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.7fr)]">
                                 <p className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
                                     Planning choices are optional and can be remembered for your account.
@@ -736,7 +826,7 @@ export function OriginalRecallDeskPage({
                             <div className="mt-4 divide-y divide-[var(--learner-border-color)] border-y border-[var(--learner-border-color)]">
                                 {visibleCurrentRoutes.map((route) => <ContinueRouteRow key={route.start.start_id} onContinue={continueRoute} opening={openingItemId === route.start.start_id} route={route} />)}
                             </div>
-                        ) : (
+                        ) : currentRoutes.length ? (
                             <div className="border-b border-[var(--learner-border-color)] py-7">
                                 <p className="font-medium">No current routes match these choices yet</p>
                                 <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
@@ -750,14 +840,28 @@ export function OriginalRecallDeskPage({
                                     Show all routes
                                 </button>
                             </div>
+                        ) : (
+                            <div className="border-b border-[var(--learner-border-color)] py-7">
+                                <p className="font-medium">Nothing is currently in progress</p>
+                                <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                    Start a learning route and it will wait for you here.
+                                </p>
+                                <Link
+                                    className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
+                                    to="/topics"
+                                >
+                                    Browse topics
+                                    <ArrowRight className="size-4" />
+                                </Link>
+                            </div>
                         )}
                     </section>
                 ) : null}
 
-                {recentRoutes.length ? (
-                    <section aria-labelledby="recent-traces-heading" className="mt-8" id="recent-section">
+                {visibleArea === 'recent' && recentRoutes.length ? (
+                    <section aria-labelledby="recent-heading" className="mt-8" id="recent-section">
                         <div className="flex items-center gap-5 pb-3">
-                            <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="recent-traces-heading" tabIndex={-1}>
+                            <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="recent-heading" tabIndex={-1}>
                                 Recent traces
                             </h2>
                         </div>
@@ -773,7 +877,7 @@ export function OriginalRecallDeskPage({
                     </section>
                 ) : null}
 
-                {status === 'ready' && queue?.items.length ? (
+                {visibleArea === 'recall' && status === 'ready' && queue?.items.length ? (
                     <section aria-labelledby="recall-heading" className="mt-8">
                         <h2 className="sr-only" id="recall-heading">
                             Recall queue
@@ -803,7 +907,7 @@ export function OriginalRecallDeskPage({
                         ) : null}
                     </section>
                 ) : null}
-                {revisitInvitations.length ? (
+                {visibleArea === 'revisit' && revisitInvitations.length ? (
                     <section
                         aria-labelledby="revisit-heading"
                         className="mt-8"
@@ -1406,6 +1510,19 @@ function learningPurposeLabel(
         review: 'Review',
         transfer: 'Transfer',
     }[purpose];
+}
+
+function deskAreaFromUrl(): LearningDeskArea | null {
+    const area = new URL(window.location.href).searchParams.get('area');
+
+    return area === 'connections' ||
+        area === 'continue' ||
+        area === 'recent' ||
+        area === 'recall' ||
+        area === 'reflections' ||
+        area === 'revisit'
+        ? area
+        : null;
 }
 
 function readDeskPlanningPreference(key: string): DeskPlanningSelection {
