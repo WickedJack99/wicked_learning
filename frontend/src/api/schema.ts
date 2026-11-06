@@ -1817,7 +1817,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "npc_dialogue";
+            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "message_wall" | "npc_dialogue";
             config: {
                 [key: string]: unknown;
             };

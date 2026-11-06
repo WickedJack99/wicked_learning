@@ -187,6 +187,7 @@ struct QuestionPlaybackOption {
 #[serde(rename_all = "camelCase")]
 struct MessagePromptPlaybackConfig {
     message_audience: String,
+    message_allow_responses: Option<bool>,
     message_input_label: Option<String>,
     message_prompt: Option<String>,
     message_ui: Option<MessagePromptUiConfig>,
@@ -238,9 +239,31 @@ fn learner_safe_config(
         "obstacle" => obstacle_safe_config(config),
         "markdown" => markdown_safe_config(config),
         "message_prompt" => message_prompt_safe_config(config),
+        "message_wall" => message_wall_safe_config(config),
         "npc_dialogue" => Some(config),
         _ => None,
     }
+}
+
+fn message_wall_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
+    let config = serde_json::from_value::<MessagePromptPlaybackConfig>(config).ok()?;
+    if config.message_audience != "peers" {
+        return None;
+    }
+    let prompt = config
+        .message_prompt
+        .as_deref()
+        .and_then(|value| bounded_text(value, 2_000))?;
+    let input_label = config
+        .message_input_label
+        .as_deref()
+        .and_then(|value| bounded_text(value, 160))?;
+    Some(json!({
+        "messageAudience": "peers",
+        "messageAllowResponses": config.message_allow_responses.unwrap_or(false),
+        "messageInputLabel": input_label,
+        "messagePrompt": prompt,
+    }))
 }
 
 fn message_prompt_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
