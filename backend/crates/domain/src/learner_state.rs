@@ -643,6 +643,43 @@ pub struct LearnerPlaybackActivity {
     /// This is never returned for another principal or for an ordinary
     /// reflection activity.
     pub review_context: Vec<LearnerPlaybackReviewContext>,
+    /// Present only for an authored NPC dialogue activity. The graph is a
+    /// renderable projection; commands still resolve every permitted edge on
+    /// the server from the active route run.
+    pub npc_dialogue: Option<LearnerNpcDialogue>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogue {
+    pub current_node_id: String,
+    pub history: Vec<String>,
+    pub nodes: Vec<LearnerNpcDialogueNode>,
+    pub transitions: Vec<LearnerNpcDialogueTransition>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogueNode {
+    pub id: String,
+    pub node_type: String,
+    pub title: String,
+    pub body: Option<String>,
+    pub config: serde_json::Value,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogueTransition {
+    pub from_node_id: Option<String>,
+    pub to_node_id: String,
+    pub from_connector: String,
+}
+
+/// The durable dialogue cursor returned after a state-changing command. It
+/// intentionally does not echo arbitrary browser input or database IDs beyond
+/// public authored node identifiers already present in the playback document.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogueState {
+    pub current_node_id: String,
+    pub history: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]

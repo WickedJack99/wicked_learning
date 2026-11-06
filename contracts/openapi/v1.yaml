@@ -667,6 +667,67 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue:
+    post:
+      operationId: continueLearnerNpcDialogue
+      summary: Advance one authorized authored NPC dialogue edge.
+      description: The server resolves the current node and its `out` edge from the active route run. The browser never supplies a next node.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The durable NPC dialogue cursor after advancing.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active dialogue/node transition is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/answer:
+    post:
+      operationId: answerLearnerNpcDialogue
+      summary: Select an authored answer from the active NPC dialogue question.
+      description: The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LearnerNpcDialogueAnswerRequest' }
+      responses:
+        '200':
+          description: The durable NPC dialogue cursor after the selected authored answer.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The answer is not an available authored edge for this learner's active dialogue. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back:
+    post:
+      operationId: goBackLearnerNpcDialogue
+      summary: Return to the previous server-recorded NPC dialogue node.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The durable NPC dialogue cursor after moving back.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The dialogue has no previous node or is not owned by this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items:
     post:
       operationId: grantLearnerItems
@@ -2533,7 +2594,7 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context]
+      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue]
       properties:
         slug:
           type: string
@@ -2544,7 +2605,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown]
+          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, npc_dialogue]
         config:
           type: object
           additionalProperties: true
@@ -2563,6 +2624,62 @@ components:
           type: array
           maxItems: 3
           items: { $ref: '#/components/schemas/LearnerPlaybackReviewContext' }
+        npc_dialogue:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerNpcDialogue'
+            - type: 'null'
+    LearnerNpcDialogue:
+      type: object
+      additionalProperties: false
+      required: [current_node_id, history, nodes, transitions]
+      properties:
+        current_node_id: { type: string, format: uuid }
+        history:
+          type: array
+          maxItems: 40
+          items: { type: string, format: uuid }
+        nodes:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/LearnerNpcDialogueNode' }
+        transitions:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/LearnerNpcDialogueTransition' }
+    LearnerNpcDialogueNode:
+      type: object
+      additionalProperties: false
+      required: [id, node_type, title, body, config]
+      properties:
+        id: { type: string, format: uuid }
+        node_type: { type: string, enum: [npc_monologue, npc_question, answer, reflection, end] }
+        title: { type: string, minLength: 1 }
+        body: { type: [string, 'null'] }
+        config: { type: object, additionalProperties: true }
+    LearnerNpcDialogueTransition:
+      type: object
+      additionalProperties: false
+      required: [from_node_id, to_node_id, from_connector]
+      properties:
+        from_node_id: { type: [string, 'null'], format: uuid }
+        to_node_id: { type: string, format: uuid }
+        from_connector: { type: string, minLength: 1 }
+    LearnerNpcDialogueState:
+      type: object
+      additionalProperties: false
+      required: [current_node_id, history]
+      properties:
+        current_node_id: { type: string, format: uuid }
+        history:
+          type: array
+          maxItems: 40
+          items: { type: string, format: uuid }
+    LearnerNpcDialogueAnswerRequest:
+      type: object
+      additionalProperties: false
+      required: [answer_node_id]
+      properties:
+        answer_node_id: { type: string, format: uuid }
     LearnerPlaybackReviewContext:
       type: object
       additionalProperties: false

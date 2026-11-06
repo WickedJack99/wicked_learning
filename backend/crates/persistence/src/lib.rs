@@ -13,6 +13,7 @@ pub mod learner_journal;
 pub mod learner_journal_page;
 pub mod learner_node_availability;
 pub mod learner_node_tool;
+pub mod learner_npc_dialogue;
 pub mod learner_obstacle_tool;
 pub mod learner_paths;
 pub mod learner_playback;

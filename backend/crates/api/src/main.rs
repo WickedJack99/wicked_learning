@@ -14,6 +14,7 @@ mod learner_item_obstacle;
 mod learner_journal;
 mod learner_journal_page;
 mod learner_node_tool;
+mod learner_npc_dialogue;
 mod learner_obstacle_tool;
 mod learner_paths;
 mod learner_playback;
@@ -308,6 +309,18 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-tool",
             post(learner_tool_grant::grant_current_tool),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue",
+            post(learner_npc_dialogue::continue_dialogue),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/answer",
+            post(learner_npc_dialogue::answer),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back",
+            post(learner_npc_dialogue::go_back),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items",

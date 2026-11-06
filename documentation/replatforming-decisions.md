@@ -1054,19 +1054,18 @@ the playback projection. The browser sends only the source's optional private
 fields after completion; continuing with no choice makes no write. Revisit
 runs do not show this ordinary check-in panel, because their distinct review
 attempt is already server-owned by ADR-033. Browser checks cover the
-CSRF-protected write, no-write continuation and the source panel at desktop
+CSRF-protected write, no-write continuation, source hide/show conclusion
+control (including keyboard focus recovery), and the source panel at desktop
 and narrow widths; local Compose evidence covers the real Axum/PostgreSQL
 transaction for both open-practice and question completion.
 
 **Limitations and trigger:** The bounded read-only source Learning trail is
-available in Journal. The source check-in panel's hide/show-conclusion behavior
-is deliberately absent until completed-player state can remain available below
-the hidden panel without creating a duplicate completion action. Activity replay
-and competence links, fuller journal timeline and competence presentation
-remain unavailable until their contracts and browser evidence exist. Due revisit
-invitations, their dismiss/snooze actions and review-attempt recording are now
-exposed through the lifted original Journal panel and ADR-033's server-owned
-re-entry flow; no substitute React control was added.
+available in Journal. Activity replay and competence links, fuller journal
+timeline and competence presentation remain unavailable until their contracts
+and browser evidence exist. Due revisit invitations, their dismiss/snooze
+actions and review-attempt recording are now exposed through the lifted
+original Journal panel and ADR-033's server-owned re-entry flow; no substitute
+React control was added.
 
 The existing authenticated journal read model now carries the bounded private
 check-in trail and due, visible revisit-invitation projection required by that
@@ -1511,6 +1510,56 @@ separate application PostgreSQL database. The lifted Topic Trail's recent
 reflection rows, competence evidence and return control now use the same
 command; broader reflection-history controls remain unavailable until their
 own source data and browser evidence are added.
+
+## ADR-041: NPC dialogue is a server-owned authored graph
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source NPC dialogue player is not a generic chat surface. Its
+authored graph has a start edge, monologue, question, answer, reflection and
+end nodes; transitions, answer validity, private reflection, tool grants and
+route completion depend on the active node. Letting React hold that graph state
+or nominate the next node would allow skipped answers, arbitrary tool grants or
+completion of an activity that was never reached.
+
+**Decision:** Store each greenfield dialogue graph in normalized application
+tables: `learning_npc_dialogue_nodes` and
+`learning_npc_dialogue_transitions`. A node has an opaque UUID, source node
+type, bounded learner-visible content/configuration and stable order; a
+transition has an optional start source, a source connector and target node.
+The Rust read projection exposes only a bounded, validated learner-safe graph.
+It excludes authoring layout, internal IDs unrelated to the graph, unpublished
+content and unapproved media/audio settings.
+
+Each active route play run gets a durable, principal-owned dialogue state. The
+API commands use only the opaque run and current activity path, then resolve
+the current node and valid authored edge under transaction lock. Continuing a
+monologue, selecting an answer, saving a reflection, stepping back and entering
+an end node therefore cannot be forged by client graph state. An answer choice
+is valid only when it is an outgoing authored answer edge of the active question.
+Reflection writes remain private and must be accepted before that node can
+advance. A configured tool grant is idempotent and server-resolved from the
+entered graph node; it never accepts a browser tool identifier. Generic activity
+completion remains unavailable until the run reached a valid authored end.
+
+**Why:** Normalized graph rows preserve the source's meaningful authored
+structure and give later authoring/import work a clear model, without copying
+Laravel's model names or serialized progress blob. The run-scoped state retains
+refresh/back behavior while keeping route progression and inventory ownership
+inside PostgreSQL transactions.
+
+**Alternatives:** Sending the graph and a client-selected next node back on
+each request would make React a policy engine. Saving Laravel-shaped arbitrary
+progress metadata would obscure graph and ownership invariants. Treating the
+dialogue as a generic text activity would discard existing questions,
+reflections and grants. These alternatives are rejected.
+
+**Initial boundary:** The first Rust slice covers published dialogue in ordinary
+route runs, including monologue, question/answer, reflection, configured tool
+grant, back/refresh state and authorized end/route transition. Audio and
+historical replay support wait for their respective media and replay evidence;
+the route must not expose a partial dialogue until this entire initial graph
+contract and source player are present.
 
 ## Phase 1 gate
 

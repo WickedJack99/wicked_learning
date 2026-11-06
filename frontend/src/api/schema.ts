@@ -461,6 +461,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Advance one authorized authored NPC dialogue edge.
+         * @description The server resolves the current node and its `out` edge from the active route run. The browser never supplies a next node.
+         */
+        post: operations["continueLearnerNpcDialogue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Select an authored answer from the active NPC dialogue question.
+         * @description The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node.
+         */
+        post: operations["answerLearnerNpcDialogue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Return to the previous server-recorded NPC dialogue node. */
+        post: operations["goBackLearnerNpcDialogue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items": {
         parameters: {
             query?: never;
@@ -1518,7 +1575,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown";
+            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "npc_dialogue";
             config: {
                 [key: string]: unknown;
             };
@@ -1528,6 +1585,41 @@ export interface components {
             recall_item_id: string | null;
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
             review_context: components["schemas"]["LearnerPlaybackReviewContext"][];
+            npc_dialogue: components["schemas"]["LearnerNpcDialogue"] | null;
+        };
+        LearnerNpcDialogue: {
+            /** Format: uuid */
+            current_node_id: string;
+            history: string[];
+            nodes: components["schemas"]["LearnerNpcDialogueNode"][];
+            transitions: components["schemas"]["LearnerNpcDialogueTransition"][];
+        };
+        LearnerNpcDialogueNode: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            node_type: "npc_monologue" | "npc_question" | "answer" | "reflection" | "end";
+            title: string;
+            body: string | null;
+            config: {
+                [key: string]: unknown;
+            };
+        };
+        LearnerNpcDialogueTransition: {
+            /** Format: uuid */
+            from_node_id: string | null;
+            /** Format: uuid */
+            to_node_id: string;
+            from_connector: string;
+        };
+        LearnerNpcDialogueState: {
+            /** Format: uuid */
+            current_node_id: string;
+            history: string[];
+        };
+        LearnerNpcDialogueAnswerRequest: {
+            /** Format: uuid */
+            answer_node_id: string;
         };
         LearnerPlaybackReviewContext: {
             /** Format: uuid */
@@ -3308,6 +3400,172 @@ export interface operations {
                 content?: never;
             };
             /** @description The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    continueLearnerNpcDialogue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The durable NPC dialogue cursor after advancing. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerNpcDialogueState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active dialogue/node transition is unavailable or not owned by this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    answerLearnerNpcDialogue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerNpcDialogueAnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description The durable NPC dialogue cursor after the selected authored answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerNpcDialogueState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The answer is not an available authored edge for this learner's active dialogue. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    goBackLearnerNpcDialogue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The durable NPC dialogue cursor after moving back. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerNpcDialogueState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue has no previous node or is not owned by this learner. */
             404: {
                 headers: {
                     [name: string]: unknown;
