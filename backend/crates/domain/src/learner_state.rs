@@ -99,6 +99,15 @@ pub struct LearnerItemObstacleResult {
     pub state: LearnerItemObstacleState,
 }
 
+/// The result of applying one learner-owned tool to the current source
+/// obstacle. The browser receives only public tool slugs; the repository
+/// verifies ownership and authored eligibility before it marks any state.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerObstacleToolResult {
+    pub is_resolved: bool,
+    pub is_useful: bool,
+}
+
 /// The bounded result of using an owned tool on an accessible map node. The
 /// browser can refresh its snapshot but cannot infer or alter policy itself.
 #[derive(Clone, Debug, Serialize)]
@@ -517,6 +526,10 @@ pub struct LearnerPlaybackDocument {
     /// this inventory through its action bar so item-obstacle activities can
     /// accept an existing dragged item rather than inventing a local picker.
     pub items: Vec<LearnerItem>,
+    /// Tools are a bounded learner-owned projection for source obstacle
+    /// interactions. Database identifiers and author-only configuration stay
+    /// private to the server.
+    pub tools: Vec<LearnerTool>,
     pub activity: LearnerPlaybackActivity,
 }
 

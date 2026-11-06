@@ -2077,6 +2077,135 @@ test('the original item-obstacle surface accepts only its dragged inventory item
     ).toBeVisible();
 });
 
+test('the original obstacle surface selects an owned tool and uses only the active obstacle contract', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66';
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                play_run_id: playRunId,
+                run_kind: 'route',
+                context: {
+                    node_slug: 'private-place',
+                    node_title: 'Private place',
+                    map_slug: 'private-path',
+                    map_title: 'A private path',
+                    route_label: 'Obstacle route',
+                },
+                items: [],
+                tools: [
+                    {
+                        animation_dark: null,
+                        animation_light: null,
+                        config: { animationDurationSeconds: 0 },
+                        description: 'A source-owned tool.',
+                        image_dark: null,
+                        image_light: null,
+                        slug: 'hammer',
+                        title: 'Hammer',
+                    },
+                ],
+                activity: {
+                    slug: 'clear-the-gate',
+                    title: 'A blocked gate',
+                    description: 'A source-authored obstacle.',
+                    activity_type: 'obstacle',
+                    config: {
+                        allowedToolIds: ['hammer'],
+                        backgroundDark: null,
+                        backgroundLight: null,
+                        backgroundMirrored: false,
+                        bubbleBorderColorDark: '#2dd4bf',
+                        bubbleBorderColorLight: '#0891b2',
+                        bubbleColorDark: '#0f172a',
+                        bubbleColorLight: '#ffffff',
+                        bubbleOpacityDark: 92,
+                        bubbleOpacityLight: 94,
+                        isResolved: false,
+                        obstacleImageDark: null,
+                        obstacleImageLight: null,
+                        obstacleImageMirrored: false,
+                        obstacleWidth: 28,
+                        obstacleX: 50,
+                        obstacleY: 50,
+                        persistAfterSolved: true,
+                        promptText: 'Choose the right tool.',
+                        revisitBackgroundDark: null,
+                        revisitBackgroundLight: null,
+                        revisitBackgroundMirrored: false,
+                        revisitImageDark: null,
+                        revisitImageLight: null,
+                        revisitImageMirrored: false,
+                        revisitText: 'Already clear.',
+                        successAnimation: 'none',
+                        successText: 'The gate opens.',
+                        typingSpeed: 1,
+                    },
+                    completion: { label: null, next_activity_slug: null },
+                    check_in: {
+                        choice_prompt: null,
+                        concepts: [],
+                        learning_areas: [],
+                        objective: null,
+                    },
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/clear-the-gate/use-obstacle-tool`,
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            expect(route.request().postDataJSON()).toEqual({
+                tool_slug: 'hammer',
+            });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({ is_resolved: true, is_useful: true }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/clear-the-gate/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({ play_run_id: playRunId, status: 'completed' }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await page.getByRole('button', { name: 'Open tools' }).click();
+    await page.getByRole('button', { name: 'Hammer' }).click();
+    await page
+        .locator('[data-wl-id="learner.activity.obstacle.scene"]')
+        .getByRole('button', { name: 'Use an equipped tool on the gate' })
+        .click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after A blocked gate',
+        }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Continue without answering' })
+        .click();
+    await expect(page).toHaveURL(/\/world\?focused=private-place$/);
+});
+
 test('the public explorer search is bounded and presents matching places', async ({
     page,
 }) => {

@@ -1241,11 +1241,53 @@ entry is configured. Generic JSON metadata would obscure the inventory and
 slot invariants. These options are rejected.
 
 **Limitations and trigger:** This covers only the source item obstacle in an
-ordinary route run. Tool obstacles, NPC grants, obstacle authoring, audio and
-the other unsupported activity types remain absent until each has a dedicated
+ordinary route run. Base tool obstacles are covered separately in ADR-036;
+NPC grants, obstacle authoring, audio and the other unsupported activity types remain absent until each has a dedicated
 contract, server policy and lifted source UI. The current maximum of ten slots
 and one hundred held items is a bounded API safeguard; authoring validation
 must own any later content limits.
+
+## ADR-036: Base obstacles prove an owned useful tool without conflating current and durable state
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The original `ObstacleActivity` lets a learner select an owned
+tool from the source action bar and use it on a configured target. Only tools
+listed by the author are useful. The source `persistAfterSolved` setting has a
+meaningful distinction: a persistent clear remains visible and usable on later
+entries, while a non-persistent useful action is valid only for the current
+entry. Treating either as a generic browser completion would permit a forged
+tool or let a non-persistent clear leak into a later run.
+
+**Decision:** `allowedToolIds[]` is a list of greenfield public tool slugs.
+`POST /learner/play-runs/{run}/activities/{slug}/use-obstacle-tool` accepts
+only one owned public slug. Under a lock, Rust resolves the active published
+`obstacle`, verifies the learner owns the selected tool, compares it with the
+configured list, and records a normalized current-run pass only for a useful
+tool. If `persistAfterSolved` is true (the source default), it additionally
+records a durable principal/activity resolution. Generic completion allows an
+obstacle only with a matching current-run pass or the durable resolution;
+therefore a prior persistent clear can be revisited while a non-persistent one
+cannot authorize another run. The playback document supplies the bounded
+owned-tool projection and safe authored visual state, never UUIDs or internal
+ownership facts. React lifts the original scene, tool belt selection, target
+click, tool animation and cleared/revisit presentation; it replaces only the
+Laravel command with the typed Rust contract.
+
+**Why:** Separate normalized facts make the source persistence rule explicit,
+auditable and race-safe. They also keep public tool references and authoring
+configuration behind the server's ownership and authorization boundary.
+
+**Alternatives:** A browser `isResolved` flag could be forged or reused after a
+refresh. A single permanent activity-progress flag would silently change
+`persistAfterSolved=false` into a durable clear. A run-only record would lose
+the source revisit behavior. These options are rejected.
+
+**Limitations and trigger:** This is the base source obstacle in ordinary
+route runs. It intentionally does not restore obstacle audio because the
+global media/sound contract has not yet migrated, and it does not add authoring
+or a generic tool-action API. Any other activity that uses a tool must define
+its own server policy and lifted source UI.
 
 ## Phase 1 gate
 

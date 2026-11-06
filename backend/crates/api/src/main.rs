@@ -13,6 +13,7 @@ mod learner_item_obstacle;
 mod learner_journal;
 mod learner_journal_page;
 mod learner_node_tool;
+mod learner_obstacle_tool;
 mod learner_paths;
 mod learner_playback;
 mod learner_question;
@@ -303,6 +304,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/item-obstacle/continue",
             post(learner_item_obstacle::continue_obstacle),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/use-obstacle-tool",
+            post(learner_obstacle_tool::use_tool),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins",

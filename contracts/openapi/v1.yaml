@@ -644,6 +644,32 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active item obstacle is unavailable, not owned by this learner's current run, or locked. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/use-obstacle-tool:
+    post:
+      operationId: useLearnerObstacleTool
+      summary: Apply one owned tool to the current authorized source obstacle.
+      description: The server resolves the current run, learner-owned public tool reference, authored allowed-tool list, and whether the source clear persists. It never accepts a tool database identifier.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerObstacleToolRequest'
+      responses:
+        '200':
+          description: Whether the owned tool is useful and the current obstacle is resolved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerObstacleToolResult'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The run, obstacle, selected public tool, or ownership is unavailable. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins:
     post:
       operationId: recordLearnerActivityCheckIn
@@ -1654,6 +1680,22 @@ components:
           maxItems: 100
           items: { $ref: '#/components/schemas/LearnerItem' }
         state: { $ref: '#/components/schemas/LearnerItemObstacleState' }
+    LearnerObstacleToolRequest:
+      type: object
+      additionalProperties: false
+      required: [tool_slug]
+      properties:
+        tool_slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          maxLength: 80
+    LearnerObstacleToolResult:
+      type: object
+      additionalProperties: false
+      required: [is_resolved, is_useful]
+      properties:
+        is_resolved: { type: boolean }
+        is_useful: { type: boolean }
     LearnerNodeToolRequest:
       type: object
       additionalProperties: false
@@ -2185,7 +2227,7 @@ components:
     LearnerPlaybackDocument:
       type: object
       additionalProperties: false
-      required: [start_id, play_run_id, run_kind, context, items, activity]
+      required: [start_id, play_run_id, run_kind, context, items, tools, activity]
       properties:
         start_id:
           type: [string, 'null']
@@ -2202,6 +2244,10 @@ components:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/LearnerItem' }
+        tools:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/LearnerTool' }
         activity:
           $ref: '#/components/schemas/LearnerPlaybackActivity'
     LearnerPlaybackContext:
@@ -2235,7 +2281,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection, tool_grant, item_grant, item_obstacle]
+          enum: [open_practice, question, reflection, tool_grant, item_grant, item_obstacle, obstacle]
         config:
           type: object
           additionalProperties: true

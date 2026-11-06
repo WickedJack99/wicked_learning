@@ -9,6 +9,7 @@ import type { OriginalAppearance } from './original-appearance';
 import { OriginalLearningCheckIn } from './original-learning-check-in';
 import { OriginalItemGrantActivity } from './original-item-grant-activity';
 import { OriginalItemObstacleActivity } from './original-item-obstacle-activity';
+import { OriginalObstacleActivity } from './original-obstacle-activity';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
 
@@ -273,6 +274,9 @@ export function OriginalOpenPracticePage({
     const [inventory, setInventory] = useState<
         components['schemas']['LearnerItem'][]
     >([]);
+    const [selectedTool, setSelectedTool] = useState<
+        components['schemas']['LearnerTool'] | null
+    >(null);
     const [pendingCheckIn, setPendingCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
     const headingRef = useRef<HTMLHeadingElement>(null);
@@ -299,13 +303,16 @@ export function OriginalOpenPracticePage({
                 // added remain safe to render while the shared contract rolls
                 // out; live API documents always include this bounded array.
                 setInventory(data.items ?? []);
+                setSelectedTool(null);
                 setState({ kind: 'loaded', document: data });
             } else {
                 setInventory([]);
+                setSelectedTool(null);
                 setState({ kind: 'unavailable' });
             }
         } catch {
             setInventory([]);
+            setSelectedTool(null);
             setState({ kind: 'unavailable' });
         }
     };
@@ -480,6 +487,10 @@ export function OriginalOpenPracticePage({
                                                       .activity_type ===
                                                   'item_obstacle'
                                                 ? 'Item obstacle'
+                                                : state.document.activity
+                                                        .activity_type ===
+                                                    'obstacle'
+                                                  ? 'Obstacle'
                                                 : 'Open practice'}
                                 </p>
                                 <h3
@@ -556,6 +567,16 @@ export function OriginalOpenPracticePage({
                                 onInventoryChange={setInventory}
                                 playRunId={state.document.play_run_id}
                             />
+                        ) : state.document.activity.activity_type ===
+                          'obstacle' ? (
+                            <OriginalObstacleActivity
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                onComplete={complete}
+                                onSelectTool={setSelectedTool}
+                                playRunId={state.document.play_run_id}
+                                selectedTool={selectedTool}
+                            />
                         ) : (
                             <OpenPracticeActivity
                                 activity={state.document.activity}
@@ -574,10 +595,12 @@ export function OriginalOpenPracticePage({
                         'item_obstacle'
                     }
                     items={inventory}
-                    onSelectTool={() => undefined}
-                    selectedTool={null}
-                    showTools={false}
-                    tools={[]}
+                    onSelectTool={setSelectedTool}
+                    selectedTool={selectedTool}
+                    showTools={
+                        state.document.activity.activity_type === 'obstacle'
+                    }
+                    tools={state.document.tools ?? []}
                 />
             ) : null}
         </main>

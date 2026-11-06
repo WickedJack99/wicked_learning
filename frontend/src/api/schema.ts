@@ -446,6 +446,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/use-obstacle-tool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply one owned tool to the current authorized source obstacle.
+         * @description The server resolves the current run, learner-owned public tool reference, authored allowed-tool list, and whether the source clear persists. It never accepts a tool database identifier.
+         */
+        post: operations["useLearnerObstacleTool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins": {
         parameters: {
             query?: never;
@@ -968,6 +988,13 @@ export interface components {
             inventory: components["schemas"]["LearnerItem"][];
             state: components["schemas"]["LearnerItemObstacleState"];
         };
+        LearnerObstacleToolRequest: {
+            tool_slug: string;
+        };
+        LearnerObstacleToolResult: {
+            is_resolved: boolean;
+            is_useful: boolean;
+        };
         LearnerNodeToolRequest: {
             tool_slug: string;
         };
@@ -1270,6 +1297,7 @@ export interface components {
             run_kind: "route" | "revisit";
             context: components["schemas"]["LearnerPlaybackContext"];
             items: components["schemas"]["LearnerItem"][];
+            tools: components["schemas"]["LearnerTool"][];
             activity: components["schemas"]["LearnerPlaybackActivity"];
         };
         LearnerPlaybackContext: {
@@ -1284,7 +1312,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "tool_grant" | "item_grant" | "item_obstacle";
+            activity_type: "open_practice" | "question" | "reflection" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle";
             config: {
                 [key: string]: unknown;
             };
@@ -2932,6 +2960,64 @@ export interface operations {
                 content?: never;
             };
             /** @description The active item obstacle is unavailable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    useLearnerObstacleTool: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerObstacleToolRequest"];
+            };
+        };
+        responses: {
+            /** @description Whether the owned tool is useful and the current obstacle is resolved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerObstacleToolResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The run */
             404: {
                 headers: {
                     [name: string]: unknown;
