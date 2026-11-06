@@ -102,6 +102,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/platform-feedback:
+    get:
+      operationId: getAdminPlatformFeedback
+      summary: Read a bounded page of deliberately shared platform feedback for an authorized reviewer.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+      responses:
+        '200':
+          description: Unreviewed feedback first, then reviewed feedback, as in the source review queue.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminPlatformFeedbackPage' }
+        '401': { description: Authentication is required. }
+        '404': { description: The review queue is unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
+  /admin/platform-feedback/{feedback_id}/review:
+    patch:
+      operationId: markAdminPlatformFeedbackReviewed
+      summary: Mark one deliberately shared platform-feedback message reviewed.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+        - name: feedback_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: The feedback message was marked reviewed. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The feedback message is unknown or review is unavailable to this principal. }
+        '503': { description: The application database is unavailable. }
   /platform-feedback:
     post:
       operationId: submitPlatformFeedback
@@ -2481,7 +2514,7 @@ components:
     CurrentUser:
       type: object
       additionalProperties: false
-      required: [appearance, email, subject_id, roles]
+      required: [appearance, capabilities, email, subject_id, roles]
       properties:
         appearance:
           type: string
@@ -2491,6 +2524,12 @@ components:
           type: string
           format: email
           description: The authenticated subject's normalized sign-in address. It is never returned for another subject.
+        capabilities:
+          type: array
+          description: Server-owned application capabilities granted through the current subject's roles; never credentials or identity data.
+          items:
+            type: string
+            enum: [learner_messages_moderate, learning_groups_manage, platform_feedback_review, platform_feedback_view]
         subject_id:
           type: string
           format: uuid
@@ -2513,6 +2552,44 @@ components:
           type: string
           minLength: 10
           maxLength: 4000
+    AdminPlatformFeedbackIdentity:
+      type: object
+      additionalProperties: false
+      required: [email, name, subject_id]
+      properties:
+        email: { type: [string, 'null'], format: email }
+        name: { type: [string, 'null'], maxLength: 255 }
+        subject_id: { type: [string, 'null'], format: uuid }
+    AdminPlatformFeedbackItem:
+      type: object
+      additionalProperties: false
+      required: [category, id, message, reviewed_at, submitted_at, user]
+      properties:
+        category: { type: string, enum: [general, idea, problem, praise] }
+        id: { type: string, format: uuid }
+        message: { type: string, minLength: 10, maxLength: 4000 }
+        reviewed_at: { type: [string, 'null'], format: date-time }
+        submitted_at: { type: string, format: date-time }
+        user: { $ref: '#/components/schemas/AdminPlatformFeedbackIdentity' }
+    AdminPlatformFeedbackPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 8 }
+        total: { type: integer, minimum: 0 }
+    AdminPlatformFeedbackPage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          maxItems: 8
+          items: { $ref: '#/components/schemas/AdminPlatformFeedbackItem' }
+        pagination: { $ref: '#/components/schemas/AdminPlatformFeedbackPagination' }
     UpdateLearnerAppearanceRequest:
       type: object
       additionalProperties: false

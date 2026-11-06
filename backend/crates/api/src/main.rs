@@ -50,6 +50,7 @@ mod login_rate_limit;
 pub mod media_store;
 mod passwords;
 mod platform_feedback;
+mod platform_feedback_review;
 mod public_map_assets;
 mod public_pages;
 mod public_presentation;
@@ -296,6 +297,8 @@ fn router(state: AppState) -> Router {
             get(account_profile_image::show),
         )
         .route("/api/v1/platform-feedback", post(platform_feedback::submit))
+        .route("/api/v1/admin/platform-feedback", get(platform_feedback_review::index))
+        .route("/api/v1/admin/platform-feedback/{feedback_id}/review", patch(platform_feedback_review::mark_reviewed))
         .route("/api/v1/learner/feedback-prompt-preference", get(feedback_prompt_preference::show).patch(feedback_prompt_preference::update))
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
         .route(

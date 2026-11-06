@@ -2600,6 +2600,40 @@ experience preference with credentials. These alternatives are rejected.
 there is no new campaign system, analytics, or administrator targeting. The
 client-side once-per-session marker is intentionally not a durable preference.
 
+## ADR-066: Platform-feedback review keeps distinct read and review authority
+
+**Status:** Accepted — 7 November 2026
+
+**Decision:** The source Learning Support platform-feedback queue is restored
+at `settings?panel=admin-learning-support&support=platform-feedback`. It has
+separate `platform_feedback_view` and `platform_feedback_review` application
+capabilities. The initial local migration grants both only to the existing
+`platform_administrator` role, but the capability records remain independently
+assignable. The read contract returns only deliberately shared platform
+feedback, its source ordering (unreviewed first, newest first), an eight-item
+page and the limited author name/email projection needed by an authorized
+reviewer. The review operation records only its timestamp, as the source does.
+
+**Why:** Learner-submitted platform feedback is intentionally shared with the
+platform team, unlike private journal or learning evidence. The source still
+distinguishes permission to read the queue from permission to mark a message
+reviewed. Keeping those capability boundaries avoids silently granting either
+power to all Learning Support roles, while the identity lookup stays limited to
+the authorized review projection. Greenfield UUID subject identifiers replace
+the source's legacy numeric user identifiers without carrying old data forward.
+
+**Alternatives:** Reusing the learner-message moderation capability would
+combine two different sources of learner data. Making the queue
+platform-administrator-only in code would make the source read/update boundary
+impossible to assign later. Storing reviewer-facing names and emails in the
+application database would duplicate identity data. These alternatives are
+rejected.
+
+**Limits and follow-up:** The source action is only “Mark reviewed”; this slice
+does not add replies, classification, deletion, analytics or a campaign
+workflow. The larger combined Learning Support Settings shell remains a later
+source-backed composition task.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

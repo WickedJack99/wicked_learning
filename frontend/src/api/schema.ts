@@ -92,6 +92,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/platform-feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a bounded page of deliberately shared platform feedback for an authorized reviewer. */
+        get: operations["getAdminPlatformFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-feedback/{feedback_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark one deliberately shared platform-feedback message reviewed. */
+        patch: operations["markAdminPlatformFeedbackReviewed"];
+        trace?: never;
+    };
     "/platform-feedback": {
         parameters: {
             query?: never;
@@ -1681,6 +1715,8 @@ export interface components {
              * @description The authenticated subject's normalized sign-in address. It is never returned for another subject.
              */
             email: string;
+            /** @description Server-owned application capabilities granted through the current subject's roles; never credentials or identity data. */
+            capabilities: ("learner_messages_moderate" | "learning_groups_manage" | "platform_feedback_review" | "platform_feedback_view")[];
             /**
              * Format: uuid
              * @description Opaque Rust-owned identity subject identifier.
@@ -1693,6 +1729,35 @@ export interface components {
             /** @enum {string} */
             category: "general" | "idea" | "problem" | "praise";
             message: string;
+        };
+        AdminPlatformFeedbackIdentity: {
+            /** Format: email */
+            email: string | null;
+            name: string | null;
+            /** Format: uuid */
+            subject_id: string | null;
+        };
+        AdminPlatformFeedbackItem: {
+            /** @enum {string} */
+            category: "general" | "idea" | "problem" | "praise";
+            /** Format: uuid */
+            id: string;
+            message: string;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            submitted_at: string;
+            user: components["schemas"]["AdminPlatformFeedbackIdentity"];
+        };
+        AdminPlatformFeedbackPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+        AdminPlatformFeedbackPage: {
+            items: components["schemas"]["AdminPlatformFeedbackItem"][];
+            pagination: components["schemas"]["AdminPlatformFeedbackPagination"];
         };
         UpdateLearnerAppearanceRequest: {
             /** @enum {string} */
@@ -3400,6 +3465,100 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getAdminPlatformFeedback: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unreviewed feedback first, then reviewed feedback, as in the source review queue. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPlatformFeedbackPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The review queue is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    markAdminPlatformFeedbackReviewed: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                feedback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The feedback message was marked reviewed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The feedback message is unknown or review is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -32,7 +32,14 @@ import { PublicWorldPage } from './public-world';
 type CurrentUserState =
     | { kind: 'loading' }
     | { kind: 'anonymous' }
-    | { kind: 'loaded'; appearance: OriginalAppearance; email: string; roles: string[]; subjectId: string }
+    | {
+          kind: 'loaded';
+          appearance: OriginalAppearance;
+          capabilities: string[];
+          email: string;
+          roles: string[];
+          subjectId: string;
+      }
     | { kind: 'unavailable' };
 
 type PublicPresentationState =
@@ -52,6 +59,12 @@ const OriginalLearningSupportModerationPage = lazy(async () => {
     const module = await import('./original-learning-support-moderation');
 
     return { default: module.OriginalLearningSupportModerationPage };
+});
+
+const OriginalPlatformFeedbackReviewPage = lazy(async () => {
+    const module = await import('./original-platform-feedback-review');
+
+    return { default: module.OriginalPlatformFeedbackReviewPage };
 });
 
 const OriginalGroupManagementPage = lazy(async () => {
@@ -87,38 +100,48 @@ export function App() {
         }
     }, [appearance, currentUser, setAppearance]);
 
-    async function saveAppearance(nextAppearance: OriginalAppearance): Promise<void> {
+    async function saveAppearance(
+        nextAppearance: OriginalAppearance,
+    ): Promise<void> {
         const token = await getCsrfToken();
-        const { data, response } = await apiClient.PATCH('/learner/appearance', {
-            body: { appearance: nextAppearance },
-            params: { header: { 'X-CSRF-Token': token } },
-        });
+        const { data, response } = await apiClient.PATCH(
+            '/learner/appearance',
+            {
+                body: { appearance: nextAppearance },
+                params: { header: { 'X-CSRF-Token': token } },
+            },
+        );
         if (!response.ok || !data) {
             throw new Error('appearance unavailable');
         }
         setAppearance(data.appearance);
-        setCurrentUser((current) => current.kind === 'loaded'
-            ? { ...current, appearance: data.appearance }
-            : current);
+        setCurrentUser((current) =>
+            current.kind === 'loaded'
+                ? { ...current, appearance: data.appearance }
+                : current,
+        );
     }
 
     useEffect(() => {
         let isCurrent = true;
 
-        void apiClient.GET('/public/presentation').then(({ data, response }) => {
-            if (!isCurrent) {
-                return;
-            }
-            setPresentationState(
-                response.ok && data
-                    ? { kind: 'loaded', presentation: data }
-                    : { kind: 'unavailable' },
-            );
-        }).catch(() => {
-            if (isCurrent) {
-                setPresentationState({ kind: 'unavailable' });
-            }
-        });
+        void apiClient
+            .GET('/public/presentation')
+            .then(({ data, response }) => {
+                if (!isCurrent) {
+                    return;
+                }
+                setPresentationState(
+                    response.ok && data
+                        ? { kind: 'loaded', presentation: data }
+                        : { kind: 'unavailable' },
+                );
+            })
+            .catch(() => {
+                if (isCurrent) {
+                    setPresentationState({ kind: 'unavailable' });
+                }
+            });
 
         return () => {
             isCurrent = false;
@@ -177,7 +200,10 @@ export function App() {
     }
 
     if (location.pathname === '/home') {
-        if (currentUser.kind === 'loading' || currentUser.kind === 'unavailable') {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
             return null;
         }
 
@@ -259,7 +285,10 @@ export function App() {
     }
 
     if (location.pathname === '/feedback') {
-        if (currentUser.kind === 'loading' || currentUser.kind === 'unavailable') {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
             return null;
         }
 
@@ -267,15 +296,21 @@ export function App() {
             <OriginalPlatformFeedbackPage
                 isAuthenticated={currentUser.kind === 'loaded'}
                 onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
-                userEmail={currentUser.kind === 'loaded' ? currentUser.email : ''}
+                userEmail={
+                    currentUser.kind === 'loaded' ? currentUser.email : ''
+                }
             />
         );
     }
 
     if (location.pathname === '/settings') {
-        const groupPanel = new URLSearchParams(location.search).get('panel') === 'admin-access'
-            && new URLSearchParams(location.search).get('access') === 'groups';
-        const supportPanel = new URLSearchParams(location.search).get('panel') === 'admin-learning-support';
+        const groupPanel =
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-access' &&
+            new URLSearchParams(location.search).get('access') === 'groups';
+        const supportPanel =
+            new URLSearchParams(location.search).get('panel') ===
+            'admin-learning-support';
         if (
             currentUser.kind === 'loading' ||
             currentUser.kind === 'unavailable'
@@ -298,24 +333,73 @@ export function App() {
             );
         }
 
+        if (
+            supportPanel &&
+            new URLSearchParams(location.search).get('support') ===
+                'platform-feedback'
+        ) {
+            if (
+                !currentUser.capabilities.includes('platform_feedback_view')
+            ) {
+                return <Navigate replace to="/home" />;
+            }
+
+            return (
+                <Suspense fallback={null}>
+                    <OriginalPlatformFeedbackReviewPage
+                        appearance={appearance}
+                        canReview={currentUser.capabilities.includes(
+                            'platform_feedback_review',
+                        )}
+                    />
+                </Suspense>
+            );
+        }
+
         if (!supportPanel) {
-            if (new URLSearchParams(location.search).get('personal') === 'language') {
+            if (
+                new URLSearchParams(location.search).get('personal') ===
+                'language'
+            ) {
                 return <OriginalPersonalLanguagePage appearance={appearance} />;
             }
-            if (new URLSearchParams(location.search).get('personal') === 'feedback') {
+            if (
+                new URLSearchParams(location.search).get('personal') ===
+                'feedback'
+            ) {
                 return <OriginalPersonalFeedbackPage appearance={appearance} />;
             }
-            if (new URLSearchParams(location.search).get('personal') === 'notifications') {
-                return <OriginalPersonalNotificationsPage appearance={appearance} />;
+            if (
+                new URLSearchParams(location.search).get('personal') ===
+                'notifications'
+            ) {
+                return (
+                    <OriginalPersonalNotificationsPage
+                        appearance={appearance}
+                    />
+                );
             }
-            if (new URLSearchParams(location.search).get('personal') === 'sound') {
+            if (
+                new URLSearchParams(location.search).get('personal') === 'sound'
+            ) {
                 return <OriginalPersonalSoundPage appearance={appearance} />;
             }
-            if (new URLSearchParams(location.search).get('personal') === 'security') {
+            if (
+                new URLSearchParams(location.search).get('personal') ===
+                'security'
+            ) {
                 return <OriginalPersonalSecurityPage appearance={appearance} />;
             }
-            if (new URLSearchParams(location.search).get('personal') === 'appearance') {
-                return <OriginalPersonalAppearancePage appearance={appearance} onAppearanceChange={saveAppearance} />;
+            if (
+                new URLSearchParams(location.search).get('personal') ===
+                'appearance'
+            ) {
+                return (
+                    <OriginalPersonalAppearancePage
+                        appearance={appearance}
+                        onAppearanceChange={saveAppearance}
+                    />
+                );
             }
             return <OriginalPersonalProfilePage appearance={appearance} />;
         }
@@ -394,7 +478,10 @@ function PublicPresentationStatus({
 
     return (
         <main className="flex min-h-svh items-center justify-center bg-[#07111f] p-6 text-slate-100">
-            <p aria-live={state === 'loading' ? 'polite' : undefined} role={state === 'unavailable' ? 'alert' : undefined}>
+            <p
+                aria-live={state === 'loading' ? 'polite' : undefined}
+                role={state === 'unavailable' ? 'alert' : undefined}
+            >
                 {message}
             </p>
         </main>
@@ -415,6 +502,7 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
             // The fallback keeps older mocked contract responses harmless while
             // live API responses always carry the documented preference.
             appearance: data.appearance === 'dark' ? 'dark' : 'light',
+            capabilities: data.capabilities,
             email: data.email,
             roles: data.roles,
             subjectId: data.subject_id,

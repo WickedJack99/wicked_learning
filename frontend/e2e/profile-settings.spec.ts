@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-test('a disposable local identity updates source-shaped profile details', async ({ page }) => {
+test('a disposable local identity updates source-shaped profile details', async ({
+    page,
+}) => {
     const email = process.env.E2E_PROFILE_EMAIL;
     const password = process.env.E2E_PROFILE_PASSWORD;
     const updatedEmail = process.env.E2E_PROFILE_UPDATED_EMAIL;
+    const feedbackMessage = `The source-shaped feedback form makes it clear what is being shared. ${Date.now()}`;
     test.skip(
         !email || !password || !updatedEmail,
         'requires a disposable local identity and a replacement email address',
@@ -19,20 +22,29 @@ test('a disposable local identity updates source-shaped profile details', async 
     await expect(
         page.getByRole('heading', { name: 'Profile details' }),
     ).toBeVisible();
-    await page.getByLabel('Name', { exact: true }).fill('Profile settings browser check');
+    await page
+        .getByLabel('Name', { exact: true })
+        .fill('Profile settings browser check');
     await page.getByLabel('Public username').fill(`profile_${Date.now()}`);
     await page.getByLabel('Email address').fill(updatedEmail!);
     await page.locator('#profile-image-upload').setInputFiles({
         name: 'profile.gif',
         mimeType: 'image/gif',
-        buffer: Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64'),
+        buffer: Buffer.from(
+            'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+            'base64',
+        ),
     });
-    await expect(page.locator('img[src^="/api/v1/profile-images/"]')).toBeVisible();
+    await expect(
+        page.locator('img[src^="/api/v1/profile-images/"]'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Save profile' }).click();
     await expect(page.getByRole('status')).toHaveText('Profile updated.');
     const savedProfile = await page.request.get('/api/v1/account/profile');
     await expect(savedProfile.json()).resolves.toMatchObject({
-        profile_image_url: expect.stringMatching(/^\/api\/v1\/profile-images\//),
+        profile_image_url: expect.stringMatching(
+            /^\/api\/v1\/profile-images\//,
+        ),
     });
     const currentUser = await page.request.get('/api/v1/me');
     await expect(currentUser.json()).resolves.toMatchObject({
@@ -52,10 +64,15 @@ test('a disposable local identity updates source-shaped profile details', async 
 
     const languageToSelect = process.env.E2E_LANGUAGE_TO_SELECT;
     if (languageToSelect) {
-        await page.getByLabel('Current language').selectOption(languageToSelect);
-        const languageSave = page.waitForResponse((response) =>
-            response.url().endsWith('/api/v1/learner/language-preference')
-            && response.request().method() === 'PATCH',
+        await page
+            .getByLabel('Current language')
+            .selectOption(languageToSelect);
+        const languageSave = page.waitForResponse(
+            (response) =>
+                response
+                    .url()
+                    .endsWith('/api/v1/learner/language-preference') &&
+                response.request().method() === 'PATCH',
         );
         await page.getByRole('button', { name: 'Save language' }).click();
         expect((await languageSave).ok()).toBe(true);
@@ -71,18 +88,24 @@ test('a disposable local identity updates source-shaped profile details', async 
     await expect(
         page.getByRole('heading', { name: 'Platform feedback' }),
     ).toBeVisible();
-    const declineInvitations = page.waitForResponse((response) =>
-        response.url().endsWith('/api/v1/learner/feedback-prompt-preference') &&
-        response.request().method() === 'PATCH',
+    const declineInvitations = page.waitForResponse(
+        (response) =>
+            response
+                .url()
+                .endsWith('/api/v1/learner/feedback-prompt-preference') &&
+            response.request().method() === 'PATCH',
     );
     await page.getByRole('button', { name: 'Turn off invitations' }).click();
     expect((await declineInvitations).ok()).toBe(true);
     await expect(
         page.getByRole('button', { name: 'Turn invitations back on' }),
     ).toBeVisible();
-    const enableInvitations = page.waitForResponse((response) =>
-        response.url().endsWith('/api/v1/learner/feedback-prompt-preference') &&
-        response.request().method() === 'PATCH',
+    const enableInvitations = page.waitForResponse(
+        (response) =>
+            response
+                .url()
+                .endsWith('/api/v1/learner/feedback-prompt-preference') &&
+            response.request().method() === 'PATCH',
     );
     await page
         .getByRole('button', { name: 'Turn invitations back on' })
@@ -96,9 +119,12 @@ test('a disposable local identity updates source-shaped profile details', async 
             name: 'Platform feedback invitation',
         }),
     ).toBeVisible();
-    const dismissInvitation = page.waitForResponse((response) =>
-        response.url().endsWith('/api/v1/learner/feedback-prompt-preference') &&
-        response.request().method() === 'PATCH',
+    const dismissInvitation = page.waitForResponse(
+        (response) =>
+            response
+                .url()
+                .endsWith('/api/v1/learner/feedback-prompt-preference') &&
+            response.request().method() === 'PATCH',
     );
     await page.getByRole('button', { name: 'Not now' }).click();
     expect((await dismissInvitation).ok()).toBe(true);
@@ -107,17 +133,40 @@ test('a disposable local identity updates source-shaped profile details', async 
     await expect(
         page.getByRole('heading', { name: 'Share what you notice' }),
     ).toBeVisible();
-    await page.getByLabel('What kind of feedback is this?').selectOption('idea');
-    await page.getByLabel('Your feedback').fill(
-        'The source-shaped feedback form makes it clear what is being shared.',
-    );
-    const feedbackSubmission = page.waitForResponse((response) =>
-        response.url().endsWith('/api/v1/platform-feedback')
-        && response.request().method() === 'POST',
+    await page
+        .getByLabel('What kind of feedback is this?')
+        .selectOption('idea');
+    await page.getByLabel('Your feedback').fill(feedbackMessage);
+    const feedbackSubmission = page.waitForResponse(
+        (response) =>
+            response.url().endsWith('/api/v1/platform-feedback') &&
+            response.request().method() === 'POST',
     );
     await page.getByRole('button', { name: 'Share feedback' }).click();
     expect((await feedbackSubmission).status()).toBe(204);
     await expect(page.getByRole('status')).toHaveText(
         'Thanks. Your feedback has been shared with the platform team.',
     );
+
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=platform-feedback',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Shared feedback' }),
+    ).toBeVisible();
+    const submittedFeedback = page.locator('article').filter({
+        hasText: feedbackMessage,
+    });
+    await expect(submittedFeedback).toBeVisible();
+    const reviewFeedback = page.waitForResponse(
+        (response) =>
+            /\/api\/v1\/admin\/platform-feedback\/[^/]+\/review$/.test(
+                new URL(response.url()).pathname,
+            ) && response.request().method() === 'PATCH',
+    );
+    await submittedFeedback
+        .getByRole('button', { name: 'Mark reviewed' })
+        .click();
+    expect((await reviewFeedback).status()).toBe(204);
+    await expect(submittedFeedback.getByText('Reviewed')).toBeVisible();
 });

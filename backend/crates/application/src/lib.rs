@@ -42,6 +42,7 @@ pub mod learner_topics;
 pub mod learner_world;
 pub mod learning_support_moderation;
 pub mod platform_feedback;
+pub mod platform_feedback_review;
 pub mod public_map_asset;
 pub mod public_page;
 pub mod public_presentation;

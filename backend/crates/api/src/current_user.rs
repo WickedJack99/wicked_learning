@@ -11,6 +11,7 @@ use crate::{AppState, error::ApiError, identity::IdentityBackend};
 #[derive(Serialize)]
 pub struct CurrentUserResponse {
     pub appearance: LearnerAppearance,
+    pub capabilities: Vec<String>,
     pub email: String,
     pub subject_id: Uuid,
     pub roles: Vec<String>,
@@ -33,6 +34,7 @@ pub async fn show(
 
     Ok(Json(CurrentUserResponse {
         appearance: current_user.appearance,
+        capabilities: current_user.principal.capabilities,
         email: subject.normalized_email().to_owned(),
         subject_id: current_user.principal.subject_id,
         roles: current_user.principal.roles,
