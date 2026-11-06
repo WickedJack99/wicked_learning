@@ -13,6 +13,7 @@ mod learner_check_in;
 mod learner_competence;
 mod learner_desk_planning;
 mod learner_desk_search;
+mod learner_group;
 mod learner_item_grant;
 mod learner_item_obstacle;
 mod learner_journal;
@@ -274,6 +275,19 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/learner/world", get(learner_world::show))
+        .route("/api/v1/learner/groups", get(learner_group::index))
+        .route(
+            "/api/v1/learner/groups/{group_id}/messages",
+            post(learner_group::send_message),
+        )
+        .route(
+            "/api/v1/learner/groups/{group_id}/messages/{message_id}/resolve",
+            post(learner_group::resolve_help_request),
+        )
+        .route(
+            "/api/v1/learner/groups/{group_id}/admin-chat-vote",
+            post(learner_group::vote_for_admin_chat_access),
+        )
         .route(
             "/api/v1/learner/bookmarks",
             get(learner_bookmark_map::show),

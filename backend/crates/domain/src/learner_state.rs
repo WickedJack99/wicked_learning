@@ -661,6 +661,59 @@ pub struct LearnerSoundPreferences {
     pub ambience_volume: i16,
 }
 
+/// A member-only collaboration space. The application database stores only
+/// opaque principals; the limited names and email addresses here are projected
+/// from the identity database only after membership is established.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerGroup {
+    pub admin_chat_required_votes: i64,
+    pub admin_chat_visible: bool,
+    pub admin_chat_visible_until: Option<String>,
+    pub admin_chat_vote_count: i64,
+    pub current_user_voted_for_admin_chat: bool,
+    pub description: Option<String>,
+    pub id: String,
+    pub member_count: i64,
+    pub members: Vec<LearnerGroupMember>,
+    pub messages: Vec<LearnerGroupMessage>,
+    pub name: String,
+    pub slug: String,
+    pub study_topic: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerGroupMember {
+    pub email: String,
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerGroupMessage {
+    pub body: String,
+    pub can_resolve: bool,
+    pub created_at: String,
+    pub id: String,
+    pub is_help_request: bool,
+    pub resolved_at: Option<String>,
+    pub resolved_by: Option<LearnerGroupMember>,
+    pub user: LearnerGroupMember,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerGroupPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerGroupPage {
+    pub groups: Vec<LearnerGroup>,
+    pub pagination: LearnerGroupPagination,
+}
+
 impl LearnerSoundPreferences {
     pub fn defaults() -> Self {
         Self {

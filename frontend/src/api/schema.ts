@@ -350,6 +350,74 @@ export interface paths {
         patch: operations["updateLearnerSoundPreferences"];
         trace?: never;
     };
+    "/learner/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's bounded member-only group chats. */
+        get: operations["getLearnerGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/groups/{group_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send one member-only group message or help request. */
+        post: operations["sendLearnerGroupMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/groups/{group_id}/messages/{message_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark another member's open group help request as resolved. */
+        post: operations["resolveLearnerGroupHelpRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/groups/{group_id}/admin-chat-vote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the current member's consent vote for source-defined group staff-chat visibility. */
+        post: operations["voteForLearnerGroupAdminChatAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/appearance": {
         parameters: {
             query?: never;
@@ -2451,6 +2519,61 @@ export interface components {
             effects_volume: number;
             ambience_volume: number;
         };
+        LearnerGroupMember: {
+            /** Format: email */
+            email: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        LearnerGroupMessage: {
+            body: string;
+            can_resolve: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            is_help_request: boolean;
+            /** Format: date-time */
+            resolved_at: string | null;
+            resolved_by: components["schemas"]["LearnerGroupMember"] | null;
+            user: components["schemas"]["LearnerGroupMember"];
+        };
+        LearnerGroup: {
+            admin_chat_required_votes: number;
+            admin_chat_visible: boolean;
+            /** Format: date-time */
+            admin_chat_visible_until: string | null;
+            admin_chat_vote_count: number;
+            current_user_voted_for_admin_chat: boolean;
+            description: string | null;
+            /** Format: uuid */
+            id: string;
+            member_count: number;
+            members: components["schemas"]["LearnerGroupMember"][];
+            messages: components["schemas"]["LearnerGroupMessage"][];
+            name: string;
+            slug: string;
+            study_topic: string | null;
+        };
+        LearnerGroupPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+        LearnerGroupPage: {
+            groups: components["schemas"]["LearnerGroup"][];
+            pagination: components["schemas"]["LearnerGroupPagination"];
+        };
+        LearnerGroupResponse: {
+            group: components["schemas"]["LearnerGroup"];
+        };
+        SendLearnerGroupMessageRequest: {
+            body: string;
+            /** @default false */
+            is_help_request: boolean;
+        };
         LearnerSupportReply: {
             body: string;
             /** Format: date-time */
@@ -2793,6 +2916,8 @@ export interface components {
         CsrfTokenHeader: string;
         ActivityStartId: string;
         LearnerJournalPageId: string;
+        LearnerGroupId: string;
+        LearnerGroupMessageId: string;
         LearningSupportTopicId: string;
         LearningSupportMessageId: string;
         LearningSupportResponseId: string;
@@ -3898,6 +4023,221 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerGroups: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Groups in source name order, with at most forty messages per group ordered oldest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerGroupPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    sendLearnerGroupMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                group_id: components["parameters"]["LearnerGroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendLearnerGroupMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description The refreshed bounded group projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerGroupResponse"];
+                };
+            };
+            /** @description The message is blank or exceeds 4 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The group is unavailable to this member */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resolveLearnerGroupHelpRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                group_id: components["parameters"]["LearnerGroupId"];
+                message_id: components["parameters"]["LearnerGroupMessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The refreshed bounded group projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerGroupResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The group */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    voteForLearnerGroupAdminChatAccess: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                group_id: components["parameters"]["LearnerGroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The refreshed bounded group projection with the current vote state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerGroupResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The group is unavailable to this member. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

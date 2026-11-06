@@ -29,6 +29,7 @@ import { PublicMapAssetVisual } from './public-map-asset-visual';
 import { OriginalRouteStartButtons } from './original-activity-playback';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalJournalOverlay } from './original-journal';
+import { OriginalGroupControl } from './original-group-control';
 import { OriginalToolBelt } from './original-tool-belt';
 import { resolveOriginalWorldTheme } from './original-world-theme';
 
@@ -442,6 +443,8 @@ function PublicWorldSurface({
                     tools={learnerState?.tools ?? []}
                 />
             ) : null}
+
+            {isAuthenticated ? <OriginalGroupControl /> : null}
 
             {world.maps.length > 1 ? (
                 <nav

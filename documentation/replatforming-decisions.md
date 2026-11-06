@@ -2306,6 +2306,54 @@ screen remain separate identity-access work. Password recovery, MFA, passkeys,
 durable account auditing and a complete email-verification policy remain
 cutover gates; this is not production identity authorization.
 
+## ADR-058: Learning Groups are member-scoped collaboration in the application database
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source World Groups control is a private collaboration flow:
+only members can read or post in a group, it exposes member names and email
+addresses, retains at most forty messages, supports a help-request resolution
+rule, limits consecutive messages, and records member consent for staff-chat
+visibility. The fresh architecture separates application records from
+identity/profile data, so copying users or credential data into group tables
+would violate the accepted database boundary.
+
+**Decision:** Store groups, memberships, messages, help-request resolutions
+and one-vote-per-member staff-chat consent entirely in the application
+database. They reference `application_principals`, never identity credential
+tables. The member reader first proves the caller is a group member in that
+database and only then obtains the minimal source-required display-name/email
+projection from the identity database. All group writer commands use a
+transaction and lock the group row before evaluating member state. This makes
+the source two-consecutive-messages-per-minute rule safe under concurrent
+posts, keeps help-request resolution idempotent for another member, and
+computes the source majority threshold `floor(member_count / 2) + 1`.
+
+The versioned `/learner/groups` contract exposes bounded, source-ordered
+member projections only. A group, message or action unavailable to the caller
+is deliberately indistinguishable from an unavailable resource; the Rust
+contract does not turn membership or message state into a cross-user lookup
+oracle.
+
+**Why:** This preserves the source collaboration behavior while respecting the
+identity/application split and avoiding a hand-rolled chat or a browser-owned
+authorization rule. PostgreSQL constraints additionally prevent a non-help
+message or the original author from being recorded as resolved.
+
+**Alternatives:** Storing display names/emails with group membership would
+duplicate identity data and create a stale cross-database ownership problem.
+Returning all group rows then filtering in React would disclose private group
+membership. An external chat service would create a new authority and delivery
+model not present in the source. These alternatives are rejected.
+
+**Evidence and limits:** The local Compose migration applies the fresh schema;
+transactional PostgreSQL checks prove that invalid and self-resolution rows are
+rejected, and the source-derived World Groups control has an authenticated
+browser journey for loading a member group and sending a message. Group
+creation/member management and staff moderation remain separate
+authorization-gated administration slices; no placeholder administration UI
+is exposed.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

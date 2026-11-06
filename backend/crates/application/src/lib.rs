@@ -10,6 +10,7 @@ pub mod learner_check_in;
 pub mod learner_competence;
 pub mod learner_desk_planning;
 pub mod learner_desk_search;
+pub mod learner_group;
 pub mod learner_item_grant;
 pub mod learner_item_obstacle;
 pub mod learner_journal;

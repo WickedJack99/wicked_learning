@@ -495,6 +495,84 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '503': { description: The application database is unavailable. }
+  /learner/groups:
+    get:
+      operationId: getLearnerGroups
+      summary: Read the current learner's bounded member-only group chats.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12, default: 1 }
+      responses:
+        '200':
+          description: Groups in source name order, with at most forty messages per group ordered oldest first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerGroupPage' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application or identity database is unavailable. }
+  /learner/groups/{group_id}/messages:
+    post:
+      operationId: sendLearnerGroupMessage
+      summary: Send one member-only group message or help request.
+      parameters:
+        - $ref: '#/components/parameters/LearnerGroupId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendLearnerGroupMessageRequest' }
+      responses:
+        '200':
+          description: The refreshed bounded group projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerGroupResponse' }
+        '400': { description: The message is blank or exceeds 4,000 characters. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The group is unavailable to this member, or the source consecutive-message boundary currently prevents posting. }
+        '503': { description: The application or identity database is unavailable. }
+  /learner/groups/{group_id}/messages/{message_id}/resolve:
+    post:
+      operationId: resolveLearnerGroupHelpRequest
+      summary: Mark another member's open group help request as resolved.
+      parameters:
+        - $ref: '#/components/parameters/LearnerGroupId'
+        - $ref: '#/components/parameters/LearnerGroupMessageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The refreshed bounded group projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerGroupResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The group, message, member permission, or eligible unresolved help request is unavailable. }
+        '503': { description: The application or identity database is unavailable. }
+  /learner/groups/{group_id}/admin-chat-vote:
+    post:
+      operationId: voteForLearnerGroupAdminChatAccess
+      summary: Record the current member's consent vote for source-defined group staff-chat visibility.
+      parameters:
+        - $ref: '#/components/parameters/LearnerGroupId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The refreshed bounded group projection with the current vote state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerGroupResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The group is unavailable to this member. }
+        '503': { description: The application or identity database is unavailable. }
   /learner/appearance:
     patch:
       operationId: updateLearnerAppearance
@@ -1861,6 +1939,20 @@ components:
         format: uuid
     LearnerJournalPageId:
       name: page_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LearnerGroupId:
+      name: group_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LearnerGroupMessageId:
+      name: message_id
       in: path
       required: true
       schema:
@@ -3895,6 +3987,86 @@ components:
         muted: { type: boolean }
         effects_volume: { type: integer, minimum: 0, maximum: 100 }
         ambience_volume: { type: integer, minimum: 0, maximum: 100 }
+    LearnerGroupMember:
+      type: object
+      additionalProperties: false
+      required: [email, id, name]
+      properties:
+        email: { type: string, format: email, maxLength: 255 }
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 255 }
+    LearnerGroupMessage:
+      type: object
+      additionalProperties: false
+      required: [body, can_resolve, created_at, id, is_help_request, resolved_at, resolved_by, user]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        can_resolve: { type: boolean }
+        created_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+        is_help_request: { type: boolean }
+        resolved_at: { type: [string, 'null'], format: date-time }
+        resolved_by:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerGroupMember'
+            - type: 'null'
+        user: { $ref: '#/components/schemas/LearnerGroupMember' }
+    LearnerGroup:
+      type: object
+      additionalProperties: false
+      required: [admin_chat_required_votes, admin_chat_visible, admin_chat_visible_until, admin_chat_vote_count, current_user_voted_for_admin_chat, description, id, member_count, members, messages, name, slug, study_topic]
+      properties:
+        admin_chat_required_votes: { type: integer, minimum: 1 }
+        admin_chat_visible: { type: boolean }
+        admin_chat_visible_until: { type: [string, 'null'], format: date-time }
+        admin_chat_vote_count: { type: integer, minimum: 0 }
+        current_user_voted_for_admin_chat: { type: boolean }
+        description: { type: [string, 'null'], maxLength: 4000 }
+        id: { type: string, format: uuid }
+        member_count: { type: integer, minimum: 1 }
+        members:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/LearnerGroupMember' }
+        messages:
+          type: array
+          maxItems: 40
+          items: { $ref: '#/components/schemas/LearnerGroupMessage' }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, pattern: '^[a-z0-9-]{1,140}$' }
+        study_topic: { type: [string, 'null'], maxLength: 180 }
+    LearnerGroupPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 12 }
+        total: { type: integer, minimum: 0 }
+    LearnerGroupPage:
+      type: object
+      additionalProperties: false
+      required: [groups, pagination]
+      properties:
+        groups:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearnerGroup' }
+        pagination: { $ref: '#/components/schemas/LearnerGroupPagination' }
+    LearnerGroupResponse:
+      type: object
+      additionalProperties: false
+      required: [group]
+      properties:
+        group: { $ref: '#/components/schemas/LearnerGroup' }
+    SendLearnerGroupMessageRequest:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        is_help_request: { type: boolean, default: false }
     LearnerSupportReply:
       type: object
       additionalProperties: false
