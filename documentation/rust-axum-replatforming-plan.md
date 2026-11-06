@@ -428,25 +428,26 @@ The supported local playback writers also append a normalized private evidence
 snapshot when an authored activity config declares competence topics. The
 server derives topic contribution, intent, outcome and attempt context from the
 authorized activity/run transaction; React does not submit or display evidence.
-The fresh Orientation activities exercise this boundary, but the source
-competence map route remains unavailable until its qualitative aggregation,
-cross-user evidence and source UI are migrated together.
+The fresh Orientation activities exercise this boundary. The lifted source
+competence map now consumes its qualitative aggregation and private source UI;
+cross-user evidence is deliberately not part of that learner-facing surface.
 
 Loading an authorized active play run also mirrors the source activity-entry
 topic history: the backend atomically replaces that learner's private last
 topic set and increments private topic-to-topic pairs only when the set has
 changed. A visit remains separate from completion evidence and this history is
-not returned by any playback contract. It is retained solely as a prerequisite
-for the later source-derived competence map; its UI remains unavailable.
+not returned by any playback contract. It is consumed only by the authenticated
+source-derived competence map, where it is shown as private qualitative
+learning-pulse context rather than a score.
 
-`GET /api/v1/learner/competence` now provides an authenticated but still
-unexposed contract foundation for that future map. It derives the source
-qualitative ratios, tiers, recent descriptions, evidence-type labels, twelve
-most-recent private evidence entries per topic, and bounded private transition
-pairs. It returns no score, reflection text, hidden metadata, or activity URL
-that could bypass Rust's start/run authorization. React has no route or
-navigation entry for this endpoint until the original star-map UI and the
-remaining source evidence inputs are migrated together.
+`GET /api/v1/learner/competence` provides the authenticated contract for the
+lifted source competence map. It derives the source qualitative ratios, tiers,
+recent descriptions, evidence-type labels, twelve most-recent private evidence
+entries per topic, and bounded private transition pairs. It returns no score,
+reflection text, hidden metadata, or activity URL that could bypass Rust's
+start/run authorization. React consumes it at `/competence`; source cards that
+would directly replay an activity remain unavailable until Rust can issue an
+authorized opaque run for that broader replay action.
 
 ### Reference behavior and implementation autonomy
 
@@ -495,7 +496,7 @@ private or identifier-based links will resolve in a deployed cutover.
 | `/journal`                                                                | Journal overlay from `/world` | Partially available | Signed-in learners can read, search, create, edit and delete their own paginated private journal pages in the lifted overlay. The original bounded Learning trail reads recent private check-ins; it intentionally omits source activity replay and competence links until their contracts and source UI exist. Due private revisit invitations use the original Journal panel and can open a server-owned opaque revisit run or be deferred/hidden. Export, review history and fuller check-in/timeline workflows remain unavailable.                                                                                                                                                                                                                                                                                                                                                                                |
 | `/bookmarks`                                                              | `/bookmarks`                  | Available           | Signed-in learners can open the source-derived personal bookmark map, inspect a saved place's original map context, return to it in World and remove it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `/topics`, `/topics/{topic}`                                              | Same path                     | Partially available | Signed-in learners can use the lifted source directory and all four source detail sections: Trail, Routes, Maps and Overview. Routes use the existing CSRF-protected server-owned start command and opaque run URL. Historical activity replay, competence drill-down and direct Journal navigation are intentionally absent because their Rust destinations are not yet available.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `/home`                                                                   | `/home`                       | Partially available | The lifted source Recall Queue section and shared learner header list only private questions the learner explicitly kept, open them through an opaque recall run, defer one day, and remove them. It deliberately does not imitate the rest of the Learning Desk until its source sections have completed Rust contracts. |
+| `/home`                                                                   | `/home`                       | Partially available | The lifted source Recall Queue and Return when useful sections, beneath the shared learner header, list only private questions the learner explicitly kept and due private returns the learner chose. Recall questions open through an opaque recall run and may be deferred one day or removed; returns open only through a server-owned opaque revisit run and may be deferred or hidden. The remaining Learning Desk sections are deliberately absent until their source sections have completed Rust contracts. |
 | `/paths`                                                                  | `/paths`                      | Partially available | Signed-in learners can use the lifted source Paths page and shared learner header, filter the server-owned eligible routes by learning purpose or available time, page through the bounded results, and enter a route through the existing CSRF-protected opaque-run command. The source’s direct Inertia link is deliberately mapped to that already-established typed command; it does not expose a client-forged destination. |
 | `/competence?topic={slug}&from={slug}`                                    | Same path                     | Partially available | Signed-in learners can use the lifted source Star Map, its guide, qualitative selected-topic reader, private evidence ledger, learning pulse and bounded review history. The original `topic` selection and `from` return-context query semantics reuse the existing authorized topic reader, including the source “not on your map yet” explanation. Topic context links use the existing source-derived topic route. Activity-opening controls remain unavailable because this read contract intentionally does not authorize a client-supplied activity destination; a later Rust command must mint an opaque permitted run before those original actions return. |
 | `/organizations/*`, `/learning/groups/*`, authoring/settings/admin routes | —                             | Not available       | These belong to later collaboration, authoring and administration slices with their own authorization tests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
