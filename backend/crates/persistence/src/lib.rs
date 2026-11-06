@@ -3,6 +3,7 @@
 pub mod account_profile;
 pub mod admin_learning_group;
 pub mod current_user;
+pub mod feedback_prompt_preference;
 pub mod identity_registration;
 pub mod learner_activity_replay_run;
 pub mod learner_appearance_preference;

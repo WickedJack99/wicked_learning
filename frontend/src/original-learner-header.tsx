@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalJournalOverlay } from './original-journal';
+import { OriginalPlatformFeedbackPrompt } from './original-platform-feedback-prompt';
 
 const primaryItems = [
     { href: '/home', id: 'learning-desk', label: 'Learning desk' },
@@ -130,6 +131,7 @@ export function OriginalLearnerHeader({
                 </div>
             </div>
             {isJournalOpen ? <OriginalJournalOverlay onClose={() => setIsJournalOpen(false)} /> : null}
+            <OriginalPlatformFeedbackPrompt />
         </header>
     );
 }

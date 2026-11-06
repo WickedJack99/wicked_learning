@@ -2572,6 +2572,34 @@ privacy-policy change.
 feedback invitation/prompt need their own capability-scoped source-backed
 slice.
 
+## ADR-065: Feedback invitations retain the source's low-pressure choice
+
+**Status:** Accepted — 6 November 2026
+
+**Decision:** The optional source feedback invitation is restored as a private
+application-database preference, independent from the deliberately shared
+feedback message itself. A signed-in learner starts enabled, can decline future
+invitations, or dismiss one for fourteen days. The Personal Feedback setting
+can turn a declined invitation back on. The React client reads this typed
+contract only on a source-derived learner page, excludes Settings and the
+feedback page, and records that it was shown in browser session storage so it
+appears at most once per browser session.
+
+**Why:** The source treats the invitation as an occasional, dismissible prompt,
+not as a learning deadline or a requirement to send feedback. Persisting the
+longer-lived choice gives the learner control across sessions; the small
+browser-session boundary is the React equivalent of the source's server
+session prop without inventing a new cross-device prompt schedule.
+
+**Alternatives:** A browser-only opt-out would lose the learner's explicit
+choice on another device. A global prompt on every page could interrupt the
+feedback or Settings flow. An identity-database setting would mix application
+experience preference with credentials. These alternatives are rejected.
+
+**Limits and follow-up:** The fourteen-day delay follows the source service;
+there is no new campaign system, analytics, or administrator targeting. The
+client-side once-per-session marker is intentionally not a durable preference.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

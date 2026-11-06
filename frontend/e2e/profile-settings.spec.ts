@@ -67,6 +67,42 @@ test('a disposable local identity updates source-shaped profile details', async 
         });
     }
 
+    await page.goto('/settings?panel=personal&personal=feedback');
+    await expect(
+        page.getByRole('heading', { name: 'Platform feedback' }),
+    ).toBeVisible();
+    const declineInvitations = page.waitForResponse((response) =>
+        response.url().endsWith('/api/v1/learner/feedback-prompt-preference') &&
+        response.request().method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: 'Turn off invitations' }).click();
+    expect((await declineInvitations).ok()).toBe(true);
+    await expect(
+        page.getByRole('button', { name: 'Turn invitations back on' }),
+    ).toBeVisible();
+    const enableInvitations = page.waitForResponse((response) =>
+        response.url().endsWith('/api/v1/learner/feedback-prompt-preference') &&
+        response.request().method() === 'PATCH',
+    );
+    await page
+        .getByRole('button', { name: 'Turn invitations back on' })
+        .click();
+    expect((await enableInvitations).ok()).toBe(true);
+
+    await page.evaluate(() => sessionStorage.clear());
+    await page.goto('/paths');
+    await expect(
+        page.getByRole('complementary', {
+            name: 'Platform feedback invitation',
+        }),
+    ).toBeVisible();
+    const dismissInvitation = page.waitForResponse((response) =>
+        response.url().endsWith('/api/v1/learner/feedback-prompt-preference') &&
+        response.request().method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: 'Not now' }).click();
+    expect((await dismissInvitation).ok()).toBe(true);
+
     await page.goto('/feedback');
     await expect(
         page.getByRole('heading', { name: 'Share what you notice' }),

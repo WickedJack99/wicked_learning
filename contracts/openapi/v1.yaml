@@ -839,6 +839,38 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '503': { description: The application database is unavailable. }
+  /learner/feedback-prompt-preference:
+    get:
+      operationId: getFeedbackPromptPreference
+      summary: Read the current learner's private feedback-invitation preference.
+      responses:
+        '200':
+          description: The saved or default invitation status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedbackPromptPreference' }
+        '401': { description: Authentication is required. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateFeedbackPromptPreference
+      summary: Enable, decline or temporarily dismiss feedback invitations.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateFeedbackPromptPreferenceRequest' }
+      responses:
+        '200':
+          description: The saved invitation preference.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedbackPromptPreference' }
+        '400': { description: The invitation action is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application database is unavailable. }
   /learning-support/topics:
     get:
       operationId: getLearningSupportTopics
@@ -2509,6 +2541,18 @@ components:
         locale:
           type: string
           maxLength: 16
+    FeedbackPromptPreference:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [enabled, snoozed, declined] }
+    UpdateFeedbackPromptPreferenceRequest:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { type: string, enum: [enable, decline, dismiss] }
     AvailableLanguage:
       type: object
       additionalProperties: false

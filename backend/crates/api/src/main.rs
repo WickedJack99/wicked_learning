@@ -7,6 +7,7 @@ mod config;
 mod csrf;
 mod current_user;
 mod error;
+mod feedback_prompt_preference;
 mod identity;
 mod identity_registration;
 mod learner_activity_replay_run;
@@ -295,6 +296,7 @@ fn router(state: AppState) -> Router {
             get(account_profile_image::show),
         )
         .route("/api/v1/platform-feedback", post(platform_feedback::submit))
+        .route("/api/v1/learner/feedback-prompt-preference", get(feedback_prompt_preference::show).patch(feedback_prompt_preference::update))
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
         .route(
             "/api/v1/admin/learning-groups/{group_id}",

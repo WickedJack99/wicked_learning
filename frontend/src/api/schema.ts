@@ -606,6 +606,24 @@ export interface paths {
         patch: operations["updateLearnerLanguagePreference"];
         trace?: never;
     };
+    "/learner/feedback-prompt-preference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's private feedback-invitation preference. */
+        get: operations["getFeedbackPromptPreference"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Enable, decline or temporarily dismiss feedback invitations. */
+        patch: operations["updateFeedbackPromptPreference"];
+        trace?: never;
+    };
     "/learning-support/topics": {
         parameters: {
             query?: never;
@@ -1687,6 +1705,14 @@ export interface components {
         LearnerLanguagePreference: {
             available_languages: components["schemas"]["AvailableLanguage"][];
             locale: string;
+        };
+        FeedbackPromptPreference: {
+            /** @enum {string} */
+            status: "enabled" | "snoozed" | "declined";
+        };
+        UpdateFeedbackPromptPreferenceRequest: {
+            /** @enum {string} */
+            action: "enable" | "decline" | "dismiss";
         };
         AvailableLanguage: {
             code: string;
@@ -5179,6 +5205,95 @@ export interface operations {
                 };
             };
             /** @description The locale is not enabled or is malformed. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getFeedbackPromptPreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The saved or default invitation status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackPromptPreference"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateFeedbackPromptPreference: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFeedbackPromptPreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved invitation preference. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackPromptPreference"];
+                };
+            };
+            /** @description The invitation action is invalid. */
             400: {
                 headers: {
                     [name: string]: unknown;
