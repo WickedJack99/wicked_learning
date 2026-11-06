@@ -127,6 +127,11 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     await expect(
         page.locator('img[src="/images/characters/golden-lantern-page.png"]'),
     ).toBeVisible();
+    await expect(
+        page.getByText(
+            'Let us pause with a small observation. We are looking for what changes the next useful step.',
+        ),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Next dialogue' }).click();
     await expect(page.getByText('Mira asks for the clue')).toBeVisible();
     await page

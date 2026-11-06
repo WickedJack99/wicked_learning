@@ -1573,12 +1573,11 @@ entry.
 
 **Current visual boundary:** The lifted scene supports the source dialogue
 frame, themed background/NPC image, authored per-node scene layers, character
-entrance animation, speech bubble, answers, reflection, tool-added
+entrance animation, typed text reveal, speech bubble, answers, reflection, tool-added
 acknowledgement and source keyboard/end behavior. The standalone frontend
 image includes the original public visual assets used by this projection.
-Typewriter effect and dialogue audio remain unavailable because their bounded
-sound contracts are not yet implemented. They are omitted rather than replaced
-with a new interaction.
+Dialogue audio remains unavailable because its bounded sound contract is not
+yet implemented. It is omitted rather than replaced with a new interaction.
 
 ## Phase 1 gate
 

@@ -203,7 +203,7 @@ export function OriginalNpcDialogueActivity({
                 <DialogueSceneAssetLayers assets={sceneAssets} layer="bubble" />
                 <div className="rounded-2xl border p-4 backdrop-blur-md" style={bubbleStyle}>
                     <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><MessageCircle className="size-4" />{currentNode.title}</div>
-                    <p className="min-h-16 whitespace-pre-wrap text-sm leading-6">{currentNode.body ?? ''}</p>
+                    <TypingText key={currentNode.id} speed={numberConfig(currentNode.config.typingSpeed, 28)} text={currentNode.body ?? ''} />
                     {grantedToolName ? <p className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100">Added tool: {grantedToolName}</p> : null}
                     {isQuestion ? <div className="mt-4 grid gap-2">
                         {answers.map((answer, index) => <button className={`rounded-lg border p-3 text-left text-sm leading-6 transition ${selectedAnswerId === answer.id ? 'border-cyan-600 bg-cyan-50 text-slate-900 dark:border-teal-200 dark:bg-teal-200/10 dark:text-slate-100' : 'border-white/20 bg-white/70 text-slate-800 hover:bg-white dark:bg-slate-950/50 dark:text-slate-100 dark:hover:bg-slate-950/70'}`} disabled={isSubmitting} key={answer.id} onClick={() => setSelectedAnswerId(answer.id)} type="button"><span className="mr-2 font-semibold">{answer.label ?? String.fromCharCode(65 + index)}</span>{answer.body}</button>)}
@@ -287,6 +287,26 @@ function AnimatedNpcCharacterImage({
     }, [hasEntranceAnimation]);
 
     return <img alt="" className="absolute z-10 max-h-[70%] max-w-[55%] object-contain" decoding="async" draggable={false} src={imageUrl} style={{ left: `${x}%`, opacity: isVisible ? 1 : 0, top: `${y}%`, transform: isVisible ? endTransform : imageTransform(startTransform, mirrored), transitionDuration: `${slideDurationMs}ms, ${fadeDurationMs}ms`, transitionProperty: 'transform, opacity', transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1), ease-out' }} />;
+}
+
+function TypingText({ speed, text }: { speed: number; text: string }) {
+    const [visibleText, setVisibleText] = useState('');
+
+    useEffect(() => {
+        if (!text) {
+            setVisibleText('');
+            return;
+        }
+        let index = 0;
+        const timer = window.setInterval(() => {
+            index += 1;
+            setVisibleText(text.slice(0, index));
+            if (index >= text.length) window.clearInterval(timer);
+        }, clampNumber(speed, 1, 250));
+        return () => window.clearInterval(timer);
+    }, [speed, text]);
+
+    return <p className="min-h-16 whitespace-pre-wrap text-sm leading-6">{visibleText}</p>;
 }
 
 function themedImage(config: Record<string, unknown>, appearance: OriginalAppearance, prefix: 'background' | 'npcImage'): string | null {

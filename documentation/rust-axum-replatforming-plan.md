@@ -334,7 +334,7 @@ private reflection, configured tool grant and end-only completion. The local
 Compose browser test covers the rendered flow and its persisted journal entry.
 
 This does not make the wider World work complete: node-drawer NPC tool grants,
-dialogue replay, typewriter behavior and dialogue audio remain unavailable.
+dialogue replay and dialogue audio remain unavailable.
 The scene now renders source-authored asset layers and character entrance
 motion from the existing safe graph configuration; the frontend image carries
 the original public visual assets needed by these scenes. Sound-specific source
