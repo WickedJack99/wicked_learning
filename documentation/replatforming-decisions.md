@@ -2195,6 +2195,42 @@ asset. The existing Portal browser journey still passes. This is not an
 authoring or upload surface, protected media delivery, object storage, or
 item-obstacle effect migration.
 
+## ADR-056: Item-obstacle sound effects retain source event semantics
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source item-obstacle activity can play different effects when
+the learner first sees an unmet obstacle, fills its final slot, and then sees
+the met state. A generic `sounds` object would permit unknown browser-triggered
+events or expose unrelated authored media. Using the ambient category would
+also ignore the source distinction between scene audio and a short effect.
+
+**Decision:** Preserve only the source event keys `notMet`, `transition` and
+`met` in a safe item-obstacle configuration. Each must be enabled and contain
+a valid sound UUID before it is projected. The existing playback sound loader
+then returns only referenced published rows, bounded to the activity's
+ambience plus these three effects. The source-adapted item-obstacle component
+plays `notMet` on its initial unmet state, then `transition` and `met` when a
+valid placement changes the state to met. It uses the learner's effects-volume
+and mute controls, retaining separate concurrent event layers where the source
+does.
+
+**Why:** This restores the original feedback timing while retaining server
+authority over event vocabulary, media publication and URLs. The player still
+does not turn an item placement request into an audio selection request.
+
+**Alternatives:** A general browser-callable sound endpoint would create a
+new media action absent from the source. Reusing the ambience field would
+lose the event distinction and apply the wrong learner preference. Both are
+rejected.
+
+**Evidence and boundary:** A persistence test rejects malformed and invented
+event configuration. The local Compose browser journey receives the fresh
+signal-stone item, completes the existing optional check-in transition, then
+places it in the source-derived obstacle and observes the bundled effect on
+initial and met-state events. This does not migrate base-obstacle audio,
+authoring/upload UI, protected audio delivery or object storage.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

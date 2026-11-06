@@ -1,10 +1,11 @@
 import { ArrowRight, Lock, Package } from 'lucide-react';
 import type { CSSProperties, DragEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { useLearnerSoundPreferences } from './learner-sound-preferences';
 
 type LearnerItem = components['schemas']['LearnerItem'];
 type LearnerItemObstacleResult =
@@ -23,6 +24,7 @@ type ObstacleSlot = {
     y: number;
 };
 type ObstacleState = LearnerItemObstacleResult['state'];
+type ItemObstacleSoundKey = 'met' | 'notMet' | 'transition';
 
 /**
  * Source-adapted from `features/world/item-obstacle-activity.tsx`. The
@@ -50,6 +52,8 @@ export function OriginalItemObstacleActivity({
     );
     const [error, setError] = useState('');
     const [continuing, setContinuing] = useState(false);
+    const { play } = useItemObstacleSoundPlayer();
+    const previousConditionsMet = useRef(state.conditions_met);
     const slots = useMemo(() => configuredSlots(config), [activity.slug]);
     const configuredItems = useMemo(
         () => configuredObstacleItems(config),
@@ -89,6 +93,23 @@ export function OriginalItemObstacleActivity({
     );
     const lockedUntil = lockedUntilDate(state.locked_until);
     const isLocked = Boolean(lockedUntil && lockedUntil > new Date());
+
+    useEffect(() => {
+        const wasMet = previousConditionsMet.current;
+        previousConditionsMet.current = state.conditions_met;
+
+        if (!wasMet && state.conditions_met) {
+            playConfiguredSound(activity, play, 'transition');
+            playConfiguredSound(activity, play, 'met');
+            return;
+        }
+
+        playConfiguredSound(
+            activity,
+            play,
+            state.conditions_met ? 'met' : 'notMet',
+        );
+    }, [activity, play, state.conditions_met]);
 
     async function dropItem(
         event: DragEvent,
@@ -365,4 +386,97 @@ function lockedUntilDate(value: string | null): Date | null {
     if (!value) return null;
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Source-adapted from the original layered player for item-obstacle effects. */
+function useItemObstacleSoundPlayer(): {
+    play: (
+        sound: components['schemas']['LearnerPlaybackSound'],
+        layerKey: string,
+    ) => void;
+} {
+    const preferences = useLearnerSoundPreferences();
+    const layers = useRef(
+        new Map<
+            string,
+            { audio: HTMLAudioElement; timeoutId: number | undefined }
+        >(),
+    );
+
+    const stop = useCallback((layerKey: string): void => {
+        const layer = layers.current.get(layerKey);
+        if (!layer) return;
+        if (layer.timeoutId !== undefined) {
+            window.clearTimeout(layer.timeoutId);
+        }
+        layer.audio.pause();
+        layer.audio.currentTime = 0;
+        layers.current.delete(layerKey);
+    }, []);
+
+    const play = useCallback(
+        (
+            sound: components['schemas']['LearnerPlaybackSound'],
+            layerKey: string,
+        ): void => {
+            stop(layerKey);
+            if (preferences.muted || preferences.effects_volume <= 0) return;
+
+            const audio = new Audio(sound.url);
+            audio.loop = sound.looped;
+            audio.preload = 'auto';
+            audio.volume = normalizedVolume(sound.volume) *
+                normalizedVolume(preferences.effects_volume);
+            const layer = { audio, timeoutId: undefined as number | undefined };
+            if (sound.play_seconds && sound.play_seconds > 0) {
+                layer.timeoutId = window.setTimeout(
+                    () => stop(layerKey),
+                    sound.play_seconds * 1000,
+                );
+            }
+            audio.addEventListener('ended', () => {
+                if (!audio.loop) layers.current.delete(layerKey);
+            });
+            layers.current.set(layerKey, layer);
+            void audio.play().catch(() => stop(layerKey));
+        },
+        [preferences.effects_volume, preferences.muted, stop],
+    );
+
+    useEffect(
+        () => () => {
+            for (const layerKey of [...layers.current.keys()]) {
+                stop(layerKey);
+            }
+        },
+        [stop],
+    );
+
+    return { play };
+}
+
+function playConfiguredSound(
+    activity: LearnerPlaybackActivity,
+    play: ReturnType<typeof useItemObstacleSoundPlayer>['play'],
+    key: ItemObstacleSoundKey,
+): void {
+    const sounds = activity.config.sounds;
+    if (!sounds || typeof sounds !== 'object' || Array.isArray(sounds)) return;
+    const soundConfig = (sounds as Record<string, unknown>)[key];
+    if (
+        !soundConfig ||
+        typeof soundConfig !== 'object' ||
+        Array.isArray(soundConfig) ||
+        (soundConfig as Record<string, unknown>).enabled !== true
+    ) {
+        return;
+    }
+    const soundId = (soundConfig as Record<string, unknown>).soundId;
+    if (typeof soundId !== 'string') return;
+    const sound = activity.sounds.find((candidate) => candidate.id === soundId);
+    if (sound) play(sound, `item-obstacle-${activity.slug}-${key}`);
+}
+
+function normalizedVolume(volume: number): number {
+    return Math.min(Math.max(volume, 0), 100) / 100;
 }

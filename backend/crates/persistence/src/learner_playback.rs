@@ -324,6 +324,27 @@ async fn load_playback_sounds(
     {
         ids.push(id);
     }
+    if let Some(configured_sounds) = config.get("sounds").and_then(serde_json::Value::as_object) {
+        for key in ["notMet", "met", "transition"] {
+            if let Some(id) = configured_sounds
+                .get(key)
+                .and_then(serde_json::Value::as_object)
+                .filter(|sound| {
+                    sound
+                        .get("enabled")
+                        .and_then(serde_json::Value::as_bool)
+                        .unwrap_or(false)
+                })
+                .and_then(|sound| sound.get("soundId"))
+                .and_then(serde_json::Value::as_str)
+                .and_then(|value| Uuid::parse_str(value).ok())
+            {
+                ids.push(id);
+            }
+        }
+    }
+    ids.sort();
+    ids.dedup();
     if ids.is_empty() {
         return Ok(Vec::new());
     }
@@ -787,7 +808,45 @@ fn item_obstacle_safe_config(config: serde_json::Value) -> Option<serde_json::Va
             "x": slot.x,
             "y": slot.y,
         })).collect::<Vec<_>>(),
+        "sounds": item_obstacle_safe_sounds(object),
     }))
+}
+
+/// Item-obstacle effects are source-defined events rather than arbitrary
+/// browser media. Keep only the three source event names and canonical UUID
+/// references; the playback reader still withholds unpublished rows.
+fn item_obstacle_safe_sounds(
+    object: &serde_json::Map<String, serde_json::Value>,
+) -> serde_json::Value {
+    let configured_sounds = object.get("sounds").and_then(serde_json::Value::as_object);
+    let sounds = ["notMet", "met", "transition"]
+        .into_iter()
+        .map(|key| {
+            let sound = configured_sounds
+                .and_then(|sounds| sounds.get(key))
+                .and_then(serde_json::Value::as_object);
+            let enabled = sound
+                .and_then(|sound| sound.get("enabled"))
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(false);
+            let sound_id = enabled
+                .then(|| {
+                    sound
+                        .and_then(|sound| sound.get("soundId"))
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|value| Uuid::parse_str(value).ok())
+                })
+                .flatten();
+            (
+                key.to_owned(),
+                json!({
+                    "enabled": sound_id.is_some(),
+                    "soundId": sound_id.map(|id| id.to_string()),
+                }),
+            )
+        })
+        .collect::<serde_json::Map<_, _>>();
+    serde_json::Value::Object(sounds)
 }
 
 fn item_grant_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -2611,8 +2670,9 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        check_in_context, is_review_activity, markdown_safe_config, message_wall_safe_config,
-        reflection_safe_config, valid_review_outcome, with_safe_ambient_sound,
+        check_in_context, is_review_activity, item_obstacle_safe_config, markdown_safe_config,
+        message_wall_safe_config, reflection_safe_config, valid_review_outcome,
+        with_safe_ambient_sound,
     };
 
     #[test]
@@ -2799,6 +2859,35 @@ mod tests {
             }),
         );
         assert!(malformed.get("ambientSound").is_none());
+    }
+
+    #[test]
+    fn item_obstacle_projects_only_source_event_sound_references() {
+        let safe = item_obstacle_safe_config(json!({
+            "slots": [{ "itemId": "signal-stone", "slotIndex": 0 }],
+            "sounds": {
+                "notMet": {
+                    "enabled": true,
+                    "soundId": "00000000-0000-4000-8000-000000000059"
+                },
+                "met": { "enabled": true, "soundId": "not-a-uuid" },
+                "transition": { "enabled": false, "soundId": "00000000-0000-4000-8000-000000000059" },
+                "invented": { "enabled": true, "soundId": "00000000-0000-4000-8000-000000000059" }
+            }
+        }))
+        .expect("a configured obstacle is safe to project");
+
+        assert_eq!(
+            safe["sounds"],
+            json!({
+                "notMet": {
+                    "enabled": true,
+                    "soundId": "00000000-0000-4000-8000-000000000059"
+                },
+                "met": { "enabled": false, "soundId": null },
+                "transition": { "enabled": false, "soundId": null }
+            })
+        );
     }
 
     #[test]

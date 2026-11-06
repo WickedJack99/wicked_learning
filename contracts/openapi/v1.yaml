@@ -3246,7 +3246,7 @@ components:
           additionalProperties: true
         sounds:
           type: array
-          maxItems: 1
+          maxItems: 4
           items: { $ref: '#/components/schemas/LearnerPlaybackSound' }
         completion:
           $ref: '#/components/schemas/LearnerPlaybackCompletion'
