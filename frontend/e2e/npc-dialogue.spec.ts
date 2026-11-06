@@ -72,6 +72,11 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
         'href',
         '/bookmarks',
     );
+    await page.getByRole('button', { name: 'Focus view' }).click();
+    await expect(page.getByRole('button', { name: 'Show pinned' })).toBeVisible();
+    await expect(page.locator('aside')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Show pinned' }).click();
+    await expect(page.locator('aside')).toHaveCount(1);
     await page.getByRole('button', { name: 'Continue learning' }).click();
     await expect(page).toHaveURL(/\/home\?area=continue$/);
     await expect(page.getByRole('heading', { name: 'Continue learning' })).toBeVisible();

@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, BookOpenText, Clock3, Pin, Trash2 } from 'lucide-react';
+import { ArrowRight, Bookmark, BookOpenText, Clock3, Focus, Pin, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -158,6 +158,10 @@ export function OriginalRecallDeskPage({
     const [purposeFilter, setPurposeFilter] = useState<DeskPurposeFilter>(
         savedPlanningPreference.purposeFilter,
     );
+    const focusPreferenceKey = `wicked-learning:desk-focus-view:${userSubjectId}`;
+    const [focusView, setFocusView] = useState(() =>
+        readFocusViewPreference(focusPreferenceKey),
+    );
 
     useEffect(() => {
         let active = true;
@@ -308,6 +312,11 @@ export function OriginalRecallDeskPage({
     function clearPlanningChoices() {
         updateTimeBudget('any');
         updatePurposeFilter('any');
+    }
+
+    function updateFocusView(nextFocusView: boolean) {
+        setFocusView(nextFocusView);
+        writeFocusViewPreference(focusPreferenceKey, nextFocusView);
     }
 
     function selectArea(area: LearningDeskArea) {
@@ -644,17 +653,33 @@ export function OriginalRecallDeskPage({
                 id="learner-main-content"
                 tabIndex={-1}
             >
-            <div className="grid min-h-full lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
+            <div className={[
+                'grid min-h-full',
+                focusView
+                    ? 'lg:grid-cols-1'
+                    : 'lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]',
+            ].join(' ')}>
             <div className="min-w-0 px-5 py-10 sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
             <div className="mx-auto max-w-4xl">
-                <header>
-                    <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
-                        Your learning desk
-                    </p>
-                    <h1 className="mt-3 text-3xl font-medium tracking-tight">What would you like to think about next?</h1>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                        Continue a route, return to a question you kept nearby, or revisit a place when it becomes useful.
-                    </p>
+                <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                        <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
+                            Your learning desk
+                        </p>
+                        <h1 className="mt-3 text-3xl font-medium tracking-tight">What would you like to think about next?</h1>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                            Continue a route, return to a question you kept nearby, or revisit a place when it becomes useful.
+                        </p>
+                    </div>
+                    <button
+                        aria-pressed={focusView}
+                        className={`${planningChoiceClass(focusView)} inline-flex shrink-0 items-center gap-2`}
+                        onClick={() => updateFocusView(!focusView)}
+                        type="button"
+                    >
+                        <Focus aria-hidden="true" className="size-4" />
+                        {focusView ? 'Show pinned' : 'Focus view'}
+                    </button>
                 </header>
 
                 <nav
@@ -954,7 +979,9 @@ export function OriginalRecallDeskPage({
                 ) : null}
             </div>
             </div>
-            <LearningDeskRail featured={featuredBookmark} places={bookmarkPlaces} />
+            {!focusView ? (
+                <LearningDeskRail featured={featuredBookmark} places={bookmarkPlaces} />
+            ) : null}
             </div>
             </main>
         </div>
@@ -1523,6 +1550,30 @@ function deskAreaFromUrl(): LearningDeskArea | null {
         area === 'revisit'
         ? area
         : null;
+}
+
+function readFocusViewPreference(key: string): boolean {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    try {
+        return window.localStorage.getItem(key) === 'true';
+    } catch {
+        return false;
+    }
+}
+
+function writeFocusViewPreference(key: string, enabled: boolean): void {
+    try {
+        if (enabled) {
+            window.localStorage.setItem(key, 'true');
+        } else {
+            window.localStorage.removeItem(key);
+        }
+    } catch {
+        // Browser storage may be unavailable; the in-memory toggle still works.
+    }
 }
 
 function readDeskPlanningPreference(key: string): DeskPlanningSelection {
