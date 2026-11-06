@@ -76,14 +76,20 @@ impl Port for PostgresAccountProfileRepository<'_> {
                 &draft.public_username,
             )
             .await?;
+            let mut identity_transaction = self
+                .identity_database
+                .begin()
+                .await
+                .map_err(|_| AccountProfileError::Unavailable)?;
             let identity_result = sqlx::query(
                 "UPDATE identity_subjects AS subjects SET normalized_email = $2, updated_at = NOW() FROM identity_profiles AS profiles WHERE subjects.id = $1 AND profiles.subject_id = subjects.id AND subjects.status = 'active'",
             )
             .bind(subject_id)
             .bind(&draft.email)
-            .execute(self.identity_database)
+            .execute(&mut *identity_transaction)
             .await;
             if !matches!(identity_result, Ok(ref result) if result.rows_affected() == 1) {
+                let _ = identity_transaction.rollback().await;
                 let _ = save_public_username(
                     self.application_database,
                     principal_id,
@@ -100,17 +106,10 @@ impl Port for PostgresAccountProfileRepository<'_> {
             )
             .bind(subject_id)
             .bind(&draft.display_name)
-            .execute(self.identity_database)
+            .execute(&mut *identity_transaction)
             .await;
             if !matches!(display_name_result, Ok(ref result) if result.rows_affected() == 1) {
-                let _ = sqlx::query(
-                    "UPDATE identity_subjects SET normalized_email = $2, updated_at = NOW() WHERE id = $1 AND normalized_email = $3",
-                )
-                .bind(subject_id)
-                .bind(&before.email)
-                .bind(&draft.email)
-                .execute(self.identity_database)
-                .await;
+                let _ = identity_transaction.rollback().await;
                 let _ = save_public_username(
                     self.application_database,
                     principal_id,
@@ -121,6 +120,15 @@ impl Port for PostgresAccountProfileRepository<'_> {
                     .err()
                     .map(database_error)
                     .unwrap_or(AccountProfileError::Missing));
+            }
+            if identity_transaction.commit().await.is_err() {
+                let _ = save_public_username(
+                    self.application_database,
+                    principal_id,
+                    &before.public_username,
+                )
+                .await;
+                return Err(AccountProfileError::Unavailable);
             }
             Ok(AccountProfile {
                 display_name: draft.display_name,
