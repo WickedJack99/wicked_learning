@@ -285,7 +285,10 @@ export function OriginalOpenPracticePage({
     >(null);
     const [pendingCheckIn, setPendingCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
+    const [hiddenCheckInActivitySlug, setHiddenCheckInActivitySlug] =
+        useState<string | null>(null);
     const headingRef = useRef<HTMLHeadingElement>(null);
+    const showConclusionButtonRef = useRef<HTMLButtonElement>(null);
 
     const returnToWorld = () => {
         navigate(`/world?focused=${encodeURIComponent(nodeSlug)}`, {
@@ -333,6 +336,15 @@ export function OriginalOpenPracticePage({
         }
     }, [state]);
 
+    useEffect(() => {
+        if (
+            pendingCheckIn &&
+            hiddenCheckInActivitySlug === pendingCheckIn.activity.slug
+        ) {
+            showConclusionButtonRef.current?.focus();
+        }
+    }, [hiddenCheckInActivitySlug, pendingCheckIn]);
+
     function presentCheckIn(
         document: LearnerPlaybackDocument,
         status: CompletionStatus,
@@ -348,6 +360,7 @@ export function OriginalOpenPracticePage({
             status,
             transitionLabel,
         });
+        setHiddenCheckInActivitySlug(null);
     }
 
     async function continueAfterCheckIn(
@@ -387,6 +400,7 @@ export function OriginalOpenPracticePage({
         }
 
         setPendingCheckIn(null);
+        setHiddenCheckInActivitySlug(null);
         if (checkIn.status === 'completed') {
             returnToWorld();
             return;
@@ -479,7 +493,7 @@ export function OriginalOpenPracticePage({
                     <PlaybackContext context={state.document.context} />
                 ) : null}
                 {state.kind === 'loaded' ? (
-                    <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
+                    <section className="relative flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
                         <div className="flex items-start gap-3">
                             <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)] text-[var(--learner-action-accent)]">
                                 <PlayCircle className="size-4" />
@@ -531,14 +545,7 @@ export function OriginalOpenPracticePage({
                                 ) : null}
                             </div>
                         </div>
-                        {pendingCheckIn ? (
-                            <OriginalLearningCheckIn
-                                activityTitle={pendingCheckIn.activity.title}
-                                checkIn={pendingCheckIn.activity.check_in}
-                                onContinue={continueAfterCheckIn}
-                                transitionLabel={pendingCheckIn.transitionLabel}
-                            />
-                        ) : state.document.activity.activity_type ===
+                        {state.document.activity.activity_type ===
                           'question' ? (
                             <QuestionActivity
                                 activity={state.document.activity}
@@ -616,6 +623,35 @@ export function OriginalOpenPracticePage({
                                 onComplete={() => void complete()}
                             />
                         )}
+                        {pendingCheckIn &&
+                        hiddenCheckInActivitySlug !==
+                            pendingCheckIn.activity.slug ? (
+                            <div className="absolute inset-0 z-30 overflow-hidden rounded-lg shadow-2xl">
+                                <OriginalLearningCheckIn
+                                    activityTitle={pendingCheckIn.activity.title}
+                                    checkIn={pendingCheckIn.activity.check_in}
+                                    onContinue={continueAfterCheckIn}
+                                    onHide={() =>
+                                        setHiddenCheckInActivitySlug(
+                                            pendingCheckIn.activity.slug,
+                                        )
+                                    }
+                                    transitionLabel={pendingCheckIn.transitionLabel}
+                                />
+                            </div>
+                        ) : null}
+                        {pendingCheckIn &&
+                        hiddenCheckInActivitySlug ===
+                            pendingCheckIn.activity.slug ? (
+                            <button
+                                className="absolute top-3 right-3 z-30 rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-3 py-2 text-sm font-medium text-[var(--learner-body-text)] shadow-lg transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
+                                onClick={() => setHiddenCheckInActivitySlug(null)}
+                                ref={showConclusionButtonRef}
+                                type="button"
+                            >
+                                Show conclusion
+                            </button>
+                        ) : null}
                     </section>
                 ) : null}
             </section>

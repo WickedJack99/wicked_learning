@@ -1880,6 +1880,34 @@ test('the signed-in explorer starts and completes an original open-practice rout
         }),
     ).toBeVisible();
     await expect(page.getByText('Learning focus')).toBeVisible();
+    await page.getByRole('button', { name: 'Hide conclusion' }).click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after Begin private orientation',
+        }),
+    ).not.toBeVisible();
+    const showConclusionButton = page.getByRole('button', {
+        name: 'Show conclusion',
+    });
+    await expect(showConclusionButton).toBeFocused();
+    const showConclusionBounds = await showConclusionButton.boundingBox();
+    expect(showConclusionBounds).not.toBeNull();
+    expect(showConclusionBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(
+        (showConclusionBounds?.x ?? 0) +
+            (showConclusionBounds?.width ?? 0),
+    ).toBeLessThanOrEqual(390);
+    expect(showConclusionBounds?.y).toBeGreaterThanOrEqual(0);
+    expect(
+        (showConclusionBounds?.y ?? 0) +
+            (showConclusionBounds?.height ?? 0),
+    ).toBeLessThanOrEqual(844);
+    await showConclusionButton.click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after Begin private orientation',
+        }),
+    ).toBeVisible();
     await page
         .getByLabel('Add a note (optional)')
         .fill('I will compare the next options.');
