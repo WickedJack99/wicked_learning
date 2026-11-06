@@ -15,6 +15,7 @@ type LearnerWorldSnapshot = components['schemas']['LearnerWorldSnapshot'];
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerBookmarkMap = components['schemas']['LearnerBookmarkMap'];
 type LearnerBookmarkPlace = components['schemas']['LearnerBookmarkPlace'];
+type LearnerJournalCheckIn = components['schemas']['LearnerJournalCheckIn'];
 
 const learnerStyle = {
     '--learner-action-accent': '#5eead4',
@@ -106,9 +107,13 @@ export function OriginalRecallDeskPage({
     const [revisitInvitations, setRevisitInvitations] = useState<
         RevisitInvitation[]
     >([]);
+    const [checkIns, setCheckIns] = useState<LearnerJournalCheckIn[]>([]);
     const [updatingRevisitId, setUpdatingRevisitId] = useState<string | null>(
         null,
     );
+    const [openingReflectionId, setOpeningReflectionId] = useState<
+        string | null
+    >(null);
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -174,6 +179,7 @@ export function OriginalRecallDeskPage({
                 .slice(0, 3),
         [bookmarkPlaces, featuredBookmark],
     );
+    const recentCheckIns = useMemo(() => checkIns.slice(0, 4), [checkIns]);
 
     useEffect(() => {
         let active = true;
@@ -183,6 +189,7 @@ export function OriginalRecallDeskPage({
             })
             .then(({ data, response }) => {
                 if (active && response.ok && data) {
+                    setCheckIns(data.check_ins);
                     setRevisitInvitations(data.revisit_invitations);
                 }
             })
@@ -406,6 +413,37 @@ export function OriginalRecallDeskPage({
         }
     }
 
+    async function openReflection(checkIn: LearnerJournalCheckIn): Promise<void> {
+        if (openingReflectionId !== null) {
+            return;
+        }
+
+        setOpeningReflectionId(checkIn.id);
+        setError('');
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/activities/{activity_slug}/replay',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { activity_slug: checkIn.activity_slug },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                throw new Error('open failed');
+            }
+            navigate(
+                `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
+            );
+        } catch {
+            setError('That reflection activity could not be opened. Try again.');
+        } finally {
+            setOpeningReflectionId(null);
+        }
+    }
+
     return (
         <div style={learnerStyle}>
             <OriginalLearnerHeader
@@ -431,6 +469,43 @@ export function OriginalRecallDeskPage({
                 </header>
 
                 <PossibleConnections places={bookmarkConnections} />
+
+                {recentCheckIns.length ? (
+                    <section
+                        aria-labelledby="reflections-heading"
+                        className="mt-8"
+                        id="reflections-section"
+                    >
+                        <div className="flex items-center gap-5 pb-3">
+                            <h2
+                                className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none"
+                                id="reflections-heading"
+                                tabIndex={-1}
+                            >
+                                Recent reflections
+                            </h2>
+                        </div>
+                        <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                            A quiet trail of what you noticed and where you chose to go next. Open an activity whenever the thread feels useful again.
+                        </p>
+                        <OriginalPaginatedItems
+                            className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                            items={recentCheckIns}
+                            pageSize={1}
+                            paginationLabel="Recent reflections"
+                            renderItem={(checkIn) => (
+                                <RecentReflectionRow
+                                    checkIn={checkIn}
+                                    key={checkIn.id}
+                                    onOpen={openReflection}
+                                    opening={
+                                        openingReflectionId === checkIn.id
+                                    }
+                                />
+                            )}
+                        />
+                    </section>
+                ) : null}
 
                 {currentRoutes.length ? (
                     <section aria-labelledby="continue-learning-heading" className="mt-8">
@@ -568,6 +643,74 @@ function ContinueRouteRow({
             </div>
             <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-accent)] disabled:opacity-50 sm:justify-self-end" disabled={opening} onClick={() => void onContinue(route.start)} type="button">
                 {opening ? 'Opening…' : 'Continue'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </button>
+        </article>
+    );
+}
+
+function RecentReflectionRow({
+    checkIn,
+    onOpen,
+    opening,
+}: {
+    checkIn: LearnerJournalCheckIn;
+    onOpen: (checkIn: LearnerJournalCheckIn) => Promise<void>;
+    opening: boolean;
+}) {
+    const feelingLabel = checkInFeelingLabel(checkIn.feeling);
+    const directionLabel = checkIn.next_direction
+        ? checkInDirectionLabel(checkIn.next_direction)
+        : null;
+
+    return (
+        <article className="group grid gap-4 py-3 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-start">
+            <BookOpenText
+                aria-hidden="true"
+                className="size-5 text-[var(--learner-action-accent)]"
+            />
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-sm font-medium text-[var(--learner-heading-text)]">
+                        {feelingLabel}
+                    </span>
+                    <time
+                        className="text-xs text-[var(--learner-muted-text)]"
+                        dateTime={checkIn.recorded_at}
+                    >
+                        {formatDeskDate(checkIn.recorded_at)}
+                    </time>
+                </div>
+                <button
+                    className="mt-1 block truncate text-left text-sm text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] hover:underline disabled:opacity-50"
+                    disabled={opening}
+                    onClick={() => void onOpen(checkIn)}
+                    type="button"
+                >
+                    {checkIn.activity_title} · {checkIn.node_title}
+                </button>
+                {checkIn.note ? (
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {checkIn.note}
+                    </p>
+                ) : null}
+                {directionLabel ? (
+                    <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
+                        Next direction:{' '}
+                        <span className="text-[var(--learner-action-accent)]">
+                            {directionLabel}
+                        </span>
+                    </p>
+                ) : null}
+            </div>
+            <button
+                aria-busy={opening}
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] disabled:opacity-50 sm:justify-self-end"
+                disabled={opening}
+                onClick={() => void onOpen(checkIn)}
+                type="button"
+            >
+                {opening ? 'Opening…' : 'Open activity'}
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </button>
         </article>
     );
@@ -938,6 +1081,31 @@ function confidenceName(value: LearnerRecallItem['last_confidence']): string {
         : value === 'leaning'
           ? 'I have a hunch'
           : 'Settled';
+}
+
+function checkInFeelingLabel(value: LearnerJournalCheckIn['feeling']): string {
+    if (value === null) {
+        return 'A reflection';
+    }
+
+    return {
+        clearer: 'Something clicked',
+        forming: 'Still taking shape',
+        stretched: 'It stretched me',
+        stuck: 'I got stuck',
+    }[value];
+}
+
+function checkInDirectionLabel(
+    value: NonNullable<LearnerJournalCheckIn['next_direction']>,
+): string {
+    return (
+        {
+            revisit: 'Return to this place',
+            related: 'Look for something related',
+            settle: 'Let it settle',
+        }[value] ?? value
+    );
 }
 
 function formatRecallDate(value: string): string {

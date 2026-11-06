@@ -865,9 +865,9 @@ fn valid_topic_slug(value: &str) -> bool {
         })
 }
 
-/// Reads only the graph belonging to an already-authorized ordinary route
-/// run. A missing durable state uses the authored start node deterministically;
-/// the first command creates it under the route-progress lock.
+/// Reads only the graph belonging to an already-authorized route or historical
+/// replay run. A missing durable state uses the authored start node
+/// deterministically; the first command creates it under the relevant run lock.
 async fn load_npc_dialogue(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
@@ -875,7 +875,7 @@ async fn load_npc_dialogue(
     activity_slug: &str,
 ) -> Result<Option<LearnerNpcDialogue>, sqlx::Error> {
     let activity_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT activities.id FROM learner_route_progress AS progress INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id WHERE progress.principal_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'npc_dialogue'",
+        "SELECT activities.id FROM learner_route_progress AS progress INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id WHERE progress.principal_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'npc_dialogue' UNION ALL SELECT activities.id FROM learner_activity_replay_runs AS runs INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id WHERE runs.principal_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'npc_dialogue' LIMIT 1",
     )
     .bind(principal_id)
     .bind(play_run_id)

@@ -132,6 +132,30 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     expect(complete.status()).toBe(200);
     await expect(complete.json()).resolves.toMatchObject({ status: 'completed' });
 
+    const checkIn = await request.post(`${basePath}/check-ins`, {
+        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        data: {
+            feeling: 'clearer',
+            note: 'The dialogue helped me compare the starting points.',
+            next_direction: 'settle',
+        },
+    });
+    expect(checkIn.status()).toBe(200);
+
+    await page.goto('/home');
+    await expect(page.getByRole('heading', { name: 'Recent reflections' })).toBeVisible();
+    await expect(page.getByText('Something clicked')).toBeVisible();
+    await expect(
+        page.getByText('The dialogue helped me compare the starting points.'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Open activity' }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/notice-the-map\/play\?run=[0-9a-f-]{36}$/,
+    );
+    await expect(page.getByText('Mira opens the observation')).toBeVisible();
+    await page.getByRole('button', { name: 'Next dialogue' }).click();
+    await expect(page.getByText('Mira asks for the clue')).toBeVisible();
+
     await page.goto('/home');
     await expect(page.getByRole('heading', { name: 'Recent traces' })).toBeVisible();
     await page.getByRole('button', { name: 'Revisit' }).click();

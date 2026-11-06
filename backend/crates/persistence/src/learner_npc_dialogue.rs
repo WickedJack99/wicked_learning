@@ -22,7 +22,7 @@ impl<'pool> PostgresLearnerNpcDialogueRepository<'pool> {
 #[derive(FromRow)]
 struct CurrentDialogueRow {
     activity_id: Uuid,
-    activity_start_id: Uuid,
+    activity_start_id: Option<Uuid>,
     activity_title: String,
     node_title: String,
     principal_id: Uuid,
@@ -411,8 +411,21 @@ async fn load_current_dialogue_for_update(
     play_run_id: Uuid,
     activity_slug: &str,
 ) -> Result<Option<CurrentDialogueRow>, sqlx::Error> {
-    sqlx::query_as::<_, CurrentDialogueRow>(
+    let route_run = sqlx::query_as::<_, CurrentDialogueRow>(
         "SELECT activities.id AS activity_id, progress.activity_start_id, activities.title AS activity_title, nodes.title AS node_title, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'npc_dialogue' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+    )
+    .bind(principal.subject_id)
+    .bind(play_run_id)
+    .bind(activity_slug)
+    .bind(&principal.roles)
+    .fetch_optional(&mut **transaction)
+    .await?;
+    if route_run.is_some() {
+        return Ok(route_run);
+    }
+
+    sqlx::query_as::<_, CurrentDialogueRow>(
+        "SELECT activities.id AS activity_id, NULL::uuid AS activity_start_id, activities.title AS activity_title, nodes.title AS node_title, runs.principal_id FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'npc_dialogue' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)

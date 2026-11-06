@@ -8,9 +8,10 @@ use wicked_learning_domain::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerNpcDialogueError;
 
-/// All dialogue navigation is scoped to the active route run. The sole input
-/// accepted for a question is the public ID of an authored outgoing answer;
-/// neither a next node nor a tool is browser authority.
+/// All dialogue navigation is scoped to an active server-owned route or
+/// historical-replay run. The sole input accepted for a question is the
+/// public ID of an authored outgoing answer; neither a next node nor a tool
+/// is browser authority.
 pub trait LearnerNpcDialogueRepository {
     fn continue_current_dialogue(
         &self,

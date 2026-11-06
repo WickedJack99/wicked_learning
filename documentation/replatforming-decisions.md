@@ -1667,6 +1667,45 @@ This restores the rail, saved-place list and Possible connections empty state;
 topic labels, check-in reflections, planning preferences and private Learning
 Support replies remain separate work.
 
+## ADR-044: Learning Desk reflections reuse the private Journal reader
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Learning Desk shows a short private trail of recent
+check-ins and lets a learner reopen the related activity. Building a Desk-only
+history query would repeat the Journal's ownership, publication and
+visibility policy. A direct browser URL based on an activity slug would also
+let the browser bypass the established replay authorization boundary.
+
+**Decision:** The Desk reads the existing authenticated `/learner/journal`
+document and takes its four newest server-ordered check-ins. It renders the
+source-derived Recent reflections section, including feeling, recorded date,
+activity/place label, optional private note and selected next direction.
+Selecting either activity control uses the existing CSRF-protected
+`POST /learner/activities/{activity_slug}/replay` command. Rust resolves the
+currently visible published activity and returns the opaque play-run identity;
+React only navigates to that returned run.
+
+**Why:** The Journal reader already scopes check-ins to the signed-in learner
+and keeps the private, published-content boundary in PostgreSQL. The replay
+command remains the single authorization point for historical activity access.
+This restores a source interaction without adding an overlapping read model or
+trusting a client-created player URL.
+
+**Limitation and trigger:** Laravel's Desk also conditionally links a
+`related` check-in to its learning areas. The current Rust Journal check-in
+contract intentionally carries no topic/area projection, so the migration
+does not invent such links from public data. Add that source control only when
+the Journal contract can return authorized related-area context and the topic
+destination can preserve it. Planning preferences and Learning Support remain
+separate slices.
+
+**Evidence and boundary:** The local Compose browser journey completes the
+server-owned NPC dialogue, records a private check-in through the existing
+post-completion command, finds its reflection on `/home`, and opens it through
+an opaque replay run. This is a bounded reflection trail, not complete Desk
+or Journal-history parity.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
