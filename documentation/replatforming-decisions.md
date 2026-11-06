@@ -2146,8 +2146,9 @@ application-database record owned by the application principal. Rust exposes
 only owner-scoped read/save endpoints with source-equivalent defaults and
 0–100 validation. Dialogue typing audio reads the saved effects setting. The
 earlier standalone account-menu modal was removed because it was not the
-original Personal Settings UI; the contract remains for the later
-source-derived Sound settings slice.
+original Personal Settings UI. The source-adapted Sound settings slice is
+available at `/settings?panel=personal&personal=sound`, including its mute,
+volume and local preview controls.
 
 **Why:** Audio comfort is personal and must neither be coupled to identity
 credentials nor alter shared authored content. One small preference contract
