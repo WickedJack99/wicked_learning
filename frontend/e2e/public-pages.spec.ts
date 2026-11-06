@@ -2206,6 +2206,106 @@ test('the original obstacle surface selects an owned tool and uses only the acti
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });
 
+test('the original Markdown activity follows its authored pages before server-owned completion', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d55';
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                play_run_id: playRunId,
+                run_kind: 'route',
+                context: {
+                    node_slug: 'private-place',
+                    node_title: 'Private place',
+                    map_slug: 'private-path',
+                    map_title: 'A private path',
+                    route_label: 'Reading route',
+                },
+                items: [],
+                tools: [],
+                activity: {
+                    slug: 'read-the-map',
+                    title: 'Read the map',
+                    description: 'A source-authored reading activity.',
+                    activity_type: 'markdown',
+                    config: {
+                        markdownPages: [
+                            markdownPage(
+                                'first',
+                                'First',
+                                '# First page\n\nRead this first.',
+                            ),
+                            markdownPage(
+                                'second',
+                                'Second',
+                                '## Second page\n\nThen continue.',
+                            ),
+                        ],
+                        markdownTransitions: [
+                            { from: 'start', to: 'first' },
+                            { from: 'first', to: 'second' },
+                            { from: 'second', to: 'end' },
+                        ],
+                    },
+                    completion: { label: null, next_activity_slug: null },
+                    check_in: {
+                        choice_prompt: null,
+                        concepts: [],
+                        learning_areas: [],
+                        objective: null,
+                    },
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/read-the-map/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    status: 'completed',
+                }),
+            });
+        },
+    );
+
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByRole('heading', { name: 'First page' })).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('heading', { name: 'Second page' })).toBeVisible();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('heading', { name: 'A small pause after Read the map' })).toBeVisible();
+});
+
+function markdownPage(id: string, title: string, body: string) {
+    return {
+        id,
+        title,
+        body,
+        visual: {
+            borderColorDark: '#2dd4bf',
+            borderColorLight: '#0891b2',
+            headingColorDark: '#67e8f9',
+            headingColorLight: '#0e7490',
+            pageColorDark: '#0f172a',
+            pageColorLight: '#ffffff',
+            textColorDark: '#f8fafc',
+            textColorLight: '#0f172a',
+        },
+    };
+}
+
 test('the public explorer search is bounded and presents matching places', async ({
     page,
 }) => {

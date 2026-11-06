@@ -9,6 +9,7 @@ import type { OriginalAppearance } from './original-appearance';
 import { OriginalLearningCheckIn } from './original-learning-check-in';
 import { OriginalItemGrantActivity } from './original-item-grant-activity';
 import { OriginalItemObstacleActivity } from './original-item-obstacle-activity';
+import { OriginalMarkdownActivity } from './original-markdown-activity';
 import { OriginalObstacleActivity } from './original-obstacle-activity';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
@@ -491,6 +492,10 @@ export function OriginalOpenPracticePage({
                                                         .activity_type ===
                                                     'obstacle'
                                                   ? 'Obstacle'
+                                                  : state.document.activity
+                                                          .activity_type ===
+                                                      'markdown'
+                                                    ? 'Reading'
                                                 : 'Open practice'}
                                 </p>
                                 <h3
@@ -576,6 +581,13 @@ export function OriginalOpenPracticePage({
                                 onSelectTool={setSelectedTool}
                                 playRunId={state.document.play_run_id}
                                 selectedTool={selectedTool}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'markdown' ? (
+                            <OriginalMarkdownActivity
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                onComplete={complete}
                             />
                         ) : (
                             <OpenPracticeActivity

@@ -1312,7 +1312,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle";
+            activity_type: "open_practice" | "question" | "reflection" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown";
             config: {
                 [key: string]: unknown;
             };

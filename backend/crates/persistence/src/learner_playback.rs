@@ -165,8 +165,111 @@ fn learner_safe_config(
         "item_grant" => item_grant_safe_config(config),
         "item_obstacle" => item_obstacle_safe_config(config),
         "obstacle" => obstacle_safe_config(config),
+        "markdown" => markdown_safe_config(config),
         _ => None,
     }
+}
+
+fn markdown_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
+    let object = config.as_object()?;
+    let pages = object
+        .get("markdownPages")
+        .and_then(serde_json::Value::as_array)
+        .map_or_else(Vec::new, |pages| {
+            pages
+                .iter()
+                .take(30)
+                .enumerate()
+                .filter_map(|(index, page)| {
+                    let page = page.as_object()?;
+                    let id = page
+                        .get("id")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|value| bounded_text(value, 100))
+                        .unwrap_or_else(|| format!("page-{}", index + 1));
+                    let title = page
+                        .get("title")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|value| bounded_text(value, 160))
+                        .unwrap_or_else(|| format!("Page {}", index + 1));
+                    let body = page
+                        .get("body")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|value| bounded_text(value, 20_000))
+                        .unwrap_or_default();
+                    let visual = page.get("visual").and_then(serde_json::Value::as_object);
+                    let color = |name: &str, fallback: &str| {
+                        visual
+                            .and_then(|visual| visual.get(name))
+                            .and_then(serde_json::Value::as_str)
+                            .filter(|value| valid_hex_color(value))
+                            .map(ToOwned::to_owned)
+                            .unwrap_or_else(|| fallback.to_owned())
+                    };
+
+                    Some(json!({
+                        "body": body,
+                        "id": id,
+                        "title": title,
+                        "visual": {
+                            "borderColorDark": color("borderColorDark", "#2dd4bf"),
+                            "borderColorLight": color("borderColorLight", "#0891b2"),
+                            "headingColorDark": color("headingColorDark", "#67e8f9"),
+                            "headingColorLight": color("headingColorLight", "#0e7490"),
+                            "pageColorDark": color("pageColorDark", "#0f172a"),
+                            "pageColorLight": color("pageColorLight", "#ffffff"),
+                            "textColorDark": color("textColorDark", "#f8fafc"),
+                            "textColorLight": color("textColorLight", "#0f172a"),
+                        },
+                    }))
+                })
+                .fold(Vec::new(), |mut pages, page| {
+                    let duplicate = page
+                        .get("id")
+                        .and_then(serde_json::Value::as_str)
+                        .is_some_and(|id| {
+                            pages.iter().any(|existing: &serde_json::Value| {
+                                existing.get("id").and_then(serde_json::Value::as_str) == Some(id)
+                            })
+                        });
+                    if !duplicate {
+                        pages.push(page);
+                    }
+                    pages
+                })
+        });
+    let page_ids = pages
+        .iter()
+        .filter_map(|page| page.get("id").and_then(serde_json::Value::as_str))
+        .collect::<Vec<_>>();
+    let transitions = object
+        .get("markdownTransitions")
+        .and_then(serde_json::Value::as_array)
+        .map_or_else(Vec::new, |transitions| {
+            transitions
+                .iter()
+                .take(60)
+                .filter_map(|transition| {
+                    let transition = transition.as_object()?;
+                    let from = transition
+                        .get("from")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|value| bounded_text(value, 100))?;
+                    let to = transition
+                        .get("to")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|value| bounded_text(value, 100))?;
+                    ((from == "start" || page_ids.contains(&from.as_str()))
+                        && (to == "end" || page_ids.contains(&to.as_str())))
+                    .then(|| json!({ "from": from, "to": to }))
+                })
+                .collect()
+        });
+
+    Some(json!({
+        "markdownPages": pages,
+        "markdownTransitions": transitions,
+    }))
 }
 
 fn obstacle_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -624,7 +727,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 .await
                 .map_err(|_| LearnerPlaybackReadError)?;
             let row = sqlx::query_as::<_, PlaybackRow>(
-                "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'revisit'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
+                "SELECT progress.activity_start_id AS start_id, progress.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, COALESCE(starts.label, routes.title) AS route_label, 'route'::text AS run_kind, transition.label AS transition_label, next_activity.slug AS next_activity_slug FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3))) UNION ALL SELECT NULL::uuid AS start_id, runs.principal_id, activities.slug AS activity_slug, activities.title, activities.description, activities.activity_type, activities.activity_config, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, NULL::text AS route_label, 'revisit'::text AS run_kind, NULL::text AS transition_label, NULL::text AS next_activity_slug FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
             )
             .bind(principal.subject_id)
             .bind(play_run_id)
@@ -905,7 +1008,7 @@ async fn complete_current_activity(
     let next_activity_id = match transition.and_then(|transition| transition.to_activity_id) {
         Some(next_activity_id) => {
             let next_activity_id = sqlx::query_scalar::<_, Uuid>(
-                "SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle')",
+                "SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown')",
             )
             .bind(next_activity_id)
             .bind(current.route_id)
@@ -982,7 +1085,7 @@ async fn load_current_activity_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentActivityRow>, sqlx::Error> {
     let route = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -1074,7 +1177,7 @@ async fn mark_activity_reached(
 mod tests {
     use serde_json::json;
 
-    use super::check_in_context;
+    use super::{check_in_context, markdown_safe_config};
 
     #[test]
     fn check_in_context_exposes_only_bounded_source_presentation_fields() {
@@ -1101,5 +1204,64 @@ mod tests {
         assert_eq!(context.learning_areas.len(), 1);
         assert_eq!(context.learning_areas[0].name, "Orientation");
         assert_eq!(context.learning_areas[0].slug, "orientation");
+    }
+
+    #[test]
+    fn markdown_config_exposes_a_bounded_valid_page_graph() {
+        let oversized_body = "x".repeat(20_001);
+        let config = markdown_safe_config(json!({
+            "markdownPages": [
+                {
+                    "id": "first",
+                    "title": "First page",
+                    "body": oversized_body,
+                    "visual": {
+                        "pageColorDark": "not-a-colour",
+                        "pageColorLight": "#ffffff"
+                    }
+                },
+                {
+                    "id": "first",
+                    "title": "Duplicate page",
+                    "body": "must not be exposed"
+                },
+                {
+                    "id": "second",
+                    "title": "Second page",
+                    "body": "A valid page"
+                }
+            ],
+            "markdownTransitions": [
+                { "from": "start", "to": "first" },
+                { "from": "first", "to": "second" },
+                { "from": "second", "to": "end" },
+                { "from": "missing", "to": "second" }
+            ]
+        }))
+        .expect("a JSON object has a safe Markdown projection");
+
+        assert_eq!(
+            config["markdownPages"]
+                .as_array()
+                .expect("pages are an array")
+                .len(),
+            2
+        );
+        assert_eq!(
+            config["markdownPages"][0]["body"].as_str().map(str::len),
+            Some(20_000)
+        );
+        assert_eq!(
+            config["markdownPages"][0]["visual"]["pageColorDark"],
+            "#0f172a"
+        );
+        assert_eq!(
+            config["markdownTransitions"],
+            json!([
+                { "from": "start", "to": "first" },
+                { "from": "first", "to": "second" },
+                { "from": "second", "to": "end" }
+            ])
+        );
     }
 }
