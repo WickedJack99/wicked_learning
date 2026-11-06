@@ -60,6 +60,31 @@ pub struct PeerWallCommand<'repository, Repository> {
     repository: &'repository Repository,
 }
 
+pub struct PeerWallQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> PeerWallQuery<'repository, Repository>
+where
+    Repository: LearnerPeerMessageRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        page: i64,
+    ) -> Result<Option<LearnerPeerMessageWall>, LearnerPeerMessageError> {
+        self.repository
+            .load_wall(principal, play_run_id, activity_slug, page.clamp(1, 1_000))
+            .await
+    }
+}
+
 impl<'repository, Repository> PeerWallCommand<'repository, Repository>
 where
     Repository: LearnerPeerMessageRepository,
