@@ -187,6 +187,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec!["learner".to_owned()],
+            capabilities: vec![],
         };
         let play_run_id = Uuid::new_v4();
 
@@ -206,6 +207,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec!["learner".to_owned()],
+            capabilities: vec![],
         };
 
         let result = LearnerPlaybackCompletionCommand::new(&CompletionAbsentRepository)
@@ -230,6 +232,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec!["learner".to_owned()],
+            capabilities: vec![],
         };
 
         let result = LearnerPlaybackCompletionCommand::new(&repository)

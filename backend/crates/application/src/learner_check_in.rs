@@ -98,6 +98,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec![],
+            capabilities: vec![],
         };
         let play_run_id = Uuid::new_v4();
         let input = LearnerCheckInInput {

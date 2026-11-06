@@ -1872,6 +1872,16 @@ peer-to-peer responses, helpfulness markers and shared-task moderation remain
 separate follow-on capabilities; none may be represented as completed by the
 private-support slice.
 
+**Foundation implemented:** The greenfield application database now separates
+assignable roles from server-owned capabilities. `learning_support` and
+`platform_administrator` both grant `learner_messages_moderate`; the latter
+does not make the former redundant, because a support assignment can be made
+without full platform administration. The authenticated application principal
+loads its effective capabilities alongside its map-audience roles, and future
+message commands must use the typed capability check rather than matching a
+role name. This is only the authorization foundation: no message reader,
+writer, moderation route or browser element is represented as migrated yet.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -155,6 +155,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec!["learner".to_owned()],
+            capabilities: vec![],
         };
         let result = LearnerRecallCommand::new(&AbsentRepository)
             .queue_current_question(&principal, Uuid::new_v4(), "question")
@@ -168,6 +169,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec!["learner".to_owned()],
+            capabilities: vec![],
         };
         let queue = LearnerRecallQuery::new(&AbsentRepository)
             .execute(&principal)

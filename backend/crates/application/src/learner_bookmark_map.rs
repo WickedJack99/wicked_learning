@@ -66,6 +66,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec!["learner".to_owned()],
+            capabilities: vec![],
         };
 
         let result = LearnerBookmarkMapQuery::new(&EmptyRepository)

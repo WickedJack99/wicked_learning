@@ -71,6 +71,7 @@ mod tests {
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
             roles: vec!["learner".to_owned()],
+            capabilities: vec![],
         };
         let result = LearnerRecallRunCommand::new(&AbsentRepository)
             .open_or_resume(&principal, Uuid::new_v4())
