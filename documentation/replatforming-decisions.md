@@ -1462,6 +1462,32 @@ the same typed review configuration and add its authoring/browser evidence.
 The base reflection UI continues to use its original immediate
 save-then-continue behavior.
 
+## ADR-040: Historical activity replay uses a dedicated opaque run
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Journal and Competence readers link a learner back to
+an activity they previously encountered. Rust deliberately does not transport
+Laravel URLs or permit a browser to select a player activity directly. Reusing
+an authored route run would overwrite current route state; reusing recall or a
+due revisit would change their distinct scheduling and evidence semantics.
+
+**Decision:** Add a CSRF-protected command that resolves a currently visible,
+published activity under the authenticated learner, then creates or resumes a
+private opaque replay run. The player accepts only that run ID. Replay runs are
+separate from route, recall and due-revisit runs; they do not change an authored
+route's position or satisfy a recall/revisit queue. Completion behavior must be
+explicitly implemented and tested before the source Journal/Competence controls
+are restored.
+
+**Why:** This preserves the original learner affordance while retaining
+server-owned authorization and keeping independent learning-state meanings
+separate.
+
+**Alternatives:** A client-built activity URL, treating replay as a route start,
+or overloading recall/revisit records would weaken authorization or alter
+unrelated learner state. These are rejected.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
