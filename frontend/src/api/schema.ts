@@ -312,6 +312,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/sound-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's private sound preferences. */
+        get: operations["getLearnerSoundPreferences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save the current learner's private sound preferences. */
+        patch: operations["updateLearnerSoundPreferences"];
+        trace?: never;
+    };
     "/learning-support/topics": {
         parameters: {
             query?: never;
@@ -2356,6 +2374,11 @@ export interface components {
             node_title: string;
             topic_title: string;
         };
+        LearnerSoundPreferences: {
+            muted: boolean;
+            effects_volume: number;
+            ambience_volume: number;
+        };
         LearnerSupportReply: {
             body: string;
             /** Format: date-time */
@@ -2510,6 +2533,11 @@ export interface components {
             /** @enum {string} */
             purpose_filter: "any" | "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
             time_budget: "any" | (15 | 30);
+        };
+        UpdateLearnerSoundPreferencesRequest: {
+            muted: boolean;
+            effects_volume: number;
+            ambience_volume: number;
         };
         LearnerJournalCheckIn: {
             /** Format: uuid */
@@ -3640,6 +3668,102 @@ export interface operations {
                 content?: never;
             };
             /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerSoundPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The saved preferences, or source defaults when none have been saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSoundPreferences"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerSoundPreferences: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerSoundPreferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved private preference values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSoundPreferences"];
+                };
+            };
+            /** @description A volume was outside the source-defined range. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
             403: {
                 headers: {
                     [name: string]: unknown;

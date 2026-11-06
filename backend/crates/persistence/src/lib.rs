@@ -30,6 +30,7 @@ pub mod learner_revisit_invitation;
 pub mod learner_revisit_run;
 pub mod learner_route_run;
 pub mod learner_shared_task;
+pub mod learner_sound_preference;
 pub mod learner_support;
 pub mod learner_tool_grant;
 pub mod learner_topic_detail;

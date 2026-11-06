@@ -30,6 +30,7 @@ mod learner_revisit_invitation;
 mod learner_revisit_run;
 mod learner_route_run;
 mod learner_shared_task;
+mod learner_sound_preference;
 mod learner_support;
 mod learner_tool_grant;
 mod learner_topic_detail;
@@ -271,6 +272,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/desk-planning-preference",
             get(learner_desk_planning::show).patch(learner_desk_planning::update),
+        )
+        .route(
+            "/api/v1/learner/sound-preferences",
+            get(learner_sound_preference::show).patch(learner_sound_preference::update),
         )
         .route("/api/v1/learner/search", get(learner_desk_search::index))
         .route(

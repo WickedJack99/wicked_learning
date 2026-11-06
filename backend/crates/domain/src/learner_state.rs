@@ -618,6 +618,25 @@ pub struct LearnerPlaybackDocument {
     pub activity: LearnerPlaybackActivity,
 }
 
+/// The source's private audio controls. These values are not authored content
+/// and are never shared between learners.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSoundPreferences {
+    pub muted: bool,
+    pub effects_volume: i16,
+    pub ambience_volume: i16,
+}
+
+impl LearnerSoundPreferences {
+    pub fn defaults() -> Self {
+        Self {
+            muted: false,
+            effects_volume: 100,
+            ambience_volume: 100,
+        }
+    }
+}
+
 /// Playback ownership determines which transaction is allowed to complete the
 /// activity. It is server-resolved; a browser never chooses this value.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]

@@ -438,6 +438,39 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application database is unavailable. }
+  /learner/sound-preferences:
+    get:
+      operationId: getLearnerSoundPreferences
+      summary: Read the current learner's private sound preferences.
+      responses:
+        '200':
+          description: The saved preferences, or source defaults when none have been saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerSoundPreferences' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateLearnerSoundPreferences
+      summary: Save the current learner's private sound preferences.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLearnerSoundPreferencesRequest' }
+      responses:
+        '200':
+          description: The saved private preference values.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerSoundPreferences' }
+        '400': { description: A volume was outside the source-defined range. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application database is unavailable. }
   /learning-support/topics:
     get:
       operationId: getLearningSupportTopics
@@ -3743,6 +3776,14 @@ components:
         node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         node_title: { type: string, maxLength: 240 }
         topic_title: { type: string, maxLength: 240 }
+    LearnerSoundPreferences:
+      type: object
+      additionalProperties: false
+      required: [muted, effects_volume, ambience_volume]
+      properties:
+        muted: { type: boolean }
+        effects_volume: { type: integer, minimum: 0, maximum: 100 }
+        ambience_volume: { type: integer, minimum: 0, maximum: 100 }
     LearnerSupportReply:
       type: object
       additionalProperties: false
@@ -4006,6 +4047,14 @@ components:
               enum: [any]
             - type: integer
               enum: [15, 30]
+    UpdateLearnerSoundPreferencesRequest:
+      type: object
+      additionalProperties: false
+      required: [muted, effects_volume, ambience_volume]
+      properties:
+        muted: { type: boolean }
+        effects_volume: { type: integer, minimum: 0, maximum: 100 }
+        ambience_volume: { type: integer, minimum: 0, maximum: 100 }
     LearnerJournalCheckIn:
       type: object
       additionalProperties: false

@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { useLearnerSoundPreferences } from './learner-sound-preferences';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type Dialogue = components['schemas']['LearnerNpcDialogue'];
@@ -326,11 +327,11 @@ function TypingText({ soundSet, speed, text }: { soundSet: DialogueTypingSoundSe
     return <p className="min-h-16 whitespace-pre-wrap text-sm leading-6">{visibleText}</p>;
 }
 
-/** Source-adapted typing-audio behaviour. User sound preferences have not
- * yet moved to Rust, so this preserves the source default (effects enabled at
- * full volume) without introducing a replacement settings control. */
+/** Source-adapted typing-audio behavior, gated by the learner's private
+ * source-equivalent effects preference. */
 function useDialogueTypingSoundPlayer(): { play: (sound: DialogueTypingSound) => void; stop: () => void } {
     const activeAudio = useRef<HTMLAudioElement | null>(null);
+    const preferences = useLearnerSoundPreferences();
     const stop = useCallback(() => {
         activeAudio.current?.pause();
         if (activeAudio.current) {
@@ -339,17 +340,22 @@ function useDialogueTypingSoundPlayer(): { play: (sound: DialogueTypingSound) =>
         }
     }, []);
     const play = useCallback((sound: DialogueTypingSound) => {
+        if (preferences.muted || preferences.effects_volume <= 0) {
+            return;
+        }
         stop();
         const audio = typingAudioCache.get(sound.url) ?? new Audio(sound.url);
         audio.preload = 'auto';
         audio.currentTime = 0;
-        audio.volume = clampNumber(sound.volume, 0, 100) / 100;
+        audio.volume =
+            (clampNumber(sound.volume, 0, 100) / 100) *
+            (preferences.effects_volume / 100);
         activeAudio.current = audio;
         void audio.play().catch(() => {
             if (activeAudio.current === audio) activeAudio.current = null;
         });
         typingAudioCache.set(sound.url, audio);
-    }, [stop]);
+    }, [preferences.effects_volume, preferences.muted, stop]);
     useEffect(() => stop, [stop]);
     return { play, stop };
 }
