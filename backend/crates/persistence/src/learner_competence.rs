@@ -48,6 +48,7 @@ struct TopicRow {
 
 #[derive(FromRow)]
 struct EvidenceRow {
+    activity_slug: String,
     activity_title: String,
     assistance_level: String,
     attempt_number: i32,
@@ -60,6 +61,7 @@ struct EvidenceRow {
     id: Uuid,
     independent_check: bool,
     learning_purpose: Option<String>,
+    node_slug: Option<String>,
     node_title: Option<String>,
     objective: Option<String>,
     observed_cues: Option<Value>,
@@ -320,7 +322,7 @@ async fn load_evidence_ledger(
         return Ok(HashMap::new());
     }
     let rows = sqlx::query_as::<_, EvidenceRow>(
-        "WITH ranked_events AS (SELECT events.*, ROW_NUMBER() OVER (PARTITION BY events.topic_slug ORDER BY events.created_at DESC, events.id DESC) AS topic_position FROM learner_evidence_events AS events WHERE events.principal_id = $1 AND events.topic_slug = ANY($2)) SELECT ranked_events.id, ranked_events.topic_slug, activities.title AS activity_title, ranked_events.assistance_level, ranked_events.attempt_number, ranked_events.concepts, ranked_events.confidence, ranked_events.confidence_after_feedback, ranked_events.evidence_criterion, ranked_events.evidence_rubric, ranked_events.evidence_type, ranked_events.is_independent_check AS independent_check, ranked_events.learning_purpose, NULL::text AS node_title, ranked_events.objective, ranked_events.observed_cues, ranked_events.outcome, to_char(ranked_events.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, ranked_events.source_references FROM ranked_events INNER JOIN learning_activities AS activities ON activities.id = ranked_events.activity_id WHERE ranked_events.topic_position <= $3 ORDER BY ranked_events.topic_slug ASC, ranked_events.created_at DESC, ranked_events.id DESC",
+        "WITH ranked_events AS (SELECT events.*, ROW_NUMBER() OVER (PARTITION BY events.topic_slug ORDER BY events.created_at DESC, events.id DESC) AS topic_position FROM learner_evidence_events AS events WHERE events.principal_id = $1 AND events.topic_slug = ANY($2)) SELECT ranked_events.id, ranked_events.topic_slug, activities.slug AS activity_slug, activities.title AS activity_title, ranked_events.assistance_level, ranked_events.attempt_number, ranked_events.concepts, ranked_events.confidence, ranked_events.confidence_after_feedback, ranked_events.evidence_criterion, ranked_events.evidence_rubric, ranked_events.evidence_type, ranked_events.is_independent_check AS independent_check, ranked_events.learning_purpose, NULL::text AS node_slug, NULL::text AS node_title, ranked_events.objective, ranked_events.observed_cues, ranked_events.outcome, to_char(ranked_events.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, ranked_events.source_references FROM ranked_events INNER JOIN learning_activities AS activities ON activities.id = ranked_events.activity_id WHERE ranked_events.topic_position <= $3 ORDER BY ranked_events.topic_slug ASC, ranked_events.created_at DESC, ranked_events.id DESC",
     )
     .bind(principal_id)
     .bind(topic_slugs)
@@ -334,6 +336,7 @@ async fn load_evidence_ledger(
             .entry(row.topic_slug.clone())
             .or_default()
             .push(LearnerCompetenceEvidence {
+                activity_slug: row.activity_slug,
                 activity_title: row.activity_title,
                 assistance_level: assistance_level(&row.assistance_level),
                 attempt_number: row.attempt_number,
@@ -347,6 +350,7 @@ async fn load_evidence_ledger(
                 id: row.id.to_string(),
                 independent_check: row.independent_check,
                 learning_purpose: row.learning_purpose,
+                node_slug: row.node_slug,
                 node_title: row.node_title,
                 objective: row.objective,
                 observed_cues: string_array(row.observed_cues),

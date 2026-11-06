@@ -319,6 +319,7 @@ pub struct LearnerTopicTrail {
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerTopicTrailCompetence {
     pub name: String,
+    pub revisit: Option<LearnerCompetenceRevisit>,
     pub slug: String,
     pub visual: LearnerCompetenceVisual,
 }
@@ -452,6 +453,7 @@ pub struct LearnerCompetenceVisual {
 /// private reflection text and any hidden server-side metadata.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerCompetenceEvidence {
+    pub activity_slug: String,
     pub activity_title: String,
     pub assistance_level: Option<String>,
     pub attempt_number: i32,
@@ -465,6 +467,7 @@ pub struct LearnerCompetenceEvidence {
     pub id: String,
     pub independent_check: bool,
     pub learning_purpose: Option<String>,
+    pub node_slug: Option<String>,
     pub node_title: Option<String>,
     pub objective: Option<String>,
     pub observed_cues: Vec<String>,

@@ -794,9 +794,9 @@ make an unfinished substitute part of the product. Both are rejected.
 **Limitations and trigger:** The standalone source `/paths` page remains
 unavailable. Trail intentionally omits unavailable competence-destination and
 direct-Journal controls rather than inventing a substitute; the journal is
-currently an overlay, not a direct document URL. Its evidence ledger and
-broader reflection-history controls need their own contracts and browser
-evidence before they are restored.
+currently an overlay, not a direct document URL. Its broader
+reflection-history controls need their own contracts and browser evidence
+before they are restored.
 The management control is also absent because the administration route has no
 Rust contract. The shared Paths/World/start policy now covers roles, completed
 nodes and valid schedules, but discovery, answer-event, tool, item and manual
@@ -1507,9 +1507,9 @@ topic-return controls restore their original activity-opening affordances
 through that command. Browser tests verify their CSRF requests and opaque
 navigation. The local Compose migration was applied and verified against the
 separate application PostgreSQL database. The lifted Topic Trail's recent
-reflection rows now use the same command; evidence-ledger and broader
-reflection-history controls remain unavailable until their own source data and
-browser evidence are added.
+reflection rows, competence evidence and return control now use the same
+command; broader reflection-history controls remain unavailable until their
+own source data and browser evidence are added.
 
 ## Phase 1 gate
 

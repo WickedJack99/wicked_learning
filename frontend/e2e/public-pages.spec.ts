@@ -924,7 +924,25 @@ test('the authenticated Topics reader keeps the source directory, topic Trail an
         page.getByRole('heading', { name: 'Your trail in this topic' }),
     ).toBeVisible();
     await expect(page.getByText('Recent reflections')).toBeVisible();
-    await page.getByRole('button', { name: /Consider a direction/ }).click();
+    await page
+        .locator('section[aria-labelledby="topic-learning-pulse-heading"]')
+        .getByRole('button', { name: /Consider a direction/ })
+        .click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/choose-a-direction\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d74$/,
+    );
+
+    await page.goto('/topics/map-orientation');
+    await expect(page.getByText('Recent moments')).toBeVisible();
+    await page.getByRole('button', { name: /Notice the map/ }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/notice-the-map\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d75$/,
+    );
+
+    await page.goto('/topics/map-orientation');
+    await page
+        .getByRole('button', { name: /Return to Consider a direction/ })
+        .click();
     await expect(page).toHaveURL(
         /\/learning\/nodes\/choose-a-direction\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d74$/,
     );
@@ -1120,6 +1138,7 @@ async function mockCompetenceReader(page: import('@playwright/test').Page) {
                             description: 'A growing sense of orientation.',
                             evidence_ledger: [
                                 {
+                                    activity_slug: 'consider-a-direction',
                                     activity_title: 'Consider a direction',
                                     assistance_level: null,
                                     attempt_number: 1,
@@ -1133,6 +1152,7 @@ async function mockCompetenceReader(page: import('@playwright/test').Page) {
                                     id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                                     independent_check: false,
                                     learning_purpose: null,
+                                    node_slug: 'choose-a-direction',
                                     node_title: 'Choose a direction',
                                     objective: null,
                                     observed_cues: [],
@@ -1159,7 +1179,52 @@ async function mockCompetenceReader(page: import('@playwright/test').Page) {
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
-                    competence: null,
+                    competence: {
+                        name: 'Map orientation',
+                        revisit: {
+                            activity_slug: 'consider-a-direction',
+                            activity_title: 'Consider a direction',
+                            node_slug: 'choose-a-direction',
+                            node_title: 'Choose a direction',
+                        },
+                        slug: 'map-orientation',
+                        visual: {
+                            aura_ratio: 0.4,
+                            brightness_ratio: 0.4,
+                            description: 'A growing light.',
+                            evidence_ledger: [
+                                {
+                                    activity_slug: 'notice-the-map',
+                                    activity_title: 'Notice the map',
+                                    assistance_level: null,
+                                    attempt_number: 1,
+                                    concepts: [],
+                                    confidence: null,
+                                    confidence_after_feedback: null,
+                                    evidence_claim: 'participation',
+                                    evidence_criterion: null,
+                                    evidence_rubric: [],
+                                    evidence_type: 'participate',
+                                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d76',
+                                    independent_check: false,
+                                    learning_purpose: null,
+                                    node_slug: 'notice-the-map',
+                                    node_title: 'Notice the map',
+                                    objective: null,
+                                    observed_cues: [],
+                                    outcome: 'completed',
+                                    recorded_at: '2026-11-04T12:00:00Z',
+                                    sources: [],
+                                },
+                            ],
+                            evidence_types: ['participate'],
+                            learning_periods: ['Nov 2026'],
+                            recent_description:
+                                'A recent learning moment is gently lighting this area.',
+                            size_ratio: 0.4,
+                            size_tier: 'star',
+                        },
+                    },
                     learning_areas: [],
                     learning_pulse: [],
                     reflection_narrative: null,
@@ -1252,6 +1317,52 @@ async function mockTopicReader(page: import('@playwright/test').Page) {
         title: 'Map orientation',
     };
     const pagination = { current_page: 1, last_page: 1, per_page: 6, total: 1 };
+    const topicCompetence = {
+        name: 'Map orientation',
+        revisit: {
+            activity_slug: 'consider-a-direction',
+            activity_title: 'Consider a direction',
+            node_slug: 'choose-a-direction',
+            node_title: 'Choose a direction',
+        },
+        slug: 'map-orientation',
+        visual: {
+            aura_ratio: 0.4,
+            brightness_ratio: 0.4,
+            description: 'A growing light.',
+            evidence_ledger: [
+                {
+                    activity_slug: 'notice-the-map',
+                    activity_title: 'Notice the map',
+                    assistance_level: null,
+                    attempt_number: 1,
+                    concepts: [],
+                    confidence: null,
+                    confidence_after_feedback: null,
+                    evidence_claim: 'participation',
+                    evidence_criterion: null,
+                    evidence_rubric: [],
+                    evidence_type: 'participate',
+                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d76',
+                    independent_check: false,
+                    learning_purpose: null,
+                    node_slug: 'notice-the-map',
+                    node_title: 'Notice the map',
+                    objective: null,
+                    observed_cues: [],
+                    outcome: 'completed',
+                    recorded_at: '2026-11-04T12:00:00Z',
+                    sources: [],
+                },
+            ],
+            evidence_types: ['participate'],
+            learning_periods: ['Nov 2026'],
+            recent_description:
+                'A recent learning moment is gently lighting this area.',
+            size_ratio: 0.4,
+            size_tier: 'star',
+        },
+    };
 
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
@@ -1276,6 +1387,24 @@ async function mockTopicReader(page: import('@playwright/test').Page) {
                     activity_slug: 'consider-a-direction',
                     node_slug: 'choose-a-direction',
                     play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d74',
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/activities/notice-the-map/replay',
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    activity_slug: 'notice-the-map',
+                    node_slug: 'notice-the-map',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d75',
                     status: 'in_progress',
                 }),
             });
@@ -1311,7 +1440,7 @@ async function mockTopicReader(page: import('@playwright/test').Page) {
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
-                    competence: null,
+                    competence: topicCompetence,
                     learning_areas: [
                         {
                             learning_intents: ['retrieve'],

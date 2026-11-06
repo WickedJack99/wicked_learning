@@ -1988,7 +1988,7 @@ components:
       properties:
         competence:
           oneOf:
-            - $ref: '#/components/schemas/LearnerCompetenceTopic'
+            - $ref: '#/components/schemas/LearnerTopicTrailCompetence'
             - type: 'null'
         learning_areas:
           type: array
@@ -2005,8 +2005,20 @@ components:
         subtopic_competence:
           type: array
           maxItems: 100
-          items: { $ref: '#/components/schemas/LearnerCompetenceTopic' }
+          items: { $ref: '#/components/schemas/LearnerTopicTrailCompetence' }
         topic: { $ref: '#/components/schemas/LearnerTopicDetailHeader' }
+    LearnerTopicTrailCompetence:
+      type: object
+      additionalProperties: false
+      required: [name, revisit, slug, visual]
+      properties:
+        name: { type: string, maxLength: 120 }
+        revisit:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerCompetenceRevisit'
+            - type: 'null'
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        visual: { $ref: '#/components/schemas/LearnerCompetenceVisual' }
     LearnerTopicLearningArea:
       type: object
       additionalProperties: false
@@ -2175,8 +2187,9 @@ components:
     LearnerCompetenceEvidence:
       type: object
       additionalProperties: false
-      required: [activity_title, assistance_level, attempt_number, concepts, confidence, confidence_after_feedback, evidence_claim, evidence_criterion, evidence_rubric, evidence_type, id, independent_check, learning_purpose, node_title, objective, observed_cues, outcome, recorded_at, sources]
+      required: [activity_slug, activity_title, assistance_level, attempt_number, concepts, confidence, confidence_after_feedback, evidence_claim, evidence_criterion, evidence_rubric, evidence_type, id, independent_check, learning_purpose, node_slug, node_title, objective, observed_cues, outcome, recorded_at, sources]
       properties:
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         activity_title: { type: string, maxLength: 240 }
         assistance_level: { type: [string, 'null'] }
         attempt_number: { type: integer, minimum: 1 }
@@ -2190,6 +2203,7 @@ components:
         id: { type: string, format: uuid }
         independent_check: { type: boolean }
         learning_purpose: { type: [string, 'null'], maxLength: 600 }
+        node_slug: { type: [string, 'null'], pattern: '^[a-z0-9-]+$' }
         node_title: { type: [string, 'null'], maxLength: 240 }
         objective: { type: [string, 'null'], maxLength: 600 }
         observed_cues: { type: array, maxItems: 8, items: { type: string, maxLength: 120 } }

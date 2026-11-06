@@ -1181,12 +1181,18 @@ export interface components {
             title: string;
         };
         LearnerTopicTrail: {
-            competence: components["schemas"]["LearnerCompetenceTopic"] | null;
+            competence: components["schemas"]["LearnerTopicTrailCompetence"] | null;
             learning_areas: components["schemas"]["LearnerTopicLearningArea"][];
             learning_pulse: components["schemas"]["LearnerTopicLearningPulse"][];
             reflection_narrative: components["schemas"]["LearnerTopicReflectionNarrative"] | null;
-            subtopic_competence: components["schemas"]["LearnerCompetenceTopic"][];
+            subtopic_competence: components["schemas"]["LearnerTopicTrailCompetence"][];
             topic: components["schemas"]["LearnerTopicDetailHeader"];
+        };
+        LearnerTopicTrailCompetence: {
+            name: string;
+            revisit: components["schemas"]["LearnerCompetenceRevisit"] | null;
+            slug: string;
+            visual: components["schemas"]["LearnerCompetenceVisual"];
         };
         LearnerTopicLearningArea: {
             learning_intents: ("apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer")[];
@@ -1297,6 +1303,7 @@ export interface components {
             size_tier: "spark" | "star" | "beacon" | "constellation";
         };
         LearnerCompetenceEvidence: {
+            activity_slug: string;
             activity_title: string;
             assistance_level: string | null;
             attempt_number: number;
@@ -1313,6 +1320,7 @@ export interface components {
             id: string;
             independent_check: boolean;
             learning_purpose: string | null;
+            node_slug: string | null;
             node_title: string | null;
             objective: string | null;
             observed_cues: string[];

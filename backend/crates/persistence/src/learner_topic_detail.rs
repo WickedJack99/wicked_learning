@@ -10,11 +10,11 @@ use wicked_learning_application::learner_topic_detail::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerCompetenceEvidence, LearnerCompetenceSource, LearnerTopicDetailHeader,
-        LearnerTopicLearningArea, LearnerTopicLearningPulse, LearnerTopicMapSummary,
-        LearnerTopicMaps, LearnerTopicOverview, LearnerTopicPagination, LearnerTopicParent,
-        LearnerTopicReflectionNarrative, LearnerTopicReflectionSnapshot, LearnerTopicSummary,
-        LearnerTopicTrail, LearnerTopicTrailCompetence,
+        LearnerCompetenceEvidence, LearnerCompetenceRevisit, LearnerCompetenceSource,
+        LearnerTopicDetailHeader, LearnerTopicLearningArea, LearnerTopicLearningPulse,
+        LearnerTopicMapSummary, LearnerTopicMaps, LearnerTopicOverview, LearnerTopicPagination,
+        LearnerTopicParent, LearnerTopicReflectionNarrative, LearnerTopicReflectionSnapshot,
+        LearnerTopicSummary, LearnerTopicTrail, LearnerTopicTrailCompetence,
     },
 };
 
@@ -104,6 +104,7 @@ struct TrailCompetenceRow {
 
 #[derive(FromRow)]
 struct TrailEvidenceRow {
+    activity_slug: String,
     activity_title: String,
     assistance_level: String,
     attempt_number: i32,
@@ -116,6 +117,7 @@ struct TrailEvidenceRow {
     id: Uuid,
     independent_check: bool,
     learning_purpose: Option<String>,
+    node_slug: Option<String>,
     node_title: Option<String>,
     objective: Option<String>,
     observed_cues: Option<Value>,
@@ -486,19 +488,34 @@ async fn load_trail_competence(
 
     Ok(rows
         .into_iter()
-        .map(|row| LearnerTopicTrailCompetence {
-            name: row.name,
-            slug: row.slug.clone(),
-            visual: visual_for_topic(
-                row.total_signal,
-                row.recent_signal,
-                row.growth_threshold,
-                row.brightness_threshold,
-                row.aura_threshold,
-                row.evidence_types,
-                row.learning_periods,
-                ledger.remove(&row.slug).unwrap_or_default(),
-            ),
+        .map(|row| {
+            let evidence_ledger = ledger.remove(&row.slug).unwrap_or_default();
+            let revisit = evidence_ledger.first().and_then(|entry| {
+                entry.node_slug.as_ref().zip(entry.node_title.as_ref()).map(
+                    |(node_slug, node_title)| LearnerCompetenceRevisit {
+                        activity_slug: entry.activity_slug.clone(),
+                        activity_title: entry.activity_title.clone(),
+                        node_slug: node_slug.clone(),
+                        node_title: node_title.clone(),
+                    },
+                )
+            });
+
+            LearnerTopicTrailCompetence {
+                name: row.name,
+                revisit,
+                slug: row.slug.clone(),
+                visual: visual_for_topic(
+                    row.total_signal,
+                    row.recent_signal,
+                    row.growth_threshold,
+                    row.brightness_threshold,
+                    row.aura_threshold,
+                    row.evidence_types,
+                    row.learning_periods,
+                    evidence_ledger,
+                ),
+            }
         })
         .collect())
 }
@@ -515,7 +532,7 @@ async fn load_trail_evidence(
         return Ok(HashMap::new());
     }
     let rows = sqlx::query_as::<_, TrailEvidenceRow>(
-        "WITH visible_events AS (SELECT events.*, maps.topic_id AS map_topic_id FROM learner_evidence_events AS events INNER JOIN learning_activities AS activities ON activities.id = events.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE events.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) AND (events.topic_slug = $5 OR events.topic_slug IN (SELECT topics.slug FROM learning_topics AS topics WHERE topics.id = ANY($3) AND topics.published_at IS NOT NULL) OR maps.topic_id = ANY($3))), ranked_events AS (SELECT visible_events.*, ROW_NUMBER() OVER (PARTITION BY topic_slug ORDER BY created_at DESC, id DESC) AS topic_position FROM visible_events WHERE topic_slug = ANY($4)) SELECT ranked_events.id, ranked_events.topic_slug, activities.title AS activity_title, ranked_events.assistance_level, ranked_events.attempt_number, ranked_events.concepts, ranked_events.confidence, ranked_events.confidence_after_feedback, ranked_events.evidence_criterion, ranked_events.evidence_rubric, ranked_events.evidence_type, ranked_events.is_independent_check AS independent_check, ranked_events.learning_purpose, nodes.title AS node_title, ranked_events.objective, ranked_events.observed_cues, ranked_events.outcome, to_char(ranked_events.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, ranked_events.source_references FROM ranked_events INNER JOIN learning_activities AS activities ON activities.id = ranked_events.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id WHERE ranked_events.topic_position <= 12 ORDER BY ranked_events.topic_slug ASC, ranked_events.created_at DESC, ranked_events.id DESC",
+        "WITH visible_events AS (SELECT events.*, maps.topic_id AS map_topic_id FROM learner_evidence_events AS events INNER JOIN learning_activities AS activities ON activities.id = events.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE events.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) AND (events.topic_slug = $5 OR events.topic_slug IN (SELECT topics.slug FROM learning_topics AS topics WHERE topics.id = ANY($3) AND topics.published_at IS NOT NULL) OR maps.topic_id = ANY($3))), ranked_events AS (SELECT visible_events.*, ROW_NUMBER() OVER (PARTITION BY topic_slug ORDER BY created_at DESC, id DESC) AS topic_position FROM visible_events WHERE topic_slug = ANY($4)) SELECT ranked_events.id, ranked_events.topic_slug, activities.slug AS activity_slug, activities.title AS activity_title, ranked_events.assistance_level, ranked_events.attempt_number, ranked_events.concepts, ranked_events.confidence, ranked_events.confidence_after_feedback, ranked_events.evidence_criterion, ranked_events.evidence_rubric, ranked_events.evidence_type, ranked_events.is_independent_check AS independent_check, ranked_events.learning_purpose, nodes.slug AS node_slug, nodes.title AS node_title, ranked_events.objective, ranked_events.observed_cues, ranked_events.outcome, to_char(ranked_events.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, ranked_events.source_references FROM ranked_events INNER JOIN learning_activities AS activities ON activities.id = ranked_events.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id WHERE ranked_events.topic_position <= 12 ORDER BY ranked_events.topic_slug ASC, ranked_events.created_at DESC, ranked_events.id DESC",
     )
     .bind(principal_id)
     .bind(roles)
@@ -531,6 +548,7 @@ async fn load_trail_evidence(
             .entry(row.topic_slug.clone())
             .or_default()
             .push(LearnerCompetenceEvidence {
+                activity_slug: row.activity_slug,
                 activity_title: row.activity_title,
                 assistance_level: (row.assistance_level != "untracked"
                     && !row.assistance_level.is_empty())
@@ -546,6 +564,7 @@ async fn load_trail_evidence(
                 id: row.id.to_string(),
                 independent_check: row.independent_check,
                 learning_purpose: row.learning_purpose,
+                node_slug: row.node_slug,
                 node_title: row.node_title,
                 objective: row.objective,
                 observed_cues: string_array(row.observed_cues),

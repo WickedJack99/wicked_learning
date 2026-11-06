@@ -708,7 +708,11 @@ function TrailPanel({
                     </div>
                 ) : null}
                 {competence ? (
-                    <CompetenceDetail competence={competence} />
+                    <CompetenceDetail
+                        competence={competence}
+                        onOpenActivity={onOpenActivity}
+                        openingActivitySlug={openingActivitySlug}
+                    />
                 ) : null}
             </section>
             {data.learning_areas.length ? (
@@ -804,7 +808,7 @@ function TrailPanel({
 function CompetenceCard({
     area,
 }: {
-    area: components['schemas']['LearnerCompetenceTopic'];
+    area: components['schemas']['LearnerTopicTrailCompetence'];
 }) {
     return (
         <article className="flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_45%,transparent)] p-3">
@@ -836,8 +840,12 @@ function CompetenceCard({
 
 function CompetenceDetail({
     competence,
+    onOpenActivity,
+    openingActivitySlug,
 }: {
-    competence: components['schemas']['LearnerCompetenceTopic'];
+    competence: components['schemas']['LearnerTopicTrailCompetence'];
+    onOpenActivity: (activitySlug: string) => Promise<void>;
+    openingActivitySlug: string | null;
 }) {
     return (
         <>
@@ -878,9 +886,14 @@ function CompetenceDetail({
                     </p>
                     <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
                         {competence.visual.evidence_ledger.map((entry) => (
-                            <article
-                                className="flex items-start justify-between gap-4 py-3"
+                            <button
+                                className="flex w-full items-start justify-between gap-4 py-3 text-left transition hover:text-[var(--learner-accent)] disabled:opacity-50"
+                                disabled={openingActivitySlug !== null}
                                 key={entry.id}
+                                onClick={() =>
+                                    void onOpenActivity(entry.activity_slug)
+                                }
+                                type="button"
                             >
                                 <span className="min-w-0">
                                     <span className="block truncate text-sm font-medium">
@@ -903,10 +916,23 @@ function CompetenceDetail({
                                 >
                                     {formatDate(entry.recorded_at)}
                                 </time>
-                            </article>
+                            </button>
                         ))}
                     </div>
                 </div>
+            ) : null}
+            {competence.revisit ? (
+                <button
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)] transition hover:text-[var(--learner-heading-text)] disabled:opacity-50"
+                    disabled={openingActivitySlug !== null}
+                    onClick={() =>
+                        void onOpenActivity(competence.revisit!.activity_slug)
+                    }
+                    type="button"
+                >
+                    Return to {competence.revisit.activity_title}
+                    <ArrowRight className="size-4" />
+                </button>
             ) : null}
         </>
     );
