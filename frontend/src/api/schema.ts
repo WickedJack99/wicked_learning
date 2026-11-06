@@ -737,6 +737,108 @@ export interface paths {
         patch: operations["updateLearnerPeerResponseHelpfulness"];
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit one source-defined shared-task contribution from the active route run. */
+        post: operations["submitLearnerSharedTaskContribution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/submissions/{submission_id}/revision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Revise the learner's eligible shared contribution once after peer feedback. */
+        patch: operations["reviseLearnerSharedTaskContribution"];
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit one anonymous peer review for another opted-in contribution. */
+        post: operations["submitLearnerSharedTaskReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews/{review_id}/helpfulness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set or clear the contributor's helpful marker on a received anonymous review. */
+        patch: operations["updateLearnerSharedTaskReviewHelpfulness"];
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews/{review_id}/follow-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save or clear the contributor's private follow-up note for a received review. */
+        patch: operations["saveLearnerSharedTaskReviewFollowUp"];
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save the learner's private per-run project checklist. */
+        post: operations["saveLearnerSharedTaskChecklist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue": {
         parameters: {
             query?: never;
@@ -1904,7 +2006,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "message_wall" | "npc_dialogue";
+            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "message_wall" | "npc_dialogue" | "shared_task";
             config: {
                 [key: string]: unknown;
             };
@@ -1915,6 +2017,109 @@ export interface components {
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
             review_context: components["schemas"]["LearnerPlaybackReviewContext"][];
             npc_dialogue: components["schemas"]["LearnerNpcDialogue"] | null;
+            shared_task: components["schemas"]["LearnerSharedTaskState"] | null;
+        };
+        LearnerSharedTaskState: {
+            accepted_count: number;
+            can_share_contributions: boolean;
+            checklist: components["schemas"]["LearnerSharedTaskChecklist"];
+            contributions: components["schemas"]["LearnerSharedTaskContribution"][];
+            has_submitted: boolean;
+            is_complete: boolean;
+            /** Format: date-time */
+            latest_submission_at: string | null;
+            peer_review: components["schemas"]["LearnerSharedTaskPeerReview"] | null;
+            remaining: number;
+            submission: components["schemas"]["LearnerSharedTaskSubmission"] | null;
+            threshold: number;
+        };
+        LearnerSharedTaskContribution: {
+            body: string;
+            project_step: string | null;
+            /** Format: date-time */
+            submitted_at: string | null;
+            /** @enum {string} */
+            task_kind: "text" | "question" | "reflection";
+            truncated: boolean;
+        };
+        LearnerSharedTaskSubmission: {
+            body: string;
+            can_revise: boolean;
+            /** Format: uuid */
+            id: string;
+            project_step: string | null;
+            /** Format: date-time */
+            revised_at: string | null;
+            revised_body: string | null;
+        };
+        LearnerSharedTaskPeerReview: {
+            /** @enum {boolean} */
+            enabled: true;
+            has_reviewed: boolean;
+            prompt: string;
+            received_reviews: components["schemas"]["LearnerSharedTaskReceivedReview"][];
+            reviewable_contributions: components["schemas"]["LearnerSharedTaskReviewableContribution"][];
+            submitted_review: components["schemas"]["LearnerSharedTaskSubmittedReview"] | null;
+        };
+        LearnerSharedTaskReceivedReview: {
+            body: string;
+            can_mark_helpful: boolean;
+            /** Format: date-time */
+            created_at: string | null;
+            follow_up: string | null;
+            /** Format: uuid */
+            id: string;
+            is_helpful: boolean;
+            project_step: string | null;
+            /** @enum {string|null} */
+            response_type: "explanation" | "example" | "question" | "counterexample" | null;
+        };
+        LearnerSharedTaskReviewableContribution: {
+            body: string;
+            /** Format: uuid */
+            id: string;
+            project_step: string | null;
+            /** @enum {string} */
+            task_kind: "text" | "question" | "reflection";
+            truncated: boolean;
+        };
+        LearnerSharedTaskSubmittedReview: {
+            body: string;
+            /** Format: date-time */
+            created_at: string | null;
+            /** Format: uuid */
+            id: string;
+            project_step: string | null;
+            /** @enum {string|null} */
+            response_type: "explanation" | "example" | "question" | "counterexample" | null;
+        };
+        LearnerSharedTaskChecklist: {
+            completed_step_indexes: number[];
+        };
+        SubmitLearnerSharedTaskContribution: {
+            body: string;
+            share_with_peers: boolean;
+            project_step_index?: number | null;
+        };
+        ReviseLearnerSharedTaskContribution: {
+            body: string;
+        };
+        SubmitLearnerSharedTaskReview: {
+            body: string;
+            /** Format: uuid */
+            submission_id: string;
+            /** @enum {string|null} */
+            response_type?: "explanation" | "example" | "question" | "counterexample" | null;
+            project_step_index?: number | null;
+        };
+        UpdateLearnerSharedTaskReviewHelpfulness: {
+            helpful: boolean;
+        };
+        SaveLearnerSharedTaskReviewFollowUp: {
+            body: string | null;
+        };
+        SaveLearnerSharedTaskChecklist: {
+            completed_step_indexes: number[];
         };
         LearnerNpcDialogue: {
             /** Format: uuid */
@@ -5014,6 +5219,392 @@ export interface operations {
                 content?: never;
             };
             /** @description The active peer wall */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submitLearnerSharedTaskContribution: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitLearnerSharedTaskContribution"];
+            };
+        };
+        responses: {
+            /** @description The updated anonymous shared-task state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSharedTaskState"];
+                };
+            };
+            /** @description The contribution fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active shared task is unavailable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reviseLearnerSharedTaskContribution: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviseLearnerSharedTaskContribution"];
+            };
+        };
+        responses: {
+            /** @description The updated anonymous shared-task state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSharedTaskState"];
+                };
+            };
+            /** @description The revised contribution is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active task */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submitLearnerSharedTaskReview: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitLearnerSharedTaskReview"];
+            };
+        };
+        responses: {
+            /** @description The updated anonymous shared-task state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSharedTaskState"];
+                };
+            };
+            /** @description The review fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active task or selected contribution is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerSharedTaskReviewHelpfulness: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerSharedTaskReviewHelpfulness"];
+            };
+        };
+        responses: {
+            /** @description The updated anonymous shared-task state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSharedTaskState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active task */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    saveLearnerSharedTaskReviewFollowUp: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveLearnerSharedTaskReviewFollowUp"];
+            };
+        };
+        responses: {
+            /** @description The updated anonymous shared-task state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSharedTaskState"];
+                };
+            };
+            /** @description The follow-up note is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active task */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    saveLearnerSharedTaskChecklist: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveLearnerSharedTaskChecklist"];
+            };
+        };
+        responses: {
+            /** @description The private checklist state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerSharedTaskChecklist"];
+                };
+            };
+            /** @description The checklist indexes are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active shared task is unavailable or not owned by this learner. */
             404: {
                 headers: {
                     [name: string]: unknown;

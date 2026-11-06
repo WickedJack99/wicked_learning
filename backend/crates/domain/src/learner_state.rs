@@ -669,6 +669,9 @@ pub struct LearnerPlaybackActivity {
     /// renderable projection; commands still resolve every permitted edge on
     /// the server from the active route run.
     pub npc_dialogue: Option<LearnerNpcDialogue>,
+    /// Present only for an authored shared-task activity on an active route
+    /// run. Peer identities remain absent from this projection.
+    pub shared_task: Option<LearnerSharedTaskState>,
 }
 
 /// A private support request attached to the current message-prompt activity.
@@ -714,6 +717,90 @@ pub struct LearnerPeerMessageResponse {
     pub id: String,
     pub is_helpful: bool,
     pub response_type: Option<String>,
+}
+
+/// The bounded, anonymous collaboration projection for one authorized shared
+/// task. It contains no identity projection: learners can see only writing
+/// another learner explicitly chose to share.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskState {
+    pub accepted_count: i64,
+    pub can_share_contributions: bool,
+    /// The active learner's private per-run checklist. It never contributes
+    /// to the shared threshold or projects into another learner's playback.
+    pub checklist: LearnerSharedTaskChecklist,
+    pub contributions: Vec<LearnerSharedTaskContribution>,
+    pub has_submitted: bool,
+    pub is_complete: bool,
+    pub latest_submission_at: Option<String>,
+    pub peer_review: Option<LearnerSharedTaskPeerReview>,
+    pub remaining: i64,
+    pub submission: Option<LearnerSharedTaskSubmission>,
+    pub threshold: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskContribution {
+    pub body: String,
+    pub project_step: Option<String>,
+    pub submitted_at: Option<String>,
+    pub task_kind: String,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskSubmission {
+    pub body: String,
+    pub can_revise: bool,
+    pub id: String,
+    pub project_step: Option<String>,
+    pub revised_at: Option<String>,
+    pub revised_body: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskPeerReview {
+    pub enabled: bool,
+    pub has_reviewed: bool,
+    pub prompt: String,
+    pub received_reviews: Vec<LearnerSharedTaskReceivedReview>,
+    pub reviewable_contributions: Vec<LearnerSharedTaskReviewableContribution>,
+    pub submitted_review: Option<LearnerSharedTaskSubmittedReview>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskReceivedReview {
+    pub body: String,
+    pub can_mark_helpful: bool,
+    pub created_at: Option<String>,
+    pub follow_up: Option<String>,
+    pub id: String,
+    pub is_helpful: bool,
+    pub project_step: Option<String>,
+    pub response_type: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskReviewableContribution {
+    pub body: String,
+    pub id: String,
+    pub project_step: Option<String>,
+    pub task_kind: String,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskSubmittedReview {
+    pub body: String,
+    pub created_at: Option<String>,
+    pub id: String,
+    pub project_step: Option<String>,
+    pub response_type: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerSharedTaskChecklist {
+    pub completed_step_indexes: Vec<i16>,
 }
 
 /// A staff-moderation topic that an authorized worker may open. This is

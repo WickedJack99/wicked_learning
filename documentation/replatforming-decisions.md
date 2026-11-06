@@ -2060,6 +2060,50 @@ remains covered separately. This is not full Settings, organization, authoring
 or user-management migration, and does not make peer messages a public
 browsing surface.
 
+## ADR-052: Shared Task stays activity-scoped, anonymous and threshold-gated
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Shared Task combines an activity-wide contribution
+counter with learner-private submissions, explicit anonymous sharing, optional
+anonymous peer review, private contributor follow-up and a per-run project
+checklist. Splitting these into a public feed, generic review endpoint or
+browser-managed completion would leak context or allow an incomplete activity
+to advance.
+
+**Decision:** Use separate application-database submissions, reviews,
+contributor-owned follow-ups and run-scoped checklists. Each command resolves
+the authenticated application principal and current normal route run before it
+accepts browser values. Configuration is validated and safely projected;
+sharing is opt-in, contribution/review lists are capped at five and excerpts at
+500 characters. Review requires an eligible contributor and another learner's
+opted-in submission, and is unique per reviewer/activity. Reviewer identity is
+never serialized. A contributor alone may mark a received review helpful,
+store a private follow-up, or revise once after feedback. Checklist state is
+private to `(principal, play run, activity)`.
+
+Shared Task is admitted only on an active ordinary route run. Replay, recall
+and revisit routes remain excluded. Completion counts accepted submissions
+against the validated threshold inside the server transaction, so a browser
+request cannot forge shared progress.
+
+**Why:** This preserves source cooperation and privacy without creating a
+standalone social surface, duplicating authorization in React or turning a
+private planning aid into public learner measurement.
+
+**Alternatives:** A global contribution/review feed loses the authored
+activity boundary. Client-side threshold checks can be bypassed. Returning
+reviewer identities changes the anonymous source interaction. Storing the
+checklist with a contribution makes a per-run planning state permanent or
+shared. All are rejected.
+
+**Evidence and boundary:** OpenAPI defines typed commands and bounded
+anonymous projections; generated TypeScript builds with React. The local
+Compose browser test uses two fresh identities to prove route sequencing,
+anonymity, review, helpfulness, follow-up, revision, checklist and the lifted
+activity frame. This does not migrate Shared Task authoring/editor UI,
+organizations, generic discussion or production routing.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

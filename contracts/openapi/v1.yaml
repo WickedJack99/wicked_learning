@@ -1030,6 +1030,113 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active peer wall, message, response or author permission is unavailable. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/submissions:
+    post:
+      operationId: submitLearnerSharedTaskContribution
+      summary: Submit one source-defined shared-task contribution from the active route run.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubmitLearnerSharedTaskContribution' } } } }
+      responses:
+        '200': { description: The updated anonymous shared-task state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerSharedTaskState' } } } }
+        '400': { description: The contribution fields are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active shared task is unavailable, stale, or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/submissions/{submission_id}/revision:
+    patch:
+      operationId: reviseLearnerSharedTaskContribution
+      summary: Revise the learner's eligible shared contribution once after peer feedback.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - name: submission_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReviseLearnerSharedTaskContribution' } } } }
+      responses:
+        '200': { description: The updated anonymous shared-task state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerSharedTaskState' } } } }
+        '400': { description: The revised contribution is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active task, submission, or revision permission is unavailable. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews:
+    post:
+      operationId: submitLearnerSharedTaskReview
+      summary: Submit one anonymous peer review for another opted-in contribution.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubmitLearnerSharedTaskReview' } } } }
+      responses:
+        '200': { description: The updated anonymous shared-task state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerSharedTaskState' } } } }
+        '400': { description: The review fields are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active task or selected contribution is unavailable. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews/{review_id}/helpfulness:
+    patch:
+      operationId: updateLearnerSharedTaskReviewHelpfulness
+      summary: Set or clear the contributor's helpful marker on a received anonymous review.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - name: review_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateLearnerSharedTaskReviewHelpfulness' } } } }
+      responses:
+        '200': { description: The updated anonymous shared-task state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerSharedTaskState' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active task, review, or contributor permission is unavailable. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews/{review_id}/follow-up:
+    patch:
+      operationId: saveLearnerSharedTaskReviewFollowUp
+      summary: Save or clear the contributor's private follow-up note for a received review.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - name: review_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaveLearnerSharedTaskReviewFollowUp' } } } }
+      responses:
+        '200': { description: The updated anonymous shared-task state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerSharedTaskState' } } } }
+        '400': { description: The follow-up note is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active task, review, or contributor permission is unavailable. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/checklist:
+    post:
+      operationId: saveLearnerSharedTaskChecklist
+      summary: Save the learner's private per-run project checklist.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaveLearnerSharedTaskChecklist' } } } }
+      responses:
+        '200': { description: The private checklist state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerSharedTaskChecklist' } } } }
+        '400': { description: The checklist indexes are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active shared task is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue:
     post:
       operationId: continueLearnerNpcDialogue
@@ -3070,7 +3177,7 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue]
+      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue, shared_task]
       properties:
         slug:
           type: string
@@ -3081,7 +3188,7 @@ components:
           type: string
         activity_type:
           type: string
-          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, message_prompt, message_wall, npc_dialogue]
+          enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, message_prompt, message_wall, npc_dialogue, shared_task]
         config:
           type: object
           additionalProperties: true
@@ -3104,6 +3211,164 @@ components:
           anyOf:
             - $ref: '#/components/schemas/LearnerNpcDialogue'
             - type: 'null'
+        shared_task:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerSharedTaskState'
+            - type: 'null'
+    LearnerSharedTaskState:
+      type: object
+      additionalProperties: false
+      required: [accepted_count, can_share_contributions, checklist, contributions, has_submitted, is_complete, latest_submission_at, peer_review, remaining, submission, threshold]
+      properties:
+        accepted_count: { type: integer, minimum: 0 }
+        can_share_contributions: { type: boolean }
+        checklist: { $ref: '#/components/schemas/LearnerSharedTaskChecklist' }
+        contributions:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/LearnerSharedTaskContribution' }
+        has_submitted: { type: boolean }
+        is_complete: { type: boolean }
+        latest_submission_at: { type: [string, 'null'], format: date-time }
+        peer_review:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerSharedTaskPeerReview'
+            - type: 'null'
+        remaining: { type: integer, minimum: 0 }
+        submission:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerSharedTaskSubmission'
+            - type: 'null'
+        threshold: { type: integer, minimum: 1, maximum: 1000 }
+    LearnerSharedTaskContribution:
+      type: object
+      additionalProperties: false
+      required: [body, project_step, submitted_at, task_kind, truncated]
+      properties:
+        body: { type: string, maxLength: 500 }
+        project_step: { type: [string, 'null'], maxLength: 240 }
+        submitted_at: { type: [string, 'null'], format: date-time }
+        task_kind: { type: string, enum: [text, question, reflection] }
+        truncated: { type: boolean }
+    LearnerSharedTaskSubmission:
+      type: object
+      additionalProperties: false
+      required: [body, can_revise, id, project_step, revised_at, revised_body]
+      properties:
+        body: { type: string, maxLength: 20000 }
+        can_revise: { type: boolean }
+        id: { type: string, format: uuid }
+        project_step: { type: [string, 'null'], maxLength: 240 }
+        revised_at: { type: [string, 'null'], format: date-time }
+        revised_body: { type: [string, 'null'], maxLength: 20000 }
+    LearnerSharedTaskPeerReview:
+      type: object
+      additionalProperties: false
+      required: [enabled, has_reviewed, prompt, received_reviews, reviewable_contributions, submitted_review]
+      properties:
+        enabled: { type: boolean, enum: [true] }
+        has_reviewed: { type: boolean }
+        prompt: { type: string, minLength: 1, maxLength: 1000 }
+        received_reviews:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/LearnerSharedTaskReceivedReview' }
+        reviewable_contributions:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/LearnerSharedTaskReviewableContribution' }
+        submitted_review:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerSharedTaskSubmittedReview'
+            - type: 'null'
+    LearnerSharedTaskReceivedReview:
+      type: object
+      additionalProperties: false
+      required: [body, can_mark_helpful, created_at, follow_up, id, is_helpful, project_step, response_type]
+      properties:
+        body: { type: string, maxLength: 2000 }
+        can_mark_helpful: { type: boolean }
+        created_at: { type: [string, 'null'], format: date-time }
+        follow_up: { type: [string, 'null'], maxLength: 2000 }
+        id: { type: string, format: uuid }
+        is_helpful: { type: boolean }
+        project_step: { type: [string, 'null'], maxLength: 240 }
+        response_type: { type: [string, 'null'], enum: [explanation, example, question, counterexample, null] }
+    LearnerSharedTaskReviewableContribution:
+      type: object
+      additionalProperties: false
+      required: [body, id, project_step, task_kind, truncated]
+      properties:
+        body: { type: string, maxLength: 500 }
+        id: { type: string, format: uuid }
+        project_step: { type: [string, 'null'], maxLength: 240 }
+        task_kind: { type: string, enum: [text, question, reflection] }
+        truncated: { type: boolean }
+    LearnerSharedTaskSubmittedReview:
+      type: object
+      additionalProperties: false
+      required: [body, created_at, id, project_step, response_type]
+      properties:
+        body: { type: string, maxLength: 2000 }
+        created_at: { type: [string, 'null'], format: date-time }
+        id: { type: string, format: uuid }
+        project_step: { type: [string, 'null'], maxLength: 240 }
+        response_type: { type: [string, 'null'], enum: [explanation, example, question, counterexample, null] }
+    LearnerSharedTaskChecklist:
+      type: object
+      additionalProperties: false
+      required: [completed_step_indexes]
+      properties:
+        completed_step_indexes:
+          type: array
+          maxItems: 6
+          uniqueItems: true
+          items: { type: integer, minimum: 0, maximum: 5 }
+    SubmitLearnerSharedTaskContribution:
+      type: object
+      additionalProperties: false
+      required: [body, share_with_peers]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 20000 }
+        share_with_peers: { type: boolean }
+        project_step_index: { type: [integer, 'null'], minimum: 0, maximum: 5 }
+    ReviseLearnerSharedTaskContribution:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 20000 }
+    SubmitLearnerSharedTaskReview:
+      type: object
+      additionalProperties: false
+      required: [body, submission_id]
+      properties:
+        body: { type: string, minLength: 10, maxLength: 2000 }
+        submission_id: { type: string, format: uuid }
+        response_type: { type: [string, 'null'], enum: [explanation, example, question, counterexample, null] }
+        project_step_index: { type: [integer, 'null'], minimum: 0, maximum: 5 }
+    UpdateLearnerSharedTaskReviewHelpfulness:
+      type: object
+      additionalProperties: false
+      required: [helpful]
+      properties:
+        helpful: { type: boolean }
+    SaveLearnerSharedTaskReviewFollowUp:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: [string, 'null'], maxLength: 2000 }
+    SaveLearnerSharedTaskChecklist:
+      type: object
+      additionalProperties: false
+      required: [completed_step_indexes]
+      properties:
+        completed_step_indexes:
+          type: array
+          maxItems: 6
+          uniqueItems: true
+          items: { type: integer, minimum: 0, maximum: 5 }
     LearnerNpcDialogue:
       type: object
       additionalProperties: false

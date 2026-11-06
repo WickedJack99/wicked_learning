@@ -20,6 +20,7 @@ import { OriginalNpcDialogueActivity } from './original-npc-dialogue-activity';
 import { OriginalObstacleActivity } from './original-obstacle-activity';
 import { OriginalPeerMessageWall } from './original-peer-message-wall';
 import { OriginalPeerMessagePrompt } from './original-peer-message-prompt';
+import { OriginalSharedTaskActivity } from './original-shared-task-activity';
 import { OriginalLearningSupportRequest } from './original-learning-support-request';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
@@ -550,6 +551,10 @@ export function OriginalOpenPracticePage({
                                                               .activity_type ===
                                                           'npc_dialogue'
                                                       ? 'Dialogue'
+                                                      : state.document.activity
+                                                                .activity_type ===
+                                                            'shared_task'
+                                                        ? 'Shared task'
                                                 : 'Open practice'}
                                 </p>
                                 <h3
@@ -671,6 +676,13 @@ export function OriginalOpenPracticePage({
                                 appearance={appearance}
                                 onComplete={complete}
                                 onRefresh={load}
+                                playRunId={state.document.play_run_id}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'shared_task' ? (
+                            <OriginalSharedTaskActivity
+                                activity={state.document.activity}
+                                onComplete={complete}
                                 playRunId={state.document.play_run_id}
                             />
                         ) : (

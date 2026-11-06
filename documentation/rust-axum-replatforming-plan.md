@@ -368,6 +368,28 @@ peer replies. The local Compose browser journey verifies contribution, the
 ordinary check-in transition, the rendered wall and the hide/restore effect;
 see ADR-050 and ADR-051 for detailed behavior and limits.
 
+### Shared Task slice — 6 November 2026
+
+The learner route now includes the original Shared Task activity structure:
+contribution, bounded anonymous examples, optional anonymous peer review and a
+private project checklist remain separate in-panel areas. Rust owns the active
+route boundary, configuration validation, submission policy, explicit sharing
+choice, five-entry display bounds, anonymous review eligibility, helpfulness,
+contributor-only follow-up, one revision after received feedback and the
+shared contribution threshold. The active playback contract restores the
+caller's private checklist after a reload without projecting it to other
+learners. Completion is rechecked server-side against the activity-wide
+accepted threshold; the browser cannot bypass it. Replay, recall and revisit
+runs deliberately do not offer Shared Task writes. A local Compose browser
+journey uses two fresh local identities to verify contribution, anonymity,
+review, helpfulness, follow-up, revision, checklist persistence and the
+source-adapted React frame.
+
+The peer-wall completion path also now retains the configured topic/map
+authorization before following an authored next transition, allowing the
+source-shaped demonstration route to reach Shared Task without creating an
+unbounded exit route.
+
 ### NPC dialogue slice — 6 November 2026
 
 Published `npc_dialogue` activities now join the supported ordinary route-run

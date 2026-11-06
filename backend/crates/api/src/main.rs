@@ -28,6 +28,7 @@ mod learner_reflection;
 mod learner_revisit_invitation;
 mod learner_revisit_run;
 mod learner_route_run;
+mod learner_shared_task;
 mod learner_support;
 mod learner_tool_grant;
 mod learner_topic_detail;
@@ -360,6 +361,30 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall", get(learner_peer_message::wall))
         .route("/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall/messages/{message_id}/responses", post(learner_peer_message::respond))
         .route("/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall/messages/{message_id}/responses/{response_id}/helpfulness", patch(learner_peer_message::helpful))
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/submissions",
+            post(learner_shared_task::submit_contribution),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/submissions/{submission_id}/revision",
+            patch(learner_shared_task::revise_contribution),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews",
+            post(learner_shared_task::submit_review),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews/{review_id}/helpfulness",
+            patch(learner_shared_task::update_helpfulness),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/reviews/{review_id}/follow-up",
+            patch(learner_shared_task::save_follow_up),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/checklist",
+            post(learner_shared_task::save_checklist),
+        )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
             post(learner_playback::complete_current_activity),
