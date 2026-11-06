@@ -19,11 +19,21 @@ import {
     shootingStars,
     type PositionedCompetenceTopic,
 } from './original-competence-layout';
+import { OriginalLearnerHeader } from './original-learner-header';
 import { OriginalPaginatedItems } from './original-paginated-items';
 
 type CompetenceMap = components['schemas']['LearnerCompetenceMap'];
 type CompetenceTopic = components['schemas']['LearnerCompetenceTopic'];
 type TopicHeader = components['schemas']['LearnerTopicDetailHeader'];
+
+const competenceStyle = {
+    '--learner-accent': '#67e8f9',
+    '--learner-action-accent': '#67e8f9',
+    '--learner-border-color': 'rgba(165, 243, 252, 0.15)',
+    '--learner-heading-text': '#f8fafc',
+    '--learner-muted-text': '#cbd5e1',
+    '--learner-panel-background': '#020617',
+} as CSSProperties;
 
 /**
  * Source-adapted from `pages/competence/index.tsx`. The read model remains
@@ -33,9 +43,13 @@ type TopicHeader = components['schemas']['LearnerTopicDetailHeader'];
 export function OriginalCompetencePage({
     isAuthenticationLoading,
     isAuthenticated,
+    onSignedOut,
+    userEmail,
 }: {
     isAuthenticationLoading: boolean;
     isAuthenticated: boolean;
+    onSignedOut: () => void;
+    userEmail: string;
 }) {
     const [competence, setCompetence] = useState<CompetenceMap | null>(null);
     const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>(
@@ -86,7 +100,13 @@ export function OriginalCompetencePage({
         return <CompetenceStatus message="Loading competence map…" />;
     }
 
-    return <CompetenceStarMap competenceMap={competence} />;
+    return (
+        <CompetenceStarMap
+            competenceMap={competence}
+            onSignedOut={onSignedOut}
+            userEmail={userEmail}
+        />
+    );
 }
 
 function CompetenceStatus({ message }: { message: string }) {
@@ -102,7 +122,15 @@ function CompetenceStatus({ message }: { message: string }) {
     );
 }
 
-function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) {
+function CompetenceStarMap({
+    competenceMap,
+    onSignedOut,
+    userEmail,
+}: {
+    competenceMap: CompetenceMap;
+    onSignedOut: () => void;
+    userEmail: string;
+}) {
     const [searchParams] = useSearchParams();
     const initialTopicSlug = topicSlug(searchParams.get('topic'));
     const contextTopicSlug =
@@ -210,8 +238,13 @@ function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) 
             className="flex min-h-svh min-w-0 flex-col overflow-hidden bg-black text-white"
             data-wl-id="learner.competence.page"
             id="learner-main-content"
+            style={competenceStyle}
             tabIndex={-1}
         >
+            <OriginalLearnerHeader
+                onSignedOut={onSignedOut}
+                userEmail={userEmail}
+            />
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:overflow-hidden">
                 <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-20">
                     <header className="flex flex-wrap items-start justify-between gap-4">

@@ -154,6 +154,10 @@ export function App() {
                 <OriginalCompetencePage
                     isAuthenticationLoading={currentUser.kind === 'loading'}
                     isAuthenticated={currentUser.kind === 'loaded'}
+                    onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                    userEmail={
+                        currentUser.kind === 'loaded' ? currentUser.email : ''
+                    }
                 />
             </Suspense>
         );

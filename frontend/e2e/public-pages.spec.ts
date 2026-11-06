@@ -942,6 +942,12 @@ test('the authenticated competence reader keeps the source star map and private 
         page.getByRole('heading', { name: 'Star Map' }),
     ).toBeVisible();
     await expect(
+        page.getByRole('navigation', { name: 'Learner navigation' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Competence map' }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(
         page.getByRole('img', { name: 'Competence star map' }),
     ).toBeVisible();
     await page.getByRole('button', { name: /Map orientation:/ }).click();
