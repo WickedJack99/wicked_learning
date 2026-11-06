@@ -8,7 +8,9 @@ import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalLearningCheckIn } from './original-learning-check-in';
 import { OriginalItemGrantActivity } from './original-item-grant-activity';
+import { OriginalItemObstacleActivity } from './original-item-obstacle-activity';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
+import { OriginalToolBelt } from './original-tool-belt';
 
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
@@ -112,8 +114,7 @@ function RouteStartOption({
     onStart: () => void;
     start: LearnerActivityStart;
 }) {
-    const image =
-        appearance === 'light' ? start.image_light : start.image_dark;
+    const image = appearance === 'light' ? start.image_light : start.image_dark;
     const buttonColor =
         appearance === 'light'
             ? start.button_color_light
@@ -269,6 +270,9 @@ export function OriginalOpenPracticePage({
         | { kind: 'unavailable' }
     >({ kind: 'loading' });
     const [completing, setCompleting] = useState(false);
+    const [inventory, setInventory] = useState<
+        components['schemas']['LearnerItem'][]
+    >([]);
     const [pendingCheckIn, setPendingCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
     const headingRef = useRef<HTMLHeadingElement>(null);
@@ -290,12 +294,18 @@ export function OriginalOpenPracticePage({
                 '/learner/play-runs/{play_run_id}',
                 { params: { path: { play_run_id: playRunId } } },
             );
-            setState(
-                response.ok && data
-                    ? { kind: 'loaded', document: data }
-                    : { kind: 'unavailable' },
-            );
+            if (response.ok && data) {
+                // Existing cached/mocked documents from before inventory was
+                // added remain safe to render while the shared contract rolls
+                // out; live API documents always include this bounded array.
+                setInventory(data.items ?? []);
+                setState({ kind: 'loaded', document: data });
+            } else {
+                setInventory([]);
+                setState({ kind: 'unavailable' });
+            }
         } catch {
+            setInventory([]);
             setState({ kind: 'unavailable' });
         }
     };
@@ -459,14 +469,18 @@ export function OriginalOpenPracticePage({
                                                 .activity_type === 'reflection'
                                           ? 'Reflection'
                                           : state.document.activity
-                                                    .activity_type ===
+                                                  .activity_type ===
                                               'tool_grant'
                                             ? 'Tool grant'
                                             : state.document.activity
-                                                      .activity_type ===
-                                                  'item_grant'
+                                                    .activity_type ===
+                                                'item_grant'
                                               ? 'Item grant'
-                                          : 'Open practice'}
+                                              : state.document.activity
+                                                      .activity_type ===
+                                                  'item_obstacle'
+                                                ? 'Item obstacle'
+                                                : 'Open practice'}
                                 </p>
                                 <h3
                                     className="mt-1 scroll-mt-4 rounded-sm text-base font-semibold text-[var(--learner-heading-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-page-background)]"
@@ -490,7 +504,7 @@ export function OriginalOpenPracticePage({
                                 transitionLabel={pendingCheckIn.transitionLabel}
                             />
                         ) : state.document.activity.activity_type ===
-                        'question' ? (
+                          'question' ? (
                             <QuestionActivity
                                 activity={state.document.activity}
                                 playRunId={state.document.play_run_id}
@@ -510,7 +524,8 @@ export function OriginalOpenPracticePage({
                                     presentCheckIn(
                                         state.document,
                                         result.status,
-                                        state.document.activity.completion.label,
+                                        state.document.activity.completion
+                                            .label,
                                     );
                                 }}
                                 playRunId={state.document.play_run_id}
@@ -531,6 +546,16 @@ export function OriginalOpenPracticePage({
                                 onComplete={complete}
                                 playRunId={state.document.play_run_id}
                             />
+                        ) : state.document.activity.activity_type ===
+                          'item_obstacle' ? (
+                            <OriginalItemObstacleActivity
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                inventory={inventory}
+                                onComplete={complete}
+                                onInventoryChange={setInventory}
+                                playRunId={state.document.play_run_id}
+                            />
                         ) : (
                             <OpenPracticeActivity
                                 activity={state.document.activity}
@@ -541,6 +566,20 @@ export function OriginalOpenPracticePage({
                     </section>
                 ) : null}
             </section>
+            {state.kind === 'loaded' ? (
+                <OriginalToolBelt
+                    appearance={appearance}
+                    draggableItems={
+                        state.document.activity.activity_type ===
+                        'item_obstacle'
+                    }
+                    items={inventory}
+                    onSelectTool={() => undefined}
+                    selectedTool={null}
+                    showTools={false}
+                    tools={[]}
+                />
+            ) : null}
         </main>
     );
 }
@@ -920,4 +959,18 @@ const learnerSurfaceStyle = {
     '--learner-muted-text': '#cbd5e1',
     '--learner-page-background': '#0b1117',
     '--learner-panel-background': '#111820',
+    '--map-floating-accent-color': '#5eead4',
+    '--map-side-control-active-background': 'rgba(94, 234, 212, 0.18)',
+    '--map-side-control-active-icon-color': '#5eead4',
+    '--map-side-control-active-text-color': '#e2e8f0',
+    '--map-side-control-background': 'rgba(15, 23, 42, 0.92)',
+    '--map-side-control-border-color': 'rgba(255, 255, 255, 0.12)',
+    '--map-side-control-hover-background': 'rgba(94, 234, 212, 0.12)',
+    '--map-side-control-icon-color': '#e2e8f0',
+    '--map-side-control-muted-text-color': '#cbd5e1',
+    '--map-side-control-panel-background': '#111820',
+    '--map-side-control-panel-border-color': 'rgba(255, 255, 255, 0.12)',
+    '--map-side-control-text-color': '#e2e8f0',
+    '--platform-action-cursor': 'pointer',
+    '--platform-cursor': 'default',
 } as CSSProperties;

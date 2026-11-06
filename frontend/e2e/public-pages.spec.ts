@@ -425,11 +425,13 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(
         page.getByRole('button', { name: 'Open user menu' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open inventory' })).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Open inventory' }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Open tools' }).click();
-    await expect(page.getByRole('dialog', { name: 'Select a tool' })).toContainText(
-        'No tools acquired yet.',
-    );
+    await expect(
+        page.getByRole('dialog', { name: 'Select a tool' }),
+    ).toContainText('No tools acquired yet.');
     await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Open user menu' }).click();
     await expect(page.getByRole('menuitem', { name: 'Log out' })).toBeVisible();
@@ -1773,7 +1775,9 @@ test('the original tool-grant surface claims only its active configured tool bef
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
-    await expect(page.getByRole('heading', { name: 'A closer look' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'A closer look' }),
+    ).toBeVisible();
     await expect(page.getByText('Magnifier').first()).toBeVisible();
     const takeTool = page.getByRole('button', { name: 'Take tool' });
     await expect(takeTool).toBeVisible();
@@ -1782,7 +1786,9 @@ test('the original tool-grant surface claims only its active configured tool bef
     expect((bounds?.x ?? 390) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
     await takeTool.click();
     await expect(
-        page.getByRole('heading', { name: 'A small pause after A closer look' }),
+        page.getByRole('heading', {
+            name: 'A small pause after A closer look',
+        }),
     ).toBeVisible();
     await page
         .getByRole('button', { name: 'Continue without answering' })
@@ -1879,7 +1885,9 @@ test('the original item-grant surface rolls only the active configured items bef
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
-    await expect(page.getByRole('heading', { name: 'A useful key' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'A useful key' }),
+    ).toBeVisible();
     await expect(page.getByText('Item received:')).toBeVisible();
     const continueButton = page.getByRole('button', { name: 'Continue' });
     await expect(continueButton).toBeVisible();
@@ -1894,6 +1902,179 @@ test('the original item-grant surface rolls only the active configured items bef
         .getByRole('button', { name: 'Continue without answering' })
         .click();
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
+});
+
+test('the original item-obstacle surface accepts only its dragged inventory item before completing', async ({
+    page,
+}) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77';
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                    play_run_id: playRunId,
+                    run_kind: 'route',
+                    context: {
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        map_slug: 'private-path',
+                        map_title: 'A private path',
+                        route_label: 'Obstacle route',
+                    },
+                    items: [
+                        {
+                            config: {},
+                            description: 'The source-configured key.',
+                            image_dark: null,
+                            image_light: null,
+                            quantity: 1,
+                            slug: 'portal-key',
+                            title: 'Portal key',
+                        },
+                    ],
+                    activity: {
+                        slug: 'unlock-the-gate',
+                        title: 'A blocked gate',
+                        description: 'A source-authored item obstacle.',
+                        activity_type: 'item_obstacle',
+                        config: {
+                            backgroundDark: null,
+                            backgroundLight: null,
+                            backgroundMirrored: false,
+                            configuredItems: [
+                                {
+                                    image_dark: null,
+                                    image_light: null,
+                                    slug: 'portal-key',
+                                    title: 'Portal key',
+                                },
+                            ],
+                            metBackgroundDark: null,
+                            metBackgroundLight: null,
+                            metBackgroundMirrored: false,
+                            overlayDark: null,
+                            overlayLight: null,
+                            overlayMirrored: false,
+                            overlayWidth: 30,
+                            overlayX: 50,
+                            overlayY: 50,
+                            slots: [
+                                {
+                                    itemId: 'portal-key',
+                                    slotIndex: 0,
+                                    width: 18,
+                                    x: 50,
+                                    y: 45,
+                                },
+                            ],
+                            state: {
+                                can_continue: null,
+                                conditions_met: false,
+                                filled_slots: [],
+                                locked_until: null,
+                            },
+                        },
+                        completion: { label: null, next_activity_slug: null },
+                        check_in: {
+                            choice_prompt: null,
+                            concepts: [],
+                            learning_areas: [],
+                            objective: null,
+                        },
+                    },
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/unlock-the-gate/item-obstacle-slots/0`,
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            expect(route.request().postDataJSON()).toEqual({
+                item_slug: 'portal-key',
+            });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    inventory: [],
+                    state: {
+                        can_continue: null,
+                        conditions_met: true,
+                        filled_slots: [
+                            { item_slug: 'portal-key', slot_index: 0 },
+                        ],
+                        locked_until: null,
+                    },
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/unlock-the-gate/item-obstacle/continue`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    inventory: [],
+                    state: {
+                        can_continue: true,
+                        conditions_met: true,
+                        filled_slots: [
+                            { item_slug: 'portal-key', slot_index: 0 },
+                        ],
+                        locked_until: null,
+                    },
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/unlock-the-gate/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    play_run_id: playRunId,
+                    status: 'completed',
+                }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(
+        page.getByRole('heading', { name: 'A blocked gate' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Open inventory' }).click();
+    const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+    await page.getByTitle('Portal key').dispatchEvent('dragstart', {
+        dataTransfer,
+    });
+    await page
+        .locator('[data-wl-id="learner.activity.item-obstacle.slot.0"]')
+        .dispatchEvent('drop', { dataTransfer });
+    await expect(
+        page.getByRole('button', { name: 'Open inventory' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'A small pause after A blocked gate',
+        }),
+    ).toBeVisible();
 });
 
 test('the public explorer search is bounded and presents matching places', async ({

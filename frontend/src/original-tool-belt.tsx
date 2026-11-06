@@ -1,6 +1,6 @@
 import { Backpack, Hammer } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, DragEvent, MouseEvent, ReactNode } from 'react';
 
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
@@ -12,20 +12,25 @@ type MapThemedStyle = CSSProperties & Record<`--${string}`, string>;
 
 /**
  * Source-adapted from `components/app-side-action-bar.tsx`. It deliberately
- * contains only the existing Inventory and Tools affordances: companion,
- * obstacle and grant flows remain absent until their source contracts exist.
+ * contains only the existing Inventory and Tools affordances. An item
+ * obstacle may opt into the source item's drag gesture while the backend
+ * remains the authority for whether a dropped item is accepted.
  */
 export function OriginalToolBelt({
     appearance,
+    draggableItems = false,
     items,
     onSelectTool,
     selectedTool,
+    showTools = true,
     tools,
 }: {
     appearance: OriginalAppearance;
+    draggableItems?: boolean;
     items: LearnerItem[];
     onSelectTool: (tool: LearnerTool | null) => void;
     selectedTool: LearnerTool | null;
+    showTools?: boolean;
     tools: LearnerTool[];
 }) {
     const [overlay, setOverlay] = useState<OverlayMode>(null);
@@ -88,10 +93,14 @@ export function OriginalToolBelt({
                     onClose={closeOverlay}
                     title="Items"
                 >
-                    <ItemGrid items={items} mode={appearance} />
+                    <ItemGrid
+                        draggableItems={draggableItems}
+                        items={items}
+                        mode={appearance}
+                    />
                 </SideOverlay>
             ) : null}
-            {overlay === 'tools' ? (
+            {showTools && overlay === 'tools' ? (
                 <SideOverlay
                     eyebrow="Tools"
                     id="learning-tools-panel"
@@ -127,36 +136,46 @@ export function OriginalToolBelt({
                 >
                     <Backpack className="size-5" />
                 </ActionButton>
-                <ActionButton
-                    ariaControls="learning-tools-panel"
-                    ariaExpanded={overlay === 'tools'}
-                    isActive={overlay === 'tools' || Boolean(selectedTool)}
-                    label="Open tools"
-                    onClick={(event) => {
-                        if (selectedTool) {
-                            onSelectTool(null);
-                            closeOverlay();
-                            return;
-                        }
-                        toggleOverlay('tools', event.currentTarget);
-                    }}
-                >
-                    {selectedTool ? (
-                        <ToolImage
-                            className="size-6"
-                            mode={appearance}
-                            tool={selectedTool}
-                        />
-                    ) : (
-                        <Hammer className="size-5" />
-                    )}
-                </ActionButton>
+                {showTools ? (
+                    <ActionButton
+                        ariaControls="learning-tools-panel"
+                        ariaExpanded={overlay === 'tools'}
+                        isActive={overlay === 'tools' || Boolean(selectedTool)}
+                        label="Open tools"
+                        onClick={(event) => {
+                            if (selectedTool) {
+                                onSelectTool(null);
+                                closeOverlay();
+                                return;
+                            }
+                            toggleOverlay('tools', event.currentTarget);
+                        }}
+                    >
+                        {selectedTool ? (
+                            <ToolImage
+                                className="size-6"
+                                mode={appearance}
+                                tool={selectedTool}
+                            />
+                        ) : (
+                            <Hammer className="size-5" />
+                        )}
+                    </ActionButton>
+                ) : null}
             </div>
         </aside>
     );
 }
 
-function ItemGrid({ items, mode }: { items: LearnerItem[]; mode: OriginalAppearance }) {
+function ItemGrid({
+    draggableItems,
+    items,
+    mode,
+}: {
+    draggableItems: boolean;
+    items: LearnerItem[];
+    mode: OriginalAppearance;
+}) {
     if (items.length === 0) {
         return <EmptyOverlayState>No items acquired yet.</EmptyOverlayState>;
     }
@@ -164,18 +183,45 @@ function ItemGrid({ items, mode }: { items: LearnerItem[]; mode: OriginalAppeara
     return (
         <div className="max-h-80 overflow-y-auto pr-1">
             <div className="grid grid-cols-3 gap-2">
-                {items.map((item) => <ItemTile item={item} key={item.slug} mode={mode} />)}
+                {items.map((item) => (
+                    <ItemTile
+                        draggableItems={draggableItems}
+                        item={item}
+                        key={item.slug}
+                        mode={mode}
+                    />
+                ))}
             </div>
         </div>
     );
 }
 
-function ItemTile({ item, mode }: { item: LearnerItem; mode: OriginalAppearance }) {
+function ItemTile({
+    draggableItems,
+    item,
+    mode,
+}: {
+    draggableItems: boolean;
+    item: LearnerItem;
+    mode: OriginalAppearance;
+}) {
     const image = themedAsset(item.image_dark, item.image_light, mode);
 
     return (
         <button
             className="relative grid aspect-square place-items-center overflow-hidden rounded-lg border p-1 transition hover:border-[var(--map-floating-accent-color)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
+            draggable={draggableItems}
+            onDragStart={
+                draggableItems
+                    ? (event: DragEvent<HTMLButtonElement>) => {
+                          event.dataTransfer.setData(
+                              'application/learning-item-slug',
+                              item.slug,
+                          );
+                          event.dataTransfer.effectAllowed = 'move';
+                      }
+                    : undefined
+            }
             style={{
                 background: 'var(--map-side-control-panel-background)',
                 borderColor: 'var(--map-side-control-panel-border-color)',
@@ -185,7 +231,16 @@ function ItemTile({ item, mode }: { item: LearnerItem; mode: OriginalAppearance 
             title={item.title}
             type="button"
         >
-            {image ? <img alt="" className="h-full w-full object-contain" draggable={false} src={image} /> : <Backpack className="size-6" />}
+            {image ? (
+                <img
+                    alt=""
+                    className="h-full w-full object-contain"
+                    draggable={false}
+                    src={image}
+                />
+            ) : (
+                <Backpack className="size-6" />
+            )}
             <span
                 className="absolute right-1 bottom-1 min-w-5 rounded px-1 text-center text-xs font-semibold"
                 style={{
@@ -244,8 +299,14 @@ function ToolGrid({
                         title={tool.title}
                         type="button"
                     >
-                        <ToolImage className="size-10" mode={mode} tool={tool} />
-                        <span className="mt-1 max-w-full truncate text-xs font-medium">{tool.title}</span>
+                        <ToolImage
+                            className="size-10"
+                            mode={mode}
+                            tool={tool}
+                        />
+                        <span className="mt-1 max-w-full truncate text-xs font-medium">
+                            {tool.title}
+                        </span>
                     </button>
                 );
             })}
@@ -276,7 +337,9 @@ function ActionButton({
             className="grid size-11 place-items-center rounded-xl transition hover:bg-[var(--map-side-control-hover-background)] hover:text-[var(--map-side-control-active-icon-color)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
             onClick={onClick}
             style={{
-                background: isActive ? 'var(--map-side-control-active-background)' : undefined,
+                background: isActive
+                    ? 'var(--map-side-control-active-background)'
+                    : undefined,
                 color: isActive
                     ? 'var(--map-side-control-active-icon-color, var(--map-side-control-active-text-color))'
                     : 'var(--map-side-control-icon-color, var(--map-side-control-text-color))',
@@ -361,8 +424,15 @@ function SideOverlay({
         >
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <p className="text-xs font-medium tracking-[0.16em] uppercase" style={{ color: 'var(--map-floating-accent-color)' }}>{eyebrow}</p>
-                    <h2 className="text-sm font-semibold" id={`${id}-title`}>{title}</h2>
+                    <p
+                        className="text-xs font-medium tracking-[0.16em] uppercase"
+                        style={{ color: 'var(--map-floating-accent-color)' }}
+                    >
+                        {eyebrow}
+                    </p>
+                    <h2 className="text-sm font-semibold" id={`${id}-title`}>
+                        {title}
+                    </h2>
                 </div>
                 <button
                     className="rounded-lg px-2 py-1 text-xs font-semibold transition hover:bg-[var(--map-side-control-hover-background)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
@@ -383,14 +453,45 @@ function SideOverlay({
 }
 
 function EmptyOverlayState({ children }: { children: ReactNode }) {
-    return <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: 'var(--map-side-control-panel-border-color)', color: 'var(--map-side-control-muted-text-color)' }}>{children}</p>;
+    return (
+        <p
+            className="rounded-lg border border-dashed p-3 text-sm leading-6"
+            style={{
+                borderColor: 'var(--map-side-control-panel-border-color)',
+                color: 'var(--map-side-control-muted-text-color)',
+            }}
+        >
+            {children}
+        </p>
+    );
 }
 
-function ToolImage({ className, mode, tool }: { className?: string; mode: OriginalAppearance; tool: LearnerTool }) {
+function ToolImage({
+    className,
+    mode,
+    tool,
+}: {
+    className?: string;
+    mode: OriginalAppearance;
+    tool: LearnerTool;
+}) {
     const image = themedAsset(tool.image_dark, tool.image_light, mode);
-    return image ? <img alt="" className={`object-contain ${className ?? ''}`} draggable={false} src={image} /> : <Hammer className={className} />;
+    return image ? (
+        <img
+            alt=""
+            className={`object-contain ${className ?? ''}`}
+            draggable={false}
+            src={image}
+        />
+    ) : (
+        <Hammer className={className} />
+    );
 }
 
-function themedAsset(dark: string | null, light: string | null, mode: OriginalAppearance): string {
+function themedAsset(
+    dark: string | null,
+    light: string | null,
+    mode: OriginalAppearance,
+): string {
     return mode === 'light' ? light || dark || '' : dark || light || '';
 }

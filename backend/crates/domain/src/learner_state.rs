@@ -73,6 +73,32 @@ pub struct LearnerItemGrantResult {
     pub success: bool,
 }
 
+/// One durable filled slot in the source item-obstacle activity. The browser
+/// receives public item slugs only; database IDs stay behind the repository.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerItemObstacleFilledSlot {
+    pub item_slug: String,
+    pub slot_index: i16,
+}
+
+/// The current source obstacle state. `can_continue` is present only after a
+/// continue command and reflects server-side slot/lock evaluation.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerItemObstacleState {
+    pub can_continue: Option<bool>,
+    pub conditions_met: bool,
+    pub filled_slots: Vec<LearnerItemObstacleFilledSlot>,
+    pub locked_until: Option<String>,
+}
+
+/// Result of a source item-obstacle command. Inventory is returned after a
+/// placement because its quantity may have been consumed transactionally.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerItemObstacleResult {
+    pub inventory: Vec<LearnerItem>,
+    pub state: LearnerItemObstacleState,
+}
+
 /// The bounded result of using an owned tool on an accessible map node. The
 /// browser can refresh its snapshot but cannot infer or alter policy itself.
 #[derive(Clone, Debug, Serialize)]
@@ -487,6 +513,10 @@ pub struct LearnerPlaybackDocument {
     pub play_run_id: String,
     pub run_kind: LearnerPlaybackRunKind,
     pub context: LearnerPlaybackContext,
+    /// The signed-in learner's current held items. The source player exposes
+    /// this inventory through its action bar so item-obstacle activities can
+    /// accept an existing dragged item rather than inventing a local picker.
+    pub items: Vec<LearnerItem>,
     pub activity: LearnerPlaybackActivity,
 }
 

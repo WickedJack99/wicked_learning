@@ -505,6 +505,35 @@ test('rolling configured items requires an authenticated active learner run', as
     });
 });
 
+test('placing an item in an obstacle requires an authenticated active learner run', async ({
+    request,
+}) => {
+    const response = await request.post(
+        '/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e/activities/unlock-the-gate/item-obstacle-slots/0',
+        { data: { item_slug: 'portal-key' } },
+    );
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+});
+
+test('continuing an item obstacle requires an authenticated active learner run', async ({
+    request,
+}) => {
+    const response = await request.post(
+        '/api/v1/learner/play-runs/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e/activities/unlock-the-gate/item-obstacle/continue',
+    );
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+});
+
 test('the CSRF foundation issues a non-cacheable token and protected cookie', async ({
     request,
 }) => {

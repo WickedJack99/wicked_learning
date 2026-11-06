@@ -1180,13 +1180,72 @@ learner forge inventory. Reusing generic route-progress metadata would obscure
 the one-per-run uniqueness and complicate holding reconciliation. Both are
 rejected.
 
-**Limitations and trigger:** This restores only source item grants. It does
-not expose item consumption, item obstacles, access-link item grants, NPC or
-answer rewards, authoring, or an inventory editor. Those source behaviors need
-their own contracts, authorization and directly lifted UI before any related
-control is exposed. The temporary 100 configured-display-item bound is an API
-payload safeguard; authoring validation must make the eventual content bound
-explicit before Rust authoring is introduced.
+**Limitations and trigger:** This restores source item grants and their
+source-defined consumer, the item obstacle (ADR-035). It does not expose
+access-link item grants, NPC or answer rewards, authoring, or an inventory
+editor. Those source behaviors need their own contracts, authorization and
+directly lifted UI before any related control is exposed. The temporary 100
+configured-display-item bound is an API payload safeguard; authoring validation
+must make the eventual content bound explicit before Rust authoring is
+introduced.
+
+## ADR-035: Item obstacles retain learner state while each play run proves its own pass
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The original `ItemObstacleActivity` has two distinct lifetimes.
+Filled slots, failed attempts and an optional timed lock belong to a learner's
+relationship with an authored obstacle and remain available across later route
+entries. In contrast, completing a currently active activity must prove that
+this particular opaque play run met the obstacle. A browser-only drag state or
+a generic route-progress blob would either permit forged item consumption or
+lose that distinction.
+
+**Decision:** Store one normalized `learner_item_obstacle_states` row per
+application principal and activity, plus one normalized filled-slot row per
+principal/activity/source slot index. `itemId` in greenfield authored
+`slots[]` is a public item slug, never a Laravel numeric identifier or a
+database UUID. The place command locks the active, published, visible route
+activity; verifies that the requested public item is exactly the configured
+item for that source slot; decrements one held quantity only when the slot was
+previously empty; and persists the slot in the same transaction. Repeating a
+drop on a filled slot is idempotent and does not consume another item.
+
+The source `continue` command derives whether all slots are met. A failed
+continue increments the durable failed-attempt count and applies the authored
+`lockMinutes` period where configured. A successful continue records the
+current opaque `passed_play_run_id`; generic playback completion rejects an
+item obstacle unless that value matches the active run. When source
+`consumeOnEachEntry` is enabled, the successful continue clears persisted
+filled slots after recording that run-specific pass, so the next entry again
+requires items without allowing the current run to skip completion.
+
+The read document includes the bounded held-item inventory, a safe projection
+of configured obstacle item presentation, and the current persisted state.
+The React activity is lifted from the original scene and uses its inventory
+drag gesture; it sends only the public slug and configured slot position to
+the versioned contract. Its inventory action bar remains source-derived. No
+audio control is exposed in this slice because the source's sound/media
+contract is not yet migrated.
+
+**Why:** The separate durable state and current-run pass fact retain the
+source's re-entry behavior while preserving server authority over inventory,
+locks, configuration and progression. Normalized rows make consumption and
+filled slots inspectable without coupling them to browser state or an
+unstructured metadata document.
+
+**Alternatives:** A client-side slot map could be changed or replayed and
+cannot atomically consume a holding. A single route-progress flag would make a
+past run incorrectly authorize a later one, especially when source reset-on-
+entry is configured. Generic JSON metadata would obscure the inventory and
+slot invariants. These options are rejected.
+
+**Limitations and trigger:** This covers only the source item obstacle in an
+ordinary route run. Tool obstacles, NPC grants, obstacle authoring, audio and
+the other unsupported activity types remain absent until each has a dedicated
+contract, server policy and lifted source UI. The current maximum of ten slots
+and one hundred held items is a bounded API safeguard; authoring validation
+must own any later content limits.
 
 ## Phase 1 gate
 

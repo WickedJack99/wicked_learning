@@ -406,6 +406,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/item-obstacle-slots/{slot_index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place one owned item into the configured slot of the current authorized item obstacle.
+         * @description The server resolves the current run, obstacle, expected public item reference, lock state and owned quantity. It never accepts a browser-selected database identifier or quantity.
+         */
+        post: operations["placeLearnerItemObstacleItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/item-obstacle/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate the current authorized item obstacle and continue only when its source-defined slots are met.
+         * @description An unmet obstacle records the source-defined failed attempt and optional lock. A met obstacle is bound to this play run before ordinary completion can advance it.
+         */
+        post: operations["continueLearnerItemObstacle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins": {
         parameters: {
             query?: never;
@@ -910,6 +950,24 @@ export interface components {
             items: components["schemas"]["LearnerItemGrantDisplay"][];
             success: boolean;
         };
+        LearnerItemObstaclePlaceRequest: {
+            item_slug: string;
+        };
+        LearnerItemObstacleFilledSlot: {
+            item_slug: string;
+            slot_index: number;
+        };
+        LearnerItemObstacleState: {
+            can_continue: boolean | null;
+            conditions_met: boolean;
+            filled_slots: components["schemas"]["LearnerItemObstacleFilledSlot"][];
+            /** Format: date-time */
+            locked_until: string | null;
+        };
+        LearnerItemObstacleResult: {
+            inventory: components["schemas"]["LearnerItem"][];
+            state: components["schemas"]["LearnerItemObstacleState"];
+        };
         LearnerNodeToolRequest: {
             tool_slug: string;
         };
@@ -1211,6 +1269,7 @@ export interface components {
             /** @enum {string} */
             run_kind: "route" | "revisit";
             context: components["schemas"]["LearnerPlaybackContext"];
+            items: components["schemas"]["LearnerItem"][];
             activity: components["schemas"]["LearnerPlaybackActivity"];
         };
         LearnerPlaybackContext: {
@@ -1225,7 +1284,7 @@ export interface components {
             title: string;
             description: string;
             /** @enum {string} */
-            activity_type: "open_practice" | "question" | "reflection" | "tool_grant" | "item_grant";
+            activity_type: "open_practice" | "question" | "reflection" | "tool_grant" | "item_grant" | "item_obstacle";
             config: {
                 [key: string]: unknown;
             };
@@ -2760,6 +2819,119 @@ export interface operations {
                 content?: never;
             };
             /** @description The active item-grant activity is unavailable or not owned by this learner's current run. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    placeLearnerItemObstacleItem: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+                slot_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerItemObstaclePlaceRequest"];
+            };
+        };
+        responses: {
+            /** @description The current durable obstacle state and remaining inventory after the item was placed or an already-filled slot was revisited. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerItemObstacleResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The run */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    continueLearnerItemObstacle: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current durable obstacle state, including whether this request may complete the activity. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerItemObstacleResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active item obstacle is unavailable */
             404: {
                 headers: {
                     [name: string]: unknown;

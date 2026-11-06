@@ -7,6 +7,7 @@ pub mod learner_check_in;
 pub mod learner_competence;
 mod learner_evidence;
 pub mod learner_item_grant;
+pub mod learner_item_obstacle;
 pub mod learner_journal;
 pub mod learner_journal_page;
 pub mod learner_node_availability;
