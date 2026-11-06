@@ -55,6 +55,14 @@ test('a one-use local invitation creates a signed-in identity', async ({ page })
     });
     await expect(page.locator('html')).not.toHaveClass(/dark/);
 
+    await page.goto('/settings?panel=personal&personal=sound');
+    await expect(page.getByRole('heading', { name: 'Sound' })).toBeVisible();
+    await page.getByLabel('Effects volume').getByRole('slider').fill('35');
+    await page.getByRole('button', { name: 'Save sound preferences' }).click();
+    await expect.poll(async () => (await page.request.get('/api/v1/learner/sound-preferences')).json()).toMatchObject({
+        effects_volume: 35,
+    });
+
     await page.goto('/register');
     await page.getByLabel('Name').fill('Second registration attempt');
     await page
