@@ -2138,6 +2138,25 @@ absence boundary; the local Compose browser/API journey verifies source start,
 idempotent travel, opaque arrival playback and target completion. This does
 not migrate portal authoring, arbitrary map navigation or production routing.
 
+## ADR-054: Learner sound preferences are private application data
+
+**Status:** Accepted — 6 November 2026
+
+**Decision:** Store mute, effects volume and ambience volume in an
+application-database record owned by the application principal. Rust exposes
+only owner-scoped read/save endpoints with source-equivalent defaults and
+0–100 validation. The original account-menu sound panel uses that contract;
+dialogue typing audio reads the saved effects setting.
+
+**Why:** Audio comfort is personal and must neither be coupled to identity
+credentials nor alter shared authored content. One small preference contract
+also gives future ambience and effects a common policy instead of each activity
+inventing local browser state.
+
+**Boundary:** This does not yet migrate reusable authored sound records,
+uploads or activity ambience/effect configuration. Those need a separate safe
+published-media projection before they may be played in the browser.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -407,6 +407,14 @@ This is the learner playback/travel boundary only. Portal authoring and a
 general map-link editor remain separate work; the fresh local content exists
 solely to exercise the source-shaped vertical slice.
 
+### Learner sound-preference slice — 6 November 2026
+
+The original account-menu sound controls now save the learner's private mute,
+effects-volume and ambience-volume choices through Rust. Dialogue typing audio
+uses the saved effects setting. Reusable authored ambience and effects remain
+separate media work until their published media projection is available; they
+must not be approximated with browser-selected URLs.
+
 ### NPC dialogue slice — 6 November 2026
 
 Published `npc_dialogue` activities now join the supported ordinary route-run
