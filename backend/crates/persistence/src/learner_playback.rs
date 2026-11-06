@@ -190,6 +190,7 @@ struct MessagePromptPlaybackConfig {
     message_allow_responses: Option<bool>,
     message_input_label: Option<String>,
     message_prompt: Option<String>,
+    message_topic_id: Option<String>,
     message_ui: Option<MessagePromptUiConfig>,
 }
 
@@ -250,6 +251,7 @@ fn message_wall_safe_config(config: serde_json::Value) -> Option<serde_json::Val
     if config.message_audience != "peers" {
         return None;
     }
+    Uuid::parse_str(config.message_topic_id.as_deref()?).ok()?;
     let prompt = config
         .message_prompt
         .as_deref()
