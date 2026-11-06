@@ -11,6 +11,7 @@ import {
     MapPin,
     NotebookPen,
     Search,
+    Settings,
     X,
 } from 'lucide-react';
 
@@ -618,6 +619,15 @@ function WorldNavigation({
                                     aria-hidden="true"
                                     className="my-1 h-px bg-[var(--learner-border-color)]"
                                 />
+                                <Link
+                                    className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium text-[var(--learner-heading-text)] transition hover:bg-[var(--learner-panel-muted-background)]"
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                    role="menuitem"
+                                    to="/settings"
+                                >
+                                    <Settings className="mr-2 size-4" />
+                                    Settings
+                                </Link>
                                 <button
                                     className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium text-[var(--learner-heading-text)] transition hover:bg-[var(--learner-panel-muted-background)]"
                                     onClick={() => void signOut()}
