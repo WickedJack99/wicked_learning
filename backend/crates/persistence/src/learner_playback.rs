@@ -2180,8 +2180,8 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        check_in_context, is_review_activity, markdown_safe_config, reflection_safe_config,
-        valid_review_outcome,
+        check_in_context, is_review_activity, markdown_safe_config, message_wall_safe_config,
+        reflection_safe_config, valid_review_outcome,
     };
 
     #[test]
@@ -2291,6 +2291,36 @@ mod tests {
         assert!(valid_review_outcome(Some("open")));
         assert!(!valid_review_outcome(Some("completed")));
         assert!(!valid_review_outcome(Some("invented")));
+    }
+
+    #[test]
+    fn peer_wall_requires_the_source_audience_and_topic_binding() {
+        let valid = json!({
+            "messageAudience": "peers",
+            "messageTopicId": "00000000-0000-4000-8000-000000000042",
+            "messagePrompt": "What did you notice?",
+            "messageInputLabel": "Your note",
+            "messageAllowResponses": true,
+        });
+        assert!(message_wall_safe_config(valid).is_some());
+        assert!(
+            message_wall_safe_config(json!({
+                "messageAudience": "support",
+                "messageTopicId": "00000000-0000-4000-8000-000000000042",
+                "messagePrompt": "What did you notice?",
+                "messageInputLabel": "Your note",
+            }))
+            .is_none()
+        );
+        assert!(
+            message_wall_safe_config(json!({
+                "messageAudience": "peers",
+                "messageTopicId": "not-a-uuid",
+                "messagePrompt": "What did you notice?",
+                "messageInputLabel": "Your note",
+            }))
+            .is_none()
+        );
     }
 
     #[test]
