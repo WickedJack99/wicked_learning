@@ -2634,6 +2634,38 @@ does not add replies, classification, deletion, analytics or a campaign
 workflow. The larger combined Learning Support Settings shell remains a later
 source-backed composition task.
 
+## ADR-067: Journal review remains an explicit one-page privacy boundary
+
+**Status:** Accepted — 7 November 2026
+
+**Decision:** Rust now restores the source one-time journal-feedback request:
+the owner may request review only for their own saved page, only while the
+global journal-review policy is enabled, and only for a current source-shaped
+destination. The greenfield policy defaults off. The initial destination list
+contains `Journal` and the learner's existing Rust learning groups; source
+organisation destinations remain unavailable because organisations have not
+yet been migrated to Rust.
+
+The application database stores the request separately from both the page and
+identity credentials. The page receives no staff projection until a request
+exists. Staff queue access, response authority and policy administration use
+three independent capabilities (`journal_feedback_view`,
+`journal_feedback_review`, and `journal_feedback_policy_manage`), initially
+granted only to `platform_administrator`. Names and email are read from the
+identity database only after the application-side capability check. A response
+is immutable, as in the source; the learner can read it only through their
+own journal page.
+
+**Why:** Journal writing is private by default. Treating it like deliberately
+shared platform feedback, exposing all pages to Learning Support, or accepting
+a browser-selected group would change that privacy contract. The three
+capabilities also preserve the source distinction between policy, queue access
+and responding without hard-coding a role in the application.
+
+**Limits and follow-up:** This restores the source request/reply flow and its
+policy toggle, not journal export, review history, configurable presentation,
+organisation destinations or a combined completed Learning Support shell.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

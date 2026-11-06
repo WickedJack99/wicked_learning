@@ -67,6 +67,12 @@ const OriginalPlatformFeedbackReviewPage = lazy(async () => {
     return { default: module.OriginalPlatformFeedbackReviewPage };
 });
 
+const OriginalJournalFeedbackReviewPage = lazy(async () => {
+    const module = await import('./original-journal-feedback-review');
+
+    return { default: module.OriginalJournalFeedbackReviewPage };
+});
+
 const OriginalGroupManagementPage = lazy(async () => {
     const module = await import('./original-group-management');
 
@@ -351,6 +357,36 @@ export function App() {
                         canReview={currentUser.capabilities.includes(
                             'platform_feedback_review',
                         )}
+                    />
+                </Suspense>
+            );
+        }
+
+        if (
+            supportPanel &&
+            new URLSearchParams(location.search).get('support') ===
+                'feedback-requests'
+        ) {
+            const canViewJournalFeedback = currentUser.capabilities.includes(
+                'journal_feedback_view',
+            );
+            const canManageJournalFeedbackPolicy =
+                currentUser.capabilities.includes(
+                    'journal_feedback_policy_manage',
+                );
+            if (!canViewJournalFeedback && !canManageJournalFeedbackPolicy) {
+                return <Navigate replace to="/home" />;
+            }
+
+            return (
+                <Suspense fallback={null}>
+                    <OriginalJournalFeedbackReviewPage
+                        appearance={appearance}
+                        canManagePolicy={canManageJournalFeedbackPolicy}
+                        canRespond={currentUser.capabilities.includes(
+                            'journal_feedback_review',
+                        )}
+                        canView={canViewJournalFeedback}
                     />
                 </Suspense>
             );

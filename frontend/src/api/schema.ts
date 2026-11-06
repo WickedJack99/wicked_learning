@@ -126,6 +126,58 @@ export interface paths {
         patch: operations["markAdminPlatformFeedbackReviewed"];
         trace?: never;
     };
+    "/admin/journal-feedback/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the source-defined global opt-in policy for private journal review requests. */
+        get: operations["getAdminJournalFeedbackPolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Enable or disable future learner requests for one-time private journal review. */
+        patch: operations["updateAdminJournalFeedbackPolicy"];
+        trace?: never;
+    };
+    "/admin/journal-feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a bounded staff queue of journal pages learners explicitly shared for feedback. */
+        get: operations["getAdminJournalFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/journal-feedback/{request_id}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach one informational staff response to an explicitly shared journal page. */
+        post: operations["respondToAdminJournalFeedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform-feedback": {
         parameters: {
             query?: never;
@@ -940,6 +992,26 @@ export interface paths {
         head?: never;
         /** Update a private journal page owned by the authenticated learner. */
         patch: operations["updateLearnerJournalPage"];
+        trace?: never;
+    };
+    "/learner/journal/pages/{page_id}/feedback-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explicitly share one saved private journal page for a one-time review.
+         * @description The server requires page ownership, the source-defined global policy and a current learner-owned destination. A request cannot be reused after it received feedback.
+         */
+        post: operations["requestLearnerJournalFeedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/learner/play-runs/{play_run_id}": {
@@ -2799,7 +2871,9 @@ export interface components {
             status: "in_progress" | "completed";
         };
         LearnerJournalDocument: {
+            allow_expert_access_requests: boolean;
             check_ins: components["schemas"]["LearnerJournalCheckIn"][];
+            feedback_domains: components["schemas"]["LearnerJournalFeedbackDomain"][];
             pages: components["schemas"]["LearnerJournalPage"][];
             pagination: components["schemas"]["LearnerJournalPagination"];
             revisit_invitations: components["schemas"]["LearnerRevisitInvitation"][];
@@ -3172,6 +3246,65 @@ export interface components {
             /** Format: uuid */
             deleted_page_id: string;
         };
+        RequestLearnerJournalFeedbackRequest: {
+            domain_key: string;
+        };
+        AdminJournalFeedbackPolicy: {
+            allow_review_requests: boolean;
+        };
+        UpdateAdminJournalFeedbackPolicyRequest: {
+            allow_review_requests: boolean;
+        };
+        RespondToAdminJournalFeedbackRequest: {
+            feedback: string;
+        };
+        AdminJournalFeedbackPage: {
+            items: components["schemas"]["AdminJournalFeedbackItem"][];
+            pagination: components["schemas"]["AdminJournalFeedbackPagination"];
+        };
+        AdminJournalFeedbackItem: {
+            domain: components["schemas"]["AdminJournalFeedbackDomain"];
+            feedback: string | null;
+            /** Format: uuid */
+            id: string;
+            page: components["schemas"]["AdminJournalFeedbackPageContent"];
+            /** Format: date-time */
+            requested_at: string;
+            requester: components["schemas"]["AdminJournalFeedbackIdentity"];
+            /** Format: date-time */
+            responded_at: string | null;
+            /** @enum {string} */
+            status: "pending" | "responded";
+        };
+        AdminJournalFeedbackDomain: {
+            /** Format: uuid */
+            id: string | null;
+            label: string;
+            /** @enum {string} */
+            type: "journal" | "group";
+        };
+        AdminJournalFeedbackPageContent: {
+            /** Format: uuid */
+            id: string | null;
+            markdown: string;
+            subtopic: string | null;
+            title: string;
+            topic: string;
+        };
+        AdminJournalFeedbackIdentity: {
+            /** Format: email */
+            email: string | null;
+            name: string | null;
+            /** Format: uuid */
+            subject_id: string | null;
+        };
+        AdminJournalFeedbackPagination: {
+            current_page: number;
+            last_page: number;
+            /** @enum {integer} */
+            per_page: 6;
+            total: number;
+        };
         LearnerJournalPage: {
             /** Format: uuid */
             id: string;
@@ -3181,10 +3314,37 @@ export interface components {
             markdown: string;
             /** @enum {string} */
             preferred_mode: "view" | "edit";
+            expert_access_requested: boolean;
+            feedback_request: components["schemas"]["LearnerJournalFeedbackRequest"] | null;
             reflection_count: number;
             learning_context: components["schemas"]["LearnerJournalLearningContext"] | null;
             /** Format: date-time */
             updated_at: string;
+        };
+        LearnerJournalFeedbackDomain: {
+            /** Format: uuid */
+            id: string | null;
+            key: string;
+            label: string;
+            /** @enum {string} */
+            type: "journal" | "group";
+        };
+        LearnerJournalFeedbackRequest: {
+            domain: components["schemas"]["LearnerJournalFeedbackRequestDomain"];
+            feedback: string | null;
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            responded_at: string | null;
+            /** @enum {string} */
+            status: "pending" | "responded";
+        };
+        LearnerJournalFeedbackRequestDomain: {
+            /** Format: uuid */
+            id: string | null;
+            label: string;
+            /** @enum {string} */
+            type: "journal" | "group";
         };
         LearnerJournalLearningContext: {
             activity_title: string | null;
@@ -3548,6 +3708,207 @@ export interface operations {
             };
             /** @description The feedback message is unknown or review is unavailable to this principal. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminJournalFeedbackPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current journal-review policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminJournalFeedbackPolicy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Journal policy management is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminJournalFeedbackPolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminJournalFeedbackPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminJournalFeedbackPolicy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Journal policy management is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminJournalFeedback: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requested and completed journal reviews, most recently requested first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminJournalFeedbackPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The private journal review queue is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    respondToAdminJournalFeedback: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RespondToAdminJournalFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description The response was attached to the shared journal page. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The journal request is unknown or review is unavailable to this principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request was already responded to or the response is invalid. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6508,6 +6869,77 @@ export interface operations {
             };
             /** @description The journal page does not exist for this learner. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestLearnerJournalFeedback: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                page_id: components["parameters"]["LearnerJournalPageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLearnerJournalFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description The learner's refreshed private page and its pending review state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerJournalPageResponse"];
+                };
+            };
+            /** @description The destination key is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The private page does not exist for this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Review requests are disabled */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

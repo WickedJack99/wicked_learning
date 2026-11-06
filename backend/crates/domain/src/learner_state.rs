@@ -1317,12 +1317,14 @@ pub struct LearnerReflectionResult {
     pub status: String,
 }
 
-/// A bounded, learner-owned journal page. This deliberately has no editing,
-/// feedback-request, export, or staff-review fields: those are separate
-/// private capabilities with their own writer contracts.
+/// A bounded, learner-owned journal page. Its ordinary editing and the
+/// separately authorized one-time review request are deliberately distinct
+/// contracts: a page remains private until this owner-visible request exists.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalDocument {
+    pub allow_expert_access_requests: bool,
     pub check_ins: Vec<LearnerJournalCheckIn>,
+    pub feedback_domains: Vec<LearnerJournalFeedbackDomain>,
     pub pages: Vec<LearnerJournalPage>,
     pub pagination: LearnerJournalPagination,
     pub revisit_invitations: Vec<LearnerRevisitInvitation>,
@@ -1461,6 +1463,8 @@ impl LearnerDeskPlanningPreference {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalPage {
+    pub expert_access_requested: bool,
+    pub feedback_request: Option<LearnerJournalFeedbackRequest>,
     pub id: String,
     pub title: String,
     pub topic: String,
@@ -1470,6 +1474,32 @@ pub struct LearnerJournalPage {
     pub reflection_count: i64,
     pub learning_context: Option<LearnerJournalLearningContext>,
     pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalFeedbackDomain {
+    pub id: Option<String>,
+    pub key: String,
+    pub label: String,
+    #[serde(rename = "type")]
+    pub type_: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalFeedbackRequest {
+    pub domain: LearnerJournalFeedbackRequestDomain,
+    pub feedback: Option<String>,
+    pub requested_at: String,
+    pub responded_at: Option<String>,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerJournalFeedbackRequestDomain {
+    pub id: Option<String>,
+    pub label: String,
+    #[serde(rename = "type")]
+    pub type_: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

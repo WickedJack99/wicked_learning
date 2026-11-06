@@ -135,6 +135,68 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The feedback message is unknown or review is unavailable to this principal. }
         '503': { description: The application database is unavailable. }
+  /admin/journal-feedback/policy:
+    get:
+      operationId: getAdminJournalFeedbackPolicy
+      summary: Read the source-defined global opt-in policy for private journal review requests.
+      responses:
+        '200':
+          description: The current journal-review policy.
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminJournalFeedbackPolicy' } } }
+        '401': { description: Authentication is required. }
+        '404': { description: Journal policy management is unavailable to this principal. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateAdminJournalFeedbackPolicy
+      summary: Enable or disable future learner requests for one-time private journal review.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminJournalFeedbackPolicyRequest' } } }
+      responses:
+        '200':
+          description: The saved policy.
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminJournalFeedbackPolicy' } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: Journal policy management is unavailable to this principal. }
+        '503': { description: The application database is unavailable. }
+  /admin/journal-feedback:
+    get:
+      operationId: getAdminJournalFeedback
+      summary: Read a bounded staff queue of journal pages learners explicitly shared for feedback.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+      responses:
+        '200':
+          description: Requested and completed journal reviews, most recently requested first.
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminJournalFeedbackPage' } } }
+        '401': { description: Authentication is required. }
+        '404': { description: The private journal review queue is unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
+  /admin/journal-feedback/{request_id}/respond:
+    post:
+      operationId: respondToAdminJournalFeedback
+      summary: Attach one informational staff response to an explicitly shared journal page.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+        - name: request_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RespondToAdminJournalFeedbackRequest' } } }
+      responses:
+        '204': { description: The response was attached to the shared journal page. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The journal request is unknown or review is unavailable to this principal. }
+        '422': { description: The request was already responded to or the response is invalid. }
+        '503': { description: The application database is unavailable. }
   /platform-feedback:
     post:
       operationId: submitPlatformFeedback
@@ -1274,6 +1336,27 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The journal page does not exist for this learner. }
+        '503': { description: The application database is unavailable. }
+  /learner/journal/pages/{page_id}/feedback-request:
+    post:
+      operationId: requestLearnerJournalFeedback
+      summary: Explicitly share one saved private journal page for a one-time review.
+      description: The server requires page ownership, the source-defined global policy and a current learner-owned destination. A request cannot be reused after it received feedback.
+      parameters:
+        - $ref: '#/components/parameters/LearnerJournalPageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RequestLearnerJournalFeedbackRequest' } } }
+      responses:
+        '200':
+          description: The learner's refreshed private page and its pending review state.
+          content: { application/json: { schema: { $ref: '#/components/schemas/LearnerJournalPageResponse' } } }
+        '400': { description: The destination key is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The private page does not exist for this learner. }
+        '422': { description: Review requests are disabled, destination access was lost, or this page was already reviewed. }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}:
     get:
@@ -4420,12 +4503,17 @@ components:
     LearnerJournalDocument:
       type: object
       additionalProperties: false
-      required: [check_ins, pages, pagination, revisit_invitations]
+      required: [allow_expert_access_requests, check_ins, feedback_domains, pages, pagination, revisit_invitations]
       properties:
+        allow_expert_access_requests: { type: boolean }
         check_ins:
           type: array
           maxItems: 30
           items: { $ref: '#/components/schemas/LearnerJournalCheckIn' }
+        feedback_domains:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/LearnerJournalFeedbackDomain' }
         pages:
           type: array
           maxItems: 24
@@ -4999,10 +5087,92 @@ components:
       required: [deleted_page_id]
       properties:
         deleted_page_id: { type: string, format: uuid }
+    RequestLearnerJournalFeedbackRequest:
+      type: object
+      additionalProperties: false
+      required: [domain_key]
+      properties:
+        domain_key: { type: string, minLength: 1, maxLength: 160 }
+    AdminJournalFeedbackPolicy:
+      type: object
+      additionalProperties: false
+      required: [allow_review_requests]
+      properties:
+        allow_review_requests: { type: boolean }
+    UpdateAdminJournalFeedbackPolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [allow_review_requests]
+      properties:
+        allow_review_requests: { type: boolean }
+    RespondToAdminJournalFeedbackRequest:
+      type: object
+      additionalProperties: false
+      required: [feedback]
+      properties:
+        feedback: { type: string, minLength: 1, maxLength: 20000 }
+    AdminJournalFeedbackPage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          maxItems: 6
+          items: { $ref: '#/components/schemas/AdminJournalFeedbackItem' }
+        pagination: { $ref: '#/components/schemas/AdminJournalFeedbackPagination' }
+    AdminJournalFeedbackItem:
+      type: object
+      additionalProperties: false
+      required: [domain, feedback, id, page, requested_at, requester, responded_at, status]
+      properties:
+        domain: { $ref: '#/components/schemas/AdminJournalFeedbackDomain' }
+        feedback: { type: [string, 'null'], maxLength: 20000 }
+        id: { type: string, format: uuid }
+        page: { $ref: '#/components/schemas/AdminJournalFeedbackPageContent' }
+        requested_at: { type: string, format: date-time }
+        requester: { $ref: '#/components/schemas/AdminJournalFeedbackIdentity' }
+        responded_at: { type: [string, 'null'], format: date-time }
+        status: { type: string, enum: [pending, responded] }
+    AdminJournalFeedbackDomain:
+      type: object
+      additionalProperties: false
+      required: [id, label, type]
+      properties:
+        id: { type: [string, 'null'], format: uuid }
+        label: { type: string, maxLength: 240 }
+        type: { type: string, enum: [journal, group] }
+    AdminJournalFeedbackPageContent:
+      type: object
+      additionalProperties: false
+      required: [id, markdown, subtopic, title, topic]
+      properties:
+        id: { type: [string, 'null'], format: uuid }
+        markdown: { type: string, maxLength: 100000 }
+        subtopic: { type: [string, 'null'], maxLength: 160 }
+        title: { type: string, maxLength: 240 }
+        topic: { type: string, maxLength: 160 }
+    AdminJournalFeedbackIdentity:
+      type: object
+      additionalProperties: false
+      required: [email, name, subject_id]
+      properties:
+        email: { type: [string, 'null'], format: email }
+        name: { type: [string, 'null'], maxLength: 240 }
+        subject_id: { type: [string, 'null'], format: uuid }
+    AdminJournalFeedbackPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, enum: [6] }
+        total: { type: integer, minimum: 0 }
     LearnerJournalPage:
       type: object
       additionalProperties: false
-      required: [id, title, topic, subtopic, markdown, preferred_mode, reflection_count, learning_context, updated_at]
+      required: [id, title, topic, subtopic, markdown, preferred_mode, expert_access_requested, feedback_request, reflection_count, learning_context, updated_at]
       properties:
         id: { type: string, format: uuid }
         title: { type: string, maxLength: 240 }
@@ -5010,12 +5180,44 @@ components:
         subtopic: { type: [string, 'null'], maxLength: 160 }
         markdown: { type: string, maxLength: 100000 }
         preferred_mode: { type: string, enum: [view, edit] }
+        expert_access_requested: { type: boolean }
+        feedback_request:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerJournalFeedbackRequest'
+            - type: 'null'
         reflection_count: { type: integer, minimum: 0 }
         learning_context:
           oneOf:
             - $ref: '#/components/schemas/LearnerJournalLearningContext'
             - type: 'null'
         updated_at: { type: string, format: date-time }
+    LearnerJournalFeedbackDomain:
+      type: object
+      additionalProperties: false
+      required: [id, key, label, type]
+      properties:
+        id: { type: [string, 'null'], format: uuid }
+        key: { type: string, maxLength: 160 }
+        label: { type: string, maxLength: 240 }
+        type: { type: string, enum: [journal, group] }
+    LearnerJournalFeedbackRequest:
+      type: object
+      additionalProperties: false
+      required: [domain, feedback, requested_at, responded_at, status]
+      properties:
+        domain: { $ref: '#/components/schemas/LearnerJournalFeedbackRequestDomain' }
+        feedback: { type: [string, 'null'], maxLength: 20000 }
+        requested_at: { type: string, format: date-time }
+        responded_at: { type: [string, 'null'], format: date-time }
+        status: { type: string, enum: [pending, responded] }
+    LearnerJournalFeedbackRequestDomain:
+      type: object
+      additionalProperties: false
+      required: [id, label, type]
+      properties:
+        id: { type: [string, 'null'], format: uuid }
+        label: { type: string, maxLength: 240 }
+        type: { type: string, enum: [journal, group] }
     LearnerJournalLearningContext:
       type: object
       additionalProperties: false

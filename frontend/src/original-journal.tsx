@@ -1,4 +1,12 @@
-import { FilePlus2, Pencil, Save, Search, Trash2, X } from 'lucide-react';
+import {
+    FilePlus2,
+    MessageSquareText,
+    Pencil,
+    Save,
+    Search,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
@@ -13,6 +21,7 @@ type JournalDocument = components['schemas']['LearnerJournalDocument'];
 type JournalPage = components['schemas']['LearnerJournalPage'];
 type JournalCheckIn = components['schemas']['LearnerJournalCheckIn'];
 type RevisitInvitation = components['schemas']['LearnerRevisitInvitation'];
+type JournalFeedbackDomain = components['schemas']['LearnerJournalFeedbackDomain'];
 
 const journalStyle = {
     '--journal-accent': '#2dd4bf',
@@ -35,8 +44,9 @@ const journalStyle = {
     '--journal-sidebar-background': 'rgba(17, 24, 39, 0.64)',
 } as CSSProperties;
 
-/** Source-adapted from the original JournalOverlay. Review, export and
- * check-in affordances remain unavailable until their source-defined contracts exist. */
+/** Source-adapted from the original JournalOverlay. Export and fuller
+ * check-in-history affordances remain unavailable until their source-defined
+ * contracts exist. */
 export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     const navigate = useNavigate();
     const [journal, setJournal] = useState<JournalDocument | null>(null);
@@ -59,6 +69,9 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     const [openingActivitySlug, setOpeningActivitySlug] = useState<string | null>(
         null,
     );
+    const [requestingFeedbackForId, setRequestingFeedbackForId] = useState<
+        string | null
+    >(null);
     const searchRef = useRef<HTMLInputElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -286,6 +299,58 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
             setSaveError('Your page could not be deleted. Please try again.');
         } finally {
             setDeletingPageId(null);
+        }
+    }
+
+    async function requestFeedback(
+        journalPage: JournalPage,
+        domainKey: string,
+    ): Promise<void> {
+        if (
+            journalPage.feedback_request !== null ||
+            requestingFeedbackForId !== null
+        ) {
+            return;
+        }
+        setRequestingFeedbackForId(journalPage.id);
+        setSaveError('');
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/journal/pages/{page_id}/feedback-request',
+                {
+                    body: { domain_key: domainKey },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { page_id: journalPage.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) throw new Error('request failed');
+            setJournal((current) =>
+                current
+                    ? {
+                          ...current,
+                          pages: current.pages.map((candidate) =>
+                              candidate.id === data.page.id
+                                  ? data.page
+                                  : candidate,
+                          ),
+                      }
+                    : current,
+            );
+            setDraftsById((current) => ({
+                ...current,
+                [data.page.id]: data.page,
+            }));
+            setDirtyById((current) => ({
+                ...current,
+                [data.page.id]: false,
+            }));
+        } catch {
+            setSaveError('Your review request could not be sent. Please try again.');
+        } finally {
+            setRequestingFeedbackForId(null);
         }
     }
 
@@ -611,11 +676,15 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                         ) : null}
                     </aside>
                     <JournalPageEditor
+                        allowExpertAccess={journal?.allow_expert_access_requests ?? false}
                         deletingPageId={deletingPageId}
+                        feedbackDomains={journal?.feedback_domains ?? []}
                         isDirty={selected ? (dirtyById[selected.id] ?? false) : false}
+                        isRequestingFeedback={requestingFeedbackForId === selected?.id}
                         isSaving={isSaving}
                         onDelete={deletePage}
                         onDraftChange={updateDraft}
+                        onRequestFeedback={requestFeedback}
                         onSave={savePage}
                         page={selected}
                         saveError={saveError}
@@ -931,21 +1000,29 @@ function JournalListItem({
 }
 
 function JournalPageEditor({
+    allowExpertAccess,
     deletingPageId,
+    feedbackDomains,
     isDirty,
+    isRequestingFeedback,
     isSaving,
     onDelete,
     onDraftChange,
+    onRequestFeedback,
     onSave,
     page,
     saveError,
     status,
 }: {
+    allowExpertAccess: boolean;
     deletingPageId: string | null;
+    feedbackDomains: JournalFeedbackDomain[];
     isDirty: boolean;
+    isRequestingFeedback: boolean;
     isSaving: boolean;
     onDelete: (page: JournalPage) => Promise<void>;
     onDraftChange: (page: JournalPage) => void;
+    onRequestFeedback: (page: JournalPage, domainKey: string) => Promise<void>;
     onSave: (page: JournalPage) => Promise<void>;
     page: JournalPage | null;
     saveError: string;
@@ -1144,8 +1221,195 @@ function JournalPageEditor({
                     </div>
                 )}
             </div>
+            <JournalFeedbackPanel
+                allowExpertAccess={allowExpertAccess}
+                domains={feedbackDomains}
+                isDirty={isDirty}
+                isRequestingFeedback={isRequestingFeedback}
+                onRequestFeedback={onRequestFeedback}
+                page={page}
+            />
         </main>
     );
+}
+
+/** Source-adapted from JournalFeedbackPanel. The policy and destination list
+ * are server-owned, so this control never grants access by itself. */
+function JournalFeedbackPanel({
+    allowExpertAccess,
+    domains,
+    isDirty,
+    isRequestingFeedback,
+    onRequestFeedback,
+    page,
+}: {
+    allowExpertAccess: boolean;
+    domains: JournalFeedbackDomain[];
+    isDirty: boolean;
+    isRequestingFeedback: boolean;
+    onRequestFeedback: (page: JournalPage, domainKey: string) => Promise<void>;
+    page: JournalPage;
+}) {
+    const [selectedDomainKey, setSelectedDomainKey] = useState(
+        domains[0]?.key ?? 'journal',
+    );
+    const selectedDomainExists = domains.some(
+        (domain) => domain.key === selectedDomainKey,
+    );
+    const domainKey = selectedDomainExists
+        ? selectedDomainKey
+        : (domains[0]?.key ?? 'journal');
+    const requestDisabled =
+        !allowExpertAccess ||
+        isDirty ||
+        page.feedback_request !== null ||
+        isRequestingFeedback ||
+        domains.length === 0;
+
+    return (
+        <div
+            className="mt-4 rounded-lg border p-3 text-sm"
+            style={{
+                background: 'var(--journal-input-background)',
+                borderColor: 'var(--journal-button-border)',
+                color: 'var(--journal-body-text)',
+            }}
+        >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p
+                        className="font-semibold"
+                        style={{ color: 'var(--journal-heading-text)' }}
+                    >
+                        {feedbackPanelTitle({ allowExpertAccess, isDirty, page })}
+                    </p>
+                    {page.feedback_request ? (
+                        <p
+                            className="mt-1 text-xs"
+                            style={{ color: 'var(--journal-muted-text)' }}
+                        >
+                            {page.feedback_request.domain.label}
+                        </p>
+                    ) : null}
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    {!page.feedback_request ? (
+                        <select
+                            aria-label="Feedback destination"
+                            className="h-9 rounded-md border bg-transparent px-3 text-sm outline-none"
+                            disabled={
+                                !allowExpertAccess ||
+                                isDirty ||
+                                isRequestingFeedback
+                            }
+                            onChange={(event) =>
+                                setSelectedDomainKey(event.target.value)
+                            }
+                            style={{
+                                borderColor: 'var(--journal-button-border)',
+                                color: 'var(--journal-button-text)',
+                            }}
+                            value={domainKey}
+                        >
+                            {domains.map((domain) => (
+                                <option key={domain.key} value={domain.key}>
+                                    {domain.label}
+                                </option>
+                            ))}
+                        </select>
+                    ) : null}
+                    <button
+                        className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                        disabled={requestDisabled}
+                        onClick={() => void onRequestFeedback(page, domainKey)}
+                        style={{
+                            background: 'var(--journal-button-background)',
+                            borderColor: 'var(--journal-button-border)',
+                            color: 'var(--journal-button-text)',
+                        }}
+                        type="button"
+                    >
+                        <MessageSquareText className="size-4" />
+                        {feedbackButtonLabel({ isRequestingFeedback, page })}
+                    </button>
+                </div>
+            </div>
+            <FeedbackPanelBody
+                allowExpertAccess={allowExpertAccess}
+                isDirty={isDirty}
+                page={page}
+            />
+        </div>
+    );
+}
+
+function FeedbackPanelBody({
+    allowExpertAccess,
+    isDirty,
+    page,
+}: {
+    allowExpertAccess: boolean;
+    isDirty: boolean;
+    page: JournalPage;
+}) {
+    if (page.feedback_request?.feedback) {
+        return (
+            <p className="mt-3 leading-6 whitespace-pre-wrap">
+                {page.feedback_request.feedback}
+            </p>
+        );
+    }
+    if (page.feedback_request) {
+        return (
+            <p className="mt-2" style={{ color: 'var(--journal-muted-text)' }}>
+                Review request sent. This page is waiting for feedback.
+            </p>
+        );
+    }
+    if (!allowExpertAccess) {
+        return (
+            <p className="mt-2" style={{ color: 'var(--journal-muted-text)' }}>
+                Review requests are turned off in journal settings.
+            </p>
+        );
+    }
+    if (isDirty) {
+        return (
+            <p className="mt-2" style={{ color: 'var(--journal-muted-text)' }}>
+                Save your changes before requesting review so the reviewer sees the latest page.
+            </p>
+        );
+    }
+    return null;
+}
+
+function feedbackPanelTitle({
+    allowExpertAccess,
+    isDirty,
+    page,
+}: {
+    allowExpertAccess: boolean;
+    isDirty: boolean;
+    page: JournalPage;
+}): string {
+    if (page.feedback_request?.feedback) return 'Page review';
+    if (page.feedback_request) return 'Review requested';
+    if (!allowExpertAccess) return 'Page review unavailable';
+    if (isDirty) return 'Save before review';
+    return 'You can request feedback for this page once.';
+}
+
+function feedbackButtonLabel({
+    isRequestingFeedback,
+    page,
+}: {
+    isRequestingFeedback: boolean;
+    page: JournalPage;
+}): string {
+    if (isRequestingFeedback) return 'Requesting...';
+    if (page.feedback_request?.responded_at) return 'Review received';
+    if (page.feedback_request) return 'Review requested';
+    return 'Request review';
 }
 
 function JournalField({

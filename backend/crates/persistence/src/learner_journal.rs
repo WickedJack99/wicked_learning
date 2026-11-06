@@ -8,8 +8,10 @@ use wicked_learning_application::learner_journal::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerJournalCheckIn, LearnerJournalDocument, LearnerJournalLearningContext,
-        LearnerJournalPage, LearnerJournalPagination, LearnerRevisitInvitation,
+        LearnerJournalCheckIn, LearnerJournalDocument, LearnerJournalFeedbackDomain,
+        LearnerJournalFeedbackRequest, LearnerJournalFeedbackRequestDomain,
+        LearnerJournalLearningContext, LearnerJournalPage, LearnerJournalPagination,
+        LearnerRevisitInvitation,
     },
 };
 
@@ -50,6 +52,14 @@ impl LearnerJournalRepositoryPort for PostgresLearnerJournalRepository<'_> {
 struct PageRow {
     activity_title: Option<String>,
     id: Uuid,
+    expert_access_requested: bool,
+    feedback: Option<String>,
+    feedback_domain_group_id: Option<Uuid>,
+    feedback_domain_label: Option<String>,
+    feedback_domain_type: Option<String>,
+    feedback_request_id: Option<Uuid>,
+    feedback_requested_at: Option<String>,
+    feedback_responded_at: Option<String>,
     map_slug: Option<String>,
     map_title: Option<String>,
     markdown: String,
@@ -61,6 +71,12 @@ struct PageRow {
     title: String,
     topic: String,
     updated_at: String,
+}
+
+#[derive(FromRow)]
+struct FeedbackDomainRow {
+    id: Uuid,
+    name: String,
 }
 
 #[derive(FromRow)]
@@ -116,6 +132,12 @@ async fn load_page(
         return Ok(None);
     };
     let search = request.search.as_deref().map(escape_like);
+    let allow_expert_access_requests = sqlx::query_scalar::<_, bool>(
+        "SELECT allow_review_requests FROM application_journal_feedback_policy WHERE singleton = TRUE",
+    )
+    .fetch_optional(pool)
+    .await?
+    .unwrap_or(false);
     let total = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*) FROM learner_journal_pages WHERE principal_id = $1 AND ($2::text IS NULL OR title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\')",
     )
@@ -125,7 +147,7 @@ async fn load_page(
     .await?;
     let offset = (request.page - 1) * request.per_page;
     let pages = sqlx::query_as::<_, PageRow>(
-        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, pages.preferred_mode, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_journal_pages AS pages LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id WHERE pages.principal_id = $1 AND ($2::text IS NULL OR pages.title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\') GROUP BY pages.id, activities.title, maps.slug, maps.title, nodes.slug, nodes.title ORDER BY pages.updated_at DESC, pages.id DESC LIMIT $3 OFFSET $4",
+        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, pages.preferred_mode, pages.expert_access_requested, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, feedback_requests.id AS feedback_request_id, feedback_requests.domain_type AS feedback_domain_type, feedback_requests.domain_group_id AS feedback_domain_group_id, feedback_requests.domain_label AS feedback_domain_label, feedback_requests.feedback, to_char(feedback_requests.requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_requested_at, to_char(feedback_requests.responded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_responded_at FROM learner_journal_pages AS pages LEFT JOIN learner_journal_feedback_requests AS feedback_requests ON feedback_requests.learner_journal_page_id = pages.id LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id WHERE pages.principal_id = $1 AND ($2::text IS NULL OR pages.title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\') GROUP BY pages.id, feedback_requests.id, activities.title, maps.slug, maps.title, nodes.slug, nodes.title ORDER BY pages.updated_at DESC, pages.id DESC LIMIT $3 OFFSET $4",
     )
     .bind(principal_id)
     .bind(&search)
@@ -136,13 +158,36 @@ async fn load_page(
     let check_ins = load_check_ins(pool, principal_id, &principal.roles).await?;
     let revisit_invitations =
         load_revisit_invitations(pool, principal_id, &principal.roles).await?;
+    let feedback_domains = load_feedback_domains(pool, principal_id).await?;
     let last_page = std::cmp::max(1, (total + request.per_page - 1) / request.per_page);
 
     Ok(Some(LearnerJournalDocument {
+        allow_expert_access_requests,
         check_ins,
+        feedback_domains,
         pages: pages
             .into_iter()
             .map(|page| LearnerJournalPage {
+                expert_access_requested: page.expert_access_requested,
+                feedback_request: page
+                    .feedback_request_id
+                    .map(|_| LearnerJournalFeedbackRequest {
+                        domain: LearnerJournalFeedbackRequestDomain {
+                            id: page.feedback_domain_group_id.map(|id| id.to_string()),
+                            label: page.feedback_domain_label.unwrap_or_default(),
+                            type_: page
+                                .feedback_domain_type
+                                .unwrap_or_else(|| "journal".to_owned()),
+                        },
+                        feedback: page.feedback,
+                        requested_at: page.feedback_requested_at.unwrap_or_default(),
+                        responded_at: page.feedback_responded_at.clone(),
+                        status: if page.feedback_responded_at.is_some() {
+                            "responded".to_owned()
+                        } else {
+                            "pending".to_owned()
+                        },
+                    }),
                 id: page.id.to_string(),
                 title: page.title,
                 topic: page.topic,
@@ -178,6 +223,35 @@ async fn load_page(
         },
         revisit_invitations,
     }))
+}
+
+async fn load_feedback_domains(
+    pool: &PgPool,
+    principal_id: Uuid,
+) -> Result<Vec<LearnerJournalFeedbackDomain>, sqlx::Error> {
+    let groups = sqlx::query_as::<_, FeedbackDomainRow>(
+        "SELECT groups.id, groups.name FROM learning_groups AS groups INNER JOIN learning_group_memberships AS memberships ON memberships.group_id = groups.id WHERE memberships.principal_id = $1 ORDER BY groups.name ASC, groups.id ASC",
+    )
+    .bind(principal_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(std::iter::once(LearnerJournalFeedbackDomain {
+        id: None,
+        key: "journal".to_owned(),
+        label: "Journal".to_owned(),
+        type_: "journal".to_owned(),
+    })
+    .chain(
+        groups
+            .into_iter()
+            .map(|group| LearnerJournalFeedbackDomain {
+                id: Some(group.id.to_string()),
+                key: format!("group:{}", group.id),
+                label: format!("Group: {}", group.name),
+                type_: "group".to_owned(),
+            }),
+    )
+    .collect())
 }
 
 async fn load_check_ins(

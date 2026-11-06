@@ -106,6 +106,14 @@ impl ApiError {
         }
     }
 
+    pub fn journal_feedback_rejected() -> Self {
+        Self {
+            code: "journal_feedback_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The journal feedback request cannot be completed.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",

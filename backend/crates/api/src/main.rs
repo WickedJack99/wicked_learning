@@ -10,6 +10,7 @@ mod error;
 mod feedback_prompt_preference;
 mod identity;
 mod identity_registration;
+mod journal_feedback_review;
 mod learner_activity_replay_run;
 mod learner_appearance_preference;
 mod learner_bookmark;
@@ -22,6 +23,7 @@ mod learner_group;
 mod learner_item_grant;
 mod learner_item_obstacle;
 mod learner_journal;
+mod learner_journal_feedback;
 mod learner_journal_page;
 mod learner_language_preference;
 mod learner_node_tool;
@@ -354,6 +356,22 @@ fn router(state: AppState) -> Router {
             post(learner_node_tool::use_on_node),
         )
         .route("/api/v1/learner/journal", get(learner_journal::index))
+        .route(
+            "/api/v1/learner/journal/pages/{page_id}/feedback-request",
+            post(learner_journal_feedback::request),
+        )
+        .route(
+            "/api/v1/admin/journal-feedback/policy",
+            get(journal_feedback_review::policy).patch(journal_feedback_review::update_policy),
+        )
+        .route(
+            "/api/v1/admin/journal-feedback",
+            get(journal_feedback_review::index),
+        )
+        .route(
+            "/api/v1/admin/journal-feedback/{request_id}/respond",
+            post(journal_feedback_review::respond),
+        )
         .route(
             "/api/v1/learner/appearance",
             patch(learner_appearance_preference::update),
