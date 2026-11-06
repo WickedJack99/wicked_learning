@@ -122,7 +122,12 @@ async fn save_current_reflection(
         transaction.commit().await?;
         return Ok(None);
     }
-    let observed_cues = observed_cues(&config, response_type, submission.observed_cues);
+    let observed_cues = observed_cues(
+        &config,
+        response_type,
+        config.learning_intent.as_deref() == Some("review"),
+        submission.observed_cues,
+    );
     if submission.observed_cues.len() > 3
         || submission
             .observed_cues
@@ -247,9 +252,10 @@ fn independent_check_is_available(config: &ReflectionConfig, response_type: &str
 fn observed_cues(
     config: &ReflectionConfig,
     response_type: &str,
+    is_review: bool,
     requested: &[String],
 ) -> Vec<String> {
-    if !matches!(response_type, "explain" | "transfer") {
+    if !is_review && !matches!(response_type, "explain" | "transfer") {
         return Vec::new();
     }
 
@@ -384,7 +390,7 @@ mod tests {
         assert_eq!(response_type(&config), "transfer");
         assert!(independent_check_is_available(&config, "transfer"));
         assert_eq!(
-            observed_cues(&config, "transfer", &requested),
+            observed_cues(&config, "transfer", false, &requested),
             vec!["Connects the idea to the new situation."]
         );
     }
@@ -405,6 +411,32 @@ mod tests {
 
         assert_eq!(response_type(&config), "reflection");
         assert!(!independent_check_is_available(&config, "reflection"));
-        assert!(observed_cues(&config, "reflection", &[]).is_empty());
+        assert!(observed_cues(&config, "reflection", false, &[]).is_empty());
+    }
+
+    #[test]
+    fn review_retains_only_selected_authored_cues_without_becoming_an_explanation() {
+        let config = ReflectionConfig {
+            note: None,
+            prompt: None,
+            subtopic: None,
+            topic: None,
+            learning_intent: Some("review".to_owned()),
+            feedback_guidance: Some(ReflectionFeedbackGuidance {
+                independent_check_prompt: None,
+                rubric: Some(vec!["Names a changed connection.".to_owned()]),
+            }),
+        };
+
+        assert_eq!(response_type(&config), "reflection");
+        assert_eq!(
+            observed_cues(
+                &config,
+                "reflection",
+                true,
+                &["Names a changed connection.".to_owned()],
+            ),
+            vec!["Names a changed connection."]
+        );
     }
 }

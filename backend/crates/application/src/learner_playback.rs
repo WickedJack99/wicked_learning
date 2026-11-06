@@ -31,6 +31,7 @@ pub trait LearnerPlaybackCompletionRepository {
         activity_slug: &str,
         confidence: Option<&str>,
         confidence_after_feedback: Option<&str>,
+        outcome: Option<&str>,
     ) -> impl Future<
         Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
     > + Send;
@@ -59,6 +60,7 @@ where
         activity_slug: &str,
         confidence: Option<&str>,
         confidence_after_feedback: Option<&str>,
+        outcome: Option<&str>,
     ) -> Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError> {
         self.repository
             .complete_current_activity(
@@ -67,6 +69,7 @@ where
                 activity_slug,
                 confidence,
                 confidence_after_feedback,
+                outcome,
             )
             .await
     }
@@ -114,7 +117,7 @@ mod tests {
     struct CompletionAbsentRepository;
 
     struct CompletionRecordingRepository {
-        received: Mutex<Option<(Option<String>, Option<String>)>>,
+        received: Mutex<Option<(Option<String>, Option<String>, Option<String>)>>,
     }
 
     impl LearnerPlaybackCompletionRepository for CompletionAbsentRepository {
@@ -125,6 +128,7 @@ mod tests {
             _activity_slug: &str,
             _confidence: Option<&str>,
             _confidence_after_feedback: Option<&str>,
+            _outcome: Option<&str>,
         ) -> impl Future<
             Output = Result<
                 Option<LearnerPlaybackCompletionResult>,
@@ -143,6 +147,7 @@ mod tests {
             _activity_slug: &str,
             confidence: Option<&str>,
             confidence_after_feedback: Option<&str>,
+            outcome: Option<&str>,
         ) -> impl Future<
             Output = Result<
                 Option<LearnerPlaybackCompletionResult>,
@@ -152,6 +157,7 @@ mod tests {
             *self.received.lock().expect("test mutex is available") = Some((
                 confidence.map(ToOwned::to_owned),
                 confidence_after_feedback.map(ToOwned::to_owned),
+                outcome.map(ToOwned::to_owned),
             ));
 
             async { Ok(None) }
@@ -203,7 +209,14 @@ mod tests {
         };
 
         let result = LearnerPlaybackCompletionCommand::new(&CompletionAbsentRepository)
-            .execute(&principal, Uuid::new_v4(), "open-practice", None, None)
+            .execute(
+                &principal,
+                Uuid::new_v4(),
+                "open-practice",
+                None,
+                None,
+                None,
+            )
             .await;
 
         assert!(matches!(result, Ok(None)));
@@ -226,13 +239,18 @@ mod tests {
                 "reflection",
                 Some("exploring"),
                 Some("settled"),
+                Some("clearer"),
             )
             .await;
 
         assert!(matches!(result, Ok(None)));
         assert_eq!(
             *repository.received.lock().expect("test mutex is available"),
-            Some((Some("exploring".to_owned()), Some("settled".to_owned()))),
+            Some((
+                Some("exploring".to_owned()),
+                Some("settled".to_owned()),
+                Some("clearer".to_owned()),
+            )),
         );
     }
 }

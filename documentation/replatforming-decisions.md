@@ -1429,10 +1429,13 @@ private response type and selected cues in the immutable review attempt.
 The React player now lifts the source explain/transfer sequence: response focus,
 optional initial confidence, transfer context, bounded authored cues, private
 save, authored guidance, optional independent response, private side-by-side
-comparison, independent-check feedback and optional later confidence. These
-controls use the existing source markup/classes and the browser still has no
-authority to choose a response type, activity, journal record, transition or
-evidence claim.
+comparison, independent-check feedback and optional later confidence. An
+authored review intent on a reflection now receives the source learner-only
+earlier-note reader (three newest matching topic/subtopic notes), optional
+before/after confidence, bounded observed cues and optional `clearer`,
+`connected` or `open` outcome. These controls use the existing source
+markup/classes and the browser still has no authority to choose a response
+type, activity, journal record, transition or evidence claim.
 
 **Why:** This preserves the source's learner agency and order of operations,
 keeps route progression server-owned, and prevents stale or browser-invented
@@ -1444,13 +1447,12 @@ response type would make private evidence forgeable. Creating a second
 completion endpoint just for reflection would duplicate the established
 server-owned activity-completion boundary. These alternatives are rejected.
 
-**Limitations and trigger:** The source authored-review presentation remains
-unavailable. It needs its own earlier-private-response context and source
-outcome controls; rendering an authored `learningIntent: review` as an ordinary
-reflection would be a behavioral substitution, so playback refuses that
-configuration until the complete contract and source UI are migrated together.
-The base reflection UI continues to use its original immediate
-save-then-continue behavior.
+**Limitations and trigger:** The standalone source `review` activity type is
+not yet a Rust playback type; current greenfield content represents its
+supported behavior through a reflection with `learningIntent: review`. Before
+adding the standalone type, extend the typed activity/authoring contracts and
+its authorization/browser evidence together. The base reflection UI continues
+to use its original immediate save-then-continue behavior.
 
 ## Phase 1 gate
 

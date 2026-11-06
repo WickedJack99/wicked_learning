@@ -12,7 +12,8 @@ use wicked_learning_domain::{
     learner_state::{
         LearnerPlaybackActivity, LearnerPlaybackCheckIn, LearnerPlaybackCompletion,
         LearnerPlaybackCompletionResult, LearnerPlaybackContext, LearnerPlaybackDocument,
-        LearnerPlaybackLearningArea, LearnerPlaybackRunKind, LearnerTool,
+        LearnerPlaybackLearningArea, LearnerPlaybackReviewContext, LearnerPlaybackRunKind,
+        LearnerTool,
     },
 };
 
@@ -72,6 +73,14 @@ struct CurrentActivityRow {
     is_revisit: bool,
     principal_id: Uuid,
     route_id: Uuid,
+}
+
+#[derive(FromRow)]
+struct ReviewContextRow {
+    created_at: String,
+    id: Uuid,
+    question: String,
+    reflection: String,
 }
 
 #[derive(FromRow)]
@@ -151,7 +160,7 @@ fn learner_safe_config(
                 })).collect::<Vec<_>>(),
             }))
         }
-        "reflection" => reflection_safe_config(config),
+        "reflection" | "review" => reflection_safe_config(config),
         "tool_grant" => tool_grant_safe_config(config),
         "item_grant" => item_grant_safe_config(config),
         "item_obstacle" => item_obstacle_safe_config(config),
@@ -163,16 +172,6 @@ fn learner_safe_config(
 
 fn reflection_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
     let config = config.as_object()?;
-    // Review requires earlier private-response context and a source-defined
-    // outcome flow. Do not silently render it as an ordinary reflection while
-    // that separate source contract is unavailable.
-    if config
-        .get("learningIntent")
-        .and_then(serde_json::Value::as_str)
-        == Some("review")
-    {
-        return None;
-    }
     let prompt = config
         .get("prompt")
         .and_then(serde_json::Value::as_str)
@@ -185,7 +184,7 @@ fn reflection_safe_config(config: serde_json::Value) -> Option<serde_json::Value
     let learning_intent = config
         .get("learningIntent")
         .and_then(serde_json::Value::as_str)
-        .filter(|intent| matches!(*intent, "explain" | "transfer"))
+        .filter(|intent| matches!(*intent, "explain" | "transfer" | "review"))
         .map(ToOwned::to_owned);
     let feedback_guidance = config
         .get("feedbackGuidance")
@@ -218,6 +217,53 @@ fn reflection_safe_config(config: serde_json::Value) -> Option<serde_json::Value
         "learningIntent": learning_intent,
         "feedbackGuidance": feedback_guidance,
     }))
+}
+
+fn is_authored_review(config: &serde_json::Value) -> bool {
+    config
+        .as_object()
+        .and_then(|config| config.get("learningIntent"))
+        .and_then(serde_json::Value::as_str)
+        == Some("review")
+}
+
+async fn load_review_context(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_config: &serde_json::Value,
+    node_title: &str,
+) -> Result<Vec<LearnerPlaybackReviewContext>, sqlx::Error> {
+    let topic = activity_config
+        .as_object()
+        .and_then(|config| config.get("topic"))
+        .and_then(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|topic| !topic.is_empty())
+        .unwrap_or(node_title);
+    let subtopic = activity_config
+        .as_object()
+        .and_then(|config| config.get("subtopic"))
+        .and_then(serde_json::Value::as_str)
+        .map(str::trim)
+        .unwrap_or_default();
+    let rows = sqlx::query_as::<_, ReviewContextRow>(
+        "SELECT reflections.id, reflections.question, reflections.reflection, to_char(reflections.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at FROM learner_reflections AS reflections INNER JOIN learner_journal_pages AS pages ON pages.id = reflections.learner_journal_page_id WHERE reflections.principal_id = $1 AND pages.topic = $2 AND ($3 = '' OR pages.subtopic = $3) ORDER BY reflections.created_at DESC, reflections.id DESC LIMIT 3",
+    )
+    .bind(principal_id)
+    .bind(topic)
+    .bind(subtopic)
+    .fetch_all(&mut **transaction)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| LearnerPlaybackReviewContext {
+            id: row.id.to_string(),
+            question: row.question,
+            reflection: row.reflection,
+            created_at: row.created_at,
+        })
+        .collect())
 }
 
 fn markdown_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -813,6 +859,18 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
             };
             let activity_config = row.activity_config.clone();
             let check_in = check_in_context(&activity_config);
+            let review_context = if is_authored_review(&activity_config) {
+                load_review_context(
+                    &mut transaction,
+                    row.principal_id,
+                    &activity_config,
+                    &row.node_title,
+                )
+                .await
+                .map_err(|_| LearnerPlaybackReadError)?
+            } else {
+                Vec::new()
+            };
             let Some(mut config) = learner_safe_config(&row.activity_type, row.activity_config)
             else {
                 transaction
@@ -970,6 +1028,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     question_feedback,
                     recall_item_id,
                     check_in,
+                    review_context,
                 },
             }))
         }
@@ -999,6 +1058,7 @@ impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackReposito
         activity_slug: &str,
         confidence: Option<&str>,
         confidence_after_feedback: Option<&str>,
+        outcome: Option<&str>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerPlaybackCompletionResult>, LearnerPlaybackCompletionError>,
     > + Send {
@@ -1010,6 +1070,7 @@ impl LearnerPlaybackCompletionRepositoryPort for PostgresLearnerPlaybackReposito
                 activity_slug,
                 confidence,
                 confidence_after_feedback,
+                outcome,
             )
             .await
             .map_err(|error| {
@@ -1027,8 +1088,12 @@ async fn complete_current_activity(
     activity_slug: &str,
     confidence: Option<&str>,
     confidence_after_feedback: Option<&str>,
+    outcome: Option<&str>,
 ) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
-    if !valid_confidence(confidence) || !valid_confidence(confidence_after_feedback) {
+    if !valid_confidence(confidence)
+        || !valid_confidence(confidence_after_feedback)
+        || !valid_review_outcome(outcome)
+    {
         return Ok(None);
     }
     let mut transaction = pool.begin().await?;
@@ -1042,7 +1107,7 @@ async fn complete_current_activity(
 
     if current.activity_type != "question"
         && current.activity_type != "reflection"
-        && (confidence.is_some() || confidence_after_feedback.is_some())
+        && (confidence.is_some() || confidence_after_feedback.is_some() || outcome.is_some())
     {
         transaction.commit().await?;
         return Ok(None);
@@ -1066,6 +1131,13 @@ async fn complete_current_activity(
     } else {
         None
     };
+
+    if outcome.is_some()
+        && (current.activity_type != "reflection" || !is_authored_review(&current.activity_config))
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
 
     if current.activity_type == "tool_grant"
         && !learner_owns_configured_tool(
@@ -1140,6 +1212,13 @@ async fn complete_current_activity(
         let observable_reflection = reflection.as_ref().filter(|reflection| {
             matches!(reflection.response_type.as_str(), "explain" | "transfer")
         });
+        let evidence_observed_cues = if is_authored_review(&current.activity_config) {
+            reflection
+                .as_ref()
+                .and_then(|reflection| reflection.observed_cues.clone())
+        } else {
+            observable_reflection.and_then(|reflection| reflection.observed_cues.clone())
+        };
         let attempt_confidence = question_attempt
             .as_ref()
             .and_then(|attempt| attempt.confidence.as_deref())
@@ -1147,13 +1226,17 @@ async fn complete_current_activity(
         let calibration = question_attempt
             .as_ref()
             .and_then(|attempt| attempt.calibration.as_deref());
-        let outcome = question_attempt.as_ref().map_or("completed", |attempt| {
-            if attempt.is_correct {
-                "correct"
-            } else {
-                "incorrect"
-            }
-        });
+        let completion_outcome = question_attempt
+            .as_ref()
+            .map(|attempt| {
+                if attempt.is_correct {
+                    "correct"
+                } else {
+                    "incorrect"
+                }
+            })
+            .or(outcome)
+            .unwrap_or("completed");
         let Some(attempt_number) = complete_active_revisit(
             &mut transaction,
             RevisitCompletion {
@@ -1164,7 +1247,7 @@ async fn complete_current_activity(
                 observed_cues: reflection
                     .as_ref()
                     .and_then(|reflection| reflection.observed_cues.clone()),
-                outcome,
+                outcome: completion_outcome,
                 play_run_id,
                 principal_id: current.principal_id,
                 response_type: reflection
@@ -1195,9 +1278,8 @@ async fn complete_current_activity(
                 learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
                 reflection_is_independent_check: observable_reflection
                     .is_some_and(|reflection| reflection.is_independent_check),
-                reflection_observed_cues: observable_reflection
-                    .and_then(|reflection| reflection.observed_cues.clone()),
-                outcome,
+                reflection_observed_cues: evidence_observed_cues,
+                outcome: completion_outcome,
                 play_run_id,
                 principal_id: current.principal_id,
                 reflection_response_type: observable_reflection
@@ -1287,16 +1369,27 @@ async fn complete_current_activity(
     let calibration = question_attempt
         .as_ref()
         .and_then(|attempt| attempt.calibration.as_deref());
-    let outcome = question_attempt.as_ref().map_or("completed", |attempt| {
-        if attempt.is_correct {
-            "correct"
-        } else {
-            "incorrect"
-        }
-    });
+    let completion_outcome = question_attempt
+        .as_ref()
+        .map(|attempt| {
+            if attempt.is_correct {
+                "correct"
+            } else {
+                "incorrect"
+            }
+        })
+        .or(outcome)
+        .unwrap_or("completed");
     let observable_reflection = reflection
         .as_ref()
         .filter(|reflection| matches!(reflection.response_type.as_str(), "explain" | "transfer"));
+    let evidence_observed_cues = if is_authored_review(&current.activity_config) {
+        reflection
+            .as_ref()
+            .and_then(|reflection| reflection.observed_cues.clone())
+    } else {
+        observable_reflection.and_then(|reflection| reflection.observed_cues.clone())
+    };
     record_completion_evidence(
         &mut transaction,
         CompletionEvidence {
@@ -1317,9 +1410,8 @@ async fn complete_current_activity(
             learner_reflection_id: observable_reflection.map(|reflection| reflection.id),
             reflection_is_independent_check: observable_reflection
                 .is_some_and(|reflection| reflection.is_independent_check),
-            reflection_observed_cues: observable_reflection
-                .and_then(|reflection| reflection.observed_cues.clone()),
-            outcome,
+            reflection_observed_cues: evidence_observed_cues,
+            outcome: completion_outcome,
             play_run_id,
             principal_id: current.principal_id,
             reflection_response_type: observable_reflection
@@ -1370,6 +1462,10 @@ fn reflection_response_type(config: &serde_json::Value) -> &'static str {
         Some("transfer") => "transfer",
         _ => "reflection",
     }
+}
+
+fn valid_review_outcome(value: Option<&str>) -> bool {
+    value.is_none_or(|value| matches!(value, "clearer" | "connected" | "open"))
 }
 
 async fn latest_reflection_for_completion(
@@ -1502,7 +1598,10 @@ async fn mark_activity_reached(
 mod tests {
     use serde_json::json;
 
-    use super::{check_in_context, markdown_safe_config, reflection_safe_config};
+    use super::{
+        check_in_context, is_authored_review, markdown_safe_config, reflection_safe_config,
+        valid_review_outcome,
+    };
 
     #[test]
     fn check_in_context_exposes_only_bounded_source_presentation_fields() {
@@ -1591,14 +1690,25 @@ mod tests {
     }
 
     #[test]
-    fn reflection_projection_does_not_disguise_an_unavailable_review_as_base_reflection() {
-        assert!(
-            reflection_safe_config(json!({
-                "prompt": "Review this idea.",
-                "learningIntent": "review",
-            }))
-            .is_none()
-        );
+    fn reflection_projection_retains_the_source_review_intent() {
+        let config = reflection_safe_config(json!({
+            "prompt": "Review this idea.",
+            "learningIntent": "review",
+        }))
+        .expect("review has a safe reflection projection");
+
+        assert_eq!(config["learningIntent"], "review");
+        assert!(is_authored_review(&config));
+    }
+
+    #[test]
+    fn review_outcomes_are_limited_to_the_source_defined_choices() {
+        assert!(valid_review_outcome(None));
+        assert!(valid_review_outcome(Some("clearer")));
+        assert!(valid_review_outcome(Some("connected")));
+        assert!(valid_review_outcome(Some("open")));
+        assert!(!valid_review_outcome(Some("completed")));
+        assert!(!valid_review_outcome(Some("invented")));
     }
 
     #[test]

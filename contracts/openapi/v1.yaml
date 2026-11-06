@@ -2087,7 +2087,7 @@ components:
         node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         node_title: { type: string, maxLength: 240 }
         observed_cues: { type: array, maxItems: 8, items: { type: string, maxLength: 120 } }
-        outcome: { type: [string, 'null'], enum: [completed, correct, incorrect, null] }
+        outcome: { type: [string, 'null'], enum: [completed, correct, incorrect, clearer, connected, open, null] }
         response_type: { type: [string, 'null'], enum: [reflection, explain, transfer, null] }
         revisit_reason: { type: string, enum: [pause, later] }
     LearnerCompetenceTopic:
@@ -2490,7 +2490,7 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in]
+      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context]
       properties:
         slug:
           type: string
@@ -2516,6 +2516,19 @@ components:
           format: uuid
         check_in:
           $ref: '#/components/schemas/LearnerPlaybackCheckIn'
+        review_context:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/LearnerPlaybackReviewContext' }
+    LearnerPlaybackReviewContext:
+      type: object
+      additionalProperties: false
+      required: [id, question, reflection, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        question: { type: string, maxLength: 2000 }
+        reflection: { type: string, maxLength: 20000 }
+        created_at: { type: string, format: date-time }
     LearnerPlaybackCompletion:
       type: object
       additionalProperties: false
@@ -2570,6 +2583,10 @@ components:
         confidence_after_feedback:
           type: [string, 'null']
           enum: [exploring, leaning, settled, null]
+        outcome:
+          type: [string, 'null']
+          enum: [clearer, connected, open, null]
+          description: Optional source-defined learner observation for an authored review reflection. The server accepts it only for that active review configuration.
     LearnerActivityCheckInRequest:
       type: object
       additionalProperties: false

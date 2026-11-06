@@ -1236,7 +1236,7 @@ export interface components {
             node_title: string;
             observed_cues: string[];
             /** @enum {string|null} */
-            outcome: "completed" | "correct" | "incorrect" | null;
+            outcome: "completed" | "correct" | "incorrect" | "clearer" | "connected" | "open" | null;
             /** @enum {string|null} */
             response_type: "reflection" | "explain" | "transfer" | null;
             /** @enum {string} */
@@ -1490,6 +1490,15 @@ export interface components {
             /** Format: uuid */
             recall_item_id: string | null;
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
+            review_context: components["schemas"]["LearnerPlaybackReviewContext"][];
+        };
+        LearnerPlaybackReviewContext: {
+            /** Format: uuid */
+            id: string;
+            question: string;
+            reflection: string;
+            /** Format: date-time */
+            created_at: string;
         };
         LearnerPlaybackCompletion: {
             label: string | null;
@@ -1519,6 +1528,11 @@ export interface components {
             confidence?: "exploring" | "leaning" | "settled";
             /** @enum {string|null} */
             confidence_after_feedback?: "exploring" | "leaning" | "settled" | null;
+            /**
+             * @description Optional source-defined learner observation for an authored review reflection. The server accepts it only for that active review configuration.
+             * @enum {string|null}
+             */
+            outcome?: "clearer" | "connected" | "open" | null;
         };
         LearnerActivityCheckInRequest: {
             /** @enum {string|null} */

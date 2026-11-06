@@ -634,6 +634,10 @@ pub struct LearnerPlaybackActivity {
     /// Source-defined, bounded context for the optional conclusion check-in.
     /// Recording a check-in remains bound to the completed server-owned run.
     pub check_in: LearnerPlaybackCheckIn,
+    /// The learner's own bounded earlier reflections for an authored review.
+    /// This is never returned for another principal or for an ordinary
+    /// reflection activity.
+    pub review_context: Vec<LearnerPlaybackReviewContext>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -648,6 +652,14 @@ pub struct LearnerPlaybackCheckIn {
     pub concepts: Vec<String>,
     pub learning_areas: Vec<LearnerPlaybackLearningArea>,
     pub objective: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackReviewContext {
+    pub id: String,
+    pub question: String,
+    pub reflection: String,
+    pub created_at: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

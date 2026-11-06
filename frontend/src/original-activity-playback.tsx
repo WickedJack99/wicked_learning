@@ -662,9 +662,14 @@ function ReflectionActivity({
         config.learningIntent === 'explain' || config.learningIntent === 'transfer'
             ? config.learningIntent
             : null;
+    const isReview = config.learningIntent === 'review';
     const isTransfer = responseType === 'transfer';
+    const independentCheckPrompt =
+        responseType && guidance?.independentCheckPrompt
+            ? guidance.independentCheckPrompt
+            : null;
     const hasPostResponseGuidance = Boolean(
-        responseType &&
+        (responseType || isReview) &&
             guidance &&
             (guidance.purpose ||
                 guidance.evidence ||
@@ -681,6 +686,9 @@ function ReflectionActivity({
     >(null);
     const [confidenceAfterFeedback, setConfidenceAfterFeedback] = useState<
         'exploring' | 'leaning' | 'settled' | null
+    >(null);
+    const [outcome, setOutcome] = useState<
+        'clearer' | 'connected' | 'open' | null
     >(null);
     const [reflectionSaved, setReflectionSaved] = useState(false);
     const [independentResponse, setIndependentResponse] = useState('');
@@ -714,13 +722,14 @@ function ReflectionActivity({
         const completion = await apiClient.POST(
             '/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete',
             {
-                ...(confidence || confidenceAfterFeedback
+                ...(confidence || confidenceAfterFeedback || outcome
                     ? {
                           body: {
                               ...(confidence ? { confidence } : {}),
                               ...(confidenceAfterFeedback
                                   ? { confidence_after_feedback: confidenceAfterFeedback }
                                   : {}),
+                              ...(outcome ? { outcome } : {}),
                           },
                       }
                     : {}),
@@ -750,7 +759,7 @@ function ReflectionActivity({
             !response ||
             saving ||
             (isTransfer && !context) ||
-            (independentCheck && !guidance?.independentCheckPrompt)
+            (independentCheck && !independentCheckPrompt)
         ) {
             return;
         }
@@ -813,13 +822,13 @@ function ReflectionActivity({
                     </div>
                 </div>
                 {guidance ? <ReflectionGuidance guidance={guidance} /> : null}
-                {guidance?.independentCheckPrompt ? (
+                {independentCheckPrompt ? (
                     <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
                             Independent check (optional)
                         </p>
                         <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
-                            {guidance.independentCheckPrompt}
+                            {independentCheckPrompt}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
                             Try a fresh response without looking back. This stays private and is recorded separately; you can continue without it.
@@ -921,7 +930,7 @@ function ReflectionActivity({
                         </p>
                     </div>
                 ) : null}
-                {responseType ? (
+                {responseType || isReview ? (
                     <fieldset className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <legend className="px-1 text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
                             After comparing, how settled does this feel now? (optional)
@@ -965,11 +974,38 @@ function ReflectionActivity({
         <div className="flex flex-1 flex-col gap-4">
             <div className="flex items-center gap-2 text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200">
                 <RotateCcw className="size-3.5" />
-                Reflection
+                {isReview ? 'Review / revisit' : 'Reflection'}
             </div>
-            <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
-                {prompt}
-            </p>
+            {isReview ? (
+                <p className="rounded-lg border border-cyan-500/20 bg-cyan-50 p-3 text-xs leading-5 text-cyan-900 dark:border-teal-200/20 dark:bg-teal-100/8 dark:text-teal-100">
+                    Return to the idea and notice what feels clearer, more connected, or still open.
+                </p>
+            ) : null}
+            {isReview && activity.review_context.length ? (
+                <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
+                        Earlier notes from you
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
+                        Look back if it helps. You can also write without comparing.
+                    </p>
+                    <div className="mt-2 grid gap-2">
+                        {activity.review_context.map((entry) => (
+                            <details
+                                className="rounded-md border border-cyan-500/15 bg-white/60 px-2.5 py-2 dark:border-teal-100/15 dark:bg-black/10"
+                                key={entry.id}
+                            >
+                                <summary className="cursor-pointer text-xs font-medium text-cyan-900 dark:text-teal-100">
+                                    {formatReviewDate(entry.created_at)} · {entry.question}
+                                </summary>
+                                <p className="mt-2 text-xs leading-5 whitespace-pre-wrap text-cyan-950/80 dark:text-teal-50/80">
+                                    {entry.reflection}
+                                </p>
+                            </details>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
             {responseType ? (
                 <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
                     <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
@@ -982,6 +1018,9 @@ function ReflectionActivity({
                     </p>
                 </div>
             ) : null}
+            <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                {prompt}
+            </p>
             {responseType ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
@@ -1002,10 +1041,16 @@ function ReflectionActivity({
                     </div>
                 </fieldset>
             ) : null}
+            {responseType ? (
+                <label
+                    className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200"
+                    htmlFor="activity-reflection-response"
+                >
+                    Your explanation
+                </label>
+            ) : null}
             <textarea
-                aria-describedby={
-                    responseType ? 'activity-response-help' : undefined
-                }
+                aria-describedby={responseType ? 'activity-response-help' : undefined}
                 className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
                 id="activity-reflection-response"
                 onChange={(event) => setReflection(event.currentTarget.value)}
@@ -1014,6 +1059,8 @@ function ReflectionActivity({
                         ? 'Explain how the idea worked in the changed context.'
                         : responseType
                           ? 'Write the idea in your own words.'
+                          : isReview
+                            ? 'Write what feels clearer or still open.'
                           : 'Write a short note for yourself.'
                 }
                 value={reflection}
@@ -1039,7 +1086,7 @@ function ReflectionActivity({
                     />
                 </div>
             ) : null}
-            {responseType && guidance?.rubric.length ? (
+            {(responseType || isReview) && guidance?.rubric.length ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
                         What did you notice in your response? (optional)
@@ -1048,7 +1095,9 @@ function ReflectionActivity({
                         className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400"
                         id="activity-response-help"
                     >
-                        Select any cues that feel visible in your explanation. This records your observation, not a grade.
+                        {isReview
+                            ? 'Select any cues that feel visible in your response. This records your observation, not a grade.'
+                            : 'Select any cues that feel visible in your explanation. This records your observation, not a grade.'}
                     </p>
                     <div className="mt-2 grid gap-2">
                         {guidance.rubric.map((cue) => {
@@ -1061,6 +1110,63 @@ function ReflectionActivity({
                             );
                         })}
                     </div>
+                </fieldset>
+            ) : null}
+            {isReview ? (
+                <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                    <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                        After your response, how settled does this feel before comparing with the guidance? (optional)
+                    </legend>
+                    <div
+                        aria-label="After your response, how settled does this feel before comparing with the guidance? (optional)"
+                        className="mt-2 flex flex-wrap gap-2"
+                        role="group"
+                    >
+                        {reflectionConfidenceOptions.map((option) => (
+                            <button
+                                aria-pressed={confidence === option.value}
+                                className={`min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200 ${confidence === option.value ? 'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100' : ''}`}
+                                key={option.value}
+                                onClick={() => setConfidence(option.value)}
+                                type="button"
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </fieldset>
+            ) : null}
+            {isReview ? (
+                <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                    <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                        What changed for you? (optional)
+                    </legend>
+                    <div
+                        aria-label="What changed for you? (optional)"
+                        aria-describedby="activity-review-outcome-help"
+                        className="mt-2 flex flex-wrap gap-2"
+                        role="group"
+                    >
+                        {reviewOutcomeOptions.map((option) => (
+                            <button
+                                aria-pressed={outcome === option.value}
+                                className={`min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200 ${outcome === option.value ? 'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100' : ''}`}
+                                key={option.value}
+                                onClick={() => setOutcome(option.value)}
+                                type="button"
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                    <p
+                        className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400"
+                        id="activity-review-outcome-help"
+                    >
+                        {outcome
+                            ? reviewOutcomeDescription(outcome)
+                            : 'Choose only if one of these descriptions fits. No choice is required, and none is a grade.'}
+                    </p>
                 </fieldset>
             ) : null}
             {note ? (
@@ -1079,7 +1185,11 @@ function ReflectionActivity({
                 onClick={() => void save()}
                 type="button"
             >
-                {saving ? 'Keeping reflection…' : 'Keep reflection'}
+                {saving
+                    ? 'Keeping reflection…'
+                    : isReview
+                      ? 'Save review note'
+                      : 'Keep reflection'}
             </button>
         </div>
     );
@@ -1103,6 +1213,35 @@ const reflectionConfidenceOptions: Array<{
     { label: 'I have a hunch', value: 'leaning' },
     { label: 'Settled', value: 'settled' },
 ];
+
+const reviewOutcomeOptions: Array<{
+    label: string;
+    value: 'clearer' | 'connected' | 'open';
+}> = [
+    { label: 'Clearer now', value: 'clearer' },
+    { label: 'More connected', value: 'connected' },
+    { label: 'Still open', value: 'open' },
+];
+
+function reviewOutcomeDescription(outcome: 'clearer' | 'connected' | 'open'): string {
+    return {
+        clearer: 'The idea feels easier to explain or use now.',
+        connected: 'A relationship or context is more visible now.',
+        open: 'The idea may need more time, another example, or a different route.',
+    }[outcome];
+}
+
+function formatReviewDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? 'Earlier'
+        : date.toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+          });
+}
 
 function asReflectionGuidance(value: unknown): ReflectionGuidance | null {
     if (typeof value !== 'object' || value === null) {

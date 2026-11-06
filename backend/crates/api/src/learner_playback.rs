@@ -23,6 +23,7 @@ use crate::{
 pub struct CompleteCurrentActivityRequest {
     confidence: Option<String>,
     confidence_after_feedback: Option<String>,
+    outcome: Option<String>,
 }
 
 pub async fn show(
@@ -63,6 +64,7 @@ pub async fn complete_current_activity(
             &activity_slug,
             request.confidence.as_deref(),
             request.confidence_after_feedback.as_deref(),
+            request.outcome.as_deref(),
         )
         .await
         .map_err(|_| ApiError::service_unavailable())?
