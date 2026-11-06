@@ -7,7 +7,7 @@ import {
     Sparkles,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Link, Navigate } from 'react-router';
 
 import { apiClient } from './api/client';
@@ -179,22 +179,24 @@ function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) 
                             ) : (
                                 <svg
                                     aria-label="Competence star map"
-                                    className="h-full w-full"
+                                    className="competence-star-map h-full w-full"
                                     role="img"
                                     viewBox={`0 0 ${competenceStarMapSize.width} ${competenceStarMapSize.height}`}
                                 >
                                     <StarMapStyle />
                                     <defs>
                                         <radialGradient id="competence-sky-vignette">
-                                            <stop offset="0%" stopColor="#0f172a" />
-                                            <stop offset="68%" stopColor="#020617" />
-                                            <stop offset="100%" stopColor="#000000" />
+                                            <stop offset="0%" stopColor="#111827" stopOpacity="0.38" />
+                                            <stop offset="55%" stopColor="#020617" stopOpacity="0.18" />
+                                            <stop offset="100%" stopColor="#000000" stopOpacity="1" />
                                         </radialGradient>
-                                        <filter id="competence-star-glow">
-                                            <feGaussianBlur stdDeviation="2.1" />
+                                        <filter height="200%" id="competence-star-glow" width="200%" x="-50%" y="-50%">
+                                            <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="3" />
+                                            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                                         </filter>
-                                        <filter id="competence-star-bloom">
-                                            <feGaussianBlur stdDeviation="5" />
+                                        <filter height="260%" id="competence-star-bloom" width="260%" x="-80%" y="-80%">
+                                            <feGaussianBlur in="SourceGraphic" result="soft" stdDeviation="7" />
+                                            <feMerge><feMergeNode in="soft" /><feMergeNode in="SourceGraphic" /></feMerge>
                                         </filter>
                                     </defs>
                                     <rect
@@ -206,7 +208,7 @@ function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) 
                                         <circle
                                             cx={star.x}
                                             cy={star.y}
-                                            fill="#e0f2fe"
+                                            fill="#dbeafe"
                                             key={index}
                                             opacity={star.opacity}
                                             r={star.size}
@@ -226,16 +228,13 @@ function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) 
                                             }}
                                             transform={`translate(${star.x} ${star.y}) rotate(${star.angle})`}
                                         >
-                                            <line
-                                                stroke="#bae6fd"
-                                                strokeLinecap="round"
-                                                strokeOpacity={star.opacity}
-                                                strokeWidth="1.5"
-                                                x1="0"
-                                                x2={star.length}
-                                                y1="0"
-                                                y2="0"
-                                            />
+                                            <g style={{ '--shooting-star-distance': `${star.distance}px`, animation: `competence-shooting-star-travel ${star.duration}s linear infinite`, animationDelay: `${star.delay}s` } as CSSProperties}>
+                                                <defs><linearGradient gradientUnits="userSpaceOnUse" id={`competence-shooting-star-tail-${index}`} x1={-star.length} x2="0" y1="0" y2="0"><stop offset="0%" stopColor="#bae6fd" stopOpacity="0" /><stop offset="35%" stopColor="#bfdbfe" stopOpacity="0.18" /><stop offset="72%" stopColor="#bfdbfe" stopOpacity="0.7" /><stop offset="100%" stopColor="#ffffff" stopOpacity="1" /></linearGradient></defs>
+                                                <line stroke={`url(#competence-shooting-star-tail-${index})`} strokeLinecap="round" strokeOpacity={star.opacity * 0.48} strokeWidth="9" x1={-star.length} x2="0" y1="0" y2="0" />
+                                                <line stroke={`url(#competence-shooting-star-tail-${index})`} strokeLinecap="round" strokeOpacity={star.opacity} strokeWidth="2.1" x1={-star.length * 0.92} x2="0" y1="0" y2="0" />
+                                                <circle fill="#ffffff" r="2.2" />
+                                                <circle fill="#93c5fd" opacity="0.26" r="7.5" />
+                                            </g>
                                         </g>
                                     ))}
                                     <g>
@@ -306,10 +305,14 @@ function StarMapStyle() {
     return (
         <style>{`
             @keyframes competence-flow { to { stroke-dashoffset: -72; } }
-            @keyframes competence-twinkle { from { opacity: .55; } to { opacity: 1; } }
-            @keyframes competence-halo { from { opacity: .2; } to { opacity: .72; } }
+            @keyframes competence-twinkle { from { opacity: .68; transform: scale(.92); } to { opacity: 1; transform: scale(1.16); } }
+            @keyframes competence-halo { from { opacity: .2; transform: scale(.94); } to { opacity: .68; transform: scale(1.1); } }
+            @keyframes competence-flare-sway { from { transform: rotate(-15deg); } to { transform: rotate(15deg); } }
+            @keyframes competence-spark { from { opacity: .18; transform: scale(.74); } to { opacity: .92; transform: scale(1.24); } }
             @keyframes competence-background-star { 50% { opacity: .9; } }
-            @keyframes competence-shooting-star-opacity { 0%, 8%, 100% { opacity: 0; } 12%, 20% { opacity: 1; } }
+            @keyframes competence-shooting-star-opacity { 0%, 48%, 76%, 100% { opacity: 0; } 52% { opacity: .84; } 62% { opacity: .5; } 72% { opacity: .08; } }
+            @keyframes competence-shooting-star-travel { 0%, 48% { transform: translateX(0); } 76%, 100% { transform: translateX(var(--shooting-star-distance)); } }
+            @media (prefers-reduced-motion: reduce) { .competence-star-map * { animation: none !important; } }
         `}</style>
     );
 }
@@ -410,13 +413,16 @@ function CompetenceStar({ active, onActiveChange, onSelect, selected, topic, vis
             <circle fill={topic.color} filter="url(#competence-star-bloom)" opacity={topic.brightness * 0.28} r={topic.size * 1.9} />
             <g filter="url(#competence-star-glow)" style={{ animation: `competence-twinkle ${topic.twinkleDuration}s cubic-bezier(0.45,0,0.55,1) infinite alternate`, animationDelay: `${topic.twinkleDelay}s`, transformBox: 'fill-box', transformOrigin: 'center' }}>
                 <g transform={`rotate(${topic.flareAngle})`}>
-                    <line stroke="#ffffff" strokeLinecap="round" strokeOpacity={topic.brightness * 0.76} strokeWidth={flareWidth} x1={-flareLength} x2={flareLength} y1="0" y2="0" />
-                    <line stroke="#bae6fd" strokeLinecap="round" strokeOpacity={topic.brightness * 0.62} strokeWidth={flareWidth * 0.78} x1="0" x2="0" y1={-flareLength} y2={flareLength} />
-                    <line stroke="#f5d0fe" strokeLinecap="round" strokeOpacity={topic.brightness * 0.32} strokeWidth={flareWidth * 0.58} x1={-diagonalFlareLength} x2={diagonalFlareLength} y1={-diagonalFlareLength} y2={diagonalFlareLength} />
+                    <g style={{ animation: `competence-flare-sway ${topic.twinkleDuration + 1.4}s cubic-bezier(0.45,0,0.55,1) infinite alternate`, animationDelay: `${topic.twinkleDelay * 0.7}s`, transformBox: 'fill-box', transformOrigin: 'center' }}>
+                        <line stroke="#ffffff" strokeLinecap="round" strokeOpacity={topic.brightness * 0.76} strokeWidth={flareWidth} x1={-flareLength} x2={flareLength} y1="0" y2="0" />
+                        <line stroke="#bae6fd" strokeLinecap="round" strokeOpacity={topic.brightness * 0.62} strokeWidth={flareWidth * 0.78} x1="0" x2="0" y1={-flareLength} y2={flareLength} />
+                        <line stroke="#f5d0fe" strokeLinecap="round" strokeOpacity={topic.brightness * 0.32} strokeWidth={flareWidth * 0.58} x1={-diagonalFlareLength} x2={diagonalFlareLength} y1={-diagonalFlareLength} y2={diagonalFlareLength} />
+                        <line stroke="#93c5fd" strokeLinecap="round" strokeOpacity={topic.brightness * 0.26} strokeWidth={flareWidth * 0.5} x1={-diagonalFlareLength} x2={diagonalFlareLength} y1={diagonalFlareLength} y2={-diagonalFlareLength} />
+                    </g>
                 </g>
                 <circle fill="#fff7ed" opacity={0.62 + topic.brightness * 0.38} r={topic.size * 0.62} />
                 <circle fill="#ffffff" opacity={0.82 + topic.brightness * 0.18} r={coreRadius} />
-                {topic.sparklePoints.map((sparkle, index) => <circle cx={sparkle.x} cy={sparkle.y} fill={index % 2 === 0 ? '#e0f2fe' : '#f5d0fe'} key={index} opacity={sparkle.opacity} r={sparkle.size} />)}
+                {topic.sparklePoints.map((sparkle, index) => <circle cx={sparkle.x} cy={sparkle.y} fill={index % 2 === 0 ? '#e0f2fe' : '#f5d0fe'} key={index} opacity={sparkle.opacity} r={sparkle.size} style={{ animation: `competence-spark ${topic.twinkleDuration + sparkle.radius * 0.08}s cubic-bezier(0.45,0,0.55,1) infinite alternate`, animationDelay: `${topic.twinkleDelay + sparkle.delay}s`, transformBox: 'fill-box', transformOrigin: 'center' }} />)}
             </g>
             {(topic.labelVisible || active) ? <g opacity="0.92" pointerEvents="none" transform={`translate(${-topic.x} ${-topic.y})`}><text fill="#f8fafc" fontSize="13" fontWeight="700" textAnchor="middle" x={topic.labelX} y={topic.labelY}>{topic.name}</text>{topic.clusterHiddenCount > 0 ? <text fill="#ccfbf1" fontSize="10" fontWeight="800" opacity="0.82" textAnchor="start" x={topic.labelX + topic.labelWidth / 2 + 8} y={topic.labelY}>+{topic.clusterHiddenCount}</text> : null}</g> : null}
         </g>
