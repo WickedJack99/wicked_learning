@@ -680,6 +680,14 @@ pub struct LearnerSupportRequestState {
     pub topic_title: String,
 }
 
+/// The source peer message-prompt state. A learner may make one contribution
+/// before the later wall activity makes peer writing visible.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPeerMessagePromptState {
+    pub has_contributed: bool,
+    pub topic_title: String,
+}
+
 /// The source peer-message wall resolved from an active learner run. It never
 /// exposes authors, hidden content, or messages from another topic.
 #[derive(Clone, Debug, Serialize)]

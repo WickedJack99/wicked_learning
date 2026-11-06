@@ -19,6 +19,7 @@ mod learner_node_tool;
 mod learner_npc_dialogue;
 mod learner_obstacle_tool;
 mod learner_paths;
+mod learner_peer_message;
 mod learner_playback;
 mod learner_question;
 mod learner_recall;
@@ -347,6 +348,13 @@ fn router(state: AppState) -> Router {
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/support-request",
             get(learner_support::show_current_request).post(learner_support::submit_current_request),
         )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-message",
+            get(learner_peer_message::prompt).post(learner_peer_message::contribute),
+        )
+        .route("/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall", get(learner_peer_message::wall))
+        .route("/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall/messages/{message_id}/responses", post(learner_peer_message::respond))
+        .route("/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall/messages/{message_id}/responses/{response_id}/helpfulness", patch(learner_peer_message::helpful))
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
             post(learner_playback::complete_current_activity),

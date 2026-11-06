@@ -18,6 +18,8 @@ import { OriginalItemObstacleActivity } from './original-item-obstacle-activity'
 import { OriginalMarkdownActivity } from './original-markdown-activity';
 import { OriginalNpcDialogueActivity } from './original-npc-dialogue-activity';
 import { OriginalObstacleActivity } from './original-obstacle-activity';
+import { OriginalPeerMessageWall } from './original-peer-message-wall';
+import { OriginalPeerMessagePrompt } from './original-peer-message-prompt';
 import { OriginalLearningSupportRequest } from './original-learning-support-request';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
@@ -537,6 +539,10 @@ export function OriginalOpenPracticePage({
                                                     ? 'Learning Support'
                                                     : state.document.activity
                                                               .activity_type ===
+                                                          'message_wall'
+                                                      ? 'Peer notes'
+                                                      : state.document.activity
+                                                              .activity_type ===
                                                           'npc_dialogue'
                                                       ? 'Dialogue'
                                                 : 'Open practice'}
@@ -628,7 +634,26 @@ export function OriginalOpenPracticePage({
                             />
                         ) : state.document.activity.activity_type ===
                           'message_prompt' ? (
-                            <OriginalLearningSupportRequest
+                            (state.document.activity.config as {
+                                messageAudience?: unknown;
+                            }).messageAudience === 'peers' ? (
+                                <OriginalPeerMessagePrompt
+                                    activity={state.document.activity}
+                                    appearance={appearance}
+                                    onComplete={complete}
+                                    playRunId={state.document.play_run_id}
+                                />
+                            ) : (
+                                <OriginalLearningSupportRequest
+                                    activity={state.document.activity}
+                                    appearance={appearance}
+                                    onComplete={complete}
+                                    playRunId={state.document.play_run_id}
+                                />
+                            )
+                        ) : state.document.activity.activity_type ===
+                          'message_wall' ? (
+                            <OriginalPeerMessageWall
                                 activity={state.document.activity}
                                 appearance={appearance}
                                 onComplete={complete}

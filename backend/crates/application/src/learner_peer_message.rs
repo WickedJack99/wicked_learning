@@ -2,19 +2,28 @@ use std::future::Future;
 
 use uuid::Uuid;
 use wicked_learning_domain::{
-    identity_access::AuthorizedPrincipal, learner_state::LearnerPeerMessageWall,
+    identity_access::AuthorizedPrincipal,
+    learner_state::{LearnerPeerMessagePromptState, LearnerPeerMessageWall},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerPeerMessageError;
 
 pub trait LearnerPeerMessageRepository {
+    fn load_prompt(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> impl Future<Output = Result<Option<LearnerPeerMessagePromptState>, LearnerPeerMessageError>>
+    + Send;
     fn load_wall(
         &self,
         principal: &AuthorizedPrincipal,
         play_run_id: Uuid,
         activity_slug: &str,
         page: i64,
+        per_page: i64,
     ) -> impl Future<Output = Result<Option<LearnerPeerMessageWall>, LearnerPeerMessageError>> + Send;
     fn contribute(
         &self,
@@ -22,7 +31,8 @@ pub trait LearnerPeerMessageRepository {
         play_run_id: Uuid,
         activity_slug: &str,
         body: &str,
-    ) -> impl Future<Output = Result<Option<LearnerPeerMessageWall>, LearnerPeerMessageError>> + Send;
+    ) -> impl Future<Output = Result<Option<LearnerPeerMessagePromptState>, LearnerPeerMessageError>>
+    + Send;
     fn respond(
         &self,
         principal: &AuthorizedPrincipal,
@@ -64,6 +74,30 @@ pub struct PeerWallQuery<'repository, Repository> {
     repository: &'repository Repository,
 }
 
+pub struct PeerMessagePromptQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> PeerMessagePromptQuery<'repository, Repository>
+where
+    Repository: LearnerPeerMessageRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> Result<Option<LearnerPeerMessagePromptState>, LearnerPeerMessageError> {
+        self.repository
+            .load_prompt(principal, play_run_id, activity_slug)
+            .await
+    }
+}
+
 impl<'repository, Repository> PeerWallQuery<'repository, Repository>
 where
     Repository: LearnerPeerMessageRepository,
@@ -78,9 +112,16 @@ where
         play_run_id: Uuid,
         activity_slug: &str,
         page: i64,
+        per_page: i64,
     ) -> Result<Option<LearnerPeerMessageWall>, LearnerPeerMessageError> {
         self.repository
-            .load_wall(principal, play_run_id, activity_slug, page.clamp(1, 1_000))
+            .load_wall(
+                principal,
+                play_run_id,
+                activity_slug,
+                page.clamp(1, 1_000),
+                per_page.clamp(1, 12),
+            )
             .await
     }
 }
@@ -99,7 +140,7 @@ where
         play_run_id: Uuid,
         activity_slug: &str,
         body: &str,
-    ) -> Result<Option<LearnerPeerMessageWall>, LearnerPeerMessageError> {
+    ) -> Result<Option<LearnerPeerMessagePromptState>, LearnerPeerMessageError> {
         let Some(body) = valid_body(body) else {
             return Ok(None);
         };

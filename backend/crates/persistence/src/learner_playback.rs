@@ -190,6 +190,7 @@ struct MessagePromptPlaybackConfig {
     message_allow_responses: Option<bool>,
     message_input_label: Option<String>,
     message_prompt: Option<String>,
+    message_response_prompt: Option<String>,
     message_topic_id: Option<String>,
     message_ui: Option<MessagePromptUiConfig>,
 }
@@ -260,18 +261,28 @@ fn message_wall_safe_config(config: serde_json::Value) -> Option<serde_json::Val
         .message_input_label
         .as_deref()
         .and_then(|value| bounded_text(value, 160))?;
+    let response_prompt = config
+        .message_response_prompt
+        .as_deref()
+        .and_then(|value| bounded_text(value, 2_000));
+    let colors = message_ui_safe_config(config.message_ui);
     Some(json!({
         "messageAudience": "peers",
         "messageAllowResponses": config.message_allow_responses.unwrap_or(false),
         "messageInputLabel": input_label,
         "messagePrompt": prompt,
+        "messageResponsePrompt": response_prompt,
+        "messageUi": colors,
     }))
 }
 
 fn message_prompt_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
     let config = serde_json::from_value::<MessagePromptPlaybackConfig>(config).ok()?;
-    if config.message_audience != "support" {
+    if !matches!(config.message_audience.as_str(), "peers" | "support") {
         return None;
+    }
+    if config.message_audience == "peers" {
+        Uuid::parse_str(config.message_topic_id.as_deref()?).ok()?;
     }
     let prompt = config
         .message_prompt
@@ -285,7 +296,19 @@ fn message_prompt_safe_config(config: serde_json::Value) -> Option<serde_json::V
         .as_deref()
         .and_then(|value| bounded_text(value, 160))
         .unwrap_or_else(|| "Your message".to_owned());
-    let colors = config.message_ui.map_or_else(
+    let colors = message_ui_safe_config(config.message_ui);
+
+    Some(json!({
+        "messageAudience": config.message_audience,
+        "messageAllowResponses": config.message_allow_responses.unwrap_or(false),
+        "messageInputLabel": input_label,
+        "messagePrompt": prompt,
+        "messageUi": colors,
+    }))
+}
+
+fn message_ui_safe_config(config: Option<MessagePromptUiConfig>) -> serde_json::Value {
+    config.map_or_else(
         || json!({}),
         |colors| {
             json!({
@@ -297,14 +320,7 @@ fn message_prompt_safe_config(config: serde_json::Value) -> Option<serde_json::V
                 "surfaceColorLight": colors.surface_color_light.filter(|value| is_hex_color(value)),
             })
         },
-    );
-
-    Some(json!({
-        "messageAudience": "support",
-        "messageInputLabel": input_label,
-        "messagePrompt": prompt,
-        "messageUi": colors,
-    }))
+    )
 }
 
 fn is_hex_color(value: &String) -> bool {
@@ -1141,11 +1157,11 @@ struct DialoguePlaybackStateRow {
     history: serde_json::Value,
 }
 
-/// The general playback reader intentionally accepts only already-migrated
-/// activity types. Private support prompts have their own reader because the
-/// topic binding is part of the authorization boundary: a malformed authored
-/// topic must not render a browser form that can target another MapAsset.
-async fn load_support_prompt_playback(
+/// Message activities have their own reader because topic binding is part of
+/// the authorization boundary: a malformed authored topic must not render a
+/// browser form that can target another MapAsset. The generic reader only
+/// accepts other already-migrated activity types.
+async fn load_message_activity_playback(
     transaction: &mut Transaction<'_, Postgres>,
     principal: &AuthorizedPrincipal,
     play_run_id: Uuid,
@@ -1164,7 +1180,8 @@ async fn load_support_prompt_playback(
          LEFT JOIN LATERAL (SELECT transitions.label, transitions.to_activity_id FROM learning_activity_transitions AS transitions WHERE transitions.from_activity_id = activities.id AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1) AS transition ON TRUE \
          LEFT JOIN learning_activities AS next_activity ON next_activity.id = transition.to_activity_id \
          WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
-           AND activities.activity_type = 'message_prompt' AND activities.activity_config ->> 'messageAudience' = 'support' \
+           AND ((activities.activity_type = 'message_prompt' AND activities.activity_config ->> 'messageAudience' IN ('support', 'peers')) \
+             OR (activities.activity_type = 'message_wall' AND activities.activity_config ->> 'messageAudience' = 'peers')) \
            AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL \
            AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
            AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
@@ -1191,7 +1208,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 .await
                 .map_err(|_| LearnerPlaybackReadError)?;
             let row = if let Some(row) =
-                load_support_prompt_playback(&mut transaction, principal, play_run_id)
+                load_message_activity_playback(&mut transaction, principal, play_run_id)
                     .await
                     .map_err(|_| LearnerPlaybackReadError)?
             {
@@ -1901,9 +1918,9 @@ async fn npc_dialogue_reached_end(
     .await
 }
 
-/// A support prompt may advance only after the learner has written their one
-/// private request. It has a dedicated path so message-prompt handling cannot
-/// accidentally become a generic completion for peer-wall activities.
+/// A message prompt has a dedicated completion path so a peer-wall activity
+/// cannot accidentally be treated as a prompt. Source support prompts require
+/// their one private request; peer prompts are explicitly optional.
 async fn complete_current_support_prompt(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -1924,8 +1941,7 @@ async fn complete_current_support_prompt(
          INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id \
          WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
            AND activities.slug = $3 AND activities.activity_type = 'message_prompt' \
-           AND activities.activity_config ->> 'messageAudience' = 'support' \
-           AND EXISTS (SELECT 1 FROM learner_messages AS messages WHERE messages.topic_id = topics.id AND messages.principal_id = progress.principal_id AND messages.audience = 'support') \
+           AND (activities.activity_config ->> 'messageAudience' = 'peers' OR (activities.activity_config ->> 'messageAudience' = 'support' AND EXISTS (SELECT 1 FROM learner_messages AS messages WHERE messages.topic_id = topics.id AND messages.principal_id = progress.principal_id AND messages.audience = 'support'))) \
            AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL \
            AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
            AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) \
@@ -2301,8 +2317,15 @@ mod tests {
             "messagePrompt": "What did you notice?",
             "messageInputLabel": "Your note",
             "messageAllowResponses": true,
+            "messageResponsePrompt": "Add a small clue or question.",
+            "messageUi": { "accentColorDark": "#5eead4" },
         });
-        assert!(message_wall_safe_config(valid).is_some());
+        let safe = message_wall_safe_config(valid).expect("valid peer wall config");
+        assert_eq!(
+            safe["messageResponsePrompt"],
+            "Add a small clue or question."
+        );
+        assert_eq!(safe["messageUi"]["accentColorDark"], "#5eead4");
         assert!(
             message_wall_safe_config(json!({
                 "messageAudience": "support",

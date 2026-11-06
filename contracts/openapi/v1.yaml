@@ -907,6 +907,85 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active support prompt is unavailable or is not owned by this learner. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-message:
+    get:
+      operationId: getLearnerPeerMessagePrompt
+      summary: Read the current learner's peer message-prompt state.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+      responses:
+        '200': { description: The current peer message-prompt state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerPeerMessagePromptState' } } } }
+        '401': { description: Authentication is required. }
+        '404': { description: The active peer message prompt is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: submitLearnerPeerMessage
+      summary: Submit the current learner's one peer contribution for this topic.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubmitLearnerPeerMessage' } } } }
+      responses:
+        '200': { description: The source-idempotent peer message-prompt state., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerPeerMessagePromptState' } } } }
+        '400': { description: The contribution body is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active peer message prompt is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall:
+    get:
+      operationId: getLearnerPeerWall
+      summary: Read the current learner's authorized peer message wall.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12, default: 12 }
+      responses:
+        '200': { description: The current authorized peer wall., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerPeerMessageWall' } } } }
+        '401': { description: Authentication is required. }
+        '404': { description: The active peer wall is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall/messages/{message_id}/responses:
+    post:
+      operationId: respondLearnerPeerMessage
+      summary: Submit the current learner's one response to a visible peer message.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/LearningSupportMessageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubmitLearnerPeerResponse' } } } }
+      responses:
+        '200': { description: The updated peer wall., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerPeerMessageWall' } } } }
+        '400': { description: The response body or response type is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active peer wall or visible peer message is unavailable. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/peer-wall/messages/{message_id}/responses/{response_id}/helpfulness:
+    patch:
+      operationId: updateLearnerPeerResponseHelpfulness
+      summary: Set or clear the message author's helpful marker on one visible response.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/LearningSupportMessageId'
+        - $ref: '#/components/parameters/LearningSupportResponseId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateLearnerPeerResponseHelpfulness' } } } }
+      responses:
+        '200': { description: The current helpful marker., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerPeerResponseHelpfulness' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active peer wall, message, response or author permission is unavailable. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue:
     post:
       operationId: continueLearnerNpcDialogue
@@ -3342,6 +3421,71 @@ components:
       required: [body]
       properties:
         body: { type: string, minLength: 2, maxLength: 280 }
+    SubmitLearnerPeerMessage:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: string, minLength: 2, maxLength: 280 }
+    LearnerPeerMessagePromptState:
+      type: object
+      additionalProperties: false
+      required: [has_contributed, topic_title]
+      properties:
+        has_contributed: { type: boolean }
+        topic_title: { type: string, maxLength: 240 }
+    LearnerPeerMessageWall:
+      type: object
+      additionalProperties: false
+      required: [has_contributed, messages, pagination, topic_title]
+      properties:
+        has_contributed: { type: boolean }
+        messages: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/LearnerPeerMessage' } }
+        pagination: { $ref: '#/components/schemas/LearningSupportPagination' }
+        topic_title: { type: string }
+    LearnerPeerMessage:
+      type: object
+      additionalProperties: false
+      required: [body, can_respond, has_responded, id, responses]
+      properties:
+        body: { type: string }
+        can_respond: { type: boolean }
+        has_responded: { type: boolean }
+        id: { type: string, format: uuid }
+        responses: { type: array, maxItems: 4, items: { $ref: '#/components/schemas/LearnerPeerMessageResponse' } }
+    LearnerPeerMessageResponse:
+      type: object
+      additionalProperties: false
+      required: [body, can_mark_helpful, id, is_helpful, response_type]
+      properties:
+        body: { type: string }
+        can_mark_helpful: { type: boolean }
+        id: { type: string, format: uuid }
+        is_helpful: { type: boolean }
+        response_type:
+          oneOf:
+            - type: string
+              enum: [explanation, example, question, counterexample]
+            - type: 'null'
+    SubmitLearnerPeerResponse:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: string, minLength: 2, maxLength: 280 }
+        response_type:
+          type: string
+          enum: [explanation, example, question, counterexample]
+    UpdateLearnerPeerResponseHelpfulness:
+      type: object
+      additionalProperties: false
+      required: [helpful]
+      properties: { helpful: { type: boolean } }
+    LearnerPeerResponseHelpfulness:
+      type: object
+      additionalProperties: false
+      required: [helpful]
+      properties: { helpful: { type: boolean } }
     LearningSupportTopic:
       type: object
       additionalProperties: false

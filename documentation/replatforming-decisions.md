@@ -1953,7 +1953,63 @@ hidden content while retaining the one-request rule before completing the
 activity. The learner-facing request and Desk panels reuse lifted original
 components. A local Compose browser test signs in an authorized worker and
 opens the source-derived private-support moderation workspace. The full source
-Settings shell, peer message walls and helpfulness remain unmigrated.
+Settings shell and staff peer-message moderation remain unmigrated; the
+separate learner-facing peer prompt/wall activity is recorded in ADR-050.
+
+## ADR-050: Learner peer messages preserve source activity and visibility boundaries
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source peer-message flow is not a generic public discussion
+board. A learner may optionally contribute once through a configured
+`message_prompt`; a later configured `message_wall` shows only visible notes
+for the same topic. The source then permits one response per learner/message,
+never to the learner's own note, and lets only the note author choose one
+visible response as helpful. Joining a topic from the browser, trusting a
+message identifier from another route, or treating the wall as the
+contribution form would change those rules.
+
+**Decision:** Keep prompt, wall, contribution, response and helpfulness as
+separate typed endpoints under the current opaque play run and activity slug.
+Every repository operation resolves the current application principal, active
+route progress, activity type, `peers` audience, configured topic and its map
+asset before it can read or write. The prompt accepts one trimmed 2–280
+character contribution per topic/principal and is optional at completion. The
+wall returns only visible peer notes, in the source's newest-page-then-random
+order, with a server maximum of twelve entries (the original client asks for
+ten on desktop and three on narrow screens). It returns the three newest
+visible responses and also a marked-helpful response when it would otherwise
+fall outside that set. A response is unique per message/principal and may not
+target the principal's own note. Helpful selection locks and validates the
+selected visible response before clearing any prior marker for that note.
+
+The React components are adapted from the source message prompt/wall rather
+than reconstructed. The ordinary playback reader uses the existing secured
+message-activity path for both message activity types, retaining the map/topic
+join that prevents a malformed configuration from exposing a cross-map form.
+The existing source check-in follows prompt completion before the player loads
+the wall.
+
+**Why:** This retains source sequencing, anonymity, contribution limits and
+author-only helpfulness while keeping activity ownership, topic selection and
+visibility policy on the Rust side. The shared message table supports the
+already-migrated private-support slice without conflating `support` and
+`peers` audiences.
+
+**Alternatives:** A standalone peer-wall route would make a shared discussion
+surface available outside its authored activity. Browser-side topic IDs or
+page-wide message lookups would bypass current-run/map authorization. An
+improvised staff peer view would create a visible moderation workflow before
+the corresponding source filters and commands are migrated. All are rejected.
+
+**Evidence and boundary:** The application and persistence tests enforce
+input bounds and source response types; the OpenAPI-generated client checks
+the request/response boundary. A local Compose browser test takes a new
+learner from the source-shaped support prompt through the peer prompt, the
+ordinary optional check-in and the rendered original wall, confirming the
+posted note in both its wall API response and visible card. This does not
+migrate staff peer moderation, arbitrary topic browsing, legacy data or
+production routing.
 
 ## Phase 1 gate
 
