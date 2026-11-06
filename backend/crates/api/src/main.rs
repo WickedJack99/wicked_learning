@@ -323,6 +323,10 @@ fn router(state: AppState) -> Router {
             post(learner_npc_dialogue::go_back),
         )
         .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/reflection",
+            post(learner_npc_dialogue::save_reflection),
+        )
+        .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items",
             post(learner_item_grant::roll_current_items),
         )

@@ -728,6 +728,30 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The dialogue has no previous node or is not owned by this learner. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/reflection:
+    post:
+      operationId: saveLearnerNpcDialogueReflection
+      summary: Save a private reflection from the active NPC dialogue node.
+      description: The server requires the current authored node to be a reflection node, writes the learner-owned journal entry, and resolves the authored next edge atomically.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LearnerNpcDialogueReflectionRequest' }
+      responses:
+        '200':
+          description: The durable NPC dialogue cursor after the private reflection was stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active dialogue node is not a writable reflection owned by this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items:
     post:
       operationId: grantLearnerItems
@@ -2667,8 +2691,12 @@ components:
     LearnerNpcDialogueState:
       type: object
       additionalProperties: false
-      required: [current_node_id, history]
+      required: [granted_tool, current_node_id, history]
       properties:
+        granted_tool:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerTool'
+            - type: 'null'
         current_node_id: { type: string, format: uuid }
         history:
           type: array
@@ -2680,6 +2708,12 @@ components:
       required: [answer_node_id]
       properties:
         answer_node_id: { type: string, format: uuid }
+    LearnerNpcDialogueReflectionRequest:
+      type: object
+      additionalProperties: false
+      required: [reflection]
+      properties:
+        reflection: { type: string, minLength: 1, maxLength: 20000 }
     LearnerPlaybackReviewContext:
       type: object
       additionalProperties: false

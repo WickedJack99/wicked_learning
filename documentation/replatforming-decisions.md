@@ -1561,6 +1561,23 @@ historical replay support wait for their respective media and replay evidence;
 the route must not expose a partial dialogue until this entire initial graph
 contract and source player are present.
 
+**Implementation evidence:** Axum exposes run-scoped continue, answer, back
+and private-reflection commands. The source-adapted React scene reads the safe
+graph projection and keeps only selection, text entry, keyboard navigation and
+presentation in the browser; Rust advances the graph, grants a configured
+published tool, creates the private journal reflection, and permits completion
+only after an authored end node. A fresh local demo graph covers every
+supported node type. Its Playwright test exercises both the command path and
+the rendered scene in the local Compose stack, including the retained journal
+entry.
+
+**Current visual boundary:** The lifted scene supports the source dialogue
+frame, themed background/NPC image, speech bubble, answers, reflection,
+tool-added acknowledgement and source keyboard/end behavior. Per-node scene
+asset layers, character enter/exit animation, typewriter effect and dialogue
+audio remain unavailable because their bounded media contracts are not yet
+implemented. They are omitted rather than replaced with a new interaction.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

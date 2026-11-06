@@ -518,6 +518,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/reflection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save a private reflection from the active NPC dialogue node.
+         * @description The server requires the current authored node to be a reflection node, writes the learner-owned journal entry, and resolves the authored next edge atomically.
+         */
+        post: operations["saveLearnerNpcDialogueReflection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items": {
         parameters: {
             query?: never;
@@ -1613,6 +1633,7 @@ export interface components {
             from_connector: string;
         };
         LearnerNpcDialogueState: {
+            granted_tool: components["schemas"]["LearnerTool"] | null;
             /** Format: uuid */
             current_node_id: string;
             history: string[];
@@ -1620,6 +1641,9 @@ export interface components {
         LearnerNpcDialogueAnswerRequest: {
             /** Format: uuid */
             answer_node_id: string;
+        };
+        LearnerNpcDialogueReflectionRequest: {
+            reflection: string;
         };
         LearnerPlaybackReviewContext: {
             /** Format: uuid */
@@ -3566,6 +3590,64 @@ export interface operations {
                 content?: never;
             };
             /** @description The dialogue has no previous node or is not owned by this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    saveLearnerNpcDialogueReflection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerNpcDialogueReflectionRequest"];
+            };
+        };
+        responses: {
+            /** @description The durable NPC dialogue cursor after the private reflection was stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerNpcDialogueState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active dialogue node is not a writable reflection owned by this learner. */
             404: {
                 headers: {
                     [name: string]: unknown;

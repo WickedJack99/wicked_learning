@@ -16,6 +16,7 @@ import { OriginalLearningCheckIn } from './original-learning-check-in';
 import { OriginalItemGrantActivity } from './original-item-grant-activity';
 import { OriginalItemObstacleActivity } from './original-item-obstacle-activity';
 import { OriginalMarkdownActivity } from './original-markdown-activity';
+import { OriginalNpcDialogueActivity } from './original-npc-dialogue-activity';
 import { OriginalObstacleActivity } from './original-obstacle-activity';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
@@ -529,6 +530,10 @@ export function OriginalOpenPracticePage({
                                                           .activity_type ===
                                                       'markdown'
                                                     ? 'Reading'
+                                                    : state.document.activity
+                                                              .activity_type ===
+                                                          'npc_dialogue'
+                                                      ? 'Dialogue'
                                                 : 'Open practice'}
                                 </p>
                                 <h3
@@ -615,6 +620,15 @@ export function OriginalOpenPracticePage({
                                 activity={state.document.activity}
                                 appearance={appearance}
                                 onComplete={complete}
+                            />
+                        ) : state.document.activity.activity_type ===
+                          'npc_dialogue' ? (
+                            <OriginalNpcDialogueActivity
+                                activity={state.document.activity}
+                                appearance={appearance}
+                                onComplete={complete}
+                                onRefresh={load}
+                                playRunId={state.document.play_run_id}
                             />
                         ) : (
                             <OpenPracticeActivity

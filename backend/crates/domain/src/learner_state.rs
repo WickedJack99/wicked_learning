@@ -678,6 +678,7 @@ pub struct LearnerNpcDialogueTransition {
 /// public authored node identifiers already present in the playback document.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerNpcDialogueState {
+    pub granted_tool: Option<LearnerTool>,
     pub current_node_id: String,
     pub history: Vec<String>,
 }

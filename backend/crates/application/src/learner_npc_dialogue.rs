@@ -33,6 +33,14 @@ pub trait LearnerNpcDialogueRepository {
         play_run_id: Uuid,
         activity_slug: &str,
     ) -> impl Future<Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>> + Send;
+
+    fn save_current_dialogue_reflection(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        reflection: &str,
+    ) -> impl Future<Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>> + Send;
 }
 
 pub struct LearnerNpcDialogueCommand<'repository, Repository> {
@@ -78,6 +86,18 @@ where
     ) -> Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError> {
         self.repository
             .go_back_in_current_dialogue(principal, play_run_id, activity_slug)
+            .await
+    }
+
+    pub async fn save_reflection(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        reflection: &str,
+    ) -> Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError> {
+        self.repository
+            .save_current_dialogue_reflection(principal, play_run_id, activity_slug, reflection)
             .await
     }
 }

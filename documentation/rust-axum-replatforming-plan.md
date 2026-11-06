@@ -325,6 +325,19 @@ not replace it with a newly invented workflow.
 | Playback                     | `pages/learning/node-play.tsx`, `features/world/standard-activities.tsx`, `features/world/markdown-activity.tsx`, `features/world/tool-grant-activity.tsx`, `features/world/item-grant-activity.tsx`, `features/world/item-obstacle-activity.tsx`, `features/world/obstacle-activity.tsx`, `features/world/learning-check-in.tsx` | Source-adapted open-practice, question, base-reflection, Markdown page graph, tool-grant, item-grant, item-obstacle and base obstacle frames, followed on ordinary route runs by the lifted optional source check-in pause. Rust owns answer evaluation, reflection persistence, safe bounded authored Markdown pages, configured-tool ownership, configured-item probability rolls/holdings, item-obstacle slot consumption/locks, owned configured-tool obstacle resolution and completed-activity transitions; it exposes only bounded authored check-in context, and accepts a check-in only after server-side completion. Reflection persistence now follows the source save-then-complete boundary: the migrated base surface saves then immediately uses the server-owned completion command, while the typed Rust contract keeps source-derived transfer context, authored cues and independent-check eligibility for the later exact explain/transfer/review UI lift. Revisit runs deliberately return to World rather than recording a second ordinary check-in. Question feedback now includes the source confidence reflection, an up-to-three private earlier-attempt summary, optional post-feedback confidence, and the source keep/remove-recall control. Reloading an active question restores only that run's latest evaluated answer and its bounded earlier-attempt context; a fresh run does not inherit it. Recall attempts are separate one-question runs: they never advance a route or create evidence. Obstacle audio and unsupported activity types remain separate contracts and are not silently represented as complete. |
 | Private journal              | `components/learner-account-controls.tsx`, `components/learner-paginated-items.tsx`, `features/journal/journal-overlay.tsx`, `features/platform-info/markdown-renderer.tsx` | Source-adapted learner-owned overlay, reached from the original journal control. Rust scopes and paginates private page markdown and durable learning context, and supports the source add/edit/view/save/delete controls. The bounded source Learning trail now shows recent check-ins, preserves its source competence destination and reopens an activity only through a CSRF-protected opaque replay run. Due revisit invitations use the lifted source sidebar panel, one-at-a-time pagination and `Open activity`/`Later`/`Hide` controls; opening first obtains a server-owned opaque revisit run. Fuller check-in history/timeline, export, feedback requests and configurable presentation remain unavailable. |
 
+### NPC dialogue slice — 6 November 2026
+
+Published `npc_dialogue` activities now join the supported ordinary route-run
+start cards and playback surfaces. The implementation lifts the original
+dialogue frame and server-owns its authored graph, answers, back state,
+private reflection, configured tool grant and end-only completion. The local
+Compose browser test covers the rendered flow and its persisted journal entry.
+
+This does not make the wider World work complete: node-drawer NPC tool grants
+remain unavailable, as do dialogue replay, scene asset layers, character
+animation, typewriter behavior and dialogue audio. Those source controls stay
+absent until their media/replay contracts are ready.
+
 Transport-only loading, unavailable and authorization-error branches may be
 introduced where the original page received server props synchronously. They
 must use the surrounding lifted page surface and must not become a replacement
@@ -374,12 +387,12 @@ offers a route, and the lifted source tool belt can submit an equipped owned
 tool to the single source-derived map-node reveal/unlock command. It renders
 saved-place and completed-activity signals, and now renders only
 server-authorized `open_practice`, question, base-reflection, Markdown,
-tool-grant, item-grant, item-obstacle and base-obstacle start cards for a
+NPC-dialogue, tool-grant, item-grant, item-obstacle and base-obstacle start cards for a
 signed-in learner. Each lifted original start/reset control calls a Rust command with its
 authored start UUID; the browser then navigates to the matching server-owned
 play run. Anonymous visitors receive no start control. A disabled imitation of
 the original controls is not acceptable. The route intentionally does not yet
-support node-drawer obstacle/item use, NPC tool grants, group data, audio configuration,
+support node-drawer obstacle/item use, node-drawer NPC tool grants, group data, audio configuration,
 or the full serializer state consumed by Laravel's
 `LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
 `ActivityPanel` components. The original `NodeDetailDrawer` geometry, close
