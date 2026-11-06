@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 
 import { apiClient } from './api/client';
 import type { components } from './api/schema';
@@ -23,6 +23,7 @@ import { OriginalPaginatedItems } from './original-paginated-items';
 
 type CompetenceMap = components['schemas']['LearnerCompetenceMap'];
 type CompetenceTopic = components['schemas']['LearnerCompetenceTopic'];
+type TopicHeader = components['schemas']['LearnerTopicDetailHeader'];
 
 /**
  * Source-adapted from `pages/competence/index.tsx`. The read model remains
@@ -102,12 +103,70 @@ function CompetenceStatus({ message }: { message: string }) {
 }
 
 function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) {
+    const [searchParams] = useSearchParams();
+    const initialTopicSlug = topicSlug(searchParams.get('topic'));
+    const contextTopicSlug =
+        topicSlug(searchParams.get('from')) ?? initialTopicSlug;
     const [hoveredTopicSlug, setHoveredTopicSlug] = useState<string | null>(
         null,
     );
     const [selectedTopicSlug, setSelectedTopicSlug] = useState<string | null>(
+        initialTopicSlug,
+    );
+    const [contextTopic, setContextTopic] = useState<TopicHeader | null>(null);
+    const [selectedTopic, setSelectedTopic] = useState<TopicHeader | null>(
         null,
     );
+
+    useEffect(() => {
+        setSelectedTopicSlug(initialTopicSlug);
+    }, [initialTopicSlug]);
+
+    useEffect(() => {
+        if (!contextTopicSlug) {
+            setContextTopic(null);
+            return;
+        }
+
+        let current = true;
+        void apiClient
+            .GET('/learner/topics/{topic_slug}/trail', {
+                params: { path: { topic_slug: contextTopicSlug } },
+            })
+            .then(({ data, response }) => {
+                if (current) {
+                    setContextTopic(response.ok && data ? data.topic : null);
+                }
+            })
+            .catch(() => current && setContextTopic(null));
+
+        return () => {
+            current = false;
+        };
+    }, [contextTopicSlug]);
+
+    useEffect(() => {
+        if (!initialTopicSlug) {
+            setSelectedTopic(null);
+            return;
+        }
+
+        let current = true;
+        void apiClient
+            .GET('/learner/topics/{topic_slug}/trail', {
+                params: { path: { topic_slug: initialTopicSlug } },
+            })
+            .then(({ data, response }) => {
+                if (current) {
+                    setSelectedTopic(response.ok && data ? data.topic : null);
+                }
+            })
+            .catch(() => current && setSelectedTopic(null));
+
+        return () => {
+            current = false;
+        };
+    }, [initialTopicSlug]);
     const positionedTopics = useMemo(
         () =>
             buildCompetenceStarLayout(
@@ -143,6 +202,8 @@ function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) 
     const activePosition = activeTopicSlug
         ? positionedBySlug.get(activeTopicSlug)
         : undefined;
+    const selectedTopicNotFound =
+        selectedTopicSlug !== null && !positionedBySlug.has(selectedTopicSlug);
 
     return (
         <main
@@ -162,13 +223,31 @@ function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) 
                                 </p>
                             </div>
                             <h1 className="mt-2 text-3xl font-semibold">Star Map</h1>
+                            {contextTopic ? (
+                                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                                    Viewing the learning trail around{' '}
+                                    <Link
+                                        className="font-medium text-cyan-300 underline decoration-cyan-300/40 underline-offset-4 transition hover:text-cyan-100"
+                                        to={`/topics/${encodeURIComponent(contextTopic.slug)}`}
+                                    >
+                                        {contextTopic.title}
+                                    </Link>
+                                    .
+                                </p>
+                            ) : null}
                         </div>
                         <Link
                             className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm font-medium transition hover:bg-white/15"
-                            to="/home"
+                            to={
+                                contextTopic
+                                    ? `/topics/${encodeURIComponent(contextTopic.slug)}`
+                                    : '/home'
+                            }
                         >
                             <ArrowLeft className="size-4" />
-                            Learning desk
+                            {contextTopic
+                                ? `Back to ${contextTopic.title}`
+                                : 'Learning desk'}
                         </Link>
                     </header>
 
@@ -283,6 +362,25 @@ function CompetenceStarMap({ competenceMap }: { competenceMap: CompetenceMap }) 
                                     }}
                                     topic={activeTopic}
                                     position={activePosition}
+                                />
+                            ) : selectedTopicNotFound ? (
+                                <UnseenCompetenceReading
+                                    onClose={() => {
+                                        setHoveredTopicSlug(null);
+                                        setSelectedTopicSlug(null);
+                                    }}
+                                    topicHref={
+                                        selectedTopic
+                                            ? `/topics/${encodeURIComponent(selectedTopic.slug)}`
+                                            : '/topics'
+                                    }
+                                    topicLinkLabel={
+                                        selectedTopic ? 'Open topic' : 'Browse topics'
+                                    }
+                                    topicTitle={
+                                        selectedTopic?.title ??
+                                        topicLabel(selectedTopicSlug)
+                                    }
                                 />
                             ) : null}
                         </section>
@@ -451,6 +549,42 @@ function CompetenceReading({ checkIns, onClose, position, topic }: { checkIns: C
 
 function EvidenceEntry({ evidence }: { evidence: CompetenceTopic['visual']['evidence_ledger'][number] }) {
     return <div className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2"><div className="flex items-start justify-between gap-3"><span><span className="block text-xs font-medium text-slate-200">{evidence.activity_title}</span><span className="mt-1 block text-xs text-slate-400">{evidenceTypeLabel(evidence.evidence_type)}{evidence.node_title ? ` · ${evidence.node_title}` : ''}</span><span className="mt-1 block text-xs text-cyan-100/80">{evidenceClaimLabel(evidence.evidence_claim)}</span>{evidence.objective ? <span className="mt-1 block text-xs text-cyan-100/70">Objective: {evidence.objective}</span> : null}{evidence.concepts.length ? <span className="mt-1 block text-xs text-cyan-100/70">Concepts: {evidence.concepts.join(' · ')}</span> : null}{evidence.observed_cues.length ? <span className="mt-1 block text-xs text-cyan-100/70">Noticed: {evidence.observed_cues.join(' · ')}</span> : null}{evidence.confidence ? <span className="mt-1 block text-xs text-slate-500">Before: {confidenceLabel(evidence.confidence)}</span> : null}</span><time className="shrink-0 text-xs text-slate-500" dateTime={evidence.recorded_at}>{formatDate(evidence.recorded_at)}</time></div>{evidence.sources.length ? <div className="mt-2 border-t border-cyan-200/10 pt-2 text-xs text-slate-500">Sources: {evidence.sources.map((source, index) => <span key={`${source.url}:${index}`}>{index ? ', ' : ''}<a className="text-cyan-200 underline decoration-cyan-200/30 underline-offset-2 transition hover:text-white" href={source.url} rel="noreferrer" target="_blank">{source.title}</a></span>)}</div> : null}</div>;
+}
+
+function UnseenCompetenceReading({
+    onClose,
+    topicHref,
+    topicLinkLabel,
+    topicTitle,
+}: {
+    onClose: () => void;
+    topicHref: string;
+    topicLinkLabel: string;
+    topicTitle: string;
+}) {
+    return (
+        <aside aria-live="polite" className="absolute bottom-4 left-4 max-h-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur">
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Not on your map yet</p>
+                    <h2 className="mt-1 text-sm font-semibold">{topicTitle}</h2>
+                </div>
+                <button aria-label="Close competence reading" className="rounded-md px-2 py-1 text-sm leading-none text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={onClose} type="button">×</button>
+            </div>
+            <p className="mt-2 text-sm leading-5 text-slate-300">There is no learning moment for this area on your trail yet. Explore an activity connected to it, and this map can begin reflecting what you notice over time.</p>
+            <div className="mt-3"><Link className="inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white" to={topicHref}>{topicLinkLabel}<ArrowRight className="size-3.5" /></Link></div>
+        </aside>
+    );
+}
+
+function topicSlug(value: string | null): string | null {
+    return value && /^[a-z0-9-]{1,80}$/.test(value) ? value : null;
+}
+
+function topicLabel(slug: string): string {
+    return slug
+        .replaceAll('-', ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function checkInFeelingLabel(feeling: string | null): string { return ({ clearer: 'Something clicked', forming: 'Still taking shape', stretched: 'It stretched me', stuck: 'I got stuck' }[feeling ?? ''] ?? 'A reflection'); }

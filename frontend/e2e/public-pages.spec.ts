@@ -976,6 +976,26 @@ test('the source competence map remains usable on a narrow screen', async ({
     ).toBeVisible();
 });
 
+test('the competence map preserves its source topic and origin query context', async ({
+    page,
+}) => {
+    await mockCompetenceReader(page);
+
+    await page.goto('/competence?topic=unseen-area&from=map-orientation');
+
+    await expect(
+        page.getByText('Viewing the learning trail around'),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Map orientation', exact: true }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Unseen Area' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Open topic' }).click();
+    await expect(page).toHaveURL(/\/topics\/unseen-area$/);
+});
+
 async function mockCompetenceReader(page: import('@playwright/test').Page) {
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
@@ -1063,6 +1083,54 @@ async function mockCompetenceReader(page: import('@playwright/test').Page) {
             }),
         });
     });
+    await page.route(
+        '**/api/v1/learner/topics/map-orientation/trail',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    competence: null,
+                    learning_areas: [],
+                    learning_pulse: [],
+                    reflection_narrative: null,
+                    subtopic_competence: [],
+                    topic: {
+                        area_slug: 'orientation',
+                        area_title: 'Orientation',
+                        content: null,
+                        description: 'Notice the map.',
+                        parent: null,
+                        slug: 'map-orientation',
+                        title: 'Map orientation',
+                    },
+                }),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/learner/topics/unseen-area/trail',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    competence: null,
+                    learning_areas: [],
+                    learning_pulse: [],
+                    reflection_narrative: null,
+                    subtopic_competence: [],
+                    topic: {
+                        area_slug: 'orientation',
+                        area_title: 'Orientation',
+                        content: null,
+                        description: 'A route that has not been explored.',
+                        parent: null,
+                        slug: 'unseen-area',
+                        title: 'Unseen Area',
+                    },
+                }),
+            });
+        },
+    );
 }
 
 test('the source Topic tab strip remains inside a narrow viewport and loads only its selected section', async ({
