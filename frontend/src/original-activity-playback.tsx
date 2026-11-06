@@ -1,4 +1,10 @@
-import { ArrowRight, CheckCircle2, PlayCircle, RotateCcw } from 'lucide-react';
+import {
+    ArrowRight,
+    Bookmark,
+    CheckCircle2,
+    PlayCircle,
+    RotateCcw,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -333,7 +339,7 @@ export function OriginalOpenPracticePage({
         status: CompletionStatus,
         transitionLabel: string | null,
     ): void {
-        if (document.run_kind === 'revisit') {
+        if (document.run_kind !== 'route') {
             returnToWorld();
             return;
         }
@@ -773,6 +779,11 @@ function QuestionActivity({
     const [confidenceAfterFeedback, setConfidenceAfterFeedback] = useState<
         'exploring' | 'leaning' | 'settled' | null
     >(null);
+    const [recallItemId, setRecallItemId] = useState<string | null>(
+        activity.recall_item_id,
+    );
+    const [isRecallUpdating, setIsRecallUpdating] = useState(false);
+    const [recallError, setRecallError] = useState(false);
 
     if (!prompt || options.length === 0) {
         return null;
@@ -821,6 +832,47 @@ function QuestionActivity({
             await onComplete(answer, confidenceAfterFeedback);
         } finally {
             setCompleting(false);
+        }
+    }
+
+    async function toggleRecall(): Promise<void> {
+        if (isRecallUpdating || completing) return;
+        setIsRecallUpdating(true);
+        setRecallError(false);
+        try {
+            const token = await getCsrfToken();
+            if (recallItemId) {
+                const { response } = await apiClient.DELETE(
+                    '/learner/recall-items/{recall_item_id}',
+                    {
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { recall_item_id: recallItemId },
+                        },
+                    },
+                );
+                if (!response.ok) throw new Error('remove recall failed');
+                setRecallItemId(null);
+            } else {
+                const { data, response } = await apiClient.POST(
+                    '/learner/play-runs/{play_run_id}/activities/{activity_slug}/recall',
+                    {
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: {
+                                activity_slug: activity.slug,
+                                play_run_id: playRunId,
+                            },
+                        },
+                    },
+                );
+                if (!response.ok || !data) throw new Error('queue recall failed');
+                setRecallItemId(data.recall_item_id);
+            }
+        } catch {
+            setRecallError(true);
+        } finally {
+            setIsRecallUpdating(false);
         }
     }
 
@@ -952,6 +1004,34 @@ function QuestionActivity({
                             )}
                         </div>
                     </fieldset>
+                    {answer.recall ? (
+                        <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            Next recall in {answer.recall.interval_days} days.
+                        </p>
+                    ) : null}
+                    <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/10">
+                        <button
+                            className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-transparent px-3 text-sm font-medium text-slate-700 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-white/10 dark:text-slate-100 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200"
+                            disabled={isRecallUpdating || completing}
+                            onClick={() => void toggleRecall()}
+                            type="button"
+                        >
+                            <Bookmark aria-hidden="true" className="mr-2 size-4" />
+                            {recallItemId
+                                ? 'Remove from recall queue'
+                                : 'Keep for later recall'}
+                        </button>
+                        <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            {recallItemId
+                                ? 'This question is waiting on your Learning Desk until you remove it.'
+                                : 'Save this question when you want to return to it without changing your route.'}
+                        </p>
+                        {recallError ? (
+                            <p aria-live="polite" className="mt-2 text-xs text-red-600 dark:text-red-300" role="status">
+                                This recall choice could not be saved. Try again.
+                            </p>
+                        ) : null}
+                    </div>
                     {answer.confidence ? (
                         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                             Starting sense: {confidenceLabel(answer.confidence)}

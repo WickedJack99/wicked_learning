@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
 import { OriginalTopicsPage } from './original-topics';
@@ -117,6 +118,18 @@ export function App() {
                 isAuthenticated={currentUser.kind === 'loaded'}
             />
         );
+    }
+
+    if (location.pathname === '/home') {
+        if (currentUser.kind === 'loading' || currentUser.kind === 'unavailable') {
+            return null;
+        }
+
+        if (currentUser.kind === 'anonymous') {
+            return <Navigate replace to="/login" />;
+        }
+
+        return <OriginalRecallDeskPage />;
     }
 
     if (

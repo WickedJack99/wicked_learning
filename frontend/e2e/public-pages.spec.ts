@@ -1478,6 +1478,86 @@ test('a removed substitute map-place URL returns to the retained welcome surface
     ).toBeVisible();
 });
 
+test('the source Recall Queue opens an opaque private recall run', async ({
+    page,
+}) => {
+    const recallItemId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88';
+    const recallRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d89';
+
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['learner'],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/recall-items', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                items: [
+                    {
+                        recall_item_id: recallItemId,
+                        activity_slug: 'learner-choice',
+                        activity_title: 'Keep choice visible',
+                        map_title: 'A private path',
+                        node_slug: 'private-place',
+                        node_title: 'Private place',
+                        prompt: 'Which choice keeps exploration learner-directed?',
+                        is_due: true,
+                        last_confidence: null,
+                        last_confidence_after_feedback: null,
+                        last_outcome: null,
+                        last_reviewed_at: null,
+                        next_review_at: '2026-11-07T10:00:00.000Z',
+                        review_count: 0,
+                    },
+                ],
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/recall-items/${recallItemId}/open`,
+        async (route) => {
+            expect(route.request().headers()['x-csrf-token']).toBe(
+                'test-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    activity_slug: 'learner-choice',
+                    node_slug: 'private-place',
+                    play_run_id: recallRunId,
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
+
+    await page.goto('/home');
+
+    await expect(
+        page.getByRole('heading', { name: 'Recall queue' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Which choice keeps exploration learner-directed?'),
+    ).toBeVisible();
+    await expect(page.getByText('Ready to recall')).toBeVisible();
+    await page.getByRole('button', { name: 'Open question' }).click();
+    await expect(page).toHaveURL(
+        `/learning/nodes/private-place/play?run=${recallRunId}`,
+    );
+});
+
 test('the original question surface posts only selected option keys and waits for server feedback', async ({
     page,
 }) => {

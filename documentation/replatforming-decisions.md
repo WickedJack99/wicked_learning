@@ -1289,6 +1289,59 @@ global media/sound contract has not yet migrated, and it does not add authoring
 or a generic tool-action API. Any other activity that uses a tool must define
 its own server policy and lifted source UI.
 
+## ADR-037: Recall is a private queue with a one-question run
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source recall queue lets a learner retain an individual
+question, answer it again later, see a transparent next interval, defer it for
+a day, or remove it. It is neither authored route progress nor a revisit of a
+completed activity. Reusing an ordinary route run would advance its authored
+transition or create evidence; treating recall as a browser flag would let a
+caller choose another learner's question or cause a scheduling write without
+an authorized attempt.
+
+**Decision:** Store the learner-selected queue item separately in
+`learner_recall_items`, unique by principal and question activity. A dedicated
+`learner_recall_runs` record authorizes exactly one queued, visible, published
+question. `POST /learner/play-runs/{run}/activities/{slug}/recall` can only
+queue the current question in an existing server-owned run; it accepts no
+activity identifier. The private queue lists at most 24 visible items, ordered
+due first. Opening, postponing and removing resolve an opaque queue-item ID
+under principal and visibility checks.
+
+An answer in a recall run records the source schedule: an incorrect answer is
+due in one day; consecutive correct answers use 1, 3, 7, 14 and then 30 days.
+Completion records optional post-feedback confidence and completes only the
+recall run. It does not advance, reset or complete an authored route, record
+ordinary route progress, evidence, a topic visit, or an ordinary check-in.
+Removing an item after opening leaves the already authorized run usable, but
+later schedule updates safely have no queue item to change.
+
+**Why:** Dedicated facts preserve the source's learner-controlled spacing
+workflow while making its boundaries explicit and auditable. The opaque run
+keeps question selection, publication/visibility checks, scheduling and
+completion server-owned. It also prevents recall from silently changing
+competence or progression semantics.
+
+**Alternatives:** Reusing a route start would alter unrelated route state and
+could make a one-question review advance an authored transition. Reusing the
+revisit mechanism would incorrectly require completed progress and create its
+evidence semantics. Accepting a question ID, an `is_recall` browser flag or a
+client-computed interval would weaken the authorization and scheduling
+boundary. These alternatives are rejected.
+
+**Current evidence and limitations:** The React feedback and `/home` Recall
+Queue are adapted from the original question and Learning Desk structures; the
+only necessary transport adaptation is first obtaining the opaque recall run
+before opening a question. Local authenticated Compose evidence covered queue,
+open, answer, source interval, completion and the invariant that recall adds
+neither route progress nor evidence. The route exposes only this source
+section, not an invented substitute for the remainder of the Learning Desk.
+Full desk sections, recall authoring/settings, media/audio and non-question
+recall remain deferred until their source contracts and direct UI adaptations
+exist.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

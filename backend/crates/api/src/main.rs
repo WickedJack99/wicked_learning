@@ -17,6 +17,8 @@ mod learner_obstacle_tool;
 mod learner_paths;
 mod learner_playback;
 mod learner_question;
+mod learner_recall;
+mod learner_recall_run;
 mod learner_reflection;
 mod learner_revisit_invitation;
 mod learner_revisit_run;
@@ -257,6 +259,15 @@ fn router(state: AppState) -> Router {
             post(learner_node_tool::use_on_node),
         )
         .route("/api/v1/learner/journal", get(learner_journal::index))
+        .route("/api/v1/learner/recall-items", get(learner_recall::index))
+        .route(
+            "/api/v1/learner/recall-items/{recall_item_id}",
+            post(learner_recall::postpone).delete(learner_recall::remove),
+        )
+        .route(
+            "/api/v1/learner/recall-items/{recall_item_id}/open",
+            post(learner_recall_run::open_or_resume),
+        )
         .route(
             "/api/v1/learner/revisit-invitations/{check_in_id}",
             post(learner_revisit_invitation::update),
@@ -316,6 +327,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/answer",
             post(learner_question::answer),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/recall",
+            post(learner_recall::queue_current_question),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection",

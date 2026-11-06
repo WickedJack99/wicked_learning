@@ -16,6 +16,8 @@ pub mod learner_obstacle_tool;
 pub mod learner_paths;
 pub mod learner_playback;
 pub mod learner_question;
+pub mod learner_recall;
+pub mod learner_recall_run;
 pub mod learner_reflection;
 mod learner_revisit_completion;
 pub mod learner_revisit_invitation;

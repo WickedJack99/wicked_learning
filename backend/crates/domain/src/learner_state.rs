@@ -540,6 +540,7 @@ pub struct LearnerPlaybackDocument {
 pub enum LearnerPlaybackRunKind {
     Route,
     Revisit,
+    Recall,
 }
 
 /// Read-only orientation data for an already-authorized play run. It is not
@@ -568,6 +569,9 @@ pub struct LearnerPlaybackActivity {
     /// has already asked for feedback. This is deliberately run-scoped so a
     /// fresh route start never silently replays an earlier answer.
     pub question_feedback: Option<LearnerQuestionAnswerResult>,
+    /// Whether this question is in the current learner's private recall queue.
+    /// It is an opaque owner-scoped handle, never an authored activity ID.
+    pub recall_item_id: Option<String>,
     /// Source-defined, bounded context for the optional conclusion check-in.
     /// Recording a check-in remains bound to the completed server-owned run.
     pub check_in: LearnerPlaybackCheckIn,
@@ -602,6 +606,54 @@ pub struct LearnerPlaybackCompletionResult {
     pub status: String,
 }
 
+/// A private question the learner explicitly kept in the source Learning Desk
+/// recall queue. The opaque item ID is only an action handle; it carries no
+/// authority outside an authenticated, owner-scoped server command.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRecallItem {
+    pub recall_item_id: String,
+    pub activity_slug: String,
+    pub activity_title: String,
+    pub map_title: String,
+    pub node_slug: String,
+    pub node_title: String,
+    pub prompt: String,
+    pub is_due: bool,
+    pub last_confidence: Option<String>,
+    pub last_confidence_after_feedback: Option<String>,
+    pub last_outcome: Option<String>,
+    pub last_reviewed_at: Option<String>,
+    pub next_review_at: String,
+    pub review_count: i32,
+}
+
+/// Bounded, private recall queue data for the source Learning Desk. It has no
+/// route-progress, competence, or cross-learner fields.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRecallQueue {
+    pub items: Vec<LearnerRecallItem>,
+}
+
+/// The server-owned result of opening a learner's one-question recall run.
+/// It shares the normal opaque player URL only after the server has derived
+/// the queued activity and verified its current access scope.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRecallRun {
+    pub activity_slug: String,
+    pub node_slug: String,
+    pub play_run_id: String,
+    pub status: String,
+}
+
+/// The transparent fixed interval selected by a completed recall answer. It
+/// is informational only; it must not be interpreted as a score or adaptive
+/// recommendation.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerRecallSchedule {
+    pub interval_days: i16,
+    pub next_review_at: String,
+}
+
 /// A private, source-defined observation a learner chooses after completing an
 /// activity. The browser cannot choose the activity or its ownership; those
 /// come from the authorized play run.
@@ -633,6 +685,10 @@ pub struct LearnerQuestionAnswerResult {
     /// question. These are a private reflection aid, never a staff-facing
     /// assessment feed.
     pub earlier_attempts: Vec<LearnerQuestionEarlierAttempt>,
+    /// Present only for a server-owned recall run. It is the transparent fixed
+    /// interval selected from the learner's own queue, never an adaptive
+    /// recommendation or a browser-provided value.
+    pub recall: Option<LearnerRecallSchedule>,
     pub next_transition_label: Option<String>,
     /// The question command resolves progression before responding, so React
     /// uses this server-owned result after the optional conclusion check-in.
