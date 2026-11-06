@@ -133,6 +133,27 @@ where
             )
             .await
     }
+
+    pub async fn mark_helpful(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        message_id: Uuid,
+        response_id: Uuid,
+        helpful: bool,
+    ) -> Result<Option<bool>, LearnerPeerMessageError> {
+        self.repository
+            .mark_helpful(
+                principal,
+                play_run_id,
+                activity_slug,
+                message_id,
+                response_id,
+                helpful,
+            )
+            .await
+    }
 }
 
 #[cfg(test)]
