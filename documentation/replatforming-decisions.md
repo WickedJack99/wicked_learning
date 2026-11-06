@@ -2666,6 +2666,40 @@ and responding without hard-coding a role in the application.
 policy toggle, not journal export, review history, configurable presentation,
 organisation destinations or a combined completed Learning Support shell.
 
+## ADR-068: Journal export streams only the learner's source-shaped Markdown
+
+**Status:** Accepted — 7 November 2026
+
+**Decision:** `GET /api/v1/learner/journal/export` authenticates the current
+identity, verifies that it has an application principal, and streams only that
+principal's journal pages in the source order (`updated_at DESC, id DESC`).
+Each page uses the existing Laravel Markdown shape: a title heading, italic
+topic/subtopic category, trimmed page Markdown, a `---` separator between
+pages, and one final newline. The file is an attachment named
+`learning-journal.md` with `text/markdown; charset=UTF-8`, `no-store`, and
+`nosniff` response headers.
+
+The query joins the authenticated identity subject to the page owner in SQL;
+there is no browser-selected principal or page identifier. Check-ins, feedback
+requests, reviewer replies and other learners' writing are deliberately absent
+because the source export does not include them. The lifted original Journal
+header now uses this same-origin download route.
+
+**Why:** The source permits a learner to retain their own journal in a portable
+form. Fetching a paginated UI response or adding staff-review metadata would
+not preserve that behavior. A response stream avoids first building an
+unbounded concatenated private journal in server memory while retaining the
+source body format.
+
+**Alternatives:** A client-built export would require downloading every page to
+the browser and make its privacy scope harder to review. A general export API
+accepting a user ID would create a cross-learner disclosure risk. Both are
+rejected.
+
+**Limits and follow-up:** This is an owner-only export, not an archive of the
+learning trail or a staff-review report. Review history and fuller check-in
+timeline behavior remain separate source-derived slices.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

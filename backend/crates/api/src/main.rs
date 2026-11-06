@@ -23,6 +23,7 @@ mod learner_group;
 mod learner_item_grant;
 mod learner_item_obstacle;
 mod learner_journal;
+mod learner_journal_export;
 mod learner_journal_feedback;
 mod learner_journal_page;
 mod learner_language_preference;
@@ -356,6 +357,10 @@ fn router(state: AppState) -> Router {
             post(learner_node_tool::use_on_node),
         )
         .route("/api/v1/learner/journal", get(learner_journal::index))
+        .route(
+            "/api/v1/learner/journal/export",
+            get(learner_journal_export::download),
+        )
         .route(
             "/api/v1/learner/journal/pages/{page_id}/feedback-request",
             post(learner_journal_feedback::request),
@@ -834,6 +839,45 @@ mod tests {
             )
             .await
             .expect("learner-world response");
+
+        assert_eq!(response.status(), 401);
+        assert_eq!(
+            response
+                .into_body()
+                .collect()
+                .await
+                .expect("body bytes")
+                .to_bytes(),
+            "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
+        );
+    }
+
+    #[tokio::test]
+    async fn learner_journal_export_requires_an_authenticated_session() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/learner/journal/export")
+                    .body(Body::empty())
+                    .expect("a valid learner-journal-export request"),
+            )
+            .await
+            .expect("learner-journal-export response");
 
         assert_eq!(response.status(), 401);
         assert_eq!(

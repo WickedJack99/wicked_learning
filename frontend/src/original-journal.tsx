@@ -1,4 +1,5 @@
 import {
+    Download,
     FilePlus2,
     MessageSquareText,
     Pencil,
@@ -44,9 +45,8 @@ const journalStyle = {
     '--journal-sidebar-background': 'rgba(17, 24, 39, 0.64)',
 } as CSSProperties;
 
-/** Source-adapted from the original JournalOverlay. Export and fuller
- * check-in-history affordances remain unavailable until their source-defined
- * contracts exist. */
+/** Source-adapted from the original JournalOverlay. Fuller check-in-history
+ * affordances remain unavailable until their source-defined contracts exist. */
 export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     const navigate = useNavigate();
     const [journal, setJournal] = useState<JournalDocument | null>(null);
@@ -520,6 +520,18 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                             Reflections and notes
                         </h2>
                     </div>
+                    <a
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors hover:bg-white/10"
+                        href="/api/v1/learner/journal/export"
+                        style={{
+                            background: 'var(--journal-button-background)',
+                            borderColor: 'var(--journal-button-border)',
+                            color: 'var(--journal-button-text)',
+                        }}
+                    >
+                        <Download className="size-4" />
+                        <span className="hidden sm:inline">Export</span>
+                    </a>
                     <button
                         aria-label="Close journal"
                         className="grid size-9 place-items-center rounded-md hover:bg-white/10"

@@ -484,6 +484,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/journal/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the authenticated learner's complete private journal as Markdown.
+         * @description The source-shaped export contains only the current learner's pages, ordered by recent update. It excludes check-ins, feedback requests, feedback replies and every other learner's data.
+         */
+        get: operations["exportLearnerJournal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/desk-planning-preference": {
         parameters: {
             query?: never;
@@ -4928,6 +4948,51 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    exportLearnerJournal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The private Markdown export, named learning-journal.md. */
+            200: {
+                headers: {
+                    /** @description Attachment filename learning-journal.md. */
+                    "Content-Disposition"?: string;
+                    /** @description Always no-store because the body is private learner writing. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/markdown": string;
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no learner application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -641,6 +641,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/journal/export:
+    get:
+      operationId: exportLearnerJournal
+      summary: Download the authenticated learner's complete private journal as Markdown.
+      description: The source-shaped export contains only the current learner's pages, ordered by recent update. It excludes check-ins, feedback requests, feedback replies and every other learner's data.
+      responses:
+        '200':
+          description: The private Markdown export, named learning-journal.md.
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              description: Attachment filename learning-journal.md.
+            Cache-Control:
+              schema: { type: string }
+              description: Always no-store because the body is private learner writing.
+          content:
+            text/markdown:
+              schema: { type: string, format: binary }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no learner application principal. }
+        '503': { description: The application database is unavailable. }
   /learner/desk-planning-preference:
     get:
       operationId: getLearnerDeskPlanningPreference

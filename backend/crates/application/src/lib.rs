@@ -18,6 +18,7 @@ pub mod learner_group;
 pub mod learner_item_grant;
 pub mod learner_item_obstacle;
 pub mod learner_journal;
+pub mod learner_journal_export;
 pub mod learner_journal_feedback;
 pub mod learner_journal_page;
 pub mod learner_language_preference;
