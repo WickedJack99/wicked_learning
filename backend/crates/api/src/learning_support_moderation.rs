@@ -8,6 +8,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::learning_support_moderation::{
     LearningSupportRequestsQuery, LearningSupportTopicsQuery, SaveLearningSupportReply,
+    SetLearningSupportVisibility,
 };
 use wicked_learning_domain::learner_state::{
     LearningSupportReplySaveResult, LearningSupportRequestPage, LearningSupportTopic,
@@ -27,6 +28,11 @@ pub struct RequestsQuery {
 #[derive(Deserialize)]
 pub struct SubmitLearningSupportReply {
     body: String,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateLearningSupportVisibility {
+    hidden: bool,
 }
 
 pub async fn topics(
@@ -102,4 +108,58 @@ pub async fn save_reply(
         },
         Json(result),
     ))
+}
+
+pub async fn set_message_visibility(
+    State(state): State<AppState>,
+    Path(message_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateLearningSupportVisibility>,
+) -> Result<StatusCode, ApiError> {
+    let message_id = Uuid::parse_str(&message_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearningSupportModerationRepository::new(
+        &state.application_database,
+        &state.identity_database,
+    );
+
+    let updated = SetLearningSupportVisibility::new(&repository)
+        .message(&principal, message_id, request.hidden)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    if !updated {
+        return Err(ApiError::not_found());
+    }
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn set_reply_visibility(
+    State(state): State<AppState>,
+    Path(reply_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateLearningSupportVisibility>,
+) -> Result<StatusCode, ApiError> {
+    let reply_id = Uuid::parse_str(&reply_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearningSupportModerationRepository::new(
+        &state.application_database,
+        &state.identity_database,
+    );
+
+    let updated = SetLearningSupportVisibility::new(&repository)
+        .reply(&principal, reply_id, request.hidden)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    if !updated {
+        return Err(ApiError::not_found());
+    }
+
+    Ok(StatusCode::NO_CONTENT)
 }

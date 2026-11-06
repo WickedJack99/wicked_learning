@@ -363,6 +363,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learning-support/messages/{message_id}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Hide or restore a private learner support request for learner-facing readers. */
+        patch: operations["updateLearningSupportMessageVisibility"];
+        trace?: never;
+    };
+    "/learning-support/responses/{response_id}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Hide or restore a private staff reply for learner-facing readers. */
+        patch: operations["updateLearningSupportResponseVisibility"];
+        trace?: never;
+    };
     "/learner/recall-items": {
         parameters: {
             query?: never;
@@ -2031,6 +2065,9 @@ export interface components {
         LearningSupportReplySaveResult: {
             response: components["schemas"]["LearningSupportModerationReply"];
         };
+        UpdateLearningSupportVisibilityRequest: {
+            hidden: boolean;
+        };
         UpdateLearnerDeskPlanningPreferenceRequest: {
             /** @enum {string} */
             purpose_filter: "any" | "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
@@ -2220,6 +2257,7 @@ export interface components {
         LearnerJournalPageId: string;
         LearningSupportTopicId: string;
         LearningSupportMessageId: string;
+        LearningSupportResponseId: string;
         MapSlug: string;
         TopicSlug: string;
         NodeSlug: string;
@@ -3344,6 +3382,116 @@ export interface operations {
                 content?: never;
             };
             /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearningSupportMessageVisibility: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                message_id: components["parameters"]["LearningSupportMessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearningSupportVisibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description The private learner request visibility was updated. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearningSupportResponseVisibility: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                response_id: components["parameters"]["LearningSupportResponseId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearningSupportVisibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description The private staff reply visibility was updated. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The reply is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

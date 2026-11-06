@@ -131,6 +131,58 @@ impl LearningSupportModerationRepositoryPort for PostgresLearningSupportModerati
             })
         }
     }
+
+    fn set_message_visibility(
+        &self,
+        principal: &AuthorizedPrincipal,
+        message_id: Uuid,
+        hidden: bool,
+    ) -> impl std::future::Future<Output = Result<bool, LearningSupportModerationError>> + Send
+    {
+        async move {
+            set_visibility(self.application_pool, principal, message_id, hidden, true).await.map_err(|error| {
+                tracing::error!(%error, "could not update private Learning Support request visibility");
+                LearningSupportModerationError
+            })
+        }
+    }
+
+    fn set_reply_visibility(
+        &self,
+        principal: &AuthorizedPrincipal,
+        reply_id: Uuid,
+        hidden: bool,
+    ) -> impl std::future::Future<Output = Result<bool, LearningSupportModerationError>> + Send
+    {
+        async move {
+            set_visibility(self.application_pool, principal, reply_id, hidden, false).await.map_err(|error| {
+                tracing::error!(%error, "could not update private Learning Support reply visibility");
+                LearningSupportModerationError
+            })
+        }
+    }
+}
+
+async fn set_visibility(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    id: Uuid,
+    hidden: bool,
+    message: bool,
+) -> Result<bool, sqlx::Error> {
+    let statement = if message {
+        "UPDATE learner_messages AS target SET hidden_at = CASE WHEN $3 THEN NOW() ELSE NULL END, hidden_by_principal_id = CASE WHEN $3 THEN moderators.id ELSE NULL END, updated_at = NOW() FROM application_principals AS moderators WHERE target.id = $1 AND target.audience = 'support' AND moderators.identity_subject_id = $2"
+    } else {
+        "UPDATE learner_message_responses AS target SET hidden_at = CASE WHEN $3 THEN NOW() ELSE NULL END, hidden_by_principal_id = CASE WHEN $3 THEN moderators.id ELSE NULL END, updated_at = NOW() FROM application_principals AS moderators, learner_messages AS messages WHERE target.id = $1 AND target.message_id = messages.id AND messages.audience = 'support' AND moderators.identity_subject_id = $2"
+    };
+    Ok(sqlx::query(statement)
+        .bind(id)
+        .bind(principal.subject_id)
+        .bind(hidden)
+        .execute(pool)
+        .await?
+        .rows_affected()
+        == 1)
 }
 
 async fn list_topics(pool: &PgPool) -> Result<Vec<LearningSupportTopic>, sqlx::Error> {

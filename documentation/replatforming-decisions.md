@@ -1913,6 +1913,15 @@ this projection. A staff member can create or update only their own bounded
 reply; the SQL uniqueness constraint on `(message_id, responder_principal_id)`
 preserves the source's per-responder update behavior.
 
+The same capability now guards dedicated hide/restore commands for a private
+request and a private reply. They update `hidden_at` and the accountable
+application principal atomically in the application database; they never
+delete content. Learner readers omit hidden replies and omit a hidden request
+body, while the request's existence still enforces the source one-request
+limit. Authorized staff readers retain the hidden records so they can restore
+them. The source Settings controls will use these contracts only when their
+surrounding source UI has been lifted.
+
 **Why:** This retains source ownership, audience, first-request and reply
 semantics while keeping credentials, password hashes and message data in their
 respective databases. The narrow identity projection makes the exceptional
@@ -1925,14 +1934,17 @@ generic message listing would reveal other requests or staff identity.
 Treating the staff browser as a database client would bypass the server-owned
 capability boundary. All are rejected.
 
-**Evidence and boundary:** Unit tests prove reply validation and the explicit
-capability denial path. The local Compose API journey starts the original
+**Evidence and boundary:** Unit tests prove reply validation and explicit
+capability denial paths. The local Compose API journey starts the original
 orientation route, submits a first-only request, lists it through the staff
-contract, creates then updates a staff reply, and confirms the learner sees
-the updated body through the private request reader before completing the
-activity. The learner-facing request and Desk panels reuse lifted original
-components. The full source Settings shell, peer message walls, helpfulness,
-visibility/deletion controls and staff moderation UI have not yet migrated.
+contract, creates then updates a staff reply, hides/restores both kinds of
+record, and confirms that the learner reader withholds hidden content while
+retaining the one-request rule before completing the activity. The
+learner-facing request and Desk panels reuse lifted original components. The
+full source Settings shell and staff moderation UI have not yet migrated, so
+the new visibility contracts are intentionally not exposed through a substitute
+React panel. Peer message walls, helpfulness and deletion controls remain
+unmigrated.
 
 ## Phase 1 gate
 

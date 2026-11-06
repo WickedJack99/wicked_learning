@@ -339,8 +339,13 @@ identity-store email projection only after authorization. See ADR-049 for the
 cross-database rationale and the exact boundary.
 
 This is not Settings parity: the original staff moderation panel and surrounding
-Settings shell are not yet available in React, and peer message walls,
-helpfulness plus visibility/deletion controls remain later collaboration work.
+Settings shell are not yet available in React. The capability-gated Rust
+contract can now hide or restore a private request or reply, preserving the
+source rule that hidden material is withheld from learner readers while a
+hidden request still consumes its single contribution. Its original controls
+will be lifted only with their source Settings shell, not replaced with a
+stand-in. Peer message walls, helpfulness and deletion remain later
+collaboration work.
 
 ### NPC dialogue slice — 6 November 2026
 

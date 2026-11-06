@@ -659,11 +659,78 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
         },
     );
     expect(updatedStaffReply.status()).toBe(200);
+    const updatedStaffReplyDocument = (await updatedStaffReply.json()) as {
+        response: { id: string };
+    };
 
     const learnerView = await request.get(requestPath);
     expect(learnerView.status()).toBe(200);
     await expect(learnerView.json()).resolves.toMatchObject({
         message: {
+            responses: [
+                {
+                    body: 'Look for one landmark that will make this map easier to revisit.',
+                },
+            ],
+        },
+    });
+
+    const hideReply = await request.patch(
+        `/api/v1/learning-support/responses/${updatedStaffReplyDocument.response.id}/visibility`,
+        {
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            data: { hidden: true },
+        },
+    );
+    expect(hideReply.status()).toBe(204);
+
+    const learnerViewWithHiddenReply = await request.get(requestPath);
+    expect(learnerViewWithHiddenReply.status()).toBe(200);
+    await expect(learnerViewWithHiddenReply.json()).resolves.toMatchObject({
+        has_contributed: true,
+        message: { responses: [] },
+    });
+
+    const restoreReply = await request.patch(
+        `/api/v1/learning-support/responses/${updatedStaffReplyDocument.response.id}/visibility`,
+        {
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            data: { hidden: false },
+        },
+    );
+    expect(restoreReply.status()).toBe(204);
+
+    const hideRequest = await request.patch(
+        `/api/v1/learning-support/messages/${submittedRequest!.id}/visibility`,
+        {
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            data: { hidden: true },
+        },
+    );
+    expect(hideRequest.status()).toBe(204);
+
+    const learnerViewWithHiddenRequest = await request.get(requestPath);
+    expect(learnerViewWithHiddenRequest.status()).toBe(200);
+    await expect(learnerViewWithHiddenRequest.json()).resolves.toMatchObject({
+        has_contributed: true,
+        message: null,
+    });
+
+    const restoreRequest = await request.patch(
+        `/api/v1/learning-support/messages/${submittedRequest!.id}/visibility`,
+        {
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            data: { hidden: false },
+        },
+    );
+    expect(restoreRequest.status()).toBe(204);
+
+    const restoredLearnerView = await request.get(requestPath);
+    expect(restoredLearnerView.status()).toBe(200);
+    await expect(restoredLearnerView.json()).resolves.toMatchObject({
+        has_contributed: true,
+        message: {
+            body: 'Could you help me notice the useful map details?',
             responses: [
                 {
                     body: 'Look for one landmark that will make this map easier to revisit.',

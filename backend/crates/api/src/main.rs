@@ -286,6 +286,14 @@ fn router(state: AppState) -> Router {
             "/api/v1/learning-support/messages/{message_id}/responses",
             post(learning_support_moderation::save_reply),
         )
+        .route(
+            "/api/v1/learning-support/messages/{message_id}/visibility",
+            patch(learning_support_moderation::set_message_visibility),
+        )
+        .route(
+            "/api/v1/learning-support/responses/{response_id}/visibility",
+            patch(learning_support_moderation::set_reply_visibility),
+        )
         .route("/api/v1/learner/recall-items", get(learner_recall::index))
         .route(
             "/api/v1/learner/activities/{activity_slug}/replay",

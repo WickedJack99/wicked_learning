@@ -501,6 +501,42 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The request is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
         '503': { description: The application or identity database is unavailable. }
+  /learning-support/messages/{message_id}/visibility:
+    patch:
+      operationId: updateLearningSupportMessageVisibility
+      summary: Hide or restore a private learner support request for learner-facing readers.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportMessageId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLearningSupportVisibilityRequest' }
+      responses:
+        '204': { description: The private learner request visibility was updated. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The request is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '503': { description: The application database is unavailable. }
+  /learning-support/responses/{response_id}/visibility:
+    patch:
+      operationId: updateLearningSupportResponseVisibility
+      summary: Hide or restore a private staff reply for learner-facing readers.
+      parameters:
+        - $ref: '#/components/parameters/LearningSupportResponseId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLearningSupportVisibilityRequest' }
+      responses:
+        '204': { description: The private staff reply visibility was updated. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The reply is unknown, is not private Learning Support, or moderation is unavailable to this principal. }
+        '503': { description: The application database is unavailable. }
   /learner/recall-items:
     get:
       operationId: getLearnerRecallQueue
@@ -1486,6 +1522,13 @@ components:
         format: uuid
     LearningSupportMessageId:
       name: message_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LearningSupportResponseId:
+      name: response_id
       in: path
       required: true
       schema:
@@ -3355,6 +3398,12 @@ components:
       required: [response]
       properties:
         response: { $ref: '#/components/schemas/LearningSupportModerationReply' }
+    UpdateLearningSupportVisibilityRequest:
+      type: object
+      additionalProperties: false
+      required: [hidden]
+      properties:
+        hidden: { type: boolean }
     UpdateLearnerDeskPlanningPreferenceRequest:
       type: object
       additionalProperties: false
