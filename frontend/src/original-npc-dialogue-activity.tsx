@@ -9,6 +9,18 @@ import type { OriginalAppearance } from './original-appearance';
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type Dialogue = components['schemas']['LearnerNpcDialogue'];
 type DialogueNode = components['schemas']['LearnerNpcDialogueNode'];
+type DialogueSceneAssetLayer = 'behind_npc' | 'front' | 'bubble' | 'overlay';
+
+type DialogueSceneAsset = {
+    id: string;
+    imageUrl: string | null;
+    label: string;
+    layer: DialogueSceneAssetLayer;
+    mirrored: boolean;
+    width: number;
+    x: number;
+    y: number;
+};
 
 /**
  * Source-adapted from `features/world/npc-dialogue-player.tsx`.
@@ -62,7 +74,12 @@ export function OriginalNpcDialogueActivity({
     const isEnd = currentNode.node_type === 'end';
     const canGoBack = dialogue.history.length > 0;
     const backgroundImage = themedImage(currentNode.config, appearance, 'background');
+    const backgroundMirrored = booleanConfig(currentNode.config.backgroundMirrored, false);
     const npcImage = themedImage(currentNode.config, appearance, 'npcImage');
+    const sceneAssets = useMemo(
+        () => dialogueSceneAssets(currentNode.config.sceneAssets, appearance),
+        [appearance, currentNode.config.sceneAssets],
+    );
     const bubbleStyle = speechBubbleStyle(currentNode, appearance);
 
     useEffect(() => {
@@ -177,22 +194,13 @@ export function OriginalNpcDialogueActivity({
 
     return (
         <div className="relative isolate flex min-h-[32rem] flex-1 overflow-hidden rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)]">
-            {backgroundImage ? <img alt="" className="absolute inset-0 size-full object-cover" src={backgroundImage} /> : null}
+            {backgroundImage ? <img alt="" className="absolute inset-0 size-full object-cover" decoding="async" onError={(event) => { event.currentTarget.style.display = 'none'; }} src={backgroundImage} style={{ transform: backgroundMirrored ? 'scaleX(-1)' : undefined }} /> : null}
             <div className="absolute inset-0 bg-white/72 dark:bg-slate-950/62" />
-            {npcImage ? (
-                <img
-                    alt=""
-                    className="absolute z-10 max-h-[70%] max-w-[55%] object-contain"
-                    draggable={false}
-                    src={npcImage}
-                    style={{
-                        left: `${numberConfig(currentNode.config.npcX, 50)}%`,
-                        top: `${numberConfig(currentNode.config.npcY, 50)}%`,
-                        transform: currentNode.config.npcImageMirrored === true ? 'translate(-50%, -50%) scaleX(-1)' : 'translate(-50%, -50%)',
-                    }}
-                />
-            ) : null}
+            <DialogueSceneAssetLayers assets={sceneAssets} layer="behind_npc" />
+            {npcImage ? <NpcCharacterImage fadeDuration={numberConfig(currentNode.config.fadeDurationSeconds, 0.4)} imageUrl={npcImage} mirrored={booleanConfig(currentNode.config.npcImageMirrored, false)} nodeId={currentNode.id} slideDirection={currentNode.config.slideDirection} slideDuration={numberConfig(currentNode.config.slideDurationSeconds, 0.6)} x={numberConfig(currentNode.config.npcX, 50)} y={numberConfig(currentNode.config.npcY, 50)} /> : null}
+            <DialogueSceneAssetLayers assets={sceneAssets} layer="front" />
             <div className="relative z-20 mt-auto flex w-full flex-col gap-4 p-4">
+                <DialogueSceneAssetLayers assets={sceneAssets} layer="bubble" />
                 <div className="rounded-2xl border p-4 backdrop-blur-md" style={bubbleStyle}>
                     <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><MessageCircle className="size-4" />{currentNode.title}</div>
                     <p className="min-h-16 whitespace-pre-wrap text-sm leading-6">{currentNode.body ?? ''}</p>
@@ -206,6 +214,7 @@ export function OriginalNpcDialogueActivity({
                 </div>
                 <div className="flex items-center justify-between gap-3"><button aria-label="Previous dialogue" className="rounded-md border border-[var(--learner-border-color)] p-2 disabled:opacity-50" disabled={!canGoBack || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back')} type="button"><ArrowLeft className="size-4" /></button><p className="text-xs text-[var(--learner-muted-text)]">{isReflection ? 'Save your reflection to continue.' : isQuestion ? 'Choose an answer, then confirm.' : isEnd ? 'Completing dialogue…' : 'Use Space or arrows to move.'}</p><button aria-label="Next dialogue" className="rounded-md bg-cyan-700 p-2 text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={isQuestion || isReflection || isEnd || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue')} type="button"><ArrowRight className="size-4" /></button></div>
             </div>
+            <DialogueSceneAssetLayers assets={sceneAssets} layer="overlay" />
         </div>
     );
 }
@@ -217,6 +226,69 @@ function answerOptions(dialogue: Dialogue, node: DialogueNode): Array<{ id: stri
     });
 }
 
+function DialogueSceneAssetLayers({
+    assets,
+    layer,
+}: {
+    assets: DialogueSceneAsset[];
+    layer: DialogueSceneAssetLayer;
+}) {
+    return <>{assets.filter((asset) => asset.layer === layer).map((asset) => <DialogueSceneAssetImage asset={asset} key={asset.id} />)}</>;
+}
+
+function DialogueSceneAssetImage({ asset }: { asset: DialogueSceneAsset }) {
+    if (!asset.imageUrl) return null;
+
+    return <img alt={asset.label} className="pointer-events-none absolute max-h-[95%] object-contain" decoding="async" draggable={false} src={asset.imageUrl} style={{ left: `${asset.x}%`, top: `${asset.y}%`, transform: imageTransform('translate(-50%, -50%)', asset.mirrored), width: `${asset.width}%`, zIndex: dialogueSceneAssetZIndex(asset.layer) }} />;
+}
+
+function NpcCharacterImage({
+    fadeDuration,
+    imageUrl,
+    mirrored,
+    nodeId,
+    slideDirection,
+    slideDuration,
+    x,
+    y,
+}: {
+    fadeDuration: number;
+    imageUrl: string;
+    mirrored: boolean;
+    nodeId: string;
+    slideDirection: unknown;
+    slideDuration: number;
+    x: number;
+    y: number;
+}) {
+    return <AnimatedNpcCharacterImage fadeDuration={fadeDuration} imageUrl={imageUrl} key={[nodeId, imageUrl, stringConfig(slideDirection, 'left'), slideDuration, fadeDuration, mirrored, x, y].join(':')} mirrored={mirrored} slideDirection={slideDirection} slideDuration={slideDuration} x={x} y={y} />;
+}
+
+function AnimatedNpcCharacterImage({
+    fadeDuration,
+    imageUrl,
+    mirrored,
+    slideDirection,
+    slideDuration,
+    x,
+    y,
+}: Omit<Parameters<typeof NpcCharacterImage>[0], 'nodeId'>) {
+    const startTransform = npcEntranceTransform(slideDirection);
+    const endTransform = imageTransform('translate(-50%, -50%) translate3d(0, 0, 0)', mirrored);
+    const slideDurationMs = Math.max(0, slideDuration) * 1000;
+    const fadeDurationMs = Math.max(0, fadeDuration) * 1000;
+    const hasEntranceAnimation = slideDurationMs > 0 || fadeDurationMs > 0;
+    const [isVisible, setIsVisible] = useState(!hasEntranceAnimation);
+
+    useEffect(() => {
+        if (!hasEntranceAnimation) return;
+        const frame = window.requestAnimationFrame(() => setIsVisible(true));
+        return () => window.cancelAnimationFrame(frame);
+    }, [hasEntranceAnimation]);
+
+    return <img alt="" className="absolute z-10 max-h-[70%] max-w-[55%] object-contain" decoding="async" draggable={false} src={imageUrl} style={{ left: `${x}%`, opacity: isVisible ? 1 : 0, top: `${y}%`, transform: isVisible ? endTransform : imageTransform(startTransform, mirrored), transitionDuration: `${slideDurationMs}ms, ${fadeDurationMs}ms`, transitionProperty: 'transform, opacity', transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1), ease-out' }} />;
+}
+
 function themedImage(config: Record<string, unknown>, appearance: OriginalAppearance, prefix: 'background' | 'npcImage'): string | null {
     const light = config[`${prefix}Light`];
     const dark = config[`${prefix}Dark`];
@@ -225,6 +297,48 @@ function themedImage(config: Record<string, unknown>, appearance: OriginalAppear
 }
 
 function numberConfig(value: unknown, fallback: number): number { return typeof value === 'number' && Number.isFinite(value) ? value : fallback; }
+
+function booleanConfig(value: unknown, fallback: boolean): boolean { return typeof value === 'boolean' ? value : fallback; }
+
+function stringConfig(value: unknown, fallback: string): string { return typeof value === 'string' && value.trim() ? value : fallback; }
+
+function dialogueSceneAssets(value: unknown, appearance: OriginalAppearance): DialogueSceneAsset[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter(isRecord).map((asset, index) => ({ id: stringConfig(asset.id, `asset-${index + 1}`), imageUrl: themedAssetImage(asset.imageDark, asset.imageLight, appearance), label: stringConfig(asset.label, `Scene asset ${index + 1}`), layer: dialogueSceneAssetLayer(asset.layer), mirrored: booleanConfig(asset.mirrored, false), width: clampNumber(numberConfig(asset.width, 24), 1, 100), x: clampNumber(numberConfig(asset.x, 50), 0, 100), y: clampNumber(numberConfig(asset.y, 50), 0, 100) }));
+}
+
+function themedAssetImage(darkValue: unknown, lightValue: unknown, appearance: OriginalAppearance): string | null {
+    const darkImage = nullableString(darkValue);
+    const lightImage = nullableString(lightValue);
+    return appearance === 'light' ? lightImage ?? darkImage : darkImage ?? lightImage;
+}
+
+function nullableString(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value : null; }
+
+function dialogueSceneAssetLayer(value: unknown): DialogueSceneAssetLayer {
+    return value === 'behind_npc' || value === 'front' || value === 'bubble' || value === 'overlay' ? value : 'front';
+}
+
+function dialogueSceneAssetZIndex(layer: DialogueSceneAssetLayer): number {
+    if (layer === 'behind_npc') return 8;
+    if (layer === 'front') return 18;
+    if (layer === 'bubble') return 22;
+    return 30;
+}
+
+function imageTransform(transform: string, mirrored: boolean): string { return mirrored ? `${transform} scaleX(-1)` : transform; }
+
+function npcEntranceTransform(value: unknown): string {
+    const offset = 48;
+    if (stringConfig(value, 'left') === 'right') return `translate(-50%, -50%) translate3d(${offset}px, 0, 0)`;
+    if (stringConfig(value, 'left') === 'top') return `translate(-50%, -50%) translate3d(0, -${offset}px, 0)`;
+    if (stringConfig(value, 'left') === 'bottom') return `translate(-50%, -50%) translate3d(0, ${offset}px, 0)`;
+    return `translate(-50%, -50%) translate3d(-${offset}px, 0, 0)`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> { return Boolean(value && typeof value === 'object' && !Array.isArray(value)); }
+
+function clampNumber(value: number, minimum: number, maximum: number): number { return Math.min(maximum, Math.max(minimum, value)); }
 
 function isEditableTarget(target: EventTarget | null): boolean {
     return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable);

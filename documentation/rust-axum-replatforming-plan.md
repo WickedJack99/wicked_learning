@@ -333,10 +333,12 @@ dialogue frame and server-owns its authored graph, answers, back state,
 private reflection, configured tool grant and end-only completion. The local
 Compose browser test covers the rendered flow and its persisted journal entry.
 
-This does not make the wider World work complete: node-drawer NPC tool grants
-remain unavailable, as do dialogue replay, scene asset layers, character
-animation, typewriter behavior and dialogue audio. Those source controls stay
-absent until their media/replay contracts are ready.
+This does not make the wider World work complete: node-drawer NPC tool grants,
+dialogue replay, typewriter behavior and dialogue audio remain unavailable.
+The scene now renders source-authored asset layers and character entrance
+motion from the existing safe graph configuration; the frontend image carries
+the original public visual assets needed by these scenes. Sound-specific source
+controls stay absent until their media/replay contracts are ready.
 
 Transport-only loading, unavailable and authorization-error branches may be
 introduced where the original page received server props synchronously. They

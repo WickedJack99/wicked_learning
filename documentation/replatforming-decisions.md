@@ -1572,11 +1572,13 @@ the rendered scene in the local Compose stack, including the retained journal
 entry.
 
 **Current visual boundary:** The lifted scene supports the source dialogue
-frame, themed background/NPC image, speech bubble, answers, reflection,
-tool-added acknowledgement and source keyboard/end behavior. Per-node scene
-asset layers, character enter/exit animation, typewriter effect and dialogue
-audio remain unavailable because their bounded media contracts are not yet
-implemented. They are omitted rather than replaced with a new interaction.
+frame, themed background/NPC image, authored per-node scene layers, character
+entrance animation, speech bubble, answers, reflection, tool-added
+acknowledgement and source keyboard/end behavior. The standalone frontend
+image includes the original public visual assets used by this projection.
+Typewriter effect and dialogue audio remain unavailable because their bounded
+sound contracts are not yet implemented. They are omitted rather than replaced
+with a new interaction.
 
 ## Phase 1 gate
 

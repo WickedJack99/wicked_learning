@@ -119,6 +119,14 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     await page.goto(`/learning/nodes/notice-the-map/play?run=${browserPlayRunId}`);
 
     await expect(page.getByText('Mira opens the observation')).toBeVisible();
+    await expect(
+        page.locator(
+            'img[src="/images/characters/npc-mira-dark.png"], img[src="/images/characters/npc-mira-light.png"]',
+        ),
+    ).toBeVisible();
+    await expect(
+        page.locator('img[src="/images/characters/golden-lantern-page.png"]'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Next dialogue' }).click();
     await expect(page.getByText('Mira asks for the clue')).toBeVisible();
     await page
