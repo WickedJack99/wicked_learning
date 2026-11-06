@@ -362,10 +362,42 @@ pub struct LearnerTopicReflectionSnapshot {
 /// presentation; they are not a score, rank or progression total.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerCompetenceMap {
+    pub check_ins: Vec<LearnerCompetenceCheckIn>,
     pub month_key: String,
     pub recent_window_days: i16,
+    pub review_attempts: Vec<LearnerCompetenceReviewAttempt>,
     pub topics: Vec<LearnerCompetenceTopic>,
     pub transitions: Vec<LearnerCompetenceTransition>,
+}
+
+/// A bounded private learning observation shown only while its original
+/// published map context remains visible to the current learner.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceCheckIn {
+    pub activity_slug: String,
+    pub activity_title: String,
+    pub feeling: Option<String>,
+    pub map_slug: String,
+    pub node_slug: String,
+    pub node_title: String,
+    pub note: Option<String>,
+    pub recorded_at: String,
+}
+
+/// A bounded source revisit summary. It intentionally excludes reflection
+/// bodies and arbitrary review metadata.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerCompetenceReviewAttempt {
+    pub activity_slug: String,
+    pub activity_title: String,
+    pub attempted_at: String,
+    pub attempt_number: i32,
+    pub confidence: Option<String>,
+    pub confidence_after_feedback: Option<String>,
+    pub node_slug: String,
+    pub node_title: String,
+    pub outcome: Option<String>,
+    pub revisit_reason: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

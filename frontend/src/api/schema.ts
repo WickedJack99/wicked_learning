@@ -1197,11 +1197,42 @@ export interface components {
             reflection: string;
         };
         LearnerCompetenceMap: {
+            check_ins: components["schemas"]["LearnerCompetenceCheckIn"][];
             month_key: string;
             /** @enum {integer} */
             recent_window_days: 30;
+            review_attempts: components["schemas"]["LearnerCompetenceReviewAttempt"][];
             topics: components["schemas"]["LearnerCompetenceTopic"][];
             transitions: components["schemas"]["LearnerCompetenceTransition"][];
+        };
+        LearnerCompetenceCheckIn: {
+            activity_slug: string;
+            activity_title: string;
+            /** @enum {string|null} */
+            feeling: "clearer" | "forming" | "stretched" | "stuck" | null;
+            map_slug: string;
+            node_slug: string;
+            node_title: string;
+            note: string | null;
+            /** Format: date-time */
+            recorded_at: string;
+        };
+        LearnerCompetenceReviewAttempt: {
+            activity_slug: string;
+            activity_title: string;
+            /** Format: date-time */
+            attempted_at: string;
+            attempt_number: number;
+            /** @enum {string|null} */
+            confidence: "exploring" | "leaning" | "settled" | null;
+            /** @enum {string|null} */
+            confidence_after_feedback: "exploring" | "leaning" | "settled" | null;
+            node_slug: string;
+            node_title: string;
+            /** @enum {string|null} */
+            outcome: "completed" | "correct" | "incorrect" | null;
+            /** @enum {string} */
+            revisit_reason: "pause" | "later";
         };
         LearnerCompetenceTopic: {
             name: string;

@@ -9,8 +9,9 @@ use wicked_learning_application::learner_competence::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerCompetenceEvidence, LearnerCompetenceMap, LearnerCompetenceSource,
-        LearnerCompetenceTopic, LearnerCompetenceTransition, LearnerCompetenceVisual,
+        LearnerCompetenceCheckIn, LearnerCompetenceEvidence, LearnerCompetenceMap,
+        LearnerCompetenceReviewAttempt, LearnerCompetenceSource, LearnerCompetenceTopic,
+        LearnerCompetenceTransition, LearnerCompetenceVisual,
     },
 };
 
@@ -18,6 +19,8 @@ const EVIDENCE_PER_TOPIC: i64 = 12;
 const RECENT_WINDOW_DAYS: i16 = 30;
 const TOPIC_LIMIT: i64 = 100;
 const TRANSITION_LIMIT: i64 = 1_000;
+const CHECK_IN_LIMIT: i64 = 30;
+const REVIEW_ATTEMPT_LIMIT: i64 = 12;
 
 pub struct PostgresLearnerCompetenceRepository<'pool> {
     pool: &'pool PgPool,
@@ -74,6 +77,32 @@ struct TransitionRow {
     to_topic_slug: String,
 }
 
+#[derive(FromRow)]
+struct CheckInRow {
+    activity_slug: String,
+    activity_title: String,
+    feeling: Option<String>,
+    map_slug: String,
+    node_slug: String,
+    node_title: String,
+    note: Option<String>,
+    recorded_at: String,
+}
+
+#[derive(FromRow)]
+struct ReviewAttemptRow {
+    activity_slug: String,
+    activity_title: String,
+    attempted_at: String,
+    attempt_number: i32,
+    confidence: Option<String>,
+    confidence_after_feedback: Option<String>,
+    node_slug: String,
+    node_title: String,
+    outcome: Option<String>,
+    revisit_reason: String,
+}
+
 impl LearnerCompetenceRepositoryPort for PostgresLearnerCompetenceRepository<'_> {
     fn load(
         &self,
@@ -120,10 +149,14 @@ async fn load(
         .collect::<Vec<_>>();
     let ledger = load_evidence_ledger(pool, principal_id, &topic_slugs).await?;
     let transitions = load_transitions(pool, principal_id, &topic_slugs).await?;
+    let check_ins = load_check_ins(pool, principal_id, &principal.roles).await?;
+    let review_attempts = load_review_attempts(pool, principal_id, &principal.roles).await?;
 
     Ok(Some(LearnerCompetenceMap {
+        check_ins,
         month_key,
         recent_window_days: RECENT_WINDOW_DAYS,
+        review_attempts,
         topics: topic_rows
             .into_iter()
             .map(|topic| LearnerCompetenceTopic {
@@ -143,6 +176,52 @@ async fn load(
             .collect(),
         transitions,
     }))
+}
+
+async fn load_check_ins(
+    pool: &PgPool,
+    principal_id: Uuid,
+    roles: &[String],
+) -> Result<Vec<LearnerCompetenceCheckIn>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, CheckInRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, check_ins.feeling, maps.slug AS map_slug, nodes.slug AS node_slug, nodes.title AS node_title, check_ins.note, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3")
+        .bind(principal_id).bind(roles).bind(CHECK_IN_LIMIT).fetch_all(pool).await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| LearnerCompetenceCheckIn {
+            activity_slug: row.activity_slug,
+            activity_title: row.activity_title,
+            feeling: row.feeling,
+            map_slug: row.map_slug,
+            node_slug: row.node_slug,
+            node_title: row.node_title,
+            note: row.note,
+            recorded_at: row.recorded_at,
+        })
+        .collect())
+}
+
+async fn load_review_attempts(
+    pool: &PgPool,
+    principal_id: Uuid,
+    roles: &[String],
+) -> Result<Vec<LearnerCompetenceReviewAttempt>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, ReviewAttemptRow>("SELECT activities.slug AS activity_slug, activities.title AS activity_title, to_char(attempts.attempted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS attempted_at, attempts.attempt_number, attempts.confidence, attempts.confidence_after_feedback, nodes.slug AS node_slug, nodes.title AS node_title, attempts.outcome, attempts.revisit_reason FROM learner_review_attempts AS attempts INNER JOIN learning_activities AS activities ON activities.id = attempts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE attempts.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY attempts.attempted_at DESC, attempts.id DESC LIMIT $3")
+        .bind(principal_id).bind(roles).bind(REVIEW_ATTEMPT_LIMIT).fetch_all(pool).await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| LearnerCompetenceReviewAttempt {
+            activity_slug: row.activity_slug,
+            activity_title: row.activity_title,
+            attempted_at: row.attempted_at,
+            attempt_number: row.attempt_number,
+            confidence: row.confidence,
+            confidence_after_feedback: row.confidence_after_feedback,
+            node_slug: row.node_slug,
+            node_title: row.node_title,
+            outcome: row.outcome,
+            revisit_reason: row.revisit_reason,
+        })
+        .collect())
 }
 
 async fn load_evidence_ledger(

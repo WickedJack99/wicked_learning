@@ -2034,10 +2034,18 @@ components:
     LearnerCompetenceMap:
       type: object
       additionalProperties: false
-      required: [month_key, recent_window_days, topics, transitions]
+      required: [check_ins, month_key, recent_window_days, review_attempts, topics, transitions]
       properties:
+        check_ins:
+          type: array
+          maxItems: 30
+          items: { $ref: '#/components/schemas/LearnerCompetenceCheckIn' }
         month_key: { type: string, pattern: '^\\d{4}-\\d{2}$' }
         recent_window_days: { type: integer, enum: [30] }
+        review_attempts:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearnerCompetenceReviewAttempt' }
         topics:
           type: array
           maxItems: 100
@@ -2046,6 +2054,34 @@ components:
           type: array
           maxItems: 1000
           items: { $ref: '#/components/schemas/LearnerCompetenceTransition' }
+    LearnerCompetenceCheckIn:
+      type: object
+      additionalProperties: false
+      required: [activity_slug, activity_title, feeling, map_slug, node_slug, node_title, note, recorded_at]
+      properties:
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        activity_title: { type: string, maxLength: 240 }
+        feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
+        map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_title: { type: string, maxLength: 240 }
+        note: { type: [string, 'null'], maxLength: 4000 }
+        recorded_at: { type: string, format: date-time }
+    LearnerCompetenceReviewAttempt:
+      type: object
+      additionalProperties: false
+      required: [activity_slug, activity_title, attempted_at, attempt_number, confidence, confidence_after_feedback, node_slug, node_title, outcome, revisit_reason]
+      properties:
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        activity_title: { type: string, maxLength: 240 }
+        attempted_at: { type: string, format: date-time }
+        attempt_number: { type: integer, minimum: 2 }
+        confidence: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
+        confidence_after_feedback: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_title: { type: string, maxLength: 240 }
+        outcome: { type: [string, 'null'], enum: [completed, correct, incorrect, null] }
+        revisit_reason: { type: string, enum: [pause, later] }
     LearnerCompetenceTopic:
       type: object
       additionalProperties: false
