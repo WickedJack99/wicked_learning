@@ -855,6 +855,16 @@ pub struct LearnerRevisitRun {
     pub status: String,
 }
 
+/// A server-authorized historical entry. It never represents route progress,
+/// recall scheduling, or a due revisit invitation.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerActivityReplayRun {
+    pub activity_slug: String,
+    pub node_slug: String,
+    pub play_run_id: String,
+    pub status: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalPage {
     pub id: String,
