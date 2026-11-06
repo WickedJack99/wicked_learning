@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalLearningSupportSettingsPage } from './original-learning-support-settings';
 import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
@@ -20,7 +21,7 @@ import { PublicWorldPage } from './public-world';
 type CurrentUserState =
     | { kind: 'loading' }
     | { kind: 'anonymous' }
-    | { kind: 'loaded'; email: string; subjectId: string }
+    | { kind: 'loaded'; email: string; roles: string[]; subjectId: string }
     | { kind: 'unavailable' };
 
 type PublicPresentationState =
@@ -139,8 +140,30 @@ export function App() {
         return (
             <OriginalRecallDeskPage
                 onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                showSettings={currentUser.roles.some(
+                    (role) => role === 'learning_support' || role === 'platform_administrator',
+                )}
                 userEmail={currentUser.email}
                 userSubjectId={currentUser.subjectId}
+            />
+        );
+    }
+
+    if (location.pathname === '/settings') {
+        if (currentUser.kind === 'loading' || currentUser.kind === 'unavailable') {
+            return null;
+        }
+        if (currentUser.kind === 'anonymous') {
+            return <Navigate replace to="/login" />;
+        }
+        if (!currentUser.roles.some((role) => role === 'learning_support' || role === 'platform_administrator')) {
+            return <Navigate replace to="/home" />;
+        }
+
+        return (
+            <OriginalLearningSupportSettingsPage
+                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                userEmail={currentUser.email}
             />
         );
     }
@@ -273,6 +296,7 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
         return {
             kind: 'loaded',
             email: data.email,
+            roles: data.roles,
             subjectId: data.subject_id,
         };
     } catch {

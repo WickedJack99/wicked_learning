@@ -338,9 +338,10 @@ requests and create/update the current worker's reply, with a narrow
 identity-store email projection only after authorization. See ADR-049 for the
 cross-database rationale and the exact boundary.
 
-This is not Settings parity: the original staff moderation panel and surrounding
-Settings shell are not yet available in React, and peer message walls,
-helpfulness plus visibility/deletion controls remain later collaboration work.
+This is not full Settings parity: the source-derived focused staff message
+panel is available for authorized support workers, while the surrounding
+Settings shell, peer message walls, helpfulness plus visibility/deletion
+controls remain later collaboration work.
 
 ### NPC dialogue slice — 6 November 2026
 
