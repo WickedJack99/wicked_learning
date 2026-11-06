@@ -16,8 +16,8 @@ use wicked_learning_domain::{
         LearnerNpcDialogueTypingSound, LearnerNpcDialogueTypingSoundSet, LearnerPlaybackActivity,
         LearnerPlaybackCheckIn, LearnerPlaybackCompletion, LearnerPlaybackCompletionResult,
         LearnerPlaybackContext, LearnerPlaybackDocument, LearnerPlaybackLearningArea,
-        LearnerPlaybackReviewContext, LearnerPlaybackRunKind, LearnerPortalDestination,
-        LearnerPortalState, LearnerTool,
+        LearnerPlaybackReviewContext, LearnerPlaybackRunKind, LearnerPlaybackSound,
+        LearnerPortalDestination, LearnerPortalState, LearnerTool,
     },
 };
 
@@ -264,6 +264,85 @@ fn learner_safe_config(
         "shared_task" => safe_playback_config(config),
         _ => None,
     }
+}
+
+/// Carry one source-defined ambience reference into an otherwise type-specific
+/// safe configuration.  The browser can only use it after the separately
+/// projected `sounds` collection confirms that the referenced sound is both
+/// published and valid for playback.
+fn with_safe_ambient_sound(
+    mut safe_config: serde_json::Value,
+    source_config: &serde_json::Value,
+) -> serde_json::Value {
+    let Some(ambient_sound) = source_config
+        .get("ambientSound")
+        .and_then(serde_json::Value::as_object)
+    else {
+        return safe_config;
+    };
+    let Some(sound_id) = ambient_sound
+        .get("soundId")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|value| Uuid::parse_str(value).ok())
+    else {
+        return safe_config;
+    };
+    if !ambient_sound
+        .get("enabled")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+    {
+        return safe_config;
+    }
+    if let Some(object) = safe_config.as_object_mut() {
+        object.insert(
+            "ambientSound".to_owned(),
+            json!({ "enabled": true, "soundId": sound_id.to_string() }),
+        );
+    }
+    safe_config
+}
+
+#[derive(FromRow)]
+struct PlaybackSoundRow {
+    id: Uuid,
+    looped: bool,
+    play_seconds: Option<f64>,
+    url: String,
+    volume: i16,
+}
+
+async fn load_playback_sounds(
+    transaction: &mut Transaction<'_, Postgres>,
+    config: &serde_json::Value,
+) -> Result<Vec<LearnerPlaybackSound>, sqlx::Error> {
+    let mut ids = Vec::new();
+    if let Some(id) = config
+        .pointer("/ambientSound/soundId")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|value| Uuid::parse_str(value).ok())
+    {
+        ids.push(id);
+    }
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let rows = sqlx::query_as::<_, PlaybackSoundRow>(
+        "SELECT id, loop AS looped, play_seconds::float8 AS play_seconds, url, volume FROM learning_sounds WHERE id = ANY($1) AND published_at IS NOT NULL ORDER BY slug ASC",
+    )
+    .bind(ids)
+    .fetch_all(&mut **transaction)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| LearnerPlaybackSound {
+            id: row.id.to_string(),
+            looped: row.looped,
+            play_seconds: row.play_seconds,
+            url: row.url,
+            volume: row.volume,
+        })
+        .collect())
 }
 
 fn portal_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -1451,14 +1530,17 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
             } else {
                 Vec::new()
             };
-            let Some(mut config) = learner_safe_config(&row.activity_type, row.activity_config)
-            else {
+            let Some(config) = learner_safe_config(&row.activity_type, row.activity_config) else {
                 transaction
                     .commit()
                     .await
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
+            let mut config = with_safe_ambient_sound(config, &activity_config);
+            let sounds = load_playback_sounds(&mut transaction, &config)
+                .await
+                .map_err(|_| LearnerPlaybackReadError)?;
             let npc_dialogue = if row.activity_type == "npc_dialogue" {
                 let Some(dialogue) = load_npc_dialogue(
                     &mut transaction,
@@ -1658,6 +1740,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     description: row.description,
                     activity_type: row.activity_type,
                     config,
+                    sounds,
                     completion: LearnerPlaybackCompletion {
                         label: row.transition_label,
                         next_activity_slug: row.next_activity_slug,
@@ -2529,7 +2612,7 @@ mod tests {
 
     use super::{
         check_in_context, is_review_activity, markdown_safe_config, message_wall_safe_config,
-        reflection_safe_config, valid_review_outcome,
+        reflection_safe_config, valid_review_outcome, with_safe_ambient_sound,
     };
 
     #[test]
@@ -2676,6 +2759,46 @@ mod tests {
             }))
             .is_none()
         );
+    }
+
+    #[test]
+    fn ambience_projection_requires_an_enabled_valid_uuid_reference() {
+        let safe_config = json!({ "portalMode": "output" });
+        let valid = with_safe_ambient_sound(
+            safe_config.clone(),
+            &json!({
+                "ambientSound": {
+                    "enabled": true,
+                    "soundId": "00000000-0000-4000-8000-000000000058"
+                }
+            }),
+        );
+        assert_eq!(
+            valid["ambientSound"],
+            json!({
+                "enabled": true,
+                "soundId": "00000000-0000-4000-8000-000000000058"
+            })
+        );
+
+        let disabled = with_safe_ambient_sound(
+            safe_config.clone(),
+            &json!({
+                "ambientSound": {
+                    "enabled": false,
+                    "soundId": "00000000-0000-4000-8000-000000000058"
+                }
+            }),
+        );
+        assert!(disabled.get("ambientSound").is_none());
+
+        let malformed = with_safe_ambient_sound(
+            safe_config,
+            &json!({
+                "ambientSound": { "enabled": true, "soundId": "not-a-uuid" }
+            }),
+        );
+        assert!(malformed.get("ambientSound").is_none());
     }
 
     #[test]

@@ -2048,6 +2048,7 @@ export interface components {
             config: {
                 [key: string]: unknown;
             };
+            sounds: components["schemas"]["LearnerPlaybackSound"][];
             completion: components["schemas"]["LearnerPlaybackCompletion"];
             question_feedback: components["schemas"]["LearnerQuestionAnswerResult"] | null;
             /** Format: uuid */
@@ -2057,6 +2058,14 @@ export interface components {
             npc_dialogue: components["schemas"]["LearnerNpcDialogue"] | null;
             portal: components["schemas"]["LearnerPortalState"] | null;
             shared_task: components["schemas"]["LearnerSharedTaskState"] | null;
+        };
+        LearnerPlaybackSound: {
+            /** Format: uuid */
+            id: string;
+            looped: boolean;
+            play_seconds: number | null;
+            url: string;
+            volume: number;
         };
         LearnerPortalState: {
             destination: components["schemas"]["LearnerPortalDestination"] | null;

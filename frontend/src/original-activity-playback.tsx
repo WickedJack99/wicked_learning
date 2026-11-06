@@ -13,6 +13,7 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalLearningCheckIn } from './original-learning-check-in';
+import { OriginalActivityAmbientSound } from './original-activity-ambient-sound';
 import { OriginalItemGrantActivity } from './original-item-grant-activity';
 import { OriginalItemObstacleActivity } from './original-item-obstacle-activity';
 import { OriginalMarkdownActivity } from './original-markdown-activity';
@@ -509,6 +510,9 @@ export function OriginalOpenPracticePage({
                 ) : null}
                 {state.kind === 'loaded' ? (
                     <section className="relative flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
+                        <OriginalActivityAmbientSound
+                            activity={state.document.activity}
+                        />
                         <div className="flex items-start gap-3">
                             <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)] text-[var(--learner-action-accent)]">
                                 <PlayCircle className="size-4" />

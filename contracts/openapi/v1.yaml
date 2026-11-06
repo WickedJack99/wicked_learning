@@ -3229,7 +3229,7 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue, portal, shared_task]
+      required: [slug, title, description, activity_type, config, sounds, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue, portal, shared_task]
       properties:
         slug:
           type: string
@@ -3244,6 +3244,10 @@ components:
         config:
           type: object
           additionalProperties: true
+        sounds:
+          type: array
+          maxItems: 1
+          items: { $ref: '#/components/schemas/LearnerPlaybackSound' }
         completion:
           $ref: '#/components/schemas/LearnerPlaybackCompletion'
         question_feedback:
@@ -3271,6 +3275,16 @@ components:
           anyOf:
             - $ref: '#/components/schemas/LearnerSharedTaskState'
             - type: 'null'
+    LearnerPlaybackSound:
+      type: object
+      additionalProperties: false
+      required: [id, looped, play_seconds, url, volume]
+      properties:
+        id: { type: string, format: uuid }
+        looped: { type: boolean }
+        play_seconds: { type: [number, 'null'], minimum: 0 }
+        url: { type: string, maxLength: 2048, pattern: '^/[^/].*' }
+        volume: { type: integer, minimum: 0, maximum: 100 }
     LearnerPortalState:
       type: object
       additionalProperties: false

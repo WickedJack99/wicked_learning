@@ -2154,8 +2154,46 @@ also gives future ambience and effects a common policy instead of each activity
 inventing local browser state.
 
 **Boundary:** This does not yet migrate reusable authored sound records,
-uploads or activity ambience/effect configuration. Those need a separate safe
-published-media projection before they may be played in the browser.
+uploads or activity effect configuration. The subsequent published ambience
+projection is recorded in ADR-055; item-obstacle effects remain deferred.
+
+## ADR-055: Activity ambience is a bounded published-media playback projection
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source activity player can start one authored ambient sound
+while a learner is in an activity. Sending the raw activity configuration to
+the browser and letting it treat any configured URL as audio would make the
+browser a media authorization and validation authority. It would also bypass
+the existing learner mute/ambience preferences.
+
+**Decision:** Add a small published `learning_sounds` store and give the
+playback activity contract an explicit, bounded `sounds` collection. Rust
+copies an ambience reference into the otherwise safe activity configuration
+only when it is explicitly enabled and contains a valid sound UUID. It then
+loads only that referenced row when it is published. The browser matches the
+safe reference to this projection; it never derives an audio URL from raw
+configuration. The source-derived player starts/stops the supplied sound with
+its loop, optional duration and authored volume, multiplied by the learner's
+saved ambience preference. Saving those preferences notifies an already-open
+player immediately.
+
+**Why:** This restores the source behavior without creating a general media
+reader, letting unpublished or malformed records reach the browser, or
+duplicating private comfort policy in each activity implementation.
+
+**Alternatives:** Returning all sound records would overexpose unpublished
+authoring state. Passing a raw URL in activity JSON would bypass the
+published-media boundary. Treating ambience as an effect would apply the wrong
+preference category. All are rejected.
+
+**Evidence and boundary:** The OpenAPI contract makes the playback-sound
+projection explicit and generates the browser type. The local Compose browser
+test starts the source-shaped Portal activity, verifies the safe configuration
+and published sound projection, and observes playback of the bundled local
+asset. The existing Portal browser journey still passes. This is not an
+authoring or upload surface, protected media delivery, object storage, or
+item-obstacle effect migration.
 
 ## Phase 1 gate
 

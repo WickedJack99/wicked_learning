@@ -12,6 +12,19 @@ export const defaultLearnerSoundPreferences: LearnerSoundPreferences = {
     muted: false,
 };
 
+const preferencesChangedEvent = 'wicked-learning:sound-preferences-changed';
+
+/** Lets active source-derived players react when the learner saves settings. */
+export function publishLearnerSoundPreferences(
+    preferences: LearnerSoundPreferences,
+): void {
+    window.dispatchEvent(
+        new CustomEvent<LearnerSoundPreferences>(preferencesChangedEvent, {
+            detail: preferences,
+        }),
+    );
+}
+
 /** A safe default keeps an unavailable preference read from making playback
  * unusable. The server remains the durable owner when a learner saves. */
 export function useLearnerSoundPreferences(): LearnerSoundPreferences {
@@ -21,6 +34,14 @@ export function useLearnerSoundPreferences(): LearnerSoundPreferences {
 
     useEffect(() => {
         let active = true;
+        const receiveUpdate = (event: Event): void => {
+            const preferences = (event as CustomEvent<LearnerSoundPreferences>)
+                .detail;
+            if (preferences) {
+                setPreferences(preferences);
+            }
+        };
+        window.addEventListener(preferencesChangedEvent, receiveUpdate);
         void apiClient
             .GET('/learner/sound-preferences')
             .then(({ data, response }) => {
@@ -31,6 +52,7 @@ export function useLearnerSoundPreferences(): LearnerSoundPreferences {
             .catch(() => undefined);
         return () => {
             active = false;
+            window.removeEventListener(preferencesChangedEvent, receiveUpdate);
         };
     }, []);
 

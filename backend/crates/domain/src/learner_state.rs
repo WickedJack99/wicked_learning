@@ -29,6 +29,14 @@ pub struct LearnerItem {
     pub slug: String,
     pub title: String,
 }
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackSound {
+    pub id: String,
+    pub looped: bool,
+    pub play_seconds: Option<f64>,
+    pub url: String,
+    pub volume: i16,
+}
 
 /// One learner-owned tool. The slug is the public, authored reference; the
 /// database UUID stays internal and is never accepted from the browser.
@@ -670,6 +678,10 @@ pub struct LearnerPlaybackActivity {
     pub description: String,
     pub activity_type: String,
     pub config: serde_json::Value,
+    /// Published sound metadata referenced by the safe activity configuration.
+    /// The browser never receives an authored sound record that is not already
+    /// reachable from this activity's approved configuration.
+    pub sounds: Vec<LearnerPlaybackSound>,
     pub completion: LearnerPlaybackCompletion,
     /// The active run's most recent evaluated question attempt, if the learner
     /// has already asked for feedback. This is deliberately run-scoped so a
