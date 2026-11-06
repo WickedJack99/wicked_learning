@@ -102,6 +102,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /platform-feedback:
+    post:
+      operationId: submitPlatformFeedback
+      summary: Deliberately share bounded platform feedback with the platform team.
+      description: This is distinct from private journal, activity and competence data.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitPlatformFeedbackRequest' }
+      responses:
+        '204': { description: The feedback was recorded for authorized platform review. }
+        '400': { description: The category or bounded feedback message is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application database is unavailable. }
   /account/password:
     patch:
       operationId: updateAccountPassword
@@ -2451,6 +2469,18 @@ components:
           items:
             type: string
             enum: [learner, learning_support, platform_administrator]
+    SubmitPlatformFeedbackRequest:
+      type: object
+      additionalProperties: false
+      required: [category, message]
+      properties:
+        category:
+          type: string
+          enum: [general, idea, problem, praise]
+        message:
+          type: string
+          minLength: 10
+          maxLength: 4000
     UpdateLearnerAppearanceRequest:
       type: object
       additionalProperties: false

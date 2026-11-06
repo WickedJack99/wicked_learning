@@ -13,6 +13,7 @@ import { OriginalPersonalNotificationsPage } from './original-personal-notificat
 import { OriginalPersonalProfilePage } from './original-personal-profile';
 import { OriginalPersonalSoundPage } from './original-personal-sound';
 import { OriginalPersonalSecurityPage } from './original-personal-security';
+import { OriginalPlatformFeedbackPage } from './original-platform-feedback';
 import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
@@ -252,6 +253,20 @@ export function App() {
                 appearance={appearance}
                 onAppearanceChange={setAppearance}
                 presentation={presentation!}
+            />
+        );
+    }
+
+    if (location.pathname === '/feedback') {
+        if (currentUser.kind === 'loading' || currentUser.kind === 'unavailable') {
+            return null;
+        }
+
+        return (
+            <OriginalPlatformFeedbackPage
+                isAuthenticated={currentUser.kind === 'loaded'}
+                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                userEmail={currentUser.kind === 'loaded' ? currentUser.email : ''}
             />
         );
     }

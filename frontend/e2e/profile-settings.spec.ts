@@ -66,4 +66,22 @@ test('a disposable local identity updates source-shaped profile details', async 
             locale: languageToSelect,
         });
     }
+
+    await page.goto('/feedback');
+    await expect(
+        page.getByRole('heading', { name: 'Share what you notice' }),
+    ).toBeVisible();
+    await page.getByLabel('What kind of feedback is this?').selectOption('idea');
+    await page.getByLabel('Your feedback').fill(
+        'The source-shaped feedback form makes it clear what is being shared.',
+    );
+    const feedbackSubmission = page.waitForResponse((response) =>
+        response.url().endsWith('/api/v1/platform-feedback')
+        && response.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: 'Share feedback' }).click();
+    expect((await feedbackSubmission).status()).toBe(204);
+    await expect(page.getByRole('status')).toHaveText(
+        'Thanks. Your feedback has been shared with the platform team.',
+    );
 });

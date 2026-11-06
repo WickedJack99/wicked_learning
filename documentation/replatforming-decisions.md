@@ -2551,6 +2551,27 @@ it does not yet switch platform or activity copy. Translation-catalogue
 migration, locale administration and any content fallback policy require their
 own source-backed contracts and verification.
 
+## ADR-064: Platform feedback is deliberate shared application data
+
+**Status:** Accepted — 6 November 2026
+
+**Decision:** The source `/feedback` page is restored with a CSRF-protected,
+authenticated Rust submission contract. It permits only the four source
+categories and a trimmed 10–4000-character message, recorded in a dedicated
+application-database table associated with the submitting principal. It is
+explicitly separate from private journal, activity responses and competence
+evidence. The table retains review fields for the source administrator queue,
+but no reviewer read or update route is exposed in this slice.
+
+**Why:** The source describes feedback as an intentional message to the
+platform team. Keeping it out of identity data preserves the accepted database
+boundary, while keeping it out of private learner writing avoids an accidental
+privacy-policy change.
+
+**Limits and follow-up:** Administrator review, pagination and the optional
+feedback invitation/prompt need their own capability-scoped source-backed
+slice.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

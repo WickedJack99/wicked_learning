@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform-feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deliberately share bounded platform feedback with the platform team.
+         * @description This is distinct from private journal, activity and competence data.
+         */
+        post: operations["submitPlatformFeedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/password": {
         parameters: {
             query?: never;
@@ -1650,6 +1670,11 @@ export interface components {
             subject_id: string;
             /** @description Application roles, not credentials or profile data. */
             roles: ("learner" | "learning_support" | "platform_administrator")[];
+        };
+        SubmitPlatformFeedbackRequest: {
+            /** @enum {string} */
+            category: "general" | "idea" | "problem" | "praise";
+            message: string;
         };
         UpdateLearnerAppearanceRequest: {
             /** @enum {string} */
@@ -3349,6 +3374,59 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    submitPlatformFeedback: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitPlatformFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description The feedback was recorded for authorized platform review. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The category or bounded feedback message is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

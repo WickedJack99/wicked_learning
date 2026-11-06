@@ -48,6 +48,7 @@ mod learning_support_moderation;
 mod login_rate_limit;
 pub mod media_store;
 mod passwords;
+mod platform_feedback;
 mod public_map_assets;
 mod public_pages;
 mod public_presentation;
@@ -293,6 +294,7 @@ fn router(state: AppState) -> Router {
             "/api/v1/profile-images/{profile_image_id}",
             get(account_profile_image::show),
         )
+        .route("/api/v1/platform-feedback", post(platform_feedback::submit))
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
         .route(
             "/api/v1/admin/learning-groups/{group_id}",
