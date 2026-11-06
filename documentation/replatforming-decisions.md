@@ -792,9 +792,10 @@ Publishing a directory whose links lead to a simplified topic summary would
 make an unfinished substitute part of the product. Both are rejected.
 
 **Limitations and trigger:** The standalone source `/paths` page remains
-unavailable. Trail intentionally omits unavailable competence-destination and
-direct-Journal controls rather than inventing a substitute; the journal is
-currently an overlay, not a direct document URL. Its broader
+unavailable. Trail preserves the available source competence destination, but
+intentionally omits the unavailable direct-Journal control rather than
+inventing a substitute; the journal is currently an overlay, not a direct
+document URL. Its broader
 reflection-history controls need their own contracts and browser evidence
 before they are restored.
 The management control is also absent because the administration route has no

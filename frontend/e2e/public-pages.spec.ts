@@ -924,6 +924,12 @@ test('the authenticated Topics reader keeps the source directory, topic Trail an
         page.getByRole('heading', { name: 'Your trail in this topic' }),
     ).toBeVisible();
     await expect(page.getByText('Recent reflections')).toBeVisible();
+    await page.getByRole('link', { name: 'Open focused map' }).click();
+    await expect(page).toHaveURL(
+        /\/competence\?topic=map-orientation&from=map-orientation$/,
+    );
+
+    await page.goto('/topics/map-orientation');
     await page
         .locator('section[aria-labelledby="topic-learning-pulse-heading"]')
         .getByRole('button', { name: /Consider a direction/ })

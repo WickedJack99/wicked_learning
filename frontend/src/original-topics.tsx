@@ -669,6 +669,7 @@ function TrailPanel({
         (entry) =>
             !data.learning_areas.some((area) => area.slug === entry.slug),
     );
+    const focusedCompetenceSlug = competence?.slug ?? connected[0]?.slug;
     return (
         <section
             aria-labelledby="topic-trail-tab"
@@ -679,22 +680,42 @@ function TrailPanel({
                 aria-labelledby="topic-learning-trail-heading"
                 className="mt-8 border-b border-[var(--learner-border-color)] py-7"
             >
-                <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
-                    Learning trail
-                </p>
-                <h2
-                    className="mt-2 text-sm font-semibold"
-                    id="topic-learning-trail-heading"
-                >
-                    Your trail in this topic
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                    {competence
-                        ? competence.visual.description
-                        : connected.length
-                          ? 'Learning is unfolding across connected areas.'
-                          : 'A first light will appear here as you work with this topic.'}
-                </p>
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
+                            Learning trail
+                        </p>
+                        <h2
+                            className="mt-2 text-sm font-semibold"
+                            id="topic-learning-trail-heading"
+                        >
+                            Your trail in this topic
+                        </h2>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                            {competence
+                                ? competence.visual.description
+                                : connected.length
+                                  ? 'Learning is unfolding across connected areas.'
+                                  : 'A first light will appear here as you work with this topic.'}
+                        </p>
+                    </div>
+                    <Link
+                        className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
+                        to={
+                            focusedCompetenceSlug
+                                ? competenceTopicHref(
+                                      focusedCompetenceSlug,
+                                      data.topic.slug,
+                                  )
+                                : `/competence?from=${encodeURIComponent(data.topic.slug)}`
+                        }
+                    >
+                        {focusedCompetenceSlug
+                            ? 'Open focused map'
+                            : 'Open competence map'}
+                        <ArrowRight className="size-4" />
+                    </Link>
+                </div>
                 {connected.length ? (
                     <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
                         <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
@@ -702,7 +723,11 @@ function TrailPanel({
                         </p>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
                             {connected.map((area) => (
-                                <CompetenceCard area={area} key={area.slug} />
+                                <CompetenceCard
+                                    area={area}
+                                    key={area.slug}
+                                    topicSlug={data.topic.slug}
+                                />
                             ))}
                         </div>
                     </div>
@@ -807,11 +832,16 @@ function TrailPanel({
 
 function CompetenceCard({
     area,
+    topicSlug,
 }: {
     area: components['schemas']['LearnerTopicTrailCompetence'];
+    topicSlug: string;
 }) {
     return (
-        <article className="flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_45%,transparent)] p-3">
+        <Link
+            className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_45%,transparent)] p-3 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
+            to={competenceTopicHref(area.slug, topicSlug)}
+        >
             <span
                 aria-hidden="true"
                 className="mt-1 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--learner-action-accent)_20%,transparent)]"
@@ -834,7 +864,8 @@ function CompetenceCard({
                     </span>
                 ) : null}
             </span>
-        </article>
+            <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition-transform group-hover:translate-x-1" />
+        </Link>
     );
 }
 
@@ -1002,6 +1033,10 @@ function ReflectionNarrative({
             ) : null}
         </section>
     );
+}
+
+function competenceTopicHref(topicSlug: string, fromTopicSlug: string): string {
+    return `/competence?topic=${encodeURIComponent(topicSlug)}&from=${encodeURIComponent(fromTopicSlug)}`;
 }
 
 function ReflectionSnapshot({
