@@ -56,6 +56,9 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     const [updatingRevisitId, setUpdatingRevisitId] = useState<string | null>(
         null,
     );
+    const [openingActivitySlug, setOpeningActivitySlug] = useState<string | null>(
+        null,
+    );
     const searchRef = useRef<HTMLInputElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -364,6 +367,39 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
         }
     }
 
+    async function openHistoricalActivity(activitySlug: string): Promise<void> {
+        if (openingActivitySlug !== null) {
+            return;
+        }
+
+        setOpeningActivitySlug(activitySlug);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/activities/{activity_slug}/replay',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { activity_slug: activitySlug },
+                    },
+                },
+            );
+
+            if (!response.ok || !data) {
+                return;
+            }
+
+            onClose();
+            navigate(
+                `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
+            );
+        } catch {
+            // Leave the source-derived trail visible so a transient failure can be retried.
+        } finally {
+            setOpeningActivitySlug(null);
+        }
+    }
+
     useEffect(() => {
         if (!selected || !dirtyById[selected.id] || isSaving) {
             return;
@@ -477,7 +513,15 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                             </button>
                         </div>
                         {journal?.check_ins.length ? (
-                            <LearningTrail checkIns={journal.check_ins} />
+                            <LearningTrail
+                                checkIns={journal.check_ins}
+                                onOpen={openHistoricalActivity}
+                                openingActivitySlug={openingActivitySlug}
+                                onSeeMap={() => {
+                                    onClose();
+                                    navigate('/competence');
+                                }}
+                            />
                         ) : null}
                         {journal?.revisit_invitations.length ? (
                             <RevisitInvitations
@@ -584,7 +628,17 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     );
 }
 
-function LearningTrail({ checkIns }: { checkIns: JournalCheckIn[] }) {
+function LearningTrail({
+    checkIns,
+    onOpen,
+    onSeeMap,
+    openingActivitySlug,
+}: {
+    checkIns: JournalCheckIn[];
+    onOpen: (activitySlug: string) => Promise<void>;
+    onSeeMap: () => void;
+    openingActivitySlug: string | null;
+}) {
     return (
         <section
             aria-label="Recent learning check-ins"
@@ -610,50 +664,57 @@ function LearningTrail({ checkIns }: { checkIns: JournalCheckIn[] }) {
                         Your recent check-ins, kept as observations.
                     </p>
                 </div>
+                <button
+                    className="shrink-0 text-xs font-semibold underline-offset-2 hover:underline"
+                    onClick={onSeeMap}
+                    style={{ color: 'var(--journal-accent)' }}
+                    type="button"
+                >
+                    See map
+                </button>
             </div>
             <div className="mt-2 space-y-1">
                 {checkIns.slice(0, 4).map((checkIn) => (
-                    <div
-                        className="rounded-md px-2 py-2 transition-colors hover:bg-[var(--journal-content-background)]"
+                    <button
+                        className="block w-full rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--journal-content-background)] disabled:opacity-60"
+                        disabled={openingActivitySlug !== null}
                         key={checkIn.id}
+                        onClick={() => void onOpen(checkIn.activity_slug)}
+                        type="button"
                     >
-                        <div className="block">
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="truncate text-xs font-semibold">
-                                    {checkInFeelingLabel(checkIn.feeling)}
-                                </span>
-                                <time
-                                    className="shrink-0 text-xs"
-                                    dateTime={checkIn.recorded_at}
-                                    style={{ color: 'var(--journal-muted-text)' }}
-                                >
-                                    {formatCheckInDate(checkIn.recorded_at)}
-                                </time>
-                            </div>
-                            <p
-                                className="mt-1 truncate text-xs"
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-xs font-semibold">
+                                {checkInFeelingLabel(checkIn.feeling)}
+                            </span>
+                            <time
+                                className="shrink-0 text-xs"
+                                dateTime={checkIn.recorded_at}
                                 style={{ color: 'var(--journal-muted-text)' }}
                             >
-                                {checkIn.activity_title} · {checkIn.node_title}
-                            </p>
-                            {checkIn.note ? (
-                                <p className="mt-2 text-xs leading-5">
-                                    {checkIn.note}
-                                </p>
-                            ) : null}
-                            {checkIn.next_direction ? (
-                                <p
-                                    className="mt-2 text-xs"
-                                    style={{ color: 'var(--journal-accent)' }}
-                                >
-                                    Next direction:{' '}
-                                    {checkInDirectionLabel(
-                                        checkIn.next_direction,
-                                    )}
-                                </p>
-                            ) : null}
+                                {formatCheckInDate(checkIn.recorded_at)}
+                            </time>
                         </div>
-                    </div>
+                        <p
+                            className="mt-1 truncate text-xs"
+                            style={{ color: 'var(--journal-muted-text)' }}
+                        >
+                            {checkIn.activity_title} · {checkIn.node_title}
+                        </p>
+                        {checkIn.note ? (
+                            <p className="mt-2 text-xs leading-5">
+                                {checkIn.note}
+                            </p>
+                        ) : null}
+                        {checkIn.next_direction ? (
+                            <p
+                                className="mt-2 text-xs"
+                                style={{ color: 'var(--journal-accent)' }}
+                            >
+                                Next direction:{' '}
+                                {checkInDirectionLabel(checkIn.next_direction)}
+                            </p>
+                        ) : null}
+                    </button>
                 ))}
             </div>
         </section>

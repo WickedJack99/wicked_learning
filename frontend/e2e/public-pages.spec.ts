@@ -732,6 +732,24 @@ test('the original journal overlay reads only its private paginated contract', a
         });
     });
     await page.route(
+        '**/api/v1/learner/activities/consider-a-direction/replay',
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'journal-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    activity_slug: 'consider-a-direction',
+                    node_slug: 'private-place',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d72',
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
+    await page.route(
         '**/api/v1/learner/revisit-invitations/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d70',
         async (route) => {
             expect(route.request().method()).toBe('POST');
@@ -832,6 +850,12 @@ test('the original journal overlay reads only its private paginated contract', a
     await expect(
         page.getByText('Next direction: Look for something related'),
     ).toBeVisible();
+    await page.getByRole('button', { name: /Still forming/ }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/private-place\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d72$/,
+    );
+    await page.goto('/world');
+    await page.getByRole('button', { name: 'Journal' }).click();
     await expect(
         page.getByRole('region', { name: 'Revisit invitations' }),
     ).toBeVisible();
@@ -965,6 +989,10 @@ test('the authenticated competence reader keeps the source star map and private 
     ).toBeVisible();
     await page.getByRole('button', { name: 'How to read this map' }).click();
     await expect(page.getByText(/last 30 days/)).toBeVisible();
+    await page.getByRole('button', { name: 'Revisit this activity' }).first().click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/choose-a-direction\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d73$/,
+    );
 });
 
 test('the source competence map remains usable on a narrow screen', async ({
@@ -1019,6 +1047,30 @@ async function mockCompetenceReader(page: import('@playwright/test').Page) {
             }),
         });
     });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'competence-csrf-token' }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/activities/consider-a-direction/replay',
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'competence-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    activity_slug: 'consider-a-direction',
+                    node_slug: 'choose-a-direction',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d73',
+                    status: 'in_progress',
+                }),
+            });
+        },
+    );
     await page.route('**/api/v1/learner/competence', async (route) => {
         await route.fulfill({
             contentType: 'application/json',

@@ -454,6 +454,20 @@ test('a private revisit invitation action requires its authenticated owner', asy
     });
 });
 
+test('a historical activity replay requires an authenticated owner', async ({
+    request,
+}) => {
+    const response = await request.post(
+        '/api/v1/learner/activities/consider-a-direction/replay',
+    );
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+        code: 'authentication_required',
+        title: 'Authentication is required.',
+    });
+});
+
 test('learner paths require an authenticated application principal', async ({
     request,
 }) => {

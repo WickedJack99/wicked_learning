@@ -1476,9 +1476,11 @@ due revisit would change their distinct scheduling and evidence semantics.
 published activity under the authenticated learner, then creates or resumes a
 private opaque replay run. The player accepts only that run ID. Replay runs are
 separate from route, recall and due-revisit runs; they do not change an authored
-route's position or satisfy a recall/revisit queue. Completion behavior must be
-explicitly implemented and tested before the source Journal/Competence controls
-are restored.
+route's position or satisfy a recall/revisit queue. A completed replay marks
+the source activity complete, matching Laravel's direct historical entry, but
+does not create route-run evidence or follow an authored transition. Question
+and reflection/review writers resolve the same replay run under lock; browser
+input never chooses a different activity or run kind.
 
 **Why:** This preserves the original learner affordance while retaining
 server-owned authorization and keeping independent learning-state meanings
@@ -1487,6 +1489,18 @@ separate.
 **Alternatives:** A client-built activity URL, treating replay as a route start,
 or overloading recall/revisit records would weaken authorization or alter
 unrelated learner state. These are rejected.
+
+**Implementation evidence:** `POST /learner/activities/{activity_slug}/replay`
+now mints the run only after principal, current publication and map-role
+visibility checks. The playback reader and all applicable activity writers
+recognize its separate `replay` kind, and the application-level unavailable
+case remains intentionally indistinguishable from an unknown activity. The
+lifted source Journal Learning trail and Competence learning-pulse, review and
+topic-return controls restore their original activity-opening affordances
+through that command. Browser tests verify their CSRF requests and opaque
+navigation. The local Compose migration was applied and verified against the
+separate application PostgreSQL database. Topic-history controls remain
+unavailable until their own lifted source UI and browser evidence are added.
 
 ## Phase 1 gate
 

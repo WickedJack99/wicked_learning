@@ -377,6 +377,25 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application database is unavailable. }
+  /learner/activities/{activity_slug}/replay:
+    post:
+      operationId: openLearnerActivityReplay
+      summary: Open or resume an authorized historical activity replay.
+      description: The server resolves the activity against the learner's currently visible published World. Replay preserves the activity's own completion behavior but cannot advance a route or satisfy a recall or revisit queue.
+      parameters:
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The server-owned replay run is ready for the standard opaque playback endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerActivityReplayRun'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The activity is unknown or unavailable to this learner. }
+        '503': { description: The application database is unavailable. }
   /learner/recall-items/{recall_item_id}:
     post:
       operationId: postponeLearnerRecallItem
@@ -2455,6 +2474,15 @@ components:
         next_review_at: { type: string, format: date-time }
         review_count: { type: integer, minimum: 0 }
     LearnerRecallRun:
+      type: object
+      additionalProperties: false
+      required: [activity_slug, node_slug, play_run_id, status]
+      properties:
+        activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        node_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        play_run_id: { type: string, format: uuid }
+        status: { type: string, enum: [in_progress] }
+    LearnerActivityReplayRun:
       type: object
       additionalProperties: false
       required: [activity_slug, node_slug, play_run_id, status]

@@ -277,6 +277,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/activities/{activity_slug}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open or resume an authorized historical activity replay.
+         * @description The server resolves the activity against the learner's currently visible published World. Replay preserves the activity's own completion behavior but cannot advance a route or satisfy a recall or revisit queue.
+         */
+        post: operations["openLearnerActivityReplay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/recall-items/{recall_item_id}": {
         parameters: {
             query?: never;
@@ -1463,6 +1483,14 @@ export interface components {
             /** @enum {string} */
             status: "in_progress";
         };
+        LearnerActivityReplayRun: {
+            activity_slug: string;
+            node_slug: string;
+            /** Format: uuid */
+            play_run_id: string;
+            /** @enum {string} */
+            status: "in_progress";
+        };
         RemoveLearnerRecallItemResult: {
             /** Format: uuid */
             recall_item_id: string;
@@ -2593,6 +2621,59 @@ export interface operations {
             };
             /** @description The current identity has no learner application principal. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    openLearnerActivityReplay: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The server-owned replay run is ready for the standard opaque playback endpoint. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerActivityReplayRun"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or unavailable to this learner. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

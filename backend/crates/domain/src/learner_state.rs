@@ -600,6 +600,7 @@ pub enum LearnerPlaybackRunKind {
     Route,
     Revisit,
     Recall,
+    Replay,
 }
 
 /// Read-only orientation data for an already-authorized play run. It is not

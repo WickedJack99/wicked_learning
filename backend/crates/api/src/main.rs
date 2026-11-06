@@ -4,6 +4,7 @@ mod csrf;
 mod current_user;
 mod error;
 mod identity;
+mod learner_activity_replay_run;
 mod learner_bookmark;
 mod learner_bookmark_map;
 mod learner_check_in;
@@ -260,6 +261,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/learner/journal", get(learner_journal::index))
         .route("/api/v1/learner/recall-items", get(learner_recall::index))
+        .route(
+            "/api/v1/learner/activities/{activity_slug}/replay",
+            post(learner_activity_replay_run::open_or_resume),
+        )
         .route(
             "/api/v1/learner/recall-items/{recall_item_id}",
             post(learner_recall::postpone).delete(learner_recall::remove),

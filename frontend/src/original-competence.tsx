@@ -8,9 +8,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 
-import { apiClient } from './api/client';
+import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import {
     backgroundStars,
@@ -37,8 +37,8 @@ const competenceStyle = {
 
 /**
  * Source-adapted from `pages/competence/index.tsx`. The read model remains
- * private to the learner. Actions that require a server-owned opaque run are
- * intentionally rendered as context, not as client-forged activity links.
+ * private to the learner. Historical controls open only through a
+ * server-authorized opaque replay run, not a client-forged activity link.
  */
 export function OriginalCompetencePage({
     isAuthenticationLoading,
@@ -131,6 +131,7 @@ function CompetenceStarMap({
     onSignedOut: () => void;
     userEmail: string;
 }) {
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const initialTopicSlug = topicSlug(searchParams.get('topic'));
     const contextTopicSlug =
@@ -145,6 +146,38 @@ function CompetenceStarMap({
     const [selectedTopic, setSelectedTopic] = useState<TopicHeader | null>(
         null,
     );
+    const [openingActivitySlug, setOpeningActivitySlug] = useState<string | null>(
+        null,
+    );
+
+    async function openHistoricalActivity(activitySlug: string): Promise<void> {
+        if (openingActivitySlug !== null) {
+            return;
+        }
+
+        setOpeningActivitySlug(activitySlug);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/learner/activities/{activity_slug}/replay',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { activity_slug: activitySlug },
+                    },
+                },
+            );
+            if (response.ok && data) {
+                navigate(
+                    `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
+                );
+            }
+        } catch {
+            // Keep the source control available for a later retry.
+        } finally {
+            setOpeningActivitySlug(null);
+        }
+    }
 
     useEffect(() => {
         setSelectedTopicSlug(initialTopicSlug);
@@ -389,12 +422,14 @@ function CompetenceStarMap({
                             {activeTopic && activePosition ? (
                                 <CompetenceReading
                                     checkIns={competenceMap.check_ins}
+                                    onOpenActivity={openHistoricalActivity}
                                     onClose={() => {
                                         setHoveredTopicSlug(null);
                                         setSelectedTopicSlug(null);
                                     }}
                                     topic={activeTopic}
                                     position={activePosition}
+                                    openingActivitySlug={openingActivitySlug}
                                 />
                             ) : selectedTopicNotFound ? (
                                 <UnseenCompetenceReading
@@ -419,11 +454,13 @@ function CompetenceStarMap({
                         </section>
                         <LearningPulseTimeline
                             checkIns={competenceMap.check_ins}
+                            onOpenActivity={openHistoricalActivity}
                             reviewAttempts={competenceMap.review_attempts}
                             onTopicSelect={(slug) => {
                                 setHoveredTopicSlug(null);
                                 setSelectedTopicSlug(slug);
                             }}
+                            openingActivitySlug={openingActivitySlug}
                         />
                     </div>
                 </div>
@@ -496,13 +533,25 @@ function GuideTerm({ children, term }: { children: ReactNode; term: string }) {
     return <div><dt className="font-medium text-slate-100">{term}</dt><dd>{children}</dd></div>;
 }
 
-function LearningPulseTimeline({ checkIns, reviewAttempts, onTopicSelect }: { checkIns: CompetenceMap['check_ins']; reviewAttempts: CompetenceMap['review_attempts']; onTopicSelect: (slug: string) => void }) {
+function LearningPulseTimeline({
+    checkIns,
+    onOpenActivity,
+    openingActivitySlug,
+    reviewAttempts,
+    onTopicSelect,
+}: {
+    checkIns: CompetenceMap['check_ins'];
+    onOpenActivity: (activitySlug: string) => Promise<void>;
+    openingActivitySlug: string | null;
+    reviewAttempts: CompetenceMap['review_attempts'];
+    onTopicSelect: (slug: string) => void;
+}) {
     return (
         <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-full xl:min-h-0 xl:overflow-y-auto">
             <div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-200/10 text-cyan-200"><Heart className="size-4" /></span><div><p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Your learning pulse</p><h2 className="mt-1 text-sm font-semibold text-white">Moments along the way</h2></div></div>
             <p className="mt-3 text-sm leading-6 text-slate-300">Your notes about how the activities felt, kept alongside your learning trail.</p>
-            {checkIns.length ? <ol className="mt-5 grid gap-4">{checkIns.map((checkIn) => <li className="relative border-l border-cyan-200/25 pl-4" key={`${checkIn.activity_slug}:${checkIn.recorded_at}`}><span className="absolute top-1.5 -left-[0.3rem] size-2 rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(165,243,252,0.8)]" /><time className="text-xs text-slate-500" dateTime={checkIn.recorded_at}>{formatDate(checkIn.recorded_at)}</time><p className="mt-1 text-sm font-medium text-slate-100">{checkInFeelingLabel(checkIn.feeling)}</p><p className="mt-1 text-xs leading-5 text-slate-400">{checkIn.activity_title} · {checkIn.node_title}</p>{checkIn.note ? <p className="mt-2 text-sm leading-5 text-slate-300">{checkIn.note}</p> : null}{checkIn.next_direction ? <p className="mt-2 text-xs text-cyan-200/80">Next direction: {directionLabel(checkIn.next_direction)}</p> : null}{checkIn.topics.length ? <div className="mt-2 flex flex-wrap gap-1.5">{checkIn.topics.map((topic) => <button className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-0.5 text-left text-xs text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/15" key={topic.slug} onClick={() => onTopicSelect(topic.slug)} type="button">{topic.name}</button>)}</div> : null}</li>)}</ol> : <p className="mt-5 rounded-lg border border-dashed border-cyan-200/20 px-3 py-4 text-sm leading-6 text-slate-400">After an activity, you can leave a small note here for your future self.</p>}
-            {reviewAttempts.length ? <section className="mt-6 border-t border-cyan-200/10 pt-5"><p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Review history</p><h2 className="mt-1 text-sm font-semibold text-white">Returns you chose to make</h2><p className="mt-2 text-sm leading-6 text-slate-400">A bounded record of revisits, kept separate from the learning pulse and any private journal writing.</p><OriginalPaginatedItems className="mt-4 grid gap-3" items={reviewAttempts} pageSize={2} paginationLabel="Review history" paginationButtonClassName="inline-flex items-center gap-1 text-xs text-cyan-200 transition hover:text-white disabled:pointer-events-none disabled:opacity-40" paginationClassName="mt-3 flex items-center justify-between border-t border-cyan-200/15 pt-3" paginationTextClassName="text-xs text-slate-500" renderItem={(attempt) => <div className="rounded-lg border border-cyan-200/10 bg-cyan-200/5 p-3" key={`${attempt.activity_slug}:${attempt.attempted_at}`}><div className="flex items-start justify-between gap-3"><span><span className="block text-sm font-medium text-slate-100">{attempt.activity_title}</span><span className="mt-1 block text-xs text-slate-400">{attempt.node_title}{attempt.outcome ? ` · ${outcomeLabel(attempt.outcome)}` : ''}</span></span><time className="shrink-0 text-xs text-slate-500" dateTime={attempt.attempted_at}>{formatDate(attempt.attempted_at)}</time></div><span className="mt-2 block text-xs text-cyan-100/75">{attempt.confidence ? `Before guidance: ${confidenceLabel(attempt.confidence)}` : 'Review completed'}{attempt.confidence_after_feedback ? ` · After guidance: ${confidenceLabel(attempt.confidence_after_feedback)}` : ''}{attempt.observed_cues.length ? ` · Noticed: ${attempt.observed_cues.join(', ')}` : ''}{attempt.attempt_number > 1 ? ` · attempt ${attempt.attempt_number}` : ''}</span></div>} /></section> : null}
+            {checkIns.length ? <ol className="mt-5 grid gap-4">{checkIns.map((checkIn) => <li className="relative border-l border-cyan-200/25 pl-4" key={`${checkIn.activity_slug}:${checkIn.recorded_at}`}><span className="absolute top-1.5 -left-[0.3rem] size-2 rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(165,243,252,0.8)]" /><time className="text-xs text-slate-500" dateTime={checkIn.recorded_at}>{formatDate(checkIn.recorded_at)}</time><p className="mt-1 text-sm font-medium text-slate-100">{checkInFeelingLabel(checkIn.feeling)}</p><p className="mt-1 text-xs leading-5 text-slate-400">{checkIn.activity_title} · {checkIn.node_title}</p>{checkIn.note ? <p className="mt-2 text-sm leading-5 text-slate-300">{checkIn.note}</p> : null}{checkIn.next_direction ? <p className="mt-2 text-xs text-cyan-200/80">Next direction: {directionLabel(checkIn.next_direction)}</p> : null}<button className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white disabled:opacity-50" disabled={openingActivitySlug !== null} onClick={() => void onOpenActivity(checkIn.activity_slug)} type="button">Revisit this activity</button>{checkIn.topics.length ? <div className="mt-2 flex flex-wrap gap-1.5">{checkIn.topics.map((topic) => <button className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-0.5 text-left text-xs text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/15" key={topic.slug} onClick={() => onTopicSelect(topic.slug)} type="button">{topic.name}</button>)}</div> : null}</li>)}</ol> : <p className="mt-5 rounded-lg border border-dashed border-cyan-200/20 px-3 py-4 text-sm leading-6 text-slate-400">After an activity, you can leave a small note here for your future self.</p>}
+            {reviewAttempts.length ? <section className="mt-6 border-t border-cyan-200/10 pt-5"><p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Review history</p><h2 className="mt-1 text-sm font-semibold text-white">Returns you chose to make</h2><p className="mt-2 text-sm leading-6 text-slate-400">A bounded record of revisits, kept separate from the learning pulse and any private journal writing.</p><OriginalPaginatedItems className="mt-4 grid gap-3" items={reviewAttempts} pageSize={2} paginationLabel="Review history" paginationButtonClassName="inline-flex items-center gap-1 text-xs text-cyan-200 transition hover:text-white disabled:pointer-events-none disabled:opacity-40" paginationClassName="mt-3 flex items-center justify-between border-t border-cyan-200/15 pt-3" paginationTextClassName="text-xs text-slate-500" renderItem={(attempt) => <button className="w-full rounded-lg border border-cyan-200/10 bg-cyan-200/5 p-3 text-left transition hover:border-cyan-200/30 hover:bg-cyan-200/10 disabled:opacity-50" disabled={openingActivitySlug !== null} key={`${attempt.activity_slug}:${attempt.attempted_at}`} onClick={() => void onOpenActivity(attempt.activity_slug)} type="button"><div className="flex items-start justify-between gap-3"><span><span className="block text-sm font-medium text-slate-100">{attempt.activity_title}</span><span className="mt-1 block text-xs text-slate-400">{attempt.node_title}{attempt.outcome ? ` · ${outcomeLabel(attempt.outcome)}` : ''}</span></span><time className="shrink-0 text-xs text-slate-500" dateTime={attempt.attempted_at}>{formatDate(attempt.attempted_at)}</time></div><span className="mt-2 block text-xs text-cyan-100/75">{attempt.confidence ? `Before guidance: ${confidenceLabel(attempt.confidence)}` : 'Review completed'}{attempt.confidence_after_feedback ? ` · After guidance: ${confidenceLabel(attempt.confidence_after_feedback)}` : ''}{attempt.observed_cues.length ? ` · Noticed: ${attempt.observed_cues.join(', ')}` : ''}{attempt.attempt_number > 1 ? ` · attempt ${attempt.attempt_number}` : ''}</span></button>} /></section> : null}
         </aside>
     );
 }
@@ -560,7 +609,7 @@ function CompetenceStar({ active, onActiveChange, onSelect, selected, topic, vis
     );
 }
 
-function CompetenceReading({ checkIns, onClose, position, topic }: { checkIns: CompetenceMap['check_ins']; onClose: () => void; position: PositionedCompetenceTopic; topic: CompetenceTopic }) {
+function CompetenceReading({ checkIns, onClose, onOpenActivity, openingActivitySlug, position, topic }: { checkIns: CompetenceMap['check_ins']; onClose: () => void; onOpenActivity: (activitySlug: string) => Promise<void>; openingActivitySlug: string | null; position: PositionedCompetenceTopic; topic: CompetenceTopic }) {
     const relatedCheckIns = checkIns.filter((checkIn) => checkIn.topics.some((relatedTopic) => relatedTopic.slug === topic.slug)).slice(0, 3);
 
     return (
@@ -571,7 +620,7 @@ function CompetenceReading({ checkIns, onClose, position, topic }: { checkIns: C
             <div className="mt-3 rounded-lg border border-cyan-200/10 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">Recent rhythm</p><p className="mt-1 text-xs leading-5 text-slate-300">{topic.visual.recent_description}</p></div>
             <div className="mt-3"><p className="text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">Learning trail</p><div className="mt-2 flex flex-wrap gap-1.5">{topic.visual.learning_periods.map((period) => <span className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-1 text-xs text-cyan-100" key={period}>{period}</span>)}</div><p className="mt-2 text-xs leading-5 text-slate-400">Each marker is a month in which this area appeared in your learning trail.</p></div>
             {relatedCheckIns.length ? <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">Your notes about this light</p><div className="mt-2 grid gap-2">{relatedCheckIns.map((checkIn) => <div className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2" key={`${checkIn.activity_slug}:${checkIn.recorded_at}`}><p className="text-xs font-medium text-slate-200">{checkInFeelingLabel(checkIn.feeling)}</p><p className="mt-1 text-xs leading-5 text-slate-400">{checkIn.activity_title} · {formatDate(checkIn.recorded_at)}</p>{checkIn.note ? <p className="mt-2 text-xs leading-5 text-slate-300">{checkIn.note}</p> : null}</div>)}</div></div> : null}
-            {topic.revisit ? <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">Return if you want to</p><p className="mt-1 text-xs leading-5 text-slate-300">{topic.revisit.activity_title} · {topic.revisit.node_title}</p></div> : null}
+            {topic.revisit ? <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">Return if you want to</p><p className="mt-1 text-xs leading-5 text-slate-300">{topic.revisit.activity_title} · {topic.revisit.node_title}</p><button className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white disabled:opacity-50" disabled={openingActivitySlug !== null} onClick={() => void onOpenActivity(topic.revisit!.activity_slug)} type="button">Revisit this activity</button></div> : null}
             <p className="mt-3 text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">Learning moments represented here</p>
             <div className="mt-2 grid gap-2">{topic.visual.evidence_types.length ? topic.visual.evidence_types.map((type) => <div className="flex items-start gap-2 text-xs leading-5" key={type}><span className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-200/10 px-2.5 py-1 text-cyan-100">{evidenceTypeLabel(type)}</span><span className="pt-1 text-slate-400">{evidenceTypeDescription(type)}</span></div>) : <span className="text-sm text-slate-400">Learning moments will appear here as you work with this area.</span>}</div>
             {topic.visual.evidence_ledger.length ? <details className="mt-4 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2"><summary className="cursor-pointer text-xs font-medium tracking-[0.14em] text-cyan-100/80 uppercase">Evidence ledger</summary><p className="mt-2 text-xs leading-5 text-slate-400">Recent learning moments informing this light.</p><OriginalPaginatedItems className="mt-3 grid gap-2" items={topic.visual.evidence_ledger} pageSize={3} paginationLabel="Evidence ledger" paginationButtonClassName="inline-flex items-center gap-1 text-xs text-cyan-200 transition hover:text-white disabled:pointer-events-none disabled:opacity-40" paginationClassName="mt-3 flex items-center justify-between border-t border-cyan-200/15 pt-3" paginationTextClassName="text-xs text-slate-500" renderItem={(evidence) => <EvidenceEntry evidence={evidence} key={evidence.id} />} /></details> : null}
