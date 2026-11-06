@@ -2354,6 +2354,46 @@ creation/member management and staff moderation remain separate
 authorization-gated administration slices; no placeholder administration UI
 is exposed.
 
+## ADR-059: Learning Group administration follows the source consent boundary
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source administration panel creates and edits groups, assigns
+members, and shows chat only after the group's consent policy permits staff
+viewing. Its authorization also supports source access scopes (all, creator or
+assigned manager), which are broader than the currently migrated Rust role
+model.
+
+**Decision:** Add a dedicated `learning_groups_manage` capability and grant it
+only to the existing `platform_administrator` role. The typed `/admin/learning-groups`
+contract returns the source-shaped group editor projection and the bounded
+staff-visible chat preview; it is unavailable to every other role. It validates
+the source form bounds, records the creating application principal, preserves
+an existing member's join time and role, and uses a transaction with a group-row
+lock for membership replacement. A changed membership clears consent votes;
+adding a member also disables current chat visibility and records its end time,
+exactly as the source does. The React panel is adapted from the original
+`access-group-management-panel.tsx`, replacing only Inertia transport with the
+generated OpenAPI client.
+
+**Why:** This makes group creation and assignment usable in the replatform
+without copying profile/credential data into the application database or
+inventing a separate staff-chat policy. Platform administrator maps to the
+source's all-scope administrator behavior, which is the only source access
+scope represented by the Rust authorization model today.
+
+**Alternatives:** Giving every group creator or member management access would
+silently bypass the source permission catalogue. Exposing a look-alike form
+that writes browser state only would make a misleading administration surface.
+Reimplementing the full generic source role/access editor first would block a
+small dependent collaboration slice behind unrelated administration work.
+
+**Limits and follow-up:** Creator and assigned-manager scopes will be enabled
+only alongside the source role-management/access-capability administration
+slice. The group editor does not assign `manager` membership roles because the
+source UI also preserves rather than edits them. Map editing-group assignments
+and broader staff moderation remain separate authoring/support slices.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

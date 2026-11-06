@@ -367,6 +367,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/learning-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read source-shaped learning group administration data for an authorized platform administrator. */
+        get: operations["getAdminLearningGroups"];
+        put?: never;
+        /** Create a learning group as an authorized platform administrator. */
+        post: operations["createAdminLearningGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/learning-groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update source-shaped learning group details for an authorized platform administrator. */
+        patch: operations["updateAdminLearningGroup"];
+        trace?: never;
+    };
+    "/admin/learning-groups/{group_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace group membership while preserving the source chat-consent reset rules. */
+        patch: operations["syncAdminLearningGroupMembers"];
+        trace?: never;
+    };
     "/learner/groups/{group_id}/messages": {
         parameters: {
             query?: never;
@@ -2569,6 +2621,55 @@ export interface components {
         LearnerGroupResponse: {
             group: components["schemas"]["LearnerGroup"];
         };
+        AdminLearningGroupUser: {
+            /** Format: email */
+            email: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        AdminLearningGroupMessage: {
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            user: components["schemas"]["AdminLearningGroupUser"] | null;
+        };
+        AdminLearningGroup: {
+            admin_chat_required_votes: number;
+            admin_chat_visible: boolean;
+            /** Format: date-time */
+            admin_chat_visible_until: string | null;
+            admin_chat_vote_count: number;
+            description: string | null;
+            /** Format: uuid */
+            id: string;
+            member_count: number;
+            member_ids: string[];
+            members: components["schemas"]["AdminLearningGroupUser"][];
+            messages: components["schemas"]["AdminLearningGroupMessage"][];
+            name: string;
+            slug: string;
+            study_topic: string | null;
+            vote_user_ids: string[];
+        };
+        AdminLearningGroups: {
+            groups: components["schemas"]["AdminLearningGroup"][];
+            users: components["schemas"]["AdminLearningGroupUser"][];
+        };
+        AdminLearningGroupResponse: {
+            group: components["schemas"]["AdminLearningGroup"];
+        };
+        SaveAdminLearningGroupRequest: {
+            description?: string | null;
+            name: string;
+            slug?: string | null;
+            study_topic?: string | null;
+        };
+        SyncAdminLearningGroupMembersRequest: {
+            member_ids: string[];
+        };
         SendLearnerGroupMessageRequest: {
             body: string;
             /** @default false */
@@ -2918,6 +3019,7 @@ export interface components {
         LearnerJournalPageId: string;
         LearnerGroupId: string;
         LearnerGroupMessageId: string;
+        AdminLearningGroupId: string;
         LearningSupportTopicId: string;
         LearningSupportMessageId: string;
         LearningSupportResponseId: string;
@@ -4061,6 +4163,237 @@ export interface operations {
             };
             /** @description The current identity has no learner application principal. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminLearningGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Manageable groups with bounded staff-visible chat and assignable application users. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningGroups"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal is not authorized to administer learning groups. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminLearningGroup: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminLearningGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description The created group. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningGroupResponse"];
+                };
+            };
+            /** @description The source group form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot administer groups */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminLearningGroup: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                group_id: components["parameters"]["AdminLearningGroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminLearningGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description The refreshed group. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningGroupResponse"];
+                };
+            };
+            /** @description The source group form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The group is unavailable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    syncAdminLearningGroupMembers: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                group_id: components["parameters"]["AdminLearningGroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncAdminLearningGroupMembersRequest"];
+            };
+        };
+        responses: {
+            /** @description The refreshed group after membership changes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningGroupResponse"];
+                };
+            };
+            /** @description A submitted member identifier is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The group */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

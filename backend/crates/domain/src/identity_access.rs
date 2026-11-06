@@ -2,12 +2,14 @@ use uuid::Uuid;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApplicationCapability {
+    ManageLearningGroups,
     ModerateLearnerMessages,
 }
 
 impl ApplicationCapability {
     pub const fn key(self) -> &'static str {
         match self {
+            Self::ManageLearningGroups => "learning_groups_manage",
             Self::ModerateLearnerMessages => "learner_messages_moderate",
         }
     }

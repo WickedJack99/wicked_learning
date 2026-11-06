@@ -714,6 +714,48 @@ pub struct LearnerGroupPage {
     pub pagination: LearnerGroupPagination,
 }
 
+/// The source administration projection is deliberately separate from the
+/// member-only group reader: its identity data is available only after the
+/// server has established the administrator capability.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminLearningGroups {
+    pub groups: Vec<AdminLearningGroup>,
+    pub users: Vec<AdminLearningGroupUser>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminLearningGroup {
+    pub admin_chat_required_votes: i64,
+    pub admin_chat_visible: bool,
+    pub admin_chat_visible_until: Option<String>,
+    pub admin_chat_vote_count: i64,
+    pub description: Option<String>,
+    pub id: String,
+    pub member_count: i64,
+    pub member_ids: Vec<String>,
+    pub members: Vec<AdminLearningGroupUser>,
+    pub messages: Vec<AdminLearningGroupMessage>,
+    pub name: String,
+    pub slug: String,
+    pub study_topic: Option<String>,
+    pub vote_user_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminLearningGroupUser {
+    pub email: String,
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminLearningGroupMessage {
+    pub body: String,
+    pub created_at: String,
+    pub id: String,
+    pub user: Option<AdminLearningGroupUser>,
+}
+
 impl LearnerSoundPreferences {
     pub fn defaults() -> Self {
         Self {

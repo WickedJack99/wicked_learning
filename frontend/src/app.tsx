@@ -48,6 +48,12 @@ const OriginalLearningSupportModerationPage = lazy(async () => {
     return { default: module.OriginalLearningSupportModerationPage };
 });
 
+const OriginalGroupManagementPage = lazy(async () => {
+    const module = await import('./original-group-management');
+
+    return { default: module.OriginalGroupManagementPage };
+});
+
 /**
  * Each active route is a source-derived React surface with an available Rust
  * contract. Do not add placeholder pages here: extract the corresponding
@@ -247,6 +253,8 @@ export function App() {
     }
 
     if (location.pathname === '/settings') {
+        const groupPanel = new URLSearchParams(location.search).get('panel') === 'admin-access'
+            && new URLSearchParams(location.search).get('access') === 'groups';
         const supportPanel = new URLSearchParams(location.search).get('panel') === 'admin-learning-support';
         if (
             currentUser.kind === 'loading' ||
@@ -257,6 +265,17 @@ export function App() {
 
         if (currentUser.kind === 'anonymous') {
             return <Navigate replace to="/login" />;
+        }
+
+        if (groupPanel) {
+            if (!currentUser.roles.includes('platform_administrator')) {
+                return <Navigate replace to="/home" />;
+            }
+            return (
+                <Suspense fallback={null}>
+                    <OriginalGroupManagementPage appearance={appearance} />
+                </Suspense>
+            );
         }
 
         if (!supportPanel) {

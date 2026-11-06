@@ -1,3 +1,4 @@
+mod admin_learning_group;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -274,6 +275,15 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
+        .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
+        .route(
+            "/api/v1/admin/learning-groups/{group_id}",
+            patch(admin_learning_group::update),
+        )
+        .route(
+            "/api/v1/admin/learning-groups/{group_id}/members",
+            patch(admin_learning_group::sync_members),
+        )
         .route("/api/v1/learner/world", get(learner_world::show))
         .route("/api/v1/learner/groups", get(learner_group::index))
         .route(

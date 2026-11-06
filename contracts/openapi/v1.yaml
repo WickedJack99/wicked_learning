@@ -515,6 +515,86 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application or identity database is unavailable. }
+  /admin/learning-groups:
+    get:
+      operationId: getAdminLearningGroups
+      summary: Read source-shaped learning group administration data for an authorized platform administrator.
+      responses:
+        '200':
+          description: Manageable groups with bounded staff-visible chat and assignable application users.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminLearningGroups' }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal is not authorized to administer learning groups. }
+        '503': { description: The application or identity database is unavailable. }
+    post:
+      operationId: createAdminLearningGroup
+      summary: Create a learning group as an authorized platform administrator.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminLearningGroupRequest' }
+      responses:
+        '201':
+          description: The created group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminLearningGroupResponse' }
+        '400': { description: The source group form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot administer groups, or the requested slug is unavailable. }
+        '503': { description: The application or identity database is unavailable. }
+  /admin/learning-groups/{group_id}:
+    patch:
+      operationId: updateAdminLearningGroup
+      summary: Update source-shaped learning group details for an authorized platform administrator.
+      parameters:
+        - $ref: '#/components/parameters/AdminLearningGroupId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminLearningGroupRequest' }
+      responses:
+        '200':
+          description: The refreshed group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminLearningGroupResponse' }
+        '400': { description: The source group form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The group is unavailable, its requested slug is unavailable, or the principal is not authorized. }
+        '503': { description: The application or identity database is unavailable. }
+  /admin/learning-groups/{group_id}/members:
+    patch:
+      operationId: syncAdminLearningGroupMembers
+      summary: Replace group membership while preserving the source chat-consent reset rules.
+      parameters:
+        - $ref: '#/components/parameters/AdminLearningGroupId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SyncAdminLearningGroupMembersRequest' }
+      responses:
+        '200':
+          description: The refreshed group after membership changes.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminLearningGroupResponse' }
+        '400': { description: A submitted member identifier is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The group, one submitted user, or the administrator capability is unavailable. }
+        '503': { description: The application or identity database is unavailable. }
   /learner/groups/{group_id}/messages:
     post:
       operationId: sendLearnerGroupMessage
@@ -1953,6 +2033,13 @@ components:
         format: uuid
     LearnerGroupMessageId:
       name: message_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AdminLearningGroupId:
+      name: group_id
       in: path
       required: true
       schema:
@@ -4060,6 +4147,88 @@ components:
       required: [group]
       properties:
         group: { $ref: '#/components/schemas/LearnerGroup' }
+    AdminLearningGroupUser:
+      type: object
+      additionalProperties: false
+      required: [email, id, name]
+      properties:
+        email: { type: string, format: email, maxLength: 255 }
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 255 }
+    AdminLearningGroupMessage:
+      type: object
+      additionalProperties: false
+      required: [body, created_at, id, user]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        created_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AdminLearningGroupUser'
+            - type: 'null'
+    AdminLearningGroup:
+      type: object
+      additionalProperties: false
+      required: [admin_chat_required_votes, admin_chat_visible, admin_chat_visible_until, admin_chat_vote_count, description, id, member_count, member_ids, members, messages, name, slug, study_topic, vote_user_ids]
+      properties:
+        admin_chat_required_votes: { type: integer, minimum: 1 }
+        admin_chat_visible: { type: boolean }
+        admin_chat_visible_until: { type: [string, 'null'], format: date-time }
+        admin_chat_vote_count: { type: integer, minimum: 0 }
+        description: { type: [string, 'null'], maxLength: 4000 }
+        id: { type: string, format: uuid }
+        member_count: { type: integer, minimum: 0 }
+        member_ids:
+          type: array
+          items: { type: string, format: uuid }
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/AdminLearningGroupUser' }
+        messages:
+          type: array
+          maxItems: 80
+          items: { $ref: '#/components/schemas/AdminLearningGroupMessage' }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, pattern: '^[A-Za-z0-9_-]{1,140}$' }
+        study_topic: { type: [string, 'null'], maxLength: 180 }
+        vote_user_ids:
+          type: array
+          items: { type: string, format: uuid }
+    AdminLearningGroups:
+      type: object
+      additionalProperties: false
+      required: [groups, users]
+      properties:
+        groups:
+          type: array
+          items: { $ref: '#/components/schemas/AdminLearningGroup' }
+        users:
+          type: array
+          items: { $ref: '#/components/schemas/AdminLearningGroupUser' }
+    AdminLearningGroupResponse:
+      type: object
+      additionalProperties: false
+      required: [group]
+      properties:
+        group: { $ref: '#/components/schemas/AdminLearningGroup' }
+    SaveAdminLearningGroupRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        description: { type: [string, 'null'], maxLength: 4000 }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], pattern: '^[A-Za-z0-9_-]{1,140}$' }
+        study_topic: { type: [string, 'null'], maxLength: 180 }
+    SyncAdminLearningGroupMembersRequest:
+      type: object
+      additionalProperties: false
+      required: [member_ids]
+      properties:
+        member_ids:
+          type: array
+          items: { type: string, format: uuid }
     SendLearnerGroupMessageRequest:
       type: object
       additionalProperties: false
