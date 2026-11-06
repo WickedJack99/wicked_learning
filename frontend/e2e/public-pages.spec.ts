@@ -1798,6 +1798,7 @@ test('the source Learning Desk revisit section opens an opaque private revisit r
     page,
 }) => {
     const checkInId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d70';
+    const secondCheckInId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d71';
     const revisitRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77';
 
     await page.route('**/api/v1/me', async (route) => {
@@ -1842,6 +1843,19 @@ test('the source Learning Desk revisit section opens an opaque private revisit r
                         node_slug: 'private-place',
                         node_title: 'A private place',
                     },
+                    {
+                        check_in_id: secondCheckInId,
+                        activity_slug: 'return-to-a-second-question',
+                        activity_title: 'Return to a second question',
+                        available_after_days: 3,
+                        available_at: '2026-11-04T09:00:00.000000Z',
+                        available_since: '2026-11-01T09:00:00.000000Z',
+                        revisit_reason: 'later',
+                        map_slug: 'first-path',
+                        map_title: 'The First Path',
+                        node_slug: 'private-place',
+                        node_title: 'A private place',
+                    },
                 ],
             }),
         });
@@ -1853,7 +1867,25 @@ test('the source Learning Desk revisit section opens an opaque private revisit r
         });
     });
     await page.route(
-        `**/api/v1/learner/revisit-invitations/${checkInId}/open`,
+        `**/api/v1/learner/revisit-invitations/${checkInId}`,
+        async (route) => {
+            expect(route.request().method()).toBe('POST');
+            expect(route.request().postDataJSON()).toEqual({ action: 'snooze' });
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'revisit-csrf-token',
+            );
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    check_in_id: checkInId,
+                    revisit_status: 'snoozed',
+                    available_at: '2026-11-12T09:00:00.000000Z',
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/revisit-invitations/${secondCheckInId}/open`,
         async (route) => {
             expect(route.request().method()).toBe('POST');
             expect(await route.request().headerValue('X-CSRF-Token')).toBe(
@@ -1862,7 +1894,7 @@ test('the source Learning Desk revisit section opens an opaque private revisit r
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
-                    activity_slug: 'return-to-direction',
+                    activity_slug: 'return-to-a-second-question',
                     node_slug: 'private-place',
                     play_run_id: revisitRunId,
                     status: 'in_progress',
@@ -1879,6 +1911,14 @@ test('the source Learning Desk revisit section opens an opaque private revisit r
     await expect(
         page.getByText('Return to the first question', { exact: true }),
     ).toBeVisible();
+    await page
+        .getByText('Return to the first question', { exact: true })
+        .locator('xpath=../..')
+        .getByRole('button', { name: 'Later' })
+        .click();
+    await expect(
+        page.getByText('Return to the first question', { exact: true }),
+    ).not.toBeVisible();
     await page.getByRole('button', { name: 'Open activity' }).click();
     await expect(page).toHaveURL(
         `/learning/nodes/private-place/play?run=${revisitRunId}`,

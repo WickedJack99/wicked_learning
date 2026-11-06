@@ -10,7 +10,6 @@ import { OriginalLearnerHeader } from './original-learner-header';
 
 type LearnerRecallItem = components['schemas']['LearnerRecallItem'];
 type LearnerRecallQueue = components['schemas']['LearnerRecallQueue'];
-type LearnerJournalDocument = components['schemas']['LearnerJournalDocument'];
 type RevisitInvitation = components['schemas']['LearnerRevisitInvitation'];
 
 const learnerStyle = {
@@ -25,10 +24,11 @@ const learnerStyle = {
 } as CSSProperties;
 
 /**
- * The recall section lifted from `features/home/learning-desk.tsx`. This is
- * deliberately a narrow desk surface until the other source desk sections
- * have their own completed Rust contracts; it does not add replacement cards
- * or navigation for unavailable work.
+ * The Recall Queue and Return when useful sections lifted from
+ * `features/home/learning-desk.tsx`. This remains a deliberately narrow desk
+ * surface until the other source sections have their own completed Rust
+ * contracts; it does not add replacement cards or navigation for unavailable
+ * work.
  */
 export function OriginalRecallDeskPage({
     onSignedOut,
@@ -82,9 +82,7 @@ export function OriginalRecallDeskPage({
             })
             .then(({ data, response }) => {
                 if (active && response.ok && data) {
-                    setRevisitInvitations(
-                        (data as LearnerJournalDocument).revisit_invitations,
-                    );
+                    setRevisitInvitations(data.revisit_invitations);
                 }
             })
             .catch(() => {
