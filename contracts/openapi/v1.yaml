@@ -2276,7 +2276,7 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, completion, check_in]
+      required: [slug, title, description, activity_type, config, completion, question_feedback, check_in]
       properties:
         slug:
           type: string
@@ -2293,6 +2293,10 @@ components:
           additionalProperties: true
         completion:
           $ref: '#/components/schemas/LearnerPlaybackCompletion'
+        question_feedback:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerQuestionAnswerResult'
+            - type: 'null'
         check_in:
           $ref: '#/components/schemas/LearnerPlaybackCheckIn'
     LearnerPlaybackCompletion:

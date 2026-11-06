@@ -1520,6 +1520,25 @@ test('the original question surface posts only selected option keys and waits fo
                                 },
                             ],
                         },
+                        question_feedback:
+                            answerAttempt === 0
+                                ? null
+                                : {
+                                      play_run_id: playRunId,
+                                      activity_slug: 'learner-choice',
+                                      selected_option_keys: ['choice'],
+                                      is_correct: true,
+                                      feedback:
+                                          'This keeps the learner in charge.',
+                                      explanation:
+                                          'Maps support orientation and choice.',
+                                      confidence: 'settled',
+                                      calibration: 'aligned',
+                                      attempt_number: 1,
+                                      earlier_attempts: [],
+                                      next_transition_label: null,
+                                      status: 'in_progress',
+                                  },
                         completion: { label: null, next_activity_slug: null },
                         check_in: {
                             choice_prompt: null,
@@ -1603,6 +1622,10 @@ test('the original question surface posts only selected option keys and waits fo
         .getByRole('button', { name: /Keep useful choices visible/ })
         .click();
     await expect(page.getByText('Useful clue found')).toBeVisible();
+    await expect(
+        page.getByText('This keeps the learner in charge.'),
+    ).toBeVisible();
+    await page.reload();
     await expect(
         page.getByText('This keeps the learner in charge.'),
     ).toBeVisible();

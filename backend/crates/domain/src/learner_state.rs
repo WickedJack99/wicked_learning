@@ -564,6 +564,10 @@ pub struct LearnerPlaybackActivity {
     pub activity_type: String,
     pub config: serde_json::Value,
     pub completion: LearnerPlaybackCompletion,
+    /// The active run's most recent evaluated question attempt, if the learner
+    /// has already asked for feedback. This is deliberately run-scoped so a
+    /// fresh route start never silently replays an earlier answer.
+    pub question_feedback: Option<LearnerQuestionAnswerResult>,
     /// Source-defined, bounded context for the optional conclusion check-in.
     /// Recording a check-in remains bound to the completed server-owned run.
     pub check_in: LearnerPlaybackCheckIn,

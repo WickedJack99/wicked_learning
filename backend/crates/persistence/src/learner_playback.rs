@@ -27,7 +27,9 @@ use crate::{
         configured_tool_slugs as configured_obstacle_tool_slugs, obstacle_is_persistently_resolved,
         obstacle_passed_for_run, persists_after_solved,
     },
-    learner_question::{latest_answer_for_completion, valid_confidence},
+    learner_question::{
+        latest_answer_for_completion, question_feedback_for_playback, valid_confidence,
+    },
     learner_revisit_completion::{RevisitCompletion, complete_active_revisit},
     learner_tool_grant::configured_tool_slug,
 };
@@ -592,6 +594,25 @@ async fn active_obstacle_id(
     .await
 }
 
+/// The playback row already established that this question belongs to the
+/// authenticated active run. Resolve the internal ID through the same run
+/// ownership boundary before reading its private answer history.
+async fn active_question_id(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    play_run_id: Uuid,
+    activity_slug: &str,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar::<_, Uuid>(
+        "SELECT progress.current_activity_id FROM learner_route_progress AS progress INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id WHERE progress.principal_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'question' UNION ALL SELECT runs.activity_id FROM learner_revisit_runs AS runs INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id WHERE runs.principal_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND activities.slug = $3 AND activities.activity_type = 'question' LIMIT 1",
+    )
+    .bind(principal_id)
+    .bind(play_run_id)
+    .bind(activity_slug)
+    .fetch_optional(&mut **transaction)
+    .await
+}
+
 async fn load_tools(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
@@ -753,6 +774,35 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
+            let question_feedback = if row.activity_type == "question" {
+                let Some(activity_id) = active_question_id(
+                    &mut transaction,
+                    row.principal_id,
+                    play_run_id,
+                    &row.activity_slug,
+                )
+                .await
+                .map_err(|_| LearnerPlaybackReadError)?
+                else {
+                    transaction
+                        .commit()
+                        .await
+                        .map_err(|_| LearnerPlaybackReadError)?;
+                    return Ok(None);
+                };
+                question_feedback_for_playback(
+                    &mut transaction,
+                    row.principal_id,
+                    activity_id,
+                    play_run_id,
+                    &row.activity_slug,
+                    &activity_config,
+                )
+                .await
+                .map_err(|_| LearnerPlaybackReadError)?
+            } else {
+                None
+            };
             if row.activity_type == "tool_grant" {
                 enrich_tool_grant_config(&mut transaction, row.principal_id, &mut config)
                     .await
@@ -861,6 +911,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                         label: row.transition_label,
                         next_activity_slug: row.next_activity_slug,
                     },
+                    question_feedback,
                     check_in,
                 },
             }))

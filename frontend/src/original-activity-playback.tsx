@@ -534,6 +534,7 @@ export function OriginalOpenPracticePage({
                           'question' ? (
                             <QuestionActivity
                                 activity={state.document.activity}
+                                key={`${state.document.play_run_id}:${state.document.activity.slug}`}
                                 playRunId={state.document.play_run_id}
                                 onComplete={(result, confidenceAfterFeedback) =>
                                     complete(
@@ -765,7 +766,7 @@ function QuestionActivity({
         'exploring' | 'leaning' | 'settled' | null
     >(null);
     const [answer, setAnswer] = useState<LearnerQuestionAnswerResult | null>(
-        null,
+        activity.question_feedback,
     );
     const [submitting, setSubmitting] = useState(false);
     const [completing, setCompleting] = useState(false);

@@ -50,6 +50,15 @@ struct EarlierAnswerRow {
     selected_option_keys: serde_json::Value,
 }
 
+#[derive(FromRow)]
+struct PlaybackAnswerRow {
+    attempt_number: i32,
+    calibration: Option<String>,
+    confidence: Option<String>,
+    is_correct: bool,
+    selected_option_keys: serde_json::Value,
+}
+
 /// The final question-completion command reuses the latest answer from the
 /// same server-owned run. It never accepts a browser-supplied outcome or
 /// transition after feedback has been shown.
@@ -303,6 +312,93 @@ pub(crate) async fn latest_answer_for_completion(
         confidence: answer.confidence,
         is_correct: answer.is_correct,
         next_activity_id: transition.and_then(|transition| transition.to_activity_id),
+    }))
+}
+
+/// Rehydrates only the latest evaluated answer from the same active run. This
+/// mirrors the source progress serializer after a refresh without leaking an
+/// earlier route run into a fresh playback session.
+pub(crate) async fn question_feedback_for_playback(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+    play_run_id: Uuid,
+    activity_slug: &str,
+    activity_config: &serde_json::Value,
+) -> Result<Option<LearnerQuestionAnswerResult>, sqlx::Error> {
+    let Some(answer) = sqlx::query_as::<_, PlaybackAnswerRow>(
+        "SELECT attempt_number, calibration, confidence, is_correct, selected_option_keys FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2 AND play_run_id = $3 ORDER BY attempt_number DESC LIMIT 1",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .bind(play_run_id)
+    .fetch_optional(&mut **transaction)
+    .await?
+    else {
+        return Ok(None);
+    };
+    let Ok(config) = serde_json::from_value::<QuestionConfig>(activity_config.clone()) else {
+        return Ok(None);
+    };
+    let Ok(selected_option_keys) =
+        serde_json::from_value::<Vec<String>>(answer.selected_option_keys)
+    else {
+        return Ok(None);
+    };
+    let selected = config
+        .options
+        .iter()
+        .filter(|option| selected_option_keys.contains(&option.key))
+        .collect::<Vec<_>>();
+    if selected_option_keys.is_empty()
+        || selected.len() != selected_option_keys.len()
+        || selected.iter().any(|option| option.key.is_empty())
+        || duplicate(&selected_option_keys)
+        || (!config.allow_multiple && selected.len() != 1)
+    {
+        return Ok(None);
+    }
+    let transition = transition_for(
+        transaction,
+        activity_id,
+        selected
+            .first()
+            .and_then(|option| option.outcome_key.as_deref()),
+        answer.is_correct,
+    )
+    .await?;
+    let earlier_attempts = earlier_attempts(
+        transaction,
+        principal_id,
+        activity_id,
+        answer.attempt_number,
+        &config.options,
+    )
+    .await?;
+    let feedback = selected
+        .first()
+        .and_then(|option| option.feedback.clone())
+        .or_else(|| {
+            if answer.is_correct {
+                config.feedback_correct
+            } else {
+                config.feedback_incorrect
+            }
+        });
+
+    Ok(Some(LearnerQuestionAnswerResult {
+        play_run_id: play_run_id.to_string(),
+        activity_slug: activity_slug.to_owned(),
+        selected_option_keys,
+        is_correct: answer.is_correct,
+        feedback,
+        explanation: config.explanation,
+        confidence: answer.confidence,
+        calibration: answer.calibration,
+        attempt_number: answer.attempt_number,
+        earlier_attempts,
+        next_transition_label: transition.and_then(|transition| transition.label),
+        status: "in_progress".to_owned(),
     }))
 }
 

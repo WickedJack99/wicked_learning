@@ -1317,6 +1317,7 @@ export interface components {
                 [key: string]: unknown;
             };
             completion: components["schemas"]["LearnerPlaybackCompletion"];
+            question_feedback: components["schemas"]["LearnerQuestionAnswerResult"] | null;
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
         };
         LearnerPlaybackCompletion: {
