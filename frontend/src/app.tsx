@@ -6,6 +6,7 @@ import { OriginalLoginPage } from './original-login';
 import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
+import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
 import {
@@ -130,6 +131,15 @@ export function App() {
         }
 
         return <OriginalRecallDeskPage />;
+    }
+
+    if (location.pathname === '/paths') {
+        return (
+            <OriginalPathsPage
+                isAuthenticationLoading={currentUser.kind === 'loading'}
+                isAuthenticated={currentUser.kind === 'loaded'}
+            />
+        );
     }
 
     if (

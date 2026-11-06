@@ -26,7 +26,7 @@ import { OriginalPaginationControls } from './original-paginated-items';
 
 type TopicDirectory = components['schemas']['LearnerTopicDirectory'];
 type TopicHeader = components['schemas']['LearnerTopicDetailHeader'];
-type TopicPath = components['schemas']['LearnerPathSummary'];
+export type TopicPath = components['schemas']['LearnerPathSummary'];
 type TopicSection = 'trail' | 'routes' | 'maps' | 'overview';
 type TopicSectionData =
     | components['schemas']['LearnerTopicTrail']
@@ -1112,7 +1112,7 @@ function RoutesPanel({
     );
 }
 
-function TopicPathCard({
+export function TopicPathCard({
     path,
     onStart,
     starting,
@@ -1340,7 +1340,7 @@ function OverviewPanel({
     );
 }
 
-function TopicPagination({
+export function TopicPagination({
     label,
     pagination,
     onPageChange,
@@ -1366,7 +1366,7 @@ function TopicPagination({
     );
 }
 
-function TopicSurface({
+export function TopicSurface({
     children,
     marker,
 }: {

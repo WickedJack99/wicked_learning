@@ -912,6 +912,25 @@ test('the authenticated Topics reader keeps the source directory, topic Trail an
     );
 });
 
+test('the authenticated Paths reader keeps the standalone source filters and route-start flow', async ({
+    page,
+}) => {
+    await mockTopicReader(page);
+
+    await page.goto('/paths');
+
+    await expect(page.getByRole('heading', { name: 'Paths' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Available routes' }),
+    ).toBeVisible();
+    await page.getByLabel('Learning purpose').selectOption('retrieve');
+    await expect(page).toHaveURL(/\/paths\?purpose=retrieve$/);
+    await page.getByRole('button', { name: 'Enter route' }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/choose-a-direction\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e$/,
+    );
+});
+
 test('the source Topic tab strip remains inside a narrow viewport and loads only its selected section', async ({
     page,
 }) => {
