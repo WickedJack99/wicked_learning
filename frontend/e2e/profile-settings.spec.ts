@@ -38,4 +38,9 @@ test('a disposable local identity updates source-shaped profile details', async 
     await expect(currentUser.json()).resolves.toMatchObject({
         email: updatedEmail,
     });
+
+    await page.goto('/settings?panel=personal&personal=notifications');
+    await expect(
+        page.getByRole('heading', { name: 'Communication preferences' }),
+    ).toBeVisible();
 });
