@@ -49,6 +49,7 @@ const learnerStyle = {
 } as CSSProperties;
 
 type ActiveRouteRow = {
+    imageUrl: string | null;
     mapTitle: string;
     nodeTitle: string;
     start: LearnerActivityStart;
@@ -71,7 +72,16 @@ function routeRows(
     if (!world) return [];
     const nodeTitles = new Map(
         world.world.maps.flatMap((map) =>
-            map.nodes.map((node) => [`${map.slug}/${node.slug}`, { mapTitle: map.title, nodeTitle: node.title }] as const),
+            map.nodes.map((node) => [
+                `${map.slug}/${node.slug}`,
+                {
+                    imageUrl:
+                        map.assets.find((asset) => asset.slug === node.asset_slug)
+                            ?.image_url ?? null,
+                    mapTitle: map.title,
+                    nodeTitle: node.title,
+                },
+            ] as const),
         ),
     );
     return world.start_routes
@@ -254,10 +264,10 @@ export function OriginalRecallDeskPage({
     );
     const recentCheckIns = useMemo(() => checkIns.slice(0, 4), [checkIns]);
     const learningPurposeOptions = deskLearningPurposes.filter((purpose) =>
-        currentRoutes.some((route) => route.start.learning_intent === purpose),
+        currentRoutes.some((route) => route.start.desk.learning_intent === purpose),
     );
     const hasTimeGuides = currentRoutes.some(
-        (route) => route.start.time_guide_minutes !== null,
+        (route) => route.start.desk.time_guide_minutes !== null,
     );
     const activePurposeFilter = learningPurposeOptions.includes(
         purposeFilter as Exclude<DeskPurposeFilter, 'any'>,
@@ -267,8 +277,8 @@ export function OriginalRecallDeskPage({
     const activeTimeBudget = hasTimeGuides ? timeBudget : 'any';
     const visibleCurrentRoutes = currentRoutes.filter((route) =>
         fitsDeskFilters(
-            route.start.time_guide_minutes,
-            route.start.learning_intent,
+            route.start.desk.time_guide_minutes,
+            route.start.desk.learning_intent,
             activeTimeBudget,
             activePurposeFilter,
         ),
@@ -997,18 +1007,75 @@ function ContinueRouteRow({
     opening: boolean;
     route: ActiveRouteRow;
 }) {
+    const desk = route.start.desk;
+
     return (
-        <article className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
-            <div className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-accent)]">
-                <BookOpenText className="size-5" />
-            </div>
-            <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{route.start.label}</p>
-                <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">{route.nodeTitle} · {route.mapTitle}</p>
-            </div>
-            <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-accent)] disabled:opacity-50 sm:justify-self-end" disabled={opening} onClick={() => void onContinue(route.start)} type="button">
-                {opening ? 'Opening…' : 'Continue'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+        <article className="group relative grid gap-4 py-6 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
+            <button
+                aria-label={route.start.label}
+                className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-accent)] transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,var(--learner-border-color))] disabled:opacity-50"
+                disabled={opening}
+                onClick={() => void onContinue(route.start)}
+                type="button"
+            >
+                {route.imageUrl ? (
+                    <img alt="" className="size-10 object-contain" src={route.imageUrl} />
+                ) : (
+                    <BookOpenText className="size-5" />
+                )}
             </button>
+            <div className="min-w-0">
+                <button
+                    className="block truncate text-left text-sm font-medium hover:text-[var(--learner-accent)] disabled:opacity-50"
+                    disabled={opening}
+                    onClick={() => void onContinue(route.start)}
+                    type="button"
+                >
+                    {route.start.label}
+                </button>
+                <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
+                    {learningPurposeLabel(desk.learning_intent)}
+                </span>
+                <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">
+                    <Link className="hover:text-[var(--learner-action-accent)] hover:underline" to={`/world?map=${route.start.map_slug}&focused=${route.start.node_slug}`}>
+                        {route.nodeTitle}
+                    </Link>{' '}
+                    ·{' '}
+                    <Link className="hover:text-[var(--learner-action-accent)] hover:underline" to={`/world?map=${route.start.map_slug}`}>
+                        {route.mapTitle}
+                    </Link>
+                </p>
+                {desk.topic ? (
+                    <Link className="mt-2 inline-block truncate text-xs font-medium text-[var(--learner-accent)] hover:underline" to={desk.topic.href}>
+                        {desk.topic.title}
+                    </Link>
+                ) : null}
+                <RouteLearningAreas start={route.start} />
+                {desk.current_activity_title ? (
+                    <p className="mt-2 truncate text-xs font-medium text-[var(--learner-action-accent)]">
+                        Current step: {desk.current_activity_title}
+                    </p>
+                ) : null}
+                {desk.time_guide_minutes ? (
+                    <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
+                        Suggested time: {desk.time_guide_minutes} minutes
+                    </p>
+                ) : null}
+                <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
+                    Why here: this work is still in progress.
+                </p>
+            </div>
+            <span className="flex items-center gap-4 sm:justify-self-end">
+                {route.start.progress?.last_entered_at ? (
+                    <span className="hidden items-center gap-1.5 text-xs text-[var(--learner-muted-text)] xl:flex">
+                        <Clock3 className="size-3.5" />
+                        {formatDeskDate(route.start.progress.last_entered_at)}
+                    </span>
+                ) : null}
+                <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-accent)] disabled:opacity-50" disabled={opening} onClick={() => void onContinue(route.start)} type="button">
+                    {opening ? 'Opening…' : 'Continue'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </button>
+            </span>
         </article>
     );
 }
@@ -1110,17 +1177,39 @@ function RecentRouteRow({
     route: RecentRouteRow;
 }) {
     const completedAt = route.start.progress?.last_completed_at;
+    const desk = route.start.desk;
 
     return (
         <article className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
             <button aria-label={route.start.label} className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-action-accent)] hover:border-[color-mix(in_srgb,var(--learner-action-accent)_55%,var(--learner-border-color))] disabled:opacity-50" disabled={opening} onClick={() => void onRevisit(route.start)} type="button">
-                <Clock3 className="size-5" />
+                {route.imageUrl ? (
+                    <img alt="" className="size-10 object-contain" src={route.imageUrl} />
+                ) : (
+                    <Clock3 className="size-5" />
+                )}
             </button>
             <div className="min-w-0">
                 <button className="block truncate text-left text-sm font-medium hover:text-[var(--learner-accent)] disabled:opacity-50" disabled={opening} onClick={() => void onRevisit(route.start)} type="button">
                     {route.start.label}
                 </button>
-                <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">{route.nodeTitle} · {route.mapTitle}</p>
+                <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
+                    {learningPurposeLabel(desk.learning_intent)}
+                </span>
+                <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">
+                    <Link className="hover:text-[var(--learner-action-accent)] hover:underline" to={`/world?map=${route.start.map_slug}&focused=${route.start.node_slug}`}>
+                        {route.nodeTitle}
+                    </Link>{' '}
+                    ·{' '}
+                    <Link className="hover:text-[var(--learner-action-accent)] hover:underline" to={`/world?map=${route.start.map_slug}`}>
+                        {route.mapTitle}
+                    </Link>
+                </p>
+                {desk.topic ? (
+                    <Link className="mt-2 inline-block truncate text-xs font-medium text-[var(--learner-accent)] hover:underline" to={desk.topic.href}>
+                        {desk.topic.title}
+                    </Link>
+                ) : null}
+                <RouteLearningAreas start={route.start} />
                 <p className="mt-2 text-xs text-[var(--learner-muted-text)]">Why here: you completed this route recently.</p>
             </div>
             <span className="flex items-center gap-4 sm:justify-self-end">
@@ -1130,6 +1219,27 @@ function RecentRouteRow({
                 </button>
             </span>
         </article>
+    );
+}
+
+function RouteLearningAreas({ start }: { start: LearnerActivityStart }) {
+    if (!start.desk.learning_areas.length) {
+        return null;
+    }
+
+    return (
+        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--learner-muted-text)]">
+            <span>Learning areas:</span>
+            {start.desk.learning_areas.map((area) => (
+                <Link
+                    className="text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
+                    key={area.slug}
+                    to={competenceTopicHref(area.slug, start.desk.topic?.slug ?? null)}
+                >
+                    {area.name}
+                </Link>
+            ))}
+        </div>
     );
 }
 

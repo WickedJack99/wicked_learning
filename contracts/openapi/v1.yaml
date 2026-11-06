@@ -2509,7 +2509,7 @@ components:
     LearnerActivityStart:
       type: object
       additionalProperties: false
-      required: [start_id, map_slug, node_slug, route_slug, activity_slug, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, learning_intent, sort_order, time_guide_minutes, progress]
+      required: [start_id, map_slug, node_slug, route_slug, activity_slug, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, learning_intent, sort_order, time_guide_minutes, desk, progress]
       properties:
         start_id:
           type: string
@@ -2557,9 +2557,33 @@ components:
         time_guide_minutes:
           type: [integer, 'null']
           minimum: 1
+        desk:
+          $ref: '#/components/schemas/LearnerActivityStartDeskContext'
         progress:
           oneOf:
             - $ref: '#/components/schemas/LearnerActivityStartProgress'
+            - type: 'null'
+    LearnerActivityStartDeskContext:
+      type: object
+      additionalProperties: false
+      required: [current_activity_title, learning_areas, learning_intent, time_guide_minutes, topic]
+      properties:
+        current_activity_title:
+          type: [string, 'null']
+          maxLength: 240
+        learning_areas:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/LearnerPathLearningArea' }
+        learning_intent:
+          type: string
+          enum: [apply, explain, participate, reflect, retrieve, review, transfer]
+        time_guide_minutes:
+          type: [integer, 'null']
+          minimum: 1
+        topic:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerPathTopic'
             - type: 'null'
     LearnerPlaybackDocument:
       type: object

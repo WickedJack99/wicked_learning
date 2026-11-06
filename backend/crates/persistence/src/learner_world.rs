@@ -9,14 +9,14 @@ use wicked_learning_application::learner_world::{
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
-        LearnerActivityProgress, LearnerActivityStart, LearnerActivityStartProgress,
-        LearnerBookmark, LearnerItem, LearnerRouteProgress, LearnerTool, LearnerWorldRoute,
-        LearnerWorldSnapshot,
+        LearnerActivityProgress, LearnerActivityStart, LearnerActivityStartDeskContext,
+        LearnerActivityStartProgress, LearnerBookmark, LearnerItem, LearnerPathTopic,
+        LearnerRouteProgress, LearnerTool, LearnerWorldRoute, LearnerWorldSnapshot,
     },
 };
 
 use crate::learner_node_availability::PostgresLearnerNodeAvailability;
-use crate::learner_paths::{learning_intent, time_guide_minutes};
+use crate::learner_paths::{learning_areas, learning_intent, time_guide_minutes};
 use crate::public_world::load_first_visible as load_visible_world;
 
 pub struct PostgresLearnerWorldRepository<'pool> {
@@ -79,12 +79,15 @@ struct ActivityStartRow {
     activity_config: Value,
     activity_slug: String,
     activity_type: String,
+    current_activity_config: Option<Value>,
     button_border_color_dark: Option<String>,
     button_border_color_light: Option<String>,
     button_color_dark: Option<String>,
     button_color_light: Option<String>,
     completion_count: Option<i32>,
     current_activity_slug: Option<String>,
+    current_activity_type: Option<String>,
+    current_activity_title: Option<String>,
     description: Option<String>,
     image_dark: Option<String>,
     image_light: Option<String>,
@@ -97,6 +100,8 @@ struct ActivityStartRow {
     sort_order: i16,
     start_id: Uuid,
     status: Option<String>,
+    topic_slug: Option<String>,
+    topic_title: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -181,7 +186,7 @@ async fn load_first_visible(
     .fetch_all(pool)
     .await?;
     let start_routes = sqlx::query_as::<_, ActivityStartRow>(
-        "SELECT activities.activity_config, activities.slug AS activity_slug, activities.activity_type, starts.button_border_color_dark, starts.button_border_color_light, starts.button_color_dark, starts.button_color_light, progress.completion_count, current_activity.slug AS current_activity_slug, starts.description, starts.image_dark, starts.image_light, COALESCE(starts.label, activities.title) AS label, to_char(progress.last_completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_completed_at, to_char(progress.last_entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_entered_at, maps.slug AS map_slug, nodes.slug AS node_slug, routes.slug AS route_slug, starts.sort_order, starts.id AS start_id, progress.status FROM learning_activity_starts AS starts INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learner_route_progress AS progress ON progress.principal_id = $1 AND progress.activity_start_id = starts.id LEFT JOIN learning_activities AS current_activity ON current_activity.id = progress.current_activity_id WHERE nodes.map_id = ANY($2) AND nodes.map_asset_id = assets.id AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') ORDER BY nodes.slug ASC, starts.sort_order ASC, starts.id ASC",
+        "SELECT activities.activity_config, activities.slug AS activity_slug, activities.activity_type, current_activity.activity_config AS current_activity_config, starts.button_border_color_dark, starts.button_border_color_light, starts.button_color_dark, starts.button_color_light, progress.completion_count, current_activity.slug AS current_activity_slug, current_activity.activity_type AS current_activity_type, current_activity.title AS current_activity_title, starts.description, starts.image_dark, starts.image_light, COALESCE(starts.label, activities.title) AS label, to_char(progress.last_completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_completed_at, to_char(progress.last_entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_entered_at, maps.slug AS map_slug, nodes.slug AS node_slug, routes.slug AS route_slug, starts.sort_order, starts.id AS start_id, progress.status, topics.slug AS topic_slug, topics.title AS topic_title FROM learning_activity_starts AS starts INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL LEFT JOIN learner_route_progress AS progress ON progress.principal_id = $1 AND progress.activity_start_id = starts.id LEFT JOIN learning_activities AS current_activity ON current_activity.id = progress.current_activity_id WHERE nodes.map_id = ANY($2) AND nodes.map_asset_id = assets.id AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') ORDER BY nodes.slug ASC, starts.sort_order ASC, starts.id ASC",
     )
     .bind(principal_id)
     .bind(&loaded_world.map_ids)
@@ -259,33 +264,68 @@ async fn load_first_visible(
         start_routes: start_routes
             .into_iter()
             .filter(|row| playable_nodes.contains(&(row.map_slug.clone(), row.node_slug.clone())))
-            .map(|row| LearnerActivityStart {
-                start_id: row.start_id.to_string(),
-                map_slug: row.map_slug,
-                node_slug: row.node_slug,
-                route_slug: row.route_slug,
-                activity_slug: row.activity_slug,
-                label: row.label,
-                description: row.description,
-                image_dark: row.image_dark,
-                image_light: row.image_light,
-                button_color_dark: row.button_color_dark,
-                button_border_color_dark: row.button_border_color_dark,
-                button_color_light: row.button_color_light,
-                button_border_color_light: row.button_border_color_light,
-                learning_intent: learning_intent(&row.activity_type, &row.activity_config),
-                sort_order: row.sort_order,
-                time_guide_minutes: time_guide_minutes(&row.activity_config),
-                progress: row.status.map(|status| LearnerActivityStartProgress {
-                    current_activity_slug: row.current_activity_slug,
-                    status,
-                    completion_count: row.completion_count.unwrap_or_default(),
-                    last_completed_at: row.last_completed_at,
-                    last_entered_at: row.last_entered_at,
-                }),
+            .map(|row| {
+                let desk = learner_desk_context(&row);
+
+                LearnerActivityStart {
+                    start_id: row.start_id.to_string(),
+                    map_slug: row.map_slug,
+                    node_slug: row.node_slug,
+                    route_slug: row.route_slug,
+                    activity_slug: row.activity_slug,
+                    label: row.label,
+                    description: row.description,
+                    image_dark: row.image_dark,
+                    image_light: row.image_light,
+                    button_color_dark: row.button_color_dark,
+                    button_border_color_dark: row.button_border_color_dark,
+                    button_color_light: row.button_color_light,
+                    button_border_color_light: row.button_border_color_light,
+                    learning_intent: learning_intent(&row.activity_type, &row.activity_config),
+                    sort_order: row.sort_order,
+                    time_guide_minutes: time_guide_minutes(&row.activity_config),
+                    desk,
+                    progress: row.status.map(|status| LearnerActivityStartProgress {
+                        current_activity_slug: row.current_activity_slug,
+                        status,
+                        completion_count: row.completion_count.unwrap_or_default(),
+                        last_completed_at: row.last_completed_at,
+                        last_entered_at: row.last_entered_at,
+                    }),
+                }
             })
             .collect(),
     }))
+}
+
+fn learner_desk_context(row: &ActivityStartRow) -> LearnerActivityStartDeskContext {
+    let is_in_progress = row.status.as_deref() == Some("in_progress");
+    let (activity_type, activity_config) = if is_in_progress {
+        row.current_activity_type
+            .as_deref()
+            .zip(row.current_activity_config.as_ref())
+            .unwrap_or((&row.activity_type, &row.activity_config))
+    } else {
+        (row.activity_type.as_str(), &row.activity_config)
+    };
+
+    LearnerActivityStartDeskContext {
+        current_activity_title: is_in_progress
+            .then(|| row.current_activity_title.clone())
+            .flatten(),
+        learning_areas: learning_areas(activity_config),
+        learning_intent: learning_intent(activity_type, activity_config),
+        time_guide_minutes: time_guide_minutes(activity_config),
+        topic: row
+            .topic_slug
+            .clone()
+            .zip(row.topic_title.clone())
+            .map(|(slug, title)| LearnerPathTopic {
+                href: format!("/topics/{slug}"),
+                slug,
+                title,
+            }),
+    }
 }
 
 fn apply_learner_node_states(

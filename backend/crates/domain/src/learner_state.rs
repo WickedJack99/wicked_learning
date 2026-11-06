@@ -553,7 +553,23 @@ pub struct LearnerActivityStart {
     pub sort_order: i16,
     /// An optional authored orientation guide, never a deadline.
     pub time_guide_minutes: Option<i16>,
+    /// Source-defined context for the Learning Desk. When a route is in
+    /// progress it describes its current activity; otherwise it describes the
+    /// activity offered by this start. It is presentation context only and
+    /// cannot authorize a route run.
+    pub desk: LearnerActivityStartDeskContext,
     pub progress: Option<LearnerActivityStartProgress>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerActivityStartDeskContext {
+    pub current_activity_title: Option<String>,
+    pub learning_areas: Vec<LearnerPathLearningArea>,
+    pub learning_intent: String,
+    /// An optional authored orientation guide, never a deadline.
+    pub time_guide_minutes: Option<i16>,
+    /// Present only when the route's map belongs to a published Topic.
+    pub topic: Option<LearnerPathTopic>,
 }
 
 #[derive(Clone, Debug, Serialize)]

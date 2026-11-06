@@ -338,12 +338,13 @@ pub(crate) fn time_guide_minutes(config: &Value) -> Option<i16> {
         .filter(|value| *value > 0)
 }
 
-fn learning_areas(config: &Value) -> Vec<LearnerPathLearningArea> {
+pub(crate) fn learning_areas(config: &Value) -> Vec<LearnerPathLearningArea> {
     config
         .get("competenceTopics")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
+        .take(20)
         .filter_map(|entry| {
             let name = entry.get("topic")?.as_str()?.trim();
             let slug = entry.get("slug")?.as_str()?.trim();

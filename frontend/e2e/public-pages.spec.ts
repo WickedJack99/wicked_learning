@@ -1579,7 +1579,22 @@ test('the signed-in explorer starts and completes an original open-practice rout
         button_border_color_dark: '#223344',
         button_color_light: '#ddeeff',
         button_border_color_light: '#ccddee',
+        learning_intent: 'participate',
         sort_order: sortOrder,
+        time_guide_minutes: 15,
+        desk: {
+            current_activity_title: null,
+            learning_areas: [
+                { name: 'Orientation', slug: 'orientation' },
+            ],
+            learning_intent: 'participate',
+            time_guide_minutes: 15,
+            topic: {
+                href: '/topics/map-orientation',
+                slug: 'map-orientation',
+                title: 'Map orientation',
+            },
+        },
         progress:
             sortOrder === 0
                 ? {
@@ -1992,6 +2007,106 @@ test('the source Recall Queue opens an opaque private recall run', async ({
             }),
         });
     });
+    await page.route('**/api/v1/learner/world', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                world: {
+                    slug: 'private-orientation',
+                    title: 'Private orientation',
+                    description: '',
+                    theme_config: {},
+                    maps: [
+                        {
+                            slug: 'private-path',
+                            title: 'A private path',
+                            description: '',
+                            background_config: {},
+                            grid_config: {},
+                            map_assets_locked: false,
+                            assets: [
+                                {
+                                    slug: 'private-place',
+                                    title: 'Private place',
+                                    description: '',
+                                    x: 50,
+                                    y: 50,
+                                    z: 0,
+                                    image_url: null,
+                                    text: null,
+                                    width: 24,
+                                    opacity: 1,
+                                    locked: false,
+                                    visual_config: {},
+                                    interaction_config: {},
+                                    sound_config: {},
+                                    interaction_mode: 'focusable',
+                                },
+                            ],
+                            nodes: [
+                                {
+                                    asset_slug: 'private-place',
+                                    slug: 'private-place',
+                                    title: 'Private place',
+                                    description: '',
+                                    q: 0,
+                                    r: 0,
+                                    state: 'available',
+                                    visual_config: {},
+                                },
+                            ],
+                        },
+                    ],
+                },
+                items: [],
+                tools: [],
+                bookmarked_nodes: [],
+                activity_progress: [],
+                route_progress: [],
+                available_routes: [],
+                start_routes: [
+                    {
+                        start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                        map_slug: 'private-path',
+                        node_slug: 'private-place',
+                        route_slug: 'private-orientation-route',
+                        activity_slug: 'private-activity',
+                        label: 'Begin private orientation',
+                        description: null,
+                        image_dark: null,
+                        image_light: null,
+                        button_color_dark: null,
+                        button_border_color_dark: null,
+                        button_color_light: null,
+                        button_border_color_light: null,
+                        learning_intent: 'participate',
+                        sort_order: 0,
+                        time_guide_minutes: 15,
+                        desk: {
+                            current_activity_title: null,
+                            learning_areas: [
+                                { name: 'Orientation', slug: 'orientation' },
+                            ],
+                            learning_intent: 'participate',
+                            time_guide_minutes: 15,
+                            topic: {
+                                href: '/topics/map-orientation',
+                                slug: 'map-orientation',
+                                title: 'Map orientation',
+                            },
+                        },
+                        progress: {
+                            current_activity_slug: 'private-activity',
+                            status: 'completed',
+                            completion_count: 1,
+                            last_completed_at: '2026-11-04T00:00:00.000000Z',
+                            last_entered_at: '2026-11-04T00:00:00.000000Z',
+                        },
+                    },
+                ],
+            }),
+        });
+    });
     await page.route('**/api/v1/security/csrf', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -2018,6 +2133,7 @@ test('the source Recall Queue opens an opaque private recall run', async ({
 
     await page.goto('/home');
 
+    await page.getByRole('button', { name: 'Recall queue' }).click();
     await expect(
         page.getByRole('heading', { name: 'Recall queue' }),
     ).toBeVisible();
@@ -2028,6 +2144,18 @@ test('the source Recall Queue opens an opaque private recall run', async ({
         page.getByText('Which choice keeps exploration learner-directed?'),
     ).toBeVisible();
     await expect(page.getByText('Ready to recall')).toBeVisible();
+    await page.getByRole('button', { name: 'Recent traces' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Recent traces' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Map orientation' }),
+    ).toHaveAttribute('href', '/topics/map-orientation');
+    await expect(page.getByText('Learning areas:')).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Orientation', exact: true }),
+    ).toHaveAttribute('href', '/competence?topic=orientation&from=map-orientation');
+    await page.getByRole('button', { name: 'Recall queue' }).click();
     await page.getByRole('button', { name: 'Open question' }).click();
     await expect(page).toHaveURL(
         `/learning/nodes/private-place/play?run=${recallRunId}`,

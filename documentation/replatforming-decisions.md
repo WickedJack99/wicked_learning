@@ -1742,6 +1742,45 @@ CSRF-protected contract, reloads `/home`, and observes the retained selected
 filter. The slice does not add scheduling, route ranking, new authored data or
 Learning Support replies.
 
+## ADR-046: Learning Desk route context is a read-only World sub-projection
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The source Continue learning and Recent traces rows show more
+than a route label: they retain map-place artwork, published map-topic context,
+authored learning-area links, purpose, time guide, timestamps and a current
+step. The current Rust Desk reused the authorized World snapshot but discarded
+that presentation context, producing an incomplete approximation. Creating a
+second Desk route query would duplicate the World visibility and learner-route
+scope policy.
+
+**Decision:** Extend each existing `LearnerActivityStart` with a bounded,
+read-only `desk` sub-projection. It includes only the source row's current-step
+title, normalized learning purpose, positive time guide, up to twenty valid
+authored learning areas, and a topic only when the map's topic is published.
+For an in-progress route it derives authored context from the current activity;
+for a completed route it derives it from the start activity. The source
+start-card fields remain unchanged, so the World drawer and the Desk do not
+silently acquire different meanings for the same route start.
+
+**Why:** The World reader already enforces visible map/node/asset/route scope
+for the authenticated principal. A narrow nested projection reuses that policy
+and provides the source UI with context without granting a run, exposing a
+database ID, or introducing a competing Desk endpoint. React adapts the source
+route-row markup and continues to use the existing CSRF-protected opaque
+start command for every action.
+
+**Alternatives:** A browser-side join with Topics or Paths would weaken
+visibility and current-activity semantics. A Desk-specific query would repeat
+the same authorization logic. Reusing the start activity for in-progress rows
+was rejected because the source uses the current activity when one exists.
+
+**Evidence and boundary:** Workspace tests cover the bounded authored metadata
+parser; the frontend contract is generated from OpenAPI and the local Compose
+browser journey verifies the Desk with a real authorized World snapshot. This
+is read-only presentation parity: it does not change progression, route
+selection, topic publication, data ownership or media storage.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

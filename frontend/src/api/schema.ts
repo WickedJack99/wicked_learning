@@ -1544,7 +1544,16 @@ export interface components {
             learning_intent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
             sort_order: number;
             time_guide_minutes: number | null;
+            desk: components["schemas"]["LearnerActivityStartDeskContext"];
             progress: components["schemas"]["LearnerActivityStartProgress"] | null;
+        };
+        LearnerActivityStartDeskContext: {
+            current_activity_title: string | null;
+            learning_areas: components["schemas"]["LearnerPathLearningArea"][];
+            /** @enum {string} */
+            learning_intent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
+            time_guide_minutes: number | null;
+            topic: components["schemas"]["LearnerPathTopic"] | null;
         };
         LearnerPlaybackDocument: {
             /** Format: uuid */
