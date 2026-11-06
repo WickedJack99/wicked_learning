@@ -9,9 +9,9 @@ use crate::{
     learner_route_run::authenticated_principal,
 };
 
-/// This contract is intentionally not routed into React yet. It gives the
-/// source competence surface a private, audited read boundary before the
-/// original star-map UI is lifted against it.
+/// This private, audited read boundary supplies the lifted source competence
+/// surface. Activity-opening actions remain separate because they require an
+/// authorized server-owned opaque run rather than a browser-supplied URL.
 pub async fn show(
     State(state): State<AppState>,
     auth_session: AuthSession<IdentityBackend>,

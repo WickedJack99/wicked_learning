@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router';
 
 import { apiClient } from './api/client';
@@ -29,6 +29,12 @@ type PublicPresentationState =
     | { kind: 'unavailable' };
 
 const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
+
+const OriginalCompetencePage = lazy(async () => {
+    const module = await import('./original-competence');
+
+    return { default: module.OriginalCompetencePage };
+});
 
 /**
  * Each active route is a source-derived React surface with an available Rust
@@ -139,6 +145,17 @@ export function App() {
                 isAuthenticationLoading={currentUser.kind === 'loading'}
                 isAuthenticated={currentUser.kind === 'loaded'}
             />
+        );
+    }
+
+    if (location.pathname === '/competence') {
+        return (
+            <Suspense fallback={null}>
+                <OriginalCompetencePage
+                    isAuthenticationLoading={currentUser.kind === 'loading'}
+                    isAuthenticated={currentUser.kind === 'loaded'}
+                />
+            </Suspense>
         );
     }
 

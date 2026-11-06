@@ -931,6 +931,140 @@ test('the authenticated Paths reader keeps the standalone source filters and rou
     );
 });
 
+test('the authenticated competence reader keeps the source star map and private learning pulse', async ({
+    page,
+}) => {
+    await mockCompetenceReader(page);
+
+    await page.goto('/competence');
+
+    await expect(
+        page.getByRole('heading', { name: 'Star Map' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('img', { name: 'Competence star map' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: /Map orientation:/ }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Map orientation' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('I can name a next step.').first(),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'How to read this map' }).click();
+    await expect(page.getByText(/last 30 days/)).toBeVisible();
+});
+
+test('the source competence map remains usable on a narrow screen', async ({
+    page,
+}) => {
+    await mockCompetenceReader(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/competence');
+
+    const map = page.getByRole('img', { name: 'Competence star map' });
+    await expect(map).toBeVisible();
+    await expect
+        .poll(async () => {
+            const box = await map.boundingBox();
+            return box ? box.x >= 0 && box.x + box.width <= 390 : false;
+        })
+        .toBe(true);
+    await page.getByRole('button', { name: /Map orientation:/ }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Map orientation' }),
+    ).toBeVisible();
+});
+
+async function mockCompetenceReader(page: import('@playwright/test').Page) {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                roles: ['learner'],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/competence', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                check_ins: [
+                    {
+                        activity_slug: 'consider-a-direction',
+                        activity_title: 'Consider a direction',
+                        feeling: 'clearer',
+                        map_slug: 'first-path',
+                        next_direction: 'related',
+                        node_slug: 'choose-a-direction',
+                        node_title: 'Choose a direction',
+                        note: 'I can name a next step.',
+                        recorded_at: '2026-11-05T12:00:00Z',
+                        topics: [
+                            { name: 'Map orientation', slug: 'map-orientation' },
+                        ],
+                    },
+                ],
+                month_key: '2026-11',
+                recent_window_days: 30,
+                review_attempts: [],
+                topics: [
+                    {
+                        name: 'Map orientation',
+                        related_topic: {
+                            slug: 'map-orientation',
+                            title: 'Map orientation',
+                        },
+                        revisit: {
+                            activity_slug: 'consider-a-direction',
+                            activity_title: 'Consider a direction',
+                            node_slug: 'choose-a-direction',
+                            node_title: 'Choose a direction',
+                        },
+                        slug: 'map-orientation',
+                        visual: {
+                            aura_ratio: 0.5,
+                            brightness_ratio: 0.6,
+                            description: 'A growing sense of orientation.',
+                            evidence_ledger: [
+                                {
+                                    activity_title: 'Consider a direction',
+                                    assistance_level: null,
+                                    attempt_number: 1,
+                                    concepts: ['orientation'],
+                                    confidence: 'leaning',
+                                    confidence_after_feedback: null,
+                                    evidence_claim: 'reflection',
+                                    evidence_criterion: null,
+                                    evidence_rubric: [],
+                                    evidence_type: 'reflect',
+                                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                                    independent_check: false,
+                                    learning_purpose: null,
+                                    node_title: 'Choose a direction',
+                                    objective: null,
+                                    observed_cues: [],
+                                    outcome: 'clearer',
+                                    recorded_at: '2026-11-05T12:00:00Z',
+                                    sources: [],
+                                },
+                            ],
+                            evidence_types: ['reflect'],
+                            learning_periods: ['Nov 2026'],
+                            recent_description: 'You returned to this area recently.',
+                            size_ratio: 0.4,
+                            size_tier: 'star',
+                        },
+                    },
+                ],
+                transitions: [],
+            }),
+        });
+    });
+}
+
 test('the source Topic tab strip remains inside a narrow viewport and loads only its selected section', async ({
     page,
 }) => {
