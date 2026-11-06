@@ -144,6 +144,10 @@ export function App() {
             <OriginalPathsPage
                 isAuthenticationLoading={currentUser.kind === 'loading'}
                 isAuthenticated={currentUser.kind === 'loaded'}
+                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                userEmail={
+                    currentUser.kind === 'loaded' ? currentUser.email : ''
+                }
             />
         );
     }
@@ -171,6 +175,10 @@ export function App() {
             <OriginalTopicsPage
                 isAuthenticationLoading={currentUser.kind === 'loading'}
                 isAuthenticated={currentUser.kind === 'loaded'}
+                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                userEmail={
+                    currentUser.kind === 'loaded' ? currentUser.email : ''
+                }
             />
         );
     }

@@ -887,6 +887,9 @@ test('the authenticated Topics reader keeps the source directory, topic Trail an
     await page.goto('/topics');
 
     await expect(page.getByRole('heading', { name: 'Topics' })).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Topics' }),
+    ).toHaveAttribute('aria-current', 'page');
     await expect(page.getByLabel('Topic area')).toHaveValue('orientation');
     await page.getByRole('link', { name: /Map orientation/ }).click();
 
@@ -920,6 +923,9 @@ test('the authenticated Paths reader keeps the standalone source filters and rou
     await page.goto('/paths');
 
     await expect(page.getByRole('heading', { name: 'Paths' })).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Paths' }),
+    ).toHaveAttribute('aria-current', 'page');
     await expect(
         page.getByRole('heading', { name: 'Available routes' }),
     ).toBeVisible();

@@ -22,6 +22,7 @@ import {
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalMarkdownRenderer } from './original-markdown';
+import { OriginalLearnerHeader } from './original-learner-header';
 import { OriginalPaginationControls } from './original-paginated-items';
 
 type TopicDirectory = components['schemas']['LearnerTopicDirectory'];
@@ -34,7 +35,7 @@ type TopicSectionData =
     | components['schemas']['LearnerTopicMaps']
     | components['schemas']['LearnerTopicOverview'];
 
-const topicSurfaceStyle = {
+export const topicSurfaceStyle = {
     '--learner-action-accent': '#5eead4',
     '--learner-accent': '#5eead4',
     '--learner-border-color': 'rgba(255, 255, 255, 0.1)',
@@ -56,9 +57,13 @@ const topicSurfaceStyle = {
 export function OriginalTopicsPage({
     isAuthenticationLoading,
     isAuthenticated,
+    onSignedOut,
+    userEmail,
 }: {
     isAuthenticationLoading: boolean;
     isAuthenticated: boolean;
+    onSignedOut: () => void;
+    userEmail: string;
 }) {
     const location = useLocation();
     const topicMatch = location.pathname.match(/^\/topics\/([^/]+)$/);
@@ -71,13 +76,21 @@ export function OriginalTopicsPage({
         return <Navigate replace to="/login" />;
     }
 
-    return topicSlug ? (
-        <TopicDetail
-            key={`${topicSlug}:${location.search}`}
-            topicSlug={topicSlug}
-        />
-    ) : (
-        <TopicDirectory />
+    return (
+        <div style={topicSurfaceStyle}>
+            <OriginalLearnerHeader
+                onSignedOut={onSignedOut}
+                userEmail={userEmail}
+            />
+            {topicSlug ? (
+                <TopicDetail
+                    key={`${topicSlug}:${location.search}`}
+                    topicSlug={topicSlug}
+                />
+            ) : (
+                <TopicDirectory />
+            )}
+        </div>
     );
 }
 

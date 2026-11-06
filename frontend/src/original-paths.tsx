@@ -8,8 +8,10 @@ import {
     TopicPagination,
     TopicPathCard,
     TopicSurface,
+    topicSurfaceStyle,
     type TopicPath,
 } from './original-topics';
+import { OriginalLearnerHeader } from './original-learner-header';
 
 const learningIntents = [
     'apply',
@@ -29,9 +31,13 @@ const learningIntents = [
 export function OriginalPathsPage({
     isAuthenticationLoading,
     isAuthenticated,
+    onSignedOut,
+    userEmail,
 }: {
     isAuthenticationLoading: boolean;
     isAuthenticated: boolean;
+    onSignedOut: () => void;
+    userEmail: string;
 }) {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -117,8 +123,13 @@ export function OriginalPathsPage({
     }
 
     return (
-        <TopicSurface marker="learner.paths">
-            <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
+        <div style={topicSurfaceStyle}>
+            <OriginalLearnerHeader
+                onSignedOut={onSignedOut}
+                userEmail={userEmail}
+            />
+            <TopicSurface marker="learner.paths">
+                <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
                 <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">Ways into the world</p>
                 <h1 className="mt-3 text-3xl font-medium tracking-tight">Paths</h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
@@ -178,8 +189,9 @@ export function OriginalPathsPage({
                         </div>
                     </section>
                 )}
-            </div>
-        </TopicSurface>
+                </div>
+            </TopicSurface>
+        </div>
     );
 }
 
