@@ -37,6 +37,12 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     );
     expect(start).toBeDefined();
 
+    const bookmarkResponse = await request.post(
+        `/api/v1/learner/maps/${start.map_slug}/nodes/${start.node_slug}/bookmark`,
+        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+    );
+    expect(bookmarkResponse.status()).toBe(200);
+
     const resetResponse = await request.post(
         `/api/v1/learner/activity-starts/${start.start_id}/reset`,
         { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
@@ -54,6 +60,11 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     const storageState = await request.storageState();
     await page.context().addCookies(storageState.cookies);
     await page.goto('/home');
+    await expect(page.getByText('Pinned for later')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View all bookmarks' })).toHaveAttribute(
+        'href',
+        '/bookmarks',
+    );
     await expect(page.getByRole('heading', { name: 'Continue learning' })).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page).toHaveURL(

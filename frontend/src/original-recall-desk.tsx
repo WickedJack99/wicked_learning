@@ -1,7 +1,7 @@
-import { ArrowRight, Bookmark, BookOpenText, Clock3, Trash2 } from 'lucide-react';
+import { ArrowRight, Bookmark, BookOpenText, Clock3, Pin, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
@@ -13,6 +13,8 @@ type LearnerRecallQueue = components['schemas']['LearnerRecallQueue'];
 type RevisitInvitation = components['schemas']['LearnerRevisitInvitation'];
 type LearnerWorldSnapshot = components['schemas']['LearnerWorldSnapshot'];
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
+type LearnerBookmarkMap = components['schemas']['LearnerBookmarkMap'];
+type LearnerBookmarkPlace = components['schemas']['LearnerBookmarkPlace'];
 
 const learnerStyle = {
     '--learner-action-accent': '#5eead4',
@@ -23,6 +25,7 @@ const learnerStyle = {
     '--learner-muted-text': '#cbd5e1',
     '--learner-page-background': '#0b1117',
     '--learner-panel-background': '#111820',
+    '--learner-panel-muted-background': '#0e151d',
 } as CSSProperties;
 
 type ActiveRouteRow = {
@@ -91,6 +94,7 @@ export function OriginalRecallDeskPage({
     const navigate = useNavigate();
     const [queue, setQueue] = useState<LearnerRecallQueue | null>(null);
     const [world, setWorld] = useState<LearnerWorldSnapshot | null>(null);
+    const [bookmarkMap, setBookmarkMap] = useState<LearnerBookmarkMap | null>(null);
     const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>(
         'loading',
     );
@@ -143,6 +147,22 @@ export function OriginalRecallDeskPage({
 
     const currentRoutes = useMemo(() => activeRouteRows(world), [world]);
     const recentRoutes = useMemo(() => recentRouteRows(world), [world]);
+    const bookmarkPlaces = bookmarkMap?.places ?? [];
+    const featuredBookmark = useMemo(
+        () =>
+            currentRoutes
+                .map((route) =>
+                    bookmarkPlaces.find(
+                        (place) =>
+                            place.map_slug === route.start.map_slug &&
+                            place.node_slug === route.start.node_slug,
+                    ),
+                )
+                .find((place): place is LearnerBookmarkPlace => place !== undefined) ??
+            bookmarkPlaces[0] ??
+            null,
+        [bookmarkPlaces, currentRoutes],
+    );
 
     useEffect(() => {
         let active = true;
@@ -159,6 +179,23 @@ export function OriginalRecallDeskPage({
                 // The recall queue stays usable if this independent desk slice
                 // is temporarily unavailable.
             });
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        void apiClient.GET('/learner/bookmarks').then(({ data, response }) => {
+            if (active && response.ok && data) {
+                setBookmarkMap(data);
+            }
+        }).catch(() => {
+            // The rest of the desk remains useful while saved places are
+            // temporarily unavailable.
+        });
+
         return () => {
             active = false;
         };
@@ -365,10 +402,12 @@ export function OriginalRecallDeskPage({
                 userEmail={userEmail}
             />
             <main
-                className="min-h-svh bg-[var(--learner-page-background)] px-5 py-10 text-[var(--learner-heading-text)] sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]"
+                className="min-h-svh bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]"
                 id="learner-main-content"
                 tabIndex={-1}
             >
+            <div className="grid min-h-full lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
+            <div className="min-w-0 px-5 py-10 sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
             <div className="mx-auto max-w-4xl">
                 <header>
                     <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
@@ -488,6 +527,9 @@ export function OriginalRecallDeskPage({
                     </p>
                 ) : null}
             </div>
+            </div>
+            <LearningDeskRail featured={featuredBookmark} places={bookmarkPlaces} />
+            </div>
             </main>
         </div>
     );
@@ -549,6 +591,111 @@ function RecentRouteRow({
             </span>
         </article>
     );
+}
+
+function LearningDeskRail({
+    featured,
+    places,
+}: {
+    featured: LearnerBookmarkPlace | null;
+    places: LearnerBookmarkPlace[];
+}) {
+    return (
+        <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:border-t-0 lg:border-l lg:px-7">
+            <p className="text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase">
+                Pinned for later
+            </p>
+
+            {featured ? (
+                <FeaturedBookmark bookmark={featured} />
+            ) : (
+                <div className="mt-7 border-y border-[var(--learner-border-color)] py-6">
+                    <Pin className="size-5 text-[var(--learner-action-accent)]" />
+                    <p className="mt-4 font-medium">Pin a place to your desk</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
+                        Your most recently visited bookmarked place will appear here.
+                    </p>
+                </div>
+            )}
+
+            <div className="mt-8">
+                <p className="text-xs font-semibold tracking-[0.18em] text-[var(--learner-action-accent)] uppercase">
+                    Saved places
+                </p>
+                <div className="mt-4 divide-y divide-[var(--learner-border-color)] border-y border-[var(--learner-border-color)]">
+                    {places.length ? (
+                        places.slice(0, 5).map((place) => (
+                            <Link
+                                className="group flex items-start gap-3 py-4 text-sm"
+                                key={bookmarkPlaceKey(place)}
+                                to={bookmarkWorldHref(place)}
+                            >
+                                <Bookmark className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition group-hover:fill-current" />
+                                <span>
+                                    <span className="block font-medium text-[var(--learner-heading-text)] group-hover:text-[var(--learner-accent)]">
+                                        {place.title}
+                                    </span>
+                                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                        {place.map_title}
+                                    </span>
+                                </span>
+                            </Link>
+                        ))
+                    ) : (
+                        <p className="py-5 text-sm text-[var(--learner-muted-text)]">
+                            No saved places yet.
+                        </p>
+                    )}
+                </div>
+                <Link
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
+                    to="/bookmarks"
+                >
+                    View all bookmarks
+                    <ArrowRight className="size-4" />
+                </Link>
+            </div>
+        </aside>
+    );
+}
+
+function FeaturedBookmark({ bookmark }: { bookmark: LearnerBookmarkPlace }) {
+    return (
+        <article className="mt-7 border-b border-[var(--learner-border-color)] pb-8">
+            {bookmark.asset?.image_url ? (
+                <div className="mb-5 flex h-28 items-center justify-center overflow-hidden bg-[var(--learner-panel-background)]">
+                    <img alt="" className="h-full w-full object-contain" src={bookmark.asset.image_url} />
+                </div>
+            ) : null}
+            <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
+                Pinned place
+            </p>
+            <h2 className="mt-3 text-sm font-semibold">{bookmark.title}</h2>
+            <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
+                {bookmark.map_title}
+            </p>
+            {bookmark.description ? (
+                <p className="mt-4 line-clamp-5 text-sm leading-6 text-[var(--learner-body-text)]">
+                    {bookmark.description}
+                </p>
+            ) : null}
+            <Link
+                className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)] hover:text-[var(--learner-heading-text)]"
+                to={bookmarkWorldHref(bookmark)}
+            >
+                Open place
+                <ArrowRight className="size-4" />
+            </Link>
+        </article>
+    );
+}
+
+function bookmarkPlaceKey(place: LearnerBookmarkPlace): string {
+    return `${place.map_slug}/${place.node_slug}`;
+}
+
+function bookmarkWorldHref(place: LearnerBookmarkPlace): string {
+    return `/world?map=${encodeURIComponent(place.map_slug)}&focused=${encodeURIComponent(place.node_slug)}`;
 }
 
 function RevisitInvitationRow({
