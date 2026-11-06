@@ -43,4 +43,27 @@ test('a disposable local identity updates source-shaped profile details', async 
     await expect(
         page.getByRole('heading', { name: 'Communication preferences' }),
     ).toBeVisible();
+
+    await page.goto('/settings?panel=personal&personal=language');
+    await expect(
+        page.getByRole('heading', { name: 'Current language' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Current language')).toHaveValue('en');
+
+    const languageToSelect = process.env.E2E_LANGUAGE_TO_SELECT;
+    if (languageToSelect) {
+        await page.getByLabel('Current language').selectOption(languageToSelect);
+        const languageSave = page.waitForResponse((response) =>
+            response.url().endsWith('/api/v1/learner/language-preference')
+            && response.request().method() === 'PATCH',
+        );
+        await page.getByRole('button', { name: 'Save language' }).click();
+        expect((await languageSave).ok()).toBe(true);
+        const savedLanguage = await page.request.get(
+            '/api/v1/learner/language-preference',
+        );
+        await expect(savedLanguage.json()).resolves.toMatchObject({
+            locale: languageToSelect,
+        });
+    }
 });

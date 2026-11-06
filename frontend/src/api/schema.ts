@@ -568,6 +568,24 @@ export interface paths {
         patch: operations["updateLearnerAppearance"];
         trace?: never;
     };
+    "/learner/language-preference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current learner's available locales and saved private locale. */
+        get: operations["getLearnerLanguagePreference"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save the current learner's private enabled locale preference. */
+        patch: operations["updateLearnerLanguagePreference"];
+        trace?: never;
+    };
     "/learning-support/topics": {
         parameters: {
             query?: never;
@@ -1640,6 +1658,18 @@ export interface components {
         LearnerAppearancePreference: {
             /** @enum {string} */
             appearance: "dark" | "light";
+        };
+        LearnerLanguagePreference: {
+            available_languages: components["schemas"]["AvailableLanguage"][];
+            locale: string;
+        };
+        AvailableLanguage: {
+            code: string;
+            name: string;
+            native_name: string;
+        };
+        UpdateLearnerLanguagePreferenceRequest: {
+            locale: string;
         };
         LoginRequest: {
             /** Format: email */
@@ -4982,6 +5012,95 @@ export interface operations {
                 };
             };
             /** @description Appearance must be the resolved source light or dark value. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerLanguagePreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Enabled application locales and the current learner's saved locale, defaulting to English. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerLanguagePreference"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerLanguagePreference: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerLanguagePreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved private locale and enabled application locales. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerLanguagePreference"];
+                };
+            };
+            /** @description The locale is not enabled or is malformed. */
             400: {
                 headers: {
                     [name: string]: unknown;

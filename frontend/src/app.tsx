@@ -8,6 +8,7 @@ import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
 import { OriginalOpenPracticePage } from './original-activity-playback';
 import { OriginalPersonalAppearancePage } from './original-personal-appearance';
+import { OriginalPersonalLanguagePage } from './original-personal-language';
 import { OriginalPersonalNotificationsPage } from './original-personal-notifications';
 import { OriginalPersonalProfilePage } from './original-personal-profile';
 import { OriginalPersonalSoundPage } from './original-personal-sound';
@@ -282,6 +283,9 @@ export function App() {
         }
 
         if (!supportPanel) {
+            if (new URLSearchParams(location.search).get('personal') === 'language') {
+                return <OriginalPersonalLanguagePage appearance={appearance} />;
+            }
             if (new URLSearchParams(location.search).get('personal') === 'notifications') {
                 return <OriginalPersonalNotificationsPage appearance={appearance} />;
             }

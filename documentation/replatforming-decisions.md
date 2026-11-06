@@ -2515,6 +2515,42 @@ uploads. Account deletion cascades metadata but needs the same object cleanup
 worker. General media, authorization scopes beyond signed-in shared spaces,
 and object-storage delivery remain separate later slices.
 
+## ADR-063: Language selection is private application preference data
+
+**Status:** Accepted — 6 November 2026
+
+**Problem:** The original Personal settings panel lets a learner select from
+the platform's enabled locales. The selected locale is personal application
+state, not authentication information, and a selector without a real
+server-owned catalogue would either invent available languages or make browser
+storage the authority.
+
+**Decision:** Store enabled locale definitions in `application_locales` and a
+learner's selected locale in `learner_language_preferences`, both in the
+application database. The typed, owner-scoped `GET/PATCH
+/learner/language-preference` contract reads the enabled catalogue and accepts
+only an enabled choice; its unsafe update is CSRF protected. The lifted source
+Language panel uses that contract and retains the source current-language/save
+interaction. Fresh local data has English as its sole enabled locale. That is
+an honest default while translated platform and activity copy have not yet been
+migrated; adding a locale to the catalogue alone does not claim translation.
+
+**Why:** This keeps locale choice with learner-facing application data and
+leaves the identity database concerned only with identities and credentials.
+It makes the later translated-content work additive rather than requiring a
+preference schema replacement, without creating a custom locale parser or
+translation system.
+
+**Alternatives:** A browser-only setting would be invisible to other sessions
+and would not match the source's persisted setting. Seeding unimplemented
+languages would expose a misleading control. Keeping locale in identity data
+would violate the accepted database boundary. These are rejected.
+
+**Limits and follow-up:** This slice stores and validates the selected locale;
+it does not yet switch platform or activity copy. Translation-catalogue
+migration, locale administration and any content fallback policy require their
+own source-backed contracts and verification.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

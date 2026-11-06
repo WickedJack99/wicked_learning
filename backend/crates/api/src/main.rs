@@ -22,6 +22,7 @@ mod learner_item_grant;
 mod learner_item_obstacle;
 mod learner_journal;
 mod learner_journal_page;
+mod learner_language_preference;
 mod learner_node_tool;
 mod learner_npc_dialogue;
 mod learner_obstacle_tool;
@@ -349,6 +350,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/appearance",
             patch(learner_appearance_preference::update),
+        )
+        .route(
+            "/api/v1/learner/language-preference",
+            get(learner_language_preference::show).patch(learner_language_preference::update),
         )
         .route(
             "/api/v1/learner/desk-planning-preference",

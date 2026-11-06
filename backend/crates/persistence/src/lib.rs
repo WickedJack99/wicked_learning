@@ -18,6 +18,7 @@ pub mod learner_item_grant;
 pub mod learner_item_obstacle;
 pub mod learner_journal;
 pub mod learner_journal_page;
+pub mod learner_language_preference;
 pub mod learner_node_availability;
 pub mod learner_node_tool;
 pub mod learner_npc_dialogue;

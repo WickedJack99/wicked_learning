@@ -789,6 +789,38 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '503': { description: The application database is unavailable. }
+  /learner/language-preference:
+    get:
+      operationId: getLearnerLanguagePreference
+      summary: Read the current learner's available locales and saved private locale.
+      responses:
+        '200':
+          description: Enabled application locales and the current learner's saved locale, defaulting to English.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerLanguagePreference' }
+        '401': { description: Authentication is required. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateLearnerLanguagePreference
+      summary: Save the current learner's private enabled locale preference.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLearnerLanguagePreferenceRequest' }
+      responses:
+        '200':
+          description: The saved private locale and enabled application locales.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerLanguagePreference' }
+        '400': { description: The locale is not enabled or is malformed. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application database is unavailable. }
   /learning-support/topics:
     get:
       operationId: getLearningSupportTopics
@@ -2435,6 +2467,32 @@ components:
         appearance:
           type: string
           enum: [dark, light]
+    LearnerLanguagePreference:
+      type: object
+      additionalProperties: false
+      required: [available_languages, locale]
+      properties:
+        available_languages:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/AvailableLanguage' }
+        locale:
+          type: string
+          maxLength: 16
+    AvailableLanguage:
+      type: object
+      additionalProperties: false
+      required: [code, name, native_name]
+      properties:
+        code: { type: string, maxLength: 16 }
+        name: { type: string, maxLength: 255 }
+        native_name: { type: string, maxLength: 255 }
+    UpdateLearnerLanguagePreferenceRequest:
+      type: object
+      additionalProperties: false
+      required: [locale]
+      properties:
+        locale: { type: string, maxLength: 16 }
     LoginRequest:
       type: object
       additionalProperties: false
