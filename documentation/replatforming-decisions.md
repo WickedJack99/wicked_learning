@@ -3795,6 +3795,51 @@ primary-route selection with the established durable authoring relationship or
 remove the compatibility grouping; do not silently spread this selection rule
 to unrelated commands.
 
+## ADR-094: Item-grant authoring resolves the catalog inside the scoped writer
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Laravel's Item grant activity form accepts only existing reusable
+item records, then stores the source item's stable identifier in activity
+configuration. The greenfield catalog uses opaque UUIDs for authoring reads,
+while learner playback intentionally resolves safe item slugs. Accepting a
+browser-provided slug would let an author bypass the catalog selection and
+could create an activity that learner playback could not resolve. Looking up a
+catalog item before checking the node would also disclose catalog state outside
+the World Builder scope.
+
+**Decision:** `POST /api/v1/admin/world-builder/nodes/{node_id}/item-grant-activities`
+and `PATCH /api/v1/admin/world-builder/activities/{activity_id}/item-grant`
+accept a source-shaped, type-specific form: title, optional slug/introduction,
+dark/light backgrounds, mirrored flag, item UUID/quantity rows and probability
+percent. The Rust form applies Laravel's title, slug, visual-field, quantity
+and `0.01..=100` probability limits. Creation follows ADR-093's deterministic
+primary route; editing requires the complete form and previously-read
+`updated_at` timestamp. A stale edit receives `409`, and an unchanged edit
+does not advance the timestamp or reset review state.
+
+Persistence first locks and authorizes the node or activity through the
+existing all/own/assigned/direct-editor World Builder rule. Only then does it
+load all requested `learning_items` UUIDs in the same transaction. Every UUID
+must exist; otherwise the mutation is invalid. It serializes the returned
+server-owned slugs and quantities into the existing `activity_config`, which
+is the format already consumed by the learner item-grant writer. The update
+preserves configuration keys outside this type's known fields, resets the
+available AI-review state only when content changes, and returns the persisted
+UTC timestamp. The generic `learning_activities.activity_config` migration is
+already the Rust-owned persistence boundary for this data, so this slice adds
+no Laravel migration, legacy identifier or data import.
+
+**Why:** The decision preserves the source authoring form and its catalog
+existence rule while making the greenfield UUID-to-playback-slug translation a
+server-owned transactional fact. It avoids a generic JSON editor and ensures a
+stale author cannot silently replace another author's selected item set.
+
+**Limits and trigger:** This does not expose a replacement World Builder UI,
+catalog/item administration, activity version snapshots, review history or a
+generic activity form. The original UI may consume the contract only after its
+complete activity-editor adapter and browser parity evidence are available.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

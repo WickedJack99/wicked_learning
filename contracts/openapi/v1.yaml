@@ -1099,6 +1099,68 @@ paths:
         '404': { description: The activity is unknown, not Reflection, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/item-grant-activities:
+    post:
+      operationId: createAdminWorldBuilderItemGrantActivity
+      summary: Create an Item grant activity on an editable World Builder node.
+      description: >-
+        Creates the source Item grant defaults on the selected node's deterministic
+        primary Rust route. Catalog UUIDs are resolved only after the caller has
+        passed the selected node's authoring scope and are stored as server-owned
+        playback slugs.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdminItemGrantActivityRequest' }
+      responses:
+        '201':
+          description: The created activity identifier; refetch the selected node to render its graph state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminItemGrantActivityResponse' }
+        '400': { description: The Item grant fields, requested slug, or selected catalog item is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/item-grant:
+    patch:
+      operationId: updateAdminWorldBuilderItemGrantActivity
+      summary: Update an Item grant activity on an editable World Builder graph.
+      description: >-
+        Updates the complete source Item grant form after resolving every catalog
+        UUID through the scoped server catalog. The caller supplies the previously-read
+        timestamp; a concurrent change receives a conflict instead of being overwritten.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminItemGrantActivityRequest' }
+      responses:
+        '200':
+          description: The saved activity timestamp; refetch the selected node to render its graph state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminItemGrantActivityResponse' }
+        '400': { description: The Item grant fields, update timestamp, or selected catalog item is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown, not an Item grant, or outside the caller's authoring scope. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -7946,6 +8008,58 @@ components:
         subtopic: { type: ['string', 'null'], maxLength: 160 }
         updated_at: { type: string, format: date-time }
     UpdateAdminReflectionActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    AdminItemGrantItemRequest:
+      type: object
+      additionalProperties: false
+      required: [item_id, quantity]
+      properties:
+        item_id: { type: string, format: uuid }
+        quantity: { type: integer, minimum: 1, maximum: 999 }
+    CreateAdminItemGrantActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean, default: false }
+        items:
+          type: array
+          default: []
+          items: { $ref: '#/components/schemas/AdminItemGrantItemRequest' }
+        probability_percent: { type: number, minimum: 0.01, maximum: 100, default: 100 }
+    CreateAdminItemGrantActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties:
+        activity_id: { type: string, format: uuid }
+    UpdateAdminItemGrantActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, background_dark, background_light, background_mirrored, items, probability_percent, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AdminItemGrantItemRequest' }
+        probability_percent: { type: number, minimum: 0.01, maximum: 100 }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminItemGrantActivityResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

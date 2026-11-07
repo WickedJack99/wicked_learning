@@ -13,6 +13,7 @@ mod admin_user;
 mod admin_world_activity_delete;
 mod admin_world_activity_position;
 mod admin_world_graph;
+mod admin_world_item_grant;
 mod admin_world_map;
 mod admin_world_node;
 mod admin_world_node_layout;
@@ -585,6 +586,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/reflection",
             patch(admin_world_reflection::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/item-grant-activities",
+            post(admin_world_item_grant::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/item-grant",
+            patch(admin_world_item_grant::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/start-routes",
@@ -1510,6 +1519,34 @@ mod tests {
             .expect("World Builder reflection update response");
 
         assert_eq!(reflection_update_response.status(), 401);
+
+        let item_grant_create_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/item-grant-activities")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A grant"}"#))
+                    .expect("a valid World Builder item-grant create request"),
+            )
+            .await
+            .expect("World Builder item-grant create response");
+
+        assert_eq!(item_grant_create_response.status(), 401);
+
+        let item_grant_update_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/item-grant")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A grant","slug":null,"introduction":null,"background_dark":null,"background_light":null,"background_mirrored":false,"items":[],"probability_percent":100,"updated_at":"2026-11-07T17:00:00.000000Z"}"#))
+                    .expect("a valid World Builder item-grant update request"),
+            )
+            .await
+            .expect("World Builder item-grant update response");
+
+        assert_eq!(item_grant_update_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(

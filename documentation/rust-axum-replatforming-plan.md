@@ -957,6 +957,17 @@ the source prompt, optional note and topic fields with their original bounds,
 stored defaults and optimistic-concurrency protection. The narrow command
 preserves unrelated activity configuration but deliberately does not claim the
 distinct Review/revisit behavior or any shared generic activity editor.
+Item-grant creation and editing are now available through `POST
+/api/v1/admin/world-builder/nodes/{node_id}/item-grant-activities` and `PATCH
+/api/v1/admin/world-builder/activities/{activity_id}/item-grant`. They retain
+the source title, optional visual fields, item quantities and probability
+bounds, but resolve every submitted greenfield catalog UUID only after the
+node's scoped authoring check. Playback receives only server-resolved item
+slugs, so a browser cannot author a forged catalog reference. The complete
+edit retains the same `updated_at` optimistic-concurrency boundary and leaves
+unrelated activity configuration untouched. This uses the existing
+Rust-owned generic activity configuration migration; no Laravel schema or data
+is imported.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command
