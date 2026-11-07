@@ -5672,11 +5672,17 @@ components:
     AdminUsers:
       type: object
       additionalProperties: false
-      required: [assignable_roles, registration_tokens, users]
+      required: [assignable_roles, can_delete_users, can_update_users, registration_tokens, users]
       properties:
         assignable_roles:
           type: array
           items: { type: string, minLength: 1, maxLength: 80 }
+        can_delete_users:
+          type: boolean
+          description: Server-calculated permission to delete another user. The current user can never delete themself.
+        can_update_users:
+          type: boolean
+          description: Server-calculated permission to update another user's roles, login status or ban state. The current user can never update themself.
         registration_tokens:
           type: array
           maxItems: 25

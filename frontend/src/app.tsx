@@ -92,6 +92,12 @@ const OriginalAccessLinksPage = lazy(async () => {
     return { default: module.OriginalAccessLinksPage };
 });
 
+const OriginalAdminUsersPage = lazy(async () => {
+    const module = await import('./original-admin-users');
+
+    return { default: module.OriginalAdminUsersPage };
+});
+
 const OriginalAccessLinkRedeemPage = lazy(async () => {
     const module = await import('./original-access-links');
 
@@ -352,6 +358,10 @@ export function App() {
     }
 
     if (location.pathname === '/settings') {
+        const usersPanel =
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-access' &&
+            new URLSearchParams(location.search).get('access') === 'users';
         const groupPanel =
             new URLSearchParams(location.search).get('panel') ===
                 'admin-access' &&
@@ -368,6 +378,17 @@ export function App() {
 
         if (currentUser.kind === 'anonymous') {
             return <Navigate replace to="/login" />;
+        }
+
+        if (usersPanel) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalAdminUsersPage
+                        appearance={appearance}
+                        currentSubjectId={currentUser.subjectId}
+                    />
+                </Suspense>
+            );
         }
 
         if (groupPanel) {

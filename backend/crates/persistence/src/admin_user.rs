@@ -118,6 +118,8 @@ impl Port for PostgresAdminUserRepository<'_> {
             if subject_ids.is_empty() {
                 return Ok(AdminUsers {
                     assignable_roles,
+                    can_delete_users: false,
+                    can_update_users: false,
                     registration_tokens: vec![],
                     users: vec![],
                 });
@@ -246,6 +248,8 @@ impl Port for PostgresAdminUserRepository<'_> {
                 .collect();
             Ok(AdminUsers {
                 assignable_roles,
+                can_delete_users: false,
+                can_update_users: false,
                 registration_tokens,
                 users,
             })

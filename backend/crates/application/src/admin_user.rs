@@ -103,7 +103,16 @@ where
             return Ok(None);
         }
 
-        self.repository.list(principal.subject_id).await.map(Some)
+        self.repository
+            .list(principal.subject_id)
+            .await
+            .map(|users| {
+                Some(AdminUsers {
+                    can_delete_users: principal.has_permission("users", "rud"),
+                    can_update_users: principal.has_permission("users", "ru"),
+                    ..users
+                })
+            })
     }
 }
 
@@ -169,6 +178,8 @@ mod tests {
             async {
                 Ok(AdminUsers {
                     assignable_roles: vec![],
+                    can_delete_users: false,
+                    can_update_users: false,
                     registration_tokens: vec![],
                     users: vec![],
                 })
@@ -210,6 +221,24 @@ mod tests {
                 .expect("authorization result"),
             None
         );
+    }
+
+    #[tokio::test]
+    async fn projects_server_owned_user_management_flags() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["platform_administrator".to_owned()],
+            capabilities: vec!["role_permission:users:rud:all".to_owned()],
+        };
+
+        let users = AdminUsersQuery::new(&Repository)
+            .execute(&principal)
+            .await
+            .expect("query result")
+            .expect("authorized projection");
+
+        assert!(users.can_update_users);
+        assert!(users.can_delete_users);
     }
 
     #[tokio::test]

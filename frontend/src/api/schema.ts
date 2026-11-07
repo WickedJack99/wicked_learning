@@ -3809,6 +3809,10 @@ export interface components {
         };
         AdminUsers: {
             assignable_roles: string[];
+            /** @description Server-calculated permission to delete another user. The current user can never delete themself. */
+            can_delete_users: boolean;
+            /** @description Server-calculated permission to update another user's roles, login status or ban state. The current user can never update themself. */
+            can_update_users: boolean;
             registration_tokens: components["schemas"]["AdminRegistrationToken"][];
             users: components["schemas"]["AdminUser"][];
         };

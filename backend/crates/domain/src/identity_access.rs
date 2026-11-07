@@ -144,6 +144,8 @@ pub struct AdminAccessChangeItem {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct AdminUsers {
     pub assignable_roles: Vec<String>,
+    pub can_delete_users: bool,
+    pub can_update_users: bool,
     pub registration_tokens: Vec<AdminRegistrationToken>,
     pub users: Vec<AdminUser>,
 }
