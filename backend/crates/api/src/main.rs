@@ -11,6 +11,7 @@ mod admin_registration_tokens;
 mod admin_role;
 mod admin_user;
 mod admin_world_graph;
+mod admin_world_map;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -541,6 +542,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/admin/roles", get(admin_role::index).post(admin_role::create))
         .route("/api/v1/admin/world-builder", get(admin_world_graph::show))
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}",
+            get(admin_world_map::show),
+        )
         .route(
             "/api/v1/admin/roles/{role_key}",
             patch(admin_role::update).delete(admin_role::destroy),
@@ -1180,6 +1185,48 @@ mod tests {
             )
             .await
             .expect("World Builder response");
+
+        assert_eq!(response.status(), 401);
+        assert_eq!(
+            response
+                .into_body()
+                .collect()
+                .await
+                .expect("body bytes")
+                .to_bytes(),
+            "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
+        );
+    }
+
+    #[tokio::test]
+    async fn world_builder_map_requires_an_authenticated_session() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/admin/world-builder/maps/00000000-0000-4000-8000-000000000002")
+                    .body(Body::empty())
+                    .expect("a valid World Builder map request"),
+            )
+            .await
+            .expect("World Builder map response");
 
         assert_eq!(response.status(), 401);
         assert_eq!(

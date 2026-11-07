@@ -3664,8 +3664,12 @@ rejected.
 **Limits and follow-up:** The greenfield schema currently has no migrated AI
 review-status model or full node-reachability diagnostic model, so their
 source-shaped overview counts/diagnostics are deliberately zero/empty. The
-contract is not exposed through a new frontend screen until the existing
-World Builder screen can consume its complete necessary data.
+selected-map configuration endpoint separately requires source `world_maps`
+update authority and returns authored map assets, map presentation and current
+delete eligibility. Neither read is exposed through a new frontend screen
+until the existing World Builder screen can consume its complete necessary
+data. The selected-map support lists and selected-node activity graph remain
+separate authoring reads.
 
 ## Phase 1 gate
 

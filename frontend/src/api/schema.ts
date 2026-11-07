@@ -631,6 +631,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one source-shaped, editable World Builder map configuration.
+         * @description Unlike the graph overview, this source workspace requires world-map update permission and its map-specific all/own/assigned/direct-editor scope. It includes draft map assets and configuration but permits no mutation.
+         */
+        get: operations["getAdminWorldBuilderMap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/maps/{map_slug}/nodes/{node_slug}/bookmark": {
         parameters: {
             query?: never;
@@ -4783,6 +4803,62 @@ export interface components {
             title: string;
             activity_type: string;
         };
+        AdminEditableMap: {
+            can_delete_world_maps: boolean;
+            editable_map: components["schemas"]["AdminEditableMapDocument"];
+        };
+        AdminEditableMapDocument: {
+            world: components["schemas"]["AdminWorldSummary"];
+            map: components["schemas"]["AdminEditableMapSummary"];
+        };
+        AdminEditableMapSummary: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            /** Format: date-time */
+            updated_at: string;
+            node_count: number;
+            review_count: number;
+            access_roles: string[];
+            nodes: components["schemas"]["AdminNodeSummary"][];
+            background_config: {
+                [key: string]: unknown;
+            };
+            editing_group_ids: string[];
+            grid_config: {
+                [key: string]: unknown;
+            };
+            map_assets_locked: boolean;
+            topic_id: string | null;
+            map_assets: components["schemas"]["AdminEditableMapAsset"][];
+        };
+        AdminEditableMapAsset: {
+            /** Format: uuid */
+            id: string;
+            node_id: string | null;
+            image_url: string | null;
+            text: string | null;
+            x: number;
+            y: number;
+            z: number;
+            width: number;
+            opacity: number;
+            locked: boolean;
+            focusable: boolean;
+            /** @enum {string} */
+            interaction_mode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
+            interaction_config: {
+                [key: string]: unknown;
+            };
+            visual_config: {
+                [key: string]: unknown;
+            };
+            sound_config: {
+                [key: string]: unknown;
+            };
+        };
         PublicRoutePreview: {
             slug: string;
             title: string;
@@ -6844,6 +6920,64 @@ export interface operations {
                 };
             };
             /** @description The World Builder is unavailable to this principal or no current authoring World exists. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getAdminWorldBuilderMap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requested scoped map configuration and its current delete eligibility. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEditableMap"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The map is unknown or unavailable through the source editor scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

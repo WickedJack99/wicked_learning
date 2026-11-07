@@ -98,6 +98,62 @@ pub struct AdminPortalActivity {
     pub activity_type: String,
 }
 
+/// The selected-map payload consumed by the original World Builder map
+/// configuration components. It is intentionally an authoring-only projection
+/// and may include unpublished assets and nodes.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableMap {
+    pub can_delete_world_maps: bool,
+    pub editable_map: AdminEditableMapDocument,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableMapDocument {
+    pub world: AdminWorldSummary,
+    pub map: AdminEditableMapSummary,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableMapSummary {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub updated_at: String,
+    pub node_count: i64,
+    pub review_count: i64,
+    pub access_roles: Vec<String>,
+    pub nodes: Vec<AdminNodeSummary>,
+    pub background_config: Value,
+    pub editing_group_ids: Vec<Uuid>,
+    pub grid_config: Value,
+    pub map_assets_locked: bool,
+    pub topic_id: Option<Uuid>,
+    pub map_assets: Vec<AdminEditableMapAsset>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableMapAsset {
+    pub id: Uuid,
+    pub node_id: Option<Uuid>,
+    pub image_url: Option<String>,
+    pub text: Option<String>,
+    pub x: f64,
+    pub y: f64,
+    pub z: i32,
+    pub width: f64,
+    pub opacity: f64,
+    pub locked: bool,
+    /// The source carries this legacy flag alongside its richer interaction
+    /// mode. The greenfield schema owns only interaction mode, so decorative
+    /// assets are the sole non-focusable mode.
+    pub focusable: bool,
+    pub interaction_mode: String,
+    pub interaction_config: Value,
+    pub visual_config: Value,
+    pub sound_config: Value,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct PublicWorld {
     pub slug: String,

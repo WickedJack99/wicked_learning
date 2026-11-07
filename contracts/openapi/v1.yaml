@@ -803,6 +803,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/world-builder/maps/{map_id}:
+    get:
+      operationId: getAdminWorldBuilderMap
+      summary: Read one source-shaped, editable World Builder map configuration.
+      description: Unlike the graph overview, this source workspace requires world-map update permission and its map-specific all/own/assigned/direct-editor scope. It includes draft map assets and configuration but permits no mutation.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The requested scoped map configuration and its current delete eligibility.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEditableMap'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The identity has no application principal or role assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The map is unknown or unavailable through the source editor scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /learner/maps/{map_slug}/nodes/{node_slug}/bookmark:
     post:
       operationId: createLearnerNodeBookmark
@@ -7158,6 +7199,79 @@ components:
         id: { type: string, format: uuid }
         title: { type: string }
         activity_type: { type: string, pattern: '^[a-z][a-z0-9_]{0,63}$' }
+    AdminEditableMap:
+      type: object
+      additionalProperties: false
+      required: [can_delete_world_maps, editable_map]
+      properties:
+        can_delete_world_maps: { type: boolean }
+        editable_map:
+          $ref: '#/components/schemas/AdminEditableMapDocument'
+    AdminEditableMapDocument:
+      type: object
+      additionalProperties: false
+      required: [world, map]
+      properties:
+        world: { $ref: '#/components/schemas/AdminWorldSummary' }
+        map: { $ref: '#/components/schemas/AdminEditableMapSummary' }
+    AdminEditableMapSummary:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, updated_at, node_count, review_count, access_roles, nodes, background_config, editing_group_ids, grid_config, map_assets_locked, topic_id, map_assets]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        description: { type: string }
+        updated_at: { type: string, format: date-time }
+        node_count: { type: integer, minimum: 0 }
+        review_count: { type: integer, minimum: 0 }
+        access_roles:
+          type: array
+          items: { type: string, minLength: 1 }
+        nodes:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminNodeSummary' }
+        background_config: { type: object, additionalProperties: true }
+        editing_group_ids:
+          type: array
+          items: { type: string, format: uuid }
+        grid_config: { type: object, additionalProperties: true }
+        map_assets_locked: { type: boolean }
+        topic_id:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        map_assets:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableMapAsset' }
+    AdminEditableMapAsset:
+      type: object
+      additionalProperties: false
+      required: [id, node_id, image_url, text, x, y, z, width, opacity, locked, focusable, interaction_mode, interaction_config, visual_config, sound_config]
+      properties:
+        id: { type: string, format: uuid }
+        node_id:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        image_url: { type: [string, 'null'] }
+        text: { type: [string, 'null'] }
+        x: { type: number }
+        y: { type: number }
+        z: { type: integer }
+        width: { type: number, minimum: 0 }
+        opacity: { type: number, minimum: 0, maximum: 1 }
+        locked: { type: boolean }
+        focusable: { type: boolean }
+        interaction_mode: { type: string, enum: [focusable, decorative, hide_on_hover, toggle] }
+        interaction_config: { type: object, additionalProperties: true }
+        visual_config: { type: object, additionalProperties: true }
+        sound_config: { type: object, additionalProperties: true }
     PublicRoutePreview:
       type: object
       additionalProperties: false

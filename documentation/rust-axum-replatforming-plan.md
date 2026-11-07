@@ -897,10 +897,13 @@ scope and direct editing-group membership. It returns draft map/node fields,
 portal candidates and portal links as a separate authoring projection; it does
 not reuse learner visibility reads. Review-queue counts and full unlock-path
 diagnostics remain zero/empty until their source data models and authoring
-workflows are migrated. No World Builder React route is exposed from this
-partial contract: the next slices must lift the existing World Builder React
-components together with the selected-map/node read contracts, rather than
-inventing a reduced editor.
+workflows are migrated. The selected-map configuration projection is now also
+available at `GET /api/v1/admin/world-builder/maps/{map_id}`. It deliberately
+requires the stricter source `world_maps` update permission and evaluates
+delete eligibility independently. No World Builder React route is exposed from
+these partial contracts: the next slices must lift the existing World Builder
+React components together with the remaining selected-map/node support reads,
+rather than inventing a reduced editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
