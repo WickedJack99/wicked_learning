@@ -672,6 +672,36 @@ function ActivityGraph({
         [graph.transitions],
     );
 
+    const removeStartRoute = useCallback(
+        async (activityId: string) => {
+            setConnectionError(null);
+            try {
+                const token = await getCsrfToken();
+                const { response } = await apiClient.DELETE(
+                    '/admin/world-builder/nodes/{node_id}/start-routes/{activity_id}',
+                    {
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: {
+                                activity_id: activityId,
+                                node_id: graph.node.id,
+                            },
+                        },
+                    },
+                );
+                if (!response.ok) {
+                    throw new Error('start route unavailable');
+                }
+                onReload();
+            } catch {
+                setConnectionError(
+                    'The learner start could not be removed. Check the graph and try again.',
+                );
+            }
+        },
+        [graph.node.id, onReload],
+    );
+
     const connectActivities = useCallback(
         async (connection: Connection) => {
             if (!connection.source || !connection.target) {
@@ -805,7 +835,13 @@ function ActivityGraph({
                     }}
                     nodes={nodes}
                     onEdgesChange={onEdgesChange}
-                    onEdgeClick={(_, edge) => selectTransition(edge.id)}
+                    onEdgeClick={(_, edge) => {
+                        if (edge.id === '__start-edge') {
+                            void removeStartRoute(edge.target);
+                            return;
+                        }
+                        selectTransition(edge.id);
+                    }}
                     onConnect={(connection) =>
                         void connectActivities(connection)
                     }

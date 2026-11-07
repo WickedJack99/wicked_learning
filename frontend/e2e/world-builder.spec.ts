@@ -82,6 +82,7 @@ test('a local world author can open the source-derived World Builder graph', asy
     const node = (await nodeResponse.json()) as {
         activity_graph: {
             activities: Array<{ title: string }>;
+            node: { start_activity_id: string | null };
             transitions: Array<{ id: string }>;
         };
     };
@@ -105,5 +106,9 @@ test('a local world author can open the source-derived World Builder graph', asy
         ).toBeVisible();
         await expect(page.getByLabel('Connection label')).toBeVisible();
         await page.getByRole('button', { name: 'Cancel' }).click();
+    }
+
+    if (node.activity_graph.node.start_activity_id) {
+        await expect(page.locator('[data-id="__start-edge"]')).toBeVisible();
     }
 });
