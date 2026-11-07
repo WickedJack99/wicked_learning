@@ -927,6 +927,11 @@ routes. Route-start presentation editing and ordering are now source-compatible:
 visual fields retain the original bounds and color validation, and route moves
 lock the node's complete start list, renumber it and resynchronize the preferred
 start. Activity and transition commands remain unavailable.
+Transition creation is now available through the source-defined scoped command:
+it validates both endpoint activities against the selected node, derives the
+trigger and fallback label from the source connector, preserves idempotency by
+the endpoint/connector identity, and rejects a non-terminal entry portal.
+Transition editing/deletion and activity-content commands remain unavailable.
 No World Builder React route is exposed from these partial contracts: the next
 slice must adapt the existing World Builder React components against all three
 read contracts, rather than inventing a reduced editor.
