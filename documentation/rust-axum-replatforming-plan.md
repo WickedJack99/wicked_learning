@@ -931,7 +931,12 @@ Transition creation is now available through the source-defined scoped command:
 it validates both endpoint activities against the selected node, derives the
 trigger and fallback label from the source connector, preserves idempotency by
 the endpoint/connector identity, and rejects a non-terminal entry portal.
-Transition editing/deletion and activity-content commands remain unavailable.
+Transition editing and deletion now use the same scoped authoring boundary.
+Editing preserves the source form's narrow scope: it accepts only the display
+label and an outcome transition's optional trigger value; an empty label falls
+back to the target activity title or source connector label. Deletion returns
+the selected node's complete ordered transition state. Activity-content
+commands remain unavailable.
 No World Builder React route is exposed from these partial contracts: the next
 slice must adapt the existing World Builder React components against all three
 read contracts, rather than inventing a reduced editor.

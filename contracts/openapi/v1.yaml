@@ -953,6 +953,55 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: A referenced activity or node is unavailable through the authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activity-transitions/{transition_id}:
+    patch:
+      operationId: updateAdminWorldBuilderActivityTransition
+      summary: Update an authored activity-graph transition's presentation.
+      description: >-
+        Mirrors the source editor: changes the label and, only for outcome
+        transitions, the optional outcome value. An empty label returns to the
+        target or source-connector fallback label.
+      parameters:
+        - name: transition_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityTransitionRequest' }
+      responses:
+        '200':
+          description: All source-ordered transitions for the edited node.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityTransitionsResponse' }
+        '400': { description: The transition presentation is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The transition is unavailable through the authoring scope. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminWorldBuilderActivityTransition
+      summary: Delete an authored activity-graph transition.
+      parameters:
+        - name: transition_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: All source-ordered transitions for the edited node after deletion.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityTransitionsResponse' }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The transition is unavailable through the authoring scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/start-routes:
     post:
       operationId: addAdminWorldBuilderNodeStartRoute
@@ -7659,6 +7708,12 @@ components:
         from_connector: { type: string, minLength: 1, maxLength: 80 }
         to_connector: { type: string, minLength: 1, maxLength: 80 }
         label: { type: [string, 'null'], maxLength: 120 }
+    UpdateAdminActivityTransitionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        label: { type: [string, 'null'], maxLength: 120 }
+        trigger_value: { type: [string, 'null'], maxLength: 120 }
     AdminActivityTransitionsResponse:
       type: object
       additionalProperties: false

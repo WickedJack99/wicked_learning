@@ -572,6 +572,10 @@ fn router(state: AppState) -> Router {
             post(admin_world_node_transition::create),
         )
         .route(
+            "/api/v1/admin/world-builder/activity-transitions/{transition_id}",
+            patch(admin_world_node_transition::update).delete(admin_world_node_transition::delete),
+        )
+        .route(
             "/api/v1/admin/world-builder/start-routes/{start_route_id}",
             patch(admin_world_node_starts::update).delete(admin_world_node_starts::delete),
         )
@@ -1372,6 +1376,41 @@ mod tests {
             )
             .await
             .expect("World Builder start route response");
+
+        assert_eq!(response.status(), 401);
+    }
+
+    #[tokio::test]
+    async fn world_builder_activity_transition_commands_require_an_authenticated_session() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activity-transitions/00000000-0000-4000-8000-000000000001")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"label":"Continue"}"#))
+                    .expect("a valid World Builder transition request"),
+            )
+            .await
+            .expect("World Builder transition response");
 
         assert_eq!(response.status(), 401);
     }

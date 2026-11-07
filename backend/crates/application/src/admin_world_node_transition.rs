@@ -109,6 +109,23 @@ pub trait AdminWorldNodeTransitionRepository {
     ) -> impl Future<
         Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
     > + Send;
+
+    fn update(
+        &self,
+        principal: &AuthorizedPrincipal,
+        transition_id: Uuid,
+        transition: &UpdateActivityTransition,
+    ) -> impl Future<
+        Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
+    > + Send;
+
+    fn delete(
+        &self,
+        principal: &AuthorizedPrincipal,
+        transition_id: Uuid,
+    ) -> impl Future<
+        Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
+    > + Send;
 }
 
 pub struct AdminWorldNodeTransitionCommand<'repository, Repository> {
@@ -133,6 +150,31 @@ where
             return Ok(None);
         }
         self.repository.create(principal, node_id, transition).await
+    }
+
+    pub async fn update(
+        &self,
+        principal: &AuthorizedPrincipal,
+        transition_id: Uuid,
+        transition: &UpdateActivityTransition,
+    ) -> Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+        self.repository
+            .update(principal, transition_id, transition)
+            .await
+    }
+
+    pub async fn delete(
+        &self,
+        principal: &AuthorizedPrincipal,
+        transition_id: Uuid,
+    ) -> Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+        self.repository.delete(principal, transition_id).await
     }
 }
 

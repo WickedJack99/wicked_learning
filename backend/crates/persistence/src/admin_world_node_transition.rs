@@ -3,7 +3,8 @@ use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_node_transition::{
     AdminWorldNodeTransitionError, AdminWorldNodeTransitionRepository as Port,
-    CreateActivityTransition, fallback_output_label, trigger_for_connector,
+    CreateActivityTransition, UpdateActivityTransition, fallback_output_label,
+    trigger_for_connector,
 };
 use wicked_learning_domain::{
     identity_access::{AuthorizedPrincipal, permission_scope_allows},
@@ -39,6 +40,41 @@ impl Port for PostgresAdminWorldNodeTransitionRepository<'_> {
             }
         }
     }
+
+    fn update(
+        &self,
+        principal: &AuthorizedPrincipal,
+        transition_id: Uuid,
+        form: &UpdateActivityTransition,
+    ) -> impl std::future::Future<
+        Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
+    > + Send {
+        async move {
+            update(self.pool, principal, transition_id, form)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not update scoped World Builder transition");
+                    AdminWorldNodeTransitionError::Unavailable
+                })
+        }
+    }
+
+    fn delete(
+        &self,
+        principal: &AuthorizedPrincipal,
+        transition_id: Uuid,
+    ) -> impl std::future::Future<
+        Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
+    > + Send {
+        async move {
+            delete(self.pool, principal, transition_id)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not delete scoped World Builder transition");
+                    AdminWorldNodeTransitionError::Unavailable
+                })
+        }
+    }
 }
 
 #[derive(FromRow)]
@@ -64,6 +100,17 @@ struct Edge {
     trigger: String,
     trigger_value: Option<String>,
     label: Option<String>,
+}
+
+#[derive(FromRow)]
+struct ScopedTransition {
+    id: Uuid,
+    map_asset_id: Option<Uuid>,
+    map_id: Uuid,
+    creator: Option<Uuid>,
+    from_connector: String,
+    trigger: String,
+    target_title: Option<String>,
 }
 enum CreateError {
     Invalid,
@@ -122,6 +169,63 @@ async fn create(
     Ok(Some(result))
 }
 
+async fn update(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    transition_id: Uuid,
+    form: &UpdateActivityTransition,
+) -> Result<Option<Vec<AdminActivityTransition>>, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let Some(transition) = lock_transition(&mut tx, principal, transition_id).await? else {
+        return Ok(None);
+    };
+    let label = form
+        .label
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .or(transition.target_title)
+        .unwrap_or_else(|| fallback_output_label(&transition.from_connector));
+    let trigger_value = (transition.trigger == "outcome")
+        .then(|| {
+            form.trigger_value
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+        })
+        .flatten();
+    sqlx::query(
+        "UPDATE learning_activity_transitions SET label = $2, trigger_value = $3, updated_at = NOW() WHERE id = $1",
+    )
+    .bind(transition.id)
+    .bind(label)
+    .bind(trigger_value)
+    .execute(&mut *tx)
+    .await?;
+    let result = edges(&mut tx, transition.map_asset_id).await?;
+    tx.commit().await?;
+    Ok(Some(result))
+}
+
+async fn delete(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    transition_id: Uuid,
+) -> Result<Option<Vec<AdminActivityTransition>>, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let Some(transition) = lock_transition(&mut tx, principal, transition_id).await? else {
+        return Ok(None);
+    };
+    sqlx::query("DELETE FROM learning_activity_transitions WHERE id = $1")
+        .bind(transition.id)
+        .execute(&mut *tx)
+        .await?;
+    let result = edges(&mut tx, transition.map_asset_id).await?;
+    tx.commit().await?;
+    Ok(Some(result))
+}
+
 async fn lock_node(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     principal: &AuthorizedPrincipal,
@@ -146,6 +250,46 @@ async fn lock_node(
         || (permission_scope_allows(scope, "assigned") && direct)
         || direct;
     Ok(allowed.then_some(node))
+}
+
+async fn lock_transition(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    principal: &AuthorizedPrincipal,
+    transition_id: Uuid,
+) -> Result<Option<ScopedTransition>, sqlx::Error> {
+    let Some(principal_id) = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM application_principals WHERE identity_subject_id = $1",
+    )
+    .bind(principal.subject_id)
+    .fetch_optional(&mut **tx)
+    .await?
+    else {
+        return Ok(None);
+    };
+    let Some(transition) = sqlx::query_as::<_, ScopedTransition>(
+        "SELECT transitions.id, nodes.map_asset_id, nodes.map_id, maps.created_by_principal_id AS creator, transitions.from_connector, transitions.trigger, targets.title AS target_title FROM learning_activity_transitions AS transitions INNER JOIN learning_activities AS sources ON sources.id = transitions.from_activity_id INNER JOIN learning_routes AS source_routes ON source_routes.id = sources.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = source_routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS targets ON targets.id = transitions.to_activity_id WHERE transitions.id = $1 FOR UPDATE OF transitions, nodes",
+    )
+    .bind(transition_id)
+    .fetch_optional(&mut **tx)
+    .await?
+    else {
+        return Ok(None);
+    };
+    let direct: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM learning_map_editing_groups AS editing_groups INNER JOIN learning_group_memberships AS memberships ON memberships.group_id = editing_groups.group_id WHERE editing_groups.map_id = $1 AND memberships.principal_id = $2)",
+    )
+    .bind(transition.map_id)
+    .bind(principal_id)
+    .fetch_one(&mut **tx)
+    .await?;
+    let Some(scope) = principal.permission_scope("world_activities", "ru") else {
+        return Ok(None);
+    };
+    let allowed = scope == "all"
+        || (permission_scope_allows(scope, "own") && transition.creator == Some(principal_id))
+        || (permission_scope_allows(scope, "assigned") && direct)
+        || direct;
+    Ok(allowed.then_some(transition))
 }
 
 async fn activity(

@@ -3711,6 +3711,17 @@ trigger with identity, preventing valid graphs that share an output connector
 across different destinations. Migration 0079 replaces it with the source
 identity while retaining `NULLS NOT DISTINCT` for terminal edges.
 
+**Transition presentation and deletion:** Existing transitions are resolved
+through the source activity's map asset and its unique node, then use the same
+all/own/assigned/direct-editor authorization check as transition creation.
+Editing deliberately does not change endpoints, connectors or derived trigger:
+the original editor permits only a label and, for `outcome` transitions, an
+optional trigger value. A blank label regenerates from the target title or the
+source connector's fallback label. Deletion returns the node's complete,
+source-ordered remaining edge list. Version-history snapshots are not yet
+available in the greenfield authoring model, so these commands do not claim to
+have migrated Laravel's activity-version audit side effect.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
