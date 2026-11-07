@@ -2,7 +2,7 @@
 name = "wicked-learning-api"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.89"
 publish = false
 
 [dependencies]
@@ -34,6 +34,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 totp-rs = { version = "6", default-features = false, features = ["gen_secret", "otpauth", "qr", "std"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 url = "2"
+webauthn-rs = { version = "0.6.2", features = ["conditional-ui", "danger-allow-state-serialisation"] }
+webauthn-rs-proto = "0.6.2"
 wicked-learning-persistence = { path = "../persistence" }
 wicked-learning-application = { path = "../application" }
 wicked-learning-domain = { path = "../domain" }

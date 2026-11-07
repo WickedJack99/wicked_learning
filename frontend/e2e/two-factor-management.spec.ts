@@ -27,6 +27,12 @@ async function authenticateSecurityRoute(page: import('@playwright/test').Page):
             body: JSON.stringify({ confirmed: true }),
         });
     });
+    await page.route('**/api/v1/account/passkeys', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify([]),
+        });
+    });
 }
 
 test('Personal Security preserves the source TOTP setup and verification journey', async ({

@@ -8,12 +8,12 @@ import {
     publicPresentationStyle,
     type PublicPresentation,
 } from './public-presentation';
+import { OriginalPasskeyVerify } from './original-passkey';
 
 /**
  * Lifted from `resources/js/pages/auth/confirm-password.tsx` and the source
- * `AuthSimpleLayout`. The source passkey alternative is deliberately omitted
- * until a Rust WebAuthn confirmation contract exists; the password form keeps
- * the original confirmation journey and layout.
+ * `AuthSimpleLayout`. Its source passkey alternative uses the same typed
+ * recent-confirmation contract as the Rust security settings.
  */
 export function OriginalConfirmPasswordPage({
     appearance,
@@ -141,6 +141,22 @@ export function OriginalConfirmPasswordPage({
                             </p>
                         </div>
                     </div>
+                    <OriginalPasskeyVerify
+                        label="Confirm with passkey"
+                        loadingLabel="Confirming..."
+                        onSuccess={() => {
+                            const next = searchParams.get('next');
+                            navigate(
+                                next?.startsWith('/') && !next.startsWith('//')
+                                    ? next
+                                    : '/settings?panel=personal&personal=security',
+                                { replace: true },
+                            );
+                        }}
+                        optionsPath="/account/passkeys/confirmation/options"
+                        separator="Or confirm with password"
+                        submitPath="/account/passkeys/confirmation"
+                    />
                     <form className="flex flex-col gap-6" onSubmit={submit}>
                         <div className="grid gap-6">
                             <div className="grid gap-2">

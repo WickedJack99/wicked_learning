@@ -37,6 +37,36 @@ pub async fn queue_two_factor_change(
     Ok(())
 }
 
+pub async fn queue_passkey_change(
+    transaction: &mut Transaction<'_, Postgres>,
+    subject_id: Uuid,
+    registered: bool,
+) -> Result<(), sqlx::Error> {
+    let (action, before, after) = if registered {
+        (
+            "passkey_registered",
+            "No passkey registered",
+            "Passkey registered",
+        )
+    } else {
+        ("passkey_deleted", "Passkey registered", "Passkey removed")
+    };
+    let changes = json!({ "security_factor": { "before": before, "after": after } });
+    sqlx::query(
+        "INSERT INTO identity_security_access_audit_outbox \
+         (id, action, actor_subject_id, target_subject_id, changes) \
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(action)
+    .bind(subject_id)
+    .bind(subject_id)
+    .bind(changes)
+    .execute(&mut **transaction)
+    .await?;
+    Ok(())
+}
+
 fn two_factor_event(enabled: bool) -> (&'static str, Value) {
     let (action, before, after) = if enabled {
         (

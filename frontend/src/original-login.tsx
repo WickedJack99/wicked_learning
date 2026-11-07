@@ -8,6 +8,7 @@ import {
     type PublicPresentation,
 } from './public-presentation';
 import type { OriginalAppearance } from './original-appearance';
+import { OriginalPasskeyVerify } from './original-passkey';
 
 /**
  * Lifted from `resources/js/pages/auth/login.tsx` and
@@ -141,6 +142,17 @@ export function OriginalLoginPage({
                             </p>
                         </div>
                     </div>
+                    <OriginalPasskeyVerify
+                        onSuccess={() => {
+                            const next = searchParams.get('next');
+                            navigate(
+                                next?.startsWith('/') && !next.startsWith('//')
+                                    ? next
+                                    : '/world',
+                                { replace: true },
+                            );
+                        }}
+                    />
                     <form className="flex flex-col gap-6" onSubmit={submit}>
                         <div className="grid gap-6">
                             <div className="grid gap-2">

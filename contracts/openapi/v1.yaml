@@ -70,6 +70,44 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '429': { description: Too many challenge attempts were made. }
         '503': { description: The identity database is unavailable. }
+  /session/passkey/options:
+    post:
+      operationId: startPasskeyLogin
+      summary: Start an anonymous discoverable-passkey sign-in ceremony.
+      description: The server stores the short-lived WebAuthn ceremony in the browser's server-side session. The browser must pass the returned public-key options to its maintained WebAuthn client unchanged.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: Browser WebAuthn request options without a credential allow-list, enabling source-equivalent discoverable passkeys.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyOptions' }
+        '403': { description: A valid same-origin CSRF request is required, or this browser is already signed in. }
+        '429': { description: Too many passkey ceremony attempts were made. }
+        '503': { description: The identity database or passkey service is unavailable. }
+  /session/passkey:
+    post:
+      operationId: completePasskeyLogin
+      summary: Complete an anonymous discoverable-passkey sign-in ceremony.
+      description: The response is verified server-side against the stored short-lived ceremony and the identity-owned public credential; no credential secret enters the API or application database.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebAuthnCredential' }
+      responses:
+        '200':
+          description: The browser is signed in with its opaque server-side session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionStatus' }
+        '401': { description: The passkey assertion, account state or ceremony is invalid. }
+        '403': { description: A valid same-origin CSRF request is required, or this browser is already signed in. }
+        '429': { description: Too many passkey ceremony attempts were made. }
+        '503': { description: The identity database or passkey service is unavailable. }
   /registration:
     post:
       operationId: registerIdentity
@@ -365,6 +403,116 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '422': { description: The password could not be confirmed. }
         '503': { description: The identity database or session store is unavailable. }
+  /account/passkeys/confirmation/options:
+    post:
+      operationId: startPasskeyConfirmation
+      summary: Start a current-account passkey confirmation ceremony.
+      description: A successful completion opens the existing recent-confirmation window for this server-side browser session.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: Browser WebAuthn assertion options limited to the authenticated owner's passkeys.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyOptions' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The authenticated account has no passkeys. }
+        '429': { description: Too many passkey ceremony attempts were made. }
+        '503': { description: The identity database or passkey service is unavailable. }
+  /account/passkeys/confirmation:
+    post:
+      operationId: completePasskeyConfirmation
+      summary: Confirm the current account with an enrolled passkey.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebAuthnCredential' }
+      responses:
+        '200':
+          description: The password-confirmation window is open for this server-side browser session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasswordConfirmationStatus' }
+        '400': { description: The assertion or short-lived ceremony is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '429': { description: Too many passkey ceremony attempts were made. }
+        '503': { description: The identity database or passkey service is unavailable. }
+  /account/passkeys/options:
+    post:
+      operationId: startPasskeyRegistration
+      summary: Start a source-equivalent resident-passkey registration ceremony.
+      description: Requires the authenticated owner's existing recent-confirmation window. The server excludes already-enrolled credentials and retains ceremony state only in the server-side session for sixty seconds.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: Browser WebAuthn registration options requesting a discoverable credential and user verification.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyOptions' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and recent account confirmation are required. }
+        '429': { description: Too many passkey ceremony attempts were made. }
+        '503': { description: The identity database or passkey service is unavailable. }
+  /account/passkeys:
+    get:
+      operationId: listAccountPasskeys
+      summary: List the authenticated owner's passkey labels and non-secret usage timestamps.
+      responses:
+        '200':
+          description: Source-shaped account passkey summaries; public credentials and WebAuthn counters are never returned.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PasskeySummary' }
+        '401': { description: Authentication is required. }
+        '403': { description: Recent account confirmation is required. }
+        '503': { description: The identity database is unavailable. }
+    post:
+      operationId: registerAccountPasskey
+      summary: Complete a passkey registration ceremony and save an identity-owned public credential.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterPasskeyRequest' }
+      responses:
+        '200':
+          description: The newly saved non-secret summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeySummary' }
+        '400': { description: The label, credential or short-lived registration ceremony is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and recent account confirmation are required. }
+        '429': { description: Too many passkey ceremony attempts were made. }
+        '503': { description: The identity database or application audit delivery dependency is unavailable. }
+  /account/passkeys/{passkey_id}:
+    delete:
+      operationId: deleteAccountPasskey
+      summary: Remove one passkey owned by the recently confirmed current account.
+      parameters:
+        - name: passkey_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The public credential was deleted and a non-secret access-history event was queued. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and recent account confirmation are required. }
+        '404': { description: The passkey does not belong to the authenticated account. }
+        '429': { description: Too many passkey ceremony attempts were made. }
+        '503': { description: The identity database or application audit delivery dependency is unavailable. }
   /account/two-factor/setup:
     post:
       operationId: startAccountTwoFactorSetup
@@ -3284,6 +3432,69 @@ components:
         confirmed:
           type: boolean
           description: Whether this browser's server-side session has a current password confirmation for sensitive actions.
+    PasskeyOptions:
+      type: object
+      additionalProperties: false
+      required: [options]
+      properties:
+        options:
+          type: object
+          additionalProperties: true
+          description: WebAuthn public-key options serialized by webauthn-rs. The maintained browser WebAuthn library owns browser-side decoding and invocation.
+    WebAuthnCredential:
+      type: object
+      additionalProperties: true
+      required: [id, rawId, response, type]
+      properties:
+        id:
+          type: string
+          description: Base64url credential identifier produced by the browser WebAuthn API.
+        rawId:
+          type: string
+          description: Base64url raw credential identifier produced by the browser WebAuthn API.
+        type:
+          type: string
+          const: public-key
+        response:
+          type: object
+          additionalProperties: true
+          description: Browser-produced registration or assertion response fields. They are verified by webauthn-rs and are not application data.
+        clientExtensionResults:
+          type: object
+          additionalProperties: true
+    RegisterPasskeyRequest:
+      type: object
+      additionalProperties: false
+      required: [credential, name]
+      properties:
+        credential:
+          $ref: '#/components/schemas/WebAuthnCredential'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Owner-visible source-shaped label for identifying this passkey.
+    PasskeySummary:
+      type: object
+      additionalProperties: false
+      required: [authenticator, created_at, id, last_used_at, name]
+      properties:
+        authenticator:
+          type: [string, 'null']
+          description: Optional authenticator label when safely known. This initial WebAuthn adapter deliberately does not infer an unverified device brand.
+        created_at:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        last_used_at:
+          type: [string, 'null']
+          format: date-time
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
     TwoFactorStatus:
       type: object
       additionalProperties: false

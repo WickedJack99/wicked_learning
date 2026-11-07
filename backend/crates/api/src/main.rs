@@ -1,4 +1,5 @@
 mod access_link;
+mod account_passkey;
 mod account_password;
 mod account_password_confirmation;
 mod account_profile;
@@ -101,6 +102,8 @@ use tower_http::{
 use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::PostgresStore;
 use tracing::{error, info};
+use url::Url;
+use webauthn_rs::prelude::{Webauthn, WebauthnBuilder};
 
 use crate::{
     config::{BootstrapAdminConfig, Config, RegistrationTokenConfig},
@@ -126,6 +129,7 @@ pub(crate) struct AppState {
     public_origin: String,
     session_cookie_secure: bool,
     totp_secret_cipher: totp_crypto::TotpSecretCipher,
+    webauthn: Webauthn,
 }
 
 #[derive(Serialize)]
@@ -180,6 +184,13 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    let webauthn = match configure_webauthn(&configuration.public_origin) {
+        Ok(webauthn) => webauthn,
+        Err(error) => {
+            error!(%error, "could not configure passkey relying party");
+            return ExitCode::FAILURE;
+        }
+    };
 
     let state = AppState {
         application_database,
@@ -189,6 +200,7 @@ async fn main() -> ExitCode {
         public_origin: configuration.public_origin,
         session_cookie_secure: configuration.session_cookie_secure,
         totp_secret_cipher: totp_crypto::TotpSecretCipher::new(configuration.totp_encryption_key),
+        webauthn,
     };
     spawn_security_audit_delivery(state.clone());
     let listener = match tokio::net::TcpListener::bind(configuration.listen_address).await {
@@ -206,6 +218,16 @@ async fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+fn configure_webauthn(public_origin: &str) -> Result<Webauthn, &'static str> {
+    let origin = Url::parse(public_origin).map_err(|_| "PUBLIC_ORIGIN is not a URL")?;
+    let rp_id = origin.host_str().ok_or("PUBLIC_ORIGIN has no hostname")?;
+    WebauthnBuilder::new(rp_id, &origin)
+        .map_err(|_| "PUBLIC_ORIGIN cannot be used as a WebAuthn relying-party origin")?
+        .rp_name("Wicked Learning")
+        .build()
+        .map_err(|_| "WebAuthn relying-party configuration is invalid")
 }
 
 fn spawn_security_audit_delivery(state: AppState) {
@@ -339,6 +361,15 @@ fn router(state: AppState) -> Router {
         .key_extractor(login_rate_limit::TrustedProxyClientIp)
         .finish()
         .expect("a non-zero two-factor rate limit is configured");
+    let mut passkey_rate_limit = GovernorConfigBuilder::default();
+    passkey_rate_limit
+        .per_second(60)
+        .burst_size(10)
+        .methods(vec![Method::POST]);
+    let passkey_rate_limit = passkey_rate_limit
+        .key_extractor(login_rate_limit::TrustedProxyClientIp)
+        .finish()
+        .expect("a non-zero passkey rate limit is configured");
     let login_routes = Router::new()
         .route("/api/v1/session/login", post(session_commands::login))
         .route(
@@ -375,10 +406,41 @@ fn router(state: AppState) -> Router {
             GovernorLayer::new(two_factor_rate_limit)
                 .error_handler(|_| ApiError::too_many_requests().into_response()),
         );
+    let passkey_routes = Router::new()
+        .route(
+            "/api/v1/session/passkey/options",
+            post(account_passkey::login_options),
+        )
+        .route("/api/v1/session/passkey", post(account_passkey::login))
+        .route(
+            "/api/v1/account/passkeys/confirmation/options",
+            post(account_passkey::confirmation_options),
+        )
+        .route(
+            "/api/v1/account/passkeys/confirmation",
+            post(account_passkey::confirm),
+        )
+        .route(
+            "/api/v1/account/passkeys/options",
+            post(account_passkey::registration_options),
+        )
+        .route(
+            "/api/v1/account/passkeys",
+            get(account_passkey::list).post(account_passkey::register),
+        )
+        .route(
+            "/api/v1/account/passkeys/{passkey_id}",
+            delete(account_passkey::delete),
+        )
+        .layer(
+            GovernorLayer::new(passkey_rate_limit)
+                .error_handler(|_| ApiError::too_many_requests().into_response()),
+        );
 
     Router::new()
         .merge(login_routes)
         .merge(two_factor_routes)
+        .merge(passkey_routes)
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/security/csrf", get(csrf::show))
@@ -833,7 +895,11 @@ mod tests {
     use sqlx::postgres::PgPoolOptions;
     use tower::ServiceExt;
 
-    use super::{AppState, router};
+    use super::{AppState, configure_webauthn, router};
+
+    fn test_webauthn() -> webauthn_rs::prelude::Webauthn {
+        configure_webauthn("http://localhost:8081").expect("a valid local WebAuthn configuration")
+    }
 
     #[tokio::test]
     async fn liveness_does_not_depend_on_a_database_connection() {
@@ -851,6 +917,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
 
         let response = router(state)
@@ -892,6 +959,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
 
         let response = router(state)
@@ -932,6 +1000,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
 
         let response = router(state)
@@ -972,6 +1041,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
 
         let response = router(state)
@@ -1012,6 +1082,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
 
         let response = router(state)
@@ -1052,6 +1123,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
 
         let response = router(state)
@@ -1094,6 +1166,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
         let app = router(state);
 
@@ -1153,6 +1226,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            webauthn: test_webauthn(),
         };
 
         let response = router(state)

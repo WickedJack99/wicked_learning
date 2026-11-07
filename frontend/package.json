@@ -12,6 +12,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "14.0.0",
     "@tailwindcss/vite": "^4.3.4",
     "@vitejs/plugin-react": "6.1.2",
     "lucide-react": "^0.475.0",

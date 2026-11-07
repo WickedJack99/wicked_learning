@@ -3317,8 +3317,8 @@ verification, view/regenerate recovery codes and disable controls. The
 source-derived React login challenge accepts either an authenticator-app code
 or one recovery code after the server stages a valid password login.
 
-**Limits and follow-up:** The source passkey flow remains separate identity
-work. This TOTP lifecycle alone does not satisfy the identity cutover gate.
+**Limits and follow-up:** The passkey lifecycle is now covered separately by
+ADR-088. Neither factor alone satisfies the broader identity cutover gate.
 
 ## ADR-085: TOTP sign-in uses a short-lived pre-authentication session
 
@@ -3378,13 +3378,11 @@ interaction boundary without creating a browser-held sensitive-action token,
 and it will also serve the source passkey lifecycle.
 
 **Implementation status:** The source-derived `/confirm-password` screen now
-uses the original authentication presentation and password-only confirmation
-form, returning safely to a local requested path or Personal Security. An
-anonymous visit returns through the normal login journey. The source passkey
-confirmation alternative is intentionally not shown until the Rust WebAuthn
-ceremony and confirmation contract exist, rather than exposing a nonfunctional
-control. Personal Security now checks this status before rendering, matching
-the source route's password-confirmation boundary and returning to the same
+uses the original authentication presentation and its password or passkey
+confirmation alternatives, returning safely to a local requested path or
+Personal Security. An anonymous visit returns through the normal login
+journey. Personal Security checks this status before rendering, matching the
+source route's password-confirmation boundary and returning to the same
 Security path after a successful confirmation.
 
 **Limits and follow-up:** The settings route, TOTP status,
@@ -3423,9 +3421,77 @@ separate PostgreSQL databases. Writing directly to application data after a
 factor mutation risks a permanent missing event. Storing the history in
 identity data violates the accepted boundary. These alternatives are rejected.
 
-**Limits and follow-up:** Passkey registration/deletion must enqueue the same
-kind of non-secret events when that lifecycle is migrated. The outbox is for
-security-factor history only; it is not a generic event bus.
+**Limits and follow-up:** Passkey registration/deletion now enqueue the same
+kind of non-secret events under ADR-088. The outbox is for security-factor
+history only; it is not a generic event bus.
+
+## ADR-088: Passkeys use server-held WebAuthn ceremonies and identity-owned public credentials
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Laravel supports passwordless discoverable passkeys, account
+confirmation with an enrolled passkey, and account-managed registration and
+removal. The Rust replacement must preserve those flows without inventing
+WebAuthn parsing, placing a ceremony challenge in browser storage, or putting
+credential material in application data.
+
+**Decision:** Use maintained `webauthn-rs` 0.6.2 for every server-side
+WebAuthn ceremony and maintained `@simplewebauthn/browser` 14.0.0 for browser
+option decoding and `navigator.credentials` calls. The Rust workspace and
+backend build image use Rust 1.89, the minimum supported compiler for that
+reviewed WebAuthn release. Identity owns a fresh
+`identity_passkeys` table containing only a subject-scoped owner label, public
+credential ID, public credential state and created/last-used timestamps.
+The application database receives only source-shaped non-secret registration
+or removal history through ADR-087's idempotent identity outbox.
+
+The relying-party ID is derived from the configured public-origin hostname;
+changing that hostname is an intentional credential-boundary change and
+requires passkey re-enrollment. The API keeps every registration,
+discoverable-login and account-confirmation ceremony in the existing
+server-side session for at most sixty seconds. Registration excludes existing
+credential IDs and requests resident/discoverable credentials plus user
+verification, matching the Laravel source. The browser receives only public
+options and submits a browser-produced WebAuthn response; no password,
+private key, credential verifier or raw ceremony state is part of the API
+contract or application data.
+
+**Why:** `webauthn-rs` supplies standards-aware ceremony verification,
+signature-counter updates and discoverable-credential handling, while
+SimpleWebAuthn handles WebAuthn's browser JSON conversions. This avoids two
+hand-rolled security-critical implementations and keeps Rust's identity and
+application boundaries intact. The typed OpenAPI boundary deliberately models
+the stable envelope and treats browser response details as maintained-library
+data, rather than duplicating the WebAuthn specification in application DTOs.
+
+**Alternatives:** A custom WebAuthn codec/verifier is rejected because it would
+reimplement a security protocol. Storing state in the React client or in a
+signed browser token is rejected because it weakens replay protection. An
+external OIDC passkey provider remains a future extension under ADR-003, not a
+replacement for the Rust-owned initial identity boundary.
+
+**Implementation status:** `POST /session/passkey/options` and
+`POST /session/passkey` provide the source passwordless sign-in journey.
+Recent confirmation has corresponding account passkey endpoints, and recent
+password confirmation gates account list, registration and removal. The lifted
+original React passkey controls appear on Login, Confirm Password and Personal
+Security. Passwordless login, confirmation and factor changes are rate-limited
+to the source-aligned ten requests per minute; credential use updates only the
+identity-owned public state. The public list intentionally omits an
+authenticator-brand badge unless the backend has a safe verified label rather
+than guessing from browser/device data.
+
+**Limits and follow-up:** This is a local greenfield proof of concept, not a
+production identity cutover. Password reset, remembered sessions and the
+remaining identity cutover/independent-review requirements remain separate
+gates. Full browser WebAuthn ceremony tests require a virtual authenticator in
+the local test harness; the current focused browser test covers the lifted UI
+structure and API contract, while Rust tests cover timeout and secret-free
+factor-history invariants. The current shared Tower limiter keys passkey
+requests by trusted client IP; Laravel's limiter also incorporates a credential
+identifier or session identifier. The Rust rule is therefore deliberately
+stricter for clients sharing an IP, but not exact key-level parity. Replacing it
+requires a request-aware, body-safe limiter and a focused security review.
 
 ## Phase 1 gate
 

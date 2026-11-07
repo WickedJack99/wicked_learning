@@ -73,6 +73,27 @@ pub async fn require(auth_session: &AuthSession<IdentityBackend>) -> Result<(), 
     }
 }
 
+pub async fn confirm_with_passkey(
+    auth_session: &AuthSession<IdentityBackend>,
+) -> Result<PasswordConfirmationStatusResponse, ApiError> {
+    let subject = auth_session
+        .user
+        .as_ref()
+        .ok_or_else(ApiError::authentication_required)?;
+    auth_session
+        .session
+        .insert(
+            PASSWORD_CONFIRMATION_KEY,
+            PasswordConfirmation {
+                confirmed_at_unix_seconds: time::OffsetDateTime::now_utc().unix_timestamp(),
+                password_verifier: subject.password_verifier().to_owned(),
+            },
+        )
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    Ok(PasswordConfirmationStatusResponse { confirmed: true })
+}
+
 async fn is_confirmed(auth_session: &AuthSession<IdentityBackend>) -> Result<bool, ApiError> {
     let Some(subject) = auth_session.user.as_ref() else {
         return Ok(false);
