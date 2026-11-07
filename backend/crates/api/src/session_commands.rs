@@ -41,7 +41,8 @@ pub struct LoginRequest {
 
 #[derive(Deserialize)]
 pub struct TwoFactorChallengeRequest {
-    code: String,
+    code: Option<String>,
+    recovery_code: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -140,9 +141,6 @@ pub async fn complete_two_factor(
     Json(request): Json<TwoFactorChallengeRequest>,
 ) -> Result<Json<SessionStatusResponse>, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
-    if !is_six_digit_code(&request.code) {
-        return Err(ApiError::two_factor_challenge_rejected());
-    }
     let pending = auth_session
         .session
         .get::<PendingTwoFactorLogin>(PENDING_TWO_FACTOR_LOGIN_KEY)
@@ -168,7 +166,15 @@ pub async fn complete_two_factor(
     if subject.password_verifier() != pending.password_verifier {
         return Err(ApiError::two_factor_challenge_rejected());
     }
-    verify_totp(&state, subject.subject_id(), &request.code).await?;
+    match (request.code.as_deref(), request.recovery_code.as_deref()) {
+        (Some(code), None) if is_six_digit_code(code) => {
+            verify_totp(&state, subject.subject_id(), code).await?
+        }
+        (None, Some(code)) if !code.is_empty() && code.len() <= 128 => {
+            verify_recovery_code(&state, subject.subject_id(), code).await?
+        }
+        _ => return Err(ApiError::two_factor_challenge_rejected()),
+    }
     auth_session
         .session
         .remove::<PendingTwoFactorLogin>(PENDING_TWO_FACTOR_LOGIN_KEY)
@@ -183,6 +189,41 @@ pub async fn complete_two_factor(
         subject_id: Some(subject.subject_id()),
         two_factor_required: false,
     }))
+}
+
+async fn verify_recovery_code(
+    state: &AppState,
+    subject_id: Uuid,
+    code: &str,
+) -> Result<(), ApiError> {
+    #[derive(FromRow)]
+    struct RecoveryRow {
+        id: Uuid,
+        code_hash: String,
+    }
+    let mut transaction = state
+        .identity_database
+        .begin()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    let rows = sqlx::query_as::<_, RecoveryRow>("SELECT id, code_hash FROM identity_totp_recovery_code_verifiers WHERE subject_id = $1 AND used_at IS NULL FOR UPDATE")
+        .bind(subject_id).fetch_all(&mut *transaction).await.map_err(|_| ApiError::service_unavailable())?;
+    let Some(row) = rows
+        .into_iter()
+        .find(|row| crate::passwords::verify(code, &row.code_hash).unwrap_or(false))
+    else {
+        return Err(ApiError::two_factor_challenge_rejected());
+    };
+    let used = sqlx::query("UPDATE identity_totp_recovery_code_verifiers SET used_at = NOW() WHERE id = $1 AND used_at IS NULL")
+        .bind(row.id).execute(&mut *transaction).await.map_err(|_| ApiError::service_unavailable())?;
+    if used.rows_affected() != 1 {
+        return Err(ApiError::two_factor_challenge_rejected());
+    }
+    transaction
+        .commit()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    Ok(())
 }
 
 async fn verify_totp(state: &AppState, subject_id: Uuid, code: &str) -> Result<(), ApiError> {
