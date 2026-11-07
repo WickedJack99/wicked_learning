@@ -89,6 +89,23 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The link is unknown, disabled, expired, already consumed, or already used by this learner. }
         '503': { description: The application database is unavailable. }
+  /access-links/{token}:
+    get:
+      operationId: getAccessLinkPreview
+      summary: Read the non-sensitive purpose and note for an active access-link grant.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        '200':
+          description: A currently usable link preview, without the grant payload.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessLinkPreview' }
+        '404': { description: The link is unknown, disabled, expired, or consumed. }
+        '503': { description: The application database is unavailable. }
   /me:
     get:
       operationId: getCurrentUser
@@ -3010,6 +3027,13 @@ components:
         note: { type: [string, 'null'], maxLength: 500 }
         purpose: { type: string, enum: [grant_tool, grant_items] }
         usage_policy: { type: string, enum: [one_time, multiple, per_user] }
+    AccessLinkPreview:
+      type: object
+      additionalProperties: false
+      required: [note, purpose]
+      properties:
+        note: { type: [string, 'null'], maxLength: 500 }
+        purpose: { type: string, enum: [grant_tool, grant_items] }
     AccessLinkGrantOption:
       type: object
       additionalProperties: false

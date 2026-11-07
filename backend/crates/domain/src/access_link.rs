@@ -77,3 +77,9 @@ pub struct AccessLinkAdminData {
     pub links: Vec<AccessLinkSummary>,
     pub tools: Vec<AccessLinkGrantOption>,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AccessLinkPreview {
+    pub note: Option<String>,
+    pub purpose: AccessLinkPurpose,
+}

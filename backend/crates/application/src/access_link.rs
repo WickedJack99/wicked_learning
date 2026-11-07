@@ -3,7 +3,8 @@ use std::future::Future;
 use uuid::Uuid;
 use wicked_learning_domain::{
     access_link::{
-        AccessLinkAdminData, AccessLinkPurpose, AccessLinkSummary, AccessLinkUsagePolicy,
+        AccessLinkAdminData, AccessLinkPreview, AccessLinkPurpose, AccessLinkSummary,
+        AccessLinkUsagePolicy,
     },
     identity_access::{ApplicationCapability, AuthorizedPrincipal},
 };
@@ -40,6 +41,10 @@ pub trait AccessLinkRepository {
         principal: &AuthorizedPrincipal,
         token_hash: &str,
     ) -> impl Future<Output = Result<bool, AccessLinkError>> + Send;
+    fn preview(
+        &self,
+        token_hash: &str,
+    ) -> impl Future<Output = Result<Option<AccessLinkPreview>, AccessLinkError>> + Send;
     fn set_enabled(
         &self,
         link_id: Uuid,
@@ -112,5 +117,12 @@ where
         token_hash: &str,
     ) -> Result<bool, AccessLinkError> {
         self.repository.redeem(principal, token_hash).await
+    }
+
+    pub async fn preview(
+        &self,
+        token_hash: &str,
+    ) -> Result<Option<AccessLinkPreview>, AccessLinkError> {
+        self.repository.preview(token_hash).await
     }
 }

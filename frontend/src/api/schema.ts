@@ -92,6 +92,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-links/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the non-sensitive purpose and note for an active access-link grant. */
+        get: operations["getAccessLinkPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -2177,6 +2194,11 @@ export interface components {
             /** @enum {string} */
             usage_policy: "one_time" | "multiple" | "per_user";
         };
+        AccessLinkPreview: {
+            note: string | null;
+            /** @enum {string} */
+            purpose: "grant_tool" | "grant_items";
+        };
         AccessLinkGrantOption: {
             /** Format: uuid */
             id: string;
@@ -4242,6 +4264,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The link is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAccessLinkPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A currently usable link preview, without the grant payload. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLinkPreview"];
+                };
             };
             /** @description The link is unknown */
             404: {

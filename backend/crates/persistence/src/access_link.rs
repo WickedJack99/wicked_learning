@@ -6,8 +6,8 @@ use wicked_learning_application::access_link::{
 };
 use wicked_learning_domain::{
     access_link::{
-        AccessLinkAdminData, AccessLinkGrantOption, AccessLinkPurpose, AccessLinkSummary,
-        AccessLinkUsagePolicy,
+        AccessLinkAdminData, AccessLinkGrantOption, AccessLinkPreview, AccessLinkPurpose,
+        AccessLinkSummary, AccessLinkUsagePolicy,
     },
     identity_access::AuthorizedPrincipal,
 };
@@ -265,6 +265,28 @@ impl Port for PostgresAccessLinkRepository<'_> {
         }
     }
 
+    fn preview(
+        &self,
+        token_hash: &str,
+    ) -> impl std::future::Future<Output = Result<Option<AccessLinkPreview>, AccessLinkError>> + Send
+    {
+        async move {
+            let row = sqlx::query_as::<_, PreviewRow>(
+                "SELECT note, purpose FROM access_links WHERE token_hash = $1 AND is_enabled AND expires_at > NOW() AND (usage_policy <> 'one_time' OR redeemed_at IS NULL)",
+            )
+            .bind(token_hash)
+            .fetch_optional(self.pool)
+            .await
+            .map_err(log_error)?;
+            Ok(row.and_then(|row| {
+                AccessLinkPurpose::parse(&row.purpose).map(|purpose| AccessLinkPreview {
+                    note: row.note,
+                    purpose,
+                })
+            }))
+        }
+    }
+
     fn set_enabled(
         &self,
         link_id: Uuid,
@@ -286,6 +308,12 @@ impl Port for PostgresAccessLinkRepository<'_> {
             Ok(row.and_then(summary_from_row))
         }
     }
+}
+
+#[derive(FromRow)]
+struct PreviewRow {
+    note: Option<String>,
+    purpose: String,
 }
 
 fn summary_from_row(row: LinkRow) -> Option<AccessLinkSummary> {

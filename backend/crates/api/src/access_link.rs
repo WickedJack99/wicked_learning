@@ -55,6 +55,22 @@ pub struct AccessLinkResponse {
     pub link: AccessLinkSummary,
 }
 
+pub async fn preview(
+    State(state): State<AppState>,
+    Path(token): Path<String>,
+) -> Result<Json<wicked_learning_domain::access_link::AccessLinkPreview>, ApiError> {
+    if token.trim().is_empty() || token.len() > 200 {
+        return Err(ApiError::not_found());
+    }
+    let repository = PostgresAccessLinkRepository::new(&state.application_database);
+    AccessLinksCommand::new(&repository)
+        .preview(&hex_sha256(token.trim()))
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
 pub async fn index(
     State(state): State<AppState>,
     auth_session: AuthSession<IdentityBackend>,

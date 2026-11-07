@@ -92,6 +92,12 @@ const OriginalAccessLinksPage = lazy(async () => {
     return { default: module.OriginalAccessLinksPage };
 });
 
+const OriginalAccessLinkRedeemPage = lazy(async () => {
+    const module = await import('./original-access-links');
+
+    return { default: module.OriginalAccessLinkRedeemPage };
+});
+
 /**
  * Each active route is a source-derived React surface with an available Rust
  * contract. Do not add placeholder pages here: extract the corresponding
@@ -211,12 +217,7 @@ export function App() {
     const accessLinkMatch = location.pathname.match(/^\/access-links\/([^/]+)$/);
     if (accessLinkMatch) {
         const token = decodeURIComponent(accessLinkMatch[1]);
-        const AccessLinkRedeem = lazy(async () => {
-            const module = await import('./original-access-links');
-
-            return { default: module.OriginalAccessLinkRedeemPage };
-        });
-        return <Suspense fallback={null}><AccessLinkRedeem token={token} isAuthenticated={currentUser.kind === 'loaded'} /></Suspense>;
+        return <Suspense fallback={null}><OriginalAccessLinkRedeemPage token={token} isAuthenticated={currentUser.kind === 'loaded'} /></Suspense>;
     }
 
     if (location.pathname === '/bookmarks') {

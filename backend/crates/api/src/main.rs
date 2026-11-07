@@ -380,6 +380,7 @@ fn router(state: AppState) -> Router {
             post(learner_group::vote_for_admin_chat_access),
         )
         .route("/api/v1/access-links/{token}/redeem", post(access_link::redeem))
+        .route("/api/v1/access-links/{token}", get(access_link::preview))
         .route(
             "/api/v1/learner/bookmarks",
             get(learner_bookmark_map::show),

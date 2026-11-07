@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalAppearanceToggle } from './original-appearance-toggle';
@@ -24,6 +24,7 @@ export function OriginalLoginPage({
     presentation: PublicPresentation;
 }) {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [password, setPassword] = useState('');
@@ -50,7 +51,8 @@ export function OriginalLoginPage({
                 return;
             }
 
-            navigate('/world', { replace: true });
+            const next = searchParams.get('next');
+            navigate(next?.startsWith('/') && !next.startsWith('//') ? next : '/world', { replace: true });
         } catch {
             setError('Sign in is temporarily unavailable.');
         } finally {
