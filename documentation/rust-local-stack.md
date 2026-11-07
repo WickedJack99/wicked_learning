@@ -158,6 +158,17 @@ docker compose --env-file .env.rust -f compose.rust.yaml exec -T backend \
 The command locks due organizations and is safe for overlapping scheduler
 invocations. It returns success when there is nothing to rotate.
 
+If a database interruption leaves an account deprovisioning job pending, run
+the following private maintenance command. It is idempotent: it completes the
+identity/application deletion sequence or removes a job whose identity has
+already been removed. A shared deployment should schedule it as a bounded
+worker; it is not a browser-facing endpoint.
+
+```bash
+docker compose --env-file .env.rust -f compose.rust.yaml exec -T backend \
+  wicked-learning-api reconcile-identity-deletions
+```
+
 Do not copy the example password values to a shared environment, attach an
 existing Laravel volume/database, or deploy this proof of concept to production.
 No production deployment is authorized by this document.

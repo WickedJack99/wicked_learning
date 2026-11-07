@@ -19,6 +19,7 @@ import { OriginalPersonalFeedbackPage } from './original-personal-feedback';
 import { OriginalPersonalLanguagePage } from './original-personal-language';
 import { OriginalPersonalNotificationsPage } from './original-personal-notifications';
 import { OriginalPersonalProfilePage } from './original-personal-profile';
+import { OriginalPersonalDeleteAccountPage } from './original-personal-delete-account';
 import { OriginalPersonalSoundPage } from './original-personal-sound';
 import { OriginalPersonalSecurityPage } from './original-personal-security';
 import { OriginalPlatformFeedbackPage } from './original-platform-feedback';
@@ -589,6 +590,23 @@ export function App() {
                 'security'
             ) {
                 return <OriginalPersonalSecurityPage appearance={appearance} />;
+            }
+            if (
+                new URLSearchParams(location.search).get('personal') ===
+                'delete-account'
+            ) {
+                return (
+                    <OriginalPersonalDeleteAccountPage
+                        appearance={appearance}
+                        onDeleted={() => {
+                            // The source ends the session and redirects home.
+                            // A document navigation also prevents the
+                            // protected-settings guard from winning a React
+                            // state race during this destructive transition.
+                            window.location.replace('/');
+                        }}
+                    />
+                );
             }
             if (
                 new URLSearchParams(location.search).get('personal') ===

@@ -1,4 +1,5 @@
 mod access_link;
+mod account_deletion;
 mod account_passkey;
 mod account_password;
 mod account_password_confirmation;
@@ -159,6 +160,9 @@ async fn main() -> ExitCode {
         Some("issue-registration-token") => return issue_registration_token(&configuration).await,
         Some("rotate-random-organization-leaders") => {
             return rotate_random_organization_leaders(&configuration).await;
+        }
+        Some("reconcile-identity-deletions") => {
+            return reconcile_identity_deletions(&configuration).await;
         }
         Some(command) => {
             error!(%command, "unknown command");
@@ -350,6 +354,38 @@ async fn bootstrap_admin(configuration: &Config) -> ExitCode {
     }
 }
 
+async fn reconcile_identity_deletions(configuration: &Config) -> ExitCode {
+    let application_database = match connect(&configuration.application_database_url).await {
+        Ok(pool) => pool,
+        Err(error) => {
+            error!(%error, "could not connect to the application database for deletion reconciliation");
+            return ExitCode::FAILURE;
+        }
+    };
+    let identity_database = match connect(&configuration.identity_database_url).await {
+        Ok(pool) => pool,
+        Err(error) => {
+            error!(%error, "could not connect to the identity database for deletion reconciliation");
+            return ExitCode::FAILURE;
+        }
+    };
+    match wicked_learning_persistence::identity_deletion::reconcile(
+        &application_database,
+        &identity_database,
+    )
+    .await
+    {
+        Ok(reconciled) => {
+            info!(reconciled, "identity deletion reconciliation completed");
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            error!(%error, "identity deletion reconciliation failed");
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn router(state: AppState) -> Router {
     let identity_backend = IdentityBackend::new(state.identity_database.clone());
     let session_store = PostgresStore::new(state.identity_database.clone());
@@ -475,7 +511,9 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/account/password", patch(account_password::update))
         .route(
             "/api/v1/account/profile",
-            get(account_profile::show).patch(account_profile::update),
+            get(account_profile::show)
+                .patch(account_profile::update)
+                .delete(account_deletion::destroy),
         )
         .route(
             "/api/v1/account/profile/image",

@@ -540,7 +540,11 @@ export interface paths {
         get: operations["getAccountProfile"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Permanently delete the current account and its resources.
+         * @description Mirrors the source profile-deletion form. The current password is required in this same CSRF-protected destructive request; the server then deprovisions identity and application data through the resumable deletion workflow.
+         */
+        delete: operations["deleteAccountProfile"];
         options?: never;
         head?: never;
         /**
@@ -2625,6 +2629,10 @@ export interface components {
             username?: string | null;
             /** Format: uuid */
             profile_image_id: string | null;
+        };
+        DeleteAccountRequest: {
+            /** @description The authenticated account owner's current password. It is never persisted or returned. */
+            password: string;
         };
         ProfileImageUpload: {
             /** Format: uuid */
@@ -6394,6 +6402,59 @@ export interface operations {
             };
             /** @description The identity has no application principal. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAccountProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description The account, application principal, and related data were deleted and the browser session was ended. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied current password was rejected. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

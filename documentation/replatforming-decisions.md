@@ -3178,30 +3178,38 @@ records deliberately live in separate databases, so deleting either one first
 can leave an interrupted operation without a database transaction spanning
 both sides.
 
-**Decision:** A deletion first changes the identity to a non-authenticating
-`deleting` state. In one application transaction it records a small
-deprovisioning job, nulls audit references as the source's nullable foreign
-keys do, and deletes the application principal (using the application
-database's existing cascade/null relationships). It then deletes the identity
-and removes the job. If a process or database fails after the application
-commit, a repeated authorized deletion detects the job and finishes identity
-cleanup. An administrator may never delete their own subject; `users: rud` is
-required.
+**Decision:** Both administrator deletion of another account and the source
+owner-initiated Delete account panel use one reusable lifecycle. The latter
+requires the current password in the destructive request itself, as the source
+`ProfileDeleteRequest` does; it is not satisfied by the separate recent-password
+confirmation window. A deletion first commits a small application-database
+deprovisioning job, then changes the identity to a non-authenticating
+`deleting` state. A second application transaction nulls audit references as
+the source's nullable foreign keys do and deletes the application principal
+(using existing cascade/null relationships). It then deletes the identity and
+removes the job. The successful owner request logs out its current browser
+session and returns to the source welcome surface. An administrator may never
+delete their own subject through the administrative route; `users: rud` remains
+required there.
 
-**Why:** The immediately non-authenticating state prevents a partly deleted
-account from continuing to use a session. A durable job turns an unavoidable
-cross-database boundary into an observable, retryable state instead of
-silently accepting split deletion.
+**Why:** Committing the durable job before the identity state changes prevents
+an untracked disabled identity if the application database fails. The
+immediately non-authenticating state prevents a partly deleted account from
+continuing to use a session. Reuse keeps staff and owner deletion from silently
+developing different cross-database semantics.
 
 **Alternatives:** Deleting the application principal first can strand an
 otherwise authenticating identity. Deleting identity first without a repair
 record can strand application data forever. A soft delete would depart from
 the source's deletion semantics. These alternatives are rejected.
 
-**Limits and follow-up:** The repair is currently retried by the same
-authorized delete contract; a future operational scheduler may reconcile
-stale jobs. The source-adapted Users panel now exposes the complete migrated
-workspace through that contract.
+**Limits and follow-up:** The `reconcile-identity-deletions` backend command
+repairs durable jobs after an interruption; a production deployment should run
+it as a bounded worker or scheduled job. Mounted-volume profile-image metadata
+cascades with the principal, but physical object cleanup remains the existing
+media-lifecycle worker follow-up. The source-adapted Users panel and Personal
+Delete account panel now expose their respective complete workflows through
+this contract.
 
 ## ADR-082: Registration access links carry application-owned role selections
 

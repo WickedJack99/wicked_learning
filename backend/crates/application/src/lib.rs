@@ -1,6 +1,7 @@
 //! Wicked Learning use cases and transaction boundaries.
 
 pub mod access_link;
+pub mod account_deletion;
 pub mod account_profile;
 pub mod admin_learning_group;
 pub mod admin_role;

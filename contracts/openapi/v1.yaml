@@ -660,6 +660,24 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '422': { description: The name, email address, public username, or selected image was rejected. }
         '503': { description: An identity or application database is unavailable. }
+    delete:
+      operationId: deleteAccountProfile
+      summary: Permanently delete the current account and its resources.
+      description: Mirrors the source profile-deletion form. The current password is required in this same CSRF-protected destructive request; the server then deprovisions identity and application data through the resumable deletion workflow.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteAccountRequest'
+      responses:
+        '204': { description: "The account, application principal, and related data were deleted and the browser session was ended." }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The supplied current password was rejected. }
+        '503': { description: An identity or application database is unavailable. }
   /account/profile/image:
     post:
       operationId: uploadAccountProfileImage
@@ -3622,6 +3640,16 @@ components:
         profile_image_id:
           type: [string, 'null']
           format: uuid
+    DeleteAccountRequest:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 1024
+          description: The authenticated account owner's current password. It is never persisted or returned.
     ProfileImageUpload:
       type: object
       additionalProperties: false

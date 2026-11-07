@@ -146,6 +146,14 @@ impl ApiError {
         }
     }
 
+    pub fn account_deletion_rejected() -> Self {
+        Self {
+            code: "account_deletion_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The account could not be deleted with this password.",
+        }
+    }
+
     pub fn profile_image_rejected() -> Self {
         Self {
             code: "profile_image_rejected",
