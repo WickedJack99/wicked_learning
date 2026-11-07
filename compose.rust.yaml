@@ -20,6 +20,10 @@ services:
       MEDIA_ROOT: /var/lib/wicked-learning/media
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8081}
       SESSION_COOKIE_SECURE: "false"
+      # Static only for disposable local development. Set a unique 32-byte
+      # Base64 key in every shared environment and retain it for the life of
+      # any enrolled TOTP factors.
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-d2lja2VkLWxlYXJuaW5nLWxvY2FsLXRvdHAta2V5LTA=}
       RUST_LOG: ${RUST_LOG:-info}
     depends_on:
       application-db:

@@ -3296,9 +3296,16 @@ journeys while reusing maintained TOTP and password-hash primitives. Staged
 enrollment prevents an interrupted QR scan from locking an account, and
 one-way recovery-code storage limits the impact of an identity-database read.
 
-**Limits and follow-up:** Login challenge state, rate limiting, session
-rotation, account recovery and the source passkey flow are implemented as
-separate identity work; TOTP alone does not satisfy the identity cutover gate.
+**Implementation status:** The Rust API now starts an authenticated,
+CSRF-protected pending enrollment at `POST /api/v1/account/two-factor/setup`.
+It returns the provisioning secret only in a `Cache-Control: no-store` response
+and stores an AES-256-GCM-encrypted pending secret in the identity database.
+It intentionally has no React control yet and cannot enable a factor.
+
+**Limits and follow-up:** Confirmation, recovery-code generation and use,
+login challenge state/rate limiting, session rotation, account recovery, audit
+events and the source passkey flow remain separate identity work; this pending
+enrollment endpoint alone does not satisfy the identity cutover gate.
 
 ## Phase 1 gate
 

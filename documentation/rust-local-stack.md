@@ -25,9 +25,12 @@ default enabled for any HTTPS environment.
 
 ## Start locally
 
-1. Copy `.env.rust.example` to `.env.rust` and replace both database passwords
-   and the CSRF cookie key before using any shared environment. The committed
-   defaults are deliberately local-development-only values.
+1. Copy `.env.rust.example` to `.env.rust` and replace both database passwords,
+   the CSRF cookie key and the TOTP encryption key before using any shared
+   environment. `TOTP_ENCRYPTION_KEY` is a Base64-encoded 32-byte key that must
+   be retained for the life of enrolled TOTP factors; changing it makes those
+   factors unreadable. The committed defaults are deliberately
+   local-development-only values.
 2. Start the two database services:
 
    ```bash
@@ -62,8 +65,12 @@ foundation endpoint. The local proof of concept exposes password
 React sign-in/sign-out proof: both require the token's `X-CSRF-Token` header
 and the configured `PUBLIC_ORIGIN`. Login accepts only active, email-verified
 Rust identities and shares a small client-IP rate-limit burst with invitation
-registration. Verification/recovery, MFA/passkeys, audit records and the full
-authorization matrix remain separate required work; this is not a user cutover.
+registration. The API can privately start an authenticated TOTP enrollment and
+retains only its encrypted pending secret, but the original React two-factor
+control remains absent until confirmation, recovery and login-challenge
+contracts arrive together. Verification/recovery, MFA/passkeys, audit records
+and the full authorization matrix remain separate required work; this is not a
+user cutover.
 
 The local HTTP stack intentionally does not mark session or CSRF cookies
 `Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser

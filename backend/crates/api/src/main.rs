@@ -2,6 +2,7 @@ mod access_link;
 mod account_password;
 mod account_profile;
 mod account_profile_image;
+mod account_two_factor;
 mod admin_learning_group;
 mod admin_registration_tokens;
 mod admin_role;
@@ -73,6 +74,7 @@ mod registration_tokens;
 mod session_commands;
 mod session_status;
 mod temporary_access_login;
+mod totp_crypto;
 
 use std::{process::ExitCode, time::Duration};
 
@@ -121,6 +123,7 @@ pub(crate) struct AppState {
     media_store: MediaStore,
     public_origin: String,
     session_cookie_secure: bool,
+    totp_secret_cipher: totp_crypto::TotpSecretCipher,
 }
 
 #[derive(Serialize)]
@@ -183,6 +186,7 @@ async fn main() -> ExitCode {
         media_store,
         public_origin: configuration.public_origin,
         session_cookie_secure: configuration.session_cookie_secure,
+        totp_secret_cipher: totp_crypto::TotpSecretCipher::new(configuration.totp_encryption_key),
     };
     let listener = match tokio::net::TcpListener::bind(configuration.listen_address).await {
         Ok(listener) => listener,
@@ -324,6 +328,10 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/account/password", patch(account_password::update))
+        .route(
+            "/api/v1/account/two-factor/setup",
+            post(account_two_factor::start_setup),
+        )
         .route(
             "/api/v1/account/profile",
             get(account_profile::show).patch(account_profile::update),
@@ -785,6 +793,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
 
         let response = router(state)
@@ -825,6 +834,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
 
         let response = router(state)
@@ -864,6 +874,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
 
         let response = router(state)
@@ -903,6 +914,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
 
         let response = router(state)
@@ -942,6 +954,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
 
         let response = router(state)
@@ -981,6 +994,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
 
         let response = router(state)
@@ -1022,6 +1036,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
         let app = router(state);
 
@@ -1080,6 +1095,7 @@ mod tests {
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
         };
 
         let response = router(state)

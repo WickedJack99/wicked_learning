@@ -5,6 +5,7 @@ use std::{
     str::{FromStr, ParseBoolError},
 };
 
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use email_address::EmailAddress;
 use thiserror::Error;
 use url::Url;
@@ -18,6 +19,7 @@ pub struct Config {
     pub media_root: PathBuf,
     pub public_origin: String,
     pub session_cookie_secure: bool,
+    pub totp_encryption_key: [u8; 32],
 }
 
 pub struct BootstrapAdminConfig {
@@ -40,6 +42,8 @@ pub enum ConfigError {
     InvalidSessionCookieSecure(#[source] ParseBoolError),
     #[error("CSRF_COOKIE_KEY must contain at least 64 bytes of secret material")]
     InvalidCsrfCookieKey,
+    #[error("TOTP_ENCRYPTION_KEY must be a Base64-encoded 32-byte key")]
+    InvalidTotpEncryptionKey,
     #[error("PUBLIC_ORIGIN must be an absolute HTTP or HTTPS origin")]
     InvalidPublicOrigin,
     #[error("BOOTSTRAP_ADMIN_EMAIL must be a valid email address")]
@@ -103,6 +107,7 @@ impl Config {
                 .unwrap_or_else(|_| "true".to_owned())
                 .parse()
                 .map_err(ConfigError::InvalidSessionCookieSecure)?,
+            totp_encryption_key: totp_encryption_key()?,
         })
     }
 }
@@ -139,13 +144,30 @@ fn validate_csrf_cookie_key(key: String) -> Result<String, ConfigError> {
     Ok(key)
 }
 
+fn totp_encryption_key() -> Result<[u8; 32], ConfigError> {
+    validate_totp_encryption_key(required("TOTP_ENCRYPTION_KEY")?)
+}
+
+fn validate_totp_encryption_key(value: String) -> Result<[u8; 32], ConfigError> {
+    let decoded = STANDARD
+        .decode(value)
+        .map_err(|_| ConfigError::InvalidTotpEncryptionKey)?;
+
+    decoded
+        .try_into()
+        .map_err(|_| ConfigError::InvalidTotpEncryptionKey)
+}
+
 fn required(name: &'static str) -> Result<String, ConfigError> {
     env::var(name).map_err(|_| ConfigError::Missing(name))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ConfigError, normalize_email, normalize_public_origin, validate_csrf_cookie_key};
+    use super::{
+        ConfigError, normalize_email, normalize_public_origin, validate_csrf_cookie_key,
+        validate_totp_encryption_key,
+    };
 
     #[test]
     fn bootstrap_email_is_trimmed_and_normalized() {
@@ -173,5 +195,22 @@ mod tests {
         assert!(normalize_public_origin("https://example.test/app").is_err());
         assert!(normalize_public_origin("https://user@example.test").is_err());
         assert!(normalize_public_origin("mailto:admin@example.test").is_err());
+    }
+
+    #[test]
+    fn totp_encryption_key_requires_exactly_thirty_two_base64_encoded_bytes() {
+        assert_eq!(
+            validate_totp_encryption_key("d2lja2VkLWxlYXJuaW5nLWxvY2FsLXRvdHAta2V5LTA=".to_owned())
+                .expect("a 32-byte key"),
+            *b"wicked-learning-local-totp-key-0"
+        );
+        assert!(matches!(
+            validate_totp_encryption_key("not-base64".to_owned()),
+            Err(ConfigError::InvalidTotpEncryptionKey)
+        ));
+        assert!(matches!(
+            validate_totp_encryption_key("dG9vLXNob3J0".to_owned()),
+            Err(ConfigError::InvalidTotpEncryptionKey)
+        ));
     }
 }

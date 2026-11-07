@@ -286,6 +286,26 @@ export interface paths {
         patch: operations["updateAccountPassword"];
         trace?: never;
     };
+    "/account/two-factor/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a pending authenticator-app enrollment for the current subject.
+         * @description The response contains the one-time provisioning secret for the authenticated browser only and is explicitly non-cacheable. It stores an encrypted pending factor in the identity database but does not enable two-factor login; confirmation, recovery codes and the login challenge are separate contract slices.
+         */
+        post: operations["startAccountTwoFactorSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/profile": {
         parameters: {
             query?: never;
@@ -2258,6 +2278,15 @@ export interface components {
             password: string;
             /** Format: password */
             password_confirmation: string;
+        };
+        PendingTwoFactorSetup: {
+            /** @description A Base32 authenticator secret. It is returned once for the current pending enrollment and must not be persisted by a client. */
+            manual_setup_key: string;
+            /**
+             * Format: uri
+             * @description A standard otpauth URI containing the pending secret. It is returned only to the authenticated owner and must not be persisted by a client.
+             */
+            provisioning_url: string;
         };
         AccountProfile: {
             name: string;
@@ -5113,6 +5142,51 @@ export interface operations {
             };
             /** @description The current password */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    startAccountTwoFactorSetup: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A fresh pending enrollment secret and standard otpauth provisioning URL. The response must not be persisted by a client. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingTwoFactorSetup"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

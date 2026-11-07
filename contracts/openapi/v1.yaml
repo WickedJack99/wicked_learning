@@ -313,6 +313,26 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '422': { description: The current password, replacement password, or confirmation was rejected. }
         '503': { description: The identity database is unavailable. }
+  /account/two-factor/setup:
+    post:
+      operationId: startAccountTwoFactorSetup
+      summary: Start a pending authenticator-app enrollment for the current subject.
+      description: The response contains the one-time provisioning secret for the authenticated browser only and is explicitly non-cacheable. It stores an encrypted pending factor in the identity database but does not enable two-factor login; confirmation, recovery codes and the login challenge are separate contract slices.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: A fresh pending enrollment secret and standard otpauth provisioning URL. The response must not be persisted by a client.
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingTwoFactorSetup'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The identity database is unavailable. }
   /account/profile:
     get:
       operationId: getAccountProfile
@@ -3104,6 +3124,18 @@ components:
           format: password
           minLength: 12
           maxLength: 1024
+    PendingTwoFactorSetup:
+      type: object
+      additionalProperties: false
+      required: [manual_setup_key, provisioning_url]
+      properties:
+        manual_setup_key:
+          type: string
+          description: A Base32 authenticator secret. It is returned once for the current pending enrollment and must not be persisted by a client.
+        provisioning_url:
+          type: string
+          format: uri
+          description: A standard otpauth URI containing the pending secret. It is returned only to the authenticated owner and must not be persisted by a client.
     AccountProfile:
       type: object
       additionalProperties: false
