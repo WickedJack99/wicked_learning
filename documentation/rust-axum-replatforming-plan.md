@@ -1036,12 +1036,14 @@ including learner guidance, optional light/dark images and button colors,
 ordering and a separate delete confirmation. Selecting an authored edge opens
 the source transition editor, preserving its label/outcome-only edit rule and
 direct connection deletion. It now adapts the source
-Open Practice, Reflection, Item Grant and Tool Grant create/edit forms through
-their complete typed Rust commands; Item Grant resolves selected catalog UUIDs
+Open Practice, Reflection, Item Grant, Tool Grant and Item Obstacle create/edit
+forms through their complete typed Rust commands; Item Grant resolves selected catalog UUIDs
 only at the scoped server command and retains its quantities, probability and
 scene configuration, while Tool Grant does the same for its optional tool and
 retains the source bubble, motion, placement and scene fields. Each form
-refetches after a successful write. Other
+refetches after a successful write. Item Obstacle carries its normal/completed
+scene fields, positioned catalog-item slots, replay/lock behavior and the
+three catalog-sound events through the typed scoped command. Other
 activity-card types deliberately remain read-only in this surface. The reader
 does not pretend that the source
 map/configuration forms, other activity editors, histories, templates or media

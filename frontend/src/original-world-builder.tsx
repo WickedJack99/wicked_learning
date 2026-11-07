@@ -35,6 +35,7 @@ type EditableMap = components['schemas']['AdminEditableMap'];
 type EditableNode = components['schemas']['AdminEditableNode'];
 type Activity = components['schemas']['AdminEditableActivity'];
 type EditableItem = components['schemas']['AdminEditableItem'];
+type EditableSound = components['schemas']['AdminEditableSound'];
 type EditableTool = components['schemas']['AdminEditableTool'];
 type ActivityTransition = components['schemas']['AdminActivityTransition'];
 type ActivityConnector = components['schemas']['AdminActivityConnector'];
@@ -58,7 +59,8 @@ type SupportedActivityType =
     | 'open_practice'
     | 'reflection'
     | 'item_grant'
-    | 'tool_grant';
+    | 'tool_grant'
+    | 'item_obstacle';
 type ActivityAuthorForm = {
     backgroundDark: string;
     backgroundLight: string;
@@ -71,6 +73,32 @@ type ActivityAuthorForm = {
     bubbleOpacityLight: string;
     fadeDurationSeconds: string;
     introduction: string;
+    itemObstacleBackgroundDark: string;
+    itemObstacleBackgroundLight: string;
+    itemObstacleBackgroundMirrored: boolean;
+    itemObstacleConsumeOnEachEntry: boolean;
+    itemObstacleLockMinutes: string;
+    itemObstacleMetBackgroundDark: string;
+    itemObstacleMetBackgroundLight: string;
+    itemObstacleMetBackgroundMirrored: boolean;
+    itemObstacleOverlayDark: string;
+    itemObstacleOverlayLight: string;
+    itemObstacleOverlayMirrored: boolean;
+    itemObstacleOverlayWidth: string;
+    itemObstacleOverlayX: string;
+    itemObstacleOverlayY: string;
+    itemObstacleSlots: Array<{
+        itemId: string;
+        width: string;
+        x: string;
+        y: string;
+    }>;
+    itemObstacleSoundMetEnabled: boolean;
+    itemObstacleSoundMetId: string;
+    itemObstacleSoundNotMetEnabled: boolean;
+    itemObstacleSoundNotMetId: string;
+    itemObstacleSoundTransitionEnabled: boolean;
+    itemObstacleSoundTransitionId: string;
     items: Array<{ itemId: string; quantity: string }>;
     nextStep: string;
     note: string;
@@ -867,6 +895,14 @@ function ActivityGraph({
                             <Plus className="size-3.5" />
                             Tool grant
                         </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'item_obstacle' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Item obstacle
+                        </button>
                     </div>
                 </div>
                 {connectionError ? (
@@ -919,6 +955,7 @@ function ActivityGraph({
                 <ActivityAuthorDialog
                     activity={editor.activity}
                     items={document.items}
+                    sounds={document.sounds}
                     tools={document.tools}
                     nodeId={graph.node.id}
                     onClose={() => setEditor(null)}
@@ -1683,6 +1720,7 @@ function ActivityAuthorDialog({
     nodeId,
     onClose,
     onSaved,
+    sounds,
     type,
     tools,
 }: {
@@ -1691,11 +1729,12 @@ function ActivityAuthorDialog({
     nodeId: string;
     onClose: () => void;
     onSaved: () => void;
+    sounds: EditableSound[];
     type: SupportedActivityType;
     tools: EditableTool[];
 }) {
     const [form, setForm] = useState(() =>
-        activityAuthorForm(type, activity, items, tools),
+        activityAuthorForm(type, activity, items, tools, sounds),
     );
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -1707,7 +1746,9 @@ function ActivityAuthorDialog({
               ? 'Reflection'
               : type === 'item_grant'
                 ? 'Item grant'
-                : 'Tool grant';
+                : type === 'tool_grant'
+                  ? 'Tool grant'
+                  : 'Item obstacle';
 
     const updateField = (field: keyof ActivityAuthorForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -1740,6 +1781,15 @@ function ActivityAuthorDialog({
             return;
         }
         const completeToolGrant = toolGrant ?? defaultToolGrantRequest();
+        const itemObstacle = itemObstacleRequest(form);
+        if (type === 'item_obstacle' && !itemObstacle) {
+            setError(
+                'Use values within the shown source ranges and choose a sound for each enabled event.',
+            );
+            return;
+        }
+        const completeItemObstacle =
+            itemObstacle ?? defaultItemObstacleRequest();
 
         setSaving(true);
         try {
@@ -1854,6 +1904,32 @@ function ActivityAuthorDialog({
                             probability_percent:
                                 completeItemGrant.probabilityPercent,
                         },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { node_id: nodeId },
+                        },
+                    },
+                ));
+            } else if (type === 'item_obstacle' && activity) {
+                ({ response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/item-obstacle',
+                    {
+                        body: {
+                            ...common,
+                            ...completeItemObstacle,
+                            updated_at: activity.updated_at,
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { activity_id: activity.id },
+                        },
+                    },
+                ));
+            } else if (type === 'item_obstacle') {
+                ({ response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/item-obstacle-activities',
+                    {
+                        body: { ...common, ...completeItemObstacle },
                         params: {
                             header: { 'X-CSRF-Token': token },
                             path: { node_id: nodeId },
@@ -2012,6 +2088,13 @@ function ActivityAuthorDialog({
                             form={form}
                             items={items}
                             onChange={setForm}
+                        />
+                    ) : type === 'item_obstacle' ? (
+                        <ItemObstacleFields
+                            form={form}
+                            items={items}
+                            onChange={setForm}
+                            sounds={sounds}
                         />
                     ) : (
                         <ToolGrantFields
@@ -2248,6 +2331,286 @@ function ItemGrantFields({
                     />
                     Mirror background horizontally
                 </label>
+            </section>
+        </>
+    );
+}
+
+function ItemObstacleFields({
+    form,
+    items,
+    onChange,
+    sounds,
+}: {
+    form: ActivityAuthorForm;
+    items: EditableItem[];
+    onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
+    sounds: EditableSound[];
+}) {
+    const update = (field: keyof ActivityAuthorForm, value: string | boolean) =>
+        onChange((current) => ({ ...current, [field]: value }));
+    const updateSlot = (
+        index: number,
+        field: 'itemId' | 'x' | 'y' | 'width',
+        value: string,
+    ) =>
+        onChange((current) => ({
+            ...current,
+            itemObstacleSlots: current.itemObstacleSlots.map(
+                (slot, slotIndex) =>
+                    slotIndex === index ? { ...slot, [field]: value } : slot,
+            ),
+        }));
+
+    return (
+        <>
+            <section className="grid gap-3 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-sm font-medium">Required slots</h3>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            Each slot requires an owned item before learners can
+                            continue.
+                        </p>
+                    </div>
+                    <button
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/15 dark:hover:bg-white/10"
+                        disabled={form.itemObstacleSlots.length >= 10}
+                        onClick={() =>
+                            onChange((current) => ({
+                                ...current,
+                                itemObstacleSlots: [
+                                    ...current.itemObstacleSlots,
+                                    {
+                                        itemId: '',
+                                        width: '10',
+                                        x: '50',
+                                        y: '50',
+                                    },
+                                ],
+                            }))
+                        }
+                        type="button"
+                    >
+                        <Plus className="size-3.5" />
+                        Add slot
+                    </button>
+                </div>
+                {form.itemObstacleSlots.map((slot, index) => (
+                    <div
+                        className="grid gap-2 rounded-lg bg-slate-50 p-3 md:grid-cols-[1fr_repeat(3,5rem)_auto] dark:bg-white/5"
+                        key={`${slot.itemId}-${index}`}
+                    >
+                        <select
+                            aria-label={`Required item ${index + 1}`}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                            onChange={(event) =>
+                                updateSlot(index, 'itemId', event.target.value)
+                            }
+                            value={slot.itemId}
+                        >
+                            <option value="">Select item</option>
+                            {items.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.title}
+                                </option>
+                            ))}
+                        </select>
+                        {(['x', 'y', 'width'] as const).map((field) => (
+                            <input
+                                aria-label={`${field} for required item ${index + 1}`}
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                                key={field}
+                                max="100"
+                                min={field === 'width' ? '1' : '0'}
+                                onChange={(event) =>
+                                    updateSlot(index, field, event.target.value)
+                                }
+                                type="number"
+                                value={slot[field]}
+                            />
+                        ))}
+                        <button
+                            aria-label="Remove required item slot"
+                            className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-300/10 dark:hover:text-red-300"
+                            onClick={() =>
+                                onChange((current) => ({
+                                    ...current,
+                                    itemObstacleSlots:
+                                        current.itemObstacleSlots.filter(
+                                            (_, slotIndex) =>
+                                                slotIndex !== index,
+                                        ),
+                                }))
+                            }
+                            type="button"
+                        >
+                            <Trash2 className="size-4" />
+                        </button>
+                    </div>
+                ))}
+            </section>
+            <ToolGrantNumberField
+                label="Failed try lockout (minutes)"
+                max={10_080}
+                min={0}
+                onChange={(value) => update('itemObstacleLockMinutes', value)}
+                suffix="min"
+                value={form.itemObstacleLockMinutes}
+            />
+            <label className="flex items-center gap-3 text-sm font-medium">
+                <input
+                    checked={form.itemObstacleConsumeOnEachEntry}
+                    onChange={(event) =>
+                        update(
+                            'itemObstacleConsumeOnEachEntry',
+                            event.target.checked,
+                        )
+                    }
+                    type="checkbox"
+                />
+                Consume items on every entry
+            </label>
+            <section className="grid gap-4 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <h3 className="text-sm font-medium">Item obstacle scene</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                    {[
+                        ['itemObstacleBackgroundDark', 'Dark background'],
+                        ['itemObstacleBackgroundLight', 'Light background'],
+                        [
+                            'itemObstacleMetBackgroundDark',
+                            'Dark met background',
+                        ],
+                        [
+                            'itemObstacleMetBackgroundLight',
+                            'Light met background',
+                        ],
+                        ['itemObstacleOverlayDark', 'Dark overlay image'],
+                        ['itemObstacleOverlayLight', 'Light overlay image'],
+                    ].map(([field, label]) => (
+                        <ActivityTextField
+                            key={field}
+                            label={label}
+                            onChange={(value) =>
+                                update(field as keyof ActivityAuthorForm, value)
+                            }
+                            value={String(
+                                form[field as keyof ActivityAuthorForm],
+                            )}
+                        />
+                    ))}
+                    <ToolGrantNumberField
+                        label="Overlay x position"
+                        max={100}
+                        min={0}
+                        onChange={(value) =>
+                            update('itemObstacleOverlayX', value)
+                        }
+                        suffix="%"
+                        value={form.itemObstacleOverlayX}
+                    />
+                    <ToolGrantNumberField
+                        label="Overlay y position"
+                        max={100}
+                        min={0}
+                        onChange={(value) =>
+                            update('itemObstacleOverlayY', value)
+                        }
+                        suffix="%"
+                        value={form.itemObstacleOverlayY}
+                    />
+                    <ToolGrantNumberField
+                        label="Overlay width"
+                        max={100}
+                        min={1}
+                        onChange={(value) =>
+                            update('itemObstacleOverlayWidth', value)
+                        }
+                        suffix="%"
+                        value={form.itemObstacleOverlayWidth}
+                    />
+                </div>
+                {[
+                    [
+                        'itemObstacleBackgroundMirrored',
+                        'Mirror background horizontally',
+                    ],
+                    [
+                        'itemObstacleMetBackgroundMirrored',
+                        'Mirror met background horizontally',
+                    ],
+                    [
+                        'itemObstacleOverlayMirrored',
+                        'Mirror overlay horizontally',
+                    ],
+                ].map(([field, label]) => (
+                    <label
+                        className="flex items-center gap-3 text-sm font-medium"
+                        key={field}
+                    >
+                        <input
+                            checked={Boolean(
+                                form[field as keyof ActivityAuthorForm],
+                            )}
+                            onChange={(event) =>
+                                update(
+                                    field as keyof ActivityAuthorForm,
+                                    event.target.checked,
+                                )
+                            }
+                            type="checkbox"
+                        />
+                        {label}
+                    </label>
+                ))}
+            </section>
+            <section className="grid gap-3 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <h3 className="text-sm font-medium">Item obstacle sounds</h3>
+                {[
+                    ['itemObstacleSoundNotMet', 'Conditions not met'],
+                    ['itemObstacleSoundTransition', 'Transition to met'],
+                    ['itemObstacleSoundMet', 'Conditions met'],
+                ].map(([prefix, label]) => {
+                    const enabledField =
+                        `${prefix}Enabled` as keyof ActivityAuthorForm;
+                    const idField = `${prefix}Id` as keyof ActivityAuthorForm;
+                    return (
+                        <div
+                            className="grid gap-2 md:grid-cols-[auto_1fr]"
+                            key={prefix}
+                        >
+                            <label className="flex items-center gap-2 text-sm font-medium">
+                                <input
+                                    checked={Boolean(form[enabledField])}
+                                    onChange={(event) =>
+                                        update(
+                                            enabledField,
+                                            event.target.checked,
+                                        )
+                                    }
+                                    type="checkbox"
+                                />
+                                {label}
+                            </label>
+                            <select
+                                aria-label={`${label} sound`}
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                                disabled={!form[enabledField]}
+                                onChange={(event) =>
+                                    update(idField, event.target.value)
+                                }
+                                value={String(form[idField])}
+                            >
+                                <option value="">Select sound</option>
+                                {sounds.map((sound) => (
+                                    <option key={sound.id} value={sound.id}>
+                                        {sound.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    );
+                })}
             </section>
         </>
     );
@@ -2513,6 +2876,7 @@ function activityAuthorForm(
     activity?: Activity,
     items: EditableItem[] = [],
     tools: EditableTool[] = [],
+    sounds: EditableSound[] = [],
 ): ActivityAuthorForm {
     const config = activity?.config ?? {};
     return {
@@ -2541,6 +2905,58 @@ function activityAuthorForm(
             configNumber(config, 'fadeDurationSeconds', 0.4),
         ),
         introduction: activity?.introduction ?? '',
+        itemObstacleBackgroundDark: configString(config, 'backgroundDark'),
+        itemObstacleBackgroundLight: configString(config, 'backgroundLight'),
+        itemObstacleBackgroundMirrored: configBoolean(
+            config,
+            'backgroundMirrored',
+        ),
+        itemObstacleConsumeOnEachEntry: configBoolean(
+            config,
+            'consumeOnEachEntry',
+        ),
+        itemObstacleLockMinutes: String(configNumber(config, 'lockMinutes', 0)),
+        itemObstacleMetBackgroundDark: configString(
+            config,
+            'metBackgroundDark',
+        ),
+        itemObstacleMetBackgroundLight: configString(
+            config,
+            'metBackgroundLight',
+        ),
+        itemObstacleMetBackgroundMirrored: configBoolean(
+            config,
+            'metBackgroundMirrored',
+        ),
+        itemObstacleOverlayDark: configString(config, 'overlayDark'),
+        itemObstacleOverlayLight: configString(config, 'overlayLight'),
+        itemObstacleOverlayMirrored: configBoolean(config, 'overlayMirrored'),
+        itemObstacleOverlayWidth: String(
+            configNumber(config, 'overlayWidth', 30),
+        ),
+        itemObstacleOverlayX: String(configNumber(config, 'overlayX', 50)),
+        itemObstacleOverlayY: String(configNumber(config, 'overlayY', 50)),
+        itemObstacleSlots: itemObstacleSlots(config, items),
+        itemObstacleSoundMetEnabled: itemObstacleSoundEnabled(config, 'met'),
+        itemObstacleSoundMetId: itemObstacleSoundId(config, 'met', sounds),
+        itemObstacleSoundNotMetEnabled: itemObstacleSoundEnabled(
+            config,
+            'notMet',
+        ),
+        itemObstacleSoundNotMetId: itemObstacleSoundId(
+            config,
+            'notMet',
+            sounds,
+        ),
+        itemObstacleSoundTransitionEnabled: itemObstacleSoundEnabled(
+            config,
+            'transition',
+        ),
+        itemObstacleSoundTransitionId: itemObstacleSoundId(
+            config,
+            'transition',
+            sounds,
+        ),
         items: itemGrantItems(config, items),
         nextStep:
             configString(config, 'nextStep') ||
@@ -2653,6 +3069,204 @@ function itemGrantRequest(form: ActivityAuthorForm): {
         return null;
     }
     return { items, probabilityPercent };
+}
+
+function itemObstacleRequest(form: ActivityAuthorForm): {
+    background_dark: string | null;
+    background_light: string | null;
+    background_mirrored: boolean;
+    consume_on_each_entry: boolean;
+    lock_minutes: number;
+    met_background_dark: string | null;
+    met_background_light: string | null;
+    met_background_mirrored: boolean;
+    overlay_dark: string | null;
+    overlay_light: string | null;
+    overlay_mirrored: boolean;
+    overlay_width: number;
+    overlay_x: number;
+    overlay_y: number;
+    slots: Array<{ item_id: string; width: number; x: number; y: number }>;
+    sound_met_enabled: boolean;
+    sound_met_id: string | null;
+    sound_not_met_enabled: boolean;
+    sound_not_met_id: string | null;
+    sound_transition_enabled: boolean;
+    sound_transition_id: string | null;
+} | null {
+    const lockMinutes = Number(form.itemObstacleLockMinutes);
+    const overlayWidth = Number(form.itemObstacleOverlayWidth);
+    const overlayX = Number(form.itemObstacleOverlayX);
+    const overlayY = Number(form.itemObstacleOverlayY);
+    const slots = form.itemObstacleSlots
+        .filter((slot) => slot.itemId !== '')
+        .map((slot) => ({
+            item_id: slot.itemId,
+            width: Number(slot.width),
+            x: Number(slot.x),
+            y: Number(slot.y),
+        }));
+    const soundIds = [
+        [form.itemObstacleSoundNotMetEnabled, form.itemObstacleSoundNotMetId],
+        [form.itemObstacleSoundMetEnabled, form.itemObstacleSoundMetId],
+        [
+            form.itemObstacleSoundTransitionEnabled,
+            form.itemObstacleSoundTransitionId,
+        ],
+    ];
+    if (
+        !Number.isInteger(lockMinutes) ||
+        lockMinutes < 0 ||
+        lockMinutes > 10_080 ||
+        !within(overlayX, 0, 100) ||
+        !within(overlayY, 0, 100) ||
+        !within(overlayWidth, 1, 100) ||
+        slots.length > 10 ||
+        slots.some(
+            (slot) =>
+                !within(slot.x, 0, 100) ||
+                !within(slot.y, 0, 100) ||
+                !within(slot.width, 1, 100),
+        ) ||
+        soundIds.some(([enabled, id]) => enabled && !id)
+    ) {
+        return null;
+    }
+    return {
+        background_dark: optionalValue(form.itemObstacleBackgroundDark),
+        background_light: optionalValue(form.itemObstacleBackgroundLight),
+        background_mirrored: form.itemObstacleBackgroundMirrored,
+        consume_on_each_entry: form.itemObstacleConsumeOnEachEntry,
+        lock_minutes: lockMinutes,
+        met_background_dark: optionalValue(form.itemObstacleMetBackgroundDark),
+        met_background_light: optionalValue(
+            form.itemObstacleMetBackgroundLight,
+        ),
+        met_background_mirrored: form.itemObstacleMetBackgroundMirrored,
+        overlay_dark: optionalValue(form.itemObstacleOverlayDark),
+        overlay_light: optionalValue(form.itemObstacleOverlayLight),
+        overlay_mirrored: form.itemObstacleOverlayMirrored,
+        overlay_width: overlayWidth,
+        overlay_x: overlayX,
+        overlay_y: overlayY,
+        slots,
+        sound_met_enabled: form.itemObstacleSoundMetEnabled,
+        sound_met_id: form.itemObstacleSoundMetEnabled
+            ? optionalValue(form.itemObstacleSoundMetId)
+            : null,
+        sound_not_met_enabled: form.itemObstacleSoundNotMetEnabled,
+        sound_not_met_id: form.itemObstacleSoundNotMetEnabled
+            ? optionalValue(form.itemObstacleSoundNotMetId)
+            : null,
+        sound_transition_enabled: form.itemObstacleSoundTransitionEnabled,
+        sound_transition_id: form.itemObstacleSoundTransitionEnabled
+            ? optionalValue(form.itemObstacleSoundTransitionId)
+            : null,
+    };
+}
+
+function defaultItemObstacleRequest(): NonNullable<
+    ReturnType<typeof itemObstacleRequest>
+> {
+    return {
+        background_dark: null,
+        background_light: null,
+        background_mirrored: false,
+        consume_on_each_entry: false,
+        lock_minutes: 0,
+        met_background_dark: null,
+        met_background_light: null,
+        met_background_mirrored: false,
+        overlay_dark: null,
+        overlay_light: null,
+        overlay_mirrored: false,
+        overlay_width: 30,
+        overlay_x: 50,
+        overlay_y: 50,
+        slots: [],
+        sound_met_enabled: false,
+        sound_met_id: null,
+        sound_not_met_enabled: false,
+        sound_not_met_id: null,
+        sound_transition_enabled: false,
+        sound_transition_id: null,
+    };
+}
+
+function itemObstacleSlots(
+    config: Record<string, unknown>,
+    items: EditableItem[],
+): ActivityAuthorForm['itemObstacleSlots'] {
+    const slots = config.slots;
+    if (!Array.isArray(slots)) {
+        return [{ itemId: '', width: '10', x: '50', y: '50' }];
+    }
+    const resolved = slots.flatMap((slot) => {
+        if (!slot || typeof slot !== 'object') {
+            return [];
+        }
+        const itemSlug = 'itemId' in slot ? slot.itemId : null;
+        const item =
+            typeof itemSlug === 'string'
+                ? items.find((candidate) => candidate.slug === itemSlug)
+                : null;
+        if (!item) {
+            return [];
+        }
+        return [
+            {
+                itemId: item.id,
+                width: String('width' in slot ? slot.width : 10),
+                x: String('x' in slot ? slot.x : 50),
+                y: String('y' in slot ? slot.y : 50),
+            },
+        ];
+    });
+    return resolved;
+}
+
+function itemObstacleSoundEnabled(
+    config: Record<string, unknown>,
+    key: 'met' | 'notMet' | 'transition',
+): boolean {
+    const sounds = config.sounds;
+    if (!sounds || typeof sounds !== 'object' || !(key in sounds)) {
+        return false;
+    }
+    const sound = (sounds as Record<string, unknown>)[key];
+    return Boolean(
+        sound &&
+        typeof sound === 'object' &&
+        'enabled' in sound &&
+        sound.enabled,
+    );
+}
+
+function itemObstacleSoundId(
+    config: Record<string, unknown>,
+    key: 'met' | 'notMet' | 'transition',
+    sounds: EditableSound[],
+): string {
+    const configuredSounds = config.sounds;
+    if (
+        !configuredSounds ||
+        typeof configuredSounds !== 'object' ||
+        !(key in configuredSounds)
+    ) {
+        return '';
+    }
+    const sound = (configuredSounds as Record<string, unknown>)[key];
+    if (
+        !sound ||
+        typeof sound !== 'object' ||
+        !('soundId' in sound) ||
+        typeof sound.soundId !== 'string'
+    ) {
+        return '';
+    }
+    return sounds.some((candidate) => candidate.id === sound.soundId)
+        ? sound.soundId
+        : '';
 }
 
 function toolGrantToolId(
@@ -2777,7 +3391,8 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'open_practice' ||
         type === 'reflection' ||
         type === 'item_grant' ||
-        type === 'tool_grant'
+        type === 'tool_grant' ||
+        type === 'item_obstacle'
     );
 }
 
