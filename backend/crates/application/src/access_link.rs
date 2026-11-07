@@ -35,7 +35,10 @@ pub trait AccessLinkRepository {
         form: &AccessLinkForm,
         token_hash: &str,
     ) -> impl Future<Output = Result<Option<AccessLinkSummary>, AccessLinkError>> + Send;
-    fn list(&self) -> impl Future<Output = Result<AccessLinkAdminData, AccessLinkError>> + Send;
+    fn list(
+        &self,
+        page: i64,
+    ) -> impl Future<Output = Result<AccessLinkAdminData, AccessLinkError>> + Send;
     fn redeem(
         &self,
         principal: &AuthorizedPrincipal,
@@ -71,11 +74,12 @@ where
     pub async fn list(
         &self,
         principal: &AuthorizedPrincipal,
+        page: i64,
     ) -> Result<Option<AccessLinkAdminData>, AccessLinkError> {
         if !principal.has_capability(ApplicationCapability::ManageAccessLinks) {
             return Ok(None);
         }
-        self.repository.list().await.map(Some)
+        self.repository.list(page.clamp(1, 10_000)).await.map(Some)
     }
 }
 

@@ -1108,6 +1108,10 @@ paths:
     get:
       operationId: getAdminAccessLinks
       summary: Read bounded hashed access-link grant summaries for an authorized administrator.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
       responses:
         '200':
           description: Recent access-link summaries plus bounded existing tool/item options, without plaintext tokens or grant payloads.
@@ -3063,7 +3067,7 @@ components:
     AccessLinkAdminData:
       type: object
       additionalProperties: false
-      required: [items, links, tools]
+      required: [items, links, pagination, tools]
       properties:
         items:
           type: array
@@ -3073,10 +3077,20 @@ components:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/AccessLinkSummary' }
+        pagination: { $ref: '#/components/schemas/AccessLinkPagination' }
         tools:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/AccessLinkGrantOption' }
+    AccessLinkPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1 }
+        total: { type: integer, minimum: 0 }
     AccessLinkItemGrantRequest:
       type: object
       additionalProperties: false

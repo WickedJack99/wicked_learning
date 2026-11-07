@@ -6,8 +6,8 @@ use wicked_learning_application::access_link::{
 };
 use wicked_learning_domain::{
     access_link::{
-        AccessLinkAdminData, AccessLinkGrantOption, AccessLinkPreview, AccessLinkPurpose,
-        AccessLinkSummary, AccessLinkUsagePolicy,
+        AccessLinkAdminData, AccessLinkGrantOption, AccessLinkPagination, AccessLinkPreview,
+        AccessLinkPurpose, AccessLinkSummary, AccessLinkUsagePolicy,
     },
     identity_access::AuthorizedPrincipal,
 };
@@ -165,17 +165,27 @@ impl Port for PostgresAccessLinkRepository<'_> {
 
     fn list(
         &self,
+        page: i64,
     ) -> impl std::future::Future<Output = Result<AccessLinkAdminData, AccessLinkError>> + Send
     {
         async move {
+            const PER_PAGE: i64 = 8;
+            let total = sqlx::query_scalar::<_, i64>("SELECT count(*) FROM access_links")
+                .fetch_one(self.pool)
+                .await
+                .map_err(log_error)?;
+            let last_page = (total + PER_PAGE - 1).div_euclid(PER_PAGE).max(1);
+            let current_page = page.clamp(1, last_page);
             let rows = sqlx::query_as::<_, LinkRow>(
                 "SELECT \
                     to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, \
                     to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS expires_at, \
                     id, is_enabled, expires_at <= NOW() AS is_expired, redeemed_at IS NOT NULL AS is_redeemed, \
                     note, purpose, usage_policy \
-                 FROM access_links ORDER BY created_at DESC, id DESC LIMIT 100",
+                 FROM access_links ORDER BY created_at DESC, id DESC LIMIT $1 OFFSET $2",
             )
+            .bind(PER_PAGE)
+            .bind((current_page - 1) * PER_PAGE)
             .fetch_all(self.pool)
             .await
             .map_err(|error| {
@@ -197,6 +207,12 @@ impl Port for PostgresAccessLinkRepository<'_> {
             Ok(AccessLinkAdminData {
                 items: items.into_iter().map(GrantOptionRow::into_domain).collect(),
                 links: rows.into_iter().filter_map(summary_from_row).collect(),
+                pagination: AccessLinkPagination {
+                    current_page,
+                    last_page,
+                    per_page: PER_PAGE,
+                    total,
+                },
                 tools: tools.into_iter().map(GrantOptionRow::into_domain).collect(),
             })
         }

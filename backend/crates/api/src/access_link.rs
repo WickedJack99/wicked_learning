@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
 };
 use axum_login::AuthSession;
@@ -44,6 +44,11 @@ pub struct SetAccessLinkEnabledRequest {
     enabled: bool,
 }
 
+#[derive(Deserialize)]
+pub struct AccessLinksQueryParams {
+    page: Option<i64>,
+}
+
 #[derive(Serialize)]
 pub struct AccessLinkCreatedResponse {
     pub link: AccessLinkSummary,
@@ -74,11 +79,12 @@ pub async fn preview(
 pub async fn index(
     State(state): State<AppState>,
     auth_session: AuthSession<IdentityBackend>,
+    Query(query): Query<AccessLinksQueryParams>,
 ) -> Result<Json<AccessLinkAdminData>, ApiError> {
     let principal = authenticated_principal(&state, auth_session).await?;
     let repository = PostgresAccessLinkRepository::new(&state.application_database);
     AccessLinksQuery::new(&repository)
-        .list(&principal)
+        .list(&principal, query.page.unwrap_or(1))
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

@@ -81,7 +81,16 @@ pub struct AccessLinkGrantOption {
 pub struct AccessLinkAdminData {
     pub items: Vec<AccessLinkGrantOption>,
     pub links: Vec<AccessLinkSummary>,
+    pub pagination: AccessLinkPagination,
     pub tools: Vec<AccessLinkGrantOption>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct AccessLinkPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]

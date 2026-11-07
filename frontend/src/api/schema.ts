@@ -2224,7 +2224,14 @@ export interface components {
         AccessLinkAdminData: {
             items: components["schemas"]["AccessLinkGrantOption"][];
             links: components["schemas"]["AccessLinkSummary"][];
+            pagination: components["schemas"]["AccessLinkPagination"];
             tools: components["schemas"]["AccessLinkGrantOption"][];
+        };
+        AccessLinkPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
         };
         AccessLinkItemGrantRequest: {
             /** Format: uuid */
@@ -7223,7 +7230,9 @@ export interface operations {
     };
     getAdminAccessLinks: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
