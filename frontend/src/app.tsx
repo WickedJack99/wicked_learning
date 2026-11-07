@@ -406,9 +406,6 @@ export function App() {
         }
 
         if (groupPanel) {
-            if (!currentUser.roles.includes('platform_administrator')) {
-                return <Navigate replace to="/home" />;
-            }
             return (
                 <Suspense fallback={null}>
                     <OriginalGroupManagementPage appearance={appearance} />
