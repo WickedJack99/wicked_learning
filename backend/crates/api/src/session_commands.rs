@@ -45,6 +45,11 @@ pub struct TwoFactorChallengeRequest {
     recovery_code: Option<String>,
 }
 
+enum TwoFactorChallenge<'request> {
+    RecoveryCode(&'request str),
+    Totp(&'request str),
+}
+
 #[derive(FromRow)]
 struct ActiveFactorRow {
     encrypted_secret: Vec<u8>,
@@ -166,14 +171,14 @@ pub async fn complete_two_factor(
     if subject.password_verifier() != pending.password_verifier {
         return Err(ApiError::two_factor_challenge_rejected());
     }
-    match (request.code.as_deref(), request.recovery_code.as_deref()) {
-        (Some(code), None) if is_six_digit_code(code) => {
+    match parse_two_factor_challenge(&request) {
+        Some(TwoFactorChallenge::Totp(code)) => {
             verify_totp(&state, subject.subject_id(), code).await?
         }
-        (None, Some(code)) if !code.is_empty() && code.len() <= 128 => {
+        Some(TwoFactorChallenge::RecoveryCode(code)) => {
             verify_recovery_code(&state, subject.subject_id(), code).await?
         }
-        _ => return Err(ApiError::two_factor_challenge_rejected()),
+        None => return Err(ApiError::two_factor_challenge_rejected()),
     }
     auth_session
         .session
@@ -270,13 +275,25 @@ fn is_six_digit_code(value: &str) -> bool {
     value.len() == 6 && value.bytes().all(|byte| byte.is_ascii_digit())
 }
 
+fn parse_two_factor_challenge(
+    request: &TwoFactorChallengeRequest,
+) -> Option<TwoFactorChallenge<'_>> {
+    match (request.code.as_deref(), request.recovery_code.as_deref()) {
+        (Some(code), None) if is_six_digit_code(code) => Some(TwoFactorChallenge::Totp(code)),
+        (None, Some(code)) if !code.is_empty() && code.len() <= 128 => {
+            Some(TwoFactorChallenge::RecoveryCode(code))
+        }
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
 
     use super::{
-        MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS, PendingTwoFactorLogin,
-        pending_two_factor_login_is_fresh,
+        MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS, PendingTwoFactorLogin, TwoFactorChallenge,
+        TwoFactorChallengeRequest, parse_two_factor_challenge, pending_two_factor_login_is_fresh,
     };
 
     #[test]
@@ -297,5 +314,47 @@ mod tests {
             1_001 + MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS
         ));
         assert!(!pending_two_factor_login_is_fresh(&pending, 999));
+    }
+
+    #[test]
+    fn a_challenge_accepts_exactly_one_valid_factor_proof() {
+        let totp = TwoFactorChallengeRequest {
+            code: Some("123456".to_owned()),
+            recovery_code: None,
+        };
+        assert!(matches!(
+            parse_two_factor_challenge(&totp),
+            Some(TwoFactorChallenge::Totp("123456"))
+        ));
+
+        let recovery = TwoFactorChallengeRequest {
+            code: None,
+            recovery_code: Some("emergency-code".to_owned()),
+        };
+        assert!(matches!(
+            parse_two_factor_challenge(&recovery),
+            Some(TwoFactorChallenge::RecoveryCode("emergency-code"))
+        ));
+
+        for request in [
+            TwoFactorChallengeRequest {
+                code: None,
+                recovery_code: None,
+            },
+            TwoFactorChallengeRequest {
+                code: Some("12345a".to_owned()),
+                recovery_code: None,
+            },
+            TwoFactorChallengeRequest {
+                code: Some("123456".to_owned()),
+                recovery_code: Some("emergency-code".to_owned()),
+            },
+            TwoFactorChallengeRequest {
+                code: None,
+                recovery_code: Some(String::new()),
+            },
+        ] {
+            assert!(parse_two_factor_challenge(&request).is_none());
+        }
     }
 }

@@ -2354,9 +2354,11 @@ export interface components {
             profile_image_id: string;
             url: string;
         };
+        /** @description Submit exactly one authenticator-app code or one unused recovery code. */
         TwoFactorChallengeRequest: {
-            code: string;
-        };
+            code?: string;
+            recovery_code?: string;
+        } & (unknown | unknown);
         SessionStatus: {
             authenticated: boolean;
             /**

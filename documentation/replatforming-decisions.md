@@ -3303,14 +3303,15 @@ and stores an AES-256-GCM-encrypted pending secret in the identity database.
 `POST /api/v1/account/two-factor/confirm` accepts a fresh valid code within
 fifteen minutes, atomically promotes the pending secret, replaces recovery-code
 verifiers, and returns ten new recovery codes once in another non-cacheable
-response. The original React control remains absent until the login challenge
-and its complete account-management contract are ready.
+response. The source-derived React login challenge now accepts either an
+authenticator-app code or one recovery code after the server stages a valid
+password login. The source two-factor control in Personal Security remains
+unavailable until its complete account-management contract is ready.
 
-**Limits and follow-up:** Recovery-code use, login challenge state, session
-rotation, account recovery, cross-database audit events, disable/replacement
-sensitive-action checks and the source passkey flow remain separate identity
-work; this enrollment/confirmation contract alone does not satisfy the identity
-cutover gate.
+**Limits and follow-up:** Account factor status, recovery-code replacement,
+disable/replacement sensitive-action checks, cross-database audit events and
+the source passkey flow remain separate identity work. This enrollment and
+sign-in work alone does not satisfy the identity cutover gate.
 
 ## ADR-085: TOTP sign-in uses a short-lived pre-authentication session
 
@@ -3338,13 +3339,18 @@ alternatives are rejected.
 
 **Implementation status:** Password login now creates this rotated pending
 session for a confirmed factor and returns an explicit typed challenge state
-while preserving the ordinary session response for other accounts. Challenge
-completion is the next contract slice; the original React login screen does
-not yet route into it.
+while preserving the ordinary session response for other accounts. The React
+login screen routes that state to the source-derived `/two-factor-challenge`
+screen. Its typed completion command accepts exactly one six-digit
+authenticator-app code or bounded recovery code. TOTP verification locks the
+factor and advances its accepted time step; recovery-code verification locks
+and consumes exactly one Argon2id verifier before the normal server-side
+session is authenticated.
 
-**Limits and follow-up:** Recovery-code consumption, factor disable and the
-original React challenge screen are implemented with the login contract. Audit
-events remain a separate cross-database reliability slice.
+**Limits and follow-up:** The security settings lifecycle remains incomplete:
+factor status, recovery-code replacement, factor disable/replacement and its
+sensitive-action checks are not exposed. Audit events remain a separate
+cross-database reliability slice.
 
 ## Phase 1 gate
 

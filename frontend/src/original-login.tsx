@@ -52,7 +52,19 @@ export function OriginalLoginPage({
             }
 
             const next = searchParams.get('next');
-            navigate(next?.startsWith('/') && !next.startsWith('//') ? next : '/world', { replace: true });
+            const destination =
+                next?.startsWith('/') && !next.startsWith('//')
+                    ? next
+                    : '/world';
+            if (data.two_factor_required) {
+                navigate(
+                    `/two-factor-challenge?next=${encodeURIComponent(destination)}`,
+                    { replace: true },
+                );
+                return;
+            }
+
+            navigate(destination, { replace: true });
         } catch {
             setError('Sign in is temporarily unavailable.');
         } finally {

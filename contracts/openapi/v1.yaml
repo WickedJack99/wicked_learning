@@ -3268,11 +3268,18 @@ components:
     TwoFactorChallengeRequest:
       type: object
       additionalProperties: false
-      required: [code]
+      description: Submit exactly one authenticator-app code or one unused recovery code.
+      oneOf:
+        - required: [code]
+        - required: [recovery_code]
       properties:
         code:
           type: string
           pattern: '^[0-9]{6}$'
+        recovery_code:
+          type: string
+          minLength: 1
+          maxLength: 128
     SessionStatus:
       type: object
       additionalProperties: false

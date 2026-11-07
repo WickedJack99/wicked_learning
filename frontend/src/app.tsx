@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalTwoFactorChallengePage } from './original-two-factor-challenge';
 import { OriginalOrganizationsPage } from './original-organizations';
 import { OriginalRegisterPage } from './original-register';
 import { OriginalRecallDeskPage } from './original-recall-desk';
@@ -188,6 +189,7 @@ export function App() {
     const isPublicPresentationRoute =
         location.pathname === '/' ||
         location.pathname === '/login' ||
+        location.pathname === '/two-factor-challenge' ||
         location.pathname === '/register' ||
         location.pathname === '/source' ||
         publicSlugs.includes(
@@ -310,6 +312,16 @@ export function App() {
     if (location.pathname === '/login') {
         return (
             <OriginalLoginPage
+                appearance={appearance}
+                onAppearanceChange={setAppearance}
+                presentation={presentation!}
+            />
+        );
+    }
+
+    if (location.pathname === '/two-factor-challenge') {
+        return (
+            <OriginalTwoFactorChallengePage
                 appearance={appearance}
                 onAppearanceChange={setAppearance}
                 presentation={presentation!}

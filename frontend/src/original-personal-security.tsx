@@ -7,9 +7,10 @@ import type { OriginalAppearance } from './original-appearance';
 
 /**
  * Source-adapted from PersonalSettingsContent and SecuritySettingsPanel.
- * Passkey and two-factor controls remain absent until their source-backed
- * Rust-owned credential contracts exist; this keeps the available password
- * form identical in purpose without presenting non-functional controls.
+ * Passkey and two-factor account-management controls remain absent until their
+ * source-backed Rust lifecycle contracts exist; this keeps the available
+ * password form identical in purpose without presenting non-functional
+ * controls. The separate source-derived TOTP login challenge is available.
  */
 export function OriginalPersonalSecurityPage({ appearance }: { appearance: OriginalAppearance }) {
     const [currentPassword, setCurrentPassword] = useState('');
