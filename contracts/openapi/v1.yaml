@@ -978,6 +978,36 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/open-practice-activities:
+    post:
+      operationId: createAdminWorldBuilderOpenPracticeActivity
+      summary: Create an Open practice activity on an editable World Builder node.
+      description: >-
+        This is the first source-derived activity-type create command. It creates the
+        source Open practice defaults and maps the source node abstraction to
+        the deterministic primary Rust route for its map asset.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdminOpenPracticeActivityRequest' }
+      responses:
+        '201':
+          description: The created activity identifier; refetch the selected node to render its graph state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminOpenPracticeActivityResponse' }
+        '400': { description: The Open practice fields or requested slug are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -7761,6 +7791,21 @@ components:
       required: [position]
       properties:
         position: { $ref: '#/components/schemas/AdminActivityGraphPosition' }
+    CreateAdminOpenPracticeActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        next_step: { type: [string, 'null'], maxLength: 4000 }
+    CreateAdminOpenPracticeActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties:
+        activity_id: { type: string, format: uuid }
     CreateAdminActivityTransitionRequest:
       type: object
       additionalProperties: false

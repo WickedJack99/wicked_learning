@@ -930,9 +930,17 @@ Activity deletion is now available at `DELETE
 command's activity-authoring scope, removes the activity's selected-node starts,
 resynchronizes the node's preferred start, and then lets the reviewed database
 foreign-key cascades remove dependent activity data. The original editor can
-refetch its node projection after the no-content response; activity creation
-and content editing remain unavailable until their source validation and review
-semantics are migrated.
+refetch its node projection after the no-content response. The first
+activity-creation contract is now available at `POST
+/api/v1/admin/world-builder/nodes/{node_id}/open-practice-activities`. It
+ports the source Open practice title, optional slug/introduction and learner
+invitation fields, including the source default invitation and node-scoped slug
+suffixing. It immediately publishes the new activity, as source creation has
+no independent activity-draft state. Rust's retained route grouping is selected
+internally and deterministically for this source-shaped node command; ADR-093
+records that temporary storage adaptation. All other activity types and all
+activity-content editing remain unavailable until their distinct source
+validation, dependent facts and review semantics are migrated.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command

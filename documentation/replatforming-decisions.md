@@ -3741,6 +3741,49 @@ source-ordered remaining edge list. Version-history snapshots are not yet
 available in the greenfield authoring model, so these commands do not claim to
 have migrated Laravel's activity-version audit side effect.
 
+## ADR-093: Source-shaped activity creation hides the retained route grouping
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Laravel authors activities directly on a Learning Node. The
+greenfield Rust read/playback model currently retains `learning_routes` below a
+node's map asset, because learner routing had been implemented before the
+World Builder authoring model. The original activity-create UI does not ask an
+author to select a route, so exposing that storage detail would change the
+existing workflow and force a replacement editor decision.
+
+**Decision:** The first type-specific create command, Open practice, accepts
+the source node identifier only. After applying the usual scoped
+`world_activities` update authorization and locking the node, persistence
+selects that map asset's deterministic primary route ordered by `(position,
+id)`. It creates the activity there, applies Laravel-compatible auto-slug
+suffixing across the node's map asset, uses the source default learner
+invitation when blank, and sets `published_at` immediately because Laravel
+activity creation has no standalone draft/publication transition. The command
+does not expose a generic JSON configuration writer: each further activity
+type requires its own source-derived validation and dependent-record slice.
+
+**Why:** This preserves the original authoring inputs and immediate
+learner-visible behavior while keeping the current playback storage shape
+behind the API boundary. A maintained Unicode transliteration library is used
+for generated slugs rather than treating ASCII-only conversion as a new product
+rule.
+
+**Alternatives:** Asking the author to choose a route would diverge from the
+original UI. Adding one broad activity endpoint with arbitrary configuration
+JSON would bypass type-specific validation and hidden dependent records.
+Reworking routes before any activity command would delay parity without enough
+authoring evidence to select a durable replacement model. These alternatives
+are rejected.
+
+**Limits and evolution trigger:** This is an internal compatibility adapter,
+not a permanent authoring hierarchy. Before the original World Builder is
+exposed, its full activity create/edit behavior, route model and review/history
+requirements must be migrated together. At that point, replace the deterministic
+primary-route selection with the established durable authoring relationship or
+remove the compatibility grouping; do not silently spread this selection rule
+to unrelated commands.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

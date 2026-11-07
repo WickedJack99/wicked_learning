@@ -731,6 +731,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/open-practice-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an Open practice activity on an editable World Builder node.
+         * @description This is the first source-derived activity-type create command. It creates the source Open practice defaults and maps the source node abstraction to the deterministic primary Rust route for its map asset.
+         */
+        post: operations["createAdminWorldBuilderOpenPracticeActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -5143,6 +5163,16 @@ export interface components {
         AdminActivityGraphPositionResponse: {
             position: components["schemas"]["AdminActivityGraphPosition"];
         };
+        CreateAdminOpenPracticeActivityRequest: {
+            title: string;
+            slug?: string | null;
+            introduction?: string | null;
+            next_step?: string | null;
+        };
+        CreateAdminOpenPracticeActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
         CreateAdminActivityTransitionRequest: {
             /** Format: uuid */
             from_activity_id: string;
@@ -7752,6 +7782,70 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderOpenPracticeActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminOpenPracticeActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier; refetch the selected node to render its graph state. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminOpenPracticeActivityResponse"];
+                };
+            };
+            /** @description The Open practice fields or requested slug are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unknown */
             404: {
                 headers: {
                     [name: string]: unknown;

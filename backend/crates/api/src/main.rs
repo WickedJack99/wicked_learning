@@ -18,6 +18,7 @@ mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
 mod admin_world_node_transition;
+mod admin_world_open_practice;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -567,6 +568,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}",
             delete(admin_world_activity_delete::delete),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/open-practice-activities",
+            post(admin_world_open_practice::create),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/start-routes",
@@ -1436,6 +1441,20 @@ mod tests {
             .expect("World Builder activity-delete response");
 
         assert_eq!(delete_response.status(), 401);
+
+        let create_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/open-practice-activities")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A practice"}"#))
+                    .expect("a valid World Builder open-practice create request"),
+            )
+            .await
+            .expect("World Builder open-practice create response");
+
+        assert_eq!(create_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(
