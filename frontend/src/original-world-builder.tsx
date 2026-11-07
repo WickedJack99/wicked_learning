@@ -9,7 +9,7 @@ import {
     useEdgesState,
     useNodesState,
 } from '@xyflow/react';
-import type { Edge, Node } from '@xyflow/react';
+import type { Connection, Edge, Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
     ArrowLeft,
@@ -593,6 +593,7 @@ function ActivityGraph({
     } | null>(null);
     const [selectedTransition, setSelectedTransition] =
         useState<ActivityTransition | null>(null);
+    const [connectionError, setConnectionError] = useState<string | null>(null);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -671,6 +672,72 @@ function ActivityGraph({
         [graph.transitions],
     );
 
+    const connectActivities = useCallback(
+        async (connection: Connection) => {
+            if (!connection.source || !connection.target) {
+                return;
+            }
+            setConnectionError(null);
+            try {
+                const token = await getCsrfToken();
+                if (connection.source === '__start') {
+                    if (connection.target === '__end') {
+                        return;
+                    }
+                    const { response } = await apiClient.POST(
+                        '/admin/world-builder/nodes/{node_id}/start-routes',
+                        {
+                            body: { activity_id: connection.target },
+                            params: {
+                                header: { 'X-CSRF-Token': token },
+                                path: { node_id: graph.node.id },
+                            },
+                        },
+                    );
+                    if (!response.ok) {
+                        throw new Error('start route unavailable');
+                    }
+                    onReload();
+                    return;
+                }
+                if (connection.source.startsWith('__')) {
+                    return;
+                }
+                const { response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/activity-transitions',
+                    {
+                        body: {
+                            from_activity_id: connection.source,
+                            from_connector:
+                                connection.sourceHandle ?? 'completed',
+                            to_activity_id:
+                                connection.target === '__end'
+                                    ? null
+                                    : connection.target,
+                            to_connector:
+                                connection.target === '__end'
+                                    ? 'end'
+                                    : (connection.targetHandle ?? 'in'),
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { node_id: graph.node.id },
+                        },
+                    },
+                );
+                if (!response.ok) {
+                    throw new Error('transition unavailable');
+                }
+                onReload();
+            } catch {
+                setConnectionError(
+                    'The connection could not be saved. Check the graph and try again.',
+                );
+            }
+        },
+        [graph.node.id, onReload],
+    );
+
     return (
         <>
             <div className="h-[34rem]">
@@ -723,6 +790,11 @@ function ActivityGraph({
                         </button>
                     </div>
                 </div>
+                {connectionError ? (
+                    <p className="border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {connectionError}
+                    </p>
+                ) : null}
                 <ReactFlow<ActivityFlowNode, Edge>
                     edges={edges}
                     fitView
@@ -734,6 +806,9 @@ function ActivityGraph({
                     nodes={nodes}
                     onEdgesChange={onEdgesChange}
                     onEdgeClick={(_, edge) => selectTransition(edge.id)}
+                    onConnect={(connection) =>
+                        void connectActivities(connection)
+                    }
                     onNodeClick={(_, node) => {
                         if (
                             node.type === 'activity' &&

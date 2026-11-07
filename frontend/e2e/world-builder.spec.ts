@@ -35,6 +35,9 @@ test('a local world author can open the source-derived World Builder graph', asy
         `/settings?panel=admin-world-builder&map=${selectedMap.id}&node=${selectedMap.nodes[0].id}`,
     );
     await expect(page.getByText('Activity graph')).toBeVisible();
+    await expect(
+        page.locator('.react-flow__handle.source').first(),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Open practice' }).click();
     await expect(
         page.getByRole('heading', { name: 'Add Open practice' }),

@@ -1028,9 +1028,11 @@ and selected node activity graph through all three Rust authoring-read
 contracts. Activity cards retain source graph dragging through the existing
 position command and the source delete confirmation through the scoped delete
 command; the node refetches only after a successful removal. Within a selected
-node, the graph also adapts the source transition editor when an authored edge
-is selected, preserving its label/outcome-only edit rule and direct connection
-deletion. It now adapts the source
+node, the graph also adapts source edge creation: an activity drag uses the
+typed transition command and a Start drag uses the typed start-route command.
+Selecting an authored edge opens the source transition editor, preserving its
+label/outcome-only edit rule and direct connection deletion. It now adapts the
+source
 Open Practice, Reflection, Item Grant and Tool Grant create/edit forms through
 their complete typed Rust commands; Item Grant resolves selected catalog UUIDs
 only at the scoped server command and retains its quantities, probability and
