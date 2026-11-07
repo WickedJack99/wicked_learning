@@ -3763,6 +3763,17 @@ activity creation has no standalone draft/publication transition. The command
 does not expose a generic JSON configuration writer: each further activity
 type requires its own source-derived validation and dependent-record slice.
 
+**Open Practice editing:** The companion update command accepts a complete
+source-shaped Open Practice form and the selected activity's previously-read
+`updated_at` timestamp. It locks the authorized activity, compares that exact
+server projection timestamp before writing, and returns a `409 conflict` when
+another edit won the race. An unchanged form does not advance the timestamp or
+reset review state. A changed form preserves configuration keys outside this
+type's known `nextStep`, marks the activity `needs_review`, and clears the
+current review payload. This reproduces the source's protection against stale
+edits without falsely claiming to provide its not-yet-migrated version-history
+snapshots.
+
 **Why:** This preserves the original authoring inputs and immediate
 learner-visible behavior while keeping the current playback storage shape
 behind the API boundary. A maintained Unicode transliteration library is used

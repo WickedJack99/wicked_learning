@@ -941,6 +941,15 @@ internally and deterministically for this source-shaped node command; ADR-093
 records that temporary storage adaptation. All other activity types and all
 activity-content editing remain unavailable until their distinct source
 validation, dependent facts and review semantics are migrated.
+Open Practice editing is now available at `PATCH
+/api/v1/admin/world-builder/activities/{activity_id}/open-practice`. It accepts
+the source form's title, slug, introduction and learner invitation as one
+complete edit, preserves unrelated stored configuration, and applies the
+source editor's `updated_at` optimistic-concurrency check. A stale save is
+returned as a conflict rather than silently overwriting a newer save, while an
+unchanged save retains its timestamp. Content changes reset the currently
+available AI-review state to `needs_review`; Laravel revision snapshots remain
+explicitly unavailable until their complete history workflow is migrated.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command

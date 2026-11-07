@@ -1008,6 +1008,37 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/open-practice:
+    patch:
+      operationId: updateAdminWorldBuilderOpenPracticeActivity
+      summary: Update an Open practice activity on an editable World Builder graph.
+      description: >-
+        Updates the source Open practice fields with the selected node's authoring
+        scope. The caller supplies the previously-read timestamp; a concurrent
+        change receives a conflict instead of being overwritten.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminOpenPracticeActivityRequest' }
+      responses:
+        '200':
+          description: The saved activity timestamp; refetch the selected node to render its graph state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminOpenPracticeActivityResponse' }
+        '400': { description: The Open practice fields or update timestamp are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown, not Open practice, or outside the caller's authoring scope. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -7806,6 +7837,23 @@ components:
       required: [activity_id]
       properties:
         activity_id: { type: string, format: uuid }
+    UpdateAdminOpenPracticeActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, next_step, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: ['string', 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: ['string', 'null'], maxLength: 1000 }
+        next_step: { type: ['string', 'null'], maxLength: 4000 }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminOpenPracticeActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
     CreateAdminActivityTransitionRequest:
       type: object
       additionalProperties: false

@@ -90,6 +90,14 @@ impl ApiError {
         }
     }
 
+    pub fn conflict() -> Self {
+        Self {
+            code: "conflict",
+            status: StatusCode::CONFLICT,
+            title: "The resource changed before this request could be saved.",
+        }
+    }
+
     pub fn registration_rejected() -> Self {
         Self {
             code: "registration_rejected",

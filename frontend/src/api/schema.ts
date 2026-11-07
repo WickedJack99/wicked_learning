@@ -751,6 +751,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/open-practice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an Open practice activity on an editable World Builder graph.
+         * @description Updates the source Open practice fields with the selected node's authoring scope. The caller supplies the previously-read timestamp; a concurrent change receives a conflict instead of being overwritten.
+         */
+        patch: operations["updateAdminWorldBuilderOpenPracticeActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -5173,6 +5193,20 @@ export interface components {
             /** Format: uuid */
             activity_id: string;
         };
+        UpdateAdminOpenPracticeActivityRequest: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            next_step: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminOpenPracticeActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         CreateAdminActivityTransitionRequest: {
             /** Format: uuid */
             from_activity_id: string;
@@ -7847,6 +7881,77 @@ export interface operations {
             };
             /** @description The node is unknown */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderOpenPracticeActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminOpenPracticeActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp; refetch the selected node to render its graph state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminOpenPracticeActivityResponse"];
+                };
+            };
+            /** @description The Open practice fields or update timestamp are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

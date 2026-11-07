@@ -75,7 +75,14 @@ fn valid_slug(value: &str) -> bool {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AdminWorldOpenPracticeError {
     InvalidActivity,
+    Conflict,
     Unavailable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpdatedOpenPracticeActivity {
+    pub activity_id: Uuid,
+    pub updated_at: String,
 }
 
 pub trait AdminWorldOpenPracticeRepository {
@@ -85,6 +92,16 @@ pub trait AdminWorldOpenPracticeRepository {
         node_id: Uuid,
         form: &OpenPracticeActivityForm,
     ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldOpenPracticeError>> + Send;
+
+    fn update_open_practice(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        form: &OpenPracticeActivityForm,
+        expected_updated_at: &str,
+    ) -> impl Future<
+        Output = Result<Option<UpdatedOpenPracticeActivity>, AdminWorldOpenPracticeError>,
+    > + Send;
 }
 
 /// Creates the source's self-directed activity type with its known, fully
@@ -115,6 +132,24 @@ where
             .create_open_practice(principal, node_id, form)
             .await
     }
+
+    /// Updates only the source fields whose complete Open practice behavior is
+    /// represented by this contract. The expected timestamp preserves the
+    /// source editor's reload-before-overwrite rule.
+    pub async fn update(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        form: &OpenPracticeActivityForm,
+        expected_updated_at: &str,
+    ) -> Result<Option<UpdatedOpenPracticeActivity>, AdminWorldOpenPracticeError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+        self.repository
+            .update_open_practice(principal, activity_id, form, expected_updated_at)
+            .await
+    }
 }
 
 #[cfg(test)]
@@ -133,7 +168,7 @@ mod tests {
     use super::{
         AdminWorldOpenPracticeCommand, AdminWorldOpenPracticeError,
         AdminWorldOpenPracticeRepository, DEFAULT_OPEN_PRACTICE_NEXT_STEP,
-        OpenPracticeActivityForm, generated_slug,
+        OpenPracticeActivityForm, UpdatedOpenPracticeActivity, generated_slug,
     };
 
     struct RecordingRepository {
@@ -148,6 +183,19 @@ mod tests {
             _form: &OpenPracticeActivityForm,
         ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldOpenPracticeError>> + Send
         {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn update_open_practice(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _activity_id: Uuid,
+            _form: &OpenPracticeActivityForm,
+            _expected_updated_at: &str,
+        ) -> impl Future<
+            Output = Result<Option<UpdatedOpenPracticeActivity>, AdminWorldOpenPracticeError>,
+        > + Send {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
@@ -193,6 +241,33 @@ mod tests {
 
         let result = AdminWorldOpenPracticeCommand::new(&repository)
             .create(&principal, Uuid::new_v4(), &form)
+            .await
+            .expect("authorization check succeeds");
+
+        assert_eq!(result, None);
+        assert!(!repository.called.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn requires_source_world_activity_update_before_updating() {
+        let repository = RecordingRepository {
+            called: Arc::new(AtomicBool::new(false)),
+        };
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_nodes:rud:all".to_owned()],
+        };
+        let form = OpenPracticeActivityForm::parse("A practice", None, None, None)
+            .expect("a bounded source form is valid");
+
+        let result = AdminWorldOpenPracticeCommand::new(&repository)
+            .update(
+                &principal,
+                Uuid::new_v4(),
+                &form,
+                "2026-11-07T17:00:00.000000Z",
+            )
             .await
             .expect("authorization check succeeds");
 

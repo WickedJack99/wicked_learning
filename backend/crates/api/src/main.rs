@@ -574,6 +574,10 @@ fn router(state: AppState) -> Router {
             post(admin_world_open_practice::create),
         )
         .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/open-practice",
+            patch(admin_world_open_practice::update),
+        )
+        .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/start-routes",
             post(admin_world_node_starts::add)
                 .delete(admin_world_node_starts::remove_all),
@@ -1455,6 +1459,20 @@ mod tests {
             .expect("World Builder open-practice create response");
 
         assert_eq!(create_response.status(), 401);
+
+        let update_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/open-practice")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A practice","slug":null,"introduction":null,"next_step":null,"updated_at":"2026-11-07T17:00:00.000000Z"}"#))
+                    .expect("a valid World Builder open-practice update request"),
+            )
+            .await
+            .expect("World Builder open-practice update response");
+
+        assert_eq!(update_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(
