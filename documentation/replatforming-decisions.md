@@ -3376,7 +3376,9 @@ form, returning safely to a local requested path or Personal Security. An
 anonymous visit returns through the normal login journey. The source passkey
 confirmation alternative is intentionally not shown until the Rust WebAuthn
 ceremony and confirmation contract exist, rather than exposing a nonfunctional
-control.
+control. Personal Security now checks this status before rendering, matching
+the source route's password-confirmation boundary and returning to the same
+Security path after a successful confirmation.
 
 **Limits and follow-up:** The settings route, TOTP status,
 disable/replacement and recovery-code lifecycle remain unavailable until their

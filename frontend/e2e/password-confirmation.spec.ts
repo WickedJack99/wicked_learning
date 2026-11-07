@@ -66,3 +66,35 @@ test('the password-confirmation route preserves the source password form and ret
     await page.getByRole('button', { name: 'Confirm password' }).click();
     await expect(page).toHaveURL(/\/world$/);
 });
+
+test('Personal Security requires the source recent-password confirmation', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                appearance: 'system',
+                capabilities: [],
+                email: 'learner@example.test',
+                roles: [],
+                subject_id: '00000000-0000-0000-0000-000000000001',
+            }),
+        });
+    });
+    await page.route('**/api/v1/account/password/confirmation', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ confirmed: false }),
+        });
+    });
+
+    await page.goto('/settings?panel=personal&personal=security');
+
+    await expect(page).toHaveURL(
+        /\/confirm-password\?next=%2Fsettings%3Fpanel%3Dpersonal%26personal%3Dsecurity$/,
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Confirm password' }),
+    ).toBeVisible();
+});

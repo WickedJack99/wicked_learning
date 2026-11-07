@@ -1,18 +1,21 @@
 import { ArrowLeft, Brush, Eye, EyeOff, KeyRound, Save, Volume2 } from 'lucide-react';
-import { type CSSProperties, type FormEvent, useState } from 'react';
-import { Link } from 'react-router';
+import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { OriginalAppearance } from './original-appearance';
 
 /**
- * Source-adapted from PersonalSettingsContent and SecuritySettingsPanel.
+ * Source-adapted from the password-confirmed Security settings route and
+ * SecuritySettingsPanel.
  * Passkey and two-factor account-management controls remain absent until their
  * source-backed Rust lifecycle contracts exist; this keeps the available
  * password form identical in purpose without presenting non-functional
  * controls. The separate source-derived TOTP login challenge is available.
  */
 export function OriginalPersonalSecurityPage({ appearance }: { appearance: OriginalAppearance }) {
+    const navigate = useNavigate();
+    const [passwordConfirmed, setPasswordConfirmed] = useState(false);
     const [currentPassword, setCurrentPassword] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -20,6 +23,42 @@ export function OriginalPersonalSecurityPage({ appearance }: { appearance: Origi
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const changed = currentPassword !== '' || password !== '' || passwordConfirmation !== '';
+
+    useEffect(() => {
+        let isCurrent = true;
+
+        void apiClient
+            .GET('/account/password/confirmation')
+            .then(({ data, response }) => {
+                if (!isCurrent) {
+                    return;
+                }
+                if (response.ok && data?.confirmed) {
+                    setPasswordConfirmed(true);
+                    return;
+                }
+                navigate(
+                    '/confirm-password?next=%2Fsettings%3Fpanel%3Dpersonal%26personal%3Dsecurity',
+                    { replace: true },
+                );
+            })
+            .catch(() => {
+                if (isCurrent) {
+                    navigate(
+                        '/confirm-password?next=%2Fsettings%3Fpanel%3Dpersonal%26personal%3Dsecurity',
+                        { replace: true },
+                    );
+                }
+            });
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [navigate]);
+
+    if (!passwordConfirmed) {
+        return null;
+    }
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
