@@ -1247,6 +1247,49 @@ paths:
         '404': { description: The activity is unknown, not an Item obstacle, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/obstacle-activities:
+    post:
+      operationId: createAdminWorldBuilderObstacleActivity
+      summary: Create an Obstacle activity on an editable World Builder node.
+      description: The scoped writer resolves configured tool catalog UUIDs only after authorizing the selected node, then stores playback-safe tool slugs.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminObstacleActivityRequest' } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminObstacleActivityResponse' } } } }
+        '400': { description: The source Obstacle fields, catalog references, or requested slug are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/obstacle:
+    patch:
+      operationId: updateAdminWorldBuilderObstacleActivity
+      summary: Update an Obstacle activity on an editable World Builder graph.
+      description: A complete source-shaped edit resolves every tool UUID after scope authorization and returns a conflict instead of overwriting a newer activity.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminObstacleActivityRequest' } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminObstacleActivityResponse' } } } }
+        '400': { description: The source Obstacle fields, catalog references, or timestamp are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown, not an Obstacle, or outside the caller's authoring scope. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -8303,6 +8346,98 @@ components:
         sound_transition_id: { type: [string, 'null'], format: uuid }
         updated_at: { type: string, format: date-time }
     UpdateAdminItemObstacleActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    CreateAdminObstacleActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        allowed_tool_ids:
+          type: array
+          maxItems: 100
+          default: []
+          items: { type: string, format: uuid }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean, default: false }
+        bubble_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$', default: '#2dd4bf' }
+        bubble_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$', default: '#0891b2' }
+        bubble_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$', default: '#0f172a' }
+        bubble_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$', default: '#ffffff' }
+        bubble_opacity_dark: { type: number, minimum: 0, maximum: 100, default: 92 }
+        bubble_opacity_light: { type: number, minimum: 0, maximum: 100, default: 94 }
+        obstacle_image_dark: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_image_light: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_image_mirrored: { type: boolean, default: false }
+        persist_after_solved: { type: boolean, default: true }
+        prompt_text: { type: [string, 'null'], maxLength: 2000 }
+        obstacle_x: { type: number, minimum: 0, maximum: 100, default: 50 }
+        obstacle_y: { type: number, minimum: 0, maximum: 100, default: 50 }
+        obstacle_width: { type: number, minimum: 1, maximum: 100, default: 28 }
+        revisit_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        revisit_background_light: { type: [string, 'null'], maxLength: 2048 }
+        revisit_background_mirrored: { type: boolean, default: false }
+        revisit_image_dark: { type: [string, 'null'], maxLength: 2048 }
+        revisit_image_light: { type: [string, 'null'], maxLength: 2048 }
+        revisit_image_mirrored: { type: boolean, default: false }
+        revisit_text: { type: [string, 'null'], maxLength: 2000 }
+        success_animation: { type: [string, 'null'], enum: [none, zoom, shake, rotate, null], default: zoom }
+        success_text: { type: [string, 'null'], maxLength: 2000 }
+        typing_speed: { type: number, minimum: 1, maximum: 250, default: 24 }
+    CreateAdminObstacleActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminObstacleActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, allowed_tool_ids, background_dark, background_light, background_mirrored, bubble_border_color_dark, bubble_border_color_light, bubble_color_dark, bubble_color_light, bubble_opacity_dark, bubble_opacity_light, obstacle_image_dark, obstacle_image_light, obstacle_image_mirrored, persist_after_solved, prompt_text, obstacle_x, obstacle_y, obstacle_width, revisit_background_dark, revisit_background_light, revisit_background_mirrored, revisit_image_dark, revisit_image_light, revisit_image_mirrored, revisit_text, success_animation, success_text, typing_speed, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        allowed_tool_ids:
+          type: array
+          maxItems: 100
+          items: { type: string, format: uuid }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean }
+        bubble_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_opacity_dark: { type: number, minimum: 0, maximum: 100 }
+        bubble_opacity_light: { type: number, minimum: 0, maximum: 100 }
+        obstacle_image_dark: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_image_light: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_image_mirrored: { type: boolean }
+        persist_after_solved: { type: boolean }
+        prompt_text: { type: [string, 'null'], maxLength: 2000 }
+        obstacle_x: { type: number, minimum: 0, maximum: 100 }
+        obstacle_y: { type: number, minimum: 0, maximum: 100 }
+        obstacle_width: { type: number, minimum: 1, maximum: 100 }
+        revisit_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        revisit_background_light: { type: [string, 'null'], maxLength: 2048 }
+        revisit_background_mirrored: { type: boolean }
+        revisit_image_dark: { type: [string, 'null'], maxLength: 2048 }
+        revisit_image_light: { type: [string, 'null'], maxLength: 2048 }
+        revisit_image_mirrored: { type: boolean }
+        revisit_text: { type: [string, 'null'], maxLength: 2000 }
+        success_animation: { type: [string, 'null'], enum: [none, zoom, shake, rotate, null] }
+        success_text: { type: [string, 'null'], maxLength: 2000 }
+        typing_speed: { type: number, minimum: 1, maximum: 250 }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminObstacleActivityResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

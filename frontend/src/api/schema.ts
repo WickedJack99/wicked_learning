@@ -931,6 +931,46 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderItemObstacleActivity"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/obstacle-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an Obstacle activity on an editable World Builder node.
+         * @description The scoped writer resolves configured tool catalog UUIDs only after authorizing the selected node, then stores playback-safe tool slugs.
+         */
+        post: operations["createAdminWorldBuilderObstacleActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/obstacle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an Obstacle activity on an editable World Builder graph.
+         * @description A complete source-shaped edit resolves every tool UUID after scope authorization and returns a conflict instead of overwriting a newer activity.
+         */
+        patch: operations["updateAdminWorldBuilderObstacleActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -5595,6 +5635,105 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        CreateAdminObstacleActivityRequest: {
+            title: string;
+            slug?: string | null;
+            introduction?: string | null;
+            /** @default [] */
+            allowed_tool_ids: string[];
+            background_dark?: string | null;
+            background_light?: string | null;
+            /** @default false */
+            background_mirrored: boolean;
+            /** @default #2dd4bf */
+            bubble_border_color_dark: string | null;
+            /** @default #0891b2 */
+            bubble_border_color_light: string | null;
+            /** @default #0f172a */
+            bubble_color_dark: string | null;
+            /** @default #ffffff */
+            bubble_color_light: string | null;
+            /** @default 92 */
+            bubble_opacity_dark: number;
+            /** @default 94 */
+            bubble_opacity_light: number;
+            obstacle_image_dark?: string | null;
+            obstacle_image_light?: string | null;
+            /** @default false */
+            obstacle_image_mirrored: boolean;
+            /** @default true */
+            persist_after_solved: boolean;
+            prompt_text?: string | null;
+            /** @default 50 */
+            obstacle_x: number;
+            /** @default 50 */
+            obstacle_y: number;
+            /** @default 28 */
+            obstacle_width: number;
+            revisit_background_dark?: string | null;
+            revisit_background_light?: string | null;
+            /** @default false */
+            revisit_background_mirrored: boolean;
+            revisit_image_dark?: string | null;
+            revisit_image_light?: string | null;
+            /** @default false */
+            revisit_image_mirrored: boolean;
+            revisit_text?: string | null;
+            /**
+             * @default zoom
+             * @enum {string|null}
+             */
+            success_animation: "none" | "zoom" | "shake" | "rotate" | null;
+            success_text?: string | null;
+            /** @default 24 */
+            typing_speed: number;
+        };
+        CreateAdminObstacleActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        UpdateAdminObstacleActivityRequest: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            allowed_tool_ids: string[];
+            background_dark: string | null;
+            background_light: string | null;
+            background_mirrored: boolean;
+            bubble_border_color_dark: string | null;
+            bubble_border_color_light: string | null;
+            bubble_color_dark: string | null;
+            bubble_color_light: string | null;
+            bubble_opacity_dark: number;
+            bubble_opacity_light: number;
+            obstacle_image_dark: string | null;
+            obstacle_image_light: string | null;
+            obstacle_image_mirrored: boolean;
+            persist_after_solved: boolean;
+            prompt_text: string | null;
+            obstacle_x: number;
+            obstacle_y: number;
+            obstacle_width: number;
+            revisit_background_dark: string | null;
+            revisit_background_light: string | null;
+            revisit_background_mirrored: boolean;
+            revisit_image_dark: string | null;
+            revisit_image_light: string | null;
+            revisit_image_mirrored: boolean;
+            revisit_text: string | null;
+            /** @enum {string|null} */
+            success_animation: "none" | "zoom" | "shake" | "rotate" | null;
+            success_text: string | null;
+            typing_speed: number;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminObstacleActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         CreateAdminActivityTransitionRequest: {
             /** Format: uuid */
             from_activity_id: string;
@@ -8851,6 +8990,141 @@ export interface operations {
                 };
             };
             /** @description The source Item obstacle fields */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderObstacleActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminObstacleActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminObstacleActivityResponse"];
+                };
+            };
+            /** @description The source Obstacle fields */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderObstacleActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminObstacleActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminObstacleActivityResponse"];
+                };
+            };
+            /** @description The source Obstacle fields */
             400: {
                 headers: {
                     [name: string]: unknown;

@@ -989,6 +989,18 @@ checks sound UUIDs only after it has authorized the node or activity. A
 complete edit preserves unrelated configuration and uses `updated_at`
 optimistic concurrency. This uses the existing Rust-owned generic activity
 configuration migration; no Laravel schema or data is imported.
+Base-obstacle creation and editing are now available through `POST
+/api/v1/admin/world-builder/nodes/{node_id}/obstacle-activities` and `PATCH
+/api/v1/admin/world-builder/activities/{activity_id}/obstacle`. They retain
+the source normal, solved and revisit visuals, bubble presentation, prompt,
+placement, solved-state behavior and typing/animation settings. The scoped
+writer resolves the submitted catalog-tool UUID collection only after it has
+authorized the node or activity, then stores only the learner playback slugs.
+A complete edit preserves unrelated configuration and uses `updated_at`
+optimistic concurrency. The collection is bounded at 100 because the existing
+safe learner projection has the same maximum; this prevents silently hiding an
+author-selected tool. This uses the existing Rust-owned generic activity
+configuration migration; no Laravel schema or data is imported.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command

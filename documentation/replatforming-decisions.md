@@ -3934,6 +3934,52 @@ catalog administration, a generic activity editor, version snapshots or review
 history. The original UI may consume the contract only after its complete
 activity-editor adapter and browser parity evidence are available.
 
+## ADR-097: Base-obstacle authoring resolves bounded scoped tools to playback slugs
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Laravel's base Obstacle editor has distinct normal, solved and
+revisit scenes together with bubble presentation, prompt, placement, solved
+state and feedback controls. Its allowed-tool selector is stored in the
+authoring form as catalog identifiers, while the Rust learner projection
+deliberately accepts only server-owned tool slugs and bounds its list to one
+hundred entries. Resolving references before the World Builder scope check
+would leak catalog state; silently clipping a valid author selection would
+leave an invisible behavior difference.
+
+**Decision:** `POST /api/v1/admin/world-builder/nodes/{node_id}/obstacle-activities`
+and `PATCH /api/v1/admin/world-builder/activities/{activity_id}/obstacle`
+accept the complete source-shaped obstacle form. It carries title, optional
+slug/introduction, a bounded collection of tool UUIDs, normal and revisit
+background/image fields, mirrored flags, bubble colors/opacities, prompt,
+placement, persistence, success animation/text and typing speed. Rust applies
+Laravel's defaults and field bounds. Creation uses ADR-093's deterministic
+primary route; editing requires the complete form and previously-read
+`updated_at` timestamp. A stale save returns `409`; an unchanged save preserves
+its timestamp and review state.
+
+Persistence first locks and authorizes the selected node or activity through
+the existing all/own/assigned/direct-editor rule. It then resolves all tool
+UUIDs in one bounded transaction query. Every UUID must exist; the returned
+slugs are restored in author order and stored as `allowedToolIds`, the exact
+safe configuration consumed by learner playback. The transport and application
+form reject more than one hundred selected tools to match that reader rather
+than silently omitting author choices. Updates preserve unrelated configuration
+keys and reset available AI-review state only for actual content changes. The
+generic Rust `learning_activities.activity_config` migration remains the
+greenfield storage boundary; this adds no Laravel migration, legacy identifier
+or data import.
+
+**Why:** This retains the original editor's distinct state controls while
+keeping catalog translation, authorization ordering and optimistic concurrency
+inside a scoped transactional writer. It prevents forged playback references
+and ensures a bounded learner projection never conceals selected tools.
+
+**Limits and trigger:** This does not expose a replacement World Builder UI,
+tool catalog administration, a generic activity editor, version snapshots or
+review history. The original UI may consume the contract only after its
+complete activity-editor adapter and browser parity evidence are available.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

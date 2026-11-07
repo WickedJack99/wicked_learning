@@ -20,6 +20,7 @@ mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
 mod admin_world_node_transition;
+mod admin_world_obstacle;
 mod admin_world_open_practice;
 mod admin_world_reflection;
 mod admin_world_tool_grant;
@@ -596,6 +597,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/item-obstacle",
             patch(admin_world_item_obstacle::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/obstacle-activities",
+            post(admin_world_obstacle::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/obstacle",
+            patch(admin_world_obstacle::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/tool-grant-activities",
@@ -1621,6 +1630,34 @@ mod tests {
             .expect("World Builder item-obstacle update response");
 
         assert_eq!(item_obstacle_update_response.status(), 401);
+
+        let obstacle_create_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/obstacle-activities")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"An obstacle"}"#))
+                    .expect("a valid World Builder obstacle create request"),
+            )
+            .await
+            .expect("World Builder obstacle create response");
+
+        assert_eq!(obstacle_create_response.status(), 401);
+
+        let obstacle_update_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/obstacle")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"An obstacle","slug":null,"introduction":null,"allowed_tool_ids":[],"background_dark":null,"background_light":null,"background_mirrored":false,"bubble_border_color_dark":null,"bubble_border_color_light":null,"bubble_color_dark":null,"bubble_color_light":null,"bubble_opacity_dark":92,"bubble_opacity_light":94,"obstacle_image_dark":null,"obstacle_image_light":null,"obstacle_image_mirrored":false,"persist_after_solved":true,"prompt_text":null,"obstacle_x":50,"obstacle_y":50,"obstacle_width":28,"revisit_background_dark":null,"revisit_background_light":null,"revisit_background_mirrored":false,"revisit_image_dark":null,"revisit_image_light":null,"revisit_image_mirrored":false,"revisit_text":null,"success_animation":"zoom","success_text":null,"typing_speed":24,"updated_at":"2026-11-07T17:00:00.000000Z"}"#))
+                    .expect("a valid World Builder obstacle update request"),
+            )
+            .await
+            .expect("World Builder obstacle update response");
+
+        assert_eq!(obstacle_update_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(
