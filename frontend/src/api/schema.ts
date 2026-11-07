@@ -675,6 +675,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the source Map Details form for one scoped World Builder map.
+         * @description Requires the source world-map update permission and its map-specific all, own, assigned or direct-editor scope. The complete form uses the selected map timestamp to reject stale saves before they overwrite a newer authoring change.
+         */
+        patch: operations["updateAdminWorldBuilderMapDetails"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}": {
         parameters: {
             query?: never;
@@ -5196,6 +5216,20 @@ export interface components {
             /** Format: uuid */
             map_id: string;
         };
+        UpdateAdminWorldMapDetailsRequest: {
+            title: string;
+            description: string | null;
+            topic_id: string | null;
+            map_assets_locked: boolean;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminWorldMapDetailsResponse: {
+            /** Format: uuid */
+            map_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         AdminMapSummary: {
             /** Format: uuid */
             id: string;
@@ -8243,6 +8277,77 @@ export interface operations {
             };
             /** @description The map is unknown or unavailable through the source delete scope. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMapDetails: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminWorldMapDetailsRequest"];
+            };
+        };
+        responses: {
+            /** @description The source Map Details form was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminWorldMapDetailsResponse"];
+                };
+            };
+            /** @description The complete source form */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map changed after this browser copy was loaded. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

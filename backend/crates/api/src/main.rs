@@ -18,6 +18,7 @@ mod admin_world_item_obstacle;
 mod admin_world_map;
 mod admin_world_map_create;
 mod admin_world_map_delete;
+mod admin_world_map_details;
 mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
@@ -563,6 +564,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}",
             get(admin_world_map::show).delete(admin_world_map_delete::delete),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/details",
+            patch(admin_world_map_details::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}",

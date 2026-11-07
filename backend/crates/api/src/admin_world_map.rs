@@ -14,8 +14,8 @@ use crate::{
 };
 
 /// Reads the original World Builder's selected-map configuration projection.
-/// The endpoint deliberately has no update method until its complete source
-/// mutation, validation and optimistic-concurrency behavior is migrated.
+/// Source mutations remain separate endpoints so each retains its validation,
+/// authorization and optimistic-concurrency behavior.
 pub async fn show(
     State(state): State<AppState>,
     Path(map_id): Path<String>,

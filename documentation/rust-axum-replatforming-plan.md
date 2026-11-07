@@ -1052,11 +1052,15 @@ map that the browser graph refetches before selecting. Authors holding the
 stricter scoped `world_maps` delete permission can now confirm deletion through
 `DELETE /api/v1/admin/world-builder/maps/{map_id}`; the selected map is cleared
 only after the database transaction cascades its owned tiles, activities,
-portal links and learner state, then the browser refetches the graph. Other
-activity-card types and map/configuration forms deliberately remain read-only in this
-surface. Histories, templates and media workflows remain absent until their
-source workflows can be adapted end-to-end rather than replaced with a reduced
-editor.
+portal links and learner state, then the browser refetches the graph. The
+selected map's source Map Details form is also available through `PATCH
+/api/v1/admin/world-builder/maps/{map_id}/details`: title, nullable description
+and learning topic, and MapAsset locking save together through the map editor
+scope with an `updated_at` conflict boundary; the browser refetches the map and
+graph only after success. Other activity-card types and map/configuration forms
+deliberately remain read-only in this surface. Histories, templates and media
+workflows remain absent until their source workflows can be adapted end-to-end
+rather than replaced with a reduced editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

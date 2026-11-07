@@ -883,6 +883,34 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source delete scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/details:
+    patch:
+      operationId: updateAdminWorldBuilderMapDetails
+      summary: Update the source Map Details form for one scoped World Builder map.
+      description: Requires the source world-map update permission and its map-specific all, own, assigned or direct-editor scope. The complete form uses the selected map timestamp to reject stale saves before they overwrite a newer authoring change.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminWorldMapDetailsRequest' }
+      responses:
+        '200':
+          description: The source Map Details form was saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminWorldMapDetailsResponse' }
+        '400': { description: The complete source form, learning topic or updated timestamp is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map is unknown or unavailable through the source editor scope. }
+        '409': { description: The map changed after this browser copy was loaded. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}:
     get:
       operationId: getAdminWorldBuilderNode
@@ -7814,6 +7842,27 @@ components:
       required: [map_id]
       properties:
         map_id: { type: string, format: uuid }
+    UpdateAdminWorldMapDetailsRequest:
+      type: object
+      additionalProperties: false
+      required: [title, description, topic_id, map_assets_locked, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, nullable: true, maxLength: 1000 }
+        topic_id:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        map_assets_locked: { type: boolean }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminWorldMapDetailsResponse:
+      type: object
+      additionalProperties: false
+      required: [map_id, updated_at]
+      properties:
+        map_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
     AdminMapSummary:
       type: object
       additionalProperties: false

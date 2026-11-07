@@ -28,11 +28,57 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(page.getByLabel('Description')).toBeVisible();
     await page.getByRole('button', { name: 'Cancel' }).click();
 
-    const disposableMapTitle = `Disposable deletion map ${Date.now()}`;
+    const disposableMapTitle = `Disposable map ${Date.now()}`;
+    const updatedDisposableMapTitle = `${disposableMapTitle} updated`;
     await page.getByRole('button', { name: 'Create map' }).click();
     await page.getByLabel('Title').fill(disposableMapTitle);
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page.getByRole('heading', { name: disposableMapTitle })).toBeVisible();
+    await page.getByRole('button', { name: 'Edit map details' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Edit map details' }),
+    ).toBeVisible();
+    await page.getByLabel('Title').fill(updatedDisposableMapTitle);
+    await page
+        .getByLabel('Description')
+        .fill('A disposable map used to verify the Map Details save path.');
+    await page.getByLabel('Lock MapAsset surface').check();
+    await page.getByRole('button', { name: 'Save details' }).click();
+    await expect(
+        page.getByRole('heading', { name: updatedDisposableMapTitle }),
+    ).toBeVisible();
+    const updatedGraphResponse = await page.request.get(
+        '/api/v1/admin/world-builder',
+    );
+    expect(updatedGraphResponse.ok()).toBeTruthy();
+    const updatedGraph = (await updatedGraphResponse.json()) as {
+        maps: Array<{ id: string; title: string }>;
+    };
+    const updatedMap = updatedGraph.maps.find(
+        (map) => map.title === updatedDisposableMapTitle,
+    );
+    expect(updatedMap).toBeDefined();
+    if (!updatedMap) {
+        throw new Error('the updated disposable map is missing from World Builder');
+    }
+    const updatedMapResponse = await page.request.get(
+        `/api/v1/admin/world-builder/maps/${updatedMap.id}`,
+    );
+    expect(updatedMapResponse.ok()).toBeTruthy();
+    const updatedMapDocument = (await updatedMapResponse.json()) as {
+        editable_map: {
+            map: {
+                description: string;
+                map_assets_locked: boolean;
+                topic_id: string | null;
+            };
+        };
+    };
+    expect(updatedMapDocument.editable_map.map).toMatchObject({
+        description: 'A disposable map used to verify the Map Details save path.',
+        map_assets_locked: true,
+        topic_id: null,
+    });
     await page.getByRole('button', { name: 'Delete map' }).click();
     await expect(
         page.getByRole('heading', { name: 'Delete world map?' }),
@@ -51,7 +97,7 @@ test('a local world author can open the source-derived World Builder graph', asy
         maps: Array<{ title: string }>;
     };
     expect(deletedMapGraph.maps).not.toContainEqual(
-        expect.objectContaining({ title: disposableMapTitle }),
+        expect.objectContaining({ title: updatedDisposableMapTitle }),
     );
 
     const graphResponse = await page.request.get('/api/v1/admin/world-builder');

@@ -165,8 +165,8 @@ type StartRouteForm = {
  * Source-adapted from the Laravel `AdminWorldIndex` and activity-graph
  * surfaces. It deliberately consumes the three scoped Rust reads separately:
  * the world graph selects a map, the map read selects a node, and the node
- * read renders its activity graph. Mutations remain limited to source graph
- * card positioning while their full source forms are migrated separately.
+ * read renders its activity graph. Each source mutation keeps its own typed
+ * endpoint and refresh boundary while the remaining forms migrate separately.
  */
 export function OriginalWorldBuilderPage({
     isAuthenticated,
@@ -196,6 +196,7 @@ function WorldBuilderContent() {
     const [worldGraph, setWorldGraph] = useState<WorldGraph | null>(null);
     const [editableMap, setEditableMap] = useState<EditableMap | null>(null);
     const [editableNode, setEditableNode] = useState<EditableNode | null>(null);
+    const [mapReload, setMapReload] = useState(0);
     const [nodeReload, setNodeReload] = useState(0);
     const [portal, setPortal] = useState<PortalLink | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -271,7 +272,7 @@ function WorldBuilderContent() {
         return () => {
             current = false;
         };
-    }, [selectedMapId]);
+    }, [mapReload, selectedMapId]);
 
     useEffect(() => {
         if (!selectedNodeId) {
@@ -379,6 +380,10 @@ function WorldBuilderContent() {
                     ) : editableMap && selectedMapId ? (
                         <MapDetails
                             document={editableMap}
+                            onUpdated={() => {
+                                setMapReload((current) => current + 1);
+                                void loadWorld();
+                            }}
                             onDeleted={() => {
                                 setEditableMap(null);
                                 setEditableNode(null);
@@ -584,13 +589,16 @@ function MapGraphCard({
 function MapDetails({
     document,
     onDeleted,
+    onUpdated,
     onSelectNode,
 }: {
     document: EditableMap;
     onDeleted: () => void;
+    onUpdated: () => void;
     onSelectNode: (nodeId: string) => void;
 }) {
     const { map } = document.editable_map;
+    const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -636,6 +644,13 @@ function MapDetails({
                 <Detail label="Slug" value={map.slug} />
                 <Detail label="Tiles" value={String(map.node_count)} />
             </dl>
+            <button
+                className="mt-5 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                onClick={() => setEditOpen(true)}
+                type="button"
+            >
+                Edit map details
+            </button>
             <section className="mt-6 border-t border-slate-200 pt-4 dark:border-white/10">
                 <h3 className="text-sm font-semibold">MapAssets</h3>
                 <div className="mt-3 grid gap-2">
@@ -722,6 +737,165 @@ function MapDetails({
                     </div>
                 </div>
             ) : null}
+            {editOpen ? (
+                <EditMapDetailsDialog
+                    document={document}
+                    onClose={() => setEditOpen(false)}
+                    onUpdated={() => {
+                        setEditOpen(false);
+                        onUpdated();
+                    }}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function EditMapDetailsDialog({
+    document,
+    onClose,
+    onUpdated,
+}: {
+    document: EditableMap;
+    onClose: () => void;
+    onUpdated: () => void;
+}) {
+    const { map } = document.editable_map;
+    const [title, setTitle] = useState(map.title);
+    const [description, setDescription] = useState(map.description);
+    const [topicId, setTopicId] = useState(map.topic_id ?? '');
+    const [mapAssetsLocked, setMapAssetsLocked] = useState(
+        map.map_assets_locked,
+    );
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    const save = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!title.trim()) {
+            setError('Add a map title before saving.');
+            return;
+        }
+        setError(null);
+        setSaving(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/maps/{map_id}/details',
+                {
+                    body: {
+                        description: optionalValue(description),
+                        map_assets_locked: mapAssetsLocked,
+                        title,
+                        topic_id: optionalValue(topicId),
+                        updated_at: map.updated_at,
+                    },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { map_id: map.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                setError(
+                    response.status === 400
+                        ? 'Use a title and description within the shown limits, and choose a current learning topic.'
+                        : response.status === 409
+                          ? 'This map changed in another session. Close this dialog, reload the map, then apply your changes again.'
+                          : 'The map details could not be saved. Refresh the World Builder and try again.',
+                );
+                return;
+            }
+            onUpdated();
+        } catch {
+            setError('The map details could not be saved. Check your connection and try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="edit-map-details-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <form
+                className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                onSubmit={(event) => void save(event)}
+            >
+                <h2 className="text-xl font-semibold" id="edit-map-details-title">
+                    Edit map details
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    Name this map, connect it to a learning topic, and decide whether its MapAsset surface is locked for editing.
+                </p>
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
+                <div className="mt-5 grid gap-4">
+                    <ActivityTextField
+                        label="Title"
+                        onChange={setTitle}
+                        value={title}
+                    />
+                    <label className="grid gap-1 text-sm font-medium">
+                        Learning topic
+                        <select
+                            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/15 dark:bg-slate-900 dark:text-white"
+                            onChange={(event) => setTopicId(event.target.value)}
+                            value={topicId}
+                        >
+                            <option value="">No learning topic</option>
+                            {document.topic_options.map((topic) => (
+                                <option key={topic.id} value={topic.id}>
+                                    {topic.label}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <ActivityTextField
+                        label="Description"
+                        onChange={setDescription}
+                        textarea
+                        value={description}
+                    />
+                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10">
+                        <input
+                            checked={mapAssetsLocked}
+                            className="mt-0.5 size-4 accent-teal-700"
+                            onChange={(event) => setMapAssetsLocked(event.target.checked)}
+                            type="checkbox"
+                        />
+                        <span>
+                            <span className="block font-medium">Lock MapAsset surface</span>
+                            <span className="mt-1 block text-slate-600 dark:text-slate-300">
+                                Keep the map surface locked while you work on its activity tiles.
+                            </span>
+                        </span>
+                    </label>
+                </div>
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+                        disabled={saving}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950"
+                        disabled={saving}
+                        type="submit"
+                    >
+                        {saving ? 'Saving…' : 'Save details'}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 }
