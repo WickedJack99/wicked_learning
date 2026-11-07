@@ -6,7 +6,7 @@ use axum::{
 };
 use axum_login::AuthSession;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use totp_rs::{Builder, Totp};
 use uuid::Uuid;
 
@@ -34,10 +34,119 @@ pub struct RecoveryCodesResponse {
     pub recovery_codes: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct TwoFactorStatusResponse {
+    pub enabled: bool,
+}
+
 #[derive(FromRow)]
 struct PendingFactorRow {
     pending_encrypted_secret: Vec<u8>,
     pending_encryption_nonce: Vec<u8>,
+}
+
+#[derive(FromRow)]
+struct RecoveryCodeRow {
+    encrypted_code: Vec<u8>,
+    encryption_nonce: Vec<u8>,
+}
+
+struct RecoveryCodeMaterial {
+    code_hash: String,
+    encrypted_code: crate::totp_crypto::EncryptedTotpSecret,
+}
+
+/// Reports whether the authenticated owner has a confirmed factor. This
+/// intentionally exposes no secret or recovery-code material.
+pub async fn status(
+    State(state): State<AppState>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<TwoFactorStatusResponse>, ApiError> {
+    let subject = auth_session
+        .user
+        .as_ref()
+        .ok_or_else(ApiError::authentication_required)?;
+    let enabled = factor_is_confirmed(&state.identity_database, subject.subject_id())
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+
+    Ok(Json(TwoFactorStatusResponse { enabled }))
+}
+
+/// Lists the owner's still-usable recovery codes, matching the source
+/// security control. The values are never cached by an intermediary.
+pub async fn recovery_codes(
+    State(state): State<AppState>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<impl IntoResponse, ApiError> {
+    let subject = auth_session
+        .user
+        .as_ref()
+        .ok_or_else(ApiError::authentication_required)?;
+    account_password_confirmation::require(&auth_session).await?;
+    let recovery_codes = load_recovery_codes(
+        &state.identity_database,
+        &state.totp_secret_cipher,
+        subject.subject_id(),
+    )
+    .await
+    .map_err(|_| ApiError::service_unavailable())?;
+
+    Ok(no_store_recovery_codes(recovery_codes))
+}
+
+/// Replaces every remaining recovery code with a fresh source-sized set.
+pub async fn regenerate_recovery_codes(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<impl IntoResponse, ApiError> {
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let subject = auth_session
+        .user
+        .as_ref()
+        .ok_or_else(ApiError::authentication_required)?;
+    account_password_confirmation::require(&auth_session).await?;
+    if !factor_is_confirmed(&state.identity_database, subject.subject_id())
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+    {
+        return Err(ApiError::not_found());
+    }
+    let recovery_codes = replace_recovery_codes(
+        &state.identity_database,
+        &state.totp_secret_cipher,
+        subject.subject_id(),
+    )
+    .await
+    .map_err(|_| ApiError::service_unavailable())?;
+
+    Ok(no_store_recovery_codes(recovery_codes))
+}
+
+/// Removes the confirmed factor and every recovery-code verifier for the
+/// authenticated owner. The foreign-key cascade ensures a disabled factor
+/// cannot leave a usable emergency credential behind.
+pub async fn disable(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<TwoFactorStatusResponse>, ApiError> {
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let subject = auth_session
+        .user
+        .as_ref()
+        .ok_or_else(ApiError::authentication_required)?;
+    account_password_confirmation::require(&auth_session).await?;
+    sqlx::query("DELETE FROM identity_totp_factors WHERE subject_id = $1")
+        .bind(subject.subject_id())
+        .execute(&state.identity_database)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+
+    Ok(Json(TwoFactorStatusResponse { enabled: false }))
 }
 
 /// Starts a replacement-safe, unconfirmed authenticator enrollment. The
@@ -50,11 +159,11 @@ pub async fn start_setup(
     auth_session: AuthSession<IdentityBackend>,
 ) -> Result<impl IntoResponse, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
-    account_password_confirmation::require(&auth_session).await?;
     let subject = auth_session
         .user
         .as_ref()
         .ok_or_else(ApiError::authentication_required)?;
+    account_password_confirmation::require(&auth_session).await?;
     let totp =
         enrollment_totp(subject.normalized_email()).map_err(|_| ApiError::service_unavailable())?;
     let encrypted = state
@@ -94,11 +203,11 @@ pub async fn confirm_setup(
     Json(request): Json<ConfirmTwoFactorSetupRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
-    account_password_confirmation::require(&auth_session).await?;
     let subject = auth_session
         .user
         .as_ref()
         .ok_or_else(ApiError::authentication_required)?;
+    account_password_confirmation::require(&auth_session).await?;
     if !is_six_digit_code(&request.code) {
         return Err(ApiError::two_factor_setup_rejected());
     }
@@ -199,11 +308,8 @@ async fn confirm_pending_enrollment(
         return Err(ConfirmEnrollmentError::Rejected);
     }
 
-    let recovery_codes = generate_recovery_codes();
-    let recovery_code_hashes = recovery_codes
-        .iter()
-        .map(|code| crate::passwords::hash(code).map_err(|_| ConfirmEnrollmentError::Unavailable))
-        .collect::<Result<Vec<_>, _>>()?;
+    let (recovery_codes, recovery_code_material) =
+        new_recovery_code_material(cipher).map_err(|_| ConfirmEnrollmentError::Unavailable)?;
     sqlx::query(
         "UPDATE identity_totp_factors SET \
              encrypted_secret = pending_encrypted_secret, \
@@ -219,28 +325,122 @@ async fn confirm_pending_enrollment(
     .execute(&mut *transaction)
     .await
     .map_err(|_| ConfirmEnrollmentError::Unavailable)?;
-    sqlx::query("DELETE FROM identity_totp_recovery_code_verifiers WHERE subject_id = $1")
-        .bind(subject_id)
-        .execute(&mut *transaction)
+    save_recovery_code_material(&mut transaction, subject_id, recovery_code_material)
         .await
         .map_err(|_| ConfirmEnrollmentError::Unavailable)?;
-    for hash in recovery_code_hashes {
-        sqlx::query(
-            "INSERT INTO identity_totp_recovery_code_verifiers (id, subject_id, code_hash) VALUES ($1, $2, $3)",
-        )
-        .bind(Uuid::new_v4())
-        .bind(subject_id)
-        .bind(hash)
-        .execute(&mut *transaction)
-        .await
-        .map_err(|_| ConfirmEnrollmentError::Unavailable)?;
-    }
     transaction
         .commit()
         .await
         .map_err(|_| ConfirmEnrollmentError::Unavailable)?;
 
     Ok(recovery_codes)
+}
+
+fn no_store_recovery_codes(
+    recovery_codes: Vec<String>,
+) -> (HeaderMap, Json<RecoveryCodesResponse>) {
+    let mut response_headers = HeaderMap::new();
+    response_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+
+    (
+        response_headers,
+        Json(RecoveryCodesResponse { recovery_codes }),
+    )
+}
+
+async fn factor_is_confirmed(
+    identity_database: &PgPool,
+    subject_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM identity_totp_factors WHERE subject_id = $1 AND confirmed_at IS NOT NULL)",
+    )
+    .bind(subject_id)
+    .fetch_one(identity_database)
+    .await
+}
+
+async fn replace_recovery_codes(
+    identity_database: &PgPool,
+    cipher: &crate::totp_crypto::TotpSecretCipher,
+    subject_id: Uuid,
+) -> Result<Vec<String>, ()> {
+    let (recovery_codes, material) = new_recovery_code_material(cipher)?;
+    let mut transaction = identity_database.begin().await.map_err(|_| ())?;
+    save_recovery_code_material(&mut transaction, subject_id, material)
+        .await
+        .map_err(|_| ())?;
+    transaction.commit().await.map_err(|_| ())?;
+
+    Ok(recovery_codes)
+}
+
+fn new_recovery_code_material(
+    cipher: &crate::totp_crypto::TotpSecretCipher,
+) -> Result<(Vec<String>, Vec<RecoveryCodeMaterial>), ()> {
+    let recovery_codes = generate_recovery_codes();
+    let material = recovery_codes
+        .iter()
+        .map(|code| {
+            Ok(RecoveryCodeMaterial {
+                code_hash: crate::passwords::hash(code).map_err(|_| ())?,
+                encrypted_code: cipher.encrypt(code.as_bytes()).map_err(|_| ())?,
+            })
+        })
+        .collect::<Result<Vec<_>, ()>>()?;
+
+    Ok((recovery_codes, material))
+}
+
+async fn save_recovery_code_material(
+    transaction: &mut Transaction<'_, Postgres>,
+    subject_id: Uuid,
+    material: Vec<RecoveryCodeMaterial>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM identity_totp_recovery_code_verifiers WHERE subject_id = $1")
+        .bind(subject_id)
+        .execute(&mut **transaction)
+        .await?;
+    for recovery_code in material {
+        sqlx::query(
+            "INSERT INTO identity_totp_recovery_code_verifiers \
+             (id, subject_id, code_hash, encrypted_code, encryption_nonce) \
+             VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(Uuid::new_v4())
+        .bind(subject_id)
+        .bind(recovery_code.code_hash)
+        .bind(recovery_code.encrypted_code.ciphertext)
+        .bind(recovery_code.encrypted_code.nonce.as_slice())
+        .execute(&mut **transaction)
+        .await?;
+    }
+
+    Ok(())
+}
+
+async fn load_recovery_codes(
+    identity_database: &PgPool,
+    cipher: &crate::totp_crypto::TotpSecretCipher,
+    subject_id: Uuid,
+) -> Result<Vec<String>, ()> {
+    let rows = sqlx::query_as::<_, RecoveryCodeRow>(
+        "SELECT encrypted_code, encryption_nonce \
+         FROM identity_totp_recovery_code_verifiers \
+         WHERE subject_id = $1 AND used_at IS NULL AND encrypted_code IS NOT NULL \
+         ORDER BY created_at, id",
+    )
+    .bind(subject_id)
+    .fetch_all(identity_database)
+    .await
+    .map_err(|_| ())?;
+    rows.into_iter()
+        .map(|row| {
+            let nonce = row.encryption_nonce.as_slice().try_into().map_err(|_| ())?;
+            let plaintext = cipher.decrypt(&row.encrypted_code, nonce).map_err(|_| ())?;
+            String::from_utf8(plaintext).map_err(|_| ())
+        })
+        .collect()
 }
 
 fn is_six_digit_code(value: &str) -> bool {
@@ -264,6 +464,7 @@ fn generate_recovery_codes() -> Vec<String> {
 mod tests {
     use super::{
         ISSUER, RECOVERY_CODE_COUNT, enrollment_totp, generate_recovery_codes, is_six_digit_code,
+        new_recovery_code_material,
     };
 
     #[test]
@@ -299,5 +500,31 @@ mod tests {
                 .len(),
             codes.len()
         );
+    }
+
+    #[test]
+    fn recovery_codes_keep_a_verifier_for_login_and_an_encrypted_owner_display_copy() {
+        let cipher =
+            crate::totp_crypto::TotpSecretCipher::new(*b"test-totp-encryption-key-0000000");
+        let (codes, material) =
+            new_recovery_code_material(&cipher).expect("recovery-code material is generated");
+
+        assert_eq!(codes.len(), RECOVERY_CODE_COUNT);
+        assert_eq!(material.len(), RECOVERY_CODE_COUNT);
+        for (code, recovery_code) in codes.iter().zip(material.iter()) {
+            assert!(
+                crate::passwords::verify(code, &recovery_code.code_hash)
+                    .expect("the generated verifier is valid")
+            );
+            assert_eq!(
+                cipher
+                    .decrypt(
+                        &recovery_code.encrypted_code.ciphertext,
+                        recovery_code.encrypted_code.nonce,
+                    )
+                    .expect("the identity display copy decrypts"),
+                code.as_bytes()
+            );
+        }
     }
 }

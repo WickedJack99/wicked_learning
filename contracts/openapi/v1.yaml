@@ -386,11 +386,72 @@ paths:
         '403': { description: A valid same-origin CSRF request and recent password confirmation are required. }
         '429': { description: Too many two-factor setup attempts were made. }
         '503': { description: The identity database is unavailable. }
+  /account/two-factor:
+    get:
+      operationId: getAccountTwoFactorStatus
+      summary: Read whether the authenticated subject has a confirmed authenticator factor.
+      responses:
+        '200':
+          description: No factor secret or recovery code is exposed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TwoFactorStatus' }
+        '401': { description: Authentication is required. }
+        '503': { description: The identity database is unavailable. }
+    delete:
+      operationId: disableAccountTwoFactor
+      summary: Disable the authenticated subject's confirmed authenticator factor.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The factor and all recovery-code credentials were removed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TwoFactorStatus' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and recent password confirmation are required. }
+        '503': { description: The identity database is unavailable. }
+  /account/two-factor/recovery-codes:
+    get:
+      operationId: getAccountTwoFactorRecoveryCodes
+      summary: Read the authenticated owner's remaining recovery codes.
+      responses:
+        '200':
+          description: Remaining codes are returned only to the recently confirmed owner and must not be cached.
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecoveryCodes' }
+        '401': { description: Authentication is required. }
+        '403': { description: Recent password confirmation is required. }
+        '503': { description: The identity database is unavailable. }
+    post:
+      operationId: regenerateAccountTwoFactorRecoveryCodes
+      summary: Replace the authenticated owner's recovery codes with a fresh set.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: Fresh codes replace every prior recovery code and must not be cached.
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecoveryCodes' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and recent password confirmation are required. }
+        '404': { description: No confirmed authenticator factor exists. }
+        '429': { description: Too many recovery-code replacement attempts were made. }
+        '503': { description: The identity database is unavailable. }
   /account/two-factor/confirm:
     post:
       operationId: confirmAccountTwoFactorSetup
       summary: Confirm a pending authenticator enrollment and return new recovery codes once.
-      description: The submitted six-digit authenticator code must match a pending enrollment created within 15 minutes. On success the pending encrypted secret replaces any prior confirmed factor and the browser receives ten fresh recovery codes. The returned codes are non-cacheable and are stored only as Argon2id verifiers.
+      description: The submitted six-digit authenticator code must match a pending enrollment created within 15 minutes. On success the pending encrypted secret replaces any prior confirmed factor and the browser receives ten fresh recovery codes. Each code has an Argon2id verifier for login and an AES-GCM encrypted display copy in the identity database, so a recently confirmed owner can use the source recovery-code manager.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -3223,6 +3284,14 @@ components:
         confirmed:
           type: boolean
           description: Whether this browser's server-side session has a current password confirmation for sensitive actions.
+    TwoFactorStatus:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: Whether the authenticated subject has a confirmed authenticator-app factor.
     PendingTwoFactorSetup:
       type: object
       additionalProperties: false

@@ -343,6 +343,15 @@ fn router(state: AppState) -> Router {
             "/api/v1/account/two-factor/confirm",
             post(account_two_factor::confirm_setup),
         )
+        .route(
+            "/api/v1/account/two-factor/recovery-codes",
+            get(account_two_factor::recovery_codes)
+                .post(account_two_factor::regenerate_recovery_codes),
+        )
+        .route(
+            "/api/v1/account/two-factor",
+            get(account_two_factor::status).delete(account_two_factor::disable),
+        )
         .layer(
             GovernorLayer::new(two_factor_rate_limit)
                 .error_handler(|_| ApiError::too_many_requests().into_response()),

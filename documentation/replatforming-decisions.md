@@ -3285,16 +3285,22 @@ the standard six-digit, thirty-second SHA-1 interoperable authenticator
 profile. An enrollment secret is generated and displayed only while the
 authenticated owner completes setup; the identity database stores it encrypted
 at rest, never in application data, a session payload, URL or log. The factor
-becomes eligible at login only after a valid confirmation code. Recovery codes
-are generated once, stored only as individual Argon2id verifiers, and consumed
-atomically. Disabling or replacing a factor requires an authenticated
-sensitive-action flow and creates the existing application audit event without
-copying any secret across the database boundary.
+becomes eligible at login only after a valid confirmation code. Each recovery
+code has an Argon2id verifier for atomic one-use login consumption and a
+separate AES-256-GCM encrypted display copy in the identity database. That
+copy is released only to the authenticated, recently password-confirmed owner
+through non-cacheable responses, preserving the source recovery-code manager.
+Disabling or replacing a factor requires the same sensitive-action flow;
+cross-database application audit delivery remains a separate reliability
+slice.
 
-**Why:** This preserves the source's authenticator-app and emergency-code
-journeys while reusing maintained TOTP and password-hash primitives. Staged
-enrollment prevents an interrupted QR scan from locking an account, and
-one-way recovery-code storage limits the impact of an identity-database read.
+**Why:** This preserves the source's authenticator-app, recovery-code view and
+recovery-code replacement journeys while reusing maintained TOTP and
+password-hash primitives. Staged enrollment prevents an interrupted QR scan
+from locking an account. The encrypted display copy has a larger identity-data
+read exposure than one-way verifiers alone, but is required for behavioral
+parity and is limited to the same identity boundary and owner-confirmed
+non-cacheable path.
 
 **Implementation status:** The Rust API now starts an authenticated,
 CSRF-protected pending enrollment at `POST /api/v1/account/two-factor/setup`.
@@ -3302,16 +3308,18 @@ It returns the provisioning secret only in a `Cache-Control: no-store` response
 and stores an AES-256-GCM-encrypted pending secret in the identity database.
 `POST /api/v1/account/two-factor/confirm` accepts a fresh valid code within
 fifteen minutes, atomically promotes the pending secret, replaces recovery-code
-verifiers, and returns ten new recovery codes once in another non-cacheable
-response. The source-derived React login challenge now accepts either an
-authenticator-app code or one recovery code after the server stages a valid
-password login. The source two-factor control in Personal Security remains
-unavailable until its complete account-management contract is ready.
+verifiers and encrypted display copies, and returns ten new recovery codes in
+another non-cacheable response. `GET /api/v1/account/two-factor` reports the
+confirmed-factor state; recent-password-protected recovery-code read/replacement
+and factor-disable commands complete the source account-management lifecycle.
+The source-derived Personal Security UI now presents QR/manual setup,
+verification, view/regenerate recovery codes and disable controls. The
+source-derived React login challenge accepts either an authenticator-app code
+or one recovery code after the server stages a valid password login.
 
-**Limits and follow-up:** Account factor status, recovery-code replacement,
-disable/replacement sensitive-action checks, cross-database audit events and
-the source passkey flow remain separate identity work. This enrollment and
-sign-in work alone does not satisfy the identity cutover gate.
+**Limits and follow-up:** Cross-database audit delivery and the source passkey
+flow remain separate identity work. This TOTP lifecycle alone does not satisfy
+the identity cutover gate.
 
 ## ADR-085: TOTP sign-in uses a short-lived pre-authentication session
 

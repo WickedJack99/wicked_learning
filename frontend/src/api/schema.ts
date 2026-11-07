@@ -341,6 +341,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read whether the authenticated subject has a confirmed authenticator factor. */
+        get: operations["getAccountTwoFactorStatus"];
+        put?: never;
+        post?: never;
+        /** Disable the authenticated subject's confirmed authenticator factor. */
+        delete: operations["disableAccountTwoFactor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/two-factor/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authenticated owner's remaining recovery codes. */
+        get: operations["getAccountTwoFactorRecoveryCodes"];
+        put?: never;
+        /** Replace the authenticated owner's recovery codes with a fresh set. */
+        post: operations["regenerateAccountTwoFactorRecoveryCodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/two-factor/confirm": {
         parameters: {
             query?: never;
@@ -352,7 +388,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm a pending authenticator enrollment and return new recovery codes once.
-         * @description The submitted six-digit authenticator code must match a pending enrollment created within 15 minutes. On success the pending encrypted secret replaces any prior confirmed factor and the browser receives ten fresh recovery codes. The returned codes are non-cacheable and are stored only as Argon2id verifiers.
+         * @description The submitted six-digit authenticator code must match a pending enrollment created within 15 minutes. On success the pending encrypted secret replaces any prior confirmed factor and the browser receives ten fresh recovery codes. Each code has an Argon2id verifier for login and an AES-GCM encrypted display copy in the identity database, so a recently confirmed owner can use the source recovery-code manager.
          */
         post: operations["confirmAccountTwoFactorSetup"];
         delete?: never;
@@ -2341,6 +2377,10 @@ export interface components {
         PasswordConfirmationStatus: {
             /** @description Whether this browser's server-side session has a current password confirmation for sensitive actions. */
             confirmed: boolean;
+        };
+        TwoFactorStatus: {
+            /** @description Whether the authenticated subject has a confirmed authenticator-app factor. */
+            enabled: boolean;
         };
         PendingTwoFactorSetup: {
             /** @description A Base32 authenticator secret. It is returned once for the current pending enrollment and must not be persisted by a client. */
@@ -5407,6 +5447,185 @@ export interface operations {
                 content?: never;
             };
             /** @description Too many two-factor setup attempts were made. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAccountTwoFactorStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No factor secret or recovery code is exposed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorStatus"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    disableAccountTwoFactor: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The factor and all recovery-code credentials were removed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorStatus"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and recent password confirmation are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAccountTwoFactorRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Remaining codes are returned only to the recently confirmed owner and must not be cached. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent password confirmation is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    regenerateAccountTwoFactorRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fresh codes replace every prior recovery code and must not be cached. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and recent password confirmation are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No confirmed authenticator factor exists. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many recovery-code replacement attempts were made. */
             429: {
                 headers: {
                     [name: string]: unknown;
