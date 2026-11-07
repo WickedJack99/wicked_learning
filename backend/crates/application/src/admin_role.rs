@@ -46,7 +46,12 @@ mod tests {
         fn list(
             &self,
         ) -> impl std::future::Future<Output = Result<AdminRoles, AdminRoleError>> + Send {
-            async { Ok(AdminRoles { roles: vec![] }) }
+            async {
+                Ok(AdminRoles {
+                    permission_resources: vec![],
+                    roles: vec![],
+                })
+            }
         }
     }
 

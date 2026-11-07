@@ -3761,9 +3761,22 @@ export interface components {
             is_system: boolean;
             level: number;
             name: string;
+            permission_scopes: {
+                [key: string]: "none" | "own" | "assigned" | "group" | "all";
+            };
+            permissions: {
+                [key: string]: "none" | "ro" | "ru" | "rud";
+            };
             role_key: string;
         };
+        AdminPermissionResource: {
+            description: string;
+            group: string;
+            key: string;
+            label: string;
+        };
         AdminRoles: {
+            permission_resources: components["schemas"]["AdminPermissionResource"][];
             roles: components["schemas"]["AdminRole"][];
         };
         AdminLearningGroupResponse: {

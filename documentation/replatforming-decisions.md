@@ -3012,6 +3012,42 @@ or assignment writes, migrate the source resource, level and scope catalogue,
 the hierarchy checks, the affected UI controls, and contract/browser/database
 tests as one authorization slice.
 
+## ADR-077: Preserve the complete permission vocabulary before activating it
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The Laravel role editor is driven by a fixed catalogue of 26
+administrative resources, four ordered levels (`none`, `ro`, `ru`, `rud`) and
+five scopes (`none`, `own`, `assigned`, `group`, `all`). A reduced catalogue
+would make a newly saved role lose source information, while replacing every
+existing Rust capability check in one unreviewable change would risk widening
+authorization.
+
+**Decision:** Store one level and scope grant for every role/resource pair in
+the application database, validate each against the source vocabulary, and
+return the source labels and descriptions through `GET /admin/roles`. Seed the
+platform administrator with full `rud`/`all` grants and other current system
+roles with conservative defaults. Existing dedicated Rust capabilities remain
+the enforcement mechanism for completed vertical slices until the relevant
+resource, level and scope check has been migrated and tested end-to-end.
+
+**Why:** The original React editor can later read and save the entire matrix
+without browser-owned policy or missing rows. The staged enforcement change
+keeps currently working learner and administrator workflows stable while
+making the eventual authorization transition explicit and auditable.
+
+**Alternatives:** Translating only currently used capabilities into editor
+rows would omit source-managed areas and make an edit destructive. Switching
+all handlers to the new matrix immediately would conflate a schema migration
+with the authorization migration of every feature. Both alternatives are
+rejected.
+
+**Limits and follow-up:** The matrix is presently a faithful catalogue and
+read projection, not an authorization claim for unported features. Role CRUD,
+hierarchy-based assignment, account access controls, audit history and the
+source React settings panels follow only after their enforcement boundaries
+are complete.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

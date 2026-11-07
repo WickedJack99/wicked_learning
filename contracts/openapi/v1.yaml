@@ -5576,7 +5576,7 @@ components:
     AdminRole:
       type: object
       additionalProperties: false
-      required: [capabilities, description, is_system, level, name, role_key]
+      required: [capabilities, description, is_system, level, name, permission_scopes, permissions, role_key]
       properties:
         capabilities:
           type: array
@@ -5585,12 +5585,34 @@ components:
         is_system: { type: boolean }
         level: { type: integer, minimum: 1, maximum: 100 }
         name: { type: string, minLength: 1, maxLength: 80 }
+        permission_scopes:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [none, own, assigned, group, all]
+        permissions:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [none, ro, ru, rud]
         role_key: { type: string, minLength: 1, maxLength: 120 }
+    AdminPermissionResource:
+      type: object
+      additionalProperties: false
+      required: [description, group, key, label]
+      properties:
+        description: { type: string, minLength: 1, maxLength: 500 }
+        group: { type: string, minLength: 1, maxLength: 80 }
+        key: { type: string, minLength: 1, maxLength: 120 }
+        label: { type: string, minLength: 1, maxLength: 120 }
     AdminRoles:
       type: object
       additionalProperties: false
-      required: [roles]
+      required: [permission_resources, roles]
       properties:
+        permission_resources:
+          type: array
+          items: { $ref: '#/components/schemas/AdminPermissionResource' }
         roles:
           type: array
           items: { $ref: '#/components/schemas/AdminRole' }

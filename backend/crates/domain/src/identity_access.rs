@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -41,12 +43,65 @@ pub struct AdminRole {
     pub is_system: bool,
     pub level: i32,
     pub name: String,
+    pub permission_scopes: BTreeMap<String, String>,
+    pub permissions: BTreeMap<String, String>,
     pub role_key: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct AdminRoles {
+    pub permission_resources: Vec<AdminPermissionResource>,
     pub roles: Vec<AdminRole>,
+}
+
+/// A source-defined administrative area. These definitions deliberately live
+/// in the domain boundary rather than being browser-owned labels: a role can
+/// only hold permissions for an explicitly known resource.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminPermissionResource {
+    pub description: String,
+    pub group: String,
+    pub key: String,
+    pub label: String,
+}
+
+pub fn permission_resources() -> Vec<AdminPermissionResource> {
+    [
+        ("users", "User management", "Registration tokens, user roles, bans and account deletion.", "Administration"),
+        ("roles", "Role management", "Create roles and decide which administrative areas they can access.", "Administration"),
+        ("groups", "Groups", "Create and edit learning groups.", "Groups"),
+        ("group_members", "Group members", "Add users to groups and manage group membership.", "Groups"),
+        ("group_topics", "Group topics", "Define the study topic or project focus for groups.", "Groups"),
+        ("world_maps", "World maps", "Create, edit and delete maps.", "World builder"),
+        ("world_nodes", "World nodes", "Create, edit and delete map tiles and node unlocks.", "World builder"),
+        ("world_activities", "World activities", "Author activities, routes, dialogues and transitions.", "World builder"),
+        ("world_map_access", "Map access", "Choose who can view or edit a map.", "World builder"),
+        ("assets", "Assets", "Tools, media, reusable images, items and future currencies.", "Assets"),
+        ("media_paths", "Media paths", "View raw image and media paths in upload controls.", "Assets"),
+        ("sounds", "Sounds", "Reusable music, sound effects, ambience and voice clips.", "Assets"),
+        ("presentation", "Presentation", "Welcome pages, public information pages, login visuals and cursors.", "Presentation"),
+        ("languages", "Languages", "Available learner languages and the import/export of translated catalogs.", "Presentation"),
+        ("journal_settings", "Journal settings", "Configure learner journals and whether learners may request expert feedback.", "Learning support"),
+        ("journal_feedback", "Journal feedback", "Review learner feedback requests and send informational feedback.", "Learning support"),
+        ("competence_topics", "Competence topics", "Define learner competence topics and star-map thresholds.", "Learning support"),
+        ("learning_concepts", "Learning concepts", "Maintain reusable authoring vocabulary for learning evidence.", "Learning support"),
+        ("learner_support_signals", "Support signals", "View scoped learner competence signals for timely support without rankings.", "Learning support"),
+        ("learner_messages", "Learner messages", "Review, hide and delete messages shared through MapAsset activities.", "Learning support"),
+        ("platform_feedback", "Platform feedback", "Review feedback deliberately shared about the platform experience.", "Learning support"),
+        ("organization_moderation", "Organization moderation", "Review reported organization icons and platform organization limits.", "Learning support"),
+        ("ai", "AI support", "Provider credentials, agent templates and usage guardrails.", "AI"),
+        ("companion", "Learning companion", "Configure the scripted learner companion and its orientation message.", "Learning support"),
+        ("content_api", "Content API", "Read the authoring contract and create learning content through the administration API.", "API"),
+        ("content_topics", "Topics", "Create and arrange learner-facing topic areas, topics and subtopics.", "Content"),
+    ]
+    .into_iter()
+    .map(|(key, label, description, group)| AdminPermissionResource {
+        description: description.to_owned(),
+        group: group.to_owned(),
+        key: key.to_owned(),
+        label: label.to_owned(),
+    })
+    .collect()
 }
 
 /// An administrator-only projection that combines the identity-owned profile
