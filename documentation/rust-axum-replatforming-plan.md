@@ -123,9 +123,10 @@ The first executable proof of concept intentionally began as one small binary
 crate under `backend/src`. It validated the Compose topology, generated
 contracts, separate databases, Rust-owned sessions, CSRF, mounted media and
 read-only endpoints before there were demonstrated application/domain seams.
-This limited exception is recorded in ADR-014; it must not become the permanent
-layout. Before the World content slice expands beyond its migration foundation,
-move the backend to the workspace and dependency direction above. Any later
+That limited exception has now been retired: `backend/Cargo.toml` defines the
+`api`, `application`, `domain`, `persistence` and `infrastructure` workspace
+crates and the migrated behavior uses their directed boundaries. ADR-014
+records both the original rationale and completed extraction. Any later
 structural exception requires a recorded ADR with a concrete extraction trigger.
 
 ### Technology choices to validate in a proof of concept

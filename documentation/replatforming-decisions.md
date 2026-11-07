@@ -269,7 +269,7 @@ defense in depth, not a substitute for CSRF or origin enforcement.
 
 ## ADR-012: Fresh public exploration model
 
-**Status:** Accepted — 3 November 2026
+**Status:** Implemented — 7 November 2026
 
 **Decision:** The first fresh read-only exploration slice models published
 `World → Map → MapAsset` records directly. It does not recreate Laravel's
@@ -338,6 +338,15 @@ the flat root `backend/src` modules after this trigger.
 or crate structure needs a dated ADR that states the scope, rationale, owner,
 and concrete trigger for revisiting it. Do not leave structural shortcuts as
 implicit or chat-only context.
+
+**Implementation:** The extraction trigger was reached and completed. The
+workspace root is `backend/Cargo.toml`; `crates/api` owns Axum routes and HTTP
+DTOs, `crates/application` owns use cases and transaction boundaries,
+`crates/domain` owns policies/value objects, `crates/persistence` owns SQLx
+adapters, and `crates/infrastructure` owns external adapters. New behavior is
+added through those crates rather than restoring a flat root `backend/src`
+layout. The original temporary rationale remains here as historical context,
+not as a current structural choice.
 
 ## ADR-015: Authenticated learner World snapshot is a separate read contract
 
@@ -3117,10 +3126,10 @@ leave a user with changed login state but no matching role/audit change. These
 alternatives are rejected.
 
 **Limits and follow-up:** Account deletion and registration-token role
-selection require their own cross-database lifecycle design. This backend
-contract deliberately does not expose a replacement administration screen;
-the original React Access Management workspace must be lifted with its
-connected controls and browser evidence before it becomes user-facing.
+selection have their own cross-database lifecycle designs. The source-adapted
+Users panel now exposes the completed connected controls through typed Rust
+contracts; browser smoke coverage remains available when disposable local
+administrator credentials are configured.
 
 ## ADR-080: Registration invitations carry validated application-role keys
 
@@ -3150,9 +3159,9 @@ role edits and revocation inconsistent. Looking up only the role after account
 creation would risk activating an account with missing access. Both are
 rejected.
 
-**Limits and follow-up:** The original invitation controls are still not
-exposed; account deletion and access-link role selection remain separate
-lifecycle slices.
+**Limits and follow-up:** The source-adapted invitation controls are now
+available in the Users panel. Account deletion is complete; access-link role
+selection remains a separate lifecycle slice.
 
 ## ADR-081: Account deletion is a resumable deprovisioning workflow
 
@@ -3186,8 +3195,8 @@ the source's deletion semantics. These alternatives are rejected.
 
 **Limits and follow-up:** The repair is currently retried by the same
 authorized delete contract; a future operational scheduler may reconcile
-stale jobs. The original Users UI remains unavailable until it is lifted as a
-complete source workspace.
+stale jobs. The source-adapted Users panel now exposes the complete migrated
+workspace through that contract.
 
 ## Phase 1 gate
 
