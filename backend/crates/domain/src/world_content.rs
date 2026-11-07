@@ -105,6 +105,12 @@ pub struct AdminPortalActivity {
 pub struct AdminEditableMap {
     pub can_delete_world_maps: bool,
     pub editable_map: AdminEditableMapDocument,
+    pub access_groups: Vec<AdminMapAccessGroup>,
+    pub items: Vec<AdminEditableItem>,
+    pub learning_groups: Vec<AdminEditableLearningGroup>,
+    pub role_options: Vec<AdminRoleOption>,
+    pub topic_options: Vec<AdminTopicOption>,
+    pub tools: Vec<AdminEditableTool>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -152,6 +158,63 @@ pub struct AdminEditableMapAsset {
     pub interaction_config: Value,
     pub visual_config: Value,
     pub sound_config: Value,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminMapAccessGroup {
+    pub description: Option<String>,
+    pub label: String,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableLearningGroup {
+    pub id: Uuid,
+    pub name: String,
+    pub slug: String,
+    pub description: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminRoleOption {
+    pub name: String,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminTopicOption {
+    pub id: Uuid,
+    pub label: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableItem {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub config: Value,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableTool {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub animation_dark: Option<String>,
+    pub animation_light: Option<String>,
+    pub animation_duration_seconds: Option<f64>,
+    pub animation_width_percent: Option<f64>,
+    pub config: Value,
+    pub created_at: String,
+    pub image_width_percent: f64,
+    pub updated_at: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

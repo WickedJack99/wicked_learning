@@ -900,10 +900,14 @@ diagnostics remain zero/empty until their source data models and authoring
 workflows are migrated. The selected-map configuration projection is now also
 available at `GET /api/v1/admin/world-builder/maps/{map_id}`. It deliberately
 requires the stricter source `world_maps` update permission and evaluates
-delete eligibility independently. No World Builder React route is exposed from
-these partial contracts: the next slices must lift the existing World Builder
-React components together with the remaining selected-map/node support reads,
-rather than inventing a reduced editor.
+delete eligibility independently. Its source-shaped support reads now include
+map access groups, the current editor's manageable learning groups, role and
+topic options, and reusable items and tools; all are fetched only after the
+map authorization decision. The selected-node activity graph, sounds, AI
+review templates, review queue and unlock diagnostics remain separate reads.
+No World Builder React route is exposed from these partial contracts: the next
+slices must lift the existing World Builder React components together with the
+remaining selected-node support reads, rather than inventing a reduced editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

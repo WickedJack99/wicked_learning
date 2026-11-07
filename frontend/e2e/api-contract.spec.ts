@@ -482,6 +482,52 @@ test('learner paths require an authenticated application principal', async ({
     expect(response.status()).toBe(401);
 });
 
+test('a local administrator receives the complete source-shaped selected-map support data', async ({
+    request,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    const anonymous = await request.get('/api/v1/admin/world-builder');
+    expect(anonymous.status()).toBe(401);
+
+    const csrfResponse = await request.get('/api/v1/security/csrf');
+    const { token } = await csrfResponse.json();
+    const login = await request.post('/api/v1/session/login', {
+        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        data: { email, password },
+    });
+    expect(login.status()).toBe(200);
+
+    const graphResponse = await request.get('/api/v1/admin/world-builder');
+    expect(graphResponse.status()).toBe(200);
+    const graph = await graphResponse.json();
+    expect(graph.maps).not.toHaveLength(0);
+
+    const mapResponse = await request.get(
+        `/api/v1/admin/world-builder/maps/${graph.maps[0].id}`,
+    );
+    expect(mapResponse.status()).toBe(200);
+    await expect(mapResponse.json()).resolves.toMatchObject({
+        access_groups: expect.arrayContaining([
+            {
+                slug: 'public',
+                label: 'Public',
+                description: expect.stringContaining('without logging in'),
+            },
+        ]),
+        editable_map: expect.objectContaining({
+            map: expect.objectContaining({ id: graph.maps[0].id }),
+        }),
+        items: expect.any(Array),
+        learning_groups: expect.any(Array),
+        role_options: expect.any(Array),
+        topic_options: expect.any(Array),
+        tools: expect.any(Array),
+    });
+});
+
 test('Learning Desk content search requires an authenticated application principal', async ({
     request,
 }) => {

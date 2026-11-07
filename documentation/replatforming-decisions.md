@@ -3665,11 +3665,14 @@ rejected.
 review-status model or full node-reachability diagnostic model, so their
 source-shaped overview counts/diagnostics are deliberately zero/empty. The
 selected-map configuration endpoint separately requires source `world_maps`
-update authority and returns authored map assets, map presentation and current
-delete eligibility. Neither read is exposed through a new frontend screen
+update authority and returns authored map assets, map presentation, current
+delete eligibility, access groups, manageable learning groups, role/topic
+options, and reusable items/tools. Those support lists are resolved only after
+map authorization; manageable groups retain the source update-scope and
+manager-membership rule. Neither read is exposed through a new frontend screen
 until the existing World Builder screen can consume its complete necessary
-data. The selected-map support lists and selected-node activity graph remain
-separate authoring reads.
+data. The selected-node activity graph, sounds and AI-review-template support
+reads remain separate.
 
 ## Phase 1 gate
 

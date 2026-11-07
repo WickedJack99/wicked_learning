@@ -4806,6 +4806,12 @@ export interface components {
         AdminEditableMap: {
             can_delete_world_maps: boolean;
             editable_map: components["schemas"]["AdminEditableMapDocument"];
+            access_groups: components["schemas"]["AdminMapAccessGroup"][];
+            items: components["schemas"]["AdminEditableItem"][];
+            learning_groups: components["schemas"]["AdminEditableLearningGroup"][];
+            role_options: components["schemas"]["AdminRoleOption"][];
+            topic_options: components["schemas"]["AdminTopicOption"][];
+            tools: components["schemas"]["AdminEditableTool"][];
         };
         AdminEditableMapDocument: {
             world: components["schemas"]["AdminWorldSummary"];
@@ -4858,6 +4864,61 @@ export interface components {
             sound_config: {
                 [key: string]: unknown;
             };
+        };
+        AdminMapAccessGroup: {
+            description: string | null;
+            label: string;
+            slug: string;
+        };
+        AdminEditableLearningGroup: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            description: string | null;
+        };
+        AdminRoleOption: {
+            name: string;
+            slug: string;
+        };
+        AdminTopicOption: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            title: string;
+        };
+        AdminEditableItem: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string | null;
+            image_dark: string | null;
+            image_light: string | null;
+            config: {
+                [key: string]: unknown;
+            };
+        };
+        AdminEditableTool: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string | null;
+            image_dark: string | null;
+            image_light: string | null;
+            animation_dark: string | null;
+            animation_light: string | null;
+            animation_duration_seconds: number | null;
+            animation_width_percent: number | null;
+            config: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            created_at: string;
+            image_width_percent: number;
+            /** Format: date-time */
+            updated_at: string;
         };
         PublicRoutePreview: {
             slug: string;

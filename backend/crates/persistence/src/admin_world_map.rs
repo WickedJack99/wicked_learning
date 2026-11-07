@@ -7,8 +7,9 @@ use wicked_learning_application::admin_world_map::{
 use wicked_learning_domain::{
     identity_access::{AuthorizedPrincipal, permission_scope_allows},
     world_content::{
-        AdminEditableMap, AdminEditableMapAsset, AdminEditableMapDocument, AdminEditableMapSummary,
-        AdminNodePosition, AdminNodeSummary, AdminWorldSummary,
+        AdminEditableItem, AdminEditableLearningGroup, AdminEditableMap, AdminEditableMapAsset,
+        AdminEditableMapDocument, AdminEditableMapSummary, AdminEditableTool, AdminMapAccessGroup,
+        AdminNodePosition, AdminNodeSummary, AdminRoleOption, AdminTopicOption, AdminWorldSummary,
     },
 };
 
@@ -93,6 +94,54 @@ struct AssetRow {
     sound_config: Value,
 }
 
+#[derive(FromRow)]
+struct RoleRow {
+    description: Option<String>,
+    name: String,
+    slug: String,
+}
+
+#[derive(FromRow)]
+struct LearningGroupRow {
+    description: Option<String>,
+    id: Uuid,
+    name: String,
+    slug: String,
+}
+
+#[derive(FromRow)]
+struct TopicRow {
+    id: Uuid,
+    label: String,
+    title: String,
+}
+
+#[derive(FromRow)]
+struct ItemRow {
+    config: Value,
+    description: Option<String>,
+    id: Uuid,
+    image_dark: Option<String>,
+    image_light: Option<String>,
+    slug: String,
+    title: String,
+}
+
+#[derive(FromRow)]
+struct ToolRow {
+    animation_dark: Option<String>,
+    animation_light: Option<String>,
+    config: Value,
+    created_at: String,
+    description: Option<String>,
+    id: Uuid,
+    image_dark: Option<String>,
+    image_light: Option<String>,
+    slug: String,
+    title: String,
+    updated_at: String,
+}
+
 async fn load_editable_map(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -150,6 +199,11 @@ async fn load_editable_map(
                     is_direct_editor,
                 )
             });
+    let (access_groups, role_options) = load_role_options(pool).await?;
+    let learning_groups = load_manageable_learning_groups(pool, principal_id, principal).await?;
+    let topic_options = load_topic_options(pool).await?;
+    let items = load_items(pool).await?;
+    let tools = load_tools(pool).await?;
 
     Ok(Some(AdminEditableMap {
         can_delete_world_maps,
@@ -179,6 +233,12 @@ async fn load_editable_map(
                 map_assets: assets,
             },
         },
+        access_groups,
+        items,
+        learning_groups,
+        role_options,
+        topic_options,
+        tools,
     }))
 }
 
@@ -265,6 +325,150 @@ async fn load_assets(
             interaction_config: asset.interaction_config,
             visual_config: asset.visual_config,
             sound_config: asset.sound_config,
+        })
+        .collect())
+}
+
+async fn load_role_options(
+    pool: &PgPool,
+) -> Result<(Vec<AdminMapAccessGroup>, Vec<AdminRoleOption>), sqlx::Error> {
+    let rows = sqlx::query_as::<_, RoleRow>(
+        "SELECT description, name, role_key AS slug FROM application_roles WHERE role_key <> 'temporary' ORDER BY level ASC, name ASC, role_key ASC",
+    )
+    .fetch_all(pool)
+    .await?;
+    let mut access_groups = Vec::with_capacity(rows.len() + 1);
+    access_groups.push(AdminMapAccessGroup {
+        description: Some("Anyone can visit maps with this group without logging in. Progress is not stored server-side for guests.".to_owned()),
+        label: "Public".to_owned(),
+        slug: "public".to_owned(),
+    });
+    access_groups.extend(rows.iter().map(|role| AdminMapAccessGroup {
+        description: role.description.clone(),
+        label: role.name.clone(),
+        slug: role.slug.clone(),
+    }));
+    let role_options = rows
+        .into_iter()
+        .map(|role| AdminRoleOption {
+            name: role.name,
+            slug: role.slug,
+        })
+        .collect();
+    Ok((access_groups, role_options))
+}
+
+async fn load_manageable_learning_groups(
+    pool: &PgPool,
+    principal_id: Uuid,
+    principal: &AuthorizedPrincipal,
+) -> Result<Vec<AdminEditableLearningGroup>, sqlx::Error> {
+    let Some(scope) = principal.permission_scope("groups", "ru") else {
+        return Ok(vec![]);
+    };
+    if !permission_scope_allows(scope, "own") {
+        return Ok(vec![]);
+    }
+    let rows = if scope == "all" {
+        sqlx::query_as::<_, LearningGroupRow>(
+            "SELECT id, name, slug, description FROM learning_groups ORDER BY name ASC, id ASC",
+        )
+        .fetch_all(pool)
+        .await?
+    } else {
+        sqlx::query_as::<_, LearningGroupRow>(
+            "SELECT groups.id, groups.name, groups.slug, groups.description FROM learning_groups AS groups WHERE groups.created_by_principal_id = $1 OR ($2 AND EXISTS (SELECT 1 FROM learning_group_memberships AS memberships WHERE memberships.group_id = groups.id AND memberships.principal_id = $1 AND memberships.role = 'manager')) ORDER BY groups.name ASC, groups.id ASC",
+        )
+        .bind(principal_id)
+        .bind(permission_scope_allows(scope, "assigned"))
+        .fetch_all(pool)
+        .await?
+    };
+    Ok(rows
+        .into_iter()
+        .map(|group| AdminEditableLearningGroup {
+            id: group.id,
+            name: group.name,
+            slug: group.slug,
+            description: group.description,
+        })
+        .collect())
+}
+
+async fn load_topic_options(pool: &PgPool) -> Result<Vec<AdminTopicOption>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, TopicRow>(
+        "SELECT topics.id, areas.title || ' / ' || topics.title AS label, topics.title FROM learning_topics AS topics INNER JOIN learning_topic_areas AS areas ON areas.id = topics.area_id ORDER BY topics.title ASC, topics.id ASC",
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|topic| AdminTopicOption {
+            id: topic.id,
+            label: topic.label,
+            title: topic.title,
+        })
+        .collect())
+}
+
+async fn load_items(pool: &PgPool) -> Result<Vec<AdminEditableItem>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, ItemRow>(
+        "SELECT id, slug, title, description, image_dark, image_light, config FROM learning_items ORDER BY title ASC, id ASC",
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|item| AdminEditableItem {
+            id: item.id,
+            slug: item.slug,
+            title: item.title,
+            description: item.description,
+            image_dark: item.image_dark,
+            image_light: item.image_light,
+            config: item.config,
+        })
+        .collect())
+}
+
+async fn load_tools(pool: &PgPool) -> Result<Vec<AdminEditableTool>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, ToolRow>(
+        "SELECT id, slug, title, description, image_dark, image_light, animation_dark, animation_light, config, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at FROM learning_tools ORDER BY title ASC, id ASC",
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|tool| {
+            let animation_duration_seconds = tool
+                .config
+                .get("animationDurationSeconds")
+                .and_then(Value::as_f64);
+            let animation_width_percent = tool
+                .config
+                .get("animationWidthPercent")
+                .and_then(Value::as_f64);
+            let image_width_percent = tool
+                .config
+                .get("imageWidthPercent")
+                .and_then(Value::as_f64)
+                .unwrap_or(16.0);
+            AdminEditableTool {
+                id: tool.id,
+                slug: tool.slug,
+                title: tool.title,
+                description: tool.description,
+                image_dark: tool.image_dark,
+                image_light: tool.image_light,
+                animation_dark: tool.animation_dark,
+                animation_light: tool.animation_light,
+                animation_duration_seconds,
+                animation_width_percent,
+                config: tool.config,
+                created_at: tool.created_at,
+                image_width_percent,
+                updated_at: tool.updated_at,
+            }
         })
         .collect())
 }

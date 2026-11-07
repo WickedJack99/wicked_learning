@@ -7202,11 +7202,33 @@ components:
     AdminEditableMap:
       type: object
       additionalProperties: false
-      required: [can_delete_world_maps, editable_map]
+      required: [can_delete_world_maps, editable_map, access_groups, items, learning_groups, role_options, topic_options, tools]
       properties:
         can_delete_world_maps: { type: boolean }
         editable_map:
           $ref: '#/components/schemas/AdminEditableMapDocument'
+        access_groups:
+          type: array
+          items: { $ref: '#/components/schemas/AdminMapAccessGroup' }
+        items:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableItem' }
+        learning_groups:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableLearningGroup' }
+        role_options:
+          type: array
+          items: { $ref: '#/components/schemas/AdminRoleOption' }
+        topic_options:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminTopicOption' }
+        tools:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableTool' }
     AdminEditableMapDocument:
       type: object
       additionalProperties: false
@@ -7272,6 +7294,69 @@ components:
         interaction_config: { type: object, additionalProperties: true }
         visual_config: { type: object, additionalProperties: true }
         sound_config: { type: object, additionalProperties: true }
+    AdminMapAccessGroup:
+      type: object
+      additionalProperties: false
+      required: [description, label, slug]
+      properties:
+        description: { type: [string, 'null'] }
+        label: { type: string }
+        slug: { type: string, minLength: 1 }
+    AdminEditableLearningGroup:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, description]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: [string, 'null'] }
+    AdminRoleOption:
+      type: object
+      additionalProperties: false
+      required: [name, slug]
+      properties:
+        name: { type: string }
+        slug: { type: string }
+    AdminTopicOption:
+      type: object
+      additionalProperties: false
+      required: [id, label, title]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string }
+        title: { type: string }
+    AdminEditableItem:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, image_dark, image_light, config]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        description: { type: [string, 'null'] }
+        image_dark: { type: [string, 'null'] }
+        image_light: { type: [string, 'null'] }
+        config: { type: object, additionalProperties: true }
+    AdminEditableTool:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, image_dark, image_light, animation_dark, animation_light, animation_duration_seconds, animation_width_percent, config, created_at, image_width_percent, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        description: { type: [string, 'null'] }
+        image_dark: { type: [string, 'null'] }
+        image_light: { type: [string, 'null'] }
+        animation_dark: { type: [string, 'null'] }
+        animation_light: { type: [string, 'null'] }
+        animation_duration_seconds: { type: [number, 'null'] }
+        animation_width_percent: { type: [number, 'null'] }
+        config: { type: object, additionalProperties: true }
+        created_at: { type: string, format: date-time }
+        image_width_percent: { type: number }
+        updated_at: { type: string, format: date-time }
     PublicRoutePreview:
       type: object
       additionalProperties: false
