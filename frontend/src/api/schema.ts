@@ -3791,6 +3791,7 @@ export interface components {
             label: "Ban until" | "Login disabled" | "Roles";
         };
         AdminUsers: {
+            assignable_roles: string[];
             registration_tokens: components["schemas"]["AdminRegistrationToken"][];
             users: components["schemas"]["AdminUser"][];
         };

@@ -51,7 +51,10 @@ pub enum AdminUserAccessUpdate {
 }
 
 pub trait AdminUserRepository {
-    fn list(&self) -> impl Future<Output = Result<AdminUsers, AdminUserError>> + Send;
+    fn list(
+        &self,
+        actor_subject_id: Uuid,
+    ) -> impl Future<Output = Result<AdminUsers, AdminUserError>> + Send;
 
     fn update_access(
         &self,
@@ -87,7 +90,7 @@ where
             return Ok(None);
         }
 
-        self.repository.list().await.map(Some)
+        self.repository.list(principal.subject_id).await.map(Some)
     }
 }
 
@@ -132,9 +135,11 @@ mod tests {
     impl AdminUserRepository for Repository {
         fn list(
             &self,
+            _actor_subject_id: Uuid,
         ) -> impl std::future::Future<Output = Result<AdminUsers, AdminUserError>> + Send {
             async {
                 Ok(AdminUsers {
+                    assignable_roles: vec![],
                     registration_tokens: vec![],
                     users: vec![],
                 })

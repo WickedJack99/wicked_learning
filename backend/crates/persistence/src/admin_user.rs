@@ -75,8 +75,26 @@ struct RegistrationTokenRow {
 }
 
 impl Port for PostgresAdminUserRepository<'_> {
-    fn list(&self) -> impl std::future::Future<Output = Result<AdminUsers, AdminUserError>> + Send {
+    fn list(
+        &self,
+        actor_subject_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<AdminUsers, AdminUserError>> + Send {
         async move {
+            let assignable_roles = sqlx::query_scalar::<_, String>(
+                "SELECT role_key FROM application_roles WHERE level <= COALESCE(( \
+                 SELECT MAX(roles.level) FROM application_principals AS principals \
+                 INNER JOIN application_principal_roles AS principal_roles ON principal_roles.principal_id = principals.id \
+                 INNER JOIN application_roles AS roles ON roles.role_key = principal_roles.role_key \
+                 WHERE principals.identity_subject_id = $1 \
+                 ), 0) ORDER BY level DESC, role_key ASC",
+            )
+            .bind(actor_subject_id)
+            .fetch_all(self.application_pool)
+            .await
+            .map_err(|error| {
+                tracing::error!(%error, "could not determine assignable administrative roles");
+                AdminUserError
+            })?;
             let role_rows = sqlx::query_as::<_, PrincipalRoleRow>(
                 "SELECT principals.identity_subject_id AS subject_id, \
                  to_char(principals.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, \
@@ -98,6 +116,7 @@ impl Port for PostgresAdminUserRepository<'_> {
                 .collect::<Vec<_>>();
             if subject_ids.is_empty() {
                 return Ok(AdminUsers {
+                    assignable_roles,
                     registration_tokens: vec![],
                     users: vec![],
                 });
@@ -225,6 +244,7 @@ impl Port for PostgresAdminUserRepository<'_> {
                 })
                 .collect();
             Ok(AdminUsers {
+                assignable_roles,
                 registration_tokens,
                 users,
             })

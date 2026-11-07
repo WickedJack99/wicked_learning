@@ -5655,8 +5655,11 @@ components:
     AdminUsers:
       type: object
       additionalProperties: false
-      required: [registration_tokens, users]
+      required: [assignable_roles, registration_tokens, users]
       properties:
+        assignable_roles:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 80 }
         registration_tokens:
           type: array
           maxItems: 25
