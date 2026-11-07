@@ -86,6 +86,12 @@ const OriginalOrganizationIconModerationPage = lazy(async () => {
     return { default: module.OriginalOrganizationIconModerationPage };
 });
 
+const OriginalAccessLinksPage = lazy(async () => {
+    const module = await import('./original-access-links');
+
+    return { default: module.OriginalAccessLinksPage };
+});
+
 /**
  * Each active route is a source-derived React surface with an available Rust
  * contract. Do not add placeholder pages here: extract the corresponding
@@ -200,6 +206,17 @@ export function App() {
                 }
             />
         );
+    }
+
+    const accessLinkMatch = location.pathname.match(/^\/access-links\/([^/]+)$/);
+    if (accessLinkMatch) {
+        const token = decodeURIComponent(accessLinkMatch[1]);
+        const AccessLinkRedeem = lazy(async () => {
+            const module = await import('./original-access-links');
+
+            return { default: module.OriginalAccessLinkRedeemPage };
+        });
+        return <Suspense fallback={null}><AccessLinkRedeem token={token} isAuthenticated={currentUser.kind === 'loaded'} /></Suspense>;
     }
 
     if (location.pathname === '/bookmarks') {
@@ -361,6 +378,16 @@ export function App() {
                     <OriginalGroupManagementPage appearance={appearance} />
                 </Suspense>
             );
+        }
+
+        const accessLinksPanel =
+            new URLSearchParams(location.search).get('panel') === 'admin-access' &&
+            new URLSearchParams(location.search).get('access') === 'links';
+        if (accessLinksPanel) {
+            if (!currentUser.capabilities.includes('access_links_manage')) {
+                return <Navigate replace to="/home" />;
+            }
+            return <Suspense fallback={null}><OriginalAccessLinksPage appearance={appearance} /></Suspense>;
         }
 
         if (

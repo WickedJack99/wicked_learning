@@ -2,6 +2,7 @@
 //!
 //! Domain modules must not depend on Axum, SQLx, HTTP DTOs or React payloads.
 
+pub mod access_link;
 pub mod identity_access;
 pub mod learner_availability;
 pub mod learner_state;

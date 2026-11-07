@@ -75,6 +75,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-links/{token}/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeem an opaque tool or item grant as the authenticated learner. */
+        post: operations["redeemAccessLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -882,6 +899,41 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/admin/access-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read bounded hashed access-link grant summaries for an authorized administrator. */
+        get: operations["getAdminAccessLinks"];
+        put?: never;
+        /** Create an opaque one-time, repeatable, or per-user tool/item grant link. */
+        post: operations["createAdminAccessLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/access-links/{access_link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Enable or disable an existing access-link grant. */
+        patch: operations["updateAdminAccessLink"];
         trace?: never;
     };
     "/admin/learning-groups/{group_id}": {
@@ -2100,7 +2152,7 @@ export interface components {
              */
             email: string;
             /** @description Server-owned application capabilities granted through the current subject's roles; never credentials or identity data. */
-            capabilities: ("learner_messages_moderate" | "learning_groups_manage" | "platform_feedback_review" | "platform_feedback_view")[];
+            capabilities: ("access_links_manage" | "journal_feedback_policy_manage" | "journal_feedback_review" | "journal_feedback_view" | "learner_messages_moderate" | "learning_groups_manage" | "organization_icons_moderate" | "platform_feedback_review" | "platform_feedback_view")[];
             /**
              * Format: uuid
              * @description Opaque Rust-owned identity subject identifier.
@@ -2108,6 +2160,63 @@ export interface components {
             subject_id: string;
             /** @description Application roles, not credentials or profile data. */
             roles: ("learner" | "learning_support" | "platform_administrator")[];
+        };
+        AccessLinkSummary: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: uuid */
+            id: string;
+            is_enabled: boolean;
+            is_expired: boolean;
+            is_redeemed: boolean;
+            note: string | null;
+            /** @enum {string} */
+            purpose: "grant_tool" | "grant_items";
+            /** @enum {string} */
+            usage_policy: "one_time" | "multiple" | "per_user";
+        };
+        AccessLinkGrantOption: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        AccessLinkAdminData: {
+            items: components["schemas"]["AccessLinkGrantOption"][];
+            links: components["schemas"]["AccessLinkSummary"][];
+            tools: components["schemas"]["AccessLinkGrantOption"][];
+        };
+        AccessLinkItemGrantRequest: {
+            /** Format: uuid */
+            item_id: string;
+            quantity: number;
+        };
+        CreateAccessLinkRequest: {
+            /** Format: date-time */
+            expires_at: string;
+            item_grants?: components["schemas"]["AccessLinkItemGrantRequest"][];
+            note?: string | null;
+            /** @enum {string} */
+            purpose: "grant_tool" | "grant_items";
+            /** Format: uuid */
+            tool_id?: string | null;
+            /**
+             * @default one_time
+             * @enum {string}
+             */
+            usage_policy: "one_time" | "multiple" | "per_user";
+        };
+        UpdateAccessLinkRequest: {
+            enabled: boolean;
+        };
+        AccessLinkCreatedResponse: {
+            link: components["schemas"]["AccessLinkSummary"];
+            /** Format: uri */
+            redeem_url: string;
+        };
+        AccessLinkResponse: {
+            link: components["schemas"]["AccessLinkSummary"];
         };
         SubmitPlatformFeedbackRequest: {
             /** @enum {string} */
@@ -3954,6 +4063,7 @@ export interface components {
         OrganizationMessageId: string;
         LearnerGroupMessageId: string;
         AdminLearningGroupId: string;
+        AccessLinkId: string;
         LearningSupportTopicId: string;
         LearningSupportMessageId: string;
         LearningSupportResponseId: string;
@@ -4090,6 +4200,57 @@ export interface operations {
                 content?: never;
             };
             /** @description An identity or application dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    redeemAccessLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The grant was applied and an audit redemption was recorded. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The link is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -6931,6 +7092,166 @@ export interface operations {
                 content?: never;
             };
             /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminAccessLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recent access-link summaries plus bounded existing tool/item options, without plaintext tokens or grant payloads. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLinkAdminData"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage access links. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminAccessLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAccessLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The created summary and the sole plaintext redeem URL. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLinkCreatedResponse"];
+                };
+            };
+            /** @description The source-shaped grant form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage links */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminAccessLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                access_link_id: components["parameters"]["AccessLinkId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAccessLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated access-link summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLinkResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access link is unavailable or the caller cannot manage links. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

@@ -73,6 +73,22 @@ paths:
         '422': { description: The registration details, address or invitation cannot create an account. }
         '429': { description: Too many registration attempts were made. }
         '503': { description: An identity or application dependency is unavailable. }
+  /access-links/{token}/redeem:
+    post:
+      operationId: redeemAccessLink
+      summary: Redeem an opaque tool or item grant as the authenticated learner.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The grant was applied and an audit redemption was recorded. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The link is unknown, disabled, expired, already consumed, or already used by this learner. }
+        '503': { description: The application database is unavailable. }
   /me:
     get:
       operationId: getCurrentUser
@@ -1052,6 +1068,61 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The current principal cannot administer groups, or the requested slug is unavailable. }
         '503': { description: The application or identity database is unavailable. }
+  /admin/access-links:
+    get:
+      operationId: getAdminAccessLinks
+      summary: Read bounded hashed access-link grant summaries for an authorized administrator.
+      responses:
+        '200':
+          description: Recent access-link summaries plus bounded existing tool/item options, without plaintext tokens or grant payloads.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessLinkAdminData' }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot manage access links. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminAccessLink
+      summary: Create an opaque one-time, repeatable, or per-user tool/item grant link.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAccessLinkRequest' }
+      responses:
+        '201':
+          description: The created summary and the sole plaintext redeem URL.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessLinkCreatedResponse' }
+        '400': { description: The source-shaped grant form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot manage links, or the configured tool/item is unavailable. }
+        '503': { description: The application database is unavailable. }
+  /admin/access-links/{access_link_id}:
+    patch:
+      operationId: updateAdminAccessLink
+      summary: Enable or disable an existing access-link grant.
+      parameters:
+        - $ref: '#/components/parameters/AccessLinkId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAccessLinkRequest' }
+      responses:
+        '200':
+          description: The updated access-link summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessLinkResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The access link is unavailable or the caller cannot manage links. }
+        '503': { description: The application database is unavailable. }
   /admin/learning-groups/{group_id}:
     patch:
       operationId: updateAdminLearningGroup
@@ -2653,6 +2724,13 @@ components:
       schema:
         type: string
         format: uuid
+    AccessLinkId:
+      name: access_link_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     LearningSupportTopicId:
       name: topic_id
       in: path
@@ -2907,7 +2985,7 @@ components:
           description: Server-owned application capabilities granted through the current subject's roles; never credentials or identity data.
           items:
             type: string
-            enum: [learner_messages_moderate, learning_groups_manage, platform_feedback_review, platform_feedback_view]
+            enum: [access_links_manage, journal_feedback_policy_manage, journal_feedback_review, journal_feedback_view, learner_messages_moderate, learning_groups_manage, organization_icons_moderate, platform_feedback_review, platform_feedback_view]
         subject_id:
           type: string
           format: uuid
@@ -2918,6 +2996,84 @@ components:
           items:
             type: string
             enum: [learner, learning_support, platform_administrator]
+    AccessLinkSummary:
+      type: object
+      additionalProperties: false
+      required: [created_at, expires_at, id, is_enabled, is_expired, is_redeemed, note, purpose, usage_policy]
+      properties:
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+        is_enabled: { type: boolean }
+        is_expired: { type: boolean }
+        is_redeemed: { type: boolean }
+        note: { type: [string, 'null'], maxLength: 500 }
+        purpose: { type: string, enum: [grant_tool, grant_items] }
+        usage_policy: { type: string, enum: [one_time, multiple, per_user] }
+    AccessLinkGrantOption:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, maxLength: 240 }
+    AccessLinkAdminData:
+      type: object
+      additionalProperties: false
+      required: [items, links, tools]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/AccessLinkGrantOption' }
+        links:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/AccessLinkSummary' }
+        tools:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/AccessLinkGrantOption' }
+    AccessLinkItemGrantRequest:
+      type: object
+      additionalProperties: false
+      required: [item_id, quantity]
+      properties:
+        item_id: { type: string, format: uuid }
+        quantity: { type: integer, minimum: 1, maximum: 99 }
+    CreateAccessLinkRequest:
+      type: object
+      additionalProperties: false
+      required: [expires_at, purpose]
+      properties:
+        expires_at: { type: string, format: date-time }
+        item_grants:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/AccessLinkItemGrantRequest' }
+        note: { type: [string, 'null'], maxLength: 500 }
+        purpose: { type: string, enum: [grant_tool, grant_items] }
+        tool_id: { type: [string, 'null'], format: uuid }
+        usage_policy: { type: string, enum: [one_time, multiple, per_user], default: one_time }
+    UpdateAccessLinkRequest:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+    AccessLinkCreatedResponse:
+      type: object
+      additionalProperties: false
+      required: [link, redeem_url]
+      properties:
+        link: { $ref: '#/components/schemas/AccessLinkSummary' }
+        redeem_url: { type: string, format: uri, maxLength: 2000 }
+    AccessLinkResponse:
+      type: object
+      additionalProperties: false
+      required: [link]
+      properties:
+        link: { $ref: '#/components/schemas/AccessLinkSummary' }
     SubmitPlatformFeedbackRequest:
       type: object
       additionalProperties: false

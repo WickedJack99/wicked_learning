@@ -2,6 +2,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApplicationCapability {
+    ManageAccessLinks,
     ManageLearningGroups,
     ModerateLearnerMessages,
     ModerateOrganizationIcons,
@@ -15,6 +16,7 @@ pub enum ApplicationCapability {
 impl ApplicationCapability {
     pub const fn key(self) -> &'static str {
         match self {
+            Self::ManageAccessLinks => "access_links_manage",
             Self::ManageLearningGroups => "learning_groups_manage",
             Self::ModerateLearnerMessages => "learner_messages_moderate",
             Self::ModerateOrganizationIcons => "organization_icons_moderate",

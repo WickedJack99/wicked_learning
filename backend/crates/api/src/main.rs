@@ -1,3 +1,4 @@
+mod access_link;
 mod account_password;
 mod account_profile;
 mod account_profile_image;
@@ -337,6 +338,8 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/admin/platform-feedback/{feedback_id}/review", patch(platform_feedback_review::mark_reviewed))
         .route("/api/v1/learner/feedback-prompt-preference", get(feedback_prompt_preference::show).patch(feedback_prompt_preference::update))
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
+        .route("/api/v1/admin/access-links", get(access_link::index).post(access_link::create))
+        .route("/api/v1/admin/access-links/{link_id}", patch(access_link::set_enabled))
         .route(
             "/api/v1/admin/learning-groups/{group_id}",
             patch(admin_learning_group::update),
@@ -376,6 +379,7 @@ fn router(state: AppState) -> Router {
             "/api/v1/learner/groups/{group_id}/admin-chat-vote",
             post(learner_group::vote_for_admin_chat_access),
         )
+        .route("/api/v1/access-links/{token}/redeem", post(access_link::redeem))
         .route(
             "/api/v1/learner/bookmarks",
             get(learner_bookmark_map::show),
