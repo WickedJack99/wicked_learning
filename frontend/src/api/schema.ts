@@ -2897,6 +2897,61 @@ export interface components {
             pages: components["schemas"]["LearnerJournalPage"][];
             pagination: components["schemas"]["LearnerJournalPagination"];
             revisit_invitations: components["schemas"]["LearnerRevisitInvitation"][];
+            theme: components["schemas"]["LearnerJournalTheme"];
+        };
+        LearnerJournalTheme: {
+            dark: components["schemas"]["LearnerJournalThemeMode"];
+            light: components["schemas"]["LearnerJournalThemeMode"];
+        };
+        LearnerJournalThemeMode: {
+            accent: string;
+            accent_opacity: number;
+            accent_text: string;
+            accent_text_opacity: number;
+            background_assets: components["schemas"]["LearnerJournalBackgroundAsset"][];
+            background_image: string;
+            background_overlay: string;
+            background_overlay_opacity: number;
+            background_position_x: number;
+            background_position_y: number;
+            background_zoom: number;
+            body_text: string;
+            body_text_opacity: number;
+            button_background: string;
+            button_background_opacity: number;
+            button_border: string;
+            button_border_opacity: number;
+            button_text: string;
+            button_text_opacity: number;
+            content_background: string;
+            content_background_opacity: number;
+            header_background: string;
+            header_background_opacity: number;
+            heading_text: string;
+            heading_text_opacity: number;
+            input_background: string;
+            input_background_opacity: number;
+            muted_text: string;
+            muted_text_opacity: number;
+            panel_background: string;
+            panel_background_opacity: number;
+            panel_border: string;
+            panel_border_opacity: number;
+            selected_background: string;
+            selected_background_opacity: number;
+            selected_border: string;
+            selected_border_opacity: number;
+            selected_text: string;
+            selected_text_opacity: number;
+            sidebar_background: string;
+            sidebar_background_opacity: number;
+        };
+        LearnerJournalBackgroundAsset: {
+            id: string;
+            image: string;
+            position_x: number;
+            position_y: number;
+            zoom: number;
         };
         LearnerDeskPlanningPreference: {
             /** @description Whether the learner explicitly saved these filters for their account. */

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
-test('the Journal export downloads only the source-shaped Markdown document', async ({
+test('the Journal renders its source default before exporting owner-only Markdown', async ({
     page,
 }) => {
     const email = process.env.E2E_JOURNAL_EMAIL;
@@ -20,7 +20,22 @@ test('the Journal export downloads only the source-shaped Markdown document', as
     await expect(page).toHaveURL(/\/world$/);
 
     await page.getByLabel('Journal').click();
-    await expect(page.locator('#learning-journal-panel')).toBeVisible();
+    const journalPanel = page.locator('#learning-journal-panel');
+    await expect(journalPanel).toBeVisible();
+    await expect(
+        journalPanel.locator(
+            'img[src*="journal-paper-leather-background.png"]',
+        ),
+    ).toHaveCount(1);
+    await expect
+        .poll(() =>
+            journalPanel.evaluate((element) =>
+                getComputedStyle(element)
+                    .getPropertyValue('--journal-background-position')
+                    .trim(),
+            ),
+        )
+        .toBe('50% 50%');
     const createPage = page.waitForResponse(
         (response) =>
             response.url().endsWith('/api/v1/learner/journal/pages') &&

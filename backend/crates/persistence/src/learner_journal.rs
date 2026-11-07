@@ -1,5 +1,5 @@
 use serde_json::Value;
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::learner_journal::{
     LearnerJournalReadError, LearnerJournalRepository as LearnerJournalRepositoryPort,
@@ -11,7 +11,7 @@ use wicked_learning_domain::{
         LearnerJournalCheckIn, LearnerJournalDocument, LearnerJournalFeedbackDomain,
         LearnerJournalFeedbackRequest, LearnerJournalFeedbackRequestDomain,
         LearnerJournalLearningContext, LearnerJournalPage, LearnerJournalPagination,
-        LearnerRevisitInvitation,
+        LearnerJournalTheme, LearnerRevisitInvitation, default_learner_journal_theme,
     },
 };
 
@@ -80,6 +80,12 @@ struct FeedbackDomainRow {
 }
 
 #[derive(FromRow)]
+struct JournalSettingsRow {
+    allow_review_requests: bool,
+    theme: Option<Json<LearnerJournalTheme>>,
+}
+
+#[derive(FromRow)]
 struct CheckInRow {
     activity_slug: String,
     activity_title: String,
@@ -132,12 +138,21 @@ async fn load_page(
         return Ok(None);
     };
     let search = request.search.as_deref().map(escape_like);
-    let allow_expert_access_requests = sqlx::query_scalar::<_, bool>(
-        "SELECT allow_review_requests FROM application_journal_feedback_policy WHERE singleton = TRUE",
+    let journal_settings = sqlx::query_as::<_, JournalSettingsRow>(
+        "SELECT allow_review_requests, theme FROM application_journal_feedback_policy WHERE singleton = TRUE",
     )
     .fetch_optional(pool)
     .await?
-    .unwrap_or(false);
+    .map(|settings| {
+        (
+            settings.allow_review_requests,
+            settings
+                .theme
+                .map(|theme| theme.0)
+                .unwrap_or_else(default_learner_journal_theme),
+        )
+    })
+    .unwrap_or_else(|| (false, default_learner_journal_theme()));
     let total = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*) FROM learner_journal_pages WHERE principal_id = $1 AND ($2::text IS NULL OR title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\')",
     )
@@ -162,7 +177,7 @@ async fn load_page(
     let last_page = std::cmp::max(1, (total + request.per_page - 1) / request.per_page);
 
     Ok(Some(LearnerJournalDocument {
-        allow_expert_access_requests,
+        allow_expert_access_requests: journal_settings.0,
         check_ins,
         feedback_domains,
         pages: pages
@@ -222,6 +237,7 @@ async fn load_page(
             total,
         },
         revisit_invitations,
+        theme: journal_settings.1,
     }))
 }
 

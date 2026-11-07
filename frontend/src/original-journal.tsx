@@ -8,7 +8,7 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router';
@@ -17,6 +17,11 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalMarkdownRenderer } from './original-markdown';
 import { OriginalPaginatedItems } from './original-paginated-items';
+import {
+    journalThemeImageUrl,
+    journalThemeMode,
+    journalThemeStyle,
+} from './original-journal-theme';
 
 type JournalDocument = components['schemas']['LearnerJournalDocument'];
 type JournalPage = components['schemas']['LearnerJournalPage'];
@@ -27,6 +32,8 @@ type JournalFeedbackDomain = components['schemas']['LearnerJournalFeedbackDomain
 const journalStyle = {
     '--journal-accent': '#2dd4bf',
     '--journal-accent-text': '#020617',
+    '--journal-background-position': '50% 50%',
+    '--journal-background-zoom': '1',
     '--journal-background-overlay': 'rgba(2, 6, 23, 0.72)',
     '--journal-body-text': 'rgba(226, 232, 240, 0.92)',
     '--journal-button-background': 'rgba(15, 23, 42, 0.86)',
@@ -74,6 +81,30 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     >(null);
     const searchRef = useRef<HTMLInputElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
+    const [appearance, setAppearance] = useState<'dark' | 'light'>(() =>
+        document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+    );
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const updateAppearance = () =>
+            setAppearance(root.classList.contains('dark') ? 'dark' : 'light');
+        const observer = new MutationObserver(updateAppearance);
+
+        observer.observe(root, { attributeFilter: ['class'], attributes: true });
+        return () => observer.disconnect();
+    }, []);
+    const activeTheme = useMemo(
+        () => (journal ? journalThemeMode(journal.theme, appearance) : null),
+        [appearance, journal],
+    );
+    const overlayStyle = useMemo(
+        () =>
+            journal
+                ? journalThemeStyle(journal.theme, appearance)
+                : journalStyle,
+        [appearance, journal],
+    );
 
     useEffect(() => {
         previousFocusRef.current =
@@ -481,11 +512,11 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
             className="fixed inset-0 z-[90] grid place-items-center p-3 sm:p-5 md:p-8"
             onMouseDown={onClose}
             role="dialog"
-            style={journalStyle}
+            style={overlayStyle}
         >
             <section
                 aria-label="Journal"
-                className="relative flex h-[calc(100svh-1.5rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-xl border bg-[url('/images/themes/journal-paper-leather-background.png')] bg-cover bg-center shadow-2xl sm:h-[calc(100svh-2.5rem)] md:h-[calc(100svh-4rem)]"
+                className="relative flex h-[calc(100svh-1.5rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-xl border shadow-2xl sm:h-[calc(100svh-2.5rem)] md:h-[calc(100svh-4rem)]"
                 id="learning-journal-panel"
                 onMouseDown={(event) => event.stopPropagation()}
                 style={{
@@ -494,6 +525,16 @@ export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
                     color: 'var(--journal-body-text)',
                 }}
             >
+                <JournalBackgroundImage
+                    source={
+                        activeTheme
+                            ? journalThemeImageUrl(activeTheme.background_image)
+                            : '/images/themes/journal-paper-leather-background.png'
+                    }
+                />
+                <JournalBackgroundAssets
+                    assets={activeTheme?.background_assets ?? []}
+                />
                 <div
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0"
@@ -955,6 +996,62 @@ function checkInDirectionLabel(value: string): string {
             related: 'Look for something related',
             settle: 'Let it settle',
         }[value] ?? value
+    );
+}
+
+function JournalBackgroundImage({ source }: { source?: string }) {
+    if (!source) return null;
+
+    return (
+        <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        >
+            <img
+                alt=""
+                className="size-full max-w-none object-cover"
+                draggable={false}
+                src={source}
+                style={{
+                    objectPosition: 'var(--journal-background-position)',
+                    transform: 'scale(var(--journal-background-zoom))',
+                    transformOrigin: 'var(--journal-background-position)',
+                }}
+            />
+        </div>
+    );
+}
+
+function JournalBackgroundAssets({
+    assets,
+}: {
+    assets: components['schemas']['LearnerJournalBackgroundAsset'][];
+}) {
+    return (
+        <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        >
+            {assets.map((asset) => {
+                const source = journalThemeImageUrl(asset.image);
+
+                return source ? (
+                    <img
+                        alt=""
+                        className="absolute max-w-none"
+                        draggable={false}
+                        key={asset.id}
+                        src={source}
+                        style={{
+                            left: `${asset.position_x}%`,
+                            top: `${asset.position_y}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: `${asset.zoom}%`,
+                        }}
+                    />
+                ) : null;
+            })}
+        </div>
     );
 }
 

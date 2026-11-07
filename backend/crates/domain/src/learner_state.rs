@@ -1328,6 +1328,178 @@ pub struct LearnerJournalDocument {
     pub pages: Vec<LearnerJournalPage>,
     pub pagination: LearnerJournalPagination,
     pub revisit_invitations: Vec<LearnerRevisitInvitation>,
+    pub theme: LearnerJournalTheme,
+}
+
+/// Platform-owned Journal presentation values. They are read-only to learners;
+/// a future separately authorized administrator command may change them.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearnerJournalTheme {
+    pub dark: LearnerJournalThemeMode,
+    pub light: LearnerJournalThemeMode,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearnerJournalThemeMode {
+    pub accent: String,
+    pub accent_opacity: i16,
+    pub accent_text: String,
+    pub accent_text_opacity: i16,
+    pub background_assets: Vec<LearnerJournalBackgroundAsset>,
+    pub background_image: String,
+    pub background_overlay: String,
+    pub background_overlay_opacity: i16,
+    pub background_position_x: i16,
+    pub background_position_y: i16,
+    pub background_zoom: i16,
+    pub body_text: String,
+    pub body_text_opacity: i16,
+    pub button_background: String,
+    pub button_background_opacity: i16,
+    pub button_border: String,
+    pub button_border_opacity: i16,
+    pub button_text: String,
+    pub button_text_opacity: i16,
+    pub content_background: String,
+    pub content_background_opacity: i16,
+    pub header_background: String,
+    pub header_background_opacity: i16,
+    pub heading_text: String,
+    pub heading_text_opacity: i16,
+    pub input_background: String,
+    pub input_background_opacity: i16,
+    pub muted_text: String,
+    pub muted_text_opacity: i16,
+    pub panel_background: String,
+    pub panel_background_opacity: i16,
+    pub panel_border: String,
+    pub panel_border_opacity: i16,
+    pub selected_background: String,
+    pub selected_background_opacity: i16,
+    pub selected_border: String,
+    pub selected_border_opacity: i16,
+    pub selected_text: String,
+    pub selected_text_opacity: i16,
+    pub sidebar_background: String,
+    pub sidebar_background_opacity: i16,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearnerJournalBackgroundAsset {
+    pub id: String,
+    pub image: String,
+    pub position_x: i16,
+    pub position_y: i16,
+    pub zoom: i16,
+}
+
+pub fn default_learner_journal_theme() -> LearnerJournalTheme {
+    LearnerJournalTheme {
+        dark: LearnerJournalThemeMode {
+            accent: "#2dd4bf".to_owned(),
+            accent_opacity: 100,
+            accent_text: "#020617".to_owned(),
+            accent_text_opacity: 100,
+            background_assets: vec![],
+            background_image: "/images/themes/journal-paper-leather-background.png".to_owned(),
+            background_overlay: "#020617".to_owned(),
+            background_overlay_opacity: 72,
+            background_position_x: 50,
+            background_position_y: 50,
+            background_zoom: 100,
+            body_text: "#e2e8f0".to_owned(),
+            body_text_opacity: 92,
+            button_background: "#0f172a".to_owned(),
+            button_background_opacity: 86,
+            button_border: "#ffffff".to_owned(),
+            button_border_opacity: 14,
+            button_text: "#f8fafc".to_owned(),
+            button_text_opacity: 100,
+            content_background: "#0f172a".to_owned(),
+            content_background_opacity: 40,
+            header_background: "#0f172a".to_owned(),
+            header_background_opacity: 24,
+            heading_text: "#f8fafc".to_owned(),
+            heading_text_opacity: 100,
+            input_background: "#020617".to_owned(),
+            input_background_opacity: 72,
+            muted_text: "#94a3b8".to_owned(),
+            muted_text_opacity: 100,
+            panel_background: "#0b1117".to_owned(),
+            panel_background_opacity: 96,
+            panel_border: "#ffffff".to_owned(),
+            panel_border_opacity: 12,
+            selected_background: "#134e4a".to_owned(),
+            selected_background_opacity: 36,
+            selected_border: "#5eead4".to_owned(),
+            selected_border_opacity: 100,
+            selected_text: "#f8fafc".to_owned(),
+            selected_text_opacity: 100,
+            sidebar_background: "#111827".to_owned(),
+            sidebar_background_opacity: 64,
+        },
+        light: LearnerJournalThemeMode {
+            accent: "#0891b2".to_owned(),
+            accent_opacity: 100,
+            accent_text: "#ffffff".to_owned(),
+            accent_text_opacity: 100,
+            background_assets: vec![],
+            background_image: "/images/themes/journal-paper-leather-background.png".to_owned(),
+            background_overlay: "#f8fafc".to_owned(),
+            background_overlay_opacity: 68,
+            background_position_x: 50,
+            background_position_y: 50,
+            background_zoom: 100,
+            body_text: "#334155".to_owned(),
+            body_text_opacity: 100,
+            button_background: "#ffffff".to_owned(),
+            button_background_opacity: 92,
+            button_border: "#0f172a".to_owned(),
+            button_border_opacity: 14,
+            button_text: "#0f172a".to_owned(),
+            button_text_opacity: 100,
+            content_background: "#ffffff".to_owned(),
+            content_background_opacity: 86,
+            header_background: "#f8fafc".to_owned(),
+            header_background_opacity: 72,
+            heading_text: "#0f172a".to_owned(),
+            heading_text_opacity: 100,
+            input_background: "#ffffff".to_owned(),
+            input_background_opacity: 94,
+            muted_text: "#64748b".to_owned(),
+            muted_text_opacity: 100,
+            panel_background: "#ffffff".to_owned(),
+            panel_background_opacity: 96,
+            panel_border: "#0f172a".to_owned(),
+            panel_border_opacity: 14,
+            selected_background: "#cffafe".to_owned(),
+            selected_background_opacity: 90,
+            selected_border: "#0891b2".to_owned(),
+            selected_border_opacity: 100,
+            selected_text: "#0f172a".to_owned(),
+            selected_text_opacity: 100,
+            sidebar_background: "#f1f5f9".to_owned(),
+            sidebar_background_opacity: 88,
+        },
+    }
+}
+
+#[cfg(test)]
+mod journal_theme_tests {
+    use super::default_learner_journal_theme;
+
+    #[test]
+    fn journal_defaults_preserve_the_source_paper_background_in_both_modes() {
+        let theme = default_learner_journal_theme();
+
+        assert_eq!(
+            theme.dark.background_image,
+            "/images/themes/journal-paper-leather-background.png"
+        );
+        assert_eq!(theme.light.background_position_x, 50);
+        assert_eq!(theme.dark.background_zoom, 100);
+        assert_eq!(theme.light.background_overlay, "#f8fafc");
+    }
 }
 
 /// A bounded, private observation shown in the source journal's learning

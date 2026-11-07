@@ -4524,7 +4524,7 @@ components:
     LearnerJournalDocument:
       type: object
       additionalProperties: false
-      required: [allow_expert_access_requests, check_ins, feedback_domains, pages, pagination, revisit_invitations]
+      required: [allow_expert_access_requests, check_ins, feedback_domains, pages, pagination, revisit_invitations, theme]
       properties:
         allow_expert_access_requests: { type: boolean }
         check_ins:
@@ -4545,6 +4545,74 @@ components:
           type: array
           maxItems: 12
           items: { $ref: '#/components/schemas/LearnerRevisitInvitation' }
+        theme:
+          $ref: '#/components/schemas/LearnerJournalTheme'
+    LearnerJournalTheme:
+      type: object
+      additionalProperties: false
+      required: [dark, light]
+      properties:
+        dark: { $ref: '#/components/schemas/LearnerJournalThemeMode' }
+        light: { $ref: '#/components/schemas/LearnerJournalThemeMode' }
+    LearnerJournalThemeMode:
+      type: object
+      additionalProperties: false
+      required: [accent, accent_opacity, accent_text, accent_text_opacity, background_assets, background_image, background_overlay, background_overlay_opacity, background_position_x, background_position_y, background_zoom, body_text, body_text_opacity, button_background, button_background_opacity, button_border, button_border_opacity, button_text, button_text_opacity, content_background, content_background_opacity, header_background, header_background_opacity, heading_text, heading_text_opacity, input_background, input_background_opacity, muted_text, muted_text_opacity, panel_background, panel_background_opacity, panel_border, panel_border_opacity, selected_background, selected_background_opacity, selected_border, selected_border_opacity, selected_text, selected_text_opacity, sidebar_background, sidebar_background_opacity]
+      properties:
+        accent: { type: string, maxLength: 64 }
+        accent_opacity: { type: integer, minimum: 0, maximum: 100 }
+        accent_text: { type: string, maxLength: 64 }
+        accent_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        background_assets:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/LearnerJournalBackgroundAsset' }
+        background_image: { type: string, maxLength: 2048 }
+        background_overlay: { type: string, maxLength: 64 }
+        background_overlay_opacity: { type: integer, minimum: 0, maximum: 100 }
+        background_position_x: { type: integer, minimum: 0, maximum: 100 }
+        background_position_y: { type: integer, minimum: 0, maximum: 100 }
+        background_zoom: { type: integer, minimum: 25, maximum: 300 }
+        body_text: { type: string, maxLength: 64 }
+        body_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        button_background: { type: string, maxLength: 64 }
+        button_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        button_border: { type: string, maxLength: 64 }
+        button_border_opacity: { type: integer, minimum: 0, maximum: 100 }
+        button_text: { type: string, maxLength: 64 }
+        button_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        content_background: { type: string, maxLength: 64 }
+        content_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        header_background: { type: string, maxLength: 64 }
+        header_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        heading_text: { type: string, maxLength: 64 }
+        heading_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        input_background: { type: string, maxLength: 64 }
+        input_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        muted_text: { type: string, maxLength: 64 }
+        muted_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        panel_background: { type: string, maxLength: 64 }
+        panel_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        panel_border: { type: string, maxLength: 64 }
+        panel_border_opacity: { type: integer, minimum: 0, maximum: 100 }
+        selected_background: { type: string, maxLength: 64 }
+        selected_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        selected_border: { type: string, maxLength: 64 }
+        selected_border_opacity: { type: integer, minimum: 0, maximum: 100 }
+        selected_text: { type: string, maxLength: 64 }
+        selected_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        sidebar_background: { type: string, maxLength: 64 }
+        sidebar_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+    LearnerJournalBackgroundAsset:
+      type: object
+      additionalProperties: false
+      required: [id, image, position_x, position_y, zoom]
+      properties:
+        id: { type: string, maxLength: 64 }
+        image: { type: string, maxLength: 2048 }
+        position_x: { type: integer, minimum: 0, maximum: 100 }
+        position_y: { type: integer, minimum: 0, maximum: 100 }
+        zoom: { type: integer, minimum: 25, maximum: 300 }
     LearnerDeskPlanningPreference:
       type: object
       additionalProperties: false

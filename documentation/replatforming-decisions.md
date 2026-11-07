@@ -2664,7 +2664,9 @@ and responding without hard-coding a role in the application.
 
 **Limits and follow-up:** This restores the source request/reply flow and its
 policy toggle, not journal export, review history, configurable presentation,
-organisation destinations or a combined completed Learning Support shell.
+organisation destinations or a combined completed Learning Support shell. ADR-069
+later restores the source default presentation reader only; administrator
+configuration and media upload remain separate follow-up work.
 
 ## ADR-068: Journal export streams only the learner's source-shaped Markdown
 
@@ -2699,6 +2701,52 @@ rejected.
 **Limits and follow-up:** This is an owner-only export, not an archive of the
 learning trail or a staff-review report. Review history and fuller check-in
 timeline behavior remain separate source-derived slices.
+
+## ADR-069: Journal uses the source-derived, platform-owned presentation default
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source Journal overlay has a platform-owned light and dark
+presentation, including its paper/leather background, colors, overlay,
+position, zoom and optional background assets. Leaving the lifted Rust overlay
+with a hand-maintained frontend approximation would allow the visual contract
+to drift. Reintroducing the source administrator editor or uploads as an
+incidental part of a read-only Journal slice would cross a separate media
+mutation boundary.
+
+**Decision:** `GET /api/v1/learner/journal` now includes a typed, read-only
+`theme` model. The application database reserves a nullable JSONB
+`application_journal_feedback_policy.theme` column for the future
+platform-owned configuration. Until that separately authorized configuration
+slice exists, a missing value resolves on the server to the exact source
+light/dark default. The frontend applies that server response using the
+source-adapted Journal CSS variables and renders the bundled source paper
+background. It also follows a live Light/Dark appearance change while the
+overlay is open.
+
+The initial reader accepts only same-origin root-relative image paths. This is
+enough for the existing bundled default and deliberately does not make an
+arbitrary remote URL or mounted-media path a browser contract. Optional
+background assets consequently remain empty until their source upload,
+serving, authorization and lifecycle behavior is migrated.
+
+**Why:** The default restores a visible part of the source Journal without
+inventing a new visual system or exposing a new writer. Keeping the future
+configuration shape in the application database keeps presentation data out
+of identity records and makes the next source-backed administration slice
+explicit.
+
+**Alternatives:** Hard-code the theme only in React, or migrate settings and
+uploads now. The former repeats the earlier UI-drift risk and makes a future
+configuration contract implicit. The latter would introduce an unreviewed
+media mutation/serving workflow to a read-only parity slice. Both are rejected.
+
+**Limits and follow-up:** This is not a Journal-theme editor, a background
+asset upload endpoint, or support for external image URLs. A later
+administrator/media slice must validate every setting, use the mounted-media
+lifecycle and protected/public serving policy as appropriate, and add its own
+authorization, browser and media-lifecycle evidence before it can write the
+reserved JSONB value.
 
 ## Phase 1 gate
 
