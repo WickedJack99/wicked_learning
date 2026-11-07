@@ -29,6 +29,7 @@ export function OriginalLoginPage({
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [password, setPassword] = useState('');
+    const [remember, setRemember] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     async function submit(event: FormEvent<HTMLFormElement>) {
@@ -39,7 +40,7 @@ export function OriginalLoginPage({
         try {
             const token = await getCsrfToken();
             const { data, response } = await apiClient.POST('/session/login', {
-                body: { email, password },
+                body: { email, password, remember },
                 params: { header: { 'X-CSRF-Token': token } },
             });
 
@@ -180,6 +181,7 @@ export function OriginalLoginPage({
                                             'var(--auth-input-border-color)',
                                         color: 'var(--auth-label-text-color)',
                                     }}
+                                    tabIndex={1}
                                     type="email"
                                     value={email}
                                 />
@@ -196,6 +198,7 @@ export function OriginalLoginPage({
                                     <Link
                                         className="ml-auto text-sm font-medium underline underline-offset-4"
                                         style={{ color: 'var(--auth-link-text-color)' }}
+                                        tabIndex={5}
                                         to="/forgot-password"
                                     >
                                         Forgot your password?
@@ -217,9 +220,34 @@ export function OriginalLoginPage({
                                             'var(--auth-input-border-color)',
                                         color: 'var(--auth-label-text-color)',
                                     }}
+                                    tabIndex={2}
                                     type="password"
                                     value={password}
                                 />
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <input
+                                    checked={remember}
+                                    className="peer size-5 shrink-0 rounded-[5px] border shadow-xs accent-[var(--auth-button-background)] outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    id="remember"
+                                    name="remember"
+                                    onChange={(event) =>
+                                        setRemember(event.currentTarget.checked)
+                                    }
+                                    style={{
+                                        borderColor:
+                                            'var(--auth-input-border-color)',
+                                    }}
+                                    tabIndex={3}
+                                    type="checkbox"
+                                />
+                                <label
+                                    className="text-sm leading-none font-medium"
+                                    htmlFor="remember"
+                                    style={{ color: 'var(--auth-label-text-color)' }}
+                                >
+                                    Remember me
+                                </label>
                             </div>
                             {error ? (
                                 <p className="text-sm text-red-300" role="alert">
@@ -234,6 +262,7 @@ export function OriginalLoginPage({
                                         'var(--auth-button-background)',
                                     color: 'var(--auth-button-text-color)',
                                 }}
+                                tabIndex={4}
                                 type="submit"
                             >
                                 {submitting ? 'Logging in…' : 'Log in'}
@@ -250,6 +279,7 @@ export function OriginalLoginPage({
                         <Link
                             className="font-medium underline underline-offset-4"
                             style={{ color: 'var(--auth-link-text-color)' }}
+                            tabIndex={5}
                             to="/register"
                         >
                             Sign up

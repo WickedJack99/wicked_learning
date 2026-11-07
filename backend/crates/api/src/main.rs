@@ -87,6 +87,7 @@ use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, State},
     http::{HeaderName, Method},
+    middleware,
     response::IntoResponse,
     routing::{delete, get, patch, post},
 };
@@ -813,6 +814,9 @@ fn router(state: AppState) -> Router {
         )
         .with_state(state)
         .layer(csrf_layer)
+        .layer(middleware::from_fn(
+            session_commands::restore_remembered_session_expiry,
+        ))
         .layer(auth_layer)
         .layer(
             ServiceBuilder::new()

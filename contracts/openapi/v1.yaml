@@ -2905,7 +2905,7 @@ paths:
   /session/login:
     post:
       operationId: createSession
-      summary: Start a verified Rust-owned password session.
+      summary: Start a verified Rust-owned password session, optionally remembered for the source duration.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -2916,7 +2916,7 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: The authenticated session state. The server sets an HTTP-only session cookie.
+          description: "The authenticated session state. The server sets an HTTP-only session cookie; `remember: true` keeps it for the source's 400-day duration."
           content:
             application/json:
               schema:
@@ -3913,6 +3913,10 @@ components:
           type: string
           minLength: 1
           maxLength: 1024
+        remember:
+          type: boolean
+          default: false
+          description: Keep this browser signed in for the source's 400-day remember-me duration.
     RequestPasswordResetLink:
       type: object
       additionalProperties: false

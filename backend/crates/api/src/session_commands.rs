@@ -1,12 +1,16 @@
 use axum::{
     Json,
-    extract::State,
+    extract::{Extension, Request, State},
     http::{HeaderMap, StatusCode},
+    middleware::Next,
+    response::Response,
 };
 use axum_login::AuthSession;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use time::{Duration, OffsetDateTime};
 use totp_rs::Builder;
+use tower_sessions::Expiry;
 use uuid::Uuid;
 
 use crate::{
@@ -20,12 +24,71 @@ const MAX_EMAIL_BYTES: usize = 320;
 const MAX_PASSWORD_BYTES: usize = 1_024;
 pub const MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS: i64 = 15 * 60;
 pub const PENDING_TWO_FACTOR_LOGIN_KEY: &str = "wicked_pending_two_factor_login";
+/// Laravel's `SessionGuard` keeps its recaller cookie for 576,000 minutes.
+pub const REMEMBERED_SESSION_DURATION_MINUTES: i64 = 576_000;
+const REMEMBERED_SESSION_DEADLINE_KEY: &str = "wicked_remembered_session_deadline";
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct PendingTwoFactorLogin {
     pub password_verifier: String,
+    #[serde(default)]
+    pub remember: bool,
     pub started_at_unix_seconds: i64,
     pub subject_id: Uuid,
+}
+
+fn remembered_session_expiry(now: OffsetDateTime) -> Expiry {
+    Expiry::AtDateTime(now.saturating_add(Duration::minutes(REMEMBERED_SESSION_DURATION_MINUTES)))
+}
+
+async fn set_login_session_expiry(
+    session: &tower_sessions::Session,
+    remember: bool,
+) -> Result<(), ApiError> {
+    if remember {
+        let expiry = remembered_session_expiry(OffsetDateTime::now_utc());
+        let Expiry::AtDateTime(deadline) = expiry else {
+            unreachable!("remembered session expiry is always absolute");
+        };
+        session
+            .insert(REMEMBERED_SESSION_DEADLINE_KEY, deadline.unix_timestamp())
+            .await
+            .map_err(|_| ApiError::service_unavailable())?;
+        session.set_expiry(Some(expiry));
+    } else {
+        session
+            .remove::<i64>(REMEMBERED_SESSION_DEADLINE_KEY)
+            .await
+            .map_err(|_| ApiError::service_unavailable())?;
+        session.set_expiry(Some(Expiry::OnSessionEnd));
+    }
+
+    Ok(())
+}
+
+/// Reapply the fixed remembered-session expiry before a handler can modify a
+/// persisted session. `tower-sessions` intentionally starts every request with
+/// its layer default, so retaining the stored deadline prevents a later
+/// confirmation or ceremony write from downgrading a remembered browser to a
+/// session-only cookie.
+pub async fn restore_remembered_session_expiry(
+    Extension(session): Extension<tower_sessions::Session>,
+    request: Request,
+    next: Next,
+) -> Result<Response, ApiError> {
+    if session.id().is_some() {
+        let deadline = session
+            .get::<i64>(REMEMBERED_SESSION_DEADLINE_KEY)
+            .await
+            .map_err(|_| ApiError::service_unavailable())?;
+        if let Some(deadline) =
+            deadline.and_then(|value| OffsetDateTime::from_unix_timestamp(value).ok())
+        {
+            session.set_expiry(Some(Expiry::AtDateTime(deadline)));
+        }
+    }
+
+    Ok(next.run(request).await)
 }
 
 pub fn pending_two_factor_login_is_fresh(pending: &PendingTwoFactorLogin, now: i64) -> bool {
@@ -37,6 +100,8 @@ pub fn pending_two_factor_login_is_fresh(pending: &PendingTwoFactorLogin, now: i
 pub struct LoginRequest {
     email: String,
     password: String,
+    #[serde(default)]
+    remember: bool,
 }
 
 #[derive(Deserialize)]
@@ -98,6 +163,7 @@ pub async fn login(
                 PENDING_TWO_FACTOR_LOGIN_KEY,
                 PendingTwoFactorLogin {
                     password_verifier: subject.password_verifier().to_owned(),
+                    remember: request.remember,
                     started_at_unix_seconds: time::OffsetDateTime::now_utc().unix_timestamp(),
                     subject_id: subject.subject_id(),
                 },
@@ -115,6 +181,7 @@ pub async fn login(
         .login(&subject)
         .await
         .map_err(|_| ApiError::service_unavailable())?;
+    set_login_session_expiry(&auth_session.session, request.remember).await?;
 
     Ok(Json(SessionStatusResponse {
         authenticated: true,
@@ -189,6 +256,7 @@ pub async fn complete_two_factor(
         .login(&subject)
         .await
         .map_err(|_| ApiError::service_unavailable())?;
+    set_login_session_expiry(&auth_session.session, pending.remember).await?;
     Ok(Json(SessionStatusResponse {
         authenticated: true,
         subject_id: Some(subject.subject_id()),
@@ -289,17 +357,21 @@ fn parse_two_factor_challenge(
 
 #[cfg(test)]
 mod tests {
+    use time::{Duration, OffsetDateTime};
+    use tower_sessions::Expiry;
     use uuid::Uuid;
 
     use super::{
-        MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS, PendingTwoFactorLogin, TwoFactorChallenge,
-        TwoFactorChallengeRequest, parse_two_factor_challenge, pending_two_factor_login_is_fresh,
+        MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS, PendingTwoFactorLogin,
+        REMEMBERED_SESSION_DURATION_MINUTES, TwoFactorChallenge, TwoFactorChallengeRequest,
+        parse_two_factor_challenge, pending_two_factor_login_is_fresh, remembered_session_expiry,
     };
 
     #[test]
     fn pending_two_factor_logins_expire_after_fifteen_minutes_and_reject_future_timestamps() {
         let pending = PendingTwoFactorLogin {
             password_verifier: "not-a-password".to_owned(),
+            remember: true,
             started_at_unix_seconds: 1_000,
             subject_id: Uuid::nil(),
         };
@@ -314,6 +386,20 @@ mod tests {
             1_001 + MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS
         ));
         assert!(!pending_two_factor_login_is_fresh(&pending, 999));
+        assert!(pending.remember);
+    }
+
+    #[test]
+    fn remembered_sessions_use_the_source_four_hundred_day_deadline() {
+        let now = OffsetDateTime::UNIX_EPOCH;
+        let Expiry::AtDateTime(deadline) = remembered_session_expiry(now) else {
+            panic!("remembered sessions must have a persistent deadline");
+        };
+
+        assert_eq!(
+            deadline - now,
+            Duration::minutes(REMEMBERED_SESSION_DURATION_MINUTES)
+        );
     }
 
     #[test]

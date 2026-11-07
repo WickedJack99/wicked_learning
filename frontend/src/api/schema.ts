@@ -2298,7 +2298,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a verified Rust-owned password session. */
+        /** Start a verified Rust-owned password session, optionally remembered for the source duration. */
         post: operations["createSession"];
         delete?: never;
         options?: never;
@@ -2806,6 +2806,11 @@ export interface components {
             /** Format: email */
             email: string;
             password: string;
+            /**
+             * @description Keep this browser signed in for the source's 400-day remember-me duration.
+             * @default false
+             */
+            remember: boolean;
         };
         RequestPasswordResetLink: {
             /** Format: email */
@@ -12782,7 +12787,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The authenticated session state. The server sets an HTTP-only session cookie. */
+            /** @description The authenticated session state. The server sets an HTTP-only session cookie; `remember: true` keeps it for the source's 400-day duration. */
             200: {
                 headers: {
                     [name: string]: unknown;

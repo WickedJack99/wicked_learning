@@ -70,8 +70,9 @@ not implement cryptographic algorithms or generic session/auth frameworks.
 security building blocks. It also preserves a future OIDC adapter boundary
 without making an identity provider a launch dependency.
 
-**Required proof before cutover:** password login; email verification and
-recovery; TOTP enrollment/recovery; passkey registration/authentication;
+**Required proof before cutover:** password login and recovery; the
+source-disabled email-verification policy; TOTP enrollment/recovery; passkey
+registration/authentication;
 session rotation/revocation; CSRF/rate-limit/audit behavior; and independent
 security review. The new platform starts with fresh credentials and fresh
 passkey enrollment; no Laravel password hash, passkey, session or account data
@@ -2319,7 +2320,8 @@ but a process crash between independent database commits still requires a
 future audited reconciliation job before a pilot. Token expiry selection,
 revocation/listing, role grants and the source administrator token-management
 screen remain separate identity-access work. Password recovery, MFA, passkeys,
-durable account auditing and a complete email-verification policy remain
+durable account auditing and a confirmed source-aligned email-verification
+policy remain
 cutover gates; this is not production identity authorization.
 
 ## ADR-058: Learning Groups are member-scoped collaboration in the application database
@@ -2483,8 +2485,10 @@ application data would duplicate the sign-in address. Showing an arbitrary
 profile-image URL field or a disabled upload button would imitate rather than
 migrate the source workflow. These are rejected.
 
-**Limits and follow-up:** Email-verification delivery, profile deletion and the
-remaining Personal sections remain separate identity/account work.
+**Limits and follow-up:** Profile deletion and the remaining Personal sections
+remain separate identity/account work. The source has verification routes
+available through Fortify but its `User` does not implement `MustVerifyEmail`,
+so no verification-delivery journey is exposed or required for parity.
 
 ## ADR-062: Profile images use owner-scoped staging and mounted-volume serving
 
@@ -3482,9 +3486,10 @@ authenticator-brand badge unless the backend has a safe verified label rather
 than guessing from browser/device data.
 
 **Limits and follow-up:** This is a local greenfield proof of concept, not a
-production identity cutover. Password reset, remembered sessions and the
-remaining identity cutover/independent-review requirements remain separate
-gates. Full browser WebAuthn ceremony tests require a virtual authenticator in
+production identity cutover. Password reset and remembered sessions are now
+addressed by ADR-089 and ADR-090; the remaining identity cutover and
+independent-review requirements remain separate gates. Full browser WebAuthn
+ceremony tests require a virtual authenticator in
 the local test harness; the current focused browser test covers the lifted UI
 structure and API contract, while Rust tests cover timeout and secret-free
 factor-history invariants. The current shared Tower limiter keys passkey
@@ -3536,7 +3541,53 @@ it is not a production service.
 **Limits and follow-up:** SMTP delivery is synchronous, matching the source's
 immediate password-broker notification path. A production cutover requires an
 operational delivery/retry policy and an independent security review. Remembered
-sessions and email-verification delivery remain separate identity slices.
+sessions are addressed by ADR-090; the source-disabled email-verification
+policy is recorded in ADR-057.
+
+## ADR-090: Remembered login uses a persistent server-side session
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The original Login page offers a `Remember me` control. Laravel
+implements it with a separate encrypted recaller cookie that lasts 576,000
+minutes (400 days), while the Rust platform already has a maintained,
+identity-database-backed session store.
+
+**Decision:** The typed password-login contract accepts an optional `remember`
+boolean, defaulting to false. A normal password login remains a browser-session
+cookie. A remembered password login stores the already server-side, opaque
+session for a fixed 400-day deadline and sends the same HTTP-only, same-site
+session cookie with that deadline. The intent survives the source two-factor
+challenge and takes effect only after a successful factor proof. Logout deletes
+the session, and the existing password-verifier binding invalidates remembered
+sessions when a password is changed or reset.
+
+**Why:** `tower-sessions` and its PostgreSQL store already manage opaque session
+identifiers, expiry and cookie attributes. Extending that maintained facility
+preserves the source-visible browser-restart behavior and exact duration
+without putting a second bearer secret, identity data or password-derived value
+in a custom browser cookie or application database. A narrow session adapter
+reapplies the stored absolute deadline before later session writes, retaining
+that fixed deadline rather than extending it.
+
+**Alternatives:** Recreating Laravel's separate recaller-token scheme would add
+a second authentication artifact and custom rotation/revocation policy for no
+user-visible benefit. Making every session persistent would ignore the source
+checkbox. A sliding expiry would also differ from Laravel's fixed recaller
+cookie lifetime. These alternatives are rejected.
+
+**Implementation status:** The lifted original login form restores the
+checkbox, label, tab order and typed request field. The normal and two-factor
+password journeys use the same server-owned expiry policy; passkey, temporary
+access and registration sessions remain browser sessions unless a source
+control explicitly requests otherwise.
+
+**Limits and follow-up:** Laravel can create a fresh web session from its
+separate recaller cookie after a web-session expiry. Rust retains an equivalent
+durable server-side session instead, which is deliberately an implementation
+substitution rather than a new user workflow. Independent identity review,
+session/device-management controls and the source-disabled email-verification
+policy remain broader cutover work.
 
 ## Phase 1 gate
 
