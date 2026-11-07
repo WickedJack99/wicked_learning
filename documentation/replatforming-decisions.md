@@ -3312,6 +3312,34 @@ sensitive-action checks and the source passkey flow remain separate identity
 work; this enrollment/confirmation contract alone does not satisfy the identity
 cutover gate.
 
+## ADR-085: TOTP sign-in uses a short-lived pre-authentication session
+
+**Status:** Accepted — 7 November 2026
+
+**Decision:** After a valid password for an account with a confirmed TOTP
+factor, Rust will rotate the anonymous session identifier and store only a
+short-lived pending subject identifier plus the current password-verifier
+version in the server-side session. It will not call the normal login operation
+until a six-digit TOTP code or one unused recovery code succeeds. Challenge
+attempts use the source-aligned five-attempt-per-minute limit. A confirmed TOTP
+step is consumed atomically through `last_accepted_step`, so the same current
+or skew-window code cannot complete multiple challenges.
+
+**Why:** This preserves the source's guest-before-challenge behavior without
+putting credentials or factor secrets in browser storage. Binding the challenge
+to the password verifier invalidates it when the password changes, while the
+database step marker closes the replay gap left by a standalone TOTP check.
+
+**Alternatives:** Signing the user in before the challenge would make a
+second-factor prompt cosmetic. A client-held challenge token would expose more
+authentication state and be harder to revoke. Accepting valid time codes
+without a consumed-step record would allow same-window replay. These
+alternatives are rejected.
+
+**Limits and follow-up:** Recovery-code consumption, factor disable and the
+original React challenge screen are implemented with the login contract. Audit
+events remain a separate cross-database reliability slice.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
