@@ -132,6 +132,24 @@ pub async fn update(
         .map(|organization| Json(OrganizationResponse { organization }))
         .ok_or_else(ApiError::not_found)
 }
+pub async fn delete(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository =
+        PostgresOrganizationRepository::new(&state.application_database, &state.identity_database);
+    OrganizationCommand::new(&repository)
+        .delete(&principal, &slug)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
+}
 pub async fn request_join(
     State(state): State<AppState>,
     Path(slug): Path<String>,

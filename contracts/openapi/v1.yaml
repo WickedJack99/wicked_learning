@@ -822,6 +822,16 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The organization is unavailable or the current learner is not a leader. }
         '503': { description: The application or identity database is unavailable. }
+    delete:
+      operationId: deleteOrganization
+      summary: Delete an organization as one of its leaders.
+      parameters: [ { $ref: '#/components/parameters/OrganizationSlug' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The organization and its collaboration state were deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The organization is unavailable or the current learner is not a leader. }
+        '503': { description: The application or identity database is unavailable. }
   /organizations/{slug}/join-requests:
     post:
       operationId: requestOrganizationMembership

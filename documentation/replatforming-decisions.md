@@ -2821,8 +2821,8 @@ would duplicate identity data. A new organization UI would introduce visual
 and interaction drift. These alternatives are rejected.
 
 **Limits and follow-up:** This is the usable non-media core, not the final
-organisation migration. Organization deletion, icon upload, icon reports,
-icon moderation, source icon rendering and scheduled monthly random-leader
+organisation migration. Icon upload, icon reports, icon moderation, source
+icon rendering and scheduled monthly random-leader
 rotation remain explicitly incomplete. They must use the mounted-media
 lifecycle and separate authorization/browser evidence before being presented
 as migrated functionality.

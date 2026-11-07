@@ -78,6 +78,12 @@ pub trait OrganizationRepository {
         form: &OrganizationForm,
     ) -> impl Future<Output = Result<Option<OrganizationDetail>, OrganizationError>> + Send;
 
+    fn delete(
+        &self,
+        principal: &AuthorizedPrincipal,
+        slug: &str,
+    ) -> impl Future<Output = Result<bool, OrganizationError>> + Send;
+
     fn request_join(
         &self,
         principal: &AuthorizedPrincipal,
@@ -199,6 +205,13 @@ where
         form: &OrganizationForm,
     ) -> Result<Option<OrganizationDetail>, OrganizationError> {
         self.repository.update(principal, slug, form).await
+    }
+    pub async fn delete(
+        &self,
+        principal: &AuthorizedPrincipal,
+        slug: &str,
+    ) -> Result<bool, OrganizationError> {
+        self.repository.delete(principal, slug).await
     }
     pub async fn request_join(
         &self,

@@ -104,6 +104,15 @@ test('organizations preserve the source membership, leadership and chat workflow
         await page.getByRole('button', { name: 'Chat' }).click();
         await expect(page.getByText(`A member chat message (${marker}).`)).toBeVisible();
         await expect(page.getByRole('button', { name: /Members \(2\)/ })).toBeVisible();
+
+        const deleted = await request.delete(
+            api(`/api/v1/organizations/${organization.slug}`),
+            { headers: { Origin: origin, 'X-CSRF-Token': firstCsrf } },
+        );
+        expect(deleted.status()).toBe(204);
+        expect(
+            (await second.get(api(`/api/v1/organizations/${organization.slug}`))).status(),
+        ).toBe(404);
     } finally {
         await second.dispose();
     }

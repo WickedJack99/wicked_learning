@@ -224,6 +224,45 @@ impl OrganizationRepositoryPort for PostgresOrganizationRepository<'_> {
             .map_err(log_error("could not load updated organization"))
         }
     }
+    fn delete(
+        &self,
+        principal: &AuthorizedPrincipal,
+        slug: &str,
+    ) -> impl std::future::Future<Output = Result<bool, OrganizationError>> + Send {
+        async move {
+            let mut transaction = self
+                .application_pool
+                .begin()
+                .await
+                .map_err(log_error("could not begin organization deletion"))?;
+            let Some((organization_id, principal_id)) =
+                organization_and_principal_tx(&mut transaction, principal.subject_id, slug)
+                    .await
+                    .map_err(log_error("could not resolve organization deletion"))?
+            else {
+                return Ok(false);
+            };
+            if !is_leader_tx(&mut transaction, organization_id, principal_id)
+                .await
+                .map_err(log_error("could not verify organization deletion leader"))?
+            {
+                return Ok(false);
+            }
+            let deleted = sqlx::query_scalar::<_, Uuid>(
+                "DELETE FROM organizations WHERE id = $1 RETURNING id",
+            )
+            .bind(organization_id)
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(log_error("could not delete organization"))?
+            .is_some();
+            transaction
+                .commit()
+                .await
+                .map_err(log_error("could not commit organization deletion"))?;
+            Ok(deleted)
+        }
+    }
     fn request_join(
         &self,
         principal: &AuthorizedPrincipal,

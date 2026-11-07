@@ -316,7 +316,7 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/learner/world", get(learner_world::show))
         .route("/api/v1/learner/groups", get(learner_group::index))
         .route("/api/v1/organizations", get(organization::index).post(organization::create))
-        .route("/api/v1/organizations/{slug}", get(organization::show).patch(organization::update))
+        .route("/api/v1/organizations/{slug}", get(organization::show).patch(organization::update).delete(organization::delete))
         .route("/api/v1/organizations/{slug}/join-requests", post(organization::request_join))
         .route("/api/v1/organizations/{slug}/membership", delete(organization::leave))
         .route("/api/v1/organizations/{slug}/messages", post(organization::send_message))

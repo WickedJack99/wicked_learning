@@ -603,7 +603,8 @@ export interface paths {
         get: operations["getOrganization"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete an organization as one of its leaders. */
+        delete: operations["deleteOrganization"];
         options?: never;
         head?: never;
         /** Update leader-owned organization text fields. */
@@ -5731,6 +5732,57 @@ export interface operations {
                 content?: never;
             };
             /** @description The organization is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteOrganization: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                slug: components["parameters"]["OrganizationSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The organization and its collaboration state were deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The organization is unavailable or the current learner is not a leader. */
             404: {
                 headers: {
                     [name: string]: unknown;
