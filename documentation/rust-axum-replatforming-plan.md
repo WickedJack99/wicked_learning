@@ -950,6 +950,13 @@ returned as a conflict rather than silently overwriting a newer save, while an
 unchanged save retains its timestamp. Content changes reset the currently
 available AI-review state to `needs_review`; Laravel revision snapshots remain
 explicitly unavailable until their complete history workflow is migrated.
+Reflection creation and editing are now available through `POST
+/api/v1/admin/world-builder/nodes/{node_id}/reflection-activities` and `PATCH
+/api/v1/admin/world-builder/activities/{activity_id}/reflection`. They retain
+the source prompt, optional note and topic fields with their original bounds,
+stored defaults and optimistic-concurrency protection. The narrow command
+preserves unrelated activity configuration but deliberately does not claim the
+distinct Review/revisit behavior or any shared generic activity editor.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command
@@ -967,7 +974,7 @@ Editing preserves the source form's narrow scope: it accepts only the display
 label and an outcome transition's optional trigger value; an empty label falls
 back to the target activity title or source connector label. Deletion returns
 the selected node's complete ordered transition state. All activity-content
-commands other than Open Practice remain unavailable.
+commands other than Open Practice and Reflection remain unavailable.
 No World Builder React route is exposed from these partial contracts: the next
 slice must adapt the existing World Builder React components against all three
 read contracts, rather than inventing a reduced editor.

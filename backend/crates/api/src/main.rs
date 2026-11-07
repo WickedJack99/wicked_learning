@@ -19,6 +19,7 @@ mod admin_world_node_layout;
 mod admin_world_node_starts;
 mod admin_world_node_transition;
 mod admin_world_open_practice;
+mod admin_world_reflection;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -576,6 +577,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/open-practice",
             patch(admin_world_open_practice::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/reflection-activities",
+            post(admin_world_reflection::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/reflection",
+            patch(admin_world_reflection::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/start-routes",
@@ -1473,6 +1482,34 @@ mod tests {
             .expect("World Builder open-practice update response");
 
         assert_eq!(update_response.status(), 401);
+
+        let reflection_create_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/reflection-activities")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A reflection"}"#))
+                    .expect("a valid World Builder reflection create request"),
+            )
+            .await
+            .expect("World Builder reflection create response");
+
+        assert_eq!(reflection_create_response.status(), 401);
+
+        let reflection_update_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/reflection")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A reflection","slug":null,"introduction":null,"prompt":null,"note":null,"topic":null,"subtopic":null,"updated_at":"2026-11-07T17:00:00.000000Z"}"#))
+                    .expect("a valid World Builder reflection update request"),
+            )
+            .await
+            .expect("World Builder reflection update response");
+
+        assert_eq!(reflection_update_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(

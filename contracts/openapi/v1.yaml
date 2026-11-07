@@ -1039,6 +1039,66 @@ paths:
         '404': { description: The activity is unknown, not Open practice, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/reflection-activities:
+    post:
+      operationId: createAdminWorldBuilderReflectionActivity
+      summary: Create a Reflection activity on an editable World Builder node.
+      description: >-
+        Creates the source Reflection defaults on the selected node's deterministic
+        primary Rust route.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdminReflectionActivityRequest' }
+      responses:
+        '201':
+          description: The created activity identifier; refetch the selected node to render its graph state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminReflectionActivityResponse' }
+        '400': { description: The Reflection fields or requested slug are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/reflection:
+    patch:
+      operationId: updateAdminWorldBuilderReflectionActivity
+      summary: Update a Reflection activity on an editable World Builder graph.
+      description: >-
+        Updates the source Reflection fields with the selected node's authoring
+        scope. The caller supplies the previously-read timestamp; a concurrent
+        change receives a conflict instead of being overwritten.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminReflectionActivityRequest' }
+      responses:
+        '200':
+          description: The saved activity timestamp; refetch the selected node to render its graph state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminReflectionActivityResponse' }
+        '400': { description: The Reflection fields or update timestamp are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown, not Reflection, or outside the caller's authoring scope. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -7848,6 +7908,44 @@ components:
         next_step: { type: ['string', 'null'], maxLength: 4000 }
         updated_at: { type: string, format: date-time }
     UpdateAdminOpenPracticeActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    CreateAdminReflectionActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        prompt: { type: [string, 'null'], maxLength: 4000 }
+        note: { type: [string, 'null'], maxLength: 2000 }
+        topic: { type: [string, 'null'], maxLength: 160 }
+        subtopic: { type: [string, 'null'], maxLength: 160 }
+    CreateAdminReflectionActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties:
+        activity_id: { type: string, format: uuid }
+    UpdateAdminReflectionActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, prompt, note, topic, subtopic, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: ['string', 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: ['string', 'null'], maxLength: 1000 }
+        prompt: { type: ['string', 'null'], maxLength: 4000 }
+        note: { type: ['string', 'null'], maxLength: 2000 }
+        topic: { type: ['string', 'null'], maxLength: 160 }
+        subtopic: { type: ['string', 'null'], maxLength: 160 }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminReflectionActivityResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]
