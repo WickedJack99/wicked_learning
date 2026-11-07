@@ -851,6 +851,46 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderItemGrantActivity"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/tool-grant-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Tool grant activity on an editable World Builder node.
+         * @description The scoped writer resolves an optional tool catalog UUID to the server-owned playback slug after authorizing the selected node.
+         */
+        post: operations["createAdminWorldBuilderToolGrantActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/tool-grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a Tool grant activity on an editable World Builder graph.
+         * @description A complete source-shaped edit uses the previously read timestamp and returns a conflict instead of overwriting a newer activity.
+         */
+        patch: operations["updateAdminWorldBuilderToolGrantActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -5357,6 +5397,75 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        CreateAdminToolGrantActivityRequest: {
+            title: string;
+            slug?: string | null;
+            introduction?: string | null;
+            background_dark?: string | null;
+            background_light?: string | null;
+            /** @default false */
+            background_mirrored: boolean;
+            bubble_border_color_dark?: string | null;
+            bubble_border_color_light?: string | null;
+            bubble_color_dark?: string | null;
+            bubble_color_light?: string | null;
+            /** @default 92 */
+            bubble_opacity_dark: number;
+            /** @default 94 */
+            bubble_opacity_light: number;
+            /** @default 0.4 */
+            fade_duration_seconds: number;
+            slide_direction?: ("left" | "right" | "top" | "bottom" | "none") | null;
+            /** @default 0.6 */
+            slide_duration_seconds: number;
+            text?: string | null;
+            /** Format: uuid */
+            tool_id?: string | null;
+            /** @default false */
+            tool_mirrored: boolean;
+            /** @default 50 */
+            tool_x: number;
+            /** @default 50 */
+            tool_y: number;
+            /** @default 24 */
+            typing_speed: number;
+        };
+        CreateAdminToolGrantActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        UpdateAdminToolGrantActivityRequest: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            background_dark: string | null;
+            background_light: string | null;
+            background_mirrored: boolean;
+            bubble_border_color_dark: string | null;
+            bubble_border_color_light: string | null;
+            bubble_color_dark: string | null;
+            bubble_color_light: string | null;
+            bubble_opacity_dark: number;
+            bubble_opacity_light: number;
+            fade_duration_seconds: number;
+            slide_direction: ("left" | "right" | "top" | "bottom" | "none") | null;
+            slide_duration_seconds: number;
+            text: string | null;
+            /** Format: uuid */
+            tool_id: string | null;
+            tool_mirrored: boolean;
+            tool_x: number;
+            tool_y: number;
+            typing_speed: number;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminToolGrantActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         CreateAdminActivityTransitionRequest: {
             /** Format: uuid */
             from_activity_id: string;
@@ -8343,6 +8452,141 @@ export interface operations {
                 };
             };
             /** @description The Item grant fields */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderToolGrantActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminToolGrantActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminToolGrantActivityResponse"];
+                };
+            };
+            /** @description The source Tool grant fields */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderToolGrantActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminToolGrantActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminToolGrantActivityResponse"];
+                };
+            };
+            /** @description The source Tool grant fields */
             400: {
                 headers: {
                     [name: string]: unknown;

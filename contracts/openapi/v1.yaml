@@ -1161,6 +1161,49 @@ paths:
         '404': { description: The activity is unknown, not an Item grant, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/tool-grant-activities:
+    post:
+      operationId: createAdminWorldBuilderToolGrantActivity
+      summary: Create a Tool grant activity on an editable World Builder node.
+      description: The scoped writer resolves an optional tool catalog UUID to the server-owned playback slug after authorizing the selected node.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminToolGrantActivityRequest' } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminToolGrantActivityResponse' } } } }
+        '400': { description: The source Tool grant fields, requested slug, or selected catalog tool is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/tool-grant:
+    patch:
+      operationId: updateAdminWorldBuilderToolGrantActivity
+      summary: Update a Tool grant activity on an editable World Builder graph.
+      description: A complete source-shaped edit uses the previously read timestamp and returns a conflict instead of overwriting a newer activity.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminToolGrantActivityRequest' } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminToolGrantActivityResponse' } } } }
+        '400': { description: The source Tool grant fields, timestamp, or selected catalog tool is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown, not a Tool grant, or outside the caller's authoring scope. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -8060,6 +8103,77 @@ components:
         probability_percent: { type: number, minimum: 0.01, maximum: 100 }
         updated_at: { type: string, format: date-time }
     UpdateAdminItemGrantActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    CreateAdminToolGrantActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean, default: false }
+        bubble_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_opacity_dark: { type: number, minimum: 0, maximum: 100, default: 92 }
+        bubble_opacity_light: { type: number, minimum: 0, maximum: 100, default: 94 }
+        fade_duration_seconds: { type: number, minimum: 0, maximum: 30, default: 0.4 }
+        slide_direction:
+          oneOf:
+            - { type: string, enum: [left, right, top, bottom, none] }
+            - { type: 'null' }
+        slide_duration_seconds: { type: number, minimum: 0, maximum: 30, default: 0.6 }
+        text: { type: [string, 'null'], maxLength: 2000 }
+        tool_id: { type: [string, 'null'], format: uuid }
+        tool_mirrored: { type: boolean, default: false }
+        tool_x: { type: number, minimum: 0, maximum: 100, default: 50 }
+        tool_y: { type: number, minimum: 0, maximum: 100, default: 50 }
+        typing_speed: { type: number, minimum: 1, maximum: 250, default: 24 }
+    CreateAdminToolGrantActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminToolGrantActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, background_dark, background_light, background_mirrored, bubble_border_color_dark, bubble_border_color_light, bubble_color_dark, bubble_color_light, bubble_opacity_dark, bubble_opacity_light, fade_duration_seconds, slide_direction, slide_duration_seconds, text, tool_id, tool_mirrored, tool_x, tool_y, typing_speed, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean }
+        bubble_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_opacity_dark: { type: number, minimum: 0, maximum: 100 }
+        bubble_opacity_light: { type: number, minimum: 0, maximum: 100 }
+        fade_duration_seconds: { type: number, minimum: 0, maximum: 30 }
+        slide_direction:
+          oneOf:
+            - { type: string, enum: [left, right, top, bottom, none] }
+            - { type: 'null' }
+        slide_duration_seconds: { type: number, minimum: 0, maximum: 30 }
+        text: { type: [string, 'null'], maxLength: 2000 }
+        tool_id: { type: [string, 'null'], format: uuid }
+        tool_mirrored: { type: boolean }
+        tool_x: { type: number, minimum: 0, maximum: 100 }
+        tool_y: { type: number, minimum: 0, maximum: 100 }
+        typing_speed: { type: number, minimum: 1, maximum: 250 }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminToolGrantActivityResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

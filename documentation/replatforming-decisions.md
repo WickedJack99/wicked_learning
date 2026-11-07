@@ -3840,6 +3840,51 @@ catalog/item administration, activity version snapshots, review history or a
 generic activity form. The original UI may consume the contract only after its
 complete activity-editor adapter and browser parity evidence are available.
 
+## ADR-095: Tool-grant authoring persists a scoped catalog tool as a playback slug
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Laravel's Tool grant activity editor combines dark/light visual
+presentation, bubble appearance and motion, grant text, optional reusable tool
+selection, tool placement and typing speed. The fresh authoring catalog uses
+opaque UUIDs, but learner Tool grant playback deliberately accepts only a
+server-owned tool slug in activity configuration. A browser-supplied slug would
+bypass catalog selection, and resolving a UUID before node/activity
+authorization would disclose catalog state to an out-of-scope caller.
+
+**Decision:** `POST /api/v1/admin/world-builder/nodes/{node_id}/tool-grant-activities`
+and `PATCH /api/v1/admin/world-builder/activities/{activity_id}/tool-grant`
+accept the complete type-specific Tool grant form. It carries title, optional
+slug/introduction, backgrounds, mirrored flags, four bubble colors, opacity,
+fade/slide behavior, text, optional tool UUID, tool placement and typing
+speed. The Rust form applies Laravel's source defaults and length, color,
+direction and numeric constraints. Creation uses ADR-093's deterministic
+primary route; updates require the complete form and the previously-read
+`updated_at` timestamp. A stale save returns `409`, and an unchanged save
+retains its timestamp and review state.
+
+Persistence first locks and authorizes the selected node or activity through
+the existing all/own/assigned/direct-editor World Builder rule. Only then does
+it resolve the submitted `learning_tools` UUID inside the same transaction. A
+missing UUID is invalid. Persistence serializes the returned server-owned slug
+as `toolId` in the existing activity configuration consumed by learner Tool
+grant playback, preserves unrelated configuration keys on edits, and resets
+the available AI-review state only when content changes. The existing generic
+`learning_activities.activity_config` migration remains the greenfield storage
+boundary; this slice adds no Laravel migration, data import or legacy IDs.
+
+**Why:** This preserves the source editor's distinct visual and timing controls
+while keeping the UUID-to-playback-slug translation, authorization ordering and
+optimistic concurrency inside one scoped transactional writer. It avoids a
+generic configuration editor and prevents a stale author from silently
+replacing another author's tool selection.
+
+**Limits and trigger:** This does not expose a replacement World Builder UI,
+tool catalog administration, generic activity editing, activity version
+snapshots or review history. The original UI may consume the contract only
+after its complete activity-editor adapter and browser parity evidence are
+available.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

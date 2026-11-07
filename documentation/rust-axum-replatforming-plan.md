@@ -968,6 +968,17 @@ edit retains the same `updated_at` optimistic-concurrency boundary and leaves
 unrelated activity configuration untouched. This uses the existing
 Rust-owned generic activity configuration migration; no Laravel schema or data
 is imported.
+Tool-grant creation and editing are now available through `POST
+/api/v1/admin/world-builder/nodes/{node_id}/tool-grant-activities` and `PATCH
+/api/v1/admin/world-builder/activities/{activity_id}/tool-grant`. They retain
+the source dark/light background, bubble presentation, animation, text, tool
+placement and typing fields with their source defaults and bounds. The optional
+catalog-tool UUID is resolved only after the scoped node or activity writer has
+authorized the caller, and the persisted configuration contains only the
+server-owned tool slug consumed by learner playback. A complete edit uses the
+same `updated_at` optimistic-concurrency boundary and preserves unrelated
+configuration keys. This uses the existing Rust-owned generic activity
+configuration migration; no Laravel schema or data is imported.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command

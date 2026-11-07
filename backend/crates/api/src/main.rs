@@ -21,6 +21,7 @@ mod admin_world_node_starts;
 mod admin_world_node_transition;
 mod admin_world_open_practice;
 mod admin_world_reflection;
+mod admin_world_tool_grant;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -586,6 +587,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/reflection",
             patch(admin_world_reflection::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/tool-grant-activities",
+            post(admin_world_tool_grant::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/tool-grant",
+            patch(admin_world_tool_grant::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/item-grant-activities",
@@ -1547,6 +1556,34 @@ mod tests {
             .expect("World Builder item-grant update response");
 
         assert_eq!(item_grant_update_response.status(), 401);
+
+        let tool_grant_create_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/tool-grant-activities")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A tool grant"}"#))
+                    .expect("a valid World Builder tool-grant create request"),
+            )
+            .await
+            .expect("World Builder tool-grant create response");
+
+        assert_eq!(tool_grant_create_response.status(), 401);
+
+        let tool_grant_update_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/tool-grant")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"A tool grant","slug":null,"introduction":null,"background_dark":null,"background_light":null,"background_mirrored":false,"bubble_border_color_dark":null,"bubble_border_color_light":null,"bubble_color_dark":null,"bubble_color_light":null,"bubble_opacity_dark":92,"bubble_opacity_light":94,"fade_duration_seconds":0.4,"slide_direction":"left","slide_duration_seconds":0.6,"text":null,"tool_id":null,"tool_mirrored":false,"tool_x":50,"tool_y":50,"typing_speed":24,"updated_at":"2026-11-07T17:00:00.000000Z"}"#))
+                    .expect("a valid World Builder tool-grant update request"),
+            )
+            .await
+            .expect("World Builder tool-grant update response");
+
+        assert_eq!(tool_grant_update_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(
