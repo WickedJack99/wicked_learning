@@ -11,6 +11,7 @@ pub mod admin_world_map;
 pub mod admin_world_node;
 pub mod admin_world_node_layout;
 pub mod admin_world_node_starts;
+pub mod admin_world_node_transition;
 pub mod current_user;
 pub mod feedback_prompt_preference;
 pub mod identity_registration;
