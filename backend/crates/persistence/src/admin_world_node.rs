@@ -229,6 +229,7 @@ async fn load_editable_node(
     let mut editable_activities = Vec::with_capacity(activities.len());
     for activity in activities {
         let portal_link = load_portal_link(pool, activity.id).await?;
+        let connectors = connectors_for(&activity.activity_type, &activity.config);
         editable_activities.push(AdminEditableActivity {
             id: activity.id,
             slug: activity.slug,
@@ -247,7 +248,7 @@ async fn load_editable_node(
                 x: activity.x,
                 y: activity.y,
             },
-            connectors: connectors_for(&activity.activity_type),
+            connectors,
         });
     }
 
@@ -533,7 +534,7 @@ fn connector(id: &str, label: &str) -> AdminActivityConnector {
         label: label.to_owned(),
     }
 }
-fn connectors_for(kind: &str) -> AdminActivityConnectors {
+fn connectors_for(kind: &str, config: &Value) -> AdminActivityConnectors {
     let input = || {
         vec![connector(
             "in",
@@ -544,20 +545,23 @@ fn connectors_for(kind: &str) -> AdminActivityConnectors {
             },
         )]
     };
-    let outputs = match kind {
-        "question" => vec![
-            connector("correct", "Correct"),
-            connector("incorrect", "Incorrect"),
-            connector("outcome", "Outcome"),
-        ],
-        "portal" => vec![connector("travel", "Travel")],
-        "npc_dialogue" => vec![connector("dialogue-end-pending", "A End")],
-        _ => vec![connector("completed", "Completed")],
+    let (inputs, outputs) = match kind {
+        "question" => (
+            input(),
+            vec![
+                connector("correct", "Correct"),
+                connector("incorrect", "Incorrect"),
+                connector("outcome", "Outcome"),
+            ],
+        ),
+        "portal" if config.get("portalMode").and_then(Value::as_str) == Some("input") => {
+            (vec![], vec![connector("arrived", "Arrived")])
+        }
+        "portal" => (input(), vec![]),
+        "npc_dialogue" => (input(), vec![connector("dialogue-end-pending", "A End")]),
+        _ => (input(), vec![connector("completed", "Completed")]),
     };
-    AdminActivityConnectors {
-        inputs: input(),
-        outputs,
-    }
+    AdminActivityConnectors { inputs, outputs }
 }
 
 fn activity_type_definitions() -> Vec<AdminActivityTypeDefinition> {
@@ -636,7 +640,14 @@ fn activity_type_definitions() -> Vec<AdminActivityTypeDefinition> {
     types
         .into_iter()
         .map(|(key, label, description)| {
-            let connectors = connectors_for(key);
+            let connectors = if key == "portal" {
+                AdminActivityConnectors {
+                    inputs: vec![connector("in", "In")],
+                    outputs: vec![connector("travel", "Travel")],
+                }
+            } else {
+                connectors_for(key, &Value::Null)
+            };
             AdminActivityTypeDefinition {
                 key: key.to_owned(),
                 label: label.to_owned(),
@@ -665,7 +676,7 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::{ActivityRow, eligible_start_activity_id};
+    use super::{ActivityRow, connectors_for, eligible_start_activity_id};
 
     fn activity(activity_type: &str, config: serde_json::Value) -> ActivityRow {
         ActivityRow {
@@ -710,5 +721,16 @@ mod tests {
             eligible_start_activity_id(&[practice], Some(practice_id)),
             Some(practice_id)
         );
+    }
+
+    #[test]
+    fn portal_connectors_follow_the_source_mode_for_the_selected_activity() {
+        let exit = connectors_for("portal", &json!({ "portalMode": "input" }));
+        let entry = connectors_for("portal", &json!({ "portalMode": "output" }));
+
+        assert!(exit.inputs.is_empty());
+        assert_eq!(exit.outputs[0].id, "arrived");
+        assert_eq!(entry.inputs[0].id, "in");
+        assert!(entry.outputs.is_empty());
     }
 }
