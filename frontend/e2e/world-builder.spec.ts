@@ -50,6 +50,17 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(page.getByLabel('Journal topic')).toBeVisible();
     await page.getByRole('button', { name: 'Close activity form' }).click();
 
+    await page.getByRole('button', { name: 'Item grant' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Add Item grant' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Probability')).toBeVisible();
+    await page.getByRole('button', { name: 'Add item' }).click();
+    await expect(page.getByLabel('Item 1')).toBeVisible();
+    await expect(page.getByLabel('Quantity for item 1')).toHaveValue('1');
+    await expect(page.getByLabel('Dark background')).toBeVisible();
+    await page.getByRole('button', { name: 'Close activity form' }).click();
+
     const nodeResponse = await page.request.get(
         `/api/v1/admin/world-builder/nodes/${selectedMap.nodes[0].id}`,
     );

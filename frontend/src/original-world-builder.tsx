@@ -34,6 +34,7 @@ type PortalLink = components['schemas']['AdminPortalLink'];
 type EditableMap = components['schemas']['AdminEditableMap'];
 type EditableNode = components['schemas']['AdminEditableNode'];
 type Activity = components['schemas']['AdminEditableActivity'];
+type EditableItem = components['schemas']['AdminEditableItem'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -49,9 +50,13 @@ type WorldPortalEdge = Edge<PortalLink>;
 type ActivityNode = Node<ActivityNodeData, 'activity'>;
 type SpecialNode = Node<{ label: string }, 'special'>;
 type ActivityFlowNode = ActivityNode | SpecialNode;
-type SupportedActivityType = 'open_practice' | 'reflection';
+type SupportedActivityType = 'open_practice' | 'reflection' | 'item_grant';
 type ActivityAuthorForm = {
+    backgroundDark: string;
+    backgroundLight: string;
+    backgroundMirrored: boolean;
     introduction: string;
+    items: Array<{ itemId: string; quantity: string }>;
     nextStep: string;
     note: string;
     prompt: string;
@@ -60,6 +65,7 @@ type ActivityAuthorForm = {
     title: string;
     topic: string;
     type: SupportedActivityType;
+    probabilityPercent: string;
 };
 
 /**
@@ -633,7 +639,7 @@ function ActivityGraph({
     return (
         <>
             <div className="h-[34rem]">
-                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 text-sm dark:border-white/10">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-sm dark:border-white/10">
                     <button
                         className="inline-flex items-center gap-2 font-medium text-teal-700 hover:underline dark:text-teal-300"
                         onClick={onSelectMap}
@@ -642,7 +648,7 @@ function ActivityGraph({
                         <ArrowLeft className="size-4" />
                         Back to map
                     </button>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                         <span className="hidden text-slate-500 lg:inline">
                             {savingActivityId
                                 ? 'Saving position…'
@@ -663,6 +669,14 @@ function ActivityGraph({
                         >
                             <Plus className="size-3.5" />
                             Reflection
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'item_grant' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Item grant
                         </button>
                     </div>
                 </div>
@@ -700,6 +714,7 @@ function ActivityGraph({
             {editor ? (
                 <ActivityAuthorDialog
                     activity={editor.activity}
+                    items={document.items}
                     nodeId={graph.node.id}
                     onClose={() => setEditor(null)}
                     onSaved={() => {
@@ -842,22 +857,31 @@ function DeleteActivityDialog({
 
 function ActivityAuthorDialog({
     activity,
+    items,
     nodeId,
     onClose,
     onSaved,
     type,
 }: {
     activity?: Activity;
+    items: EditableItem[];
     nodeId: string;
     onClose: () => void;
     onSaved: () => void;
     type: SupportedActivityType;
 }) {
-    const [form, setForm] = useState(() => activityAuthorForm(type, activity));
+    const [form, setForm] = useState(() =>
+        activityAuthorForm(type, activity, items),
+    );
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const isEditing = activity !== undefined;
-    const typeLabel = type === 'open_practice' ? 'Open practice' : 'Reflection';
+    const typeLabel =
+        type === 'open_practice'
+            ? 'Open practice'
+            : type === 'reflection'
+              ? 'Reflection'
+              : 'Item grant';
 
     const updateField = (field: keyof ActivityAuthorForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -870,6 +894,18 @@ function ActivityAuthorDialog({
             setError('Add an activity title before saving.');
             return;
         }
+
+        const itemGrant = itemGrantRequest(form);
+        if (type === 'item_grant' && !itemGrant) {
+            setError(
+                'Use a probability between 0.01% and 100%, and give every selected item a quantity from 1 to 999.',
+            );
+            return;
+        }
+        const completeItemGrant = itemGrant ?? {
+            items: [],
+            probabilityPercent: 100,
+        };
 
         setSaving(true);
         try {
@@ -912,7 +948,7 @@ function ActivityAuthorDialog({
                         },
                     ));
                 }
-            } else if (activity) {
+            } else if (type === 'reflection' && activity) {
                 ({ response } = await apiClient.PATCH(
                     '/admin/world-builder/activities/{activity_id}/reflection',
                     {
@@ -930,7 +966,7 @@ function ActivityAuthorDialog({
                         },
                     },
                 ));
-            } else {
+            } else if (type === 'reflection') {
                 ({ response } = await apiClient.POST(
                     '/admin/world-builder/nodes/{node_id}/reflection-activities',
                     {
@@ -940,6 +976,49 @@ function ActivityAuthorDialog({
                             prompt: optionalValue(form.prompt),
                             subtopic: optionalValue(form.subtopic),
                             topic: optionalValue(form.topic),
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { node_id: nodeId },
+                        },
+                    },
+                ));
+            } else if (activity) {
+                ({ response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/item-grant',
+                    {
+                        body: {
+                            ...common,
+                            background_dark: optionalValue(form.backgroundDark),
+                            background_light: optionalValue(
+                                form.backgroundLight,
+                            ),
+                            background_mirrored: form.backgroundMirrored,
+                            items: completeItemGrant.items,
+                            probability_percent:
+                                completeItemGrant.probabilityPercent,
+                            updated_at: activity.updated_at,
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { activity_id: activity.id },
+                        },
+                    },
+                ));
+            } else {
+                ({ response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/item-grant-activities',
+                    {
+                        body: {
+                            ...common,
+                            background_dark: optionalValue(form.backgroundDark),
+                            background_light: optionalValue(
+                                form.backgroundLight,
+                            ),
+                            background_mirrored: form.backgroundMirrored,
+                            items: completeItemGrant.items,
+                            probability_percent:
+                                completeItemGrant.probabilityPercent,
                         },
                         params: {
                             header: { 'X-CSRF-Token': token },
@@ -1036,7 +1115,7 @@ function ActivityAuthorDialog({
                             textarea
                             value={form.nextStep}
                         />
-                    ) : (
+                    ) : type === 'reflection' ? (
                         <>
                             <ActivityTextField
                                 className="md:col-span-2"
@@ -1068,6 +1147,12 @@ function ActivityAuthorDialog({
                                 value={form.note}
                             />
                         </>
+                    ) : (
+                        <ItemGrantFields
+                            form={form}
+                            items={items}
+                            onChange={setForm}
+                        />
                     )}
                 </div>
 
@@ -1140,13 +1225,180 @@ function ActivityTextField({
     );
 }
 
+function ItemGrantFields({
+    form,
+    items,
+    onChange,
+}: {
+    form: ActivityAuthorForm;
+    items: EditableItem[];
+    onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
+}) {
+    const updateRow = (
+        index: number,
+        field: 'itemId' | 'quantity',
+        value: string,
+    ) => {
+        onChange((current) => ({
+            ...current,
+            items: current.items.map((row, rowIndex) =>
+                rowIndex === index ? { ...row, [field]: value } : row,
+            ),
+        }));
+    };
+
+    return (
+        <>
+            <label className="grid gap-2 text-sm font-medium md:col-span-2">
+                Probability
+                <span className="flex items-center gap-2">
+                    <input
+                        className="w-28 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                        max="100"
+                        min="0.01"
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                probabilityPercent: event.target.value,
+                            }))
+                        }
+                        step="0.01"
+                        type="number"
+                        value={form.probabilityPercent}
+                    />
+                    <span className="text-slate-500">%</span>
+                </span>
+            </label>
+            <section className="grid gap-3 md:col-span-2">
+                <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-medium">
+                        Items granted on success
+                    </h3>
+                    <button
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                        onClick={() =>
+                            onChange((current) => ({
+                                ...current,
+                                items: [
+                                    ...current.items,
+                                    { itemId: '', quantity: '1' },
+                                ],
+                            }))
+                        }
+                        type="button"
+                    >
+                        <Plus className="size-3.5" />
+                        Add item
+                    </button>
+                </div>
+                {form.items.map((row, index) => (
+                    <div
+                        className="grid gap-2 rounded-lg bg-slate-50 p-3 md:grid-cols-[1fr_8rem_auto] dark:bg-white/5"
+                        key={`${row.itemId}-${index}`}
+                    >
+                        <select
+                            aria-label={`Item ${index + 1}`}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                            onChange={(event) =>
+                                updateRow(index, 'itemId', event.target.value)
+                            }
+                            value={row.itemId}
+                        >
+                            <option value="">Select item</option>
+                            {items.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.title}
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            aria-label={`Quantity for item ${index + 1}`}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                            max="999"
+                            min="1"
+                            onChange={(event) =>
+                                updateRow(index, 'quantity', event.target.value)
+                            }
+                            type="number"
+                            value={row.quantity}
+                        />
+                        <button
+                            aria-label="Remove item grant row"
+                            className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-300/10 dark:hover:text-red-300"
+                            onClick={() =>
+                                onChange((current) => ({
+                                    ...current,
+                                    items: current.items.filter(
+                                        (_, rowIndex) => rowIndex !== index,
+                                    ),
+                                }))
+                            }
+                            type="button"
+                        >
+                            <Trash2 className="size-4" />
+                        </button>
+                    </div>
+                ))}
+            </section>
+            <section className="grid gap-4 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <div>
+                    <h3 className="text-sm font-medium">Grant item scene</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Configure the authored scene assets for each appearance.
+                    </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <ActivityTextField
+                        label="Dark background"
+                        onChange={(value) =>
+                            onChange((current) => ({
+                                ...current,
+                                backgroundDark: value,
+                            }))
+                        }
+                        value={form.backgroundDark}
+                    />
+                    <ActivityTextField
+                        label="Light background"
+                        onChange={(value) =>
+                            onChange((current) => ({
+                                ...current,
+                                backgroundLight: value,
+                            }))
+                        }
+                        value={form.backgroundLight}
+                    />
+                </div>
+                <label className="flex items-center gap-3 text-sm font-medium">
+                    <input
+                        checked={form.backgroundMirrored}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                backgroundMirrored: event.target.checked,
+                            }))
+                        }
+                        type="checkbox"
+                    />
+                    Mirror background horizontally
+                </label>
+            </section>
+        </>
+    );
+}
+
 function activityAuthorForm(
     type: SupportedActivityType,
     activity?: Activity,
+    items: EditableItem[] = [],
 ): ActivityAuthorForm {
     const config = activity?.config ?? {};
     return {
+        backgroundDark: configString(config, 'backgroundDark'),
+        backgroundLight: configString(config, 'backgroundLight'),
+        backgroundMirrored: configBoolean(config, 'backgroundMirrored'),
         introduction: activity?.introduction ?? '',
+        items: itemGrantItems(config, items),
         nextStep:
             configString(config, 'nextStep') ||
             'Choose a useful next step, then continue when you are ready.',
@@ -1159,6 +1411,9 @@ function activityAuthorForm(
         title: activity?.title ?? '',
         topic: configString(config, 'topic'),
         type,
+        probabilityPercent: String(
+            configNumber(config, 'probabilityPercent', 100),
+        ),
     };
 }
 
@@ -1167,13 +1422,89 @@ function configString(config: Record<string, unknown>, key: string): string {
     return typeof value === 'string' ? value : '';
 }
 
+function configBoolean(config: Record<string, unknown>, key: string): boolean {
+    return config[key] === true;
+}
+
+function configNumber(
+    config: Record<string, unknown>,
+    key: string,
+    fallback: number,
+): number {
+    const value = config[key];
+    return typeof value === 'number' && Number.isFinite(value)
+        ? value
+        : fallback;
+}
+
+function itemGrantItems(
+    config: Record<string, unknown>,
+    items: EditableItem[],
+): Array<{ itemId: string; quantity: string }> {
+    const configured = config.items;
+    if (!Array.isArray(configured)) {
+        return [];
+    }
+    return configured.flatMap((row) => {
+        if (!row || typeof row !== 'object') {
+            return [];
+        }
+        const itemSlug = 'itemId' in row ? row.itemId : null;
+        const quantity = 'quantity' in row ? row.quantity : null;
+        if (typeof itemSlug !== 'string' || typeof quantity !== 'number') {
+            return [];
+        }
+        const item = items.find((candidate) => candidate.slug === itemSlug);
+        return [
+            {
+                itemId: item?.id ?? itemSlug,
+                quantity: String(quantity),
+            },
+        ];
+    });
+}
+
+function itemGrantRequest(form: ActivityAuthorForm): {
+    items: Array<{ item_id: string; quantity: number }>;
+    probabilityPercent: number;
+} | null {
+    const probabilityPercent = Number(form.probabilityPercent);
+    if (
+        !Number.isFinite(probabilityPercent) ||
+        probabilityPercent < 0.01 ||
+        probabilityPercent > 100
+    ) {
+        return null;
+    }
+    const items = form.items.map((item) => ({
+        item_id: item.itemId,
+        quantity: Number(item.quantity),
+    }));
+    if (
+        items.some(
+            (item) =>
+                !item.item_id ||
+                !Number.isInteger(item.quantity) ||
+                item.quantity < 1 ||
+                item.quantity > 999,
+        )
+    ) {
+        return null;
+    }
+    return { items, probabilityPercent };
+}
+
 function optionalValue(value: string): string | null {
     const trimmed = value.trim();
     return trimmed === '' ? null : trimmed;
 }
 
 function isSupportedActivityType(type: string): type is SupportedActivityType {
-    return type === 'open_practice' || type === 'reflection';
+    return (
+        type === 'open_practice' ||
+        type === 'reflection' ||
+        type === 'item_grant'
+    );
 }
 
 function SpecialGraphNode({ data }: { data: { label: string } }) {
