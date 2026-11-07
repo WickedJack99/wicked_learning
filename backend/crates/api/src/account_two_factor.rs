@@ -10,7 +10,9 @@ use sqlx::{FromRow, PgPool};
 use totp_rs::{Builder, Totp};
 use uuid::Uuid;
 
-use crate::{AppState, csrf, error::ApiError, identity::IdentityBackend};
+use crate::{
+    AppState, account_password_confirmation, csrf, error::ApiError, identity::IdentityBackend,
+};
 
 const ISSUER: &str = "Wicked Learning";
 const MAX_PENDING_AGE_MINUTES: i32 = 15;
@@ -48,6 +50,7 @@ pub async fn start_setup(
     auth_session: AuthSession<IdentityBackend>,
 ) -> Result<impl IntoResponse, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    account_password_confirmation::require(&auth_session).await?;
     let subject = auth_session
         .user
         .as_ref()
@@ -91,6 +94,7 @@ pub async fn confirm_setup(
     Json(request): Json<ConfirmTwoFactorSetupRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    account_password_confirmation::require(&auth_session).await?;
     let subject = auth_session
         .user
         .as_ref()

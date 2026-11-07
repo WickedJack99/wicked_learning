@@ -66,6 +66,22 @@ impl ApiError {
         }
     }
 
+    pub fn password_confirmation_required() -> Self {
+        Self {
+            code: "password_confirmation_required",
+            status: StatusCode::FORBIDDEN,
+            title: "Password confirmation is required.",
+        }
+    }
+
+    pub fn password_confirmation_rejected() -> Self {
+        Self {
+            code: "password_confirmation_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The password could not be confirmed.",
+        }
+    }
+
     pub fn invalid_request() -> Self {
         Self {
             code: "invalid_request",

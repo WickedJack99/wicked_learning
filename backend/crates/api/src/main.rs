@@ -1,5 +1,6 @@
 mod access_link;
 mod account_password;
+mod account_password_confirmation;
 mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
@@ -354,6 +355,11 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
+        .route(
+            "/api/v1/account/password/confirmation",
+            get(account_password_confirmation::status)
+                .post(account_password_confirmation::confirm),
+        )
         .route("/api/v1/account/password", patch(account_password::update))
         .route(
             "/api/v1/account/profile",

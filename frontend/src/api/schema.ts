@@ -303,6 +303,24 @@ export interface paths {
         patch: operations["updateAccountPassword"];
         trace?: never;
     };
+    "/account/password/confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read whether this authenticated browser recently confirmed its password. */
+        get: operations["getPasswordConfirmationStatus"];
+        put?: never;
+        /** Confirm the current authenticated subject's password for sensitive actions. */
+        post: operations["confirmAccountPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/two-factor/setup": {
         parameters: {
             query?: never;
@@ -2315,6 +2333,14 @@ export interface components {
             password: string;
             /** Format: password */
             password_confirmation: string;
+        };
+        ConfirmAccountPasswordRequest: {
+            /** Format: password */
+            password: string;
+        };
+        PasswordConfirmationStatus: {
+            /** @description Whether this browser's server-side session has a current password confirmation for sensitive actions. */
+            confirmed: boolean;
         };
         PendingTwoFactorSetup: {
             /** @description A Base32 authenticator secret. It is returned once for the current pending enrollment and must not be persisted by a client. */
@@ -5262,6 +5288,88 @@ export interface operations {
             };
         };
     };
+    getPasswordConfirmationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The confirmation status is scoped to the server-side browser session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordConfirmationStatus"];
+                };
+            };
+            /** @description The identity session store is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmAccountPassword: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmAccountPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description The password-confirmation window is open for this server-side browser session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordConfirmationStatus"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The password could not be confirmed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database or session store is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     startAccountTwoFactorSetup: {
         parameters: {
             query?: never;
@@ -5291,7 +5399,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description A valid same-origin CSRF request is required. */
+            /** @description A valid same-origin CSRF request and recent password confirmation are required. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5347,7 +5455,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description A valid same-origin CSRF request is required. */
+            /** @description A valid same-origin CSRF request and recent password confirmation are required. */
             403: {
                 headers: {
                     [name: string]: unknown;

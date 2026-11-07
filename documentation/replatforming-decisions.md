@@ -3352,6 +3352,29 @@ factor status, recovery-code replacement, factor disable/replacement and its
 sensitive-action checks are not exposed. Audit events remain a separate
 cross-database reliability slice.
 
+## ADR-086: Sensitive identity actions require a recent password confirmation
+
+**Status:** Accepted — 7 November 2026
+
+**Decision:** Rust stores a successful password confirmation only in the
+server-side browser session, bound to the current password verifier and valid
+for the source three-hour window. The browser may read the boolean status and
+submit its password through typed, same-origin CSRF-protected contracts; it
+never receives a confirmation token or password verifier. Changing the
+password invalidates the confirmation because the stored verifier no longer
+matches. TOTP enrollment and confirmation require this boundary before they
+can modify a factor.
+
+**Why:** Laravel applies its `password.confirm` middleware to every two-factor
+management route. A reusable session-bound check preserves that security and
+interaction boundary without creating a browser-held sensitive-action token,
+and it will also serve the source passkey lifecycle.
+
+**Limits and follow-up:** The source-derived confirmation page and its return
+navigation are the next React slice. The settings route, TOTP status,
+disable/replacement and recovery-code lifecycle remain unavailable until their
+complete contracts are implemented.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
