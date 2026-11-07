@@ -16,6 +16,7 @@ mod admin_world_graph;
 mod admin_world_item_grant;
 mod admin_world_item_obstacle;
 mod admin_world_map;
+mod admin_world_map_create;
 mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
@@ -554,6 +555,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/admin/roles", get(admin_role::index).post(admin_role::create))
         .route("/api/v1/admin/world-builder", get(admin_world_graph::show))
+        .route(
+            "/api/v1/admin/world-builder/maps",
+            post(admin_world_map_create::create),
+        )
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}",
             get(admin_world_map::show),

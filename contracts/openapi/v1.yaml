@@ -803,6 +803,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/world-builder/maps:
+    post:
+      operationId: createAdminWorldBuilderMap
+      summary: Create a source-shaped draft World Builder map.
+      description: Requires the source world-map update permission. The server resolves the current authoring World, assigns the creator and selects a collision-safe generated slug when one is omitted.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdminWorldMapRequest' }
+      responses:
+        '201':
+          description: The draft map was created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminWorldMapResponse' }
+        '400': { description: The source map form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The principal cannot create a map or no authoring World exists. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}:
     get:
       operationId: getAdminWorldBuilderMap
@@ -7761,6 +7784,20 @@ components:
         title: { type: string }
         description: { type: string }
         updated_at: { type: string, format: date-time }
+    CreateAdminWorldMapRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, nullable: true, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        description: { type: string, nullable: true, maxLength: 1000 }
+    CreateAdminWorldMapResponse:
+      type: object
+      additionalProperties: false
+      required: [map_id]
+      properties:
+        map_id: { type: string, format: uuid }
     AdminMapSummary:
       type: object
       additionalProperties: false

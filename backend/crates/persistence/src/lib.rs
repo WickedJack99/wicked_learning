@@ -12,6 +12,7 @@ pub mod admin_world_graph;
 pub mod admin_world_item_grant;
 pub mod admin_world_item_obstacle;
 pub mod admin_world_map;
+pub mod admin_world_map_create;
 pub mod admin_world_node;
 pub mod admin_world_node_layout;
 pub mod admin_world_node_starts;

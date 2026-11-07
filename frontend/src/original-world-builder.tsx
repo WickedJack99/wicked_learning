@@ -199,6 +199,7 @@ function WorldBuilderContent() {
     const [nodeReload, setNodeReload] = useState(0);
     const [portal, setPortal] = useState<PortalLink | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [createMapOpen, setCreateMapOpen] = useState(false);
 
     const selectMap = useCallback(
         (mapId: string) => {
@@ -335,6 +336,14 @@ function WorldBuilderContent() {
                 <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
                     {worldGraph.world.description}
                 </p>
+                <button
+                    className="shrink-0 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                    onClick={() => setCreateMapOpen(true)}
+                    type="button"
+                >
+                    <Plus className="mr-1 inline size-4" />
+                    Create map
+                </button>
             </header>
             {error ? (
                 <p className="mx-auto mb-3 max-w-[1600px] rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
@@ -384,7 +393,87 @@ function WorldBuilderContent() {
                     )}
                 </aside>
             </div>
+            {createMapOpen ? (
+                <CreateMapDialog
+                    onClose={() => setCreateMapOpen(false)}
+                    onCreated={(mapId) => {
+                        setCreateMapOpen(false);
+                        void loadWorld();
+                        selectMap(mapId);
+                    }}
+                />
+            ) : null}
         </main>
+    );
+}
+
+function CreateMapDialog({
+    onClose,
+    onCreated,
+}: {
+    onClose: () => void;
+    onCreated: (mapId: string) => void;
+}) {
+    const [title, setTitle] = useState('');
+    const [slug, setSlug] = useState('');
+    const [description, setDescription] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    const save = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!title.trim()) {
+            setError('Add a map title before creating it.');
+            return;
+        }
+        setError(null);
+        setSaving(true);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/admin/world-builder/maps',
+                {
+                    body: {
+                        description: optionalValue(description),
+                        slug: optionalValue(slug),
+                        title,
+                    },
+                    params: { header: { 'X-CSRF-Token': token } },
+                },
+            );
+            if (!response.ok || !data) {
+                setError(
+                    response.status === 400
+                        ? 'Use a title, a lowercase slug, and a description within the shown limits.'
+                        : 'The map could not be created. Refresh the World Builder and try again.',
+                );
+                return;
+            }
+            onCreated(data.map_id);
+        } catch {
+            setError('The map could not be created. Check your connection and try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div aria-labelledby="create-map-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4" role="dialog">
+            <form className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}>
+                <h2 className="text-xl font-semibold" id="create-map-title">Create world node</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Add a standalone map to this world graph. You can connect portal tiles later.</p>
+                {error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{error}</p> : null}
+                <div className="mt-5 grid gap-4">
+                    <ActivityTextField label="Title" onChange={setTitle} value={title} />
+                    <ActivityTextField label="Slug" onChange={setSlug} value={slug} />
+                    <ActivityTextField label="Description" onChange={setDescription} textarea value={description} />
+                </div>
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button>
+                    <button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Creating…' : 'Create'}</button>
+                </div>
+            </form>
+        </div>
     );
 }
 

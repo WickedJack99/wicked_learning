@@ -1043,12 +1043,16 @@ scene configuration, while Tool Grant does the same for its optional tool and
 retains the source bubble, motion, placement and scene fields. Each form
 refetches after a successful write. Item Obstacle carries its normal/completed
 scene fields, positioned catalog-item slots, replay/lock behavior and the
-three catalog-sound events through the typed scoped command. Other
-activity-card types deliberately remain read-only in this surface. The reader
-does not pretend that the source
-map/configuration forms, other activity editors, histories, templates or media
-workflows are complete: those controls remain absent until their source
-workflows can be adapted end-to-end rather than replaced with a reduced editor.
+three catalog-sound events through the typed scoped command. The World Builder
+also adapts its source Create world node dialog through `POST
+/api/v1/admin/world-builder/maps`: title, optional slug and description retain
+their source bounds; Rust resolves the current authoring World, assigns the
+creating principal, generates collision-safe omitted slugs and returns a draft
+map that the browser graph refetches before selecting. Other activity-card
+types and map/configuration forms deliberately remain read-only in this
+surface. Histories, templates and media workflows remain absent until their
+source workflows can be adapted end-to-end rather than replaced with a reduced
+editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

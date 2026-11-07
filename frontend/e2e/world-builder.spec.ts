@@ -19,6 +19,14 @@ test('a local world author can open the source-derived World Builder graph', asy
     await page.goto('/settings?panel=admin-world-builder');
     await expect(page.getByText('World editing')).toBeVisible();
     await expect(page.getByText('Select a map or portal')).toBeVisible();
+    await page.getByRole('button', { name: 'Create map' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Create world node' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Title')).toBeVisible();
+    await expect(page.getByLabel('Slug')).toBeVisible();
+    await expect(page.getByLabel('Description')).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).click();
 
     const graphResponse = await page.request.get('/api/v1/admin/world-builder');
     expect(graphResponse.ok()).toBeTruthy();

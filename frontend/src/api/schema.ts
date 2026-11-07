@@ -631,6 +631,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a source-shaped draft World Builder map.
+         * @description Requires the source world-map update permission. The server resolves the current authoring World, assigns the creator and selects a collision-safe generated slug when one is omitted.
+         */
+        post: operations["createAdminWorldBuilderMap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}": {
         parameters: {
             query?: never;
@@ -5163,6 +5183,15 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        CreateAdminWorldMapRequest: {
+            title: string;
+            slug?: string | null;
+            description?: string | null;
+        };
+        CreateAdminWorldMapResponse: {
+            /** Format: uuid */
+            map_id: string;
+        };
         AdminMapSummary: {
             /** Format: uuid */
             id: string;
@@ -8050,6 +8079,68 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    createAdminWorldBuilderMap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminWorldMapRequest"];
+            };
+        };
+        responses: {
+            /** @description The draft map was created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminWorldMapResponse"];
+                };
+            };
+            /** @description The source map form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The principal cannot create a map or no authoring World exists. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
