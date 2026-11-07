@@ -77,7 +77,10 @@ test('a local world author can open the source-derived World Builder graph', asy
     );
     expect(nodeResponse.ok()).toBeTruthy();
     const node = (await nodeResponse.json()) as {
-        activity_graph: { activities: Array<{ title: string }> };
+        activity_graph: {
+            activities: Array<{ title: string }>;
+            transitions: Array<{ id: string }>;
+        };
     };
     const activity = node.activity_graph.activities.at(0);
     if (activity) {
@@ -88,6 +91,16 @@ test('a local world author can open the source-derived World Builder graph', asy
             page.getByRole('heading', { name: 'Delete activity?' }),
         ).toBeVisible();
         await expect(page.getByText('This cannot be undone.')).toBeVisible();
+        await page.getByRole('button', { name: 'Cancel' }).click();
+    }
+
+    const transition = node.activity_graph.transitions.at(0);
+    if (transition) {
+        await page.locator(`[data-id="${transition.id}"]`).click();
+        await expect(
+            page.getByRole('heading', { name: 'Edit connection' }),
+        ).toBeVisible();
+        await expect(page.getByLabel('Connection label')).toBeVisible();
         await page.getByRole('button', { name: 'Cancel' }).click();
     }
 });

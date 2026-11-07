@@ -36,6 +36,7 @@ type EditableNode = components['schemas']['AdminEditableNode'];
 type Activity = components['schemas']['AdminEditableActivity'];
 type EditableItem = components['schemas']['AdminEditableItem'];
 type EditableTool = components['schemas']['AdminEditableTool'];
+type ActivityTransition = components['schemas']['AdminActivityTransition'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -590,6 +591,8 @@ function ActivityGraph({
         activity?: Activity;
         type: SupportedActivityType;
     } | null>(null);
+    const [selectedTransition, setSelectedTransition] =
+        useState<ActivityTransition | null>(null);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -656,6 +659,18 @@ function ActivityGraph({
         }
     };
 
+    const selectTransition = useCallback(
+        (transitionId: string) => {
+            const transition = graph.transitions.find(
+                (candidate) => candidate.id === transitionId,
+            );
+            if (transition) {
+                setSelectedTransition(transition);
+            }
+        },
+        [graph.transitions],
+    );
+
     return (
         <>
             <div className="h-[34rem]">
@@ -718,6 +733,7 @@ function ActivityGraph({
                     }}
                     nodes={nodes}
                     onEdgesChange={onEdgesChange}
+                    onEdgeClick={(_, edge) => selectTransition(edge.id)}
                     onNodeClick={(_, node) => {
                         if (
                             node.type === 'activity' &&
@@ -765,6 +781,16 @@ function ActivityGraph({
                     }}
                     onConfirm={() => void deleteActivity()}
                     processing={deleting}
+                />
+            ) : null}
+            {selectedTransition ? (
+                <TransitionEditorDialog
+                    onClose={() => setSelectedTransition(null)}
+                    onSaved={() => {
+                        setSelectedTransition(null);
+                        onReload();
+                    }}
+                    transition={selectedTransition}
                 />
             ) : null}
         </>
@@ -878,6 +904,160 @@ function DeleteActivityDialog({
                     >
                         {processing ? 'Deleting…' : 'Delete'}
                     </button>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function TransitionEditorDialog({
+    onClose,
+    onSaved,
+    transition,
+}: {
+    onClose: () => void;
+    onSaved: () => void;
+    transition: ActivityTransition;
+}) {
+    const [label, setLabel] = useState(transition.label ?? '');
+    const [triggerValue, setTriggerValue] = useState(
+        transition.trigger_value ?? '',
+    );
+    const [error, setError] = useState<string | null>(null);
+    const [processing, setProcessing] = useState(false);
+
+    const save = async () => {
+        setError(null);
+        setProcessing(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/activity-transitions/{transition_id}',
+                {
+                    body: {
+                        label: optionalValue(label),
+                        trigger_value:
+                            transition.trigger === 'outcome'
+                                ? optionalValue(triggerValue)
+                                : null,
+                    },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { transition_id: transition.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                setError(
+                    'The connection could not be saved. Check the values and try again.',
+                );
+                return;
+            }
+            onSaved();
+        } catch {
+            setError(
+                'The connection could not be saved. Check your connection and try again.',
+            );
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const remove = async () => {
+        setError(null);
+        setProcessing(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.DELETE(
+                '/admin/world-builder/activity-transitions/{transition_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { transition_id: transition.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                setError(
+                    'The connection could not be deleted. Reload the graph and try again.',
+                );
+                return;
+            }
+            onSaved();
+        } catch {
+            setError(
+                'The connection could not be deleted. Check your connection and try again.',
+            );
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="transition-editor-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <section className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <h2
+                    className="text-xl font-semibold"
+                    id="transition-editor-title"
+                >
+                    Edit connection
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    Give this path a short label for the activity graph. Leaving
+                    it blank restores the default label.
+                </p>
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
+                <div className="mt-5 grid gap-4">
+                    <ActivityTextField
+                        label="Connection label"
+                        onChange={setLabel}
+                        value={label}
+                    />
+                    {transition.trigger === 'outcome' ? (
+                        <ActivityTextField
+                            label="Answer outcome key"
+                            onChange={setTriggerValue}
+                            value={triggerValue}
+                        />
+                    ) : null}
+                </div>
+                <div className="mt-6 flex flex-wrap justify-between gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button
+                        className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-300 dark:hover:bg-red-300/10"
+                        disabled={processing}
+                        onClick={() => void remove()}
+                        type="button"
+                    >
+                        <Trash2 className="size-4" />
+                        Delete connection
+                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-200 dark:hover:bg-white/10"
+                            disabled={processing}
+                            onClick={onClose}
+                            type="button"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                            disabled={processing}
+                            onClick={() => void save()}
+                            type="button"
+                        >
+                            {processing ? 'Saving…' : 'Save'}
+                        </button>
+                    </div>
                 </div>
             </section>
         </div>
