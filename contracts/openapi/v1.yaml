@@ -73,6 +73,27 @@ paths:
         '422': { description: The registration details, address or invitation cannot create an account. }
         '429': { description: Too many registration attempts were made. }
         '503': { description: An identity or application dependency is unavailable. }
+  /registration-tokens:
+    post:
+      operationId: createRegistrationToken
+      summary: Create a default-learner one-use registration token.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRegistrationTokenRequest' }
+      responses:
+        '200':
+          description: The opaque token, returned once only.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateRegistrationTokenResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The expiry is invalid. }
+    
   /access-links/{token}/redeem:
     post:
       operationId: redeemAccessLink
@@ -2871,6 +2892,18 @@ components:
         pattern: '^[a-z0-9-]+$'
         maxLength: 80
   schemas:
+    CreateRegistrationTokenRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        expires_at: { type: [string, 'null'], format: date-time }
+        note: { type: [string, 'null'], maxLength: 500 }
+    CreateRegistrationTokenResponse:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token: { type: string }
     HealthStatus:
       type: object
       additionalProperties: false

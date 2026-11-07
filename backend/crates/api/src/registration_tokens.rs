@@ -56,6 +56,32 @@ pub async fn issue(
     Ok(())
 }
 
+/// Issues a browser-created default-learner invitation. Unlike the CLI path,
+/// the opaque token is returned to the caller exactly once.
+pub async fn issue_for_subject(
+    identity_database: &PgPool,
+    created_by_subject_id: Uuid,
+    expires_at: Option<String>,
+    note: Option<String>,
+) -> Result<String, RegistrationTokenError> {
+    let token = format!(
+        "wlrt_{}{}",
+        Uuid::new_v4().simple(),
+        Uuid::new_v4().simple()
+    );
+    sqlx::query(
+        "INSERT INTO identity_registration_tokens (id, token_hash, created_by_subject_id, expires_at, note) VALUES ($1, $2, $3, $4::timestamptz, $5)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(hex_sha256(&token))
+    .bind(created_by_subject_id)
+    .bind(expires_at)
+    .bind(note)
+    .execute(identity_database)
+    .await?;
+    Ok(token)
+}
+
 fn write_token_file(path: &Path, token: &str) -> io::Result<()> {
     let mut options = OpenOptions::new();
     options.write(true).create_new(true);

@@ -75,6 +75,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/registration-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a default-learner one-use registration token. */
+        post: operations["createRegistrationToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/access-links/{token}/redeem": {
         parameters: {
             query?: never;
@@ -2114,6 +2131,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateRegistrationTokenRequest: {
+            /** Format: date-time */
+            expires_at?: string | null;
+            note?: string | null;
+        };
+        CreateRegistrationTokenResponse: {
+            token: string;
+        };
         HealthStatus: {
             /** @enum {string} */
             status: "ok";
@@ -4247,6 +4272,54 @@ export interface operations {
             };
             /** @description An identity or application dependency is unavailable. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createRegistrationToken: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRegistrationTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description The opaque token, returned once only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateRegistrationTokenResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The expiry is invalid. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
