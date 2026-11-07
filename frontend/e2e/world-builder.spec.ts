@@ -61,6 +61,17 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(page.getByLabel('Dark background')).toBeVisible();
     await page.getByRole('button', { name: 'Close activity form' }).click();
 
+    await page.getByRole('button', { name: 'Tool grant' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Add Tool grant' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Tool to give')).toBeVisible();
+    await expect(page.getByLabel('Speech bubble text')).toBeVisible();
+    await expect(page.getByLabel('Slide direction')).toHaveValue('left');
+    await expect(page.getByLabel('Typing speed')).toHaveValue('24');
+    await expect(page.getByLabel('Dark bubble color')).toHaveValue('#0f172a');
+    await page.getByRole('button', { name: 'Close activity form' }).click();
+
     const nodeResponse = await page.request.get(
         `/api/v1/admin/world-builder/nodes/${selectedMap.nodes[0].id}`,
     );

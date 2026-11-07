@@ -35,6 +35,7 @@ type EditableMap = components['schemas']['AdminEditableMap'];
 type EditableNode = components['schemas']['AdminEditableNode'];
 type Activity = components['schemas']['AdminEditableActivity'];
 type EditableItem = components['schemas']['AdminEditableItem'];
+type EditableTool = components['schemas']['AdminEditableTool'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -50,11 +51,22 @@ type WorldPortalEdge = Edge<PortalLink>;
 type ActivityNode = Node<ActivityNodeData, 'activity'>;
 type SpecialNode = Node<{ label: string }, 'special'>;
 type ActivityFlowNode = ActivityNode | SpecialNode;
-type SupportedActivityType = 'open_practice' | 'reflection' | 'item_grant';
+type SupportedActivityType =
+    | 'open_practice'
+    | 'reflection'
+    | 'item_grant'
+    | 'tool_grant';
 type ActivityAuthorForm = {
     backgroundDark: string;
     backgroundLight: string;
     backgroundMirrored: boolean;
+    bubbleBorderColorDark: string;
+    bubbleBorderColorLight: string;
+    bubbleColorDark: string;
+    bubbleColorLight: string;
+    bubbleOpacityDark: string;
+    bubbleOpacityLight: string;
+    fadeDurationSeconds: string;
     introduction: string;
     items: Array<{ itemId: string; quantity: string }>;
     nextStep: string;
@@ -66,6 +78,14 @@ type ActivityAuthorForm = {
     topic: string;
     type: SupportedActivityType;
     probabilityPercent: string;
+    slideDirection: string;
+    slideDurationSeconds: string;
+    text: string;
+    toolId: string;
+    toolMirrored: boolean;
+    toolX: string;
+    toolY: string;
+    typingSpeed: string;
 };
 
 /**
@@ -678,6 +698,14 @@ function ActivityGraph({
                             <Plus className="size-3.5" />
                             Item grant
                         </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'tool_grant' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Tool grant
+                        </button>
                     </div>
                 </div>
                 <ReactFlow<ActivityFlowNode, Edge>
@@ -715,6 +743,7 @@ function ActivityGraph({
                 <ActivityAuthorDialog
                     activity={editor.activity}
                     items={document.items}
+                    tools={document.tools}
                     nodeId={graph.node.id}
                     onClose={() => setEditor(null)}
                     onSaved={() => {
@@ -862,6 +891,7 @@ function ActivityAuthorDialog({
     onClose,
     onSaved,
     type,
+    tools,
 }: {
     activity?: Activity;
     items: EditableItem[];
@@ -869,9 +899,10 @@ function ActivityAuthorDialog({
     onClose: () => void;
     onSaved: () => void;
     type: SupportedActivityType;
+    tools: EditableTool[];
 }) {
     const [form, setForm] = useState(() =>
-        activityAuthorForm(type, activity, items),
+        activityAuthorForm(type, activity, items, tools),
     );
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -881,7 +912,9 @@ function ActivityAuthorDialog({
             ? 'Open practice'
             : type === 'reflection'
               ? 'Reflection'
-              : 'Item grant';
+              : type === 'item_grant'
+                ? 'Item grant'
+                : 'Tool grant';
 
     const updateField = (field: keyof ActivityAuthorForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -906,6 +939,14 @@ function ActivityAuthorDialog({
             items: [],
             probabilityPercent: 100,
         };
+        const toolGrant = toolGrantRequest(form);
+        if (type === 'tool_grant' && !toolGrant) {
+            setError(
+                'Use valid bubble colors and values within the shown source ranges before saving.',
+            );
+            return;
+        }
+        const completeToolGrant = toolGrant ?? defaultToolGrantRequest();
 
         setSaving(true);
         try {
@@ -983,7 +1024,7 @@ function ActivityAuthorDialog({
                         },
                     },
                 ));
-            } else if (activity) {
+            } else if (type === 'item_grant' && activity) {
                 ({ response } = await apiClient.PATCH(
                     '/admin/world-builder/activities/{activity_id}/item-grant',
                     {
@@ -1005,7 +1046,7 @@ function ActivityAuthorDialog({
                         },
                     },
                 ));
-            } else {
+            } else if (type === 'item_grant') {
                 ({ response } = await apiClient.POST(
                     '/admin/world-builder/nodes/{node_id}/item-grant-activities',
                     {
@@ -1020,6 +1061,32 @@ function ActivityAuthorDialog({
                             probability_percent:
                                 completeItemGrant.probabilityPercent,
                         },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { node_id: nodeId },
+                        },
+                    },
+                ));
+            } else if (activity) {
+                ({ response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/tool-grant',
+                    {
+                        body: {
+                            ...common,
+                            ...completeToolGrant,
+                            updated_at: activity.updated_at,
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { activity_id: activity.id },
+                        },
+                    },
+                ));
+            } else {
+                ({ response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/tool-grant-activities',
+                    {
+                        body: { ...common, ...completeToolGrant },
                         params: {
                             header: { 'X-CSRF-Token': token },
                             path: { node_id: nodeId },
@@ -1147,11 +1214,17 @@ function ActivityAuthorDialog({
                                 value={form.note}
                             />
                         </>
-                    ) : (
+                    ) : type === 'item_grant' ? (
                         <ItemGrantFields
                             form={form}
                             items={items}
                             onChange={setForm}
+                        />
+                    ) : (
+                        <ToolGrantFields
+                            form={form}
+                            onChange={setForm}
+                            tools={tools}
                         />
                     )}
                 </div>
@@ -1387,16 +1460,293 @@ function ItemGrantFields({
     );
 }
 
+function ToolGrantFields({
+    form,
+    onChange,
+    tools,
+}: {
+    form: ActivityAuthorForm;
+    onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
+    tools: EditableTool[];
+}) {
+    const update = (field: keyof ActivityAuthorForm, value: string | boolean) =>
+        onChange((current) => ({ ...current, [field]: value }));
+
+    return (
+        <>
+            <label className="grid gap-2 text-sm font-medium md:col-span-2">
+                Tool to give
+                <select
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                    onChange={(event) => update('toolId', event.target.value)}
+                    value={form.toolId}
+                >
+                    <option value="">Select a tool</option>
+                    {tools.map((tool) => (
+                        <option key={tool.id} value={tool.id}>
+                            {tool.title}
+                        </option>
+                    ))}
+                </select>
+            </label>
+            <ActivityTextField
+                className="md:col-span-2"
+                label="Speech bubble text"
+                onChange={(value) => update('text', value)}
+                textarea
+                value={form.text}
+            />
+            <section className="grid gap-4 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <div>
+                    <h3 className="text-sm font-medium">Grant scene</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Position the tool and configure its scene presentation.
+                    </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <ActivityTextField
+                        label="Dark background"
+                        onChange={(value) => update('backgroundDark', value)}
+                        value={form.backgroundDark}
+                    />
+                    <ActivityTextField
+                        label="Light background"
+                        onChange={(value) => update('backgroundLight', value)}
+                        value={form.backgroundLight}
+                    />
+                    <ToolGrantNumberField
+                        label="Tool x position"
+                        max={100}
+                        min={0}
+                        onChange={(value) => update('toolX', value)}
+                        suffix="%"
+                        value={form.toolX}
+                    />
+                    <ToolGrantNumberField
+                        label="Tool y position"
+                        max={100}
+                        min={0}
+                        onChange={(value) => update('toolY', value)}
+                        suffix="%"
+                        value={form.toolY}
+                    />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                    <label className="flex items-center gap-3 text-sm font-medium">
+                        <input
+                            checked={form.backgroundMirrored}
+                            onChange={(event) =>
+                                update(
+                                    'backgroundMirrored',
+                                    event.target.checked,
+                                )
+                            }
+                            type="checkbox"
+                        />
+                        Mirror background horizontally
+                    </label>
+                    <label className="flex items-center gap-3 text-sm font-medium">
+                        <input
+                            checked={form.toolMirrored}
+                            onChange={(event) =>
+                                update('toolMirrored', event.target.checked)
+                            }
+                            type="checkbox"
+                        />
+                        Mirror tool image horizontally
+                    </label>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                    <label className="grid gap-2 text-sm font-medium">
+                        Slide direction
+                        <select
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                            onChange={(event) =>
+                                update('slideDirection', event.target.value)
+                            }
+                            value={form.slideDirection}
+                        >
+                            <option value="left">From left</option>
+                            <option value="right">From right</option>
+                            <option value="top">From top</option>
+                            <option value="bottom">From bottom</option>
+                            <option value="none">No slide</option>
+                        </select>
+                    </label>
+                    <ToolGrantNumberField
+                        label="Slide duration"
+                        max={30}
+                        min={0}
+                        onChange={(value) =>
+                            update('slideDurationSeconds', value)
+                        }
+                        suffix="s"
+                        value={form.slideDurationSeconds}
+                    />
+                    <ToolGrantNumberField
+                        label="Fade duration"
+                        max={30}
+                        min={0}
+                        onChange={(value) =>
+                            update('fadeDurationSeconds', value)
+                        }
+                        suffix="s"
+                        value={form.fadeDurationSeconds}
+                    />
+                    <ToolGrantNumberField
+                        label="Typing speed"
+                        max={250}
+                        min={1}
+                        onChange={(value) => update('typingSpeed', value)}
+                        suffix="ms"
+                        value={form.typingSpeed}
+                    />
+                </div>
+            </section>
+            <section className="grid gap-4 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <div>
+                    <h3 className="text-sm font-medium">Speech bubble</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Keep dark and light appearance values distinct.
+                    </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                    <ToolGrantColorField
+                        label="Dark bubble color"
+                        onChange={(value) => update('bubbleColorDark', value)}
+                        value={form.bubbleColorDark}
+                    />
+                    <ToolGrantColorField
+                        label="Dark bubble border"
+                        onChange={(value) =>
+                            update('bubbleBorderColorDark', value)
+                        }
+                        value={form.bubbleBorderColorDark}
+                    />
+                    <ToolGrantNumberField
+                        label="Dark opacity"
+                        max={100}
+                        min={0}
+                        onChange={(value) => update('bubbleOpacityDark', value)}
+                        suffix="%"
+                        value={form.bubbleOpacityDark}
+                    />
+                    <ToolGrantColorField
+                        label="Light bubble color"
+                        onChange={(value) => update('bubbleColorLight', value)}
+                        value={form.bubbleColorLight}
+                    />
+                    <ToolGrantColorField
+                        label="Light bubble border"
+                        onChange={(value) =>
+                            update('bubbleBorderColorLight', value)
+                        }
+                        value={form.bubbleBorderColorLight}
+                    />
+                    <ToolGrantNumberField
+                        label="Light opacity"
+                        max={100}
+                        min={0}
+                        onChange={(value) =>
+                            update('bubbleOpacityLight', value)
+                        }
+                        suffix="%"
+                        value={form.bubbleOpacityLight}
+                    />
+                </div>
+            </section>
+        </>
+    );
+}
+
+function ToolGrantNumberField({
+    label,
+    max,
+    min,
+    onChange,
+    suffix,
+    value,
+}: {
+    label: string;
+    max: number;
+    min: number;
+    onChange: (value: string) => void;
+    suffix: string;
+    value: string;
+}) {
+    return (
+        <label className="grid gap-2 text-sm font-medium">
+            {label}
+            <span className="flex items-center gap-2">
+                <input
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                    max={max}
+                    min={min}
+                    onChange={(event) => onChange(event.target.value)}
+                    step="any"
+                    type="number"
+                    value={value}
+                />
+                <span className="text-slate-500">{suffix}</span>
+            </span>
+        </label>
+    );
+}
+
+function ToolGrantColorField({
+    label,
+    onChange,
+    value,
+}: {
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <label className="grid gap-2 text-sm font-medium">
+            {label}
+            <input
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-1 dark:border-white/10 dark:bg-slate-950/40"
+                onChange={(event) => onChange(event.target.value)}
+                type="color"
+                value={value}
+            />
+        </label>
+    );
+}
+
 function activityAuthorForm(
     type: SupportedActivityType,
     activity?: Activity,
     items: EditableItem[] = [],
+    tools: EditableTool[] = [],
 ): ActivityAuthorForm {
     const config = activity?.config ?? {};
     return {
         backgroundDark: configString(config, 'backgroundDark'),
         backgroundLight: configString(config, 'backgroundLight'),
         backgroundMirrored: configBoolean(config, 'backgroundMirrored'),
+        bubbleBorderColorDark: configStringOr(
+            config,
+            'bubbleBorderColorDark',
+            '#2dd4bf',
+        ),
+        bubbleBorderColorLight: configStringOr(
+            config,
+            'bubbleBorderColorLight',
+            '#0891b2',
+        ),
+        bubbleColorDark: configStringOr(config, 'bubbleColorDark', '#0f172a'),
+        bubbleColorLight: configStringOr(config, 'bubbleColorLight', '#ffffff'),
+        bubbleOpacityDark: String(
+            configNumber(config, 'bubbleOpacityDark', 92),
+        ),
+        bubbleOpacityLight: String(
+            configNumber(config, 'bubbleOpacityLight', 94),
+        ),
+        fadeDurationSeconds: String(
+            configNumber(config, 'fadeDurationSeconds', 0.4),
+        ),
         introduction: activity?.introduction ?? '',
         items: itemGrantItems(config, items),
         nextStep:
@@ -1414,12 +1764,30 @@ function activityAuthorForm(
         probabilityPercent: String(
             configNumber(config, 'probabilityPercent', 100),
         ),
+        slideDirection: configStringOr(config, 'slideDirection', 'left'),
+        slideDurationSeconds: String(
+            configNumber(config, 'slideDurationSeconds', 0.6),
+        ),
+        text: configString(config, 'text'),
+        toolId: toolGrantToolId(config, tools),
+        toolMirrored: configBoolean(config, 'toolMirrored'),
+        toolX: String(configNumber(config, 'toolX', 50)),
+        toolY: String(configNumber(config, 'toolY', 50)),
+        typingSpeed: String(configNumber(config, 'typingSpeed', 24)),
     };
 }
 
 function configString(config: Record<string, unknown>, key: string): string {
     const value = config[key];
     return typeof value === 'string' ? value : '';
+}
+
+function configStringOr(
+    config: Record<string, unknown>,
+    key: string,
+    fallback: string,
+): string {
+    return configString(config, key) || fallback;
 }
 
 function configBoolean(config: Record<string, unknown>, key: string): boolean {
@@ -1494,6 +1862,118 @@ function itemGrantRequest(form: ActivityAuthorForm): {
     return { items, probabilityPercent };
 }
 
+function toolGrantToolId(
+    config: Record<string, unknown>,
+    tools: EditableTool[],
+): string {
+    const slug = configString(config, 'toolId');
+    return tools.find((tool) => tool.slug === slug)?.id ?? slug;
+}
+
+function toolGrantRequest(form: ActivityAuthorForm): {
+    background_dark: string | null;
+    background_light: string | null;
+    background_mirrored: boolean;
+    bubble_border_color_dark: string;
+    bubble_border_color_light: string;
+    bubble_color_dark: string;
+    bubble_color_light: string;
+    bubble_opacity_dark: number;
+    bubble_opacity_light: number;
+    fade_duration_seconds: number;
+    slide_direction: 'left' | 'right' | 'top' | 'bottom' | 'none';
+    slide_duration_seconds: number;
+    text: string | null;
+    tool_id: string | null;
+    tool_mirrored: boolean;
+    tool_x: number;
+    tool_y: number;
+    typing_speed: number;
+} | null {
+    const bubbleOpacityDark = Number(form.bubbleOpacityDark);
+    const bubbleOpacityLight = Number(form.bubbleOpacityLight);
+    const fadeDurationSeconds = Number(form.fadeDurationSeconds);
+    const slideDurationSeconds = Number(form.slideDurationSeconds);
+    const toolX = Number(form.toolX);
+    const toolY = Number(form.toolY);
+    const typingSpeed = Number(form.typingSpeed);
+    const slideDirection = form.slideDirection;
+    if (
+        !validHexColor(form.bubbleBorderColorDark) ||
+        !validHexColor(form.bubbleBorderColorLight) ||
+        !validHexColor(form.bubbleColorDark) ||
+        !validHexColor(form.bubbleColorLight) ||
+        !within(bubbleOpacityDark, 0, 100) ||
+        !within(bubbleOpacityLight, 0, 100) ||
+        !within(fadeDurationSeconds, 0, 30) ||
+        !within(slideDurationSeconds, 0, 30) ||
+        !within(toolX, 0, 100) ||
+        !within(toolY, 0, 100) ||
+        !within(typingSpeed, 1, 250) ||
+        !['left', 'right', 'top', 'bottom', 'none'].includes(slideDirection)
+    ) {
+        return null;
+    }
+    return {
+        background_dark: optionalValue(form.backgroundDark),
+        background_light: optionalValue(form.backgroundLight),
+        background_mirrored: form.backgroundMirrored,
+        bubble_border_color_dark: form.bubbleBorderColorDark,
+        bubble_border_color_light: form.bubbleBorderColorLight,
+        bubble_color_dark: form.bubbleColorDark,
+        bubble_color_light: form.bubbleColorLight,
+        bubble_opacity_dark: bubbleOpacityDark,
+        bubble_opacity_light: bubbleOpacityLight,
+        fade_duration_seconds: fadeDurationSeconds,
+        slide_direction: slideDirection as
+            | 'left'
+            | 'right'
+            | 'top'
+            | 'bottom'
+            | 'none',
+        slide_duration_seconds: slideDurationSeconds,
+        text: optionalValue(form.text),
+        tool_id: optionalValue(form.toolId),
+        tool_mirrored: form.toolMirrored,
+        tool_x: toolX,
+        tool_y: toolY,
+        typing_speed: typingSpeed,
+    };
+}
+
+function defaultToolGrantRequest(): NonNullable<
+    ReturnType<typeof toolGrantRequest>
+> {
+    return {
+        background_dark: null,
+        background_light: null,
+        background_mirrored: false,
+        bubble_border_color_dark: '#2dd4bf',
+        bubble_border_color_light: '#0891b2',
+        bubble_color_dark: '#0f172a',
+        bubble_color_light: '#ffffff',
+        bubble_opacity_dark: 92,
+        bubble_opacity_light: 94,
+        fade_duration_seconds: 0.4,
+        slide_direction: 'left',
+        slide_duration_seconds: 0.6,
+        text: null,
+        tool_id: null,
+        tool_mirrored: false,
+        tool_x: 50,
+        tool_y: 50,
+        typing_speed: 24,
+    };
+}
+
+function validHexColor(value: string): boolean {
+    return /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+function within(value: number, minimum: number, maximum: number): boolean {
+    return Number.isFinite(value) && value >= minimum && value <= maximum;
+}
+
 function optionalValue(value: string): string | null {
     const trimmed = value.trim();
     return trimmed === '' ? null : trimmed;
@@ -1503,7 +1983,8 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
     return (
         type === 'open_practice' ||
         type === 'reflection' ||
-        type === 'item_grant'
+        type === 'item_grant' ||
+        type === 'tool_grant'
     );
 }
 

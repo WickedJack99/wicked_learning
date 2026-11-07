@@ -1029,10 +1029,12 @@ contracts. Activity cards retain source graph dragging through the existing
 position command and the source delete confirmation through the scoped delete
 command; the node refetches only after a successful removal. Within a selected
 node, the graph now adapts the source
-Open Practice, Reflection and Item Grant create/edit forms through their
-complete typed Rust commands; Item Grant resolves selected catalog UUIDs only
-at the scoped server command and retains its quantities, probability and scene
-configuration. Each form refetches after a successful write. Other
+Open Practice, Reflection, Item Grant and Tool Grant create/edit forms through
+their complete typed Rust commands; Item Grant resolves selected catalog UUIDs
+only at the scoped server command and retains its quantities, probability and
+scene configuration, while Tool Grant does the same for its optional tool and
+retains the source bubble, motion, placement and scene fields. Each form
+refetches after a successful write. Other
 activity-card types deliberately remain read-only in this surface. The reader
 does not pretend that the source
 map/configuration forms, other activity editors, histories, templates or media
