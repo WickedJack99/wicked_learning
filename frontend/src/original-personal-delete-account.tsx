@@ -20,6 +20,7 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { OriginalAppearance } from './original-appearance';
+import { OriginalPersonalSettingsNavigation } from './original-personal-settings-navigation';
 
 /**
  * Source-adapted from PersonalSettingsContent's DeleteAccountPanel and
@@ -107,7 +108,7 @@ export function OriginalPersonalDeleteAccountPage({
                     </div>
                 </header>
                 <section className="grid min-h-0 flex-1 gap-4 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4 md:grid-cols-[16rem_minmax(0,1fr)]">
-                    <PersonalNavigation />
+                    <OriginalPersonalSettingsNavigation activeSection="delete-account" />
                     <div className="min-h-0 overflow-auto bg-[var(--settings-panel-background)] p-5 sm:p-7">
                         <section className="grid gap-5">
                             <header>
@@ -203,24 +204,6 @@ export function OriginalPersonalDeleteAccountPage({
                 </div>
             ) : null}
         </main>
-    );
-}
-
-function PersonalNavigation() {
-    const inactive = 'relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]';
-    return (
-        <aside className="h-full min-h-0 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-2">
-            <nav aria-label="Personal settings sections" className="grid gap-2">
-                <Link className={inactive} to="/settings"><UserRound className="mt-0.5 size-4" />Profile</Link>
-                <Link className={inactive} to="/settings?panel=personal&personal=appearance"><Brush className="mt-0.5 size-4" />Appearance</Link>
-                <Link className={inactive} to="/settings?panel=personal&personal=language"><Languages className="mt-0.5 size-4" />Language</Link>
-                <Link className={inactive} to="/settings?panel=personal&personal=notifications"><Bell className="mt-0.5 size-4" />Notifications</Link>
-                <Link className={inactive} to="/settings?panel=personal&personal=feedback"><MessageSquareText className="mt-0.5 size-4" />Feedback</Link>
-                <Link className={inactive} to="/settings?panel=personal&personal=sound"><Volume2 className="mt-0.5 size-4" />Sound</Link>
-                <Link className={inactive} to="/settings?panel=personal&personal=security"><KeyRound className="mt-0.5 size-4" />Security</Link>
-                <div aria-current="page" className="relative flex items-start gap-3 overflow-hidden rounded-lg bg-red-50 px-3 py-3 text-left text-sm font-medium text-red-600 dark:bg-red-700/10 dark:text-red-100"><Trash2 className="mt-0.5 size-4" />Delete account</div>
-            </nav>
-        </aside>
     );
 }
 

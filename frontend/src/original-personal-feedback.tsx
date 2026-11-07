@@ -13,11 +13,9 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { OriginalAppearance } from './original-appearance';
+import { OriginalPersonalSettingsNavigation } from './original-personal-settings-navigation';
 
 type Preference = { status: 'enabled' | 'snoozed' | 'declined' };
-
-const inactiveItem =
-    'relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]';
 
 /** Source-adapted from PersonalSettingsContent's FeedbackPanel. */
 export function OriginalPersonalFeedbackPage({
@@ -94,59 +92,7 @@ export function OriginalPersonalFeedbackPage({
                     </div>
                 </header>
                 <section className="grid min-h-0 flex-1 gap-4 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4 md:grid-cols-[16rem_minmax(0,1fr)]">
-                    <aside className="h-full min-h-0 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-2">
-                        <nav
-                            aria-label="Personal settings sections"
-                            className="grid gap-2"
-                        >
-                            <Link className={inactiveItem} to="/settings">
-                                <UserRound className="mt-0.5 size-4" />
-                                Profile
-                            </Link>
-                            <Link
-                                className={inactiveItem}
-                                to="/settings?panel=personal&personal=appearance"
-                            >
-                                <Brush className="mt-0.5 size-4" />
-                                Appearance
-                            </Link>
-                            <Link
-                                className={inactiveItem}
-                                to="/settings?panel=personal&personal=language"
-                            >
-                                <Languages className="mt-0.5 size-4" />
-                                Language
-                            </Link>
-                            <Link
-                                className={inactiveItem}
-                                to="/settings?panel=personal&personal=notifications"
-                            >
-                                <Bell className="mt-0.5 size-4" />
-                                Notifications
-                            </Link>
-                            <div
-                                aria-current="page"
-                                className="relative flex items-start gap-3 overflow-hidden rounded-lg bg-[var(--settings-active-background)] px-3 py-3 text-left text-sm font-medium text-[var(--settings-accent)]"
-                            >
-                                <MessageSquareText className="mt-0.5 size-4" />
-                                Feedback
-                            </div>
-                            <Link
-                                className={inactiveItem}
-                                to="/settings?panel=personal&personal=sound"
-                            >
-                                <Volume2 className="mt-0.5 size-4" />
-                                Sound
-                            </Link>
-                            <Link
-                                className={inactiveItem}
-                                to="/settings?panel=personal&personal=security"
-                            >
-                                <KeyRound className="mt-0.5 size-4" />
-                                Security
-                            </Link>
-                        </nav>
-                    </aside>
+                    <OriginalPersonalSettingsNavigation activeSection="feedback" />
                     <div className="min-h-0 overflow-auto bg-[var(--settings-panel-background)] p-5 sm:p-7">
                         <section className="grid max-w-2xl gap-5">
                             <header>
