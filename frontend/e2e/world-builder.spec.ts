@@ -89,7 +89,10 @@ test('a local world author can open the source-derived World Builder graph', asy
                 id: string;
                 title: string;
             }>;
-            node: { start_activity_id: string | null };
+            node: {
+                start_activity_id: string | null;
+                start_routes: Array<{ id: string }>;
+            };
             transitions: Array<{
                 from_activity_id: string;
                 from_connector: string;
@@ -152,7 +155,20 @@ test('a local world author can open the source-derived World Builder graph', asy
         await page.getByRole('button', { name: 'Cancel' }).click();
     }
 
-    if (node.activity_graph.node.start_activity_id) {
-        await expect(page.locator('[data-id="__start-edge"]')).toBeVisible();
+    const startRoute = node.activity_graph.node.start_routes.at(0);
+    if (startRoute) {
+        await page.locator(`[data-id="__start-edge:${startRoute.id}"]`).click();
+        await expect(
+            page.getByRole('heading', { name: 'Route visuals' }),
+        ).toBeVisible();
+        await expect(page.getByLabel('Route name')).toBeVisible();
+        await expect(page.getByLabel('Route guidance')).toBeVisible();
+        await expect(page.getByLabel('Dark route image')).toBeVisible();
+        await expect(page.getByLabel('Light button color')).toBeVisible();
+        await page.getByRole('button', { name: 'Close route form' }).click();
+    } else if (node.activity_graph.node.start_activity_id) {
+        await expect(
+            page.locator('[data-id="__start-edge:legacy"]'),
+        ).toBeVisible();
     }
 });

@@ -38,6 +38,7 @@ type EditableItem = components['schemas']['AdminEditableItem'];
 type EditableTool = components['schemas']['AdminEditableTool'];
 type ActivityTransition = components['schemas']['AdminActivityTransition'];
 type ActivityConnector = components['schemas']['AdminActivityConnector'];
+type ActivityStartRoute = components['schemas']['AdminActivityStartRoute'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -88,6 +89,16 @@ type ActivityAuthorForm = {
     toolX: string;
     toolY: string;
     typingSpeed: string;
+};
+type StartRouteForm = {
+    buttonBorderColorDark: string;
+    buttonBorderColorLight: string;
+    buttonColorDark: string;
+    buttonColorLight: string;
+    description: string;
+    imageDark: string;
+    imageLight: string;
+    label: string;
 };
 
 /**
@@ -531,6 +542,12 @@ function ActivityGraph({
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [pendingStartRouteDeletion, setPendingStartRouteDeletion] =
+        useState<ActivityStartRoute | null>(null);
+    const [deletingStartRoute, setDeletingStartRoute] = useState(false);
+    const [startRouteError, setStartRouteError] = useState<string | null>(null);
+    const [selectedStartRoute, setSelectedStartRoute] =
+        useState<ActivityStartRoute | null>(null);
     const initialNodes = useMemo<ActivityFlowNode[]>(() => {
         const start: SpecialNode = {
             id: '__start',
@@ -562,18 +579,28 @@ function ActivityGraph({
     }, [graph]);
     const initialEdges = useMemo<Edge[]>(
         () => [
-            ...(graph.node.start_activity_id
-                ? [
-                      {
-                          id: '__start-edge',
-                          source: '__start',
-                          sourceHandle: 'start',
-                          target: graph.node.start_activity_id,
-                          targetHandle: 'in',
-                          markerEnd: { type: MarkerType.ArrowClosed },
-                      },
-                  ]
-                : []),
+            ...(graph.node.start_routes.length > 0
+                ? graph.node.start_routes.map((route) => ({
+                      id: `__start-edge:${route.id}`,
+                      source: '__start',
+                      sourceHandle: 'start',
+                      target: route.activity_id,
+                      targetHandle: 'in',
+                      label: route.label,
+                      markerEnd: { type: MarkerType.ArrowClosed },
+                  }))
+                : graph.node.start_activity_id
+                  ? [
+                        {
+                            id: '__start-edge:legacy',
+                            source: '__start',
+                            sourceHandle: 'start',
+                            target: graph.node.start_activity_id,
+                            targetHandle: 'in',
+                            markerEnd: { type: MarkerType.ArrowClosed },
+                        },
+                    ]
+                  : []),
             ...graph.transitions.map((transition) => ({
                 id: transition.id,
                 source: transition.from_activity_id,
@@ -680,35 +707,49 @@ function ActivityGraph({
         [graph.transitions],
     );
 
-    const removeStartRoute = useCallback(
-        async (activityId: string) => {
-            setConnectionError(null);
-            try {
-                const token = await getCsrfToken();
-                const { response } = await apiClient.DELETE(
-                    '/admin/world-builder/nodes/{node_id}/start-routes/{activity_id}',
-                    {
-                        params: {
-                            header: { 'X-CSRF-Token': token },
-                            path: {
-                                activity_id: activityId,
-                                node_id: graph.node.id,
-                            },
-                        },
-                    },
-                );
-                if (!response.ok) {
-                    throw new Error('start route unavailable');
-                }
-                onReload();
-            } catch {
-                setConnectionError(
-                    'The learner start could not be removed. Check the graph and try again.',
-                );
+    const openStartRoute = useCallback(
+        (activityId: string) => {
+            const route = graph.node.start_routes.find(
+                (candidate) => candidate.activity_id === activityId,
+            );
+            if (route) {
+                setStartRouteError(null);
+                setSelectedStartRoute(route);
             }
         },
-        [graph.node.id, onReload],
+        [graph.node.start_routes],
     );
+
+    const deleteStartRoute = useCallback(async () => {
+        if (!pendingStartRouteDeletion) {
+            return;
+        }
+        setStartRouteError(null);
+        setDeletingStartRoute(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.DELETE(
+                '/admin/world-builder/start-routes/{start_route_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { start_route_id: pendingStartRouteDeletion.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                throw new Error('start route unavailable');
+            }
+            setPendingStartRouteDeletion(null);
+            onReload();
+        } catch {
+            setStartRouteError(
+                'The learner start could not be deleted. Reload the graph and try again.',
+            );
+        } finally {
+            setDeletingStartRoute(false);
+        }
+    }, [onReload, pendingStartRouteDeletion]);
 
     const connectActivities = useCallback(
         async (connection: Connection) => {
@@ -844,8 +885,8 @@ function ActivityGraph({
                     nodes={nodes}
                     onEdgesChange={onEdgesChange}
                     onEdgeClick={(_, edge) => {
-                        if (edge.id === '__start-edge') {
-                            void removeStartRoute(edge.target);
+                        if (edge.id.startsWith('__start-edge:')) {
+                            openStartRoute(edge.target);
                             return;
                         }
                         selectTransition(edge.id);
@@ -910,6 +951,43 @@ function ActivityGraph({
                         onReload();
                     }}
                     transition={selectedTransition}
+                />
+            ) : null}
+            {selectedStartRoute ? (
+                <StartRouteEditorDialog
+                    activity={
+                        graph.activities.find(
+                            (activity) =>
+                                activity.id === selectedStartRoute.activity_id,
+                        ) ?? null
+                    }
+                    onClose={() => setSelectedStartRoute(null)}
+                    onDelete={() => {
+                        setSelectedStartRoute(null);
+                        setPendingStartRouteDeletion(selectedStartRoute);
+                    }}
+                    onSaved={() => {
+                        setSelectedStartRoute(null);
+                        onReload();
+                    }}
+                    route={selectedStartRoute}
+                    routeIndex={graph.node.start_routes.findIndex(
+                        (route) => route.id === selectedStartRoute.id,
+                    )}
+                    routeTotal={graph.node.start_routes.length}
+                />
+            ) : null}
+            {pendingStartRouteDeletion ? (
+                <DeleteStartRouteDialog
+                    error={startRouteError}
+                    onCancel={() => {
+                        if (!deletingStartRoute) {
+                            setStartRouteError(null);
+                            setPendingStartRouteDeletion(null);
+                        }
+                    }}
+                    onConfirm={() => void deleteStartRoute()}
+                    processing={deletingStartRoute}
                 />
             ) : null}
         </>
@@ -1016,6 +1094,374 @@ function ActivityConnectorHandles({
             ))}
         </>
     );
+}
+
+function StartRouteEditorDialog({
+    activity,
+    onClose,
+    onDelete,
+    onSaved,
+    route,
+    routeIndex,
+    routeTotal,
+}: {
+    activity: Activity | null;
+    onClose: () => void;
+    onDelete: () => void;
+    onSaved: () => void;
+    route: ActivityStartRoute;
+    routeIndex: number;
+    routeTotal: number;
+}) {
+    const [form, setForm] = useState<StartRouteForm>(() =>
+        startRouteForm(route),
+    );
+    const [error, setError] = useState<string | null>(null);
+    const [processing, setProcessing] = useState(false);
+
+    const update = <Key extends keyof StartRouteForm>(
+        key: Key,
+        value: StartRouteForm[Key],
+    ) => setForm((current) => ({ ...current, [key]: value }));
+
+    const save = async () => {
+        const colors = [
+            form.buttonColorDark,
+            form.buttonBorderColorDark,
+            form.buttonColorLight,
+            form.buttonBorderColorLight,
+        ];
+        if (colors.some((color) => color !== '' && !validHexColor(color))) {
+            setError('Button colors must use six-digit hexadecimal values.');
+            return;
+        }
+        setError(null);
+        setProcessing(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/start-routes/{start_route_id}',
+                {
+                    body: {
+                        button_border_color_dark: optionalValue(
+                            form.buttonBorderColorDark,
+                        ),
+                        button_border_color_light: optionalValue(
+                            form.buttonBorderColorLight,
+                        ),
+                        button_color_dark: optionalValue(form.buttonColorDark),
+                        button_color_light: optionalValue(
+                            form.buttonColorLight,
+                        ),
+                        description: optionalValue(form.description),
+                        image_dark: optionalValue(form.imageDark),
+                        image_light: optionalValue(form.imageLight),
+                        label: optionalValue(form.label),
+                    },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { start_route_id: route.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                throw new Error('start route unavailable');
+            }
+            onSaved();
+        } catch {
+            setError(
+                'The learner start could not be saved. Check the fields and try again.',
+            );
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const reorder = async (direction: 'up' | 'down') => {
+        setError(null);
+        setProcessing(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.POST(
+                '/admin/world-builder/start-routes/{start_route_id}/reorder',
+                {
+                    body: { direction },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { start_route_id: route.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                throw new Error('start route unavailable');
+            }
+            onSaved();
+        } catch {
+            setError('The learner start could not be reordered. Try again.');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="start-route-editor-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <section className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h2
+                            className="text-xl font-semibold"
+                            id="start-route-editor-title"
+                        >
+                            Route visuals
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Configure the learner-facing start for{' '}
+                            {activity?.title ?? route.label}.
+                        </p>
+                    </div>
+                    <button
+                        aria-label="Close route form"
+                        className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                        disabled={processing}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
+                <div className="mt-5 grid gap-5">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+                        <p className="text-xs font-medium tracking-[0.16em] text-teal-700 uppercase dark:text-teal-300">
+                            Starts activity
+                        </p>
+                        <p className="mt-1 text-sm font-semibold">
+                            {activity?.title ?? route.label}
+                        </p>
+                    </div>
+                    {routeIndex >= 0 && routeTotal > 1 ? (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10">
+                            <span>
+                                Route order: {routeIndex + 1} of {routeTotal}
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    className="rounded-md border border-slate-200 px-3 py-2 font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:hover:bg-white/10"
+                                    disabled={processing || routeIndex === 0}
+                                    onClick={() => void reorder('up')}
+                                    type="button"
+                                >
+                                    Move earlier
+                                </button>
+                                <button
+                                    className="rounded-md border border-slate-200 px-3 py-2 font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:hover:bg-white/10"
+                                    disabled={
+                                        processing ||
+                                        routeIndex === routeTotal - 1
+                                    }
+                                    onClick={() => void reorder('down')}
+                                    type="button"
+                                >
+                                    Move later
+                                </button>
+                            </div>
+                        </div>
+                    ) : null}
+                    <label className="grid gap-2 text-sm font-medium">
+                        Route name
+                        <input
+                            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                            maxLength={120}
+                            onChange={(event) =>
+                                update('label', event.target.value)
+                            }
+                            value={form.label}
+                        />
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium">
+                        Route guidance
+                        <textarea
+                            className="min-h-20 resize-y rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                            maxLength={600}
+                            onChange={(event) =>
+                                update('description', event.target.value)
+                            }
+                            value={form.description}
+                        />
+                    </label>
+                    <div className="grid gap-3 md:grid-cols-2">
+                        <RouteField
+                            label="Dark route image"
+                            onChange={(value) => update('imageDark', value)}
+                            value={form.imageDark}
+                        />
+                        <RouteField
+                            label="Light route image"
+                            onChange={(value) => update('imageLight', value)}
+                            value={form.imageLight}
+                        />
+                        <RouteField
+                            label="Dark button color"
+                            onChange={(value) =>
+                                update('buttonColorDark', value)
+                            }
+                            value={form.buttonColorDark}
+                        />
+                        <RouteField
+                            label="Dark border and frame color"
+                            onChange={(value) =>
+                                update('buttonBorderColorDark', value)
+                            }
+                            value={form.buttonBorderColorDark}
+                        />
+                        <RouteField
+                            label="Light button color"
+                            onChange={(value) =>
+                                update('buttonColorLight', value)
+                            }
+                            value={form.buttonColorLight}
+                        />
+                        <RouteField
+                            label="Light border and frame color"
+                            onChange={(value) =>
+                                update('buttonBorderColorLight', value)
+                            }
+                            value={form.buttonBorderColorLight}
+                        />
+                    </div>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-300 dark:hover:bg-red-300/10"
+                        disabled={processing}
+                        onClick={onDelete}
+                        type="button"
+                    >
+                        Delete route
+                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-white/10"
+                            disabled={processing}
+                            onClick={onClose}
+                            type="button"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-300 dark:text-slate-950 dark:hover:bg-teal-200"
+                            disabled={processing}
+                            onClick={() => void save()}
+                            type="button"
+                        >
+                            {processing ? 'Saving…' : 'Save'}
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function RouteField({
+    label,
+    onChange,
+    value,
+}: {
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <label className="grid gap-2 text-sm font-medium">
+            {label}
+            <input
+                className="rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+                maxLength={2048}
+                onChange={(event) => onChange(event.target.value)}
+                value={value}
+            />
+        </label>
+    );
+}
+
+function DeleteStartRouteDialog({
+    error,
+    onCancel,
+    onConfirm,
+    processing,
+}: {
+    error: string | null;
+    onCancel: () => void;
+    onConfirm: () => void;
+    processing: boolean;
+}) {
+    return (
+        <div
+            aria-labelledby="delete-start-route-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <h2
+                    className="text-xl font-semibold"
+                    id="delete-start-route-title"
+                >
+                    Delete route?
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    This removes the route button from the learner node panel.
+                    The target activity stays untouched.
+                </p>
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-white/10"
+                        disabled={processing}
+                        onClick={onCancel}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={processing}
+                        onClick={onConfirm}
+                        type="button"
+                    >
+                        {processing ? 'Deleting…' : 'Delete'}
+                    </button>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function startRouteForm(route: ActivityStartRoute): StartRouteForm {
+    return {
+        buttonBorderColorDark: route.button_border_color_dark ?? '',
+        buttonBorderColorLight: route.button_border_color_light ?? '',
+        buttonColorDark: route.button_color_dark ?? '',
+        buttonColorLight: route.button_color_light ?? '',
+        description: route.description ?? '',
+        imageDark: route.image_dark ?? '',
+        imageLight: route.image_light ?? '',
+        label: route.label,
+    };
 }
 
 function DeleteActivityDialog({
