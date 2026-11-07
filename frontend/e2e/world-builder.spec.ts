@@ -81,13 +81,45 @@ test('a local world author can open the source-derived World Builder graph', asy
     expect(nodeResponse.ok()).toBeTruthy();
     const node = (await nodeResponse.json()) as {
         activity_graph: {
-            activities: Array<{ title: string }>;
+            activities: Array<{
+                connectors: {
+                    inputs: Array<{ id: string }>;
+                    outputs: Array<{ id: string; label: string }>;
+                };
+                id: string;
+                title: string;
+            }>;
             node: { start_activity_id: string | null };
-            transitions: Array<{ id: string }>;
+            transitions: Array<{
+                from_activity_id: string;
+                from_connector: string;
+                id: string;
+                to_activity_id: string | null;
+                to_connector: string;
+            }>;
         };
     };
     const activity = node.activity_graph.activities.at(0);
     if (activity) {
+        const input = activity.connectors.inputs.at(0);
+        if (input) {
+            await expect(
+                page.locator(
+                    `[data-nodeid="${activity.id}"][data-handleid="${input.id}"]`,
+                ),
+            ).toBeVisible();
+        }
+        const output = activity.connectors.outputs.at(0);
+        if (output) {
+            await expect(
+                page.locator(
+                    `[data-nodeid="${activity.id}"][data-handleid="${output.id}"]`,
+                ),
+            ).toBeVisible();
+            await expect(
+                page.getByText(output.label, { exact: true }),
+            ).toBeVisible();
+        }
         await page
             .getByRole('button', { name: `Delete ${activity.title}` })
             .click();
@@ -100,6 +132,18 @@ test('a local world author can open the source-derived World Builder graph', asy
 
     const transition = node.activity_graph.transitions.at(0);
     if (transition) {
+        await expect(
+            page.locator(
+                `[data-nodeid="${transition.from_activity_id}"][data-handleid="${transition.from_connector}"]`,
+            ),
+        ).toBeVisible();
+        if (transition.to_activity_id) {
+            await expect(
+                page.locator(
+                    `[data-nodeid="${transition.to_activity_id}"][data-handleid="${transition.to_connector}"]`,
+                ),
+            ).toBeVisible();
+        }
         await page.locator(`[data-id="${transition.id}"]`).click();
         await expect(
             page.getByRole('heading', { name: 'Edit connection' }),

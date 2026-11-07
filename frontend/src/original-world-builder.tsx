@@ -37,6 +37,7 @@ type Activity = components['schemas']['AdminEditableActivity'];
 type EditableItem = components['schemas']['AdminEditableItem'];
 type EditableTool = components['schemas']['AdminEditableTool'];
 type ActivityTransition = components['schemas']['AdminActivityTransition'];
+type ActivityConnector = components['schemas']['AdminActivityConnector'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -50,7 +51,7 @@ type ActivityNodeData = {
 type WorldMapNode = Node<WorldMapNodeData, 'map'>;
 type WorldPortalEdge = Edge<PortalLink>;
 type ActivityNode = Node<ActivityNodeData, 'activity'>;
-type SpecialNode = Node<{ label: string }, 'special'>;
+type SpecialNode = Node<{ kind: 'start' | 'end'; label: string }, 'special'>;
 type ActivityFlowNode = ActivityNode | SpecialNode;
 type SupportedActivityType =
     | 'open_practice'
@@ -534,7 +535,7 @@ function ActivityGraph({
         const start: SpecialNode = {
             id: '__start',
             type: 'special',
-            data: { label: 'Start' },
+            data: { kind: 'start', label: 'Start' },
             position: graphPosition(graph.node.graph_layout, 'start', -260, 0),
             draggable: false,
         };
@@ -552,7 +553,7 @@ function ActivityGraph({
         const end: SpecialNode = {
             id: '__end',
             type: 'special',
-            data: { label: 'End' },
+            data: { kind: 'end', label: 'End' },
             position: graphPosition(graph.node.graph_layout, 'end', 720, 0),
             draggable: false,
         };
@@ -566,7 +567,9 @@ function ActivityGraph({
                       {
                           id: '__start-edge',
                           source: '__start',
+                          sourceHandle: 'start',
                           target: graph.node.start_activity_id,
+                          targetHandle: 'in',
                           markerEnd: { type: MarkerType.ArrowClosed },
                       },
                   ]
@@ -574,7 +577,12 @@ function ActivityGraph({
             ...graph.transitions.map((transition) => ({
                 id: transition.id,
                 source: transition.from_activity_id,
+                sourceHandle: transition.from_connector,
                 target: transition.to_activity_id ?? '__end',
+                targetHandle:
+                    transition.to_activity_id === null
+                        ? 'end'
+                        : transition.to_connector,
                 label: transition.label ?? transition.trigger,
                 markerEnd: { type: MarkerType.ArrowClosed },
             })),
@@ -920,8 +928,16 @@ function ActivityGraphCard({
         <div
             className={`w-64 rounded-xl border bg-slate-50 p-4 shadow-lg dark:border-white/10 dark:bg-slate-950 ${selected ? 'border-teal-500 ring-2 ring-teal-500/25' : 'border-slate-200'}`}
         >
-            <Handle position={Position.Left} type="target" />
-            <Handle position={Position.Right} type="source" />
+            <ActivityConnectorHandles
+                connectors={activity.connectors.inputs}
+                position={Position.Left}
+                type="target"
+            />
+            <ActivityConnectorHandles
+                connectors={activity.connectors.outputs}
+                position={Position.Right}
+                type="source"
+            />
             <div className="flex items-start justify-between gap-3">
                 <p className="text-xs font-medium tracking-[0.16em] text-teal-700 uppercase dark:text-teal-300">
                     {activity.activity_type}
@@ -958,7 +974,47 @@ function ActivityGraphCard({
                     ? 'AI reviewed'
                     : 'Needs AI review'}
             </p>
+            {activity.connectors.outputs.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-1">
+                    {activity.connectors.outputs.map((connector) => (
+                        <span
+                            className="rounded-md bg-teal-100 px-2 py-1 text-xs font-medium text-teal-800 dark:bg-teal-300/10 dark:text-teal-200"
+                            key={connector.id}
+                        >
+                            {connector.label}
+                        </span>
+                    ))}
+                </div>
+            ) : null}
         </div>
+    );
+}
+
+function ActivityConnectorHandles({
+    connectors,
+    position,
+    type,
+}: {
+    connectors: ActivityConnector[];
+    position: Position;
+    type: 'source' | 'target';
+}) {
+    return (
+        <>
+            {connectors.map((connector, index) => (
+                <Handle
+                    className="!size-3 !border-2 !border-white !bg-teal-700 dark:!border-slate-950 dark:!bg-teal-300"
+                    id={connector.id}
+                    key={connector.id}
+                    position={position}
+                    style={{
+                        top: `${((index + 1) / (connectors.length + 1)) * 100}%`,
+                    }}
+                    title={connector.label}
+                    type={type}
+                />
+            ))}
+        </>
     );
 }
 
@@ -2279,12 +2335,20 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
     );
 }
 
-function SpecialGraphNode({ data }: { data: { label: string } }) {
+function SpecialGraphNode({
+    data,
+}: {
+    data: { kind: 'start' | 'end'; label: string };
+}) {
     return (
         <div className="rounded-full border border-teal-600 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-900 shadow dark:border-teal-300 dark:bg-teal-300/10 dark:text-teal-100">
-            <Handle position={Position.Left} type="target" />
+            {data.kind === 'end' ? (
+                <Handle id="end" position={Position.Left} type="target" />
+            ) : null}
             {data.label}
-            <Handle position={Position.Right} type="source" />
+            {data.kind === 'start' ? (
+                <Handle id="start" position={Position.Right} type="source" />
+            ) : null}
         </div>
     );
 }
