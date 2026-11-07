@@ -3,7 +3,8 @@ use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_node_starts::{
     AdminWorldNodeStarts, AdminWorldNodeStartsError,
-    AdminWorldNodeStartsRepository as AdminWorldNodeStartsRepositoryPort,
+    AdminWorldNodeStartsRepository as AdminWorldNodeStartsRepositoryPort, StartRouteDirection,
+    StartRouteForm,
 };
 use wicked_learning_domain::{
     identity_access::{AuthorizedPrincipal, permission_scope_allows},
@@ -60,12 +61,73 @@ impl AdminWorldNodeStartsRepositoryPort for PostgresAdminWorldNodeStartsReposito
                 })
         }
     }
+
+    fn update_start(
+        &self,
+        principal: &AuthorizedPrincipal,
+        start_route_id: Uuid,
+        form: &StartRouteForm,
+    ) -> impl std::future::Future<
+        Output = Result<Option<AdminWorldNodeStarts>, AdminWorldNodeStartsError>,
+    > + Send {
+        async move {
+            update_start(self.pool, principal, start_route_id, form)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not update the scoped World Builder start route");
+                    AdminWorldNodeStartsError::Unavailable
+                })
+        }
+    }
+
+    fn reorder_start(
+        &self,
+        principal: &AuthorizedPrincipal,
+        start_route_id: Uuid,
+        direction: StartRouteDirection,
+    ) -> impl std::future::Future<
+        Output = Result<Option<AdminWorldNodeStarts>, AdminWorldNodeStartsError>,
+    > + Send {
+        async move {
+            reorder_start(self.pool, principal, start_route_id, direction)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not reorder the scoped World Builder start route");
+                    AdminWorldNodeStartsError::Unavailable
+                })
+        }
+    }
+
+    fn delete_start(
+        &self,
+        principal: &AuthorizedPrincipal,
+        start_route_id: Uuid,
+    ) -> impl std::future::Future<
+        Output = Result<Option<AdminWorldNodeStarts>, AdminWorldNodeStartsError>,
+    > + Send {
+        async move {
+            delete_start(self.pool, principal, start_route_id)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not delete the scoped World Builder start route");
+                    AdminWorldNodeStartsError::Unavailable
+                })
+        }
+    }
 }
 
 #[derive(FromRow)]
 struct ScopedNode {
     id: Uuid,
     map_asset_id: Option<Uuid>,
+    map_id: Uuid,
+    map_creator_id: Option<Uuid>,
+}
+
+#[derive(FromRow)]
+struct ScopedStart {
+    id: Uuid,
+    node_id: Uuid,
     map_id: Uuid,
     map_creator_id: Option<Uuid>,
 }
@@ -191,6 +253,101 @@ async fn remove_starts(
     }))
 }
 
+async fn update_start(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    start_route_id: Uuid,
+    form: &StartRouteForm,
+) -> Result<Option<AdminWorldNodeStarts>, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    let Some(start) = lock_editable_start(&mut transaction, principal, start_route_id).await?
+    else {
+        return Ok(None);
+    };
+    sqlx::query(
+        "UPDATE learning_activity_starts SET label = $2, description = $3, image_dark = $4, image_light = $5, button_color_dark = $6, button_border_color_dark = $7, button_color_light = $8, button_border_color_light = $9, updated_at = NOW() WHERE id = $1",
+    )
+    .bind(start.id)
+    .bind(&form.label)
+    .bind(&form.description)
+    .bind(&form.image_dark)
+    .bind(&form.image_light)
+    .bind(&form.button_color_dark)
+    .bind(&form.button_border_color_dark)
+    .bind(&form.button_color_light)
+    .bind(&form.button_border_color_light)
+    .execute(&mut *transaction)
+    .await?;
+    let result = load_node_starts(&mut transaction, start.node_id).await?;
+    transaction.commit().await?;
+    Ok(Some(result))
+}
+
+async fn reorder_start(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    start_route_id: Uuid,
+    direction: StartRouteDirection,
+) -> Result<Option<AdminWorldNodeStarts>, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    let Some(start) = lock_editable_start(&mut transaction, principal, start_route_id).await?
+    else {
+        return Ok(None);
+    };
+    let mut start_ids = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM learning_activity_starts WHERE node_id = $1 ORDER BY sort_order ASC, id ASC FOR UPDATE",
+    )
+    .bind(start.node_id)
+    .fetch_all(&mut *transaction)
+    .await?;
+    let Some(current_index) = start_ids.iter().position(|id| *id == start.id) else {
+        return Ok(None);
+    };
+    let target_index = match direction {
+        StartRouteDirection::Up => current_index.checked_sub(1),
+        StartRouteDirection::Down => {
+            (current_index + 1 < start_ids.len()).then_some(current_index + 1)
+        }
+    };
+    if let Some(target_index) = target_index {
+        let moved = start_ids.remove(current_index);
+        start_ids.insert(target_index, moved);
+        for (index, route_id) in start_ids.iter().enumerate() {
+            sqlx::query(
+                "UPDATE learning_activity_starts SET sort_order = $2, updated_at = NOW() WHERE id = $1",
+            )
+            .bind(route_id)
+            .bind(((index + 1) * 10) as i16)
+            .execute(&mut *transaction)
+            .await?;
+        }
+        synchronize_legacy_start(&mut transaction, start.node_id).await?;
+    }
+    let result = load_node_starts(&mut transaction, start.node_id).await?;
+    transaction.commit().await?;
+    Ok(Some(result))
+}
+
+async fn delete_start(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    start_route_id: Uuid,
+) -> Result<Option<AdminWorldNodeStarts>, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    let Some(start) = lock_editable_start(&mut transaction, principal, start_route_id).await?
+    else {
+        return Ok(None);
+    };
+    sqlx::query("DELETE FROM learning_activity_starts WHERE id = $1")
+        .bind(start.id)
+        .execute(&mut *transaction)
+        .await?;
+    synchronize_legacy_start(&mut transaction, start.node_id).await?;
+    let result = load_node_starts(&mut transaction, start.node_id).await?;
+    transaction.commit().await?;
+    Ok(Some(result))
+}
+
 async fn lock_editable_node(
     transaction: &mut Transaction<'_, Postgres>,
     principal: &AuthorizedPrincipal,
@@ -233,6 +390,46 @@ async fn lock_editable_node(
     }
 
     Ok(Some(node))
+}
+
+async fn lock_editable_start(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    start_route_id: Uuid,
+) -> Result<Option<ScopedStart>, sqlx::Error> {
+    let Some(principal_id) = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM application_principals WHERE identity_subject_id = $1",
+    )
+    .bind(principal.subject_id)
+    .fetch_optional(&mut **transaction)
+    .await?
+    else {
+        return Ok(None);
+    };
+    let Some(start) = sqlx::query_as::<_, ScopedStart>(
+        "SELECT starts.id, starts.node_id, nodes.map_id, maps.created_by_principal_id AS map_creator_id FROM learning_activity_starts AS starts INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE starts.id = $1 FOR UPDATE OF starts, nodes",
+    )
+    .bind(start_route_id)
+    .fetch_optional(&mut **transaction)
+    .await?
+    else {
+        return Ok(None);
+    };
+    let direct_editor: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM learning_map_editing_groups AS editing_groups INNER JOIN learning_group_memberships AS memberships ON memberships.group_id = editing_groups.group_id WHERE editing_groups.map_id = $1 AND memberships.principal_id = $2)",
+    )
+    .bind(start.map_id)
+    .bind(principal_id)
+    .fetch_one(&mut **transaction)
+    .await?;
+    let Some(scope) = principal.permission_scope("world_activities", "ru") else {
+        return Ok(None);
+    };
+    let permitted = scope == "all"
+        || (permission_scope_allows(scope, "own") && start.map_creator_id == Some(principal_id))
+        || (permission_scope_allows(scope, "assigned") && direct_editor)
+        || direct_editor;
+    Ok(permitted.then_some(start))
 }
 
 async fn synchronize_legacy_start(
@@ -292,4 +489,14 @@ async fn load_start_activity_id(
         .fetch_optional(&mut **transaction)
         .await
         .map(|id| id.flatten())
+}
+
+async fn load_node_starts(
+    transaction: &mut Transaction<'_, Postgres>,
+    node_id: Uuid,
+) -> Result<AdminWorldNodeStarts, sqlx::Error> {
+    Ok(AdminWorldNodeStarts {
+        start_activity_id: load_start_activity_id(transaction, node_id).await?,
+        start_routes: load_starts(transaction, node_id).await?,
+    })
 }

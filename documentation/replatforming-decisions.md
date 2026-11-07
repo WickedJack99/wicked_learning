@@ -3697,6 +3697,13 @@ field in the same transaction. This preserves the existing editor and learner
 route invariant without exposing route presentation, ordering, transition or
 activity-content mutations prematurely.
 
+**Route presentation and ordering:** Start-route presentation fields are kept
+separate from membership and validate the original field limits and color
+syntax. Reordering locks every start on the selected node, deterministically
+renumbers their positions and resynchronizes the preferred start only after a
+valid move. This keeps route selection stable under concurrent edits without
+altering learner progress or any activity graph edge.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

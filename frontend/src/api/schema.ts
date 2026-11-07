@@ -729,6 +729,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/start-routes/{start_route_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one World Builder route start. */
+        delete: operations["deleteAdminWorldBuilderStartRoute"];
+        options?: never;
+        head?: never;
+        /**
+         * Save learner-facing presentation fields for one World Builder route start.
+         * @description This source-derived authoring command changes only the selected route's label, description, images and light/dark button colors. It does not change activity membership, order, learner progress or activity playback.
+         */
+        patch: operations["updateAdminWorldBuilderStartRoute"];
+        trace?: never;
+    };
+    "/admin/world-builder/start-routes/{start_route_id}/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move one World Builder route start earlier or later.
+         * @description The source algorithm locks all starts on the node, renumbers their sort positions by ten and resynchronizes the preferred start. A boundary move is a no-op.
+         */
+        post: operations["reorderAdminWorldBuilderStartRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/maps/{map_slug}/nodes/{node_slug}/bookmark": {
         parameters: {
             query?: never;
@@ -5027,6 +5068,20 @@ export interface components {
             start_activity_id: string | null;
             start_routes: components["schemas"]["AdminActivityStartRoute"][];
         };
+        SaveAdminActivityStartRouteRequest: {
+            label?: string | null;
+            description?: string | null;
+            image_dark?: string | null;
+            image_light?: string | null;
+            button_color_dark?: string | null;
+            button_border_color_dark?: string | null;
+            button_color_light?: string | null;
+            button_border_color_light?: string | null;
+        };
+        ReorderAdminActivityStartRouteRequest: {
+            /** @enum {string} */
+            direction: "up" | "down";
+        };
         AdminActivityGraph: {
             world: components["schemas"]["AdminActivityGraphReference"];
             map: components["schemas"]["AdminActivityGraphReference"];
@@ -7660,6 +7715,187 @@ export interface operations {
                 content?: never;
             };
             /** @description The node is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminWorldBuilderStartRoute: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                start_route_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The selected node's remaining starts and resynchronized preferred start. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityStartRoutesResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The start route is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderStartRoute: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                start_route_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminActivityStartRouteRequest"];
+            };
+        };
+        responses: {
+            /** @description The selected node's complete start-route state with the saved visual fields. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityStartRoutesResponse"];
+                };
+            };
+            /** @description A presentation field exceeds the source bound or has an invalid color. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The start route is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reorderAdminWorldBuilderStartRoute: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                start_route_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderAdminActivityStartRouteRequest"];
+            };
+        };
+        responses: {
+            /** @description The selected node's start-route state after ordering. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityStartRoutesResponse"];
+                };
+            };
+            /** @description The requested direction is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The start route is unknown or outside the caller's authoring scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

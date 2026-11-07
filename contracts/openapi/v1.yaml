@@ -998,6 +998,79 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The node is unknown or outside the caller's authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/start-routes/{start_route_id}:
+    patch:
+      operationId: updateAdminWorldBuilderStartRoute
+      summary: Save learner-facing presentation fields for one World Builder route start.
+      description: This source-derived authoring command changes only the selected route's label, description, images and light/dark button colors. It does not change activity membership, order, learner progress or activity playback.
+      parameters:
+        - name: start_route_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminActivityStartRouteRequest' }
+      responses:
+        '200':
+          description: The selected node's complete start-route state with the saved visual fields.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityStartRoutesResponse' }
+        '400': { description: A presentation field exceeds the source bound or has an invalid color. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The start route is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminWorldBuilderStartRoute
+      summary: Delete one World Builder route start.
+      parameters:
+        - name: start_route_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The selected node's remaining starts and resynchronized preferred start.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityStartRoutesResponse' }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The start route is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/start-routes/{start_route_id}/reorder:
+    post:
+      operationId: reorderAdminWorldBuilderStartRoute
+      summary: Move one World Builder route start earlier or later.
+      description: The source algorithm locks all starts on the node, renumbers their sort positions by ten and resynchronizes the preferred start. A boundary move is a no-op.
+      parameters:
+        - name: start_route_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReorderAdminActivityStartRouteRequest' }
+      responses:
+        '200':
+          description: The selected node's start-route state after ordering.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityStartRoutesResponse' }
+        '400': { description: The requested direction is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The start route is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
   /learner/maps/{map_slug}/nodes/{node_slug}/bookmark:
     post:
       operationId: createLearnerNodeBookmark
@@ -7565,6 +7638,24 @@ components:
         start_routes:
           type: array
           items: { $ref: '#/components/schemas/AdminActivityStartRoute' }
+    SaveAdminActivityStartRouteRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        label: { type: [string, 'null'], maxLength: 120 }
+        description: { type: [string, 'null'], maxLength: 600 }
+        image_dark: { type: [string, 'null'], maxLength: 2048 }
+        image_light: { type: [string, 'null'], maxLength: 2048 }
+        button_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        button_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        button_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        button_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+    ReorderAdminActivityStartRouteRequest:
+      type: object
+      additionalProperties: false
+      required: [direction]
+      properties:
+        direction: { type: string, enum: [up, down] }
     AdminActivityGraph:
       type: object
       additionalProperties: false

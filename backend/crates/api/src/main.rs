@@ -567,6 +567,14 @@ fn router(state: AppState) -> Router {
             delete(admin_world_node_starts::remove_one),
         )
         .route(
+            "/api/v1/admin/world-builder/start-routes/{start_route_id}",
+            patch(admin_world_node_starts::update).delete(admin_world_node_starts::delete),
+        )
+        .route(
+            "/api/v1/admin/world-builder/start-routes/{start_route_id}/reorder",
+            post(admin_world_node_starts::reorder),
+        )
+        .route(
             "/api/v1/admin/roles/{role_key}",
             patch(admin_role::update).delete(admin_role::destroy),
         )

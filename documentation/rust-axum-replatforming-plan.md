@@ -923,8 +923,10 @@ The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command
 atomically resynchronizes the legacy preferred start from the ordered eligible
-routes. Route-start presentation editing and ordering, activity and transition
-commands remain unavailable.
+routes. Route-start presentation editing and ordering are now source-compatible:
+visual fields retain the original bounds and color validation, and route moves
+lock the node's complete start list, renumber it and resynchronize the preferred
+start. Activity and transition commands remain unavailable.
 No World Builder React route is exposed from these partial contracts: the next
 slice must adapt the existing World Builder React components against all three
 read contracts, rather than inventing a reduced editor.
