@@ -3276,6 +3276,30 @@ migrated role matrix. Other resource families must apply their own source
 scope semantics when their administration slices are migrated; a generic
 cross-domain scope engine would hide those ownership facts too early.
 
+## ADR-084: TOTP enrollment is an identity-only staged factor
+
+**Status:** Accepted — 7 November 2026
+
+**Decision:** The Rust TOTP slice will use maintained `totp-rs` 6.0.0 with
+the standard six-digit, thirty-second SHA-1 interoperable authenticator
+profile. An enrollment secret is generated and displayed only while the
+authenticated owner completes setup; the identity database stores it encrypted
+at rest, never in application data, a session payload, URL or log. The factor
+becomes eligible at login only after a valid confirmation code. Recovery codes
+are generated once, stored only as individual Argon2id verifiers, and consumed
+atomically. Disabling or replacing a factor requires an authenticated
+sensitive-action flow and creates the existing application audit event without
+copying any secret across the database boundary.
+
+**Why:** This preserves the source's authenticator-app and emergency-code
+journeys while reusing maintained TOTP and password-hash primitives. Staged
+enrollment prevents an interrupted QR scan from locking an account, and
+one-way recovery-code storage limits the impact of an identity-database read.
+
+**Limits and follow-up:** Login challenge state, rate limiting, session
+rotation, account recovery and the source passkey flow are implemented as
+separate identity work; TOTP alone does not satisfy the identity cutover gate.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
