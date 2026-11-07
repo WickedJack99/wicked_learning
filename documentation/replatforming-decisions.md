@@ -2955,8 +2955,10 @@ redeemer forge a different grant. A generic administrator-role check would
 prevent future delegation. These alternatives are rejected.
 
 **Limits and follow-up:** A registration link presently gives the new account
-the source default `learner` role. Role-selection and temporary-login links
-remain part of the later access/role-management slice. The identity and
+the source default `learner` role. A temporary-login link instead creates a
+fresh temporary learner principal and server-side session with a generated,
+unknown verifier; it supports one-time or multiple use, never per-user use.
+Role-selection remains part of the later access/role-management slice. The identity and
 application databases cannot commit as one transaction, so compensation
 removes a partially created principal, identity subject and access-link
 redemption; an operational repair procedure is still needed before a

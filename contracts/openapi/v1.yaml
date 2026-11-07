@@ -89,6 +89,25 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The link is unknown, disabled, expired, already consumed, or already used by this learner. }
         '503': { description: The application database is unavailable. }
+  /access-links/{token}/temporary-login:
+    post:
+      operationId: redeemTemporaryAccessLink
+      summary: Create and sign in a temporary learner for an opaque access link.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: A fresh temporary learner was created and signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionStatus' }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The link is unknown, disabled, expired, consumed, or not a temporary-login link. }
+        '503': { description: An identity or application dependency is unavailable. }
   /access-links/{token}:
     get:
       operationId: getAccessLinkPreview
@@ -3025,7 +3044,7 @@ components:
         is_expired: { type: boolean }
         is_redeemed: { type: boolean }
         note: { type: [string, 'null'], maxLength: 500 }
-        purpose: { type: string, enum: [grant_tool, grant_items, registration] }
+        purpose: { type: string, enum: [grant_tool, grant_items, registration, temporary_login] }
         usage_policy: { type: string, enum: [one_time, multiple, per_user] }
     AccessLinkPreview:
       type: object
@@ -3033,7 +3052,7 @@ components:
       required: [note, purpose]
       properties:
         note: { type: [string, 'null'], maxLength: 500 }
-        purpose: { type: string, enum: [grant_tool, grant_items, registration] }
+        purpose: { type: string, enum: [grant_tool, grant_items, registration, temporary_login] }
     AccessLinkGrantOption:
       type: object
       additionalProperties: false
@@ -3076,7 +3095,7 @@ components:
           maxItems: 20
           items: { $ref: '#/components/schemas/AccessLinkItemGrantRequest' }
         note: { type: [string, 'null'], maxLength: 500 }
-        purpose: { type: string, enum: [grant_tool, grant_items, registration] }
+        purpose: { type: string, enum: [grant_tool, grant_items, registration, temporary_login] }
         tool_id: { type: [string, 'null'], format: uuid }
         usage_policy: { type: string, enum: [one_time, multiple, per_user], default: one_time }
     UpdateAccessLinkRequest:

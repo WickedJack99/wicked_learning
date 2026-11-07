@@ -66,7 +66,7 @@ impl IdentityBackend {
         Ok(row.map(subject_from_row))
     }
 
-    async fn active_subject_for_id(
+    pub async fn active_subject_for_id(
         &self,
         subject_id: Uuid,
     ) -> Result<Option<IdentitySubject>, IdentityError> {

@@ -69,6 +69,7 @@ mod public_world;
 mod registration_tokens;
 mod session_commands;
 mod session_status;
+mod temporary_access_login;
 
 use std::{process::ExitCode, time::Duration};
 
@@ -380,6 +381,7 @@ fn router(state: AppState) -> Router {
             post(learner_group::vote_for_admin_chat_access),
         )
         .route("/api/v1/access-links/{token}/redeem", post(access_link::redeem))
+        .route("/api/v1/access-links/{token}/temporary-login", post(temporary_access_login::login))
         .route("/api/v1/access-links/{token}", get(access_link::preview))
         .route(
             "/api/v1/learner/bookmarks",

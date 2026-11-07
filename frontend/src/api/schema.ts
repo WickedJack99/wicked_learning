@@ -92,6 +92,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-links/{token}/temporary-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create and sign in a temporary learner for an opaque access link. */
+        post: operations["redeemTemporaryAccessLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/access-links/{token}": {
         parameters: {
             query?: never;
@@ -2190,14 +2207,14 @@ export interface components {
             is_redeemed: boolean;
             note: string | null;
             /** @enum {string} */
-            purpose: "grant_tool" | "grant_items" | "registration";
+            purpose: "grant_tool" | "grant_items" | "registration" | "temporary_login";
             /** @enum {string} */
             usage_policy: "one_time" | "multiple" | "per_user";
         };
         AccessLinkPreview: {
             note: string | null;
             /** @enum {string} */
-            purpose: "grant_tool" | "grant_items" | "registration";
+            purpose: "grant_tool" | "grant_items" | "registration" | "temporary_login";
         };
         AccessLinkGrantOption: {
             /** Format: uuid */
@@ -2220,7 +2237,7 @@ export interface components {
             item_grants?: components["schemas"]["AccessLinkItemGrantRequest"][];
             note?: string | null;
             /** @enum {string} */
-            purpose: "grant_tool" | "grant_items" | "registration";
+            purpose: "grant_tool" | "grant_items" | "registration" | "temporary_login";
             /** Format: uuid */
             tool_id?: string | null;
             /**
@@ -4273,6 +4290,52 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    redeemTemporaryAccessLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A fresh temporary learner was created and signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatus"];
+                };
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The link is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An identity or application dependency is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

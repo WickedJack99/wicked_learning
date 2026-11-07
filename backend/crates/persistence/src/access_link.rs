@@ -122,6 +122,15 @@ impl Port for PostgresAccessLinkRepository<'_> {
                     }
                     json!({})
                 }
+                AccessLinkPurpose::TemporaryLogin => {
+                    if form.tool_id.is_some()
+                        || !form.item_grants.is_empty()
+                        || form.usage_policy == AccessLinkUsagePolicy::PerUser
+                    {
+                        return Ok(None);
+                    }
+                    json!({})
+                }
             };
 
             let link = sqlx::query_as::<_, LinkRow>(
@@ -249,6 +258,7 @@ impl Port for PostgresAccessLinkRepository<'_> {
                     grant_items(&mut transaction, redeemer_id, &link.payload).await?
                 }
                 AccessLinkPurpose::Registration => return Ok(false),
+                AccessLinkPurpose::TemporaryLogin => return Ok(false),
             }
             sqlx::query(
                 "INSERT INTO access_link_redemptions (id, access_link_id, redeemed_by_principal_id) VALUES ($1, $2, $3)",

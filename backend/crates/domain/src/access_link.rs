@@ -7,6 +7,7 @@ pub enum AccessLinkPurpose {
     GrantTool,
     GrantItems,
     Registration,
+    TemporaryLogin,
 }
 
 impl AccessLinkPurpose {
@@ -15,6 +16,7 @@ impl AccessLinkPurpose {
             Self::GrantTool => "grant_tool",
             Self::GrantItems => "grant_items",
             Self::Registration => "registration",
+            Self::TemporaryLogin => "temporary_login",
         }
     }
 
@@ -23,6 +25,7 @@ impl AccessLinkPurpose {
             "grant_tool" => Some(Self::GrantTool),
             "grant_items" => Some(Self::GrantItems),
             "registration" => Some(Self::Registration),
+            "temporary_login" => Some(Self::TemporaryLogin),
             _ => None,
         }
     }
