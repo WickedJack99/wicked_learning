@@ -3081,6 +3081,47 @@ people. The source's hierarchy check, identity login disable/ban state and
 access-change audit need the user-administration slice before the original
 combined Access Management workspace can be exposed.
 
+## ADR-079: Account access state stays in identity; access history stays in application data
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source user-administration workflow lets an authorized
+administrator assign roles, disable a login, set a temporary ban and review a
+bounded history of these changes. The new platform deliberately separates
+credential-bearing identity data from application data, so treating all of
+that as one database record would either duplicate credential concerns or make
+authorization assignments identity-owned.
+
+**Decision:** Login disablement and the ban expiry are identity-subject fields;
+password login and session reload both reject disabled or currently banned
+subjects. Application role assignments and access-change audit records stay in
+the application database. Audit records refer to immutable actor and target
+subject IDs and preserve changed values only—never password hashes, sessions,
+or invitation plaintext. User-access writes validate the source role hierarchy
+and protect administrators from changing their own account. They lock both
+records, stage the application role replacement and audit entry, commit the
+identity change, then commit the application change. If the latter commit
+fails, the identity state is compensated to its recorded prior values.
+
+**Why:** This preserves the source behavior while keeping authentication data
+in the identity database and application authorization/audit data in the
+application database. The explicit compensation path makes the absence of a
+cross-database transaction a visible, tested operational concern rather than a
+silent consistency assumption.
+
+**Alternatives:** Duplicating access state in the application database would
+allow disagreement with authentication. Moving role assignments or audit data
+into identity would blur the database boundary and couple credentials to
+application policy. A best-effort write without compensation could silently
+leave a user with changed login state but no matching role/audit change. These
+alternatives are rejected.
+
+**Limits and follow-up:** Account deletion and registration-token role
+selection require their own cross-database lifecycle design. This backend
+contract deliberately does not expose a replacement administration screen;
+the original React Access Management workspace must be lifted with its
+connected controls and browser evidence before it becomes user-facing.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

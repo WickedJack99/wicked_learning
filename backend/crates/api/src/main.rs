@@ -343,6 +343,10 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/learner/feedback-prompt-preference", get(feedback_prompt_preference::show).patch(feedback_prompt_preference::update))
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
         .route("/api/v1/admin/users", get(admin_user::index))
+        .route(
+            "/api/v1/admin/users/{subject_id}/access",
+            patch(admin_user::update_access),
+        )
         .route("/api/v1/admin/roles", get(admin_role::index).post(admin_role::create))
         .route(
             "/api/v1/admin/roles/{role_key}",

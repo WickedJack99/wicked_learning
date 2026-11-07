@@ -109,12 +109,36 @@ pub fn permission_resources() -> Vec<AdminPermissionResource> {
 /// password credentials, sessions, invitation plaintext and learner data.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct AdminUser {
+    pub access_history: Vec<AdminAccessChangeEvent>,
+    pub banned_until: Option<String>,
     pub created_at: String,
     pub email: String,
     pub identity_status: String,
+    pub is_currently_banned: bool,
+    pub is_login_disabled: bool,
+    pub login_disabled_at: Option<String>,
     pub name: String,
     pub roles: Vec<String>,
     pub subject_id: String,
+}
+
+/// A safe, administrator-facing projection of an access-related change. The
+/// database records only immutable subject identifiers; the profile reference
+/// is resolved when the administration view is read.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminAccessChangeEvent {
+    pub action: String,
+    pub actor: Option<AdminUserReference>,
+    pub changes: Vec<AdminAccessChangeItem>,
+    pub created_at: String,
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminAccessChangeItem {
+    pub after: String,
+    pub before: String,
+    pub label: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]

@@ -56,6 +56,8 @@ impl IdentityBackend {
                 WHERE subjects.normalized_email = $1
                     AND subjects.status = 'active'
                     AND subjects.email_verified_at IS NOT NULL
+                    AND subjects.login_disabled_at IS NULL
+                    AND (subjects.banned_until IS NULL OR subjects.banned_until <= NOW())
                 LIMIT 1
             "#,
         )
@@ -79,6 +81,8 @@ impl IdentityBackend {
                 WHERE subjects.id = $1
                     AND subjects.status = 'active'
                     AND subjects.email_verified_at IS NOT NULL
+                    AND subjects.login_disabled_at IS NULL
+                    AND (subjects.banned_until IS NULL OR subjects.banned_until <= NOW())
                 LIMIT 1
             "#,
         )

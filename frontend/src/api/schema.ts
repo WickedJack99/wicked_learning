@@ -969,6 +969,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users/{subject_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update another user's roles, login disablement, and temporary ban. */
+        patch: operations["updateAdminUserAccess"];
+        trace?: never;
+    };
     "/admin/roles": {
         parameters: {
             query?: never;
@@ -3738,16 +3755,39 @@ export interface components {
             users: components["schemas"]["AdminLearningGroupUser"][];
         };
         AdminUser: {
+            access_history: components["schemas"]["AdminAccessChangeEvent"][];
+            /** Format: date-time */
+            banned_until: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: email */
             email: string;
             /** @enum {string} */
             identity_status: "active" | "disabled" | "provisioning" | "suspended";
+            is_currently_banned: boolean;
+            is_login_disabled: boolean;
+            /** Format: date-time */
+            login_disabled_at: string | null;
             name: string;
             roles: string[];
             /** Format: uuid */
             subject_id: string;
+        };
+        AdminAccessChangeEvent: {
+            /** @enum {string} */
+            action: "access_updated" | "password_updated" | "two_factor_enabled" | "two_factor_disabled" | "passkey_registered" | "passkey_deleted";
+            actor: components["schemas"]["AdminUserReference"] | null;
+            changes: components["schemas"]["AdminAccessChangeItem"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+        };
+        AdminAccessChangeItem: {
+            after: string;
+            before: string;
+            /** @enum {string} */
+            label: "Ban until" | "Login disabled" | "Roles";
         };
         AdminUsers: {
             registration_tokens: components["schemas"]["AdminRegistrationToken"][];
@@ -3775,6 +3815,12 @@ export interface components {
             name: string;
             /** Format: uuid */
             subject_id: string;
+        };
+        UpdateAdminUserAccessRequest: {
+            /** Format: date-time */
+            banned_until: string | null;
+            login_disabled: boolean;
+            roles: string[];
         };
         AdminRole: {
             capabilities: string[];
@@ -7460,6 +7506,68 @@ export interface operations {
                 content?: never;
             };
             /** @description The current principal cannot read user administration data. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminUserAccess: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminUserAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description The account access state and role assignments were updated. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source-shaped access form is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot update users or the target does not exist. */
             404: {
                 headers: {
                     [name: string]: unknown;

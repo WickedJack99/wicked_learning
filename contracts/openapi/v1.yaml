@@ -1138,6 +1138,28 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current principal cannot read user administration data. }
         '503': { description: The application or identity database is unavailable. }
+  /admin/users/{subject_id}/access:
+    patch:
+      operationId: updateAdminUserAccess
+      summary: Update another user's roles, login disablement, and temporary ban.
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminUserAccessRequest' }
+      responses:
+        '204': { description: The account access state and role assignments were updated. }
+        '400': { description: The source-shaped access form is invalid, names roles outside the administrator's hierarchy, or attempts to change the administrator's own account. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot update users or the target does not exist. }
+        '503': { description: The application or identity database is unavailable. }
   /admin/roles:
     get:
       operationId: getAdminRoles
@@ -5586,16 +5608,44 @@ components:
     AdminUser:
       type: object
       additionalProperties: false
-      required: [created_at, email, identity_status, name, roles, subject_id]
+      required: [access_history, banned_until, created_at, email, identity_status, is_currently_banned, is_login_disabled, login_disabled_at, name, roles, subject_id]
       properties:
+        access_history:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/AdminAccessChangeEvent' }
+        banned_until: { type: [string, 'null'], format: date-time }
         created_at: { type: string, format: date-time }
         email: { type: string, format: email, maxLength: 320 }
         identity_status: { type: string, enum: [active, disabled, provisioning, suspended] }
+        is_currently_banned: { type: boolean }
+        is_login_disabled: { type: boolean }
+        login_disabled_at: { type: [string, 'null'], format: date-time }
         name: { type: string, minLength: 1, maxLength: 255 }
         roles:
           type: array
           items: { type: string, minLength: 1, maxLength: 120 }
         subject_id: { type: string, format: uuid }
+    AdminAccessChangeEvent:
+      type: object
+      additionalProperties: false
+      required: [action, actor, changes, created_at, id]
+      properties:
+        action: { type: string, enum: [access_updated, password_updated, two_factor_enabled, two_factor_disabled, passkey_registered, passkey_deleted] }
+        actor: { anyOf: [{ $ref: '#/components/schemas/AdminUserReference' }, { type: 'null' }] }
+        changes:
+          type: array
+          items: { $ref: '#/components/schemas/AdminAccessChangeItem' }
+        created_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+    AdminAccessChangeItem:
+      type: object
+      additionalProperties: false
+      required: [after, before, label]
+      properties:
+        after: { type: string }
+        before: { type: string }
+        label: { type: string, enum: [Ban until, Login disabled, Roles] }
     AdminUsers:
       type: object
       additionalProperties: false
@@ -5633,6 +5683,17 @@ components:
         email: { type: string, format: email, maxLength: 320 }
         name: { type: string, minLength: 1, maxLength: 255 }
         subject_id: { type: string, format: uuid }
+    UpdateAdminUserAccessRequest:
+      type: object
+      additionalProperties: false
+      required: [banned_until, login_disabled, roles]
+      properties:
+        banned_until: { type: [string, 'null'], format: date-time }
+        login_disabled: { type: boolean }
+        roles:
+          type: array
+          minItems: 1
+          items: { type: string, minLength: 1, maxLength: 80 }
     AdminRole:
       type: object
       additionalProperties: false
