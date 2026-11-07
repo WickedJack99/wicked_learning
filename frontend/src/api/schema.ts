@@ -3712,7 +3712,31 @@ export interface components {
             subject_id: string;
         };
         AdminUsers: {
+            registration_tokens: components["schemas"]["AdminRegistrationToken"][];
             users: components["schemas"]["AdminUser"][];
+        };
+        AdminRegistrationToken: {
+            /** Format: date-time */
+            created_at: string;
+            created_by: components["schemas"]["AdminUserReference"] | null;
+            /** Format: date-time */
+            expires_at: string | null;
+            /** Format: uuid */
+            id: string;
+            is_expired: boolean;
+            is_used: boolean;
+            note: string | null;
+            roles: string[];
+            /** Format: date-time */
+            used_at: string | null;
+            used_by: components["schemas"]["AdminUserReference"] | null;
+        };
+        AdminUserReference: {
+            /** Format: email */
+            email: string;
+            name: string;
+            /** Format: uuid */
+            subject_id: string;
         };
         AdminLearningGroupResponse: {
             group: components["schemas"]["AdminLearningGroup"];
@@ -7342,7 +7366,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description User summaries without credential verifiers, sessions, raw invitation tokens, or learner data. */
+            /** @description User and bounded invitation summaries without credential verifiers, sessions, raw invitation tokens, or learner data. */
             200: {
                 headers: {
                     [name: string]: unknown;

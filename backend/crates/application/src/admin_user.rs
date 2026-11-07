@@ -48,7 +48,12 @@ mod tests {
         fn list(
             &self,
         ) -> impl std::future::Future<Output = Result<AdminUsers, AdminUserError>> + Send {
-            async { Ok(AdminUsers { users: vec![] }) }
+            async {
+                Ok(AdminUsers {
+                    registration_tokens: vec![],
+                    users: vec![],
+                })
+            }
         }
     }
 

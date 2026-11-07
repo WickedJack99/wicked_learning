@@ -47,7 +47,31 @@ pub struct AdminUser {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct AdminUsers {
+    pub registration_tokens: Vec<AdminRegistrationToken>,
     pub users: Vec<AdminUser>,
+}
+
+/// A bounded invitation audit summary. The token hash and its one-time
+/// plaintext counterpart never leave the identity database.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminRegistrationToken {
+    pub created_at: String,
+    pub created_by: Option<AdminUserReference>,
+    pub expires_at: Option<String>,
+    pub id: String,
+    pub is_expired: bool,
+    pub is_used: bool,
+    pub note: Option<String>,
+    pub roles: Vec<String>,
+    pub used_at: Option<String>,
+    pub used_by: Option<AdminUserReference>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminUserReference {
+    pub email: String,
+    pub name: String,
+    pub subject_id: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
