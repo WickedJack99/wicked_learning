@@ -3980,6 +3980,35 @@ tool catalog administration, a generic activity editor, version snapshots or
 review history. The original UI may consume the contract only after its
 complete activity-editor adapter and browser parity evidence are available.
 
+## ADR-098: Map viewing access remains separate from map editing
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source World Builder gives map visibility its own
+`world_map_access` permission. A contributor allowed to edit authored map
+content must not automatically be able to broaden the learner audience, while
+a direct editing-group assignment must not silently become access-policy
+authority.
+
+**Decision:** `PATCH /api/v1/admin/world-builder/maps/{map_id}/access`
+replaces the complete source-shaped viewer-role list after the distinct
+`world_map_access` update permission and its `all`, `own` or `assigned` map
+scope are checked. The persisted list contains only `public` and current
+application-role keys; blank values are rejected and duplicates are
+normalized. The command updates no group-editor assignment, map content or
+learner records. The selected-map projection reports whether the caller may
+manage this boundary, so the lifted source Access permissions control is shown
+only when that scope is available.
+
+**Why:** This preserves the source distinction between who may visit a map and
+who may author it. Validating the full replacement list inside the authorized
+transaction prevents a browser from granting a deleted or invented role.
+
+**Limits and follow-up:** Map editor-group assignment remains a separate
+source command with its own manageable-group scope. This slice does not change
+the existing learner-world visibility reader, create a new role type or alter
+map content.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

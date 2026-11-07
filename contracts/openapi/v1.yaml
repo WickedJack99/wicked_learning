@@ -911,6 +911,29 @@ paths:
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '409': { description: The map changed after this browser copy was loaded. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/access:
+    patch:
+      operationId: updateAdminWorldBuilderMapAccess
+      summary: Replace the source viewer groups for one scoped World Builder map.
+      description: Requires the distinct source map-access update permission and its all, own or assigned map scope. It changes learner visibility only; map editor assignments remain a separate command.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminWorldMapAccessRequest' }
+      responses:
+        '204': { description: The map viewer groups were replaced. }
+        '400': { description: The source access form contains no groups or an unknown role. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map is unknown or unavailable through the source map-access scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}:
     get:
       operationId: getAdminWorldBuilderNode
@@ -7863,6 +7886,16 @@ components:
       properties:
         map_id: { type: string, format: uuid }
         updated_at: { type: string, format: date-time }
+    UpdateAdminWorldMapAccessRequest:
+      type: object
+      additionalProperties: false
+      required: [access_roles]
+      properties:
+        access_roles:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 80 }
     AdminMapSummary:
       type: object
       additionalProperties: false
@@ -7969,9 +8002,10 @@ components:
     AdminEditableMap:
       type: object
       additionalProperties: false
-      required: [can_delete_world_maps, editable_map, access_groups, items, learning_groups, role_options, topic_options, tools]
+      required: [can_delete_world_maps, can_manage_map_access, editable_map, access_groups, items, learning_groups, role_options, topic_options, tools]
       properties:
         can_delete_world_maps: { type: boolean }
+        can_manage_map_access: { type: boolean }
         editable_map:
           $ref: '#/components/schemas/AdminEditableMapDocument'
         access_groups:

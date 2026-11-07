@@ -695,6 +695,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapDetails"];
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace the source viewer groups for one scoped World Builder map.
+         * @description Requires the distinct source map-access update permission and its all, own or assigned map scope. It changes learner visibility only; map editor assignments remain a separate command.
+         */
+        patch: operations["updateAdminWorldBuilderMapAccess"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}": {
         parameters: {
             query?: never;
@@ -5230,6 +5250,9 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        UpdateAdminWorldMapAccessRequest: {
+            access_roles: string[];
+        };
         AdminMapSummary: {
             /** Format: uuid */
             id: string;
@@ -5309,6 +5332,7 @@ export interface components {
         };
         AdminEditableMap: {
             can_delete_world_maps: boolean;
+            can_manage_map_access: boolean;
             editable_map: components["schemas"]["AdminEditableMapDocument"];
             access_groups: components["schemas"]["AdminMapAccessGroup"][];
             items: components["schemas"]["AdminEditableItem"][];
@@ -8348,6 +8372,68 @@ export interface operations {
             };
             /** @description The map changed after this browser copy was loaded. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMapAccess: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminWorldMapAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description The map viewer groups were replaced. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source access form contains no groups or an unknown role. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source map-access scope. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

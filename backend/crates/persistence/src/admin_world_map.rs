@@ -199,6 +199,16 @@ async fn load_editable_map(
                     is_direct_editor,
                 )
             });
+    let can_manage_map_access = principal
+        .permission_scope("world_map_access", "ru")
+        .is_some_and(|scope| {
+            scope_allows_map(
+                scope,
+                map.created_by_principal_id,
+                principal_id,
+                is_direct_editor,
+            )
+        });
     let (access_groups, role_options) = load_role_options(pool).await?;
     let learning_groups = load_manageable_learning_groups(pool, principal_id, principal).await?;
     let topic_options = load_topic_options(pool).await?;
@@ -207,6 +217,7 @@ async fn load_editable_map(
 
     Ok(Some(AdminEditableMap {
         can_delete_world_maps,
+        can_manage_map_access,
         editable_map: AdminEditableMapDocument {
             world: AdminWorldSummary {
                 id: map.world_id,

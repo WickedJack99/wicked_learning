@@ -79,6 +79,30 @@ test('a local world author can open the source-derived World Builder graph', asy
         map_assets_locked: true,
         topic_id: null,
     });
+    await page.getByRole('button', { name: 'Manage map access' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Access permissions' }),
+    ).toBeVisible();
+    await page.getByLabel('Platform administrator').check();
+    const accessUpdate = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            response.url().includes(
+                `/api/v1/admin/world-builder/maps/${updatedMap.id}/access`,
+            ),
+    );
+    await page.getByRole('button', { name: 'Save access' }).click();
+    expect((await accessUpdate).status()).toBe(204);
+    const accessMapResponse = await page.request.get(
+        `/api/v1/admin/world-builder/maps/${updatedMap.id}`,
+    );
+    expect(accessMapResponse.ok()).toBeTruthy();
+    const accessMapDocument = (await accessMapResponse.json()) as {
+        editable_map: { map: { access_roles: string[] } };
+    };
+    expect(accessMapDocument.editable_map.map.access_roles).toContain(
+        'platform_administrator',
+    );
     await page.getByRole('button', { name: 'Delete map' }).click();
     await expect(
         page.getByRole('heading', { name: 'Delete world map?' }),

@@ -104,6 +104,7 @@ pub struct AdminPortalActivity {
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminEditableMap {
     pub can_delete_world_maps: bool,
+    pub can_manage_map_access: bool,
     pub editable_map: AdminEditableMapDocument,
     pub access_groups: Vec<AdminMapAccessGroup>,
     pub items: Vec<AdminEditableItem>,
