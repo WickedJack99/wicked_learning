@@ -26,6 +26,7 @@ import { OriginalPlatformFeedbackPage } from './original-platform-feedback';
 import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
+import { OriginalWorldBuilderPage } from './original-world-builder';
 import {
     PublicInformationPage,
     PublicSourceCodePage,
@@ -458,6 +459,13 @@ export function App() {
 
         if (currentUser.kind === 'anonymous') {
             return <Navigate replace to="/login" />;
+        }
+
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+            'admin-world-builder'
+        ) {
+            return <OriginalWorldBuilderPage isAuthenticated />;
         }
 
         if (usersPanel) {

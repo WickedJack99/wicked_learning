@@ -917,14 +917,16 @@ The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
 the original editor's independently persisted, rounded `start`/`end` graph
 positions under the same scoped activity-authoring and CSRF boundary, without
-changing learner starts, activities or playback. The remaining activity, route,
-transition, revision and source-catalog commands are still not exposed.
+changing learner starts, activities or playback. Subsequent source-shaped
+activity, route-start and transition commands have their own bounded contracts;
+revision and source-catalog workflows remain unavailable.
 Ordinary activity-card dragging is now also available at `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/graph-position`. It
 preserves the source UI's finite-number validation and integer rounding, locks
 the scoped activity/node and changes only `graph_position_x`/`graph_position_y`.
 It is intentionally not an activity-content editor, does not start or end a
-learner route, and is not exposed through a substitute World Builder screen.
+learner route, and is consumed only by the source-derived World Builder graph
+reader rather than an independent substitute screen.
 Activity deletion is now available at `DELETE
 /api/v1/admin/world-builder/activities/{activity_id}`. It retains the original
 command's activity-authoring scope, removes the activity's selected-node starts,
@@ -1018,10 +1020,16 @@ Editing preserves the source form's narrow scope: it accepts only the display
 label and an outcome transition's optional trigger value; an empty label falls
 back to the target activity title or source connector label. Deletion returns
 the selected node's complete ordered transition state. All activity-content
-commands other than Open Practice and Reflection remain unavailable.
-No World Builder React route is exposed from these partial contracts: the next
-slice must adapt the existing World Builder React components against all three
-read contracts, rather than inventing a reduced editor.
+types without a source-shaped writer remain unavailable.
+The source-derived World Builder graph reader is now exposed through
+`/settings?panel=admin-world-builder`. It uses the original React Flow graph
+language to read the scoped world graph, then separately loads a selected map
+and selected node activity graph through all three Rust authoring-read
+contracts. Activity cards retain source graph dragging through the existing
+position command. The reader deliberately does not pretend that the source
+map/configuration/activity forms, histories, templates or media workflows are
+complete: those controls remain absent until their source workflows can be
+adapted end-to-end rather than replaced with a reduced editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
