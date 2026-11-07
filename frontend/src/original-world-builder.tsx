@@ -379,6 +379,13 @@ function WorldBuilderContent() {
                     ) : editableMap && selectedMapId ? (
                         <MapDetails
                             document={editableMap}
+                            onDeleted={() => {
+                                setEditableMap(null);
+                                setEditableNode(null);
+                                setPortal(null);
+                                navigate('/settings?panel=admin-world-builder');
+                                void loadWorld();
+                            }}
                             onSelectNode={(nodeId) =>
                                 selectNode(selectedMapId, nodeId)
                             }
@@ -576,12 +583,46 @@ function MapGraphCard({
 
 function MapDetails({
     document,
+    onDeleted,
     onSelectNode,
 }: {
     document: EditableMap;
+    onDeleted: () => void;
     onSelectNode: (nodeId: string) => void;
 }) {
     const { map } = document.editable_map;
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    const deleteMap = async () => {
+        setDeleteError(null);
+        setDeleting(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.DELETE(
+                '/admin/world-builder/maps/{map_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { map_id: map.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                setDeleteError(
+                    'The map could not be deleted. Refresh the World Builder and try again.',
+                );
+                return;
+            }
+            onDeleted();
+        } catch {
+            setDeleteError('The map could not be deleted. Check your connection and try again.');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     return (
         <div>
             <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
@@ -616,6 +657,71 @@ function MapDetails({
                     ))}
                 </div>
             </section>
+            {document.can_delete_world_maps ? (
+                <section className="mt-6 border-t border-red-200 pt-4 dark:border-red-400/30">
+                    <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
+                        Delete map
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Remove this map and all of its authored tiles and learning state.
+                    </p>
+                    <button
+                        className="mt-3 inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10"
+                        onClick={() => setDeleteOpen(true)}
+                        type="button"
+                    >
+                        <Trash2 className="size-4" />
+                        Delete map
+                    </button>
+                </section>
+            ) : null}
+            {deleteOpen ? (
+                <div
+                    aria-labelledby="delete-map-title"
+                    aria-modal="true"
+                    className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+                    role="dialog"
+                >
+                    <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                        <h2 className="text-xl font-semibold" id="delete-map-title">
+                            Delete world map?
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            This removes the map, its tiles, activities, portal links and learner progress for those tiles. This cannot be undone.
+                        </p>
+                        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-950 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-100">
+                            <span className="font-semibold">{map.title}</span>
+                            <span className="mt-1 block text-red-800 dark:text-red-200/80">
+                                {map.node_count} tile{map.node_count === 1 ? '' : 's'} will be deleted with this map.
+                            </span>
+                        </div>
+                        {deleteError ? (
+                            <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                                {deleteError}
+                            </p>
+                        ) : null}
+                        <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                            <button
+                                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+                                disabled={deleting}
+                                onClick={() => setDeleteOpen(false)}
+                                type="button"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="inline-flex items-center gap-2 rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60 dark:bg-red-500 dark:text-slate-950 dark:hover:bg-red-400"
+                                disabled={deleting}
+                                onClick={() => void deleteMap()}
+                                type="button"
+                            >
+                                <Trash2 className="size-4" />
+                                {deleting ? 'Deleting…' : 'Delete world map'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }

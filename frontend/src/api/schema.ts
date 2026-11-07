@@ -665,7 +665,11 @@ export interface paths {
         get: operations["getAdminWorldBuilderMap"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a source-scoped World Builder map and its dependent state.
+         * @description Requires the source world-map delete permission and its all, own or assigned map scope. Database cascades remove map-owned tiles, activities, portal links and learner state atomically.
+         */
+        delete: operations["deleteAdminWorldBuilderMap"];
         options?: never;
         head?: never;
         patch?: never;
@@ -8199,6 +8203,57 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    deleteAdminWorldBuilderMap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The map and its dependent state were deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source delete scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

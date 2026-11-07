@@ -867,6 +867,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+    delete:
+      operationId: deleteAdminWorldBuilderMap
+      summary: Delete a source-scoped World Builder map and its dependent state.
+      description: Requires the source world-map delete permission and its all, own or assigned map scope. Database cascades remove map-owned tiles, activities, portal links and learner state atomically.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The map and its dependent state were deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map is unknown or unavailable through the source delete scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}:
     get:
       operationId: getAdminWorldBuilderNode

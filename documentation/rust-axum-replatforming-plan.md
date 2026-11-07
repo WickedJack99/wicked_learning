@@ -1048,8 +1048,12 @@ also adapts its source Create world node dialog through `POST
 /api/v1/admin/world-builder/maps`: title, optional slug and description retain
 their source bounds; Rust resolves the current authoring World, assigns the
 creating principal, generates collision-safe omitted slugs and returns a draft
-map that the browser graph refetches before selecting. Other activity-card
-types and map/configuration forms deliberately remain read-only in this
+map that the browser graph refetches before selecting. Authors holding the
+stricter scoped `world_maps` delete permission can now confirm deletion through
+`DELETE /api/v1/admin/world-builder/maps/{map_id}`; the selected map is cleared
+only after the database transaction cascades its owned tiles, activities,
+portal links and learner state, then the browser refetches the graph. Other
+activity-card types and map/configuration forms deliberately remain read-only in this
 surface. Histories, templates and media workflows remain absent until their
 source workflows can be adapted end-to-end rather than replaced with a reduced
 editor.

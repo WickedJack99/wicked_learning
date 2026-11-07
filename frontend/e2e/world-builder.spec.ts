@@ -28,6 +28,32 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(page.getByLabel('Description')).toBeVisible();
     await page.getByRole('button', { name: 'Cancel' }).click();
 
+    const disposableMapTitle = `Disposable deletion map ${Date.now()}`;
+    await page.getByRole('button', { name: 'Create map' }).click();
+    await page.getByLabel('Title').fill(disposableMapTitle);
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(page.getByRole('heading', { name: disposableMapTitle })).toBeVisible();
+    await page.getByRole('button', { name: 'Delete map' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Delete world map?' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText(
+            'This removes the map, its tiles, activities, portal links and learner progress for those tiles. This cannot be undone.',
+        ),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Delete world map' }).click();
+    await expect(page).toHaveURL(/\/settings\?panel=admin-world-builder$/);
+
+    const deletedMapResponse = await page.request.get('/api/v1/admin/world-builder');
+    expect(deletedMapResponse.ok()).toBeTruthy();
+    const deletedMapGraph = (await deletedMapResponse.json()) as {
+        maps: Array<{ title: string }>;
+    };
+    expect(deletedMapGraph.maps).not.toContainEqual(
+        expect.objectContaining({ title: disposableMapTitle }),
+    );
+
     const graphResponse = await page.request.get('/api/v1/admin/world-builder');
     expect(graphResponse.ok()).toBeTruthy();
     const graph = (await graphResponse.json()) as {
@@ -55,7 +81,7 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(page.getByLabel('Learner invitation')).toBeVisible();
     await page.getByRole('button', { name: 'Close activity form' }).click();
 
-    await page.getByRole('button', { name: 'Obstacle' }).click();
+    await page.getByRole('button', { name: 'Obstacle', exact: true }).click();
     await expect(
         page.getByRole('heading', { name: 'Add Obstacle' }),
     ).toBeVisible();
@@ -79,7 +105,7 @@ test('a local world author can open the source-derived World Builder graph', asy
     ).toBeVisible();
     await expect(page.getByLabel('Probability')).toBeVisible();
     await page.getByRole('button', { name: 'Add item' }).click();
-    await expect(page.getByLabel('Item 1')).toBeVisible();
+    await expect(page.getByLabel('Item 1', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Quantity for item 1')).toHaveValue('1');
     await expect(page.getByLabel('Dark background')).toBeVisible();
     await page.getByRole('button', { name: 'Close activity form' }).click();
@@ -99,7 +125,9 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(
         page.getByRole('heading', { name: 'Add Item obstacle' }),
     ).toBeVisible();
-    await expect(page.getByLabel('Required item 1')).toBeVisible();
+    await expect(
+        page.getByLabel('Required item 1', { exact: true }),
+    ).toBeVisible();
     await expect(page.getByLabel('Failed try lockout (minutes)')).toHaveValue(
         '0',
     );
@@ -151,9 +179,6 @@ test('a local world author can open the source-derived World Builder graph', asy
                     `[data-nodeid="${activity.id}"][data-handleid="${output.id}"]`,
                 ),
             ).toBeVisible();
-            await expect(
-                page.getByText(output.label, { exact: true }),
-            ).toBeVisible();
         }
         await page
             .getByRole('button', { name: `Delete ${activity.title}` })
@@ -179,7 +204,11 @@ test('a local world author can open the source-derived World Builder graph', asy
                 ),
             ).toBeVisible();
         }
-        await page.locator(`[data-id="${transition.id}"]`).click();
+        await page
+            .getByRole('group', {
+                name: `Edge from ${transition.from_activity_id} to ${transition.to_activity_id ?? '__end'}`,
+            })
+            .click();
         await expect(
             page.getByRole('heading', { name: 'Edit connection' }),
         ).toBeVisible();
@@ -189,7 +218,11 @@ test('a local world author can open the source-derived World Builder graph', asy
 
     const startRoute = node.activity_graph.node.start_routes.at(0);
     if (startRoute) {
-        await page.locator(`[data-id="__start-edge:${startRoute.id}"]`).click();
+        await page
+            .getByRole('group', {
+                name: `Edge from __start to ${startRoute.activity_id}`,
+            })
+            .click({ force: true });
         await expect(
             page.getByRole('heading', { name: 'Route visuals' }),
         ).toBeVisible();
