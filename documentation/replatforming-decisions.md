@@ -3042,12 +3042,44 @@ all handlers to the new matrix immediately would conflate a schema migration
 with the authorization migration of every feature. Both alternatives are
 rejected.
 
-**Limits and follow-up:** The `roles` read permission now guards the catalogue
-read (while the earlier dedicated capability remains as a transition fallback).
-Other matrix rows are still a faithful data projection, not an authorization
-claim for unported features. Role CRUD, hierarchy-based assignment, account
-access controls, audit history and the source React settings panels follow only
-after their enforcement boundaries are complete.
+**Limits and follow-up:** The `roles` resource now authorizes its own read,
+create/update and deletion operations (while the earlier read capability
+remains as a transition fallback). Other matrix rows are still a faithful data
+projection, not an authorization claim for unported features. Hierarchy-based
+assignment, account access controls, audit history and the source React
+settings panels follow only after their enforcement boundaries are complete.
+
+## ADR-078: Role writes replace the whole source permission matrix atomically
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** A role edit changes its name, description, hierarchy level and
+every resource's permission level and scope. Saving individual browser fields
+would permit a partly applied role and could make an administrator believe a
+permission had changed when it had not.
+
+**Decision:** The Rust role write contract accepts a complete source-shaped
+matrix. Missing known resource entries receive the source defaults (`none`
+permission and `all` scope); invalid level/scope/key/name/length values are
+rejected before persistence. PostgreSQL creates or updates the role metadata
+and all 26 rows in one transaction, and returns the freshly projected role.
+Only `roles: ru` may create or update; only `roles: rud` may delete. A system
+role produces a validation rejection rather than being deleted.
+
+**Why:** This matches the source editor's all-resource save semantics while
+avoiding partial authorization state. Keeping the key immutable after creation
+protects foreign-key role assignments and mirrors the source UI. The API is
+ready for the lifted source panel without adding a standalone replacement UI.
+
+**Alternatives:** PATCHing arbitrary individual permission rows makes source
+defaults and transaction boundaries unclear. Allowing system-role deletion can
+leave new registrations or temporary accounts without their required baseline
+role. Both alternatives are rejected.
+
+**Limits and follow-up:** This slice owns role definitions, not assignment to
+people. The source's hierarchy check, identity login disable/ban state and
+access-change audit need the user-administration slice before the original
+combined Access Management workspace can be exposed.
 
 ## Phase 1 gate
 

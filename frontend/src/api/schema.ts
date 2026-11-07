@@ -979,11 +979,32 @@ export interface paths {
         /** Read the source-shaped role catalogue and its migrated capabilities. */
         get: operations["getAdminRoles"];
         put?: never;
-        post?: never;
+        /** Create a source-shaped configurable role and its complete permission matrix. */
+        post: operations["createAdminRole"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/admin/roles/{role_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_key: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a non-system role. */
+        delete: operations["deleteAdminRole"];
+        options?: never;
+        head?: never;
+        /** Update role metadata and every source permission row without changing its key. */
+        patch: operations["updateAdminRole"];
         trace?: never;
     };
     "/admin/access-links": {
@@ -3778,6 +3799,21 @@ export interface components {
         AdminRoles: {
             permission_resources: components["schemas"]["AdminPermissionResource"][];
             roles: components["schemas"]["AdminRole"][];
+        };
+        AdminRoleResponse: {
+            role: components["schemas"]["AdminRole"];
+        };
+        SaveAdminRoleRequest: {
+            description?: string | null;
+            level: number;
+            name: string;
+            permission_scopes: {
+                [key: string]: "none" | "own" | "assigned" | "group" | "all";
+            };
+            permissions: {
+                [key: string]: "none" | "ro" | "ru" | "rud";
+            };
+            role_key?: string | null;
         };
         AdminLearningGroupResponse: {
             group: components["schemas"]["AdminLearningGroup"];
@@ -7465,6 +7501,190 @@ export interface operations {
                 content?: never;
             };
             /** @description The current principal cannot read role administration data. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminRole: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description The created role. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRoleResponse"];
+                };
+            };
+            /** @description The source role form is invalid or the role key is already in use. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot update roles. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminRole: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                role_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The role was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Default system roles must remain available. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The role is unavailable or the current principal cannot delete roles. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminRole: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                role_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRoleResponse"];
+                };
+            };
+            /** @description The source role form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The role is unavailable or the current principal cannot update roles. */
             404: {
                 headers: {
                     [name: string]: unknown;

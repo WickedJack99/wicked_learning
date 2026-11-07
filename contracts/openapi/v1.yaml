@@ -1151,6 +1151,66 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current principal cannot read role administration data. }
         '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminRole
+      summary: Create a source-shaped configurable role and its complete permission matrix.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminRoleRequest' }
+      responses:
+        '201':
+          description: The created role.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRoleResponse' }
+        '400': { description: The source role form is invalid or the role key is already in use. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot update roles. }
+        '503': { description: The application database is unavailable. }
+  /admin/roles/{role_key}:
+    parameters:
+      - name: role_key
+        in: path
+        required: true
+        schema: { type: string, pattern: '^[a-z0-9_-]{1,80}$' }
+    patch:
+      operationId: updateAdminRole
+      summary: Update role metadata and every source permission row without changing its key.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminRoleRequest' }
+      responses:
+        '200':
+          description: The updated role.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRoleResponse' }
+        '400': { description: The source role form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The role is unavailable or the current principal cannot update roles. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminRole
+      summary: Delete a non-system role.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The role was deleted. }
+        '400': { description: Default system roles must remain available. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The role is unavailable or the current principal cannot delete roles. }
+        '503': { description: The application database is unavailable. }
   /admin/access-links:
     get:
       operationId: getAdminAccessLinks
@@ -5616,6 +5676,33 @@ components:
         roles:
           type: array
           items: { $ref: '#/components/schemas/AdminRole' }
+    AdminRoleResponse:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role: { $ref: '#/components/schemas/AdminRole' }
+    SaveAdminRoleRequest:
+      type: object
+      additionalProperties: false
+      required: [level, name, permission_scopes, permissions]
+      properties:
+        description: { type: [string, 'null'], maxLength: 500 }
+        level: { type: integer, minimum: 1, maximum: 100 }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        permission_scopes:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [none, own, assigned, group, all]
+        permissions:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [none, ro, ru, rud]
+        role_key:
+          type: [string, 'null']
+          pattern: '^[a-z0-9_-]{1,80}$'
     AdminLearningGroupResponse:
       type: object
       additionalProperties: false
