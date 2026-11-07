@@ -888,6 +888,20 @@ invariants are tested, and rollback does not require replaying ambiguous writes.
    the existing constraint that AI output is reviewable and cannot directly
    navigate or mutate learning content.
 
+**Current authoring-read status — 7 November 2026:** The first World Builder
+read contract is available at `GET /api/v1/admin/world-builder`. It mirrors
+Laravel's two-stage boundary: any `world_maps`, `world_nodes`,
+`world_activities`, or `world_map_access` read grant can open the area, but
+the returned graph contains only maps selected by the source all/own/assigned
+scope and direct editing-group membership. It returns draft map/node fields,
+portal candidates and portal links as a separate authoring projection; it does
+not reuse learner visibility reads. Review-queue counts and full unlock-path
+diagnostics remain zero/empty until their source data models and authoring
+workflows are migrated. No World Builder React route is exposed from this
+partial contract: the next slices must lift the existing World Builder React
+components together with the selected-map/node read contracts, rather than
+inventing a reduced editor.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

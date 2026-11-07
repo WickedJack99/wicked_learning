@@ -3622,9 +3622,50 @@ subjects outside application content rows.
 permission, or deriving authoring access from learner visibility, would expose
 unrelated authored work. Both are rejected.
 
-**Limits and follow-up:** This is authorization storage only. It does not yet
-expose a World Builder endpoint, alter existing learner reads, or implement
-the source editor's create/update/import/export workflow.
+**Implementation status:** `GET /api/v1/admin/world-builder` now uses these
+facts for the source-shaped, read-only authoring graph. It alters neither
+existing learner reads nor any authoring writer.
+
+**Limits and follow-up:** The endpoint is only the overview read contract. It
+does not implement the source editor's selected-map/node reads,
+create/update/import/export workflow, review queue or unlock diagnostics.
+
+## ADR-092: World Builder overview keeps authoring reads separate from learner World reads
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The Rust learner World snapshot filters published content by a
+learner's viewing role and includes private learner state. The Laravel World
+Builder graph instead includes authoring drafts, is scoped by map-edit policy,
+and supplies portal/authoring details. Reusing the learner projection would
+either hide valid draft work or leak learner-private state and could let
+learner visibility stand in for editor authority.
+
+**Decision:** Add a dedicated read-only `GET /api/v1/admin/world-builder`
+contract and `AdminWorldGraph` projection. Opening it requires any source
+World Builder read grant (`world_maps`, `world_nodes`, `world_activities`, or
+`world_map_access`). Its persistence query then applies the narrower source
+`scopeEditableMaps()` rule: `all` includes every map; `own` includes maps
+created by the principal; `assigned`/`group` includes direct editing-group
+membership; and direct editing-group membership remains sufficient even when a
+role has no update grant. The response may contain drafts and source-shaped
+portal details, but no learner progress, inventory or browser-owned policy.
+
+**Why:** This preserves the source's two distinct authorization questions and
+allows the original World Builder React components to be lifted incrementally
+on a stable typed API contract.
+
+**Alternatives:** Extending `/learner/world` would blur learner and author
+data/authorization. Returning all maps to every user who may open the panel
+would violate source scope. Building a bespoke partial editor before its
+remaining contracts would violate the original-UI requirement. These are
+rejected.
+
+**Limits and follow-up:** The greenfield schema currently has no migrated AI
+review-status model or full node-reachability diagnostic model, so their
+source-shaped overview counts/diagnostics are deliberately zero/empty. The
+contract is not exposed through a new frontend screen until the existing
+World Builder screen can consume its complete necessary data.
 
 ## Phase 1 gate
 

@@ -6,6 +6,7 @@ pub mod account_profile;
 pub mod admin_learning_group;
 pub mod admin_role;
 pub mod admin_user;
+pub mod admin_world_graph;
 pub mod current_user;
 pub mod feedback_prompt_preference;
 pub mod identity_registration;

@@ -1,5 +1,102 @@
 use serde::Serialize;
 use serde_json::Value;
+use uuid::Uuid;
+
+/// The source World Builder's read-only graph. This is intentionally separate
+/// from `PublicWorld`: an author sees draft content and authoring diagnostics,
+/// while a learner must only receive a published, access-filtered projection.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminWorldGraph {
+    pub world: AdminWorldSummary,
+    pub maps: Vec<AdminMapSummary>,
+    pub portal_candidates: Vec<AdminPortalCandidate>,
+    pub portal_links: Vec<AdminPortalLink>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminWorldSummary {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminMapSummary {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub updated_at: String,
+    pub node_count: i64,
+    /// AI review state has its own later authoring slice. Keeping this field
+    /// source-shaped makes the graph contract forward-compatible without
+    /// implying that review queue data is already migrated.
+    pub review_count: i64,
+    pub access_roles: Vec<String>,
+    pub nodes: Vec<AdminNodeSummary>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNodeSummary {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub activity_review_count: i64,
+    pub position: AdminNodePosition,
+    pub state: String,
+    /// Source-compatible authoring configuration. It is not part of learner
+    /// World snapshots.
+    pub visual_config: Value,
+    /// A later node-authoring slice will calculate the source's complete
+    /// reachability diagnostics. Empty means no diagnostic is currently known,
+    /// not that browser code may infer an unlock path.
+    pub unlock_diagnostics: Vec<AdminUnlockDiagnostic>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNodePosition {
+    pub q: i32,
+    pub r: i32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminUnlockDiagnostic {
+    pub id: Uuid,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminPortalCandidate {
+    pub map_id: Uuid,
+    pub map_title: String,
+    #[serde(flatten)]
+    pub node: AdminNodeSummary,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminPortalLink {
+    /// The Rust schema models a portal link by its unique source activity.
+    /// It remains an opaque graph-link identity for the browser.
+    pub id: Uuid,
+    pub label: Option<String>,
+    pub description: Option<String>,
+    pub source_map_id: Uuid,
+    pub target_map_id: Uuid,
+    pub source_activity: Option<AdminPortalActivity>,
+    pub target_activity: Option<AdminPortalActivity>,
+    pub source_node: AdminNodeSummary,
+    pub target_node: AdminNodeSummary,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminPortalActivity {
+    pub id: Uuid,
+    pub title: String,
+    pub activity_type: String,
+}
 
 #[derive(Clone, Debug, Serialize)]
 pub struct PublicWorld {

@@ -611,6 +611,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the signed-in author's source-shaped, editable World Builder graph.
+         * @description The server authorizes opening World Builder by any of the four source World Builder read permissions, then returns only maps editable through the source all/own/assigned/group scope. It includes draft map and node content; it is not a learner World endpoint and does not authorize mutations.
+         */
+        get: operations["getAdminWorldBuilderGraph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/maps/{map_slug}/nodes/{node_slug}/bookmark": {
         parameters: {
             query?: never;
@@ -4671,6 +4691,98 @@ export interface components {
             available_routes: components["schemas"]["LearnerWorldRoute"][];
             start_routes: components["schemas"]["LearnerActivityStart"][];
         };
+        AdminWorldGraph: {
+            world: components["schemas"]["AdminWorldSummary"];
+            maps: components["schemas"]["AdminMapSummary"][];
+            portal_candidates: components["schemas"]["AdminPortalCandidate"][];
+            portal_links: components["schemas"]["AdminPortalLink"][];
+        };
+        AdminWorldSummary: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AdminMapSummary: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            /** Format: date-time */
+            updated_at: string;
+            node_count: number;
+            review_count: number;
+            access_roles: string[];
+            nodes: components["schemas"]["AdminNodeSummary"][];
+        };
+        AdminNodeSummary: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            activity_review_count: number;
+            position: {
+                q: number;
+                r: number;
+            };
+            /** @enum {string} */
+            state: "available" | "locked" | "hidden";
+            visual_config: {
+                [key: string]: unknown;
+            };
+            unlock_diagnostics: components["schemas"]["AdminUnlockDiagnostic"][];
+        };
+        AdminUnlockDiagnostic: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        AdminPortalCandidate: {
+            /** Format: uuid */
+            map_id: string;
+            map_title: string;
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            activity_review_count: number;
+            position: {
+                q: number;
+                r: number;
+            };
+            /** @enum {string} */
+            state: "available" | "locked" | "hidden";
+            visual_config: {
+                [key: string]: unknown;
+            };
+            unlock_diagnostics: components["schemas"]["AdminUnlockDiagnostic"][];
+        };
+        AdminPortalLink: {
+            /** Format: uuid */
+            id: string;
+            label: string | null;
+            description: string | null;
+            /** Format: uuid */
+            source_map_id: string;
+            /** Format: uuid */
+            target_map_id: string;
+            source_activity: components["schemas"]["AdminPortalActivity"] | null;
+            target_activity: components["schemas"]["AdminPortalActivity"] | null;
+            source_node: components["schemas"]["AdminNodeSummary"];
+            target_node: components["schemas"]["AdminNodeSummary"];
+        };
+        AdminPortalActivity: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            activity_type: string;
+        };
         PublicRoutePreview: {
             slug: string;
             title: string;
@@ -6676,6 +6788,62 @@ export interface operations {
                 };
             };
             /** @description No World map is visible to this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getAdminWorldBuilderGraph: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current authoring World and only the maps within the principal's edit scope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminWorldGraph"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The World Builder is unavailable to this principal or no current authoring World exists. */
             404: {
                 headers: {
                     [name: string]: unknown;

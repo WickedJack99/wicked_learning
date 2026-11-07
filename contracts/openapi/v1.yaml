@@ -767,6 +767,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/world-builder:
+    get:
+      operationId: getAdminWorldBuilderGraph
+      summary: Read the signed-in author's source-shaped, editable World Builder graph.
+      description: The server authorizes opening World Builder by any of the four source World Builder read permissions, then returns only maps editable through the source all/own/assigned/group scope. It includes draft map and node content; it is not a learner World endpoint and does not authorize mutations.
+      responses:
+        '200':
+          description: The current authoring World and only the maps within the principal's edit scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminWorldGraph'
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: The identity has no application principal or role assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The World Builder is unavailable to this principal or no current authoring World exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /learner/maps/{map_slug}/nodes/{node_slug}/bookmark:
     post:
       operationId: createLearnerNodeBookmark
@@ -6987,6 +7023,141 @@ components:
           maxItems: 1000
           items:
             $ref: '#/components/schemas/LearnerActivityStart'
+    AdminWorldGraph:
+      type: object
+      additionalProperties: false
+      required: [world, maps, portal_candidates, portal_links]
+      properties:
+        world:
+          $ref: '#/components/schemas/AdminWorldSummary'
+        maps:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/AdminMapSummary'
+        portal_candidates:
+          type: array
+          maxItems: 10000
+          items:
+            $ref: '#/components/schemas/AdminPortalCandidate'
+        portal_links:
+          type: array
+          maxItems: 10000
+          items:
+            $ref: '#/components/schemas/AdminPortalLink'
+    AdminWorldSummary:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        description: { type: string }
+        updated_at: { type: string, format: date-time }
+    AdminMapSummary:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, updated_at, node_count, review_count, access_roles, nodes]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        description: { type: string }
+        updated_at: { type: string, format: date-time }
+        node_count: { type: integer, minimum: 0 }
+        review_count: { type: integer, minimum: 0 }
+        access_roles:
+          type: array
+          items: { type: string, minLength: 1 }
+        nodes:
+          type: array
+          maxItems: 10000
+          items:
+            $ref: '#/components/schemas/AdminNodeSummary'
+    AdminNodeSummary:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, activity_review_count, position, state, visual_config, unlock_diagnostics]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        description: { type: string }
+        activity_review_count: { type: integer, minimum: 0 }
+        position:
+          type: object
+          additionalProperties: false
+          required: [q, r]
+          properties:
+            q: { type: integer }
+            r: { type: integer }
+        state: { type: string, enum: [available, locked, hidden] }
+        visual_config: { type: object, additionalProperties: true }
+        unlock_diagnostics:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUnlockDiagnostic'
+    AdminUnlockDiagnostic:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+    AdminPortalCandidate:
+      type: object
+      additionalProperties: false
+      required: [map_id, map_title, id, slug, title, description, activity_review_count, position, state, visual_config, unlock_diagnostics]
+      properties:
+        map_id: { type: string, format: uuid }
+        map_title: { type: string }
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string }
+        description: { type: string }
+        activity_review_count: { type: integer, minimum: 0 }
+        position:
+          type: object
+          additionalProperties: false
+          required: [q, r]
+          properties:
+            q: { type: integer }
+            r: { type: integer }
+        state: { type: string, enum: [available, locked, hidden] }
+        visual_config: { type: object, additionalProperties: true }
+        unlock_diagnostics:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUnlockDiagnostic'
+    AdminPortalLink:
+      type: object
+      additionalProperties: false
+      required: [id, label, description, source_map_id, target_map_id, source_activity, target_activity, source_node, target_node]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: [string, 'null'] }
+        description: { type: [string, 'null'] }
+        source_map_id: { type: string, format: uuid }
+        target_map_id: { type: string, format: uuid }
+        source_activity:
+          anyOf:
+            - $ref: '#/components/schemas/AdminPortalActivity'
+            - type: 'null'
+        target_activity:
+          anyOf:
+            - $ref: '#/components/schemas/AdminPortalActivity'
+            - type: 'null'
+        source_node: { $ref: '#/components/schemas/AdminNodeSummary' }
+        target_node: { $ref: '#/components/schemas/AdminNodeSummary' }
+    AdminPortalActivity:
+      type: object
+      additionalProperties: false
+      required: [id, title, activity_type]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        activity_type: { type: string, pattern: '^[a-z][a-z0-9_]{0,63}$' }
     PublicRoutePreview:
       type: object
       additionalProperties: false
