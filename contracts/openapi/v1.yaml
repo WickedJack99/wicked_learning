@@ -49,6 +49,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionStatus'
+  /session/two-factor:
+    post:
+      operationId: completeTwoFactorLogin
+      summary: Complete a pending Rust-owned two-factor login challenge.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TwoFactorChallengeRequest' }
+      responses:
+        '200':
+          description: The browser is now authenticated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionStatus' }
+        '401': { description: The challenge is missing, expired, invalid, or already used. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '429': { description: Too many challenge attempts were made. }
+        '503': { description: The identity database is unavailable. }
   /registration:
     post:
       operationId: registerIdentity
@@ -3244,6 +3265,14 @@ components:
         url:
           type: string
           pattern: '^/api/v1/profile-images/[0-9a-f-]{36}$'
+    TwoFactorChallengeRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
     SessionStatus:
       type: object
       additionalProperties: false

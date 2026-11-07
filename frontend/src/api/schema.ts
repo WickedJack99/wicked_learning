@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/session/two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete a pending Rust-owned two-factor login challenge. */
+        post: operations["completeTwoFactorLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/registration": {
         parameters: {
             query?: never;
@@ -2337,6 +2354,9 @@ export interface components {
             profile_image_id: string;
             url: string;
         };
+        TwoFactorChallengeRequest: {
+            code: string;
+        };
         SessionStatus: {
             authenticated: boolean;
             /**
@@ -4489,6 +4509,61 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SessionStatus"];
                 };
+            };
+        };
+    };
+    completeTwoFactorLogin: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description The browser is now authenticated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatus"];
+                };
+            };
+            /** @description The challenge is missing */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many challenge attempts were made. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

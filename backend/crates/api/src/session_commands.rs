@@ -5,6 +5,8 @@ use axum::{
 };
 use axum_login::AuthSession;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use totp_rs::Builder;
 use uuid::Uuid;
 
 use crate::{
@@ -35,6 +37,18 @@ pub fn pending_two_factor_login_is_fresh(pending: &PendingTwoFactorLogin, now: i
 pub struct LoginRequest {
     email: String,
     password: String,
+}
+
+#[derive(Deserialize)]
+pub struct TwoFactorChallengeRequest {
+    code: String,
+}
+
+#[derive(FromRow)]
+struct ActiveFactorRow {
+    encrypted_secret: Vec<u8>,
+    encryption_nonce: Vec<u8>,
+    last_accepted_step: Option<i64>,
 }
 
 pub async fn login(
@@ -116,6 +130,103 @@ pub async fn logout(
         .map_err(|_| ApiError::service_unavailable())?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn complete_two_factor(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    mut auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<TwoFactorChallengeRequest>,
+) -> Result<Json<SessionStatusResponse>, ApiError> {
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    if !is_six_digit_code(&request.code) {
+        return Err(ApiError::two_factor_challenge_rejected());
+    }
+    let pending = auth_session
+        .session
+        .get::<PendingTwoFactorLogin>(PENDING_TWO_FACTOR_LOGIN_KEY)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::two_factor_challenge_rejected)?;
+    if !pending_two_factor_login_is_fresh(
+        &pending,
+        time::OffsetDateTime::now_utc().unix_timestamp(),
+    ) {
+        let _ = auth_session
+            .session
+            .remove::<PendingTwoFactorLogin>(PENDING_TWO_FACTOR_LOGIN_KEY)
+            .await;
+        return Err(ApiError::two_factor_challenge_rejected());
+    }
+    let subject = auth_session
+        .backend
+        .active_subject_for_id(pending.subject_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::two_factor_challenge_rejected)?;
+    if subject.password_verifier() != pending.password_verifier {
+        return Err(ApiError::two_factor_challenge_rejected());
+    }
+    verify_totp(&state, subject.subject_id(), &request.code).await?;
+    auth_session
+        .session
+        .remove::<PendingTwoFactorLogin>(PENDING_TWO_FACTOR_LOGIN_KEY)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    auth_session
+        .login(&subject)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    Ok(Json(SessionStatusResponse {
+        authenticated: true,
+        subject_id: Some(subject.subject_id()),
+        two_factor_required: false,
+    }))
+}
+
+async fn verify_totp(state: &AppState, subject_id: Uuid, code: &str) -> Result<(), ApiError> {
+    let mut transaction = state
+        .identity_database
+        .begin()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    let factor = sqlx::query_as::<_, ActiveFactorRow>("SELECT encrypted_secret, encryption_nonce, last_accepted_step FROM identity_totp_factors WHERE subject_id = $1 AND confirmed_at IS NOT NULL FOR UPDATE")
+        .bind(subject_id).fetch_optional(&mut *transaction).await.map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::two_factor_challenge_rejected)?;
+    let nonce: [u8; 12] = factor
+        .encryption_nonce
+        .as_slice()
+        .try_into()
+        .map_err(|_| ApiError::service_unavailable())?;
+    let secret = state
+        .totp_secret_cipher
+        .decrypt(&factor.encrypted_secret, nonce)
+        .map_err(|_| ApiError::service_unavailable())?;
+    let totp = Builder::new()
+        .with_secret(secret)
+        .build()
+        .map_err(|_| ApiError::service_unavailable())?;
+    let step = totp
+        .check_current(code)
+        .ok_or_else(ApiError::two_factor_challenge_rejected)? as i64;
+    if factor.last_accepted_step.is_some_and(|last| step <= last) {
+        return Err(ApiError::two_factor_challenge_rejected());
+    }
+    let changed = sqlx::query("UPDATE identity_totp_factors SET last_accepted_step = $2, updated_at = NOW() WHERE subject_id = $1 AND (last_accepted_step IS NULL OR last_accepted_step < $2)")
+        .bind(subject_id).bind(step).execute(&mut *transaction).await.map_err(|_| ApiError::service_unavailable())?;
+    if changed.rows_affected() != 1 {
+        return Err(ApiError::two_factor_challenge_rejected());
+    }
+    transaction
+        .commit()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    Ok(())
+}
+
+fn is_six_digit_code(value: &str) -> bool {
+    value.len() == 6 && value.bytes().all(|byte| byte.is_ascii_digit())
 }
 
 #[cfg(test)]

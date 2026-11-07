@@ -331,6 +331,10 @@ fn router(state: AppState) -> Router {
         );
     let two_factor_routes = Router::new()
         .route(
+            "/api/v1/session/two-factor",
+            post(session_commands::complete_two_factor),
+        )
+        .route(
             "/api/v1/account/two-factor/setup",
             post(account_two_factor::start_setup),
         )

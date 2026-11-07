@@ -98,6 +98,14 @@ impl ApiError {
         }
     }
 
+    pub fn two_factor_challenge_rejected() -> Self {
+        Self {
+            code: "two_factor_challenge_rejected",
+            status: StatusCode::UNAUTHORIZED,
+            title: "The two-factor authentication code is not valid.",
+        }
+    }
+
     pub fn profile_update_rejected() -> Self {
         Self {
             code: "profile_update_rejected",
