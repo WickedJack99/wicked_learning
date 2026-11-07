@@ -48,4 +48,24 @@ test('a local world author can open the source-derived World Builder graph', asy
     ).toBeVisible();
     await expect(page.getByLabel('Question')).toBeVisible();
     await expect(page.getByLabel('Journal topic')).toBeVisible();
+    await page.getByRole('button', { name: 'Close activity form' }).click();
+
+    const nodeResponse = await page.request.get(
+        `/api/v1/admin/world-builder/nodes/${selectedMap.nodes[0].id}`,
+    );
+    expect(nodeResponse.ok()).toBeTruthy();
+    const node = (await nodeResponse.json()) as {
+        activity_graph: { activities: Array<{ title: string }> };
+    };
+    const activity = node.activity_graph.activities.at(0);
+    if (activity) {
+        await page
+            .getByRole('button', { name: `Delete ${activity.title}` })
+            .click();
+        await expect(
+            page.getByRole('heading', { name: 'Delete activity?' }),
+        ).toBeVisible();
+        await expect(page.getByText('This cannot be undone.')).toBeVisible();
+        await page.getByRole('button', { name: 'Cancel' }).click();
+    }
 });

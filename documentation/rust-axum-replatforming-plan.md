@@ -1026,7 +1026,9 @@ The source-derived World Builder graph reader is now exposed through
 language to read the scoped world graph, then separately loads a selected map
 and selected node activity graph through all three Rust authoring-read
 contracts. Activity cards retain source graph dragging through the existing
-position command. Within a selected node, the graph now adapts the source
+position command and the source delete confirmation through the scoped delete
+command; the node refetches only after a successful removal. Within a selected
+node, the graph now adapts the source
 Open Practice and Reflection create/edit forms through their complete typed
 Rust commands; it preserves their distinct invitation or reflection fields and
 refetches after a successful write. Other activity-card types deliberately

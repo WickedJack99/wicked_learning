@@ -19,6 +19,7 @@ import {
     Map as MapIcon,
     Plus,
     Route,
+    Trash2,
     X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -40,6 +41,7 @@ type WorldMapNodeData = {
 
 type ActivityNodeData = {
     activity: Activity;
+    onDelete: (activity: Activity) => void;
 };
 
 type WorldMapNode = Node<WorldMapNodeData, 'map'>;
@@ -498,6 +500,9 @@ function ActivityGraph({
     onSelectMap: () => void;
 }) {
     const graph = document.activity_graph;
+    const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const initialNodes = useMemo<ActivityFlowNode[]>(() => {
         const start: SpecialNode = {
             id: '__start',
@@ -510,7 +515,7 @@ function ActivityGraph({
             (activity, index) => ({
                 id: activity.id,
                 type: 'activity',
-                data: { activity },
+                data: { activity, onDelete: setPendingDelete },
                 position: {
                     x: activity.position.x ?? (index % 3) * 310,
                     y: activity.position.y ?? Math.floor(index / 3) * 220,
@@ -589,6 +594,41 @@ function ActivityGraph({
             setSavingActivityId(null);
         }
     }, []);
+
+    const deleteActivity = async () => {
+        if (!pendingDelete) {
+            return;
+        }
+
+        setDeleteError(null);
+        setDeleting(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.DELETE(
+                '/admin/world-builder/activities/{activity_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { activity_id: pendingDelete.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                setDeleteError(
+                    'The activity could not be deleted. Reload the graph and try again.',
+                );
+                return;
+            }
+            setPendingDelete(null);
+            onReload();
+        } catch {
+            setDeleteError(
+                'The activity could not be deleted. Check your connection and try again.',
+            );
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     return (
         <>
@@ -669,6 +709,20 @@ function ActivityGraph({
                     type={editor.type}
                 />
             ) : null}
+            {pendingDelete ? (
+                <DeleteActivityDialog
+                    activity={pendingDelete}
+                    error={deleteError}
+                    onCancel={() => {
+                        if (!deleting) {
+                            setDeleteError(null);
+                            setPendingDelete(null);
+                        }
+                    }}
+                    onConfirm={() => void deleteActivity()}
+                    processing={deleting}
+                />
+            ) : null}
         </>
     );
 }
@@ -687,9 +741,22 @@ function ActivityGraphCard({
         >
             <Handle position={Position.Left} type="target" />
             <Handle position={Position.Right} type="source" />
-            <p className="text-xs font-medium tracking-[0.16em] text-teal-700 uppercase dark:text-teal-300">
-                {activity.activity_type}
-            </p>
+            <div className="flex items-start justify-between gap-3">
+                <p className="text-xs font-medium tracking-[0.16em] text-teal-700 uppercase dark:text-teal-300">
+                    {activity.activity_type}
+                </p>
+                <button
+                    aria-label={`Delete ${activity.title}`}
+                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-300/10 dark:hover:text-red-300"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        data.onDelete(activity);
+                    }}
+                    type="button"
+                >
+                    <Trash2 className="size-3.5" />
+                </button>
+            </div>
             <h3 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
                 {activity.title}
             </h3>
@@ -710,6 +777,65 @@ function ActivityGraphCard({
                     ? 'AI reviewed'
                     : 'Needs AI review'}
             </p>
+        </div>
+    );
+}
+
+function DeleteActivityDialog({
+    activity,
+    error,
+    onCancel,
+    onConfirm,
+    processing,
+}: {
+    activity: Activity;
+    error: string | null;
+    onCancel: () => void;
+    onConfirm: () => void;
+    processing: boolean;
+}) {
+    return (
+        <div
+            aria-labelledby="delete-activity-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <h2
+                    className="text-xl font-semibold"
+                    id="delete-activity-title"
+                >
+                    Delete activity?
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    This removes &ldquo;{activity.title}&rdquo; and its outgoing
+                    connections. This cannot be undone.
+                </p>
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-200 dark:hover:bg-white/10"
+                        disabled={processing}
+                        onClick={onCancel}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={processing}
+                        onClick={onConfirm}
+                        type="button"
+                    >
+                        {processing ? 'Deleting…' : 'Delete'}
+                    </button>
+                </div>
+            </section>
         </div>
     );
 }
