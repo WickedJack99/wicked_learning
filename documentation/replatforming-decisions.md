@@ -3597,6 +3597,35 @@ substitution rather than a new user workflow. Independent identity review,
 session/device-management controls and the source-disabled email-verification
 policy remain broader cutover work.
 
+## ADR-091: World Builder authorization uses explicit map ownership and editor assignments
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source World Builder does not grant every author access to
+every map. Its `all`, `own` and assigned-editor permission scopes determine
+which map graphs may be read or changed. The initial Rust World schema was a
+learner-facing projection and had no durable facts to enforce that boundary.
+
+**Decision:** Each Rust `learning_maps` row may record its creating application
+principal. A separate `learning_map_editing_groups` relation records explicit
+learning-group editor assignments. The forthcoming authoring read/write
+repositories must apply role permission level and scope against these facts:
+`all` sees all permitted maps, `own` only creator-owned maps, and `assigned`
+only maps assigned through a group the principal belongs to. Learner-visible
+map access is never treated as edit authority.
+
+**Why:** This preserves the source authorization distinction before an
+authoring graph endpoint or editor becomes reachable, while keeping identity
+subjects outside application content rows.
+
+**Alternatives:** Returning every map to any role with a World Builder
+permission, or deriving authoring access from learner visibility, would expose
+unrelated authored work. Both are rejected.
+
+**Limits and follow-up:** This is authorization storage only. It does not yet
+expose a World Builder endpoint, alter existing learner reads, or implement
+the source editor's create/update/import/export workflow.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
