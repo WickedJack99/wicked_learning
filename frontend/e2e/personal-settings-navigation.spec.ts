@@ -46,8 +46,13 @@ test('Personal settings restores the source section navigation', async ({ page }
         'true',
     );
 
-    await navigation.getByRole('tab', { name: /Delete account/ }).click();
+    await navigation.getByRole('tab', { name: /Profile/ }).press('End');
     await expect(page).toHaveURL(
         /\/settings\?panel=personal&personal=delete-account/,
     );
+    await expect(
+        page
+            .getByRole('tablist', { name: 'Personal settings sections' })
+            .getByRole('tab', { name: /Delete account/ }),
+    ).toHaveAttribute('aria-selected', 'true');
 });
