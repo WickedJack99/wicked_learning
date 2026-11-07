@@ -1791,6 +1791,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the source Topic Structure workspace, including drafts. */
+        get: operations["getAdminTopics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/topic-areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a topic area and insert it into the complete source order. */
+        post: operations["createAdminTopicArea"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/topic-areas/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace the complete source topic-area order. */
+        patch: operations["reorderAdminTopicAreas"];
+        trace?: never;
+    };
+    "/admin/topic-areas/{area_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the title and short description of one source topic area. */
+        patch: operations["updateAdminTopicArea"];
+        trace?: never;
+    };
+    "/admin/topic-areas/{area_id}/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a topic or subtopic in one source topic area. */
+        post: operations["createAdminTopic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/topic-areas/{area_id}/topics/{topic_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update one source topic or subtopic without changing its generated slug. */
+        patch: operations["updateAdminTopic"];
+        trace?: never;
+    };
     "/admin/roles": {
         parameters: {
             query?: never;
@@ -4702,6 +4804,57 @@ export interface components {
         AdminLearningGroups: {
             groups: components["schemas"]["AdminLearningGroup"][];
             users: components["schemas"]["AdminLearningGroupUser"][];
+        };
+        AdminTopic: {
+            content: string | null;
+            description: string | null;
+            /** Format: uuid */
+            id: string;
+            is_published: boolean;
+            /** Format: uuid */
+            parent_id: string | null;
+            slug: string;
+            title: string;
+        };
+        AdminTopicArea: {
+            description: string | null;
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            sort_order: number;
+            title: string;
+            topics: components["schemas"]["AdminTopic"][];
+        };
+        AdminTopicAdministration: {
+            areas: components["schemas"]["AdminTopicArea"][];
+        };
+        SaveAdminTopicAreaRequest: {
+            title: string;
+            description?: string | null;
+        };
+        CreateAdminTopicAreaRequest: {
+            title: string;
+            description?: string | null;
+            /** Format: uuid */
+            after_area_id?: string | null;
+        };
+        ReorderAdminTopicAreasRequest: {
+            area_ids: string[];
+        };
+        SaveAdminTopicRequest: {
+            title: string;
+            description?: string | null;
+            content?: string | null;
+            /** Format: uuid */
+            parent_id?: string | null;
+            /** @default true */
+            is_published: boolean;
+        };
+        AdminTopicAreaResponse: {
+            area: components["schemas"]["AdminTopicArea"];
+        };
+        AdminTopicResponse: {
+            topic: components["schemas"]["AdminTopic"];
         };
         AdminUser: {
             access_history: components["schemas"]["AdminAccessChangeEvent"][];
@@ -12322,6 +12475,362 @@ export interface operations {
                 content?: never;
             };
             /** @description An identity or application database is unavailable; a retry completes any recorded deprovisioning. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminTopics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Source-ordered topic areas and alphabetically ordered topics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTopicAdministration"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage learner-facing topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminTopicArea: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminTopicAreaRequest"];
+            };
+        };
+        responses: {
+            /** @description The created source topic area. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTopicAreaResponse"];
+                };
+            };
+            /** @description The topic-area form or insertion target is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reorderAdminTopicAreas: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderAdminTopicAreasRequest"];
+            };
+        };
+        responses: {
+            /** @description The complete topic-area order was saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The submitted list must contain every area exactly once. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminTopicArea: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                area_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminTopicAreaRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved source topic area. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTopicAreaResponse"];
+                };
+            };
+            /** @description The source topic-area form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The area is unavailable or the current principal cannot manage topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminTopic: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                area_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminTopicRequest"];
+            };
+        };
+        responses: {
+            /** @description The created topic. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTopicResponse"];
+                };
+            };
+            /** @description The source topic form or selected parent topic is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminTopic: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                area_id: string;
+                topic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminTopicRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved topic. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTopicResponse"];
+                };
+            };
+            /** @description The source topic form or selected parent topic is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The topic is unavailable or the current principal cannot manage topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

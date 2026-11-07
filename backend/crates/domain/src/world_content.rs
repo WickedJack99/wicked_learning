@@ -2,6 +2,34 @@ use serde::Serialize;
 use serde_json::Value;
 use uuid::Uuid;
 
+/// The source Topic Structure workspace. This author-only projection includes
+/// drafts, unlike the learner topic directory.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminTopicAdministration {
+    pub areas: Vec<AdminTopicArea>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminTopicArea {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub sort_order: i16,
+    pub topics: Vec<AdminTopic>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminTopic {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub content: Option<String>,
+    pub is_published: bool,
+    pub parent_id: Option<Uuid>,
+}
+
 /// The source World Builder's read-only graph. This is intentionally separate
 /// from `PublicWorld`: an author sees draft content and authoring diagnostics,
 /// while a learner must only receive a published, access-filtered projection.

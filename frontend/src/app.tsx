@@ -112,6 +112,12 @@ const OriginalAdminRolesPage = lazy(async () => {
     return { default: module.OriginalAdminRolesPage };
 });
 
+const OriginalTopicAdministrationPage = lazy(async () => {
+    const module = await import('./original-topic-administration');
+
+    return { default: module.OriginalTopicAdministrationPage };
+});
+
 const OriginalAccessLinkRedeemPage = lazy(async () => {
     const module = await import('./original-access-links');
 
@@ -414,6 +420,25 @@ export function App() {
                     currentUser.kind === 'loaded' ? currentUser.email : ''
                 }
             />
+        );
+    }
+
+    if (location.pathname === '/admin/topics') {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        if (currentUser.kind === 'anonymous') {
+            return <Navigate replace to="/login" />;
+        }
+
+        return (
+            <Suspense fallback={null}>
+                <OriginalTopicAdministrationPage />
+            </Suspense>
         );
     }
 

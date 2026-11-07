@@ -2338,6 +2338,139 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The current principal cannot delete users or the target does not exist. }
         '503': { description: An identity or application database is unavailable; a retry completes any recorded deprovisioning. }
+  /admin/topics:
+    get:
+      operationId: getAdminTopics
+      summary: Read the source Topic Structure workspace, including drafts.
+      responses:
+        '200':
+          description: Source-ordered topic areas and alphabetically ordered topics.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTopicAdministration' }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot manage learner-facing topics. }
+        '503': { description: The application database is unavailable. }
+  /admin/topic-areas:
+    post:
+      operationId: createAdminTopicArea
+      summary: Create a topic area and insert it into the complete source order.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdminTopicAreaRequest' }
+      responses:
+        '201':
+          description: The created source topic area.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTopicAreaResponse' }
+        '400': { description: The topic-area form or insertion target is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot manage topics. }
+        '503': { description: The application database is unavailable. }
+  /admin/topic-areas/reorder:
+    patch:
+      operationId: reorderAdminTopicAreas
+      summary: Replace the complete source topic-area order.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReorderAdminTopicAreasRequest' }
+      responses:
+        '204': { description: The complete topic-area order was saved. }
+        '400': { description: The submitted list must contain every area exactly once. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot manage topics. }
+        '503': { description: The application database is unavailable. }
+  /admin/topic-areas/{area_id}:
+    patch:
+      operationId: updateAdminTopicArea
+      summary: Update the title and short description of one source topic area.
+      parameters:
+        - name: area_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminTopicAreaRequest' }
+      responses:
+        '200':
+          description: The saved source topic area.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTopicAreaResponse' }
+        '400': { description: The source topic-area form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The area is unavailable or the current principal cannot manage topics. }
+        '503': { description: The application database is unavailable. }
+  /admin/topic-areas/{area_id}/topics:
+    post:
+      operationId: createAdminTopic
+      summary: Create a topic or subtopic in one source topic area.
+      parameters:
+        - name: area_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminTopicRequest' }
+      responses:
+        '201':
+          description: The created topic.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTopicResponse' }
+        '400': { description: The source topic form or selected parent topic is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot manage topics. }
+        '503': { description: The application database is unavailable. }
+  /admin/topic-areas/{area_id}/topics/{topic_id}:
+    patch:
+      operationId: updateAdminTopic
+      summary: Update one source topic or subtopic without changing its generated slug.
+      parameters:
+        - name: area_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: topic_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminTopicRequest' }
+      responses:
+        '200':
+          description: The saved topic.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTopicResponse' }
+        '400': { description: The source topic form or selected parent topic is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The topic is unavailable or the current principal cannot manage topics. }
+        '503': { description: The application database is unavailable. }
   /admin/roles:
     get:
       operationId: getAdminRoles
@@ -7031,6 +7164,84 @@ components:
         users:
           type: array
           items: { $ref: '#/components/schemas/AdminLearningGroupUser' }
+    AdminTopic:
+      type: object
+      additionalProperties: false
+      required: [content, description, id, is_published, parent_id, slug, title]
+      properties:
+        content: { type: [string, 'null'], maxLength: 50000 }
+        description: { type: [string, 'null'], maxLength: 2400 }
+        id: { type: string, format: uuid }
+        is_published: { type: boolean }
+        parent_id: { type: [string, 'null'], format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        title: { type: string, minLength: 1, maxLength: 200 }
+    AdminTopicArea:
+      type: object
+      additionalProperties: false
+      required: [description, id, slug, sort_order, title, topics]
+      properties:
+        description: { type: [string, 'null'], maxLength: 1200 }
+        id: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        sort_order: { type: integer, minimum: 0, maximum: 32767 }
+        title: { type: string, minLength: 1, maxLength: 160 }
+        topics:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTopic' }
+    AdminTopicAdministration:
+      type: object
+      additionalProperties: false
+      required: [areas]
+      properties:
+        areas:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTopicArea' }
+    SaveAdminTopicAreaRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        description: { type: [string, 'null'], maxLength: 1200 }
+    CreateAdminTopicAreaRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        description: { type: [string, 'null'], maxLength: 1200 }
+        after_area_id: { type: [string, 'null'], format: uuid }
+    ReorderAdminTopicAreasRequest:
+      type: object
+      additionalProperties: false
+      required: [area_ids]
+      properties:
+        area_ids:
+          type: array
+          items: { type: string, format: uuid }
+    SaveAdminTopicRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: [string, 'null'], maxLength: 2400 }
+        content: { type: [string, 'null'], maxLength: 50000 }
+        parent_id: { type: [string, 'null'], format: uuid }
+        is_published: { type: boolean, default: true }
+    AdminTopicAreaResponse:
+      type: object
+      additionalProperties: false
+      required: [area]
+      properties:
+        area: { $ref: '#/components/schemas/AdminTopicArea' }
+    AdminTopicResponse:
+      type: object
+      additionalProperties: false
+      required: [topic]
+      properties:
+        topic: { $ref: '#/components/schemas/AdminTopic' }
     AdminUser:
       type: object
       additionalProperties: false

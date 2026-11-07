@@ -9,6 +9,7 @@ mod account_two_factor;
 mod admin_learning_group;
 mod admin_registration_tokens;
 mod admin_role;
+mod admin_topics;
 mod admin_user;
 mod admin_world_activity_delete;
 mod admin_world_activity_position;
@@ -557,6 +558,24 @@ fn router(state: AppState) -> Router {
             delete(admin_user::destroy),
         )
         .route("/api/v1/admin/roles", get(admin_role::index).post(admin_role::create))
+        .route("/api/v1/admin/topics", get(admin_topics::index))
+        .route("/api/v1/admin/topic-areas", post(admin_topics::create_area))
+        .route(
+            "/api/v1/admin/topic-areas/reorder",
+            patch(admin_topics::reorder_areas),
+        )
+        .route(
+            "/api/v1/admin/topic-areas/{area_id}",
+            patch(admin_topics::update_area),
+        )
+        .route(
+            "/api/v1/admin/topic-areas/{area_id}/topics",
+            post(admin_topics::create_topic),
+        )
+        .route(
+            "/api/v1/admin/topic-areas/{area_id}/topics/{topic_id}",
+            patch(admin_topics::update_topic),
+        )
         .route("/api/v1/admin/world-builder", get(admin_world_graph::show))
         .route(
             "/api/v1/admin/world-builder/maps",
