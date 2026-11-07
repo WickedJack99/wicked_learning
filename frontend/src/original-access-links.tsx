@@ -71,11 +71,8 @@ export function OriginalAccessLinksPage({
             );
             if (!response.ok || !created) throw new Error('invalid');
             setCreatedUrl(created.redeem_url);
-            setData((current) =>
-                current
-                    ? { ...current, links: [created.link, ...current.links] }
-                    : current,
-            );
+            setPage(1);
+            load(1);
         } catch {
             setError('Choose a valid grant and a future expiry time.');
         } finally {
@@ -287,7 +284,9 @@ export function OriginalAccessLinksPage({
                                         ? 'Grant a tool'
                                         : link.purpose === 'grant_items'
                                           ? 'Grant items'
-                                          : 'Allow registration'}
+                                          : link.purpose === 'registration'
+                                            ? 'Allow registration'
+                                            : 'Temporary learner login'}
                                 </p>
                                 <p className="text-xs text-[var(--settings-muted-text)]">
                                     {link.usage_policy.replace('_', ' ')} ·

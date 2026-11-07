@@ -2264,6 +2264,13 @@ principal. Elevated role grants remain part of the future, authorization-gated
 administration token workflow; the temporary local issuer cannot silently mint
 an administrator.
 
+Signed-in users may also create this same default-learner, one-use invitation
+through the typed Rust contract. It validates the source's optional future
+expiry and 500-character note limit, stores only the digest, and returns the
+plaintext once to its creator. This deliberately preserves the source's normal
+user invitation capability without exposing the incomplete source
+administrator user-management surface or allowing a caller to choose roles.
+
 The lifted source registration form also submits its existing Light/Dark choice.
 Rust persists that non-secret, private preference with the application
 principal—not with the password, profile or session in the identity database—
