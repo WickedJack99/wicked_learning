@@ -713,6 +713,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/organization-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the source global organization-membership limit for an authorized moderator. */
+        patch: operations["updateOrganizationPolicy"];
+        trace?: never;
+    };
     "/organizations/{slug}/join-requests": {
         parameters: {
             query?: never;
@@ -3406,7 +3423,14 @@ export interface components {
             reporter: components["schemas"]["OrganizationIconReportIdentity"];
         };
         OrganizationIconReportPage: {
+            policy: components["schemas"]["OrganizationPolicy"];
             reports: components["schemas"]["OrganizationIconReport"][];
+        };
+        OrganizationPolicy: {
+            max_memberships_per_user: number;
+        };
+        OrganizationPolicyUpdateRequest: {
+            max_memberships_per_user: number;
         };
         ResolveOrganizationIconReportRequest: {
             remove_icon: boolean;
@@ -6292,6 +6316,68 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database or mounted media store is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateOrganizationPolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationPolicyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved policy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationPolicy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Organization-icon moderation is unavailable to the current principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The requested limit is outside the source range. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

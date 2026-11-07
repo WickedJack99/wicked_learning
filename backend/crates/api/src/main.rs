@@ -355,6 +355,7 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/admin/organization-icon-reports", get(organization_icon_moderation::index))
         .route("/api/v1/admin/organization-icon-reports/{report_id}", patch(organization_icon_moderation::resolve))
         .route("/api/v1/admin/organization-icon-reports/{report_id}/icon", get(organization_icon_moderation::show_icon))
+        .route("/api/v1/admin/organization-policy", patch(organization_icon_moderation::update_policy))
         .route("/api/v1/organizations/{slug}/join-requests", post(organization::request_join))
         .route("/api/v1/organizations/{slug}/membership", delete(organization::leave))
         .route("/api/v1/organizations/{slug}/messages", post(organization::send_message))

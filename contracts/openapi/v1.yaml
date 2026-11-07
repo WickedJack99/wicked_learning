@@ -904,6 +904,21 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The icon snapshot is unavailable or moderation is unauthorized. }
         '503': { description: The application database or mounted media store is unavailable. }
+  /admin/organization-policy:
+    patch:
+      operationId: updateOrganizationPolicy
+      summary: Update the source global organization-membership limit for an authorized moderator.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationPolicyUpdateRequest' } } }
+      responses:
+        '200': { description: The saved policy, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationPolicy' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: Organization-icon moderation is unavailable to the current principal. }
+        '422': { description: The requested limit is outside the source range. }
+        '503': { description: The application database is unavailable. }
   /organizations/{slug}/join-requests:
     post:
       operationId: requestOrganizationMembership
@@ -5103,12 +5118,25 @@ components:
     OrganizationIconReportPage:
       type: object
       additionalProperties: false
-      required: [reports]
+      required: [policy, reports]
       properties:
+        policy: { $ref: '#/components/schemas/OrganizationPolicy' }
         reports:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/OrganizationIconReport' }
+    OrganizationPolicy:
+      type: object
+      additionalProperties: false
+      required: [max_memberships_per_user]
+      properties:
+        max_memberships_per_user: { type: integer, minimum: 1, maximum: 100 }
+    OrganizationPolicyUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [max_memberships_per_user]
+      properties:
+        max_memberships_per_user: { type: integer, minimum: 1, maximum: 100 }
     ResolveOrganizationIconReportRequest:
       type: object
       additionalProperties: false

@@ -20,7 +20,13 @@ use crate::{
 
 #[derive(Serialize)]
 pub struct ReportPageResponse {
+    pub policy: PolicyResponse,
     pub reports: Vec<ReportResponse>,
+}
+
+#[derive(Serialize)]
+pub struct PolicyResponse {
+    pub max_memberships_per_user: i16,
 }
 
 #[derive(Serialize)]
@@ -50,6 +56,10 @@ pub struct OrganizationResponse {
 #[derive(Deserialize)]
 pub struct ResolveRequest {
     pub remove_icon: bool,
+}
+#[derive(Deserialize)]
+pub struct UpdatePolicyRequest {
+    pub max_memberships_per_user: i16,
 }
 
 #[derive(FromRow)]
@@ -96,7 +106,16 @@ pub async fn index(
             .collect::<Vec<_>>(),
     )
     .await?;
+    let max_memberships_per_user = sqlx::query_scalar::<_, i16>(
+        "SELECT max_memberships_per_user FROM platform_organization_policy WHERE singleton = TRUE",
+    )
+    .fetch_one(&state.application_database)
+    .await
+    .map_err(|_| ApiError::service_unavailable())?;
     Ok(Json(ReportPageResponse {
+        policy: PolicyResponse {
+            max_memberships_per_user,
+        },
         reports: reports
             .into_iter()
             .map(|report| ReportResponse {
@@ -121,6 +140,28 @@ pub async fn index(
                     .unwrap_or_else(|| unavailable_identity(report.reporter_subject_id)),
             })
             .collect(),
+    }))
+}
+
+pub async fn update_policy(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdatePolicyRequest>,
+) -> Result<Json<PolicyResponse>, ApiError> {
+    if !(1..=100).contains(&request.max_memberships_per_user) {
+        return Err(ApiError::invalid_request());
+    }
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    if !principal.has_capability(ApplicationCapability::ModerateOrganizationIcons) {
+        return Err(ApiError::not_found());
+    }
+    sqlx::query("UPDATE platform_organization_policy SET max_memberships_per_user = $1 WHERE singleton = TRUE")
+        .bind(request.max_memberships_per_user).execute(&state.application_database).await.map_err(|_| ApiError::service_unavailable())?;
+    Ok(Json(PolicyResponse {
+        max_memberships_per_user: request.max_memberships_per_user,
     }))
 }
 

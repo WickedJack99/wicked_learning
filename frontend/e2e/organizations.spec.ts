@@ -140,9 +140,23 @@ test('organizations preserve the source membership, leadership and chat workflow
             new URL('/settings?panel=admin-learning-support&support=organization-icons', origin).toString(),
         );
         await expect(page.getByRole('heading', { name: 'Organization Icons' })).toBeVisible();
+        const membershipLimit = page.getByLabel('Organization membership limit');
+        await membershipLimit.fill('9');
+        const savePolicy = page.getByRole('button', { name: 'Save' });
+        await Promise.all([
+            page.waitForResponse((response) => response.url().endsWith('/api/v1/admin/organization-policy') && response.request().method() === 'PATCH' && response.status() === 200),
+            savePolicy.click(),
+        ]);
+        await expect(membershipLimit).toHaveValue('9');
+        await membershipLimit.fill('10');
+        await Promise.all([
+            page.waitForResponse((response) => response.url().endsWith('/api/v1/admin/organization-policy') && response.request().method() === 'PATCH' && response.status() === 200),
+            savePolicy.click(),
+        ]);
+        await expect(membershipLimit).toHaveValue('10');
         await expect(page.getByText(`Organization E2E ${marker}`)).toBeVisible();
-        await page.getByRole('button', { name: 'Remove icon' }).click();
-        await expect(page.getByText('No pending organization icon reports.')).toBeVisible();
+        await page.locator('article').filter({ hasText: `Organization E2E ${marker}` }).getByRole('button', { name: 'Remove icon' }).click();
+        await expect(page.getByText(`Organization E2E ${marker}`)).toHaveCount(0);
         const afterRemoval = await request.get(
             api(`/api/v1/organizations/${organization.slug}`),
         );
