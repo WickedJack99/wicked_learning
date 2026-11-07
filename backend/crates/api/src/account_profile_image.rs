@@ -11,10 +11,14 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    AppState, csrf, error::ApiError, identity::IdentityBackend, media_store::MediaObjectKey,
+    AppState, csrf,
+    error::ApiError,
+    identity::IdentityBackend,
+    image_upload::{MAX_IMAGE_BYTES, image_content_type, single_image_upload},
+    media_store::MediaObjectKey,
 };
 
-pub const MAX_PROFILE_IMAGE_BYTES: usize = 5 * 1024 * 1024;
+pub const MAX_PROFILE_IMAGE_BYTES: usize = MAX_IMAGE_BYTES;
 
 #[derive(Serialize)]
 pub struct ProfileImageUploadResponse {
@@ -34,9 +38,8 @@ pub async fn upload(
         .user
         .ok_or_else(ApiError::authentication_required)?;
     let principal_id = principal_id(&state.application_database, subject.subject_id()).await?;
-    let file = single_upload(&mut multipart).await?;
-    let content_type =
-        profile_image_content_type(&file).ok_or_else(ApiError::profile_image_rejected)?;
+    let file = single_image_upload(&mut multipart).await?;
+    let content_type = image_content_type(&file).ok_or_else(ApiError::profile_image_rejected)?;
     let byte_size = i32::try_from(file.len()).map_err(|_| ApiError::profile_image_rejected())?;
 
     let object_key = state
@@ -125,54 +128,6 @@ pub async fn show(
     Ok(response)
 }
 
-async fn single_upload(multipart: &mut Multipart) -> Result<Vec<u8>, ApiError> {
-    let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|_| ApiError::profile_image_rejected())?
-    else {
-        return Err(ApiError::profile_image_rejected());
-    };
-    if field.name() != Some("file") {
-        return Err(ApiError::profile_image_rejected());
-    }
-    let bytes = field
-        .bytes()
-        .await
-        .map_err(|_| ApiError::profile_image_rejected())?;
-    if bytes.is_empty() || bytes.len() > MAX_PROFILE_IMAGE_BYTES {
-        return Err(ApiError::profile_image_rejected());
-    }
-    if multipart
-        .next_field()
-        .await
-        .map_err(|_| ApiError::profile_image_rejected())?
-        .is_some()
-    {
-        return Err(ApiError::profile_image_rejected());
-    }
-    Ok(bytes.to_vec())
-}
-
-fn profile_image_content_type(bytes: &[u8]) -> Option<&'static str> {
-    match infer::get(bytes).map(|kind| kind.mime_type()) {
-        Some("image/gif") => Some("image/gif"),
-        Some("image/jpeg") => Some("image/jpeg"),
-        Some("image/png") => Some("image/png"),
-        Some("image/webp") => Some("image/webp"),
-        _ if looks_like_svg(bytes) => Some("image/svg+xml"),
-        _ => None,
-    }
-}
-
-fn looks_like_svg(bytes: &[u8]) -> bool {
-    let Ok(prefix) = std::str::from_utf8(&bytes[..bytes.len().min(1024)]) else {
-        return false;
-    };
-    let prefix = prefix.trim_start_matches(['\u{feff}', ' ', '\n', '\r', '\t']);
-    prefix.starts_with("<svg") || (prefix.starts_with("<?xml") && prefix.contains("<svg"))
-}
-
 async fn principal_id(application_database: &PgPool, subject_id: Uuid) -> Result<Uuid, ApiError> {
     sqlx::query_scalar("SELECT id FROM application_principals WHERE identity_subject_id = $1")
         .bind(subject_id)
@@ -195,19 +150,14 @@ struct StoredProfileImage {
 
 #[cfg(test)]
 mod tests {
-    use super::{MAX_PROFILE_IMAGE_BYTES, looks_like_svg, profile_image_content_type};
+    use super::MAX_PROFILE_IMAGE_BYTES;
+    use crate::image_upload::image_content_type;
 
     #[test]
     fn only_accepts_source_image_formats_after_byte_inspection() {
-        assert_eq!(profile_image_content_type(b"GIF89a"), Some("image/gif"));
-        assert_eq!(
-            profile_image_content_type(b"\x89PNG\r\n\x1a\n"),
-            Some("image/png")
-        );
-        assert_eq!(profile_image_content_type(b"not an image"), None);
-        assert!(looks_like_svg(
-            b"\xef\xbb\xbf <svg xmlns='http://www.w3.org/2000/svg'/>"
-        ));
+        assert_eq!(image_content_type(b"GIF89a"), Some("image/gif"));
+        assert_eq!(image_content_type(b"\x89PNG\r\n\x1a\n"), Some("image/png"));
+        assert_eq!(image_content_type(b"not an image"), None);
         assert_eq!(MAX_PROFILE_IMAGE_BYTES, 5_242_880);
     }
 }

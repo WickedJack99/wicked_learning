@@ -59,6 +59,26 @@ test('organizations preserve the source membership, leadership and chat workflow
     try {
         const firstCsrf = await login(request, firstEmail!, firstPassword!);
         const organization = await createOrganization(request, firstCsrf, marker);
+        const uploaded = await request.post(
+            api(`/api/v1/organizations/${organization.slug}/icon`),
+            {
+                headers: { Origin: origin, 'X-CSRF-Token': firstCsrf },
+                multipart: {
+                    file: {
+                        buffer: Buffer.from(
+                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect width="20" height="20" fill="#d4a72c"/></svg>',
+                        ),
+                        mimeType: 'image/svg+xml',
+                        name: 'organization-icon.svg',
+                    },
+                },
+            },
+        );
+        expect(uploaded.status()).toBe(200);
+        const iconUrl = (await uploaded.json()).url as string;
+        const servedIcon = await request.get(api(iconUrl));
+        expect(servedIcon.status()).toBe(200);
+        expect(servedIcon.headers()['content-type']).toBe('image/svg+xml');
 
         const secondCsrf = await login(second, secondEmail!, secondPassword!);
         const requested = await second.post(
@@ -94,12 +114,23 @@ test('organizations preserve the source membership, leadership and chat workflow
         );
         expect(sent.status()).toBe(200);
 
+        const reported = await second.post(
+            api(`/api/v1/organizations/${organization.slug}/icon-reports`),
+            {
+                data: { reason: `Please review this source-parity icon (${marker}).` },
+                headers: { Origin: origin, 'X-CSRF-Token': secondCsrf },
+            },
+        );
+        expect(reported.status()).toBe(204);
+
         const storage = await second.storageState();
         await page.context().addCookies(storage.cookies);
         await page.goto(
             new URL(`/organizations/${organization.slug}`, origin).toString(),
         );
         await expect(page.getByRole('heading', { name: `Organization E2E ${marker}` })).toBeVisible();
+        await expect(page.getByRole('img', { name: `Organization E2E ${marker} icon` })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Report icon' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Chat' })).toBeVisible();
         await page.getByRole('button', { name: 'Chat' }).click();
         await expect(page.getByText(`A member chat message (${marker}).`)).toBeVisible();

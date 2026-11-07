@@ -611,6 +611,57 @@ export interface paths {
         patch: operations["updateOrganization"];
         trace?: never;
     };
+    "/organizations/{slug}/icon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload or replace an organization icon as a leader. */
+        post: operations["uploadOrganizationIcon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{slug}/icon-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report an organization icon for administrator review. */
+        post: operations["reportOrganizationIcon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organization-icons/{icon_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read an authenticated organization icon. */
+        get: operations["getOrganizationIcon"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{slug}/join-requests": {
         parameters: {
             query?: never;
@@ -3198,6 +3249,7 @@ export interface components {
             governance_type: "monarchy" | "anarchy" | "random";
             /** Format: uuid */
             id: string;
+            icon_url: string | null;
             member_count: number;
             name: string;
             slogan: string | null;
@@ -3217,6 +3269,7 @@ export interface components {
             governance_type: "monarchy" | "anarchy" | "random";
             /** Format: uuid */
             id: string;
+            icon_url: string | null;
             is_leader: boolean;
             leader_count: number;
             /** Format: date-time */
@@ -3272,6 +3325,12 @@ export interface components {
             resolved_at: string | null;
             resolved_by: components["schemas"]["LearnerGroupMember"] | null;
             user: components["schemas"]["LearnerGroupMember"];
+        };
+        OrganizationIconUpload: {
+            url: string;
+        };
+        OrganizationIconReportRequest: {
+            reason?: string | null;
         };
         LearnerGroup: {
             admin_chat_required_votes: number;
@@ -5854,6 +5913,169 @@ export interface operations {
                 content?: never;
             };
             /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    uploadOrganizationIcon: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                slug: components["parameters"]["OrganizationSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The saved icon URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationIconUpload"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The organization is unavailable or the learner is not a leader. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The image upload was rejected. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or mounted media store is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reportOrganizationIcon: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                slug: components["parameters"]["OrganizationSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationIconReportRequest"];
+            };
+        };
+        responses: {
+            /** @description The report was recorded. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The organization has no reportable icon. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getOrganizationIcon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                icon_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Inspected image bytes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The icon is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or mounted media store is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

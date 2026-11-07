@@ -10,6 +10,7 @@ mod error;
 mod feedback_prompt_preference;
 mod identity;
 mod identity_registration;
+mod image_upload;
 mod journal_feedback_review;
 mod learner_activity_replay_run;
 mod learner_appearance_preference;
@@ -52,6 +53,7 @@ mod learning_support_moderation;
 mod login_rate_limit;
 pub mod media_store;
 mod organization;
+mod organization_icon;
 mod passwords;
 mod platform_feedback;
 mod platform_feedback_review;
@@ -317,6 +319,9 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/learner/groups", get(learner_group::index))
         .route("/api/v1/organizations", get(organization::index).post(organization::create))
         .route("/api/v1/organizations/{slug}", get(organization::show).patch(organization::update).delete(organization::delete))
+        .route("/api/v1/organizations/{slug}/icon", post(organization_icon::upload).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
+        .route("/api/v1/organizations/{slug}/icon-reports", post(organization_icon::report))
+        .route("/api/v1/organization-icons/{icon_id}", get(organization_icon::show))
         .route("/api/v1/organizations/{slug}/join-requests", post(organization::request_join))
         .route("/api/v1/organizations/{slug}/membership", delete(organization::leave))
         .route("/api/v1/organizations/{slug}/messages", post(organization::send_message))

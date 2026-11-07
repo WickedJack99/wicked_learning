@@ -832,6 +832,45 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The organization is unavailable or the current learner is not a leader. }
         '503': { description: The application or identity database is unavailable. }
+  /organizations/{slug}/icon:
+    post:
+      operationId: uploadOrganizationIcon
+      summary: Upload or replace an organization icon as a leader.
+      parameters: [ { $ref: '#/components/parameters/OrganizationSlug' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } }
+      responses:
+        '200': { description: The saved icon URL, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationIconUpload' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The organization is unavailable or the learner is not a leader. }
+        '422': { description: The image upload was rejected. }
+        '503': { description: The application database or mounted media store is unavailable. }
+  /organizations/{slug}/icon-reports:
+    post:
+      operationId: reportOrganizationIcon
+      summary: Report an organization icon for administrator review.
+      parameters: [ { $ref: '#/components/parameters/OrganizationSlug' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationIconReportRequest' } } }
+      responses:
+        '204': { description: The report was recorded. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The organization has no reportable icon. }
+        '503': { description: The application database is unavailable. }
+  /organization-icons/{icon_id}:
+    get:
+      operationId: getOrganizationIcon
+      summary: Read an authenticated organization icon.
+      parameters: [ { name: icon_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: Inspected image bytes. }
+        '401': { description: Authentication is required. }
+        '404': { description: The icon is unavailable. }
+        '503': { description: The application database or mounted media store is unavailable. }
   /organizations/{slug}/join-requests:
     post:
       operationId: requestOrganizationMembership
@@ -4888,11 +4927,12 @@ components:
     OrganizationSummary:
       type: object
       additionalProperties: false
-      required: [description, governance_type, id, member_count, name, slogan, slug, viewer_join_request, viewer_membership]
+      required: [description, governance_type, id, icon_url, member_count, name, slogan, slug, viewer_join_request, viewer_membership]
       properties:
         description: { type: [string, 'null'], maxLength: 4000 }
         governance_type: { type: string, enum: [monarchy, anarchy, random] }
         id: { type: string, format: uuid }
+        icon_url: { type: [string, 'null'] }
         member_count: { type: integer, minimum: 0 }
         name: { type: string, minLength: 1, maxLength: 120 }
         slogan: { type: [string, 'null'], maxLength: 180 }
@@ -4909,13 +4949,14 @@ components:
     OrganizationDetail:
       type: object
       additionalProperties: false
-      required: [can_moderate_messages, can_send_messages, description, governance_type, id, is_leader, leader_count, leadership_rotated_at, member_count, members, members_pagination, messages, messages_pagination, name, pending_join_requests, pending_join_requests_pagination, slogan, slug, viewer_join_request, viewer_membership]
+      required: [can_moderate_messages, can_send_messages, description, governance_type, id, icon_url, is_leader, leader_count, leadership_rotated_at, member_count, members, members_pagination, messages, messages_pagination, name, pending_join_requests, pending_join_requests_pagination, slogan, slug, viewer_join_request, viewer_membership]
       properties:
         can_moderate_messages: { type: boolean }
         can_send_messages: { type: boolean }
         description: { type: [string, 'null'], maxLength: 4000 }
         governance_type: { type: string, enum: [monarchy, anarchy, random] }
         id: { type: string, format: uuid }
+        icon_url: { type: [string, 'null'] }
         is_leader: { type: boolean }
         leader_count: { type: integer, minimum: 0 }
         leadership_rotated_at: { type: [string, 'null'], format: date-time }
@@ -4985,6 +5026,17 @@ components:
             - $ref: '#/components/schemas/LearnerGroupMember'
             - type: 'null'
         user: { $ref: '#/components/schemas/LearnerGroupMember' }
+    OrganizationIconUpload:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url: { type: string }
+    OrganizationIconReportRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason: { type: [string, 'null'], maxLength: 1000 }
     LearnerGroup:
       type: object
       additionalProperties: false

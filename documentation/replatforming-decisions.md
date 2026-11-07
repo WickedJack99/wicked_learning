@@ -2820,12 +2820,46 @@ browser refresh mutate leadership. Storing user names alongside memberships
 would duplicate identity data. A new organization UI would introduce visual
 and interaction drift. These alternatives are rejected.
 
-**Limits and follow-up:** This is the usable non-media core, not the final
-organisation migration. Icon upload, icon reports, icon moderation, source
-icon rendering and scheduled monthly random-leader
-rotation remain explicitly incomplete. They must use the mounted-media
-lifecycle and separate authorization/browser evidence before being presented
-as migrated functionality.
+**Limits and follow-up:** Administrator icon-report resolution and scheduled
+monthly random-leader rotation remain explicitly incomplete. They require
+their own settings/authorization and background-operation evidence before
+being presented as migrated functionality.
+
+## ADR-072: Organisation icons use authenticated mounted-media objects
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source lets organisation leaders upload an icon and lets a
+non-leader report it. The migration must preserve the visible source controls
+without making locally mounted objects public or losing the exact file that a
+report referred to when a leader replaces an icon.
+
+**Decision:** The application database owns an organisation-icon metadata row
+and an immutable object key in the mounted backend media volume. A leader may
+replace the current icon through a multipart API route after same-origin CSRF
+and membership checks. The API serves a current icon only to a signed-in
+learner, with verified image type, bounded size and response hardening. The
+directory/detail projections carry an authenticated API URL, and the adapted
+source React icon component and leader/report controls use that URL. A report
+records both the current icon row (when it remains available) and its object
+key snapshot, so later replacement cannot change the moderation evidence.
+
+**Why:** This keeps media bytes out of PostgreSQL, honours the selected mounted
+volume strategy, reuses the established profile-image validation/storage path,
+and preserves the report's source meaning. The local browser workflow covers
+leader upload, member display and report submission.
+
+**Alternatives:** A public static media path would expose objects outside the
+application's authenticated boundary. Storing image bytes in the application
+database would make routine media serving and backups needlessly heavy. Saving
+only a mutable current icon reference in a report would make moderation
+evidence drift after replacement. These alternatives are rejected.
+
+**Limits and follow-up:** This does not implement the source administrator
+queue that resolves reports or removes an icon. That is a later administration
+slice. A failed best-effort deletion of an already-replaced mounted object can
+leave an orphan for a future bounded media cleanup job; it cannot invalidate
+the committed replacement.
 
 ## Phase 1 gate
 

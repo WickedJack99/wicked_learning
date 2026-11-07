@@ -35,6 +35,7 @@ struct OrganizationRow {
     description: Option<String>,
     governance_type: String,
     id: Uuid,
+    icon_url: Option<String>,
     leadership_rotated_at: Option<String>,
     name: String,
     slogan: Option<String>,
@@ -553,7 +554,7 @@ async fn list(
     let search = search.map(escape_like);
     let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM organizations WHERE ($1::text IS NULL OR name ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR slug ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR COALESCE(slogan, '') ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR COALESCE(description, '') ILIKE '%' || $1 || '%' ESCAPE E'\\\\')").bind(&search).fetch_one(application).await?;
     let pagination = pagination(total, page, DIRECTORY_PER_PAGE);
-    let rows = sqlx::query_as::<_, OrganizationRow>("SELECT description, governance_type, id, CASE WHEN leadership_rotated_at IS NULL THEN NULL ELSE to_char(leadership_rotated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS leadership_rotated_at, name, slogan, slug FROM organizations WHERE ($1::text IS NULL OR name ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR slug ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR COALESCE(slogan, '') ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR COALESCE(description, '') ILIKE '%' || $1 || '%' ESCAPE E'\\\\') ORDER BY name ASC, id ASC LIMIT $2 OFFSET $3").bind(&search).bind(pagination.per_page).bind((pagination.current_page - 1) * pagination.per_page).fetch_all(application).await?;
+    let rows = sqlx::query_as::<_, OrganizationRow>("SELECT description, governance_type, id, CASE WHEN icon_id IS NULL THEN NULL ELSE '/api/v1/organization-icons/' || icon_id::text END AS icon_url, CASE WHEN leadership_rotated_at IS NULL THEN NULL ELSE to_char(leadership_rotated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS leadership_rotated_at, name, slogan, slug FROM organizations WHERE ($1::text IS NULL OR name ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR slug ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR COALESCE(slogan, '') ILIKE '%' || $1 || '%' ESCAPE E'\\\\' OR COALESCE(description, '') ILIKE '%' || $1 || '%' ESCAPE E'\\\\') ORDER BY name ASC, id ASC LIMIT $2 OFFSET $3").bind(&search).bind(pagination.per_page).bind((pagination.current_page - 1) * pagination.per_page).fetch_all(application).await?;
     let current_identity = identity_for_subject(identity, principal.subject_id).await?;
     let mut organizations = Vec::with_capacity(rows.len());
     for row in rows {
@@ -583,6 +584,7 @@ async fn list(
             description: row.description,
             governance_type: row.governance_type,
             id: row.id.to_string(),
+            icon_url: row.icon_url,
             member_count: count,
             name: row.name,
             slogan: row.slogan,
@@ -610,7 +612,7 @@ async fn load_detail_by_slug(
     let Some(principal_id) = principal_id else {
         return Ok(None);
     };
-    let row = sqlx::query_as::<_, OrganizationRow>("SELECT description, governance_type, id, CASE WHEN leadership_rotated_at IS NULL THEN NULL ELSE to_char(leadership_rotated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS leadership_rotated_at, name, slogan, slug FROM organizations WHERE slug = $1").bind(slug).fetch_optional(application).await?;
+    let row = sqlx::query_as::<_, OrganizationRow>("SELECT description, governance_type, id, CASE WHEN icon_id IS NULL THEN NULL ELSE '/api/v1/organization-icons/' || icon_id::text END AS icon_url, CASE WHEN leadership_rotated_at IS NULL THEN NULL ELSE to_char(leadership_rotated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS leadership_rotated_at, name, slogan, slug FROM organizations WHERE slug = $1").bind(slug).fetch_optional(application).await?;
     let Some(row) = row else {
         return Ok(None);
     };
@@ -674,6 +676,7 @@ async fn load_detail_by_slug(
         description: row.description,
         governance_type: row.governance_type,
         id: row.id.to_string(),
+        icon_url: row.icon_url,
         is_leader,
         leader_count,
         leadership_rotated_at: row.leadership_rotated_at,
