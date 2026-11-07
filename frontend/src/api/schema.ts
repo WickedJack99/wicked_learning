@@ -952,6 +952,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read administrator-only identity/profile and application-role summaries. */
+        get: operations["getAdminUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/access-links": {
         parameters: {
             query?: never;
@@ -3681,6 +3698,21 @@ export interface components {
         AdminLearningGroups: {
             groups: components["schemas"]["AdminLearningGroup"][];
             users: components["schemas"]["AdminLearningGroupUser"][];
+        };
+        AdminUser: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            identity_status: "active" | "disabled" | "provisioning" | "suspended";
+            name: string;
+            roles: string[];
+            /** Format: uuid */
+            subject_id: string;
+        };
+        AdminUsers: {
+            users: components["schemas"]["AdminUser"][];
         };
         AdminLearningGroupResponse: {
             group: components["schemas"]["AdminLearningGroup"];
@@ -7286,6 +7318,47 @@ export interface operations {
                 content?: never;
             };
             /** @description The current principal cannot administer groups */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User summaries without credential verifiers, sessions, raw invitation tokens, or learner data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUsers"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot read user administration data. */
             404: {
                 headers: {
                     [name: string]: unknown;

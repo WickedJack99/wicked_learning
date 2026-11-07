@@ -4,6 +4,7 @@ mod account_profile;
 mod account_profile_image;
 mod admin_learning_group;
 mod admin_registration_tokens;
+mod admin_user;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -340,6 +341,7 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/admin/platform-feedback/{feedback_id}/review", patch(platform_feedback_review::mark_reviewed))
         .route("/api/v1/learner/feedback-prompt-preference", get(feedback_prompt_preference::show).patch(feedback_prompt_preference::update))
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
+        .route("/api/v1/admin/users", get(admin_user::index))
         .route("/api/v1/admin/access-links", get(access_link::index).post(access_link::create))
         .route("/api/v1/registration-tokens", post(admin_registration_tokens::create))
         .route("/api/v1/admin/access-links/{link_id}", patch(access_link::set_enabled))

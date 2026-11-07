@@ -1,7 +1,9 @@
+use serde::Serialize;
 use uuid::Uuid;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApplicationCapability {
+    ViewUsers,
     ManageAccessLinks,
     ManageLearningGroups,
     ModerateLearnerMessages,
@@ -16,6 +18,7 @@ pub enum ApplicationCapability {
 impl ApplicationCapability {
     pub const fn key(self) -> &'static str {
         match self {
+            Self::ViewUsers => "users_view",
             Self::ManageAccessLinks => "access_links_manage",
             Self::ManageLearningGroups => "learning_groups_manage",
             Self::ModerateLearnerMessages => "learner_messages_moderate",
@@ -27,6 +30,24 @@ impl ApplicationCapability {
             Self::ViewPlatformFeedback => "platform_feedback_view",
         }
     }
+}
+
+/// An administrator-only projection that combines the identity-owned profile
+/// with application-owned role assignments. It intentionally excludes
+/// password credentials, sessions, invitation plaintext and learner data.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminUser {
+    pub created_at: String,
+    pub email: String,
+    pub identity_status: String,
+    pub name: String,
+    pub roles: Vec<String>,
+    pub subject_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminUsers {
+    pub users: Vec<AdminUser>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
