@@ -34,7 +34,12 @@ pub async fn show(
 
     Ok(Json(CurrentUserResponse {
         appearance: current_user.appearance,
-        capabilities: current_user.principal.capabilities,
+        capabilities: current_user
+            .principal
+            .capabilities
+            .into_iter()
+            .filter(|capability| !capability.starts_with("role_permission:"))
+            .collect(),
         email: subject.normalized_email().to_owned(),
         subject_id: current_user.principal.subject_id,
         roles: current_user.principal.roles,

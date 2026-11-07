@@ -63,16 +63,28 @@ impl CurrentUserRepositoryPort for PostgresCurrentUserRepository<'_> {
 
             let capabilities = sqlx::query_scalar::<_, String>(
                 r#"
-                    SELECT DISTINCT capabilities.capability_key
-                    FROM application_principals AS principals
-                    INNER JOIN application_principal_roles AS principal_roles
-                        ON principal_roles.principal_id = principals.id
-                    INNER JOIN application_role_capabilities AS role_capabilities
-                        ON role_capabilities.role_key = principal_roles.role_key
-                    INNER JOIN application_capabilities AS capabilities
-                        ON capabilities.capability_key = role_capabilities.capability_key
-                    WHERE principals.identity_subject_id = $1
-                    ORDER BY capabilities.capability_key ASC
+                    SELECT capability_key FROM (
+                        SELECT DISTINCT capabilities.capability_key AS capability_key
+                        FROM application_principals AS principals
+                        INNER JOIN application_principal_roles AS principal_roles
+                            ON principal_roles.principal_id = principals.id
+                        INNER JOIN application_role_capabilities AS role_capabilities
+                            ON role_capabilities.role_key = principal_roles.role_key
+                        INNER JOIN application_capabilities AS capabilities
+                            ON capabilities.capability_key = role_capabilities.capability_key
+                        WHERE principals.identity_subject_id = $1
+
+                        UNION
+
+                        SELECT DISTINCT 'role_permission:' || permissions.resource_key || ':' || permissions.level || ':' || permissions.scope
+                        FROM application_principals AS principals
+                        INNER JOIN application_principal_roles AS principal_roles
+                            ON principal_roles.principal_id = principals.id
+                        INNER JOIN application_role_permissions AS permissions
+                            ON permissions.role_key = principal_roles.role_key
+                        WHERE principals.identity_subject_id = $1
+                    ) AS grants
+                    ORDER BY capability_key ASC
                 "#,
             )
             .bind(subject_id)

@@ -3042,11 +3042,12 @@ all handlers to the new matrix immediately would conflate a schema migration
 with the authorization migration of every feature. Both alternatives are
 rejected.
 
-**Limits and follow-up:** The matrix is presently a faithful catalogue and
-read projection, not an authorization claim for unported features. Role CRUD,
-hierarchy-based assignment, account access controls, audit history and the
-source React settings panels follow only after their enforcement boundaries
-are complete.
+**Limits and follow-up:** The `roles` read permission now guards the catalogue
+read (while the earlier dedicated capability remains as a transition fallback).
+Other matrix rows are still a faithful data projection, not an authorization
+claim for unported features. Role CRUD, hierarchy-based assignment, account
+access controls, audit history and the source React settings panels follow only
+after their enforcement boundaries are complete.
 
 ## Phase 1 gate
 

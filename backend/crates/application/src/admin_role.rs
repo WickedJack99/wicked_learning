@@ -27,7 +27,9 @@ where
         &self,
         principal: &AuthorizedPrincipal,
     ) -> Result<Option<AdminRoles>, AdminRoleError> {
-        if !principal.has_capability(ApplicationCapability::ViewRoles) {
+        if !principal.has_permission("roles", "ro")
+            && !principal.has_capability(ApplicationCapability::ViewRoles)
+        {
             return Ok(None);
         }
         self.repository.list().await.map(Some)

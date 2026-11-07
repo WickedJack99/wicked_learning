@@ -159,6 +159,42 @@ impl AuthorizedPrincipal {
             .iter()
             .any(|assigned| assigned == capability.key())
     }
+
+    /// Evaluates the source's ordered role levels. Permission grants are
+    /// internal principal facts rather than public browser capabilities; the
+    /// persistence adapter encodes them alongside existing capabilities so the
+    /// principal shape can evolve without widening the `/me` response.
+    pub fn has_permission(&self, resource: &str, required_level: &str) -> bool {
+        let required_weight = permission_level_weight(required_level);
+        if required_weight == 0 {
+            return true;
+        }
+
+        self.capabilities.iter().any(|grant| {
+            let Some((granted_resource, granted_level, _scope)) = grant
+                .strip_prefix("role_permission:")
+                .and_then(|value| value.split_once(':'))
+                .and_then(|(resource, value)| {
+                    value
+                        .split_once(':')
+                        .map(|(level, scope)| (resource, level, scope))
+                })
+            else {
+                return false;
+            };
+            granted_resource == resource
+                && permission_level_weight(granted_level) >= required_weight
+        })
+    }
+}
+
+fn permission_level_weight(level: &str) -> u8 {
+    match level {
+        "ro" => 10,
+        "ru" => 20,
+        "rud" => 30,
+        _ => 0,
+    }
 }
 
 #[cfg(test)]
@@ -187,5 +223,19 @@ mod tests {
         };
 
         assert!(!principal.has_capability(ApplicationCapability::ModerateLearnerMessages));
+    }
+
+    #[test]
+    fn permission_levels_follow_the_source_order_without_becoming_public_capabilities() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["editor".to_owned()],
+            capabilities: vec!["role_permission:roles:ru:all".to_owned()],
+        };
+
+        assert!(principal.has_permission("roles", "ro"));
+        assert!(principal.has_permission("roles", "ru"));
+        assert!(!principal.has_permission("roles", "rud"));
+        assert!(!principal.has_permission("users", "ro"));
     }
 }
