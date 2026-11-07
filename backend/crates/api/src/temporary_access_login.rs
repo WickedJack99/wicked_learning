@@ -53,6 +53,7 @@ pub async fn login(
     Ok(Json(SessionStatusResponse {
         authenticated: true,
         subject_id: Some(subject_id),
+        two_factor_required: false,
     }))
 }
 

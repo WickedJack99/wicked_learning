@@ -86,6 +86,7 @@ pub async fn register(
     Ok(Json(SessionStatusResponse {
         authenticated: true,
         subject_id: Some(subject.subject_id()),
+        two_factor_required: false,
     }))
 }
 

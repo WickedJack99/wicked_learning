@@ -3247,7 +3247,7 @@ components:
     SessionStatus:
       type: object
       additionalProperties: false
-      required: [authenticated, subject_id]
+      required: [authenticated, subject_id, two_factor_required]
       properties:
         authenticated:
           type: boolean
@@ -3255,6 +3255,9 @@ components:
           type: [string, 'null']
           format: uuid
           description: Opaque Rust identity subject identifier, available only for an authenticated session.
+        two_factor_required:
+          type: boolean
+          description: Password verification succeeded, but this browser must complete the server-side two-factor challenge before a session is authenticated.
     CurrentUser:
       type: object
       additionalProperties: false

@@ -2344,6 +2344,8 @@ export interface components {
              * @description Opaque Rust identity subject identifier, available only for an authenticated session.
              */
             subject_id: string | null;
+            /** @description Password verification succeeded, but this browser must complete the server-side two-factor challenge before a session is authenticated. */
+            two_factor_required: boolean;
         };
         CurrentUser: {
             /**

@@ -4,7 +4,8 @@ use axum::{
     http::{HeaderMap, StatusCode},
 };
 use axum_login::AuthSession;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     AppState, csrf,
@@ -15,6 +16,14 @@ use crate::{
 
 const MAX_EMAIL_BYTES: usize = 320;
 const MAX_PASSWORD_BYTES: usize = 1_024;
+pub const PENDING_TWO_FACTOR_LOGIN_KEY: &str = "wicked_pending_two_factor_login";
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct PendingTwoFactorLogin {
+    pub password_verifier: String,
+    pub started_at_unix_seconds: i64,
+    pub subject_id: Uuid,
+}
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -46,6 +55,36 @@ pub async fn login(
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .ok_or_else(ApiError::invalid_credentials)?;
+    if auth_session
+        .backend
+        .requires_two_factor(subject.subject_id())
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+    {
+        auth_session
+            .session
+            .cycle_id()
+            .await
+            .map_err(|_| ApiError::service_unavailable())?;
+        auth_session
+            .session
+            .insert(
+                PENDING_TWO_FACTOR_LOGIN_KEY,
+                PendingTwoFactorLogin {
+                    password_verifier: subject.password_verifier().to_owned(),
+                    started_at_unix_seconds: time::OffsetDateTime::now_utc().unix_timestamp(),
+                    subject_id: subject.subject_id(),
+                },
+            )
+            .await
+            .map_err(|_| ApiError::service_unavailable())?;
+
+        return Ok(Json(SessionStatusResponse {
+            authenticated: false,
+            subject_id: None,
+            two_factor_required: true,
+        }));
+    }
     auth_session
         .login(&subject)
         .await
@@ -54,6 +93,7 @@ pub async fn login(
     Ok(Json(SessionStatusResponse {
         authenticated: true,
         subject_id: Some(subject.subject_id()),
+        two_factor_required: false,
     }))
 }
 

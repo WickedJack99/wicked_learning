@@ -66,6 +66,7 @@ pub async fn update(
     Ok(Json(SessionStatusResponse {
         authenticated: true,
         subject_id: Some(refreshed_subject.subject_id()),
+        two_factor_required: false,
     }))
 }
 

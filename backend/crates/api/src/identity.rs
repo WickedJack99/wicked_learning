@@ -92,6 +92,16 @@ impl IdentityBackend {
 
         Ok(row.map(subject_from_row))
     }
+
+    pub async fn requires_two_factor(&self, subject_id: Uuid) -> Result<bool, IdentityError> {
+        sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM identity_totp_factors WHERE subject_id = $1 AND confirmed_at IS NOT NULL)",
+        )
+        .bind(subject_id)
+        .fetch_one(&self.identity_database)
+        .await
+        .map_err(IdentityError::from)
+    }
 }
 
 impl IdentitySubject {

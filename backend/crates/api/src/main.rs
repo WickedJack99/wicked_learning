@@ -874,7 +874,7 @@ mod tests {
                 .await
                 .expect("body bytes")
                 .to_bytes(),
-            "{\"authenticated\":false,\"subject_id\":null}"
+            "{\"authenticated\":false,\"subject_id\":null,\"two_factor_required\":false}"
         );
     }
 

@@ -3336,6 +3336,12 @@ authentication state and be harder to revoke. Accepting valid time codes
 without a consumed-step record would allow same-window replay. These
 alternatives are rejected.
 
+**Implementation status:** Password login now creates this rotated pending
+session for a confirmed factor and returns an explicit typed challenge state
+while preserving the ordinary session response for other accounts. Challenge
+completion is the next contract slice; the original React login screen does
+not yet route into it.
+
 **Limits and follow-up:** Recovery-code consumption, factor disable and the
 original React challenge screen are implemented with the login contract. Audit
 events remain a separate cross-database reliability slice.
