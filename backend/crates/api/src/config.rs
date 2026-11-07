@@ -14,12 +14,30 @@ use url::Url;
 pub struct Config {
     pub application_database_url: String,
     pub csrf_cookie_key: String,
+    pub email: EmailConfig,
     pub identity_database_url: String,
     pub listen_address: SocketAddr,
     pub media_root: PathBuf,
     pub public_origin: String,
     pub session_cookie_secure: bool,
     pub totp_encryption_key: [u8; 32],
+}
+
+#[derive(Clone)]
+pub struct EmailConfig {
+    pub from_address: String,
+    pub from_name: String,
+    pub smtp_host: String,
+    pub smtp_password: Option<String>,
+    pub smtp_port: u16,
+    pub smtp_security: SmtpSecurity,
+    pub smtp_username: Option<String>,
+}
+
+#[derive(Clone, Copy)]
+pub enum SmtpSecurity {
+    None,
+    StartTls,
 }
 
 pub struct BootstrapAdminConfig {
@@ -46,6 +64,18 @@ pub enum ConfigError {
     InvalidTotpEncryptionKey,
     #[error("PUBLIC_ORIGIN must be an absolute HTTP or HTTPS origin")]
     InvalidPublicOrigin,
+    #[error("MAIL_FROM_ADDRESS must be a valid email address")]
+    InvalidMailFromAddress,
+    #[error("MAIL_FROM_NAME must not be blank or exceed 255 characters")]
+    InvalidMailFromName,
+    #[error("SMTP_HOST must not be blank or exceed 255 characters")]
+    InvalidSmtpHost,
+    #[error("SMTP_PORT must be a valid TCP port: {0}")]
+    InvalidSmtpPort(#[source] std::num::ParseIntError),
+    #[error("SMTP_SECURITY must be either none or starttls")]
+    InvalidSmtpSecurity,
+    #[error("SMTP_USERNAME and SMTP_PASSWORD must be set together")]
+    IncompleteSmtpCredentials,
     #[error("BOOTSTRAP_ADMIN_EMAIL must be a valid email address")]
     InvalidBootstrapAdminEmail,
     #[error("REGISTRATION_TOKEN_NOTE must contain at most 500 characters")]
@@ -94,6 +124,7 @@ impl Config {
         Ok(Self {
             application_database_url: required("APPLICATION_DATABASE_URL")?,
             csrf_cookie_key: csrf_cookie_key()?,
+            email: email_config()?,
             identity_database_url: required("IDENTITY_DATABASE_URL")?,
             listen_address: env::var("LISTEN_ADDRESS")
                 .unwrap_or_else(|_| "0.0.0.0:3000".to_owned())
@@ -110,6 +141,61 @@ impl Config {
             totp_encryption_key: totp_encryption_key()?,
         })
     }
+}
+
+fn email_config() -> Result<EmailConfig, ConfigError> {
+    let from_address = env::var("MAIL_FROM_ADDRESS")
+        .map_err(|_| ConfigError::Missing("MAIL_FROM_ADDRESS"))?
+        .trim()
+        .to_lowercase();
+    if EmailAddress::from_str(&from_address).is_err() {
+        return Err(ConfigError::InvalidMailFromAddress);
+    }
+    let from_name = env::var("MAIL_FROM_NAME")
+        .map_err(|_| ConfigError::Missing("MAIL_FROM_NAME"))?
+        .trim()
+        .to_owned();
+    if from_name.is_empty() || from_name.chars().count() > 255 {
+        return Err(ConfigError::InvalidMailFromName);
+    }
+    let smtp_host = env::var("SMTP_HOST")
+        .map_err(|_| ConfigError::Missing("SMTP_HOST"))?
+        .trim()
+        .to_owned();
+    if smtp_host.is_empty() || smtp_host.len() > 255 {
+        return Err(ConfigError::InvalidSmtpHost);
+    }
+    let smtp_port = env::var("SMTP_PORT")
+        .map_err(|_| ConfigError::Missing("SMTP_PORT"))?
+        .parse()
+        .map_err(ConfigError::InvalidSmtpPort)?;
+    let smtp_security = match env::var("SMTP_SECURITY")
+        .map_err(|_| ConfigError::Missing("SMTP_SECURITY"))?
+        .as_str()
+    {
+        "none" => SmtpSecurity::None,
+        "starttls" => SmtpSecurity::StartTls,
+        _ => return Err(ConfigError::InvalidSmtpSecurity),
+    };
+    let smtp_username = env::var("SMTP_USERNAME")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let smtp_password = env::var("SMTP_PASSWORD")
+        .ok()
+        .filter(|value| !value.is_empty());
+    if smtp_username.is_some() != smtp_password.is_some() {
+        return Err(ConfigError::IncompleteSmtpCredentials);
+    }
+
+    Ok(EmailConfig {
+        from_address,
+        from_name,
+        smtp_host,
+        smtp_password,
+        smtp_port,
+        smtp_security,
+        smtp_username,
+    })
 }
 
 fn public_origin() -> Result<String, ConfigError> {

@@ -2306,6 +2306,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a source-compatible password reset link to an identity address.
+         * @description The Rust identity database stores one short-lived Argon2id-verified recovery token per identity. The browser never receives that token from this API; it is delivered only by the configured mail transport.
+         */
+        post: operations["requestPasswordResetLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace an identity password using a source-compatible recovery link.
+         * @description A successful reset atomically consumes the short-lived recovery token and replaces the password verifier. Existing server-side sessions bound to the prior verifier cease to authenticate on their next request.
+         */
+        post: operations["resetPasswordWithRecoveryLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session/logout": {
         parameters: {
             query?: never;
@@ -2766,6 +2806,22 @@ export interface components {
             /** Format: email */
             email: string;
             password: string;
+        };
+        RequestPasswordResetLink: {
+            /** Format: email */
+            email: string;
+        };
+        PasswordResetLinkResponse: {
+            message: string;
+        };
+        ResetPasswordRequest: {
+            /** Format: email */
+            email: string;
+            /** Format: password */
+            password: string;
+            /** Format: password */
+            password_confirmation: string;
+            token: string;
         };
         CsrfToken: {
             /** @description Send this value in the CSRF header defined by a future unsafe endpoint. It is not an authentication credential. */
@@ -12770,6 +12826,107 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    requestPasswordResetLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestPasswordResetLink"];
+            };
+        };
+        responses: {
+            /** @description A password reset message was accepted for delivery. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetLinkResponse"];
+                };
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The address is malformed or has no recoverable identity. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A reset link was requested for this identity in the source sixty-second throttle window. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database or configured mail transport is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resetPasswordWithRecoveryLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description The password was reset and the recovery link was consumed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The recovery link is invalid or expired */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -3493,6 +3493,51 @@ identifier or session identifier. The Rust rule is therefore deliberately
 stricter for clients sharing an IP, but not exact key-level parity. Replacing it
 requires a request-aware, body-safe limiter and a focused security review.
 
+## ADR-089: Password recovery uses identity-owned one-time tokens and configured SMTP
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source Forgot Password and Reset Password pages are a complete
+account-recovery journey. A Rust substitute that merely rendered their forms,
+put a reset token in browser storage, or stored a token with application data
+would be visually familiar but would not recover an account safely.
+
+**Decision:** The Rust identity database owns one active password-recovery
+record per subject. The token is generated with the maintained UUID random
+source, stored only as an Argon2id verifier, expires after the source
+sixty-minute window, and is deleted in the same identity transaction that
+replaces the password verifier. Requests are serialized on the identity and
+preserve Laravel's sixty-second broker throttle. The API sends the plaintext
+token only in a source-shaped `/reset-password/{token}?email=...` email link
+through maintained `lettre` SMTP transport; it never includes the token in an
+API response, application database row, session, audit event or log. The
+local Compose stack uses a disposable Mailpit SMTP inbox so the actual delivery
+and reset path can be rehearsed. Shared environments must configure a normal
+SMTP relay, sender identity and STARTTLS before enabling the same flow.
+
+**Why:** This matches the source broker's one active token, expiry, throttle,
+email delivery and post-reset return-to-login behavior while retaining the
+accepted identity/application split. Replacing the password verifier preserves
+the existing server-side session invariant: any session bound to the old
+verifier stops authenticating on its next request.
+
+**Alternatives:** A browser-held reset token, a custom SMTP implementation, a
+plaintext token table, or a development-only fake email control are rejected.
+They either weaken recovery secrecy, recreate maintained protocol code, cross
+the database boundary, or expose an incomplete source workflow as available.
+
+**Implementation status:** `POST /password/forgot` and `POST /password/reset`
+are typed same-origin CSRF-protected contracts. The lifted original Login,
+Forgot Password and Reset Password React surfaces use those contracts without
+changing their source labels, fields, route family or return-to-login journey.
+The local Mailpit inbox is exposed only on the configurable local port 8026;
+it is not a production service.
+
+**Limits and follow-up:** SMTP delivery is synchronous, matching the source's
+immediate password-broker notification path. A production cutover requires an
+operational delivery/retry policy and an independent security review. Remembered
+sessions and email-verification delivery remain separate identity slices.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

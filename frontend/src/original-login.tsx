@@ -185,13 +185,22 @@ export function OriginalLoginPage({
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <label
-                                    className="text-sm font-medium"
-                                    htmlFor="password"
-                                    style={{ color: 'var(--auth-label-text-color)' }}
-                                >
-                                    Password
-                                </label>
+                                <div className="flex items-center">
+                                    <label
+                                        className="text-sm font-medium"
+                                        htmlFor="password"
+                                        style={{ color: 'var(--auth-label-text-color)' }}
+                                    >
+                                        Password
+                                    </label>
+                                    <Link
+                                        className="ml-auto text-sm font-medium underline underline-offset-4"
+                                        style={{ color: 'var(--auth-link-text-color)' }}
+                                        to="/forgot-password"
+                                    >
+                                        Forgot your password?
+                                    </Link>
+                                </div>
                                 <input
                                     autoComplete="current-password"
                                     className="h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs outline-none placeholder:opacity-70 focus-visible:ring-2"
@@ -231,6 +240,11 @@ export function OriginalLoginPage({
                             </button>
                         </div>
                     </form>
+                    {searchParams.get('status') === 'password-reset' ? (
+                        <p className="text-center text-sm font-medium text-green-600">
+                            Your password has been reset.
+                        </p>
+                    ) : null}
                     <p className="text-center text-sm text-[var(--auth-description-text-color)]">
                         Don't have an account?{' '}
                         <Link

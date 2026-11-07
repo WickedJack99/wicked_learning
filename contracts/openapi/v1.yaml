@@ -2945,6 +2945,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /password/forgot:
+    post:
+      operationId: requestPasswordResetLink
+      summary: Send a source-compatible password reset link to an identity address.
+      description: The Rust identity database stores one short-lived Argon2id-verified recovery token per identity. The browser never receives that token from this API; it is delivered only by the configured mail transport.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestPasswordResetLink' }
+      responses:
+        '200':
+          description: A password reset message was accepted for delivery.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasswordResetLinkResponse' }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The address is malformed or has no recoverable identity. }
+        '429': { description: A reset link was requested for this identity in the source sixty-second throttle window. }
+        '503': { description: The identity database or configured mail transport is unavailable. }
+  /password/reset:
+    post:
+      operationId: resetPasswordWithRecoveryLink
+      summary: Replace an identity password using a source-compatible recovery link.
+      description: A successful reset atomically consumes the short-lived recovery token and replaces the password verifier. Existing server-side sessions bound to the prior verifier cease to authenticate on their next request.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
+      responses:
+        '204': { description: The password was reset and the recovery link was consumed. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The recovery link is invalid or expired, or the replacement password is invalid. }
+        '503': { description: The identity database is unavailable. }
   /session/logout:
     post:
       operationId: deleteSession
@@ -3874,6 +3913,44 @@ components:
           type: string
           minLength: 1
           maxLength: 1024
+    RequestPasswordResetLink:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+    PasswordResetLinkResponse:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message: { type: string }
+    ResetPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, password_confirmation, token]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 1024
+        password_confirmation:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 1024
+        token:
+          type: string
+          minLength: 1
+          maxLength: 128
     CsrfToken:
       type: object
       additionalProperties: false

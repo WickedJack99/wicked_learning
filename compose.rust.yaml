@@ -17,9 +17,16 @@ services:
       APPLICATION_DATABASE_URL: postgresql://wicked_application:${APPLICATION_DATABASE_PASSWORD:-wicked-local-development-only}@application-db:5432/wicked_application
       CSRF_COOKIE_KEY: ${CSRF_COOKIE_KEY:-wicked-local-development-only-csrf-cookie-key-replace-before-a-shared-deployment-0000}
       IDENTITY_DATABASE_URL: postgresql://wicked_identity:${IDENTITY_DATABASE_PASSWORD:-wicked-local-development-only}@identity-db:5432/wicked_identity
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@wicked-learning.local}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Wicked Learning}
       MEDIA_ROOT: /var/lib/wicked-learning/media
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8081}
       SESSION_COOKIE_SECURE: "false"
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURITY: ${SMTP_SECURITY:-none}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       # Static only for disposable local development. Set a unique 32-byte
       # Base64 key in every shared environment and retain it for the life of
       # any enrolled TOTP factors.
@@ -30,6 +37,8 @@ services:
         condition: service_healthy
       identity-db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/api/v1/health/ready"]
       interval: 10s
@@ -68,6 +77,12 @@ services:
       retries: 12
     volumes:
       - wicked_identity_database:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.28
+    ports:
+      - "${RUST_MAILPIT_PORT:-8026}:8025"
     restart: unless-stopped
 
 volumes:

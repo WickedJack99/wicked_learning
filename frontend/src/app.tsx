@@ -3,6 +3,10 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import {
+    OriginalForgotPasswordPage,
+    OriginalResetPasswordPage,
+} from './original-password-recovery';
 import { OriginalConfirmPasswordPage } from './original-confirm-password';
 import { OriginalTwoFactorChallengePage } from './original-two-factor-challenge';
 import { OriginalOrganizationsPage } from './original-organizations';
@@ -190,6 +194,8 @@ export function App() {
     const isPublicPresentationRoute =
         location.pathname === '/' ||
         location.pathname === '/login' ||
+        location.pathname === '/forgot-password' ||
+        /^\/reset-password\/[^/]+$/.test(location.pathname) ||
         location.pathname === '/confirm-password' ||
         location.pathname === '/two-factor-challenge' ||
         location.pathname === '/register' ||
@@ -317,6 +323,28 @@ export function App() {
                 appearance={appearance}
                 onAppearanceChange={setAppearance}
                 presentation={presentation!}
+            />
+        );
+    }
+
+    if (location.pathname === '/forgot-password') {
+        return (
+            <OriginalForgotPasswordPage
+                appearance={appearance}
+                onAppearanceChange={setAppearance}
+                presentation={presentation!}
+            />
+        );
+    }
+
+    const passwordResetMatch = location.pathname.match(/^\/reset-password\/([^/]+)$/);
+    if (passwordResetMatch) {
+        return (
+            <OriginalResetPasswordPage
+                appearance={appearance}
+                onAppearanceChange={setAppearance}
+                presentation={presentation!}
+                token={decodeURIComponent(passwordResetMatch[1])}
             />
         );
     }

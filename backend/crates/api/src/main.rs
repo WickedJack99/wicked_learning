@@ -13,6 +13,7 @@ mod bootstrap;
 mod config;
 mod csrf;
 mod current_user;
+mod email_delivery;
 mod error;
 mod feedback_prompt_preference;
 mod identity;
@@ -62,6 +63,7 @@ pub mod media_store;
 mod organization;
 mod organization_icon;
 mod organization_icon_moderation;
+mod password_recovery;
 mod passwords;
 mod platform_feedback;
 mod platform_feedback_review;
@@ -126,6 +128,7 @@ pub(crate) struct AppState {
     csrf_cookie_key: String,
     identity_database: PgPool,
     media_store: MediaStore,
+    email_delivery: email_delivery::EmailDelivery,
     public_origin: String,
     session_cookie_secure: bool,
     totp_secret_cipher: totp_crypto::TotpSecretCipher,
@@ -191,12 +194,23 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    let email_delivery = match email_delivery::EmailDelivery::new(
+        &configuration.email,
+        &configuration.public_origin,
+    ) {
+        Ok(email_delivery) => email_delivery,
+        Err(error) => {
+            error!(%error, "could not configure email delivery");
+            return ExitCode::FAILURE;
+        }
+    };
 
     let state = AppState {
         application_database,
         csrf_cookie_key: configuration.csrf_cookie_key,
         identity_database,
         media_store,
+        email_delivery,
         public_origin: configuration.public_origin,
         session_cookie_secure: configuration.session_cookie_secure,
         totp_secret_cipher: totp_crypto::TotpSecretCipher::new(configuration.totp_encryption_key),
@@ -436,11 +450,18 @@ fn router(state: AppState) -> Router {
             GovernorLayer::new(passkey_rate_limit)
                 .error_handler(|_| ApiError::too_many_requests().into_response()),
         );
+    let password_recovery_routes = Router::new()
+        .route(
+            "/api/v1/password/forgot",
+            post(password_recovery::request_link),
+        )
+        .route("/api/v1/password/reset", post(password_recovery::reset));
 
     Router::new()
         .merge(login_routes)
         .merge(two_factor_routes)
         .merge(passkey_routes)
+        .merge(password_recovery_routes)
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/security/csrf", get(csrf::show))
@@ -901,6 +922,22 @@ mod tests {
         configure_webauthn("http://localhost:8081").expect("a valid local WebAuthn configuration")
     }
 
+    fn test_email_delivery() -> super::email_delivery::EmailDelivery {
+        super::email_delivery::EmailDelivery::new(
+            &super::config::EmailConfig {
+                from_address: "no-reply@wicked-learning.local".to_owned(),
+                from_name: "Wicked Learning".to_owned(),
+                smtp_host: "localhost".to_owned(),
+                smtp_password: None,
+                smtp_port: 1025,
+                smtp_security: super::config::SmtpSecurity::None,
+                smtp_username: None,
+            },
+            "http://localhost:8081",
+        )
+        .expect("valid local email configuration")
+    }
+
     #[tokio::test]
     async fn liveness_does_not_depend_on_a_database_connection() {
         let state = AppState {
@@ -917,6 +954,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
 
@@ -959,6 +997,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
 
@@ -1000,6 +1039,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
 
@@ -1041,6 +1081,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
 
@@ -1082,6 +1123,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
 
@@ -1123,6 +1165,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
 
@@ -1166,6 +1209,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
         let app = router(state);
@@ -1226,6 +1270,7 @@ mod tests {
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
             webauthn: test_webauthn(),
         };
 

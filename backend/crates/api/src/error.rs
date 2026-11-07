@@ -106,6 +106,22 @@ impl ApiError {
         }
     }
 
+    pub fn password_reset_request_rejected() -> Self {
+        Self {
+            code: "password_reset_request_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "A password reset link could not be sent for this email address.",
+        }
+    }
+
+    pub fn password_reset_rejected() -> Self {
+        Self {
+            code: "password_reset_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The password reset link or replacement password is not valid.",
+        }
+    }
+
     pub fn two_factor_setup_rejected() -> Self {
         Self {
             code: "two_factor_setup_rejected",

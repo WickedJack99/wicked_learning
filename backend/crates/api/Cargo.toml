@@ -15,8 +15,9 @@ axum-login = "0.18"
 base64 = "0.22"
 email_address = "0.2"
 futures-util = "0.3"
-object_store = { version = "0.14", default-features = false, features = ["fs"] }
 infer = "0.19"
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls-tls"] }
+object_store = { version = "0.14", default-features = false, features = ["fs"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.11"
