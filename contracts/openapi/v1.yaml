@@ -1047,6 +1047,76 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/versions:
+    get:
+      operationId: getAdminWorldBuilderActivityVersions
+      summary: Read bounded Activity History for one editable activity.
+      description: Returns immutable pre-change snapshots only after the same scoped world-activity authorization as the activity editor.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 24, default: 6 }
+      responses:
+        '200':
+          description: A source-shaped bounded page of immutable activity snapshots.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityVersionPage' }
+        '400': { description: The requested history page is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The identity has no application principal or role assignment. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/versions/{version_id}:
+    get:
+      operationId: getAdminWorldBuilderActivityVersion
+      summary: Inspect one immutable Activity History snapshot.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: version_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The selected immutable activity snapshot.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityVersionDetailsResponse' }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The identity has no application principal or role assignment. }
+        '404': { description: The activity version is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: restoreAdminWorldBuilderActivityVersion
+      summary: Restore one immutable Activity History snapshot.
+      description: Atomically preserves the current activity as a new snapshot, restores the selected activity and its outgoing transitions, and resets its review state.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: version_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The selected snapshot was restored and the current state was retained in history. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity version is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}:
     delete:
       operationId: deleteAdminWorldBuilderActivity
@@ -8540,6 +8610,50 @@ components:
       required: [position]
       properties:
         position: { $ref: '#/components/schemas/AdminActivityGraphPosition' }
+    AdminActivityVersionPage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          maxItems: 24
+          items: { $ref: '#/components/schemas/AdminActivityVersionSummary' }
+        pagination: { $ref: '#/components/schemas/AdminActivityVersionPagination' }
+    AdminActivityVersionPagination:
+      type: object
+      additionalProperties: false
+      required: [page, per_page, total, last_page]
+      properties:
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
+    AdminActivityVersionSummary:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, introduction, slug, title, activity_type]
+      properties:
+        id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        introduction: { type: [string, 'null'] }
+        slug: { type: [string, 'null'] }
+        title: { type: [string, 'null'] }
+        activity_type: { type: [string, 'null'] }
+    AdminActivityVersionDetails:
+      allOf:
+        - $ref: '#/components/schemas/AdminActivityVersionSummary'
+        - type: object
+          additionalProperties: false
+          required: [snapshot]
+          properties:
+            snapshot: { type: object, additionalProperties: true }
+    AdminActivityVersionDetailsResponse:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version: { $ref: '#/components/schemas/AdminActivityVersionDetails' }
     CreateAdminOpenPracticeActivityRequest:
       type: object
       additionalProperties: false

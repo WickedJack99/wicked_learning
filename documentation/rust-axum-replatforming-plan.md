@@ -927,7 +927,7 @@ the original editor's independently persisted, rounded `start`/`end` graph
 positions under the same scoped activity-authoring and CSRF boundary, without
 changing learner starts, activities or playback. Subsequent source-shaped
 activity, route-start and transition commands have their own bounded contracts;
-revision and source-catalog workflows remain unavailable.
+source-catalog workflows remain unavailable.
 Ordinary activity-card dragging is now also available at `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/graph-position`. It
 preserves the source UI's finite-number validation and integer rounding, locks
@@ -958,8 +958,16 @@ complete edit, preserves unrelated stored configuration, and applies the
 source editor's `updated_at` optimistic-concurrency check. A stale save is
 returned as a conflict rather than silently overwriting a newer save, while an
 unchanged save retains its timestamp. Content changes reset the currently
-available AI-review state to `needs_review`; Laravel revision snapshots remain
-explicitly unavailable until their complete history workflow is migrated.
+available AI-review state to `needs_review`. The source-adapted Activity
+History dialog is now available from every Rust World Builder activity card:
+it pages immutable pre-change snapshots six at a time, inspects fields,
+configuration and outbound routes, and restores a selected snapshot
+transactionally only within the same scoped `world_activities` authoring
+boundary. Restore first records the current state as a new snapshot, restores
+the selected activity and its outbound transitions, then resets review state;
+the migrated activity-content, transition and graph-position commands record
+their own pre-change snapshots, while unsupported source workflows remain
+outside this claim.
 Reflection creation and editing are now available through `POST
 /api/v1/admin/world-builder/nodes/{node_id}/reflection-activities` and `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/reflection`. They retain

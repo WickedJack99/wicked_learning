@@ -11,6 +11,8 @@ use wicked_learning_domain::{
     world_content::AdminActivityTransition,
 };
 
+use crate::admin_world_activity_history::record_activity_version;
+
 pub struct PostgresAdminWorldNodeTransitionRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -105,11 +107,14 @@ struct Edge {
 #[derive(FromRow)]
 struct ScopedTransition {
     id: Uuid,
+    from_activity_id: Uuid,
     map_asset_id: Option<Uuid>,
     map_id: Uuid,
     creator: Option<Uuid>,
     from_connector: String,
     trigger: String,
+    trigger_value: Option<String>,
+    label: Option<String>,
     target_title: Option<String>,
 }
 enum CreateError {
@@ -162,8 +167,24 @@ async fn create(
         .or_else(|| target.as_ref().map(|value| value.title.clone()))
         .unwrap_or_else(|| fallback_output_label(&form.from_connector));
     let trigger = trigger_for_connector(&form.from_connector);
+    let target_id = target.as_ref().map(|value| value.id);
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM learning_activity_transitions WHERE from_activity_id = $1 AND to_activity_id IS NOT DISTINCT FROM $2 AND from_connector = $3 AND to_connector IS NOT DISTINCT FROM $4)",
+    )
+    .bind(from.id)
+    .bind(target_id)
+    .bind(&form.from_connector)
+    .bind(&form.to_connector)
+    .fetch_one(&mut *tx)
+    .await?;
+    if exists {
+        let result = edges(&mut tx, node.map_asset_id).await?;
+        tx.commit().await?;
+        return Ok(Some(result));
+    }
+    record_activity_version(&mut tx, from.id, principal).await?;
     sqlx::query("INSERT INTO learning_activity_transitions (from_activity_id, to_activity_id, from_connector, to_connector, trigger, label) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (from_activity_id, to_activity_id, from_connector, to_connector) DO NOTHING")
-        .bind(from.id).bind(target.as_ref().map(|value| value.id)).bind(&form.from_connector).bind(&form.to_connector).bind(trigger).bind(label).execute(&mut *tx).await?;
+        .bind(from.id).bind(target_id).bind(&form.from_connector).bind(&form.to_connector).bind(trigger).bind(label).execute(&mut *tx).await?;
     let result = edges(&mut tx, node.map_asset_id).await?;
     tx.commit().await?;
     Ok(Some(result))
@@ -193,8 +214,14 @@ async fn update(
                 .as_deref()
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
+                .map(str::to_owned)
         })
         .flatten();
+    if transition.label.as_deref() != Some(label.as_str())
+        || transition.trigger_value != trigger_value
+    {
+        record_activity_version(&mut tx, transition.from_activity_id, principal).await?;
+    }
     sqlx::query(
         "UPDATE learning_activity_transitions SET label = $2, trigger_value = $3, updated_at = NOW() WHERE id = $1",
     )
@@ -217,6 +244,7 @@ async fn delete(
     let Some(transition) = lock_transition(&mut tx, principal, transition_id).await? else {
         return Ok(None);
     };
+    record_activity_version(&mut tx, transition.from_activity_id, principal).await?;
     sqlx::query("DELETE FROM learning_activity_transitions WHERE id = $1")
         .bind(transition.id)
         .execute(&mut *tx)
@@ -267,7 +295,7 @@ async fn lock_transition(
         return Ok(None);
     };
     let Some(transition) = sqlx::query_as::<_, ScopedTransition>(
-        "SELECT transitions.id, nodes.map_asset_id, nodes.map_id, maps.created_by_principal_id AS creator, transitions.from_connector, transitions.trigger, targets.title AS target_title FROM learning_activity_transitions AS transitions INNER JOIN learning_activities AS sources ON sources.id = transitions.from_activity_id INNER JOIN learning_routes AS source_routes ON source_routes.id = sources.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = source_routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS targets ON targets.id = transitions.to_activity_id WHERE transitions.id = $1 FOR UPDATE OF transitions, nodes",
+        "SELECT transitions.id, transitions.from_activity_id, nodes.map_asset_id, nodes.map_id, maps.created_by_principal_id AS creator, transitions.from_connector, transitions.trigger, transitions.trigger_value, transitions.label, targets.title AS target_title FROM learning_activity_transitions AS transitions INNER JOIN learning_activities AS sources ON sources.id = transitions.from_activity_id INNER JOIN learning_routes AS source_routes ON source_routes.id = sources.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = source_routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS targets ON targets.id = transitions.to_activity_id WHERE transitions.id = $1 FOR UPDATE OF transitions, nodes",
     )
     .bind(transition_id)
     .fetch_optional(&mut **tx)

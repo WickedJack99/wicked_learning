@@ -13,6 +13,7 @@ mod admin_role;
 mod admin_topics;
 mod admin_user;
 mod admin_world_activity_delete;
+mod admin_world_activity_history;
 mod admin_world_activity_position;
 mod admin_world_graph;
 mod admin_world_item_grant;
@@ -617,6 +618,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/graph-position",
             patch(admin_world_activity_position::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/versions",
+            get(admin_world_activity_history::index),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/versions/{version_id}",
+            get(admin_world_activity_history::show).post(admin_world_activity_history::restore),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}",

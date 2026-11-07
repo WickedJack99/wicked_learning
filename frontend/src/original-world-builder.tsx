@@ -27,6 +27,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { OriginalActivityHistoryDialog } from './original-activity-history';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -48,6 +49,7 @@ type WorldMapNodeData = {
 type ActivityNodeData = {
     activity: Activity;
     onDelete: (activity: Activity) => void;
+    onHistory: (activity: Activity) => void;
 };
 
 type WorldMapNode = Node<WorldMapNodeData, 'map'>;
@@ -1119,6 +1121,7 @@ function ActivityGraph({
 }) {
     const graph = document.activity_graph;
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
+    const [historyActivity, setHistoryActivity] = useState<Activity | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [pendingStartRouteDeletion, setPendingStartRouteDeletion] =
@@ -1138,7 +1141,11 @@ function ActivityGraph({
             (activity, index) => ({
                 id: activity.id,
                 type: 'activity',
-                data: { activity, onDelete: setPendingDelete },
+                data: {
+                    activity,
+                    onDelete: setPendingDelete,
+                    onHistory: setHistoryActivity,
+                },
                 position: {
                     x: activity.position.x ?? (index % 3) * 310,
                     y: activity.position.y ?? Math.floor(index / 3) * 220,
@@ -1603,6 +1610,17 @@ function ActivityGraph({
                     processing={deletingStartRoute}
                 />
             ) : null}
+            {historyActivity ? (
+                <OriginalActivityHistoryDialog
+                    activityId={historyActivity.id}
+                    activityTitle={historyActivity.title}
+                    onClose={() => setHistoryActivity(null)}
+                    onRestored={() => {
+                        setHistoryActivity(null);
+                        onReload();
+                    }}
+                />
+            ) : null}
         </>
     );
 }
@@ -1677,6 +1695,17 @@ function ActivityGraphCard({
                     ))}
                 </div>
             ) : null}
+            <button
+                className="mt-3 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
+                data-wl-id="authoring.activity-history.open"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    data.onHistory(activity);
+                }}
+                type="button"
+            >
+                Activity history
+            </button>
         </div>
     );
 }

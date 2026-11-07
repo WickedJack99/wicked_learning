@@ -394,6 +394,43 @@ pub struct AdminEditableActivity {
     pub connectors: AdminActivityConnectors,
 }
 
+/// A bounded, author-only view of immutable activity configuration history.
+/// Snapshots never participate in learner playback reads.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityVersionPage {
+    pub items: Vec<AdminActivityVersionSummary>,
+    pub pagination: AdminActivityVersionPagination,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityVersionPagination {
+    pub page: i64,
+    pub per_page: i64,
+    pub total: i64,
+    pub last_page: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityVersionSummary {
+    pub id: Uuid,
+    pub created_at: String,
+    pub introduction: Option<String>,
+    pub slug: Option<String>,
+    pub title: Option<String>,
+    pub activity_type: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityVersionDetails {
+    pub id: Uuid,
+    pub created_at: String,
+    pub introduction: Option<String>,
+    pub slug: Option<String>,
+    pub title: Option<String>,
+    pub activity_type: Option<String>,
+    pub snapshot: Value,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminActivityReviewHistoryEntry {
     pub id: Uuid,

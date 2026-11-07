@@ -52,10 +52,12 @@ remains the product-priority document, not a replacement for this replatforming
 plan.
 
 Keep Laravel as the production owner until a replatforming slice has the
-required contract, browser, database and rollback evidence. Do not infer
-permission to cross from read-only exploration into identity changes,
-learner-data writes, activity playback/progress, authoring, media mutations or
-production routing: obtain explicit user approval at that phase boundary.
+required contract, browser, database and rollback evidence. Rust may create,
+change and delete identity, learner, activity, authoring and media data in
+local, development and test deployments when that is necessary to advance an
+approved migration slice. Do not direct those Rust writers at production data,
+or give Rust production traffic or routing ownership, without explicit user
+approval at that phase boundary.
 
 ## Repository Git workflow
 

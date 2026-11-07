@@ -9,6 +9,8 @@ use wicked_learning_domain::{
     world_content::AdminActivityGraphPosition,
 };
 
+use crate::admin_world_activity_history::record_activity_version;
+
 pub struct PostgresAdminWorldActivityPositionRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -94,6 +96,8 @@ async fn update_position(
     if !permitted {
         return Ok(None);
     }
+
+    record_activity_version(&mut transaction, activity.id, principal).await?;
 
     let position = sqlx::query_as::<_, PositionRow>(
         "UPDATE learning_activities SET graph_position_x = $2, graph_position_y = $3, updated_at = NOW() WHERE id = $1 RETURNING graph_position_x AS x, graph_position_y AS y",

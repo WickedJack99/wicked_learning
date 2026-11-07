@@ -7,6 +7,8 @@ use wicked_learning_application::admin_world_reflection::{
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
+use crate::admin_world_activity_history::record_activity_version;
+
 pub struct PostgresAdminWorldReflectionRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -179,6 +181,7 @@ async fn update_reflection(
             updated_at: current.updated_at,
         }));
     }
+    record_activity_version(&mut transaction, activity_id, principal).await?;
     let updated_at: String = sqlx::query_scalar(
         "UPDATE learning_activities SET slug = $2, title = $3, description = $4, introduction = $5, activity_config = $6, ai_review_status = 'needs_review', ai_reviewed_at = NULL, ai_review = NULL, updated_at = NOW() WHERE id = $1 RETURNING to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')",
     )

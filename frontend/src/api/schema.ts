@@ -775,6 +775,47 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderActivityGraphPosition"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read bounded Activity History for one editable activity.
+         * @description Returns immutable pre-change snapshots only after the same scoped world-activity authorization as the activity editor.
+         */
+        get: operations["getAdminWorldBuilderActivityVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect one immutable Activity History snapshot. */
+        get: operations["getAdminWorldBuilderActivityVersion"];
+        put?: never;
+        /**
+         * Restore one immutable Activity History snapshot.
+         * @description Atomically preserves the current activity as a new snapshot, restores the selected activity and its outgoing transitions, and resets its review state.
+         */
+        post: operations["restoreAdminWorldBuilderActivityVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}": {
         parameters: {
             query?: never;
@@ -5718,6 +5759,34 @@ export interface components {
         AdminActivityGraphPositionResponse: {
             position: components["schemas"]["AdminActivityGraphPosition"];
         };
+        AdminActivityVersionPage: {
+            items: components["schemas"]["AdminActivityVersionSummary"][];
+            pagination: components["schemas"]["AdminActivityVersionPagination"];
+        };
+        AdminActivityVersionPagination: {
+            page: number;
+            per_page: number;
+            total: number;
+            last_page: number;
+        };
+        AdminActivityVersionSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            created_at: string;
+            introduction: string | null;
+            slug: string | null;
+            title: string | null;
+            activity_type: string | null;
+        };
+        AdminActivityVersionDetails: components["schemas"]["AdminActivityVersionSummary"] & {
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        AdminActivityVersionDetailsResponse: {
+            version: components["schemas"]["AdminActivityVersionDetails"];
+        };
         CreateAdminOpenPracticeActivityRequest: {
             title: string;
             slug?: string | null;
@@ -8873,6 +8942,169 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminWorldBuilderActivityVersions: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A source-shaped bounded page of immutable activity snapshots. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityVersionPage"];
+                };
+            };
+            /** @description The requested history page is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminWorldBuilderActivityVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activity_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The selected immutable activity snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityVersionDetailsResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity version is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restoreAdminWorldBuilderActivityVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The selected snapshot was restored and the current state was retained in history. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity version is unknown or outside the caller's authoring scope. */
             404: {
                 headers: {
                     [name: string]: unknown;
