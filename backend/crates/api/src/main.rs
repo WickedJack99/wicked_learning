@@ -72,6 +72,7 @@ mod public_search;
 mod public_source_links;
 mod public_world;
 mod registration_tokens;
+mod security_access_audit;
 mod session_commands;
 mod session_status;
 mod temporary_access_login;
@@ -189,6 +190,7 @@ async fn main() -> ExitCode {
         session_cookie_secure: configuration.session_cookie_secure,
         totp_secret_cipher: totp_crypto::TotpSecretCipher::new(configuration.totp_encryption_key),
     };
+    spawn_security_audit_delivery(state.clone());
     let listener = match tokio::net::TcpListener::bind(configuration.listen_address).await {
         Ok(listener) => listener,
         Err(error) => {
@@ -204,6 +206,23 @@ async fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+fn spawn_security_audit_delivery(state: AppState) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(30));
+        loop {
+            interval.tick().await;
+            if let Err(error) = security_access_audit::deliver_pending(
+                &state.identity_database,
+                &state.application_database,
+            )
+            .await
+            {
+                error!(%error, "could not deliver pending security access audit events");
+            }
+        }
+    });
 }
 
 async fn rotate_random_organization_leaders(configuration: &Config) -> ExitCode {

@@ -3291,8 +3291,8 @@ separate AES-256-GCM encrypted display copy in the identity database. That
 copy is released only to the authenticated, recently password-confirmed owner
 through non-cacheable responses, preserving the source recovery-code manager.
 Disabling or replacing a factor requires the same sensitive-action flow;
-cross-database application audit delivery remains a separate reliability
-slice.
+its source-shaped application audit is queued in the identity transaction and
+delivered through the reliability boundary in ADR-087.
 
 **Why:** This preserves the source's authenticator-app, recovery-code view and
 recovery-code replacement journeys while reusing maintained TOTP and
@@ -3317,9 +3317,8 @@ verification, view/regenerate recovery codes and disable controls. The
 source-derived React login challenge accepts either an authenticator-app code
 or one recovery code after the server stages a valid password login.
 
-**Limits and follow-up:** Cross-database audit delivery and the source passkey
-flow remain separate identity work. This TOTP lifecycle alone does not satisfy
-the identity cutover gate.
+**Limits and follow-up:** The source passkey flow remains separate identity
+work. This TOTP lifecycle alone does not satisfy the identity cutover gate.
 
 ## ADR-085: TOTP sign-in uses a short-lived pre-authentication session
 
@@ -3392,6 +3391,41 @@ Security path after a successful confirmation.
 disable/replacement and recovery-code lifecycle remain unavailable until their
 complete contracts are implemented. The later passkey slice must add its source
 confirmation alternative to this reusable session-bound boundary.
+
+## ADR-087: Security-factor audit delivery uses an identity outbox
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Source two-factor lifecycle changes appear in the administrator's
+application-owned access history. Rust commits factor secrets and verifiers in
+the identity database, while that history remains correctly application-owned;
+a direct best-effort second write could silently lose an audit record whenever
+the application database is unavailable.
+
+**Decision:** The same identity transaction that confirms or disables a TOTP
+factor writes a credential-free outbox record with a stable UUID, source action
+and before/after security-factor labels. The account owner remains both actor
+and target, as in the source audit. A local bounded delivery worker moves
+pending records to `application_access_change_events`. It uses the outbox UUID
+as the application event ID and `ON CONFLICT DO NOTHING`, then marks the
+identity record delivered only after application commit. Startup and a
+thirty-second retry loop recover from either database being temporarily
+unavailable. The application event never includes TOTP secrets, recovery codes,
+verifiers, session values or credential metadata.
+
+**Why:** This preserves the source visible audit trail without blurring the
+two-database ownership boundary. Idempotent delivery handles a process crash
+between application commit and identity acknowledgement without duplicate
+history rows.
+
+**Alternatives:** A cross-database transaction is not available for the two
+separate PostgreSQL databases. Writing directly to application data after a
+factor mutation risks a permanent missing event. Storing the history in
+identity data violates the accepted boundary. These alternatives are rejected.
+
+**Limits and follow-up:** Passkey registration/deletion must enqueue the same
+kind of non-secret events when that lifecycle is migrated. The outbox is for
+security-factor history only; it is not a generic event bus.
 
 ## Phase 1 gate
 

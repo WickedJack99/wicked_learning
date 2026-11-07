@@ -8,10 +8,12 @@ use axum_login::AuthSession;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use totp_rs::{Builder, Totp};
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
     AppState, account_password_confirmation, csrf, error::ApiError, identity::IdentityBackend,
+    security_access_audit,
 };
 
 const ISSUER: &str = "Wicked Learning";
@@ -140,11 +142,37 @@ pub async fn disable(
         .as_ref()
         .ok_or_else(ApiError::authentication_required)?;
     account_password_confirmation::require(&auth_session).await?;
-    sqlx::query("DELETE FROM identity_totp_factors WHERE subject_id = $1")
-        .bind(subject.subject_id())
-        .execute(&state.identity_database)
+    let mut transaction = state
+        .identity_database
+        .begin()
         .await
         .map_err(|_| ApiError::service_unavailable())?;
+    let deleted = sqlx::query("DELETE FROM identity_totp_factors WHERE subject_id = $1")
+        .bind(subject.subject_id())
+        .execute(&mut *transaction)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    if deleted.rows_affected() == 1 {
+        security_access_audit::queue_two_factor_change(
+            &mut transaction,
+            subject.subject_id(),
+            false,
+        )
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    }
+    transaction
+        .commit()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    if let Err(error) = security_access_audit::deliver_pending(
+        &state.identity_database,
+        &state.application_database,
+    )
+    .await
+    {
+        warn!(%error, subject_id = %subject.subject_id(), "could not immediately deliver security access audit event");
+    }
 
     Ok(Json(TwoFactorStatusResponse { enabled: false }))
 }
@@ -223,6 +251,14 @@ pub async fn confirm_setup(
         ConfirmEnrollmentError::Rejected => ApiError::two_factor_setup_rejected(),
         ConfirmEnrollmentError::Unavailable => ApiError::service_unavailable(),
     })?;
+    if let Err(error) = security_access_audit::deliver_pending(
+        &state.identity_database,
+        &state.application_database,
+    )
+    .await
+    {
+        warn!(%error, subject_id = %subject.subject_id(), "could not immediately deliver security access audit event");
+    }
 
     let mut response_headers = HeaderMap::new();
     response_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
@@ -326,6 +362,9 @@ async fn confirm_pending_enrollment(
     .await
     .map_err(|_| ConfirmEnrollmentError::Unavailable)?;
     save_recovery_code_material(&mut transaction, subject_id, recovery_code_material)
+        .await
+        .map_err(|_| ConfirmEnrollmentError::Unavailable)?;
+    security_access_audit::queue_two_factor_change(&mut transaction, subject_id, true)
         .await
         .map_err(|_| ConfirmEnrollmentError::Unavailable)?;
     transaction
