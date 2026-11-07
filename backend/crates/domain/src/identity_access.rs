@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApplicationCapability {
+    ViewRoles,
     ViewUsers,
     ManageAccessLinks,
     ManageLearningGroups,
@@ -18,6 +19,7 @@ pub enum ApplicationCapability {
 impl ApplicationCapability {
     pub const fn key(self) -> &'static str {
         match self {
+            Self::ViewRoles => "roles_view",
             Self::ViewUsers => "users_view",
             Self::ManageAccessLinks => "access_links_manage",
             Self::ManageLearningGroups => "learning_groups_manage",
@@ -30,6 +32,21 @@ impl ApplicationCapability {
             Self::ViewPlatformFeedback => "platform_feedback_view",
         }
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminRole {
+    pub capabilities: Vec<String>,
+    pub description: Option<String>,
+    pub is_system: bool,
+    pub level: i32,
+    pub name: String,
+    pub role_key: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AdminRoles {
+    pub roles: Vec<AdminRole>,
 }
 
 /// An administrator-only projection that combines the identity-owned profile

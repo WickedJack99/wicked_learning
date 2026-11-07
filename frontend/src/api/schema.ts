@@ -969,6 +969,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the source-shaped role catalogue and its migrated capabilities. */
+        get: operations["getAdminRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/access-links": {
         parameters: {
             query?: never;
@@ -3737,6 +3754,17 @@ export interface components {
             name: string;
             /** Format: uuid */
             subject_id: string;
+        };
+        AdminRole: {
+            capabilities: string[];
+            description: string | null;
+            is_system: boolean;
+            level: number;
+            name: string;
+            role_key: string;
+        };
+        AdminRoles: {
+            roles: components["schemas"]["AdminRole"][];
         };
         AdminLearningGroupResponse: {
             group: components["schemas"]["AdminLearningGroup"];
@@ -7390,6 +7418,47 @@ export interface operations {
                 content?: never;
             };
             /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Role names, hierarchy and capability grants without any identity or credential data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRoles"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot read role administration data. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

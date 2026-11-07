@@ -1138,6 +1138,19 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current principal cannot read user administration data. }
         '503': { description: The application or identity database is unavailable. }
+  /admin/roles:
+    get:
+      operationId: getAdminRoles
+      summary: Read the source-shaped role catalogue and its migrated capabilities.
+      responses:
+        '200':
+          description: Role names, hierarchy and capability grants without any identity or credential data.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRoles' }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot read role administration data. }
+        '503': { description: The application database is unavailable. }
   /admin/access-links:
     get:
       operationId: getAdminAccessLinks
@@ -5560,6 +5573,27 @@ components:
         email: { type: string, format: email, maxLength: 320 }
         name: { type: string, minLength: 1, maxLength: 255 }
         subject_id: { type: string, format: uuid }
+    AdminRole:
+      type: object
+      additionalProperties: false
+      required: [capabilities, description, is_system, level, name, role_key]
+      properties:
+        capabilities:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: [string, 'null'], maxLength: 500 }
+        is_system: { type: boolean }
+        level: { type: integer, minimum: 1, maximum: 100 }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        role_key: { type: string, minLength: 1, maxLength: 120 }
+    AdminRoles:
+      type: object
+      additionalProperties: false
+      required: [roles]
+      properties:
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/AdminRole' }
     AdminLearningGroupResponse:
       type: object
       additionalProperties: false

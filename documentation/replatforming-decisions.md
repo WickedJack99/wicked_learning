@@ -2971,6 +2971,47 @@ removes a partially created principal, identity subject and access-link
 redemption; an operational repair procedure is still needed before a
 production cutover.
 
+## ADR-076: Role catalogue precedes role administration writes
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source access-management UI lists roles by name, description,
+level and system status, then permits role and user-assignment changes according
+to a substantially broader resource/level/scope permission catalogue. The Rust
+platform has only the capabilities required by slices already migrated. Adding
+an approximate role editor or assignment UI would make authorization look
+complete while silently omitting source permission rules.
+
+**Decision:** Keep roles and their capability grants as application data, add
+source-shaped catalogue metadata (`name`, optional `description`, hierarchy
+`level`, and `is_system`), and expose a read-only `GET /admin/roles` contract
+behind a dedicated `roles_view` capability. The initial catalogue describes
+only the already-migrated platform administrator, learning-support, learner
+and temporary learner roles, ordered as the source orders roles. The original
+Roles panel, role writes, deletion and user role assignment remain unavailable
+until the complete source permission model and all affected contracts can be
+migrated together.
+
+**Why:** This supplies exact, typed metadata for the eventual source React UI
+without treating a partial capability list as an equivalent permission system.
+It preserves the separation between credential data in the identity database
+and authorization/application data in the application database. A separate
+read capability also permits future delegation without hard-coding an
+administrator role check.
+
+**Alternatives:** Exposing an improvised role-management screen would violate
+the original-UI requirement and could grant or remove access incorrectly.
+Copying Laravel's entire permission model before its dependent features exist
+would create unused, untested authorization surface. Returning role data to
+every signed-in learner would disclose administration structure without a
+source need. These alternatives are rejected.
+
+**Limits and follow-up:** Current capability names are intentionally a bounded
+projection, not a claim of full Laravel permission parity. Before enabling role
+or assignment writes, migrate the source resource, level and scope catalogue,
+the hierarchy checks, the affected UI controls, and contract/browser/database
+tests as one authorization slice.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
