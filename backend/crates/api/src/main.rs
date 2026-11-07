@@ -51,6 +51,7 @@ mod learner_world;
 mod learning_support_moderation;
 mod login_rate_limit;
 pub mod media_store;
+mod organization;
 mod passwords;
 mod platform_feedback;
 mod platform_feedback_review;
@@ -314,6 +315,16 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/learner/world", get(learner_world::show))
         .route("/api/v1/learner/groups", get(learner_group::index))
+        .route("/api/v1/organizations", get(organization::index).post(organization::create))
+        .route("/api/v1/organizations/{slug}", get(organization::show).patch(organization::update))
+        .route("/api/v1/organizations/{slug}/join-requests", post(organization::request_join))
+        .route("/api/v1/organizations/{slug}/membership", delete(organization::leave))
+        .route("/api/v1/organizations/{slug}/messages", post(organization::send_message))
+        .route("/api/v1/organization-join-requests/{request_id}", patch(organization::respond_to_join_request))
+        .route("/api/v1/organization-memberships/{membership_id}/leader", patch(organization::promote_member))
+        .route("/api/v1/organization-memberships/{membership_id}", delete(organization::remove_member))
+        .route("/api/v1/organization-messages/{message_id}", delete(organization::delete_message))
+        .route("/api/v1/organization-messages/{message_id}/hide", patch(organization::hide_message))
         .route(
             "/api/v1/learner/groups/{group_id}/messages",
             post(learner_group::send_message),

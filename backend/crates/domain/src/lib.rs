@@ -5,5 +5,6 @@
 pub mod identity_access;
 pub mod learner_availability;
 pub mod learner_state;
+pub mod organization;
 pub mod platform_presentation;
 pub mod world_content;

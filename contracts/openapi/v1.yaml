@@ -764,6 +764,163 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The current identity has no learner application principal. }
         '503': { description: The application or identity database is unavailable. }
+  /organizations:
+    get:
+      operationId: getOrganizations
+      summary: Read the authenticated source-shaped organization directory.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 120 }
+      responses:
+        '200':
+          description: Bounded public organization summaries with only the caller's membership and request state.
+          content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationDirectory' } } }
+        '401': { description: Authentication is required. }
+        '503': { description: The application or identity database is unavailable. }
+    post:
+      operationId: createOrganization
+      summary: Create an organization and make the current learner its first leader.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SaveOrganizationRequest' } } }
+      responses:
+        '201': { description: The created organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '400': { description: The source form is invalid or the current membership limit prevents creation. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '503': { description: The application or identity database is unavailable. }
+  /organizations/{slug}:
+    get:
+      operationId: getOrganization
+      summary: Read one organization with caller-scoped collaboration data.
+      parameters:
+        - $ref: '#/components/parameters/OrganizationSlug'
+        - { name: members_page, in: query, schema: { type: integer, minimum: 1, maximum: 10000, default: 1 } }
+        - { name: messages_page, in: query, schema: { type: integer, minimum: 1, maximum: 10000, default: 1 } }
+        - { name: join_requests_page, in: query, schema: { type: integer, minimum: 1, maximum: 10000, default: 1 } }
+      responses:
+        '200': { description: The source-shaped organization projection, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '401': { description: Authentication is required. }
+        '404': { description: The organization is unavailable. }
+        '503': { description: The application or identity database is unavailable. }
+    patch:
+      operationId: updateOrganization
+      summary: Update leader-owned organization text fields.
+      parameters: [ { $ref: '#/components/parameters/OrganizationSlug' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SaveOrganizationRequest' } } }
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '400': { description: The source form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The organization is unavailable or the current learner is not a leader. }
+        '503': { description: The application or identity database is unavailable. }
+  /organizations/{slug}/join-requests:
+    post:
+      operationId: requestOrganizationMembership
+      summary: Create or renew the current learner's request to join an organization.
+      parameters: [ { $ref: '#/components/parameters/OrganizationSlug' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationJoinRequestInput' } } }
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '400': { description: The request message is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The organization is unavailable, membership already exists, or the membership limit prevents joining. }
+        '503': { description: The application or identity database is unavailable. }
+  /organizations/{slug}/membership:
+    delete:
+      operationId: leaveOrganization
+      summary: Leave an organization when source governance permits it.
+      parameters: [ { $ref: '#/components/parameters/OrganizationSlug' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: Leaving is unavailable, including when a last leader must delete instead. }
+        '503': { description: The application or identity database is unavailable. }
+  /organizations/{slug}/messages:
+    post:
+      operationId: sendOrganizationMessage
+      summary: Send a source-bounded organization member chat message.
+      parameters: [ { $ref: '#/components/parameters/OrganizationSlug' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationMessageInput' } } }
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '400': { description: The message is blank or exceeds 4,000 characters. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The organization is unavailable to the member or the source consecutive-message boundary prevents posting. }
+        '503': { description: The application or identity database is unavailable. }
+  /organization-join-requests/{request_id}:
+    patch:
+      operationId: respondToOrganizationJoinRequest
+      summary: Approve or decline one pending request as an organization leader.
+      parameters: [ { $ref: '#/components/parameters/OrganizationJoinRequestId' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationJoinDecision' } } }
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The request is unavailable to this leader. }
+        '503': { description: The application or identity database is unavailable. }
+  /organization-memberships/{membership_id}/leader:
+    patch:
+      operationId: promoteOrganizationMember
+      summary: Promote a member in a monarchy organization.
+      parameters: [ { $ref: '#/components/parameters/OrganizationMembershipId' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The membership is unavailable or manual promotion is not allowed. }
+        '503': { description: The application or identity database is unavailable. }
+  /organization-memberships/{membership_id}:
+    delete:
+      operationId: removeOrganizationMember
+      summary: Remove another organization member as a leader.
+      parameters: [ { $ref: '#/components/parameters/OrganizationMembershipId' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The membership is unavailable or cannot be removed by this leader. }
+        '503': { description: The application or identity database is unavailable. }
+  /organization-messages/{message_id}:
+    delete:
+      operationId: deleteOrganizationMessage
+      summary: Delete the caller's own visible organization message.
+      parameters: [ { $ref: '#/components/parameters/OrganizationMessageId' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The visible message is unavailable to the caller. }
+        '503': { description: The application or identity database is unavailable. }
+  /organization-messages/{message_id}/hide:
+    patch:
+      operationId: hideOrganizationMessage
+      summary: Hide a member message as a platform administrator.
+      parameters: [ { $ref: '#/components/parameters/OrganizationMessageId' }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '200': { description: The refreshed organization, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationResponse' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The visible message is unavailable to the current administrator. }
+        '503': { description: The application or identity database is unavailable. }
   /admin/learning-groups:
     get:
       operationId: getAdminLearningGroups
@@ -2365,6 +2522,26 @@ components:
       schema:
         type: string
         format: uuid
+    OrganizationSlug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9-]{1,140}$' }
+    OrganizationJoinRequestId:
+      name: request_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrganizationMembershipId:
+      name: membership_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrganizationMessageId:
+      name: message_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     LearnerGroupMessageId:
       name: message_id
       in: path
@@ -4651,6 +4828,129 @@ components:
         muted: { type: boolean }
         effects_volume: { type: integer, minimum: 0, maximum: 100 }
         ambience_volume: { type: integer, minimum: 0, maximum: 100 }
+    OrganizationIdentity:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 255 }
+    OrganizationMembership:
+      type: object
+      additionalProperties: false
+      required: [id, joined_at, role, user]
+      properties:
+        id: { type: string, format: uuid }
+        joined_at: { type: string, format: date-time }
+        role: { type: string, enum: [leader, member] }
+        user: { $ref: '#/components/schemas/OrganizationIdentity' }
+    OrganizationJoinRequest:
+      type: object
+      additionalProperties: false
+      required: [created_at, id, message, requester, status]
+      properties:
+        created_at: { type: string, format: date-time }
+        id: { type: string, format: uuid }
+        message: { type: [string, 'null'], maxLength: 1000 }
+        requester: { $ref: '#/components/schemas/OrganizationIdentity' }
+        status: { type: string, enum: [pending, approved, declined] }
+    OrganizationMessage:
+      type: object
+      additionalProperties: false
+      required: [body, can_delete, can_hide, created_at, hidden_at, id, user]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        can_delete: { type: boolean }
+        can_hide: { type: boolean }
+        created_at: { type: string, format: date-time }
+        hidden_at: { type: [string, 'null'], format: date-time }
+        id: { type: string, format: uuid }
+        user: { $ref: '#/components/schemas/OrganizationIdentity' }
+    OrganizationPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 12 }
+        total: { type: integer, minimum: 0 }
+    OrganizationSummary:
+      type: object
+      additionalProperties: false
+      required: [description, governance_type, id, member_count, name, slogan, slug, viewer_join_request, viewer_membership]
+      properties:
+        description: { type: [string, 'null'], maxLength: 4000 }
+        governance_type: { type: string, enum: [monarchy, anarchy, random] }
+        id: { type: string, format: uuid }
+        member_count: { type: integer, minimum: 0 }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slogan: { type: [string, 'null'], maxLength: 180 }
+        slug: { type: string, pattern: '^[a-z0-9-]{1,140}$' }
+        viewer_join_request: { oneOf: [ { $ref: '#/components/schemas/OrganizationJoinRequest' }, { type: 'null' } ] }
+        viewer_membership: { oneOf: [ { $ref: '#/components/schemas/OrganizationMembership' }, { type: 'null' } ] }
+    OrganizationDirectory:
+      type: object
+      additionalProperties: false
+      required: [organizations, pagination]
+      properties:
+        organizations: { type: array, maxItems: 12, items: { $ref: '#/components/schemas/OrganizationSummary' } }
+        pagination: { $ref: '#/components/schemas/OrganizationPagination' }
+    OrganizationDetail:
+      type: object
+      additionalProperties: false
+      required: [can_moderate_messages, can_send_messages, description, governance_type, id, is_leader, leader_count, leadership_rotated_at, member_count, members, members_pagination, messages, messages_pagination, name, pending_join_requests, pending_join_requests_pagination, slogan, slug, viewer_join_request, viewer_membership]
+      properties:
+        can_moderate_messages: { type: boolean }
+        can_send_messages: { type: boolean }
+        description: { type: [string, 'null'], maxLength: 4000 }
+        governance_type: { type: string, enum: [monarchy, anarchy, random] }
+        id: { type: string, format: uuid }
+        is_leader: { type: boolean }
+        leader_count: { type: integer, minimum: 0 }
+        leadership_rotated_at: { type: [string, 'null'], format: date-time }
+        member_count: { type: integer, minimum: 0 }
+        members: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/OrganizationMembership' } }
+        members_pagination: { $ref: '#/components/schemas/OrganizationPagination' }
+        messages: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/OrganizationMessage' } }
+        messages_pagination: { oneOf: [ { $ref: '#/components/schemas/OrganizationPagination' }, { type: 'null' } ] }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        pending_join_requests: { type: array, maxItems: 4, items: { $ref: '#/components/schemas/OrganizationJoinRequest' } }
+        pending_join_requests_pagination: { oneOf: [ { $ref: '#/components/schemas/OrganizationPagination' }, { type: 'null' } ] }
+        slogan: { type: [string, 'null'], maxLength: 180 }
+        slug: { type: string, pattern: '^[a-z0-9-]{1,140}$' }
+        viewer_join_request: { oneOf: [ { $ref: '#/components/schemas/OrganizationJoinRequest' }, { type: 'null' } ] }
+        viewer_membership: { oneOf: [ { $ref: '#/components/schemas/OrganizationMembership' }, { type: 'null' } ] }
+    OrganizationResponse:
+      type: object
+      additionalProperties: false
+      required: [organization]
+      properties:
+        organization: { $ref: '#/components/schemas/OrganizationDetail' }
+    SaveOrganizationRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slogan: { type: [string, 'null'], maxLength: 180 }
+        description: { type: [string, 'null'], maxLength: 4000 }
+        governance_type: { type: string, enum: [monarchy, anarchy, random] }
+    OrganizationJoinRequestInput:
+      type: object
+      additionalProperties: false
+      properties:
+        message: { type: [string, 'null'], maxLength: 1000 }
+    OrganizationJoinDecision:
+      type: object
+      additionalProperties: false
+      required: [approved]
+      properties: { approved: { type: boolean } }
+    OrganizationMessageInput:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties: { body: { type: string, minLength: 1, maxLength: 4000 } }
     LearnerGroupMember:
       type: object
       additionalProperties: false

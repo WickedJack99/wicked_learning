@@ -2787,6 +2787,46 @@ Organisation writer. Implementing it requires explicit approval for the
 application-data mutation phase, followed by focused contract, database,
 authorization and browser evidence. Media mutations remain separately gated.
 
+## ADR-071: Organisation core is a source-shaped application-data slice
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Learner organisations combine a public directory with private
+membership, leadership, join-request and chat state. The source behaviour is
+already defined, but its Inertia responses are not a safe Rust API contract and
+its reader performs governance work as a side effect.
+
+**Decision:** The Rust core slice stores organisations, memberships, join
+requests, messages and the per-learner membership policy in the application
+database. Identity details remain in the identity database and are projected
+only after the application query has selected the permitted organisation
+records. The typed same-origin OpenAPI contract exposes the source directory,
+detail, create/update, join request, leadership, membership and message
+transitions. React retains the source index/detail layout, URL shape and
+controls while replacing only Inertia visits/forms with typed API calls.
+
+Anarchy leadership is reconciled in the transaction that changes membership.
+Random governance is repaired on writes if a leader is missing or invalid; it
+does not rotate from a GET. A scheduled, explicit monthly rotation operation
+is still required for complete random-governance parity.
+
+**Why:** This gives every durable transition an explicit actor, authorization
+check and transaction while preserving source workflows. It keeps credentials,
+password hashes and identity profiles outside application collaboration data.
+The source frontend is reused rather than replaced with an approximation.
+
+**Alternatives:** Retaining Laravel's write-on-read behaviour would make a
+browser refresh mutate leadership. Storing user names alongside memberships
+would duplicate identity data. A new organization UI would introduce visual
+and interaction drift. These alternatives are rejected.
+
+**Limits and follow-up:** This is the usable non-media core, not the final
+organisation migration. Organization deletion, icon upload, icon reports,
+icon moderation, source icon rendering and scheduled monthly random-leader
+rotation remain explicitly incomplete. They must use the mounted-media
+lifecycle and separate authorization/browser evidence before being presented
+as migrated functionality.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

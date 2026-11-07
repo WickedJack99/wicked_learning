@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalOrganizationsPage } from './original-organizations';
 import { OriginalRegisterPage } from './original-register';
 import { OriginalRecallDeskPage } from './original-recall-desk';
 import { OriginalBookmarksPage } from './original-bookmarks';
@@ -304,6 +305,23 @@ export function App() {
                 onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
                 userEmail={
                     currentUser.kind === 'loaded' ? currentUser.email : ''
+                }
+            />
+        );
+    }
+
+    const organizationMatch = location.pathname.match(/^\/organizations\/([^/]+)$/);
+    if (location.pathname === '/organizations' || organizationMatch) {
+        return (
+            <OriginalOrganizationsPage
+                isAuthenticated={currentUser.kind === 'loaded'}
+                isAuthenticationLoading={currentUser.kind === 'loading'}
+                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                userEmail={currentUser.kind === 'loaded' ? currentUser.email : ''}
+                slug={
+                    organizationMatch
+                        ? decodeURIComponent(organizationMatch[1])
+                        : undefined
                 }
             />
         );
