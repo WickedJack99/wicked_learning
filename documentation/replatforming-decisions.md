@@ -2748,6 +2748,45 @@ lifecycle and protected/public serving policy as appropriate, and add its own
 authorization, browser and media-lifecycle evidence before it can write the
 reserved JSONB value.
 
+## ADR-070: Organisation reads must not perform hidden governance writes
+
+**Status:** Accepted for the future Organisation slice — 7 November 2026
+
+**Problem:** The source Organisation directory and detail reader call
+`ensureCurrentLeadership` before serializing an Organisation. For anarchy this
+can promote every member, and for random governance it can select and persist
+a monthly leader. The same visible surface also depends on owner/member
+membership state, join-request status, private member chat, staff moderation
+and optional icon media. Treating the directory or detail route as a simple
+read-only browser/API migration would silently omit or trigger these durable
+state transitions.
+
+**Decision:** Do not publish an empty or deceptively read-only Organisation
+surface as a standalone slice. The future Rust Organisation vertical slice
+must first model Organisation, membership, pending join request, message and
+moderation state in the application database. It must make deterministic
+governance reconciliation an explicit, authorized transaction or background
+operation, rather than an incidental GET side effect. The browser must receive
+only its scoped membership/join-request state, while member chat and pending
+requests remain gated by their source roles. Icon upload and icon-report media
+work are a later mounted-media sub-slice, not a prerequisite for the core
+non-media workflow.
+
+**Why:** This preserves the source's governance behavior without making a
+GET request unexpectedly mutate application data. It also prevents a partial
+directory from claiming that learners can create, join, communicate or govern
+an Organisation when the corresponding server-owned transitions do not exist.
+
+**Alternatives:** Ship the listing/detail screen with disabled source controls,
+or retain source-style write-on-read behavior. The former is an incomplete
+approximation rather than usable parity; the latter is harder to audit, retry
+and secure. Both are rejected.
+
+**Limits and follow-up:** This records a boundary and does not authorize the
+Organisation writer. Implementing it requires explicit approval for the
+application-data mutation phase, followed by focused contract, database,
+authorization and browser evidence. Media mutations remain separately gated.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
