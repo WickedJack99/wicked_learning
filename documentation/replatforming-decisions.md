@@ -3689,6 +3689,14 @@ layout JSON, and uses the same activity-update scope and CSRF boundary as the
 read. It does not imply that route starts, activity positions, transitions or
 any learner-facing behavior may be updated yet.
 
+**Route-start follow-up:** The next command pair owns only membership between a
+selected node and its eligible activity starts. It is idempotent, rejects exit
+portals and activities outside the node's map asset, locks the node while
+changing the relation, and resynchronizes its compatibility preferred-start
+field in the same transaction. This preserves the existing editor and learner
+route invariant without exposing route presentation, ordering, transition or
+activity-content mutations prematurely.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

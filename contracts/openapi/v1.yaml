@@ -890,6 +890,7 @@ paths:
           in: path
           required: true
           schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -926,6 +927,77 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /admin/world-builder/nodes/{node_id}/start-routes:
+    post:
+      operationId: addAdminWorldBuilderNodeStartRoute
+      summary: Add an eligible activity as a selected node's learner route start.
+      description: This source-derived authoring command requires World Activities update authority, its scoped editable map, and a same-origin CSRF token. It atomically updates the node's legacy preferred start to the first eligible start route; exit portal activities are rejected.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddAdminActivityStartRouteRequest' }
+      responses:
+        '200':
+          description: The selected node's complete eligible start-route state after the idempotent add.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityStartRoutesResponse' }
+        '400': { description: The activity identifier is malformed or names an exit portal. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node or activity is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: removeAllAdminWorldBuilderNodeStartRoutes
+      summary: Remove every learner route start from a selected node.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The selected node's empty start-route state and cleared legacy preferred start.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityStartRoutesResponse' }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/start-routes/{activity_id}:
+    delete:
+      operationId: removeAdminWorldBuilderNodeStartRoute
+      summary: Remove one learner route start from a selected node.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The selected node's remaining eligible starts and resynchronized legacy preferred start.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityStartRoutesResponse' }
+        '400': { description: The activity identifier is malformed. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
   /learner/maps/{map_slug}/nodes/{node_slug}/bookmark:
     post:
       operationId: createLearnerNodeBookmark
@@ -7478,6 +7550,21 @@ components:
       required: [graph_layout]
       properties:
         graph_layout: { type: object, additionalProperties: true }
+    AddAdminActivityStartRouteRequest:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties:
+        activity_id: { type: string, format: uuid }
+    AdminActivityStartRoutesResponse:
+      type: object
+      additionalProperties: false
+      required: [start_activity_id, start_routes]
+      properties:
+        start_activity_id: { type: [string, 'null'], format: uuid }
+        start_routes:
+          type: array
+          items: { $ref: '#/components/schemas/AdminActivityStartRoute' }
     AdminActivityGraph:
       type: object
       additionalProperties: false

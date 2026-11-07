@@ -919,6 +919,12 @@ the original editor's independently persisted, rounded `start`/`end` graph
 positions under the same scoped activity-authoring and CSRF boundary, without
 changing learner starts, activities or playback. The remaining activity, route,
 transition, revision and source-catalog commands are still not exposed.
+The first route-start command pair now adds or removes a node's activity start
+membership through the source eligibility rule: an activity must belong to that
+node's map asset and an exit portal cannot be a learner start. Each command
+atomically resynchronizes the legacy preferred start from the ordered eligible
+routes. Route-start presentation editing and ordering, activity and transition
+commands remain unavailable.
 No World Builder React route is exposed from these partial contracts: the next
 slice must adapt the existing World Builder React components against all three
 read contracts, rather than inventing a reduced editor.

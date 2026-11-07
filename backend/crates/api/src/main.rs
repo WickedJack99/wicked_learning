@@ -14,6 +14,7 @@ mod admin_world_graph;
 mod admin_world_map;
 mod admin_world_node;
 mod admin_world_node_layout;
+mod admin_world_node_starts;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -555,6 +556,15 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout",
             patch(admin_world_node_layout::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/start-routes",
+            post(admin_world_node_starts::add)
+                .delete(admin_world_node_starts::remove_all),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/start-routes/{activity_id}",
+            delete(admin_world_node_starts::remove_one),
         )
         .route(
             "/api/v1/admin/roles/{role_key}",
@@ -1314,6 +1324,41 @@ mod tests {
             )
             .await
             .expect("World Builder node layout response");
+
+        assert_eq!(response.status(), 401);
+    }
+
+    #[tokio::test]
+    async fn world_builder_node_start_routes_require_an_authenticated_session() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/start-routes")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"activity_id":"00000000-0000-4000-8000-000000000011"}"#))
+                    .expect("a valid World Builder start route request"),
+            )
+            .await
+            .expect("World Builder start route response");
 
         assert_eq!(response.status(), 401);
     }
