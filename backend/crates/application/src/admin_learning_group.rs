@@ -2,7 +2,7 @@ use std::future::Future;
 
 use uuid::Uuid;
 use wicked_learning_domain::{
-    identity_access::{ApplicationCapability, AuthorizedPrincipal},
+    identity_access::AuthorizedPrincipal,
     learner_state::{AdminLearningGroup, AdminLearningGroups},
 };
 
@@ -67,6 +67,7 @@ fn optional_trimmed(value: Option<&str>) -> Option<String> {
 pub trait AdminLearningGroupRepository {
     fn list(
         &self,
+        principal: &AuthorizedPrincipal,
     ) -> impl Future<Output = Result<AdminLearningGroups, AdminLearningGroupError>> + Send;
 
     fn create(
@@ -77,12 +78,14 @@ pub trait AdminLearningGroupRepository {
 
     fn update(
         &self,
+        principal: &AuthorizedPrincipal,
         group_id: Uuid,
         form: &LearningGroupForm,
     ) -> impl Future<Output = Result<Option<AdminLearningGroup>, AdminLearningGroupError>> + Send;
 
     fn sync_members(
         &self,
+        principal: &AuthorizedPrincipal,
         group_id: Uuid,
         member_subject_ids: &[Uuid],
     ) -> impl Future<Output = Result<Option<AdminLearningGroup>, AdminLearningGroupError>> + Send;
@@ -108,11 +111,11 @@ where
         &self,
         principal: &AuthorizedPrincipal,
     ) -> Result<Option<AdminLearningGroups>, AdminLearningGroupError> {
-        if !principal.has_capability(ApplicationCapability::ManageLearningGroups) {
+        if !principal.has_permission("groups", "ro") {
             return Ok(None);
         }
 
-        self.repository.list().await.map(Some)
+        self.repository.list(principal).await.map(Some)
     }
 }
 
@@ -129,7 +132,7 @@ where
         principal: &AuthorizedPrincipal,
         form: &LearningGroupForm,
     ) -> Result<Option<AdminLearningGroup>, AdminLearningGroupError> {
-        if !principal.has_capability(ApplicationCapability::ManageLearningGroups) {
+        if !principal.has_permission("groups", "ru") {
             return Ok(None);
         }
 
@@ -142,11 +145,11 @@ where
         group_id: Uuid,
         form: &LearningGroupForm,
     ) -> Result<Option<AdminLearningGroup>, AdminLearningGroupError> {
-        if !principal.has_capability(ApplicationCapability::ManageLearningGroups) {
+        if !principal.has_permission("groups", "ru") {
             return Ok(None);
         }
 
-        self.repository.update(group_id, form).await
+        self.repository.update(principal, group_id, form).await
     }
 
     pub async fn sync_members(
@@ -155,12 +158,12 @@ where
         group_id: Uuid,
         member_subject_ids: &[Uuid],
     ) -> Result<Option<AdminLearningGroup>, AdminLearningGroupError> {
-        if !principal.has_capability(ApplicationCapability::ManageLearningGroups) {
+        if !principal.has_permission("group_members", "ru") {
             return Ok(None);
         }
 
         self.repository
-            .sync_members(group_id, member_subject_ids)
+            .sync_members(principal, group_id, member_subject_ids)
             .await
     }
 }

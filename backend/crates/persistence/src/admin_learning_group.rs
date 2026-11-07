@@ -7,7 +7,7 @@ use wicked_learning_application::admin_learning_group::{
     LearningGroupForm,
 };
 use wicked_learning_domain::{
-    identity_access::AuthorizedPrincipal,
+    identity_access::{AuthorizedPrincipal, permission_scope_allows},
     learner_state::{
         AdminLearningGroup, AdminLearningGroupMessage, AdminLearningGroupUser, AdminLearningGroups,
     },
@@ -41,6 +41,13 @@ struct GroupRow {
 }
 
 #[derive(FromRow)]
+struct ManagedGroupRow {
+    admin_chat_visible_enabled: bool,
+    created_by_principal_id: Uuid,
+    slug: String,
+}
+
+#[derive(FromRow)]
 struct PrincipalRow {
     principal_id: Uuid,
     subject_id: Uuid,
@@ -70,18 +77,22 @@ struct IdentityProjection {
 impl AdminLearningGroupRepositoryPort for PostgresAdminLearningGroupRepository<'_> {
     fn list(
         &self,
+        principal: &AuthorizedPrincipal,
     ) -> impl std::future::Future<Output = Result<AdminLearningGroups, AdminLearningGroupError>> + Send
     {
         async move {
-            let groups = sqlx::query_scalar::<_, Uuid>(
-                "SELECT id FROM learning_groups ORDER BY name ASC, id ASC",
-            )
-            .fetch_all(self.application_pool)
-            .await
-            .map_err(|error| {
-                tracing::error!(%error, "could not list learning groups for administration");
-                AdminLearningGroupError
-            })?;
+            let Some(scope) = principal.permission_scope("groups", "ro") else {
+                return Ok(AdminLearningGroups {
+                    groups: vec![],
+                    users: vec![],
+                });
+            };
+            let groups = manageable_group_ids(self.application_pool, principal.subject_id, scope)
+                .await
+                .map_err(|error| {
+                    tracing::error!(%error, "could not list scoped learning groups for administration");
+                    AdminLearningGroupError
+                })?;
             let mut projected_groups = Vec::with_capacity(groups.len());
             for group_id in groups {
                 if let Some(group) =
@@ -172,6 +183,7 @@ impl AdminLearningGroupRepositoryPort for PostgresAdminLearningGroupRepository<'
 
     fn update(
         &self,
+        principal: &AuthorizedPrincipal,
         group_id: Uuid,
         form: &LearningGroupForm,
     ) -> impl std::future::Future<
@@ -182,8 +194,9 @@ impl AdminLearningGroupRepositoryPort for PostgresAdminLearningGroupRepository<'
                 tracing::error!(%error, "could not begin learning group update");
                 AdminLearningGroupError
             })?;
-            let current_slug = sqlx::query_scalar::<_, String>(
-                "SELECT slug FROM learning_groups WHERE id = $1 FOR UPDATE",
+            let current = sqlx::query_as::<_, ManagedGroupRow>(
+                "SELECT admin_chat_visible_enabled, created_by_principal_id, slug \
+                 FROM learning_groups WHERE id = $1 FOR UPDATE",
             )
             .bind(group_id)
             .fetch_optional(&mut *transaction)
@@ -192,10 +205,22 @@ impl AdminLearningGroupRepositoryPort for PostgresAdminLearningGroupRepository<'
                 tracing::error!(%error, "could not lock learning group update");
                 AdminLearningGroupError
             })?;
-            let Some(current_slug) = current_slug else {
+            let Some(current) = current else {
                 return Ok(None);
             };
-            let slug = form.slug.as_deref().unwrap_or(&current_slug);
+            if !can_manage_group(
+                &mut transaction,
+                principal,
+                group_id,
+                current.created_by_principal_id,
+                "groups",
+            )
+            .await
+            .map_err(storage_error)?
+            {
+                return Ok(None);
+            }
+            let slug = form.slug.as_deref().unwrap_or(&current.slug);
             let updated = sqlx::query_scalar::<_, Uuid>(
                 "UPDATE learning_groups SET name = $2, slug = $3, description = $4, study_topic = $5, updated_at = NOW() \
                  WHERE id = $1 AND (slug = $3 OR NOT EXISTS (SELECT 1 FROM learning_groups AS conflicting WHERE conflicting.slug = $3)) \
@@ -230,6 +255,7 @@ impl AdminLearningGroupRepositoryPort for PostgresAdminLearningGroupRepository<'
 
     fn sync_members(
         &self,
+        principal: &AuthorizedPrincipal,
         group_id: Uuid,
         member_subject_ids: &[Uuid],
     ) -> impl std::future::Future<
@@ -241,8 +267,9 @@ impl AdminLearningGroupRepositoryPort for PostgresAdminLearningGroupRepository<'
                 tracing::error!(%error, "could not begin learning group membership update");
                 AdminLearningGroupError
             })?;
-            let Some(visible) = sqlx::query_scalar::<_, bool>(
-                "SELECT admin_chat_visible_enabled FROM learning_groups WHERE id = $1 FOR UPDATE",
+            let Some(current) = sqlx::query_as::<_, ManagedGroupRow>(
+                "SELECT admin_chat_visible_enabled, created_by_principal_id, slug \
+                 FROM learning_groups WHERE id = $1 FOR UPDATE",
             )
             .bind(group_id)
             .fetch_optional(&mut *transaction)
@@ -254,6 +281,19 @@ impl AdminLearningGroupRepositoryPort for PostgresAdminLearningGroupRepository<'
             else {
                 return Ok(None);
             };
+            if !can_manage_group(
+                &mut transaction,
+                principal,
+                group_id,
+                current.created_by_principal_id,
+                "group_members",
+            )
+            .await
+            .map_err(storage_error)?
+            {
+                return Ok(None);
+            }
+            let visible = current.admin_chat_visible_enabled;
             let requested_principals = sqlx::query_as::<_, PrincipalRow>(
                 "SELECT id AS principal_id, identity_subject_id AS subject_id FROM application_principals WHERE identity_subject_id = ANY($1)",
             )
@@ -355,6 +395,69 @@ async fn principal_id(
         .bind(subject_id)
         .fetch_optional(&mut **transaction)
         .await
+}
+
+async fn manageable_group_ids(
+    pool: &PgPool,
+    actor_subject_id: Uuid,
+    scope: &str,
+) -> Result<Vec<Uuid>, sqlx::Error> {
+    if permission_scope_allows(scope, "all") {
+        return sqlx::query_scalar("SELECT id FROM learning_groups ORDER BY name ASC, id ASC")
+            .fetch_all(pool)
+            .await;
+    }
+
+    let may_manage_own = permission_scope_allows(scope, "own");
+    let may_manage_assigned = permission_scope_allows(scope, "assigned");
+    sqlx::query_scalar(
+        "SELECT groups.id FROM learning_groups AS groups \
+         WHERE ($2 AND groups.created_by_principal_id = ( \
+             SELECT id FROM application_principals WHERE identity_subject_id = $1 \
+         )) OR ($3 AND EXISTS ( \
+             SELECT 1 FROM learning_group_memberships AS memberships \
+             INNER JOIN application_principals AS principals ON principals.id = memberships.principal_id \
+             WHERE memberships.group_id = groups.id AND memberships.role = 'manager' \
+               AND principals.identity_subject_id = $1 \
+         )) ORDER BY groups.name ASC, groups.id ASC",
+    )
+    .bind(actor_subject_id)
+    .bind(may_manage_own)
+    .bind(may_manage_assigned)
+    .fetch_all(pool)
+    .await
+}
+
+async fn can_manage_group(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    group_id: Uuid,
+    creator_principal_id: Uuid,
+    resource: &str,
+) -> Result<bool, sqlx::Error> {
+    let Some(scope) = principal.permission_scope(resource, "ru") else {
+        return Ok(false);
+    };
+    if permission_scope_allows(scope, "all") {
+        return Ok(true);
+    }
+    let Some(actor_principal_id) = principal_id(transaction, principal.subject_id).await? else {
+        return Ok(false);
+    };
+    if permission_scope_allows(scope, "own") && actor_principal_id == creator_principal_id {
+        return Ok(true);
+    }
+    if !permission_scope_allows(scope, "assigned") {
+        return Ok(false);
+    }
+    sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM learning_group_memberships \
+         WHERE group_id = $1 AND principal_id = $2 AND role = 'manager')",
+    )
+    .bind(group_id)
+    .bind(actor_principal_id)
+    .fetch_one(&mut **transaction)
+    .await
 }
 
 async fn next_slug(
@@ -590,6 +693,11 @@ async fn load_identities(
             })
             .collect()
     })
+}
+
+fn storage_error(error: sqlx::Error) -> AdminLearningGroupError {
+    tracing::error!(%error, "learning-group database operation failed");
+    AdminLearningGroupError
 }
 
 #[cfg(test)]

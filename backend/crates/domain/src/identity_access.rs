@@ -194,26 +194,37 @@ impl AuthorizedPrincipal {
     /// persistence adapter encodes them alongside existing capabilities so the
     /// principal shape can evolve without widening the `/me` response.
     pub fn has_permission(&self, resource: &str, required_level: &str) -> bool {
+        self.permission_scope(resource, required_level).is_some()
+    }
+
+    /// Returns the broadest source-defined scope granted by any assigned role
+    /// at the requested permission level. Scopes remain server-owned facts and
+    /// are never sent to the browser as an authorization instruction.
+    pub fn permission_scope(&self, resource: &str, required_level: &str) -> Option<&str> {
         let required_weight = permission_level_weight(required_level);
         if required_weight == 0 {
-            return true;
+            return Some("all");
         }
 
-        self.capabilities.iter().any(|grant| {
-            let Some((granted_resource, granted_level, _scope)) = grant
-                .strip_prefix("role_permission:")
-                .and_then(|value| value.split_once(':'))
-                .and_then(|(resource, value)| {
-                    value
-                        .split_once(':')
-                        .map(|(level, scope)| (resource, level, scope))
-                })
-            else {
-                return false;
-            };
-            granted_resource == resource
-                && permission_level_weight(granted_level) >= required_weight
-        })
+        self.capabilities
+            .iter()
+            .filter_map(|grant| {
+                let Some((granted_resource, granted_level, _scope)) = grant
+                    .strip_prefix("role_permission:")
+                    .and_then(|value| value.split_once(':'))
+                    .and_then(|(resource, value)| {
+                        value
+                            .split_once(':')
+                            .map(|(level, scope)| (resource, level, scope))
+                    })
+                else {
+                    return None;
+                };
+                (granted_resource == resource
+                    && permission_level_weight(granted_level) >= required_weight)
+                    .then_some(_scope)
+            })
+            .max_by_key(|scope| permission_scope_weight(scope))
     }
 }
 
@@ -222,6 +233,20 @@ fn permission_level_weight(level: &str) -> u8 {
         "ro" => 10,
         "ru" => 20,
         "rud" => 30,
+        _ => 0,
+    }
+}
+
+pub fn permission_scope_allows(actual: &str, required: &str) -> bool {
+    permission_scope_weight(actual) >= permission_scope_weight(required)
+}
+
+fn permission_scope_weight(scope: &str) -> u8 {
+    match scope {
+        "own" => 10,
+        "assigned" => 20,
+        "group" => 30,
+        "all" => 40,
         _ => 0,
     }
 }
@@ -266,5 +291,22 @@ mod tests {
         assert!(principal.has_permission("roles", "ru"));
         assert!(!principal.has_permission("roles", "rud"));
         assert!(!principal.has_permission("users", "ro"));
+    }
+
+    #[test]
+    fn permission_scope_uses_the_broadest_qualifying_role_grant() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["editor".to_owned(), "group-manager".to_owned()],
+            capabilities: vec![
+                "role_permission:groups:ru:own".to_owned(),
+                "role_permission:groups:ro:assigned".to_owned(),
+                "role_permission:groups:ru:group".to_owned(),
+            ],
+        };
+
+        assert_eq!(principal.permission_scope("groups", "ru"), Some("group"));
+        assert!(super::permission_scope_allows("group", "assigned"));
+        assert!(!super::permission_scope_allows("own", "assigned"));
     }
 }

@@ -3241,6 +3241,41 @@ administrator's selected policy. These alternatives are rejected.
 Identity-owned administrator invitations retain ADR-080's separate lifecycle;
 tool, item and temporary-login links do not accept role selections.
 
+## ADR-083: Learning-group administration evaluates role scopes at the resource
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source role matrix gives group administration a permission
+level and a scope. The Rust Groups panel initially treated the derived
+`learning_groups_manage` capability as global authority, allowing a custom
+role with an own- or assigned-group scope to read or modify unrelated groups.
+
+**Decision:** The authenticated Rust principal retains internal permission
+grants with their resource, level and scope. Group administration selects the
+broadest qualifying scope across the principal's roles, following the source
+scope order: `own`, `assigned`, `group`, `all`. A group reader sees all groups
+only with `all`; otherwise it sees groups it created and, for `assigned` or
+broader scopes, groups where it is a `manager` member. Updates apply the same
+resource-scoped check while holding the group row lock. Membership changes use
+the independently granted `group_members` resource and its scope.
+
+**Why:** This restores the source authorization model while preserving a small
+backend-owned principal shape. The browser still receives only the typed group
+projection, never raw permission grants or an instruction to enforce policy.
+Locking before a mutation prevents a concurrent membership or creator change
+from widening the decision after it was checked.
+
+**Alternatives:** Treating every migration capability as all-scope would be
+simple but incorrect for configurable roles. Requiring a platform
+administrator for every group action would erase source delegation. Giving the
+browser a scope map would invite client-side authorization drift. These
+alternatives are rejected.
+
+**Limits and follow-up:** This is the first scope-sensitive consumer of the
+migrated role matrix. Other resource families must apply their own source
+scope semantics when their administration slices are migrated; a generic
+cross-domain scope engine would hide those ownership facts too early.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
