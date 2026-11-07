@@ -1161,6 +1161,23 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The current principal cannot update users or the target does not exist. }
         '503': { description: The application or identity database is unavailable. }
+  /admin/users/{subject_id}:
+    delete:
+      operationId: deleteAdminUser
+      summary: Deprovision another user and their application data.
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The user was deprovisioned, or a previously interrupted deprovisioning was completed. }
+        '400': { description: An administrator cannot delete their own account. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot delete users or the target does not exist. }
+        '503': { description: An identity or application database is unavailable; a retry completes any recorded deprovisioning. }
   /admin/roles:
     get:
       operationId: getAdminRoles
@@ -5623,7 +5640,7 @@ components:
         banned_until: { type: [string, 'null'], format: date-time }
         created_at: { type: string, format: date-time }
         email: { type: string, format: email, maxLength: 320 }
-        identity_status: { type: string, enum: [active, disabled, provisioning, suspended] }
+        identity_status: { type: string, enum: [active, deleting, disabled, provisioning, suspended] }
         is_currently_banned: { type: boolean }
         is_login_disabled: { type: boolean }
         login_disabled_at: { type: [string, 'null'], format: date-time }

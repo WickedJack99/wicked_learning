@@ -3154,6 +3154,41 @@ rejected.
 exposed; account deletion and access-link role selection remain separate
 lifecycle slices.
 
+## ADR-081: Account deletion is a resumable deprovisioning workflow
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source administrator can delete another account, and database
+foreign keys remove or null related data. Rust's identity and application
+records deliberately live in separate databases, so deleting either one first
+can leave an interrupted operation without a database transaction spanning
+both sides.
+
+**Decision:** A deletion first changes the identity to a non-authenticating
+`deleting` state. In one application transaction it records a small
+deprovisioning job, nulls audit references as the source's nullable foreign
+keys do, and deletes the application principal (using the application
+database's existing cascade/null relationships). It then deletes the identity
+and removes the job. If a process or database fails after the application
+commit, a repeated authorized deletion detects the job and finishes identity
+cleanup. An administrator may never delete their own subject; `users: rud` is
+required.
+
+**Why:** The immediately non-authenticating state prevents a partly deleted
+account from continuing to use a session. A durable job turns an unavoidable
+cross-database boundary into an observable, retryable state instead of
+silently accepting split deletion.
+
+**Alternatives:** Deleting the application principal first can strand an
+otherwise authenticating identity. Deleting identity first without a repair
+record can strand application data forever. A soft delete would depart from
+the source's deletion semantics. These alternatives are rejected.
+
+**Limits and follow-up:** The repair is currently retried by the same
+authorized delete contract; a future operational scheduler may reconcile
+stale jobs. The original Users UI remains unavailable until it is lifted as a
+complete source workspace.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

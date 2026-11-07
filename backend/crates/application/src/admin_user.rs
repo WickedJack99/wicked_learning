@@ -50,6 +50,13 @@ pub enum AdminUserAccessUpdate {
     Updated,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AdminUserDeletion {
+    Deleted,
+    Invalid,
+    Missing,
+}
+
 pub trait AdminUserRepository {
     fn list(
         &self,
@@ -62,6 +69,12 @@ pub trait AdminUserRepository {
         target_subject_id: Uuid,
         form: &AdminUserAccessForm,
     ) -> impl Future<Output = Result<AdminUserAccessUpdate, AdminUserError>> + Send;
+
+    fn delete(
+        &self,
+        actor_subject_id: Uuid,
+        target_subject_id: Uuid,
+    ) -> impl Future<Output = Result<AdminUserDeletion, AdminUserError>> + Send;
 }
 
 pub struct AdminUsersQuery<'repository, Repository> {
@@ -118,6 +131,22 @@ where
             .update_access(principal.subject_id, target_subject_id, form)
             .await
     }
+
+    pub async fn delete(
+        &self,
+        principal: &AuthorizedPrincipal,
+        target_subject_id: Uuid,
+    ) -> Result<AdminUserDeletion, AdminUserError> {
+        if !principal.has_permission("users", "rud") {
+            return Ok(AdminUserDeletion::Missing);
+        }
+        if principal.subject_id == target_subject_id {
+            return Ok(AdminUserDeletion::Invalid);
+        }
+        self.repository
+            .delete(principal.subject_id, target_subject_id)
+            .await
+    }
 }
 
 #[cfg(test)]
@@ -126,8 +155,8 @@ mod tests {
     use wicked_learning_domain::identity_access::{AdminUsers, AuthorizedPrincipal};
 
     use super::{
-        AdminUserAccessForm, AdminUserAccessUpdate, AdminUserError, AdminUserRepository,
-        AdminUsersCommand, AdminUsersQuery,
+        AdminUserAccessForm, AdminUserAccessUpdate, AdminUserDeletion, AdminUserError,
+        AdminUserRepository, AdminUsersCommand, AdminUsersQuery,
     };
 
     struct Repository;
@@ -154,6 +183,15 @@ mod tests {
         ) -> impl std::future::Future<Output = Result<AdminUserAccessUpdate, AdminUserError>> + Send
         {
             async { Ok(AdminUserAccessUpdate::Updated) }
+        }
+
+        fn delete(
+            &self,
+            _actor_subject_id: Uuid,
+            _target_subject_id: Uuid,
+        ) -> impl std::future::Future<Output = Result<AdminUserDeletion, AdminUserError>> + Send
+        {
+            async { Ok(AdminUserDeletion::Deleted) }
         }
     }
 
@@ -191,6 +229,24 @@ mod tests {
                 .await
                 .expect("command result"),
             AdminUserAccessUpdate::Invalid
+        );
+    }
+
+    #[tokio::test]
+    async fn rejects_self_deletion_before_the_repository_is_called() {
+        let subject_id = Uuid::new_v4();
+        let principal = AuthorizedPrincipal {
+            subject_id,
+            roles: vec!["platform_administrator".to_owned()],
+            capabilities: vec!["role_permission:users:rud:all".to_owned()],
+        };
+
+        assert_eq!(
+            AdminUsersCommand::new(&Repository)
+                .delete(&principal, subject_id)
+                .await
+                .expect("command result"),
+            AdminUserDeletion::Invalid
         );
     }
 

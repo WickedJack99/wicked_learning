@@ -8,7 +8,8 @@ use serde::Deserialize;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 use wicked_learning_application::admin_user::{
-    AdminUserAccessForm, AdminUserAccessUpdate, AdminUsersCommand, AdminUsersQuery,
+    AdminUserAccessForm, AdminUserAccessUpdate, AdminUserDeletion, AdminUsersCommand,
+    AdminUsersQuery,
 };
 use wicked_learning_domain::identity_access::AdminUsers;
 use wicked_learning_persistence::admin_user::PostgresAdminUserRepository;
@@ -67,6 +68,29 @@ pub async fn update_access(
         AdminUserAccessUpdate::Updated => Ok(StatusCode::NO_CONTENT),
         AdminUserAccessUpdate::Invalid => Err(ApiError::invalid_request()),
         AdminUserAccessUpdate::Missing => Err(ApiError::not_found()),
+    }
+}
+
+pub async fn destroy(
+    State(state): State<AppState>,
+    Path(subject_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let subject_id = Uuid::parse_str(&subject_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository =
+        PostgresAdminUserRepository::new(&state.application_database, &state.identity_database);
+    match AdminUsersCommand::new(&repository)
+        .delete(&principal, subject_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+    {
+        AdminUserDeletion::Deleted => Ok(StatusCode::NO_CONTENT),
+        AdminUserDeletion::Invalid => Err(ApiError::invalid_request()),
+        AdminUserDeletion::Missing => Err(ApiError::not_found()),
     }
 }
 

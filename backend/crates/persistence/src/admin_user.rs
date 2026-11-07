@@ -4,7 +4,8 @@ use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::admin_user::{
-    AdminUserAccessForm, AdminUserAccessUpdate, AdminUserError, AdminUserRepository as Port,
+    AdminUserAccessForm, AdminUserAccessUpdate, AdminUserDeletion, AdminUserError,
+    AdminUserRepository as Port,
 };
 use wicked_learning_domain::identity_access::{
     AdminAccessChangeEvent, AdminAccessChangeItem, AdminRegistrationToken, AdminUser,
@@ -269,6 +270,158 @@ impl Port for PostgresAdminUserRepository<'_> {
             .await
         }
     }
+
+    fn delete(
+        &self,
+        actor_subject_id: Uuid,
+        target_subject_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<AdminUserDeletion, AdminUserError>> + Send {
+        async move {
+            delete_user(
+                self.application_pool,
+                self.identity_pool,
+                actor_subject_id,
+                target_subject_id,
+            )
+            .await
+        }
+    }
+}
+
+async fn delete_user(
+    application_pool: &PgPool,
+    identity_pool: &PgPool,
+    actor_subject_id: Uuid,
+    target_subject_id: Uuid,
+) -> Result<AdminUserDeletion, AdminUserError> {
+    let mut application_transaction = application_pool.begin().await.map_err(storage_error)?;
+    let target_principal_id = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM application_principals WHERE identity_subject_id = $1 FOR UPDATE",
+    )
+    .bind(target_subject_id)
+    .fetch_optional(&mut *application_transaction)
+    .await
+    .map_err(storage_error)?;
+    let deletion_job_exists = sqlx::query_scalar::<_, Uuid>(
+        "SELECT subject_id FROM application_identity_deletion_jobs WHERE subject_id = $1 FOR UPDATE",
+    )
+    .bind(target_subject_id)
+    .fetch_optional(&mut *application_transaction)
+    .await
+    .map_err(storage_error)?;
+
+    let Some(target_principal_id) = target_principal_id else {
+        if deletion_job_exists.is_none() {
+            return Ok(AdminUserDeletion::Missing);
+        }
+        application_transaction
+            .commit()
+            .await
+            .map_err(storage_error)?;
+        return finalize_identity_deletion(application_pool, identity_pool, target_subject_id)
+            .await;
+    };
+
+    mark_identity_deleting(identity_pool, target_subject_id).await?;
+    sqlx::query(
+        "INSERT INTO application_identity_deletion_jobs (subject_id, requested_by_subject_id) \
+         VALUES ($1, $2) ON CONFLICT (subject_id) DO NOTHING",
+    )
+    .bind(target_subject_id)
+    .bind(actor_subject_id)
+    .execute(&mut *application_transaction)
+    .await
+    .map_err(storage_error)?;
+    // The source uses nullable audit foreign keys. Preserve that outcome even
+    // though the Rust databases cannot hold cross-database foreign keys.
+    sqlx::query(
+        "UPDATE application_access_change_events SET target_subject_id = NULL WHERE target_subject_id = $1",
+    )
+    .bind(target_subject_id)
+    .execute(&mut *application_transaction)
+    .await
+    .map_err(storage_error)?;
+    sqlx::query(
+        "UPDATE application_access_change_events SET actor_subject_id = NULL WHERE actor_subject_id = $1",
+    )
+    .bind(target_subject_id)
+    .execute(&mut *application_transaction)
+    .await
+    .map_err(storage_error)?;
+    let deleted = sqlx::query_scalar::<_, Uuid>(
+        "DELETE FROM application_principals WHERE id = $1 RETURNING id",
+    )
+    .bind(target_principal_id)
+    .fetch_optional(&mut *application_transaction)
+    .await
+    .map_err(storage_error)?;
+    if deleted.is_none() {
+        return Ok(AdminUserDeletion::Missing);
+    }
+    application_transaction
+        .commit()
+        .await
+        .map_err(storage_error)?;
+    finalize_identity_deletion(application_pool, identity_pool, target_subject_id).await
+}
+
+async fn mark_identity_deleting(
+    identity_pool: &PgPool,
+    subject_id: Uuid,
+) -> Result<(), AdminUserError> {
+    let mut transaction = identity_pool.begin().await.map_err(storage_error)?;
+    let status = sqlx::query_scalar::<_, String>(
+        "SELECT status FROM identity_subjects WHERE id = $1 FOR UPDATE",
+    )
+    .bind(subject_id)
+    .fetch_optional(&mut *transaction)
+    .await
+    .map_err(storage_error)?;
+    let Some(status) = status else {
+        return Err(AdminUserError);
+    };
+    if status != "deleting" {
+        sqlx::query(
+            "UPDATE identity_subjects SET status = 'deleting', login_disabled_at = COALESCE(login_disabled_at, NOW()), updated_at = NOW() WHERE id = $1",
+        )
+        .bind(subject_id)
+        .execute(&mut *transaction)
+        .await
+        .map_err(storage_error)?;
+    }
+    transaction.commit().await.map_err(storage_error)
+}
+
+async fn finalize_identity_deletion(
+    application_pool: &PgPool,
+    identity_pool: &PgPool,
+    subject_id: Uuid,
+) -> Result<AdminUserDeletion, AdminUserError> {
+    let deleted = sqlx::query_scalar::<_, Uuid>(
+        "DELETE FROM identity_subjects WHERE id = $1 AND status = 'deleting' RETURNING id",
+    )
+    .bind(subject_id)
+    .fetch_optional(identity_pool)
+    .await
+    .map_err(storage_error)?;
+    if deleted.is_none() {
+        let identity_exists = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM identity_subjects WHERE id = $1)",
+        )
+        .bind(subject_id)
+        .fetch_one(identity_pool)
+        .await
+        .map_err(storage_error)?;
+        if identity_exists {
+            return Err(AdminUserError);
+        }
+    }
+    sqlx::query("DELETE FROM application_identity_deletion_jobs WHERE subject_id = $1")
+        .bind(subject_id)
+        .execute(application_pool)
+        .await
+        .map_err(storage_error)?;
+    Ok(AdminUserDeletion::Deleted)
 }
 
 async fn update_access(

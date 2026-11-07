@@ -986,6 +986,23 @@ export interface paths {
         patch: operations["updateAdminUserAccess"];
         trace?: never;
     };
+    "/admin/users/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Deprovision another user and their application data. */
+        delete: operations["deleteAdminUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/roles": {
         parameters: {
             query?: never;
@@ -3764,7 +3781,7 @@ export interface components {
             /** Format: email */
             email: string;
             /** @enum {string} */
-            identity_status: "active" | "disabled" | "provisioning" | "suspended";
+            identity_status: "active" | "deleting" | "disabled" | "provisioning" | "suspended";
             is_currently_banned: boolean;
             is_login_disabled: boolean;
             /** Format: date-time */
@@ -7584,6 +7601,64 @@ export interface operations {
                 content?: never;
             };
             /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminUser: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user was deprovisioned */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An administrator cannot delete their own account. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot delete users or the target does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An identity or application database is unavailable; a retry completes any recorded deprovisioning. */
             503: {
                 headers: {
                     [name: string]: unknown;
