@@ -3704,6 +3704,13 @@ renumbers their positions and resynchronizes the preferred start only after a
 valid move. This keeps route selection stable under concurrent edits without
 altering learner progress or any activity graph edge.
 
+**Transition identity correction:** Laravel identifies an authored activity edge
+by source activity, target activity and both connector handles. The initial
+greenfield transition constraint was narrower because it conflated the derived
+trigger with identity, preventing valid graphs that share an output connector
+across different destinations. Migration 0079 replaces it with the source
+identity while retaining `NULLS NOT DISTINCT` for terminal edges.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
