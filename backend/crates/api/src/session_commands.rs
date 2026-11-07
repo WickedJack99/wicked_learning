@@ -16,6 +16,7 @@ use crate::{
 
 const MAX_EMAIL_BYTES: usize = 320;
 const MAX_PASSWORD_BYTES: usize = 1_024;
+pub const MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS: i64 = 15 * 60;
 pub const PENDING_TWO_FACTOR_LOGIN_KEY: &str = "wicked_pending_two_factor_login";
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -23,6 +24,11 @@ pub struct PendingTwoFactorLogin {
     pub password_verifier: String,
     pub started_at_unix_seconds: i64,
     pub subject_id: Uuid,
+}
+
+pub fn pending_two_factor_login_is_fresh(pending: &PendingTwoFactorLogin, now: i64) -> bool {
+    now >= pending.started_at_unix_seconds
+        && now - pending.started_at_unix_seconds <= MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS
 }
 
 #[derive(Deserialize)]
@@ -110,4 +116,34 @@ pub async fn logout(
         .map_err(|_| ApiError::service_unavailable())?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::{
+        MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS, PendingTwoFactorLogin,
+        pending_two_factor_login_is_fresh,
+    };
+
+    #[test]
+    fn pending_two_factor_logins_expire_after_fifteen_minutes_and_reject_future_timestamps() {
+        let pending = PendingTwoFactorLogin {
+            password_verifier: "not-a-password".to_owned(),
+            started_at_unix_seconds: 1_000,
+            subject_id: Uuid::nil(),
+        };
+
+        assert!(pending_two_factor_login_is_fresh(&pending, 1_000));
+        assert!(pending_two_factor_login_is_fresh(
+            &pending,
+            1_000 + MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS
+        ));
+        assert!(!pending_two_factor_login_is_fresh(
+            &pending,
+            1_001 + MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS
+        ));
+        assert!(!pending_two_factor_login_is_fresh(&pending, 999));
+    }
 }
