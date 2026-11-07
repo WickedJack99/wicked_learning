@@ -98,6 +98,8 @@ use crate::{
     identity::IdentityBackend,
     media_store::MediaStore,
 };
+use wicked_learning_application::organization_leadership_rotation::RotateDueRandomOrganizationLeaders;
+use wicked_learning_persistence::organization_leadership_rotation::PostgresOrganizationLeadershipRotationRepository;
 
 static APPLICATION_MIGRATOR: sqlx::migrate::Migrator =
     sqlx::migrate!("../../migrations/application");
@@ -136,6 +138,9 @@ async fn main() -> ExitCode {
         Some("migrate") => return run_migrations(&configuration).await,
         Some("bootstrap-admin") => return bootstrap_admin(&configuration).await,
         Some("issue-registration-token") => return issue_registration_token(&configuration).await,
+        Some("rotate-random-organization-leaders") => {
+            return rotate_random_organization_leaders(&configuration).await;
+        }
         Some(command) => {
             error!(%command, "unknown command");
             return ExitCode::FAILURE;
@@ -188,6 +193,30 @@ async fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+async fn rotate_random_organization_leaders(configuration: &Config) -> ExitCode {
+    let application_database = match connect(&configuration.application_database_url).await {
+        Ok(pool) => pool,
+        Err(error) => {
+            error!(%error, "could not connect to the application database for organization rotation");
+            return ExitCode::FAILURE;
+        }
+    };
+    let repository = PostgresOrganizationLeadershipRotationRepository::new(&application_database);
+    match RotateDueRandomOrganizationLeaders::new(&repository)
+        .execute()
+        .await
+    {
+        Ok(rotated) => {
+            info!(rotated, "random organization leadership rotation completed");
+            ExitCode::SUCCESS
+        }
+        Err(_) => {
+            error!("random organization leadership rotation failed");
+            ExitCode::FAILURE
+        }
+    }
 }
 
 async fn issue_registration_token(configuration: &Config) -> ExitCode {

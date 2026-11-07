@@ -2807,8 +2807,8 @@ controls while replacing only Inertia visits/forms with typed API calls.
 
 Anarchy leadership is reconciled in the transaction that changes membership.
 Random governance is repaired on writes if a leader is missing or invalid; it
-does not rotate from a GET. A scheduled, explicit monthly rotation operation
-is still required for complete random-governance parity.
+does not rotate from a GET. The explicit monthly rotation command is recorded
+in ADR-073.
 
 **Why:** This gives every durable transition an explicit actor, authorization
 check and transaction while preserving source workflows. It keeps credentials,
@@ -2820,10 +2820,9 @@ browser refresh mutate leadership. Storing user names alongside memberships
 would duplicate identity data. A new organization UI would introduce visual
 and interaction drift. These alternatives are rejected.
 
-**Limits and follow-up:** Administrator icon-report resolution and scheduled
-monthly random-leader rotation remain explicitly incomplete. They require
-their own settings/authorization and background-operation evidence before
-being presented as migrated functionality.
+**Limits and follow-up:** Administrator icon-report resolution remains
+explicitly incomplete. It requires its own settings/authorization evidence
+before being presented as migrated functionality.
 
 ## ADR-072: Organisation icons use authenticated mounted-media objects
 
@@ -2860,6 +2859,37 @@ queue that resolves reports or removes an icon. That is a later administration
 slice. A failed best-effort deletion of an already-replaced mounted object can
 leave an orphan for a future bounded media cleanup job; it cannot invalidate
 the committed replacement.
+
+## ADR-073: Random organisation leadership rotates by explicit scheduler command
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Laravel changes random-governance leadership while rendering an
+organisation page after a new month begins. A read must not write in the Rust
+platform, but leaving leadership unchanged until another collaboration write
+would alter the source's monthly outcome.
+
+**Decision:** `wicked-learning-api rotate-random-organization-leaders` is an
+idempotent private backend command for a scheduler to invoke at least monthly.
+Within one application-database transaction it locks each due random
+organisation with `SKIP LOCKED`, prefers a current non-leader, makes exactly
+one membership the leader, and records the rotation time. A missing or invalid
+single-leader state is also repaired. The local/Coolify-shaped operator command
+is documented; it performs no browser or identity-database operation.
+
+**Why:** This preserves the source's rotation rule while giving the durable
+transition an observable operator boundary, retry-safe concurrency behaviour,
+and no surprising mutation from a GET request.
+
+**Alternatives:** Retaining Laravel's read-time mutation makes browser refresh
+an authorization-changing action. A client-side timer is not authoritative and
+misses inactive organisations. A permanently running in-process timer creates
+duplicate-replica and restart ambiguity. These alternatives are rejected.
+
+**Limits and follow-up:** This command must be registered with a deployment
+scheduler before production cutover; the current local stack demonstrates the
+command but does not run a production schedule. Its database clock defines the
+month boundary, matching the PostgreSQL deployment's UTC convention.
 
 ## Phase 1 gate
 

@@ -139,7 +139,17 @@ The Compose file is structured for a later isolated Coolify application: select
 `frontend` as the public service (port 80), keep `backend`, `application-db`
 and `identity-db` private, and retain the three named volumes. Run the same
 `backend migrate` command as a one-off release step before releasing a backend
-that needs a new schema.
+that needs a new schema. Schedule the following private backend command at
+least monthly (and it is safe to run more often) to rotate due random-governance
+organization leaders without making a learner's browser read mutate state:
+
+```bash
+docker compose --env-file .env.rust -f compose.rust.yaml exec -T backend \
+  wicked-learning-api rotate-random-organization-leaders
+```
+
+The command locks due organizations and is safe for overlapping scheduler
+invocations. It returns success when there is nothing to rotate.
 
 Do not copy the example password values to a shared environment, attach an
 existing Laravel volume/database, or deploy this proof of concept to production.
