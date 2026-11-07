@@ -306,6 +306,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/two-factor/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a pending authenticator enrollment and return new recovery codes once.
+         * @description The submitted six-digit authenticator code must match a pending enrollment created within 15 minutes. On success the pending encrypted secret replaces any prior confirmed factor and the browser receives ten fresh recovery codes. The returned codes are non-cacheable and are stored only as Argon2id verifiers.
+         */
+        post: operations["confirmAccountTwoFactorSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/profile": {
         parameters: {
             query?: never;
@@ -2287,6 +2307,13 @@ export interface components {
              * @description A standard otpauth URI containing the pending secret. It is returned only to the authenticated owner and must not be persisted by a client.
              */
             provisioning_url: string;
+        };
+        ConfirmTwoFactorSetupRequest: {
+            code: string;
+        };
+        RecoveryCodes: {
+            /** @description One-use recovery codes, returned only when enrollment is confirmed. The client must show them once and must not persist them. */
+            recovery_codes: string[];
         };
         AccountProfile: {
             name: string;
@@ -5187,6 +5214,76 @@ export interface operations {
             };
             /** @description A valid same-origin CSRF request is required. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many two-factor setup attempts were made. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmAccountTwoFactorSetup: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmTwoFactorSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Fresh one-use recovery codes. The response must not be persisted by a client. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The code is malformed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many two-factor confirmation attempts were made. */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -310,6 +310,15 @@ fn router(state: AppState) -> Router {
         .key_extractor(login_rate_limit::TrustedProxyClientIp)
         .finish()
         .expect("a non-zero login rate limit is configured");
+    let mut two_factor_rate_limit = GovernorConfigBuilder::default();
+    two_factor_rate_limit
+        .per_second(60)
+        .burst_size(5)
+        .methods(vec![Method::POST]);
+    let two_factor_rate_limit = two_factor_rate_limit
+        .key_extractor(login_rate_limit::TrustedProxyClientIp)
+        .finish()
+        .expect("a non-zero two-factor rate limit is configured");
     let login_routes = Router::new()
         .route("/api/v1/session/login", post(session_commands::login))
         .route(
@@ -320,18 +329,28 @@ fn router(state: AppState) -> Router {
             GovernorLayer::new(login_rate_limit)
                 .error_handler(|_| ApiError::too_many_requests().into_response()),
         );
+    let two_factor_routes = Router::new()
+        .route(
+            "/api/v1/account/two-factor/setup",
+            post(account_two_factor::start_setup),
+        )
+        .route(
+            "/api/v1/account/two-factor/confirm",
+            post(account_two_factor::confirm_setup),
+        )
+        .layer(
+            GovernorLayer::new(two_factor_rate_limit)
+                .error_handler(|_| ApiError::too_many_requests().into_response()),
+        );
 
     Router::new()
         .merge(login_routes)
+        .merge(two_factor_routes)
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route("/api/v1/account/password", patch(account_password::update))
-        .route(
-            "/api/v1/account/two-factor/setup",
-            post(account_two_factor::start_setup),
-        )
         .route(
             "/api/v1/account/profile",
             get(account_profile::show).patch(account_profile::update),

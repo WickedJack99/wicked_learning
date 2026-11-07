@@ -65,12 +65,12 @@ foundation endpoint. The local proof of concept exposes password
 React sign-in/sign-out proof: both require the token's `X-CSRF-Token` header
 and the configured `PUBLIC_ORIGIN`. Login accepts only active, email-verified
 Rust identities and shares a small client-IP rate-limit burst with invitation
-registration. The API can privately start an authenticated TOTP enrollment and
-retains only its encrypted pending secret, but the original React two-factor
-control remains absent until confirmation, recovery and login-challenge
-contracts arrive together. Verification/recovery, MFA/passkeys, audit records
-and the full authorization matrix remain separate required work; this is not a
-user cutover.
+registration. The API can privately start and confirm an authenticated TOTP
+enrollment, retaining only encrypted secrets and Argon2id recovery-code
+verifiers, but the original React two-factor control remains absent until the
+login challenge and complete account-management contract arrive. Verification,
+recovery-code use, MFA/passkeys, audit records and the full authorization
+matrix remain separate required work; this is not a user cutover.
 
 The local HTTP stack intentionally does not mark session or CSRF cookies
 `Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser

@@ -3300,12 +3300,17 @@ one-way recovery-code storage limits the impact of an identity-database read.
 CSRF-protected pending enrollment at `POST /api/v1/account/two-factor/setup`.
 It returns the provisioning secret only in a `Cache-Control: no-store` response
 and stores an AES-256-GCM-encrypted pending secret in the identity database.
-It intentionally has no React control yet and cannot enable a factor.
+`POST /api/v1/account/two-factor/confirm` accepts a fresh valid code within
+fifteen minutes, atomically promotes the pending secret, replaces recovery-code
+verifiers, and returns ten new recovery codes once in another non-cacheable
+response. The original React control remains absent until the login challenge
+and its complete account-management contract are ready.
 
-**Limits and follow-up:** Confirmation, recovery-code generation and use,
-login challenge state/rate limiting, session rotation, account recovery, audit
-events and the source passkey flow remain separate identity work; this pending
-enrollment endpoint alone does not satisfy the identity cutover gate.
+**Limits and follow-up:** Recovery-code use, login challenge state, session
+rotation, account recovery, cross-database audit events, disable/replacement
+sensitive-action checks and the source passkey flow remain separate identity
+work; this enrollment/confirmation contract alone does not satisfy the identity
+cutover gate.
 
 ## Phase 1 gate
 

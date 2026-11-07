@@ -332,6 +332,35 @@ paths:
                 $ref: '#/components/schemas/PendingTwoFactorSetup'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
+        '429': { description: Too many two-factor setup attempts were made. }
+        '503': { description: The identity database is unavailable. }
+  /account/two-factor/confirm:
+    post:
+      operationId: confirmAccountTwoFactorSetup
+      summary: Confirm a pending authenticator enrollment and return new recovery codes once.
+      description: The submitted six-digit authenticator code must match a pending enrollment created within 15 minutes. On success the pending encrypted secret replaces any prior confirmed factor and the browser receives ten fresh recovery codes. The returned codes are non-cacheable and are stored only as Argon2id verifiers.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmTwoFactorSetupRequest'
+      responses:
+        '200':
+          description: Fresh one-use recovery codes. The response must not be persisted by a client.
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodes'
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '422': { description: The code is malformed, invalid, expired, or no pending enrollment exists. }
+        '429': { description: Too many two-factor confirmation attempts were made. }
         '503': { description: The identity database is unavailable. }
   /account/profile:
     get:
@@ -3136,6 +3165,29 @@ components:
           type: string
           format: uri
           description: A standard otpauth URI containing the pending secret. It is returned only to the authenticated owner and must not be persisted by a client.
+    ConfirmTwoFactorSetupRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+    RecoveryCodes:
+      type: object
+      additionalProperties: false
+      required: [recovery_codes]
+      properties:
+        recovery_codes:
+          type: array
+          minItems: 10
+          maxItems: 10
+          items:
+            type: string
+            minLength: 24
+            maxLength: 24
+            pattern: '^[A-Za-z0-9_-]{24}$'
+          description: One-use recovery codes, returned only when enrollment is confirmed. The client must show them once and must not persist them.
     AccountProfile:
       type: object
       additionalProperties: false

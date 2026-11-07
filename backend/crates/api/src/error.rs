@@ -90,6 +90,14 @@ impl ApiError {
         }
     }
 
+    pub fn two_factor_setup_rejected() -> Self {
+        Self {
+            code: "two_factor_setup_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The two-factor authentication setup could not be confirmed.",
+        }
+    }
+
     pub fn profile_update_rejected() -> Self {
         Self {
             code: "profile_update_rejected",
