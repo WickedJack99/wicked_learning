@@ -844,6 +844,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/world-builder/nodes/{node_id}:
+    get:
+      operationId: getAdminWorldBuilderNode
+      summary: Read one source-shaped, editable World Builder node activity graph.
+      description: This authoring-only read requires world-activity update permission and the source all/own/assigned/direct-editor map scope. It supplies the existing React node editor's graph and support data but authorizes no mutation.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The requested scoped activity-editor projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminEditableNode' }
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '403':
+          description: The identity has no application principal or role assignment.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404':
+          description: The node is unknown or unavailable through the source activity-editor scope.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
   /learner/maps/{map_slug}/nodes/{node_slug}/bookmark:
     post:
       operationId: createLearnerNodeBookmark
@@ -7357,6 +7393,256 @@ components:
         created_at: { type: string, format: date-time }
         image_width_percent: { type: number }
         updated_at: { type: string, format: date-time }
+    AdminEditableNode:
+      type: object
+      additionalProperties: false
+      required: [activity_graph, items, sounds, tools]
+      properties:
+        activity_graph:
+          $ref: '#/components/schemas/AdminActivityGraph'
+        items:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableItem' }
+        sounds:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableSound' }
+        tools:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableTool' }
+    AdminActivityGraph:
+      type: object
+      additionalProperties: false
+      required: [world, map, node, activity_types, can_manage_ai_review, ai_review_templates, competence_topic_options, evidence_concept_options, portal_candidates, message_topics, source_records, activities, transitions]
+      properties:
+        world: { $ref: '#/components/schemas/AdminActivityGraphReference' }
+        map: { $ref: '#/components/schemas/AdminActivityGraphReference' }
+        node: { $ref: '#/components/schemas/AdminActivityGraphNode' }
+        activity_types: { type: array, items: { $ref: '#/components/schemas/AdminActivityTypeDefinition' } }
+        can_manage_ai_review: { type: boolean }
+        ai_review_templates: { type: array, items: { $ref: '#/components/schemas/AdminActivityReviewTemplate' } }
+        competence_topic_options: { type: array, items: { type: string } }
+        evidence_concept_options: { type: array, maxItems: 200, items: { type: string } }
+        portal_candidates: { type: array, items: { $ref: '#/components/schemas/AdminActivityPortalCandidate' } }
+        message_topics: { type: array, items: { $ref: '#/components/schemas/AdminMessageTopicOption' } }
+        source_records: { $ref: '#/components/schemas/AdminSourceRecordPage' }
+        activities: { type: array, items: { $ref: '#/components/schemas/AdminEditableActivity' } }
+        transitions: { type: array, items: { $ref: '#/components/schemas/AdminActivityTransition' } }
+    AdminActivityGraphReference:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+    AdminActivityGraphNode:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, graph_layout, start_activity_id, start_routes]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        graph_layout: { type: object, additionalProperties: true }
+        start_activity_id: { type: [string, 'null'], format: uuid }
+        start_routes: { type: array, items: { $ref: '#/components/schemas/AdminActivityStartRoute' } }
+    AdminActivityTypeDefinition:
+      type: object
+      additionalProperties: false
+      required: [key, label, description, inputs, outputs, portal_modes]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        description: { type: string }
+        inputs: { type: array, items: { $ref: '#/components/schemas/AdminActivityConnector' } }
+        outputs: { type: array, items: { $ref: '#/components/schemas/AdminActivityConnector' } }
+        portal_modes: { type: [array, 'null'], items: { $ref: '#/components/schemas/AdminPortalMode' } }
+    AdminActivityConnector:
+      type: object
+      additionalProperties: false
+      required: [id, label]
+      properties: { id: { type: string }, label: { type: string } }
+    AdminPortalMode:
+      type: object
+      additionalProperties: false
+      required: [key, label]
+      properties: { key: { type: string }, label: { type: string } }
+    AdminActivityReviewTemplate:
+      type: object
+      additionalProperties: false
+      required: [id, model, name, provider_label]
+      properties:
+        id: { type: string, format: uuid }
+        model: { type: [string, 'null'] }
+        name: { type: string }
+        provider_label: { type: [string, 'null'] }
+    AdminActivityPortalCandidate:
+      type: object
+      additionalProperties: false
+      required: [id, title, node_id, node_title, map_id, map_title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        node_id: { type: string, format: uuid }
+        node_title: { type: string }
+        map_id: { type: string, format: uuid }
+        map_title: { type: string }
+    AdminMessageTopicOption:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties: { id: { type: string, format: uuid }, title: { type: string } }
+    AdminSourceRecordPage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items: { type: array, maxItems: 12, items: { $ref: '#/components/schemas/AdminSourceRecord' } }
+        pagination: { $ref: '#/components/schemas/AdminSourceRecordPagination' }
+    AdminSourceRecord:
+      type: object
+      additionalProperties: false
+      required: [id, anchor, concepts, excerpt, published_at, publisher, rights, title, url]
+      properties:
+        id: { type: string, format: uuid }
+        anchor: { type: [string, 'null'] }
+        concepts: { type: array, items: { type: string } }
+        excerpt: { type: [string, 'null'] }
+        published_at: { type: [string, 'null'], format: date }
+        publisher: { type: [string, 'null'] }
+        rights: { type: [string, 'null'] }
+        title: { type: string }
+        url: { type: string }
+    AdminSourceRecordPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 12 }
+        total: { type: integer, minimum: 0 }
+    AdminEditableSound:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, icon, url, volume, play_seconds, loop_enabled]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        icon: { type: [string, 'null'] }
+        url: { type: string }
+        volume: { type: integer, minimum: 0, maximum: 100 }
+        play_seconds: { type: [number, 'null'] }
+        loop_enabled: { type: boolean }
+    AdminEditableActivity:
+      type: object
+      additionalProperties: false
+      required: [id, slug, activity_type, title, introduction, config, question, updated_at, ai_review_status, ai_reviewed_at, ai_review, ai_review_history, portal_link, position, connectors]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        activity_type: { type: string }
+        title: { type: string }
+        introduction: { type: [string, 'null'] }
+        config: { type: object, additionalProperties: true }
+        question: { type: [object, 'null'], additionalProperties: true }
+        updated_at: { type: string, format: date-time }
+        ai_review_status: { type: string, enum: [needs_review, reviewed] }
+        ai_reviewed_at: { type: [string, 'null'], format: date-time }
+        ai_review: { type: [object, 'null'], additionalProperties: true }
+        ai_review_history: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/AdminActivityReviewHistoryEntry' } }
+        portal_link:
+          oneOf:
+            - $ref: '#/components/schemas/AdminActivityPortalLink'
+            - type: 'null'
+        position: { $ref: '#/components/schemas/AdminActivityGraphPosition' }
+        connectors: { $ref: '#/components/schemas/AdminActivityConnectors' }
+    AdminActivityReviewHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [id, reviewed_at, summary, provider, model]
+      properties:
+        id: { type: string, format: uuid }
+        reviewed_at: { type: [string, 'null'], format: date-time }
+        summary: { type: [string, 'null'] }
+        provider: { type: string }
+        model: { type: [string, 'null'] }
+    AdminActivityPortalLink:
+      type: object
+      additionalProperties: false
+      required: [id, label, description, target_activity, target_node]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: [string, 'null'] }
+        description: { type: [string, 'null'] }
+        target_activity:
+          oneOf:
+            - $ref: '#/components/schemas/AdminActivityPortalTargetActivity'
+            - type: 'null'
+        target_node: { $ref: '#/components/schemas/AdminActivityPortalTargetNode' }
+    AdminActivityPortalTargetActivity:
+      type: object
+      additionalProperties: false
+      required: [id, title, node_title, map_title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        node_title: { type: string }
+        map_title: { type: string }
+    AdminActivityPortalTargetNode:
+      type: object
+      additionalProperties: false
+      required: [id, title, map_title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        map_title: { type: string }
+    AdminActivityGraphPosition:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties: { x: { type: [number, 'null'] }, y: { type: [number, 'null'] } }
+    AdminActivityConnectors:
+      type: object
+      additionalProperties: false
+      required: [inputs, outputs]
+      properties:
+        inputs: { type: array, items: { $ref: '#/components/schemas/AdminActivityConnector' } }
+        outputs: { type: array, items: { $ref: '#/components/schemas/AdminActivityConnector' } }
+    AdminActivityTransition:
+      type: object
+      additionalProperties: false
+      required: [id, from_activity_id, to_activity_id, from_connector, to_connector, trigger, trigger_value, label]
+      properties:
+        id: { type: string, format: uuid }
+        from_activity_id: { type: string, format: uuid }
+        to_activity_id: { type: [string, 'null'], format: uuid }
+        from_connector: { type: string }
+        to_connector: { type: string }
+        trigger: { type: string }
+        trigger_value: { type: [string, 'null'] }
+        label: { type: [string, 'null'] }
+    AdminActivityStartRoute:
+      type: object
+      additionalProperties: false
+      required: [id, activity_id, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, sort_order]
+      properties:
+        id: { type: string, format: uuid }
+        activity_id: { type: string, format: uuid }
+        label: { type: string }
+        description: { type: [string, 'null'] }
+        image_dark: { type: [string, 'null'] }
+        image_light: { type: [string, 'null'] }
+        button_color_dark: { type: [string, 'null'] }
+        button_border_color_dark: { type: [string, 'null'] }
+        button_color_light: { type: [string, 'null'] }
+        button_border_color_light: { type: [string, 'null'] }
+        sort_order: { type: integer, minimum: 0 }
     PublicRoutePreview:
       type: object
       additionalProperties: false

@@ -8,6 +8,7 @@ pub mod admin_role;
 pub mod admin_user;
 pub mod admin_world_graph;
 pub mod admin_world_map;
+pub mod admin_world_node;
 pub mod current_user;
 pub mod feedback_prompt_preference;
 pub mod identity_registration;

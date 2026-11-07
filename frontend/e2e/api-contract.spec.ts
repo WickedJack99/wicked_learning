@@ -528,6 +528,59 @@ test('a local administrator receives the complete source-shaped selected-map sup
     });
 });
 
+test('a local administrator receives the source-shaped selected-node activity graph', async ({
+    request,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    const csrfResponse = await request.get('/api/v1/security/csrf');
+    const { token } = await csrfResponse.json();
+    const login = await request.post('/api/v1/session/login', {
+        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        data: { email, password },
+    });
+    expect(login.status()).toBe(200);
+
+    const graphResponse = await request.get('/api/v1/admin/world-builder');
+    expect(graphResponse.status()).toBe(200);
+    const graph = await graphResponse.json();
+    const nodeId = graph.maps
+        .flatMap((map: { nodes: Array<{ id: string }> }) => map.nodes)
+        .at(0)?.id;
+    expect(nodeId).toBeDefined();
+    if (!nodeId) {
+        throw new Error('the local World Builder graph has no readable node');
+    }
+
+    const nodeResponse = await request.get(
+        `/api/v1/admin/world-builder/nodes/${nodeId}`,
+    );
+    expect(nodeResponse.status()).toBe(200);
+    await expect(nodeResponse.json()).resolves.toMatchObject({
+        activity_graph: {
+            activities: expect.any(Array),
+            activity_types: expect.any(Array),
+            can_manage_ai_review: expect.any(Boolean),
+            message_topics: expect.any(Array),
+            node: expect.objectContaining({
+                id: nodeId,
+                start_routes: expect.any(Array),
+            }),
+            portal_candidates: expect.any(Array),
+            source_records: expect.objectContaining({
+                items: expect.any(Array),
+                pagination: expect.any(Object),
+            }),
+            transitions: expect.any(Array),
+        },
+        items: expect.any(Array),
+        sounds: expect.any(Array),
+        tools: expect.any(Array),
+    });
+});
+
 test('Learning Desk content search requires an authenticated application principal', async ({
     request,
 }) => {

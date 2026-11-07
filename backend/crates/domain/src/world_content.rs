@@ -217,6 +217,238 @@ pub struct AdminEditableTool {
     pub updated_at: String,
 }
 
+/// The selected-node projection consumed by the original World Builder's
+/// activity editor. It remains authoring-only and is intentionally separate
+/// from any learner route/playback document.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableNode {
+    pub activity_graph: AdminActivityGraph,
+    pub items: Vec<AdminEditableItem>,
+    pub sounds: Vec<AdminEditableSound>,
+    pub tools: Vec<AdminEditableTool>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityGraph {
+    pub world: AdminActivityGraphWorld,
+    pub map: AdminActivityGraphMap,
+    pub node: AdminActivityGraphNode,
+    pub activity_types: Vec<AdminActivityTypeDefinition>,
+    pub can_manage_ai_review: bool,
+    pub ai_review_templates: Vec<AdminActivityReviewTemplate>,
+    pub competence_topic_options: Vec<String>,
+    pub evidence_concept_options: Vec<String>,
+    /// Exit-portal activities within the selected node's World. This differs
+    /// from the overview graph's node-level portal candidates: the original
+    /// activity editor links an entry portal to a specific exit activity.
+    pub portal_candidates: Vec<AdminActivityPortalCandidate>,
+    pub message_topics: Vec<AdminMessageTopicOption>,
+    pub source_records: AdminSourceRecordPage,
+    pub activities: Vec<AdminEditableActivity>,
+    pub transitions: Vec<AdminActivityTransition>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityGraphWorld {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityGraphMap {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityGraphNode {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub graph_layout: Value,
+    pub start_activity_id: Option<Uuid>,
+    pub start_routes: Vec<AdminActivityStartRoute>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTypeDefinition {
+    pub key: String,
+    pub label: String,
+    pub description: String,
+    pub inputs: Vec<AdminActivityConnector>,
+    pub outputs: Vec<AdminActivityConnector>,
+    pub portal_modes: Option<Vec<AdminPortalMode>>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityConnector {
+    pub id: String,
+    pub label: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminPortalMode {
+    pub key: String,
+    pub label: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityReviewTemplate {
+    pub id: Uuid,
+    pub model: Option<String>,
+    pub name: String,
+    pub provider_label: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityPortalCandidate {
+    pub id: Uuid,
+    pub title: String,
+    pub node_id: Uuid,
+    pub node_title: String,
+    pub map_id: Uuid,
+    pub map_title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminMessageTopicOption {
+    pub id: Uuid,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminSourceRecordPage {
+    pub items: Vec<AdminSourceRecord>,
+    pub pagination: AdminSourceRecordPagination,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminSourceRecordPagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminSourceRecord {
+    pub id: Uuid,
+    pub anchor: Option<String>,
+    pub concepts: Vec<String>,
+    pub excerpt: Option<String>,
+    pub published_at: Option<String>,
+    pub publisher: Option<String>,
+    pub rights: Option<String>,
+    pub title: String,
+    pub url: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableActivity {
+    pub id: Uuid,
+    pub slug: String,
+    pub activity_type: String,
+    pub title: String,
+    pub introduction: Option<String>,
+    pub config: Value,
+    pub question: Option<Value>,
+    pub updated_at: String,
+    pub ai_review_status: String,
+    pub ai_reviewed_at: Option<String>,
+    pub ai_review: Option<Value>,
+    pub ai_review_history: Vec<AdminActivityReviewHistoryEntry>,
+    pub portal_link: Option<AdminActivityPortalLink>,
+    pub position: AdminActivityGraphPosition,
+    pub connectors: AdminActivityConnectors,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityReviewHistoryEntry {
+    pub id: Uuid,
+    pub reviewed_at: Option<String>,
+    pub summary: Option<String>,
+    pub provider: String,
+    pub model: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityPortalLink {
+    pub id: Uuid,
+    pub label: Option<String>,
+    pub description: Option<String>,
+    pub target_activity: Option<AdminActivityPortalTargetActivity>,
+    pub target_node: AdminActivityPortalTargetNode,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityPortalTargetActivity {
+    pub id: Uuid,
+    pub title: String,
+    pub node_title: String,
+    pub map_title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityPortalTargetNode {
+    pub id: Uuid,
+    pub title: String,
+    pub map_title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityGraphPosition {
+    pub x: Option<f64>,
+    pub y: Option<f64>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityConnectors {
+    pub inputs: Vec<AdminActivityConnector>,
+    pub outputs: Vec<AdminActivityConnector>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTransition {
+    pub id: Uuid,
+    pub from_activity_id: Uuid,
+    pub to_activity_id: Option<Uuid>,
+    pub from_connector: String,
+    pub to_connector: String,
+    pub trigger: String,
+    pub trigger_value: Option<String>,
+    pub label: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityStartRoute {
+    pub id: Uuid,
+    pub activity_id: Uuid,
+    pub label: String,
+    pub description: Option<String>,
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub button_color_dark: Option<String>,
+    pub button_border_color_dark: Option<String>,
+    pub button_color_light: Option<String>,
+    pub button_border_color_light: Option<String>,
+    pub sort_order: i16,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminEditableSound {
+    pub id: Uuid,
+    pub name: String,
+    pub slug: String,
+    pub icon: Option<String>,
+    pub url: String,
+    pub volume: i16,
+    pub play_seconds: Option<f64>,
+    pub loop_enabled: bool,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct PublicWorld {
     pub slug: String,

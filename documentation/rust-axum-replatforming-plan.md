@@ -903,11 +903,19 @@ requires the stricter source `world_maps` update permission and evaluates
 delete eligibility independently. Its source-shaped support reads now include
 map access groups, the current editor's manageable learning groups, role and
 topic options, and reusable items and tools; all are fetched only after the
-map authorization decision. The selected-node activity graph, sounds, AI
-review templates, review queue and unlock diagnostics remain separate reads.
+map authorization decision. The selected-node activity graph is now available
+at `GET /api/v1/admin/world-builder/nodes/{node_id}` and requires the source
+`world_activities` update grant plus its all/own/assigned/direct-editor map
+scope. It projects activities, transitions, the eligible preferred start and
+ordered starts, portal targets, and the source's exit-portal candidates from
+every map in the same World; it also returns message topics, reusable
+items/tools/sounds, source records and active concept/topic options from
+dedicated authoring facts. It remains distinct from learner route playback.
+AI review history/templates, the review queue and unlock diagnostics remain
+unavailable until their associated authoring and AI records exist.
 No World Builder React route is exposed from these partial contracts: the next
-slices must lift the existing World Builder React components together with the
-remaining selected-node support reads, rather than inventing a reduced editor.
+slice must adapt the existing World Builder React components against all three
+read contracts, rather than inventing a reduced editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

@@ -3671,8 +3671,16 @@ options, and reusable items/tools. Those support lists are resolved only after
 map authorization; manageable groups retain the source update-scope and
 manager-membership rule. Neither read is exposed through a new frontend screen
 until the existing World Builder screen can consume its complete necessary
-data. The selected-node activity graph, sounds and AI-review-template support
-reads remain separate.
+data. The selected-node endpoint now separately requires `world_activities`
+update authority and returns the source editor's graph, activity/transition,
+eligible preferred-start and ordered-start data. Its portal candidate list is
+the source's concrete *exit activities* from every map in the same World—not
+the overview's node candidates nor merely the caller's other editable maps.
+It also returns reusable item/tool/sound, message-topic, concept/topic and
+source-catalog support reads. Dedicated greenfield authoring columns and
+catalog tables hold these facts rather than learner-playback records. AI review
+templates, review history and review-queue commands remain unavailable, so the
+existing World Builder React route is still deliberately not exposed.
 
 ## Phase 1 gate
 

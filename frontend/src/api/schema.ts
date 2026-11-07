@@ -651,6 +651,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one source-shaped, editable World Builder node activity graph.
+         * @description This authoring-only read requires world-activity update permission and the source all/own/assigned/direct-editor map scope. It supplies the existing React node editor's graph and support data but authorizes no mutation.
+         */
+        get: operations["getAdminWorldBuilderNode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/maps/{map_slug}/nodes/{node_slug}/bookmark": {
         parameters: {
             query?: never;
@@ -4920,6 +4940,212 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        AdminEditableNode: {
+            activity_graph: components["schemas"]["AdminActivityGraph"];
+            items: components["schemas"]["AdminEditableItem"][];
+            sounds: components["schemas"]["AdminEditableSound"][];
+            tools: components["schemas"]["AdminEditableTool"][];
+        };
+        AdminActivityGraph: {
+            world: components["schemas"]["AdminActivityGraphReference"];
+            map: components["schemas"]["AdminActivityGraphReference"];
+            node: components["schemas"]["AdminActivityGraphNode"];
+            activity_types: components["schemas"]["AdminActivityTypeDefinition"][];
+            can_manage_ai_review: boolean;
+            ai_review_templates: components["schemas"]["AdminActivityReviewTemplate"][];
+            competence_topic_options: string[];
+            evidence_concept_options: string[];
+            portal_candidates: components["schemas"]["AdminActivityPortalCandidate"][];
+            message_topics: components["schemas"]["AdminMessageTopicOption"][];
+            source_records: components["schemas"]["AdminSourceRecordPage"];
+            activities: components["schemas"]["AdminEditableActivity"][];
+            transitions: components["schemas"]["AdminActivityTransition"][];
+        };
+        AdminActivityGraphReference: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+        };
+        AdminActivityGraphNode: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            graph_layout: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            start_activity_id: string | null;
+            start_routes: components["schemas"]["AdminActivityStartRoute"][];
+        };
+        AdminActivityTypeDefinition: {
+            key: string;
+            label: string;
+            description: string;
+            inputs: components["schemas"]["AdminActivityConnector"][];
+            outputs: components["schemas"]["AdminActivityConnector"][];
+            portal_modes: components["schemas"]["AdminPortalMode"][] | null;
+        };
+        AdminActivityConnector: {
+            id: string;
+            label: string;
+        };
+        AdminPortalMode: {
+            key: string;
+            label: string;
+        };
+        AdminActivityReviewTemplate: {
+            /** Format: uuid */
+            id: string;
+            model: string | null;
+            name: string;
+            provider_label: string | null;
+        };
+        AdminActivityPortalCandidate: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: uuid */
+            node_id: string;
+            node_title: string;
+            /** Format: uuid */
+            map_id: string;
+            map_title: string;
+        };
+        AdminMessageTopicOption: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        AdminSourceRecordPage: {
+            items: components["schemas"]["AdminSourceRecord"][];
+            pagination: components["schemas"]["AdminSourceRecordPagination"];
+        };
+        AdminSourceRecord: {
+            /** Format: uuid */
+            id: string;
+            anchor: string | null;
+            concepts: string[];
+            excerpt: string | null;
+            /** Format: date */
+            published_at: string | null;
+            publisher: string | null;
+            rights: string | null;
+            title: string;
+            url: string;
+        };
+        AdminSourceRecordPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+        AdminEditableSound: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            icon: string | null;
+            url: string;
+            volume: number;
+            play_seconds: number | null;
+            loop_enabled: boolean;
+        };
+        AdminEditableActivity: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            activity_type: string;
+            title: string;
+            introduction: string | null;
+            config: {
+                [key: string]: unknown;
+            };
+            question: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** @enum {string} */
+            ai_review_status: "needs_review" | "reviewed";
+            /** Format: date-time */
+            ai_reviewed_at: string | null;
+            ai_review: {
+                [key: string]: unknown;
+            } | null;
+            ai_review_history: components["schemas"]["AdminActivityReviewHistoryEntry"][];
+            portal_link: components["schemas"]["AdminActivityPortalLink"] | null;
+            position: components["schemas"]["AdminActivityGraphPosition"];
+            connectors: components["schemas"]["AdminActivityConnectors"];
+        };
+        AdminActivityReviewHistoryEntry: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            summary: string | null;
+            provider: string;
+            model: string | null;
+        };
+        AdminActivityPortalLink: {
+            /** Format: uuid */
+            id: string;
+            label: string | null;
+            description: string | null;
+            target_activity: components["schemas"]["AdminActivityPortalTargetActivity"] | null;
+            target_node: components["schemas"]["AdminActivityPortalTargetNode"];
+        };
+        AdminActivityPortalTargetActivity: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            node_title: string;
+            map_title: string;
+        };
+        AdminActivityPortalTargetNode: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            map_title: string;
+        };
+        AdminActivityGraphPosition: {
+            x: number | null;
+            y: number | null;
+        };
+        AdminActivityConnectors: {
+            inputs: components["schemas"]["AdminActivityConnector"][];
+            outputs: components["schemas"]["AdminActivityConnector"][];
+        };
+        AdminActivityTransition: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            from_activity_id: string;
+            /** Format: uuid */
+            to_activity_id: string | null;
+            from_connector: string;
+            to_connector: string;
+            trigger: string;
+            trigger_value: string | null;
+            label: string | null;
+        };
+        AdminActivityStartRoute: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            activity_id: string;
+            label: string;
+            description: string | null;
+            image_dark: string | null;
+            image_light: string | null;
+            button_color_dark: string | null;
+            button_border_color_dark: string | null;
+            button_color_light: string | null;
+            button_border_color_light: string | null;
+            sort_order: number;
+        };
         PublicRoutePreview: {
             slug: string;
             title: string;
@@ -7039,6 +7265,64 @@ export interface operations {
                 };
             };
             /** @description The map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getAdminWorldBuilderNode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requested scoped activity-editor projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEditableNode"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The node is unknown or unavailable through the source activity-editor scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

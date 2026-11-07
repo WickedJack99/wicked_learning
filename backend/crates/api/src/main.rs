@@ -12,6 +12,7 @@ mod admin_role;
 mod admin_user;
 mod admin_world_graph;
 mod admin_world_map;
+mod admin_world_node;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -545,6 +546,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}",
             get(admin_world_map::show),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}",
+            get(admin_world_node::show),
         )
         .route(
             "/api/v1/admin/roles/{role_key}",
@@ -1238,6 +1243,39 @@ mod tests {
                 .to_bytes(),
             "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
         );
+    }
+
+    #[tokio::test]
+    async fn world_builder_node_requires_an_authenticated_session() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010")
+                    .body(Body::empty())
+                    .expect("a valid World Builder node request"),
+            )
+            .await
+            .expect("World Builder node response");
+
+        assert_eq!(response.status(), 401);
     }
 
     #[tokio::test]
