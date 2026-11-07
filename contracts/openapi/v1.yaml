@@ -957,6 +957,27 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}:
+    delete:
+      operationId: deleteAdminWorldBuilderActivity
+      summary: Delete an authored activity from the selected World Builder graph.
+      description: >-
+        The source-compatible command removes this activity's route starts,
+        recalculates the node's preferred start, then relies on the reviewed
+        database cascades for dependent activity facts. The client refetches
+        the selected node after success.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The activity and its dependent authored records were removed. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition

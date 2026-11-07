@@ -10,6 +10,7 @@ mod admin_learning_group;
 mod admin_registration_tokens;
 mod admin_role;
 mod admin_user;
+mod admin_world_activity_delete;
 mod admin_world_activity_position;
 mod admin_world_graph;
 mod admin_world_map;
@@ -562,6 +563,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/graph-position",
             patch(admin_world_activity_position::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}",
+            delete(admin_world_activity_delete::delete),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/start-routes",
@@ -1418,6 +1423,19 @@ mod tests {
             .expect("World Builder activity-position response");
 
         assert_eq!(position_response.status(), 401);
+
+        let delete_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007")
+                    .body(Body::empty())
+                    .expect("a valid World Builder activity-delete request"),
+            )
+            .await
+            .expect("World Builder activity-delete response");
+
+        assert_eq!(delete_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(

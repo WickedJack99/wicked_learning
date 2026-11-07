@@ -3714,6 +3714,15 @@ route start, transition or learner state. This enables the original graph's
 drag behavior without prematurely claiming that the much broader activity-edit
 form and its versioning/review side effects are migrated.
 
+**Activity deletion:** Deletion resolves and locks the selected activity through
+its route's map asset and unique node before applying the established
+all/own/assigned/direct-editor authorization rule. It explicitly removes any
+selected-node starts for that activity and recalculates the compatibility
+preferred-start field before deleting the activity. The greenfield schema's
+reviewed cascades then remove dependent transitions, portal links and learner
+facts. This mirrors Laravel's cleanup order without exposing a fake activity
+editor or claiming its not-yet-migrated version-history behavior.
+
 **Transition identity correction:** Laravel identifies an authored activity edge
 by source activity, target activity and both connector handles. The initial
 greenfield transition constraint was narrower because it conflated the derived

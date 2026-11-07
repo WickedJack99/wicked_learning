@@ -925,6 +925,14 @@ preserves the source UI's finite-number validation and integer rounding, locks
 the scoped activity/node and changes only `graph_position_x`/`graph_position_y`.
 It is intentionally not an activity-content editor, does not start or end a
 learner route, and is not exposed through a substitute World Builder screen.
+Activity deletion is now available at `DELETE
+/api/v1/admin/world-builder/activities/{activity_id}`. It retains the original
+command's activity-authoring scope, removes the activity's selected-node starts,
+resynchronizes the node's preferred start, and then lets the reviewed database
+foreign-key cascades remove dependent activity data. The original editor can
+refetch its node projection after the no-content response; activity creation
+and content editing remain unavailable until their source validation and review
+semantics are migrated.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command
