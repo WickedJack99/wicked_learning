@@ -7,10 +7,12 @@ publish = false
 
 [dependencies]
 async-openai = { version = "0.43", default-features = false, features = ["responses"] }
+aes-gcm = "0.10"
 argon2 = "0.5"
 axum = { version = "0.8", features = ["multipart"] }
 axum_csrf = { version = "0.12", features = ["layer"] }
 axum-login = "0.18"
+base64 = "0.22"
 email_address = "0.2"
 futures-util = "0.3"
 object_store = { version = "0.14", default-features = false, features = ["fs"] }
@@ -29,6 +31,7 @@ tower-sessions = "0.14"
 tower-sessions-sqlx-store = { version = "0.15", features = ["postgres"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+totp-rs = { version = "6", default-features = false, features = ["gen_secret", "otpauth", "qr", "std"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 url = "2"
 wicked-learning-persistence = { path = "../persistence" }
