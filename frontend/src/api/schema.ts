@@ -2190,14 +2190,14 @@ export interface components {
             is_redeemed: boolean;
             note: string | null;
             /** @enum {string} */
-            purpose: "grant_tool" | "grant_items";
+            purpose: "grant_tool" | "grant_items" | "registration";
             /** @enum {string} */
             usage_policy: "one_time" | "multiple" | "per_user";
         };
         AccessLinkPreview: {
             note: string | null;
             /** @enum {string} */
-            purpose: "grant_tool" | "grant_items";
+            purpose: "grant_tool" | "grant_items" | "registration";
         };
         AccessLinkGrantOption: {
             /** Format: uuid */
@@ -2220,7 +2220,7 @@ export interface components {
             item_grants?: components["schemas"]["AccessLinkItemGrantRequest"][];
             note?: string | null;
             /** @enum {string} */
-            purpose: "grant_tool" | "grant_items";
+            purpose: "grant_tool" | "grant_items" | "registration";
             /** Format: uuid */
             tool_id?: string | null;
             /**

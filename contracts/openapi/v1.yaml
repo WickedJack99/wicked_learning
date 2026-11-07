@@ -3025,7 +3025,7 @@ components:
         is_expired: { type: boolean }
         is_redeemed: { type: boolean }
         note: { type: [string, 'null'], maxLength: 500 }
-        purpose: { type: string, enum: [grant_tool, grant_items] }
+        purpose: { type: string, enum: [grant_tool, grant_items, registration] }
         usage_policy: { type: string, enum: [one_time, multiple, per_user] }
     AccessLinkPreview:
       type: object
@@ -3033,7 +3033,7 @@ components:
       required: [note, purpose]
       properties:
         note: { type: [string, 'null'], maxLength: 500 }
-        purpose: { type: string, enum: [grant_tool, grant_items] }
+        purpose: { type: string, enum: [grant_tool, grant_items, registration] }
     AccessLinkGrantOption:
       type: object
       additionalProperties: false
@@ -3076,7 +3076,7 @@ components:
           maxItems: 20
           items: { $ref: '#/components/schemas/AccessLinkItemGrantRequest' }
         note: { type: [string, 'null'], maxLength: 500 }
-        purpose: { type: string, enum: [grant_tool, grant_items] }
+        purpose: { type: string, enum: [grant_tool, grant_items, registration] }
         tool_id: { type: [string, 'null'], format: uuid }
         usage_policy: { type: string, enum: [one_time, multiple, per_user], default: one_time }
     UpdateAccessLinkRequest:

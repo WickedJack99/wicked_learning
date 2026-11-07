@@ -2925,33 +2925,42 @@ policy settings remain a separate administration slice.
 **Status:** Accepted — 7 November 2026
 
 **Problem:** The source application lets an administrator issue expiring links
-that grant a learner a selected tool or item. The raw secret must never enter
-ordinary listings, logs or database backups, while repeat and per-learner use
-must remain race-safe.
+that grant a learner a selected tool or item, or route a new learner through
+registration. The raw secret must never enter ordinary listings, logs or
+database backups, while repeat and per-learner use must remain race-safe.
 
 **Decision:** The application database stores only a SHA-256 token digest,
 configured tool/item UUIDs, expiry, enablement, usage policy and redemption
 audit rows. The administrative create response is the only response containing
-the opaque redeem URL. Redemption locks the link, checks expiry/enabled/replay
-policy, derives the caller's application principal server-side and applies the
-configured inventory grant in the same database transaction. A separate
+the opaque redeem URL. Resource redemption locks the link, checks
+expiry/enabled/replay policy, derives the caller's application principal
+server-side and applies the configured inventory grant in the same database
+transaction. Registration links redirect to the existing registration form;
+their application-database link is locked while the established compensating
+identity/application provisioning workflow creates the learner, then its
+redemption is recorded alongside the new principal. A separate
 `access_links_manage` capability initially belongs to the platform
 administrator role.
 
-**Why:** Tool/item holdings, the grant policy and its audit trail are
-application data; keeping them together preserves transactionality and avoids
-putting authorization data in the credential database. A digest protects a
-leaked application-data backup from becoming an immediately usable link list.
+**Why:** Tool/item holdings, registration-link policy and the audit trail are
+application data; keeping them together preserves transactionality where it is
+possible and avoids putting authorization data in the credential database. The
+registration implementation extends the existing compensating workflow rather
+than duplicating password or identity logic. A digest protects a leaked
+application-data backup from becoming an immediately usable link list.
 
 **Alternatives:** Storing raw tokens makes normal administrative read paths a
 credential-disclosure risk. Browser-supplied item/tool identifiers would let a
 redeemer forge a different grant. A generic administrator-role check would
 prevent future delegation. These alternatives are rejected.
 
-**Limits and follow-up:** Source registration and temporary-login links cross
-the identity/application database boundary. They remain unavailable until the
-existing compensating provisioning workflow can be extended with equivalent
-failure handling and tests; the UI explicitly states this boundary.
+**Limits and follow-up:** A registration link presently gives the new account
+the source default `learner` role. Role-selection and temporary-login links
+remain part of the later access/role-management slice. The identity and
+application databases cannot commit as one transaction, so compensation
+removes a partially created principal, identity subject and access-link
+redemption; an operational repair procedure is still needed before a
+production cutover.
 
 ## Phase 1 gate
 

@@ -6,6 +6,7 @@ use uuid::Uuid;
 pub enum AccessLinkPurpose {
     GrantTool,
     GrantItems,
+    Registration,
 }
 
 impl AccessLinkPurpose {
@@ -13,6 +14,7 @@ impl AccessLinkPurpose {
         match self {
             Self::GrantTool => "grant_tool",
             Self::GrantItems => "grant_items",
+            Self::Registration => "registration",
         }
     }
 
@@ -20,6 +22,7 @@ impl AccessLinkPurpose {
         match value {
             "grant_tool" => Some(Self::GrantTool),
             "grant_items" => Some(Self::GrantItems),
+            "registration" => Some(Self::Registration),
             _ => None,
         }
     }
@@ -82,4 +85,17 @@ pub struct AccessLinkAdminData {
 pub struct AccessLinkPreview {
     pub note: Option<String>,
     pub purpose: AccessLinkPurpose,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AccessLinkPurpose;
+
+    #[test]
+    fn registration_purpose_round_trips_without_becoming_a_resource_grant() {
+        let purpose = AccessLinkPurpose::Registration;
+
+        assert_eq!(purpose.as_str(), "registration");
+        assert_eq!(AccessLinkPurpose::parse("registration"), Some(purpose));
+    }
 }
