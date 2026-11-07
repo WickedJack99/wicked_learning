@@ -691,6 +691,23 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderNodeActivityGraphLayout"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/activity-transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an authored activity-graph transition on one editable node. */
+        post: operations["createAdminWorldBuilderActivityTransition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/start-routes": {
         parameters: {
             query?: never;
@@ -5059,6 +5076,18 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        CreateAdminActivityTransitionRequest: {
+            /** Format: uuid */
+            from_activity_id: string;
+            /** Format: uuid */
+            to_activity_id?: string | null;
+            from_connector: string;
+            to_connector: string;
+            label?: string | null;
+        };
+        AdminActivityTransitionsResponse: {
+            transitions: components["schemas"]["AdminActivityTransition"][];
+        };
         AddAdminActivityStartRouteRequest: {
             /** Format: uuid */
             activity_id: string;
@@ -7549,6 +7578,70 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    createAdminWorldBuilderActivityTransition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminActivityTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description All source-ordered transitions for the selected node after the idempotent save. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTransitionsResponse"];
+                };
+            };
+            /** @description The transition is invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A referenced activity or node is unavailable through the authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

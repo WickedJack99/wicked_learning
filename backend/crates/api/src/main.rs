@@ -15,6 +15,7 @@ mod admin_world_map;
 mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
+mod admin_world_node_transition;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -565,6 +566,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/start-routes/{activity_id}",
             delete(admin_world_node_starts::remove_one),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/activity-transitions",
+            post(admin_world_node_transition::create),
         )
         .route(
             "/api/v1/admin/world-builder/start-routes/{start_route_id}",

@@ -927,6 +927,32 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /admin/world-builder/nodes/{node_id}/activity-transitions:
+    post:
+      operationId: createAdminWorldBuilderActivityTransition
+      summary: Create an authored activity-graph transition on one editable node.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdminActivityTransitionRequest' }
+      responses:
+        '200':
+          description: All source-ordered transitions for the selected node after the idempotent save.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityTransitionsResponse' }
+        '400': { description: The transition is invalid, including a non-terminal entry portal. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: A referenced activity or node is unavailable through the authoring scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/start-routes:
     post:
       operationId: addAdminWorldBuilderNodeStartRoute
@@ -7623,6 +7649,24 @@ components:
       required: [graph_layout]
       properties:
         graph_layout: { type: object, additionalProperties: true }
+    CreateAdminActivityTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [from_activity_id, from_connector, to_connector]
+      properties:
+        from_activity_id: { type: string, format: uuid }
+        to_activity_id: { type: [string, 'null'], format: uuid }
+        from_connector: { type: string, minLength: 1, maxLength: 80 }
+        to_connector: { type: string, minLength: 1, maxLength: 80 }
+        label: { type: [string, 'null'], maxLength: 120 }
+    AdminActivityTransitionsResponse:
+      type: object
+      additionalProperties: false
+      required: [transitions]
+      properties:
+        transitions:
+          type: array
+          items: { $ref: '#/components/schemas/AdminActivityTransition' }
     AddAdminActivityStartRouteRequest:
       type: object
       additionalProperties: false
