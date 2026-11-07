@@ -3231,8 +3231,12 @@ components:
     AccessLinkAdminData:
       type: object
       additionalProperties: false
-      required: [items, links, pagination, tools]
+      required: [assignable_roles, items, links, pagination, tools]
       properties:
+        assignable_roles:
+          type: array
+          description: Role keys the current issuer may grant through a registration link.
+          items: { type: string, minLength: 1, maxLength: 80 }
         items:
           type: array
           maxItems: 100
@@ -3274,6 +3278,12 @@ components:
           items: { $ref: '#/components/schemas/AccessLinkItemGrantRequest' }
         note: { type: [string, 'null'], maxLength: 500 }
         purpose: { type: string, enum: [grant_tool, grant_items, registration, temporary_login] }
+        roles:
+          type: array
+          description: Required only for registration links; every role must be assignable by the current issuer.
+          minItems: 1
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 80 }
         tool_id: { type: [string, 'null'], format: uuid }
         usage_policy: { type: string, enum: [one_time, multiple, per_user], default: one_time }
     UpdateAccessLinkRequest:

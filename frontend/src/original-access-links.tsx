@@ -27,6 +27,7 @@ export function OriginalAccessLinksPage({
     );
     const [expiresAt, setExpiresAt] = useState(defaultExpiry());
     const [note, setNote] = useState('');
+    const [roles, setRoles] = useState<string[]>([]);
     const [createdUrl, setCreatedUrl] = useState('');
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
@@ -39,6 +40,11 @@ export function OriginalAccessLinksPage({
             .then(({ data, response }) => {
                 if (!response.ok || !data) throw new Error('unavailable');
                 setData(data);
+                setRoles((current) =>
+                    current.length > 0
+                        ? current
+                        : [data.assignable_roles[0] ?? 'learner'],
+                );
             })
             .catch(() => setError('Access links are temporarily unavailable.'));
     }
@@ -62,6 +68,7 @@ export function OriginalAccessLinksPage({
                         item_grants,
                         note: note || null,
                         purpose,
+                        ...(purpose === 'registration' ? { roles } : {}),
                         tool_id:
                             purpose === 'grant_tool' ? toolId || null : null,
                         usage_policy: usage,
@@ -220,11 +227,30 @@ export function OriginalAccessLinksPage({
                                 </Field>
                             </>
                         ) : purpose === 'registration' ? (
-                            <p className="text-sm leading-6 text-[var(--settings-muted-text)] sm:col-span-2">
-                                A registration link lets a new learner create
-                                their own account with the normal source
-                                registration form.
-                            </p>
+                            <Field label="Roles">
+                                <select
+                                    className="min-h-24"
+                                    multiple
+                                    onChange={(event) =>
+                                        setRoles(
+                                            Array.from(
+                                                event.currentTarget.selectedOptions,
+                                                (option) => option.value,
+                                            ),
+                                        )
+                                    }
+                                    value={roles}
+                                >
+                                    {data?.assignable_roles.map((role) => (
+                                        <option key={role} value={role}>
+                                            {roleLabel(role)}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span className="text-xs text-[var(--settings-muted-text)]">
+                                    Choose the roles this registration link grants.
+                                </span>
+                            </Field>
                         ) : (
                             <p className="text-sm leading-6 text-[var(--settings-muted-text)] sm:col-span-2">
                                 A temporary-login link starts a fresh temporary
@@ -564,6 +590,14 @@ function defaultExpiry(): string {
     const next = new Date(Date.now() + 24 * 60 * 60 * 1000);
     next.setMinutes(next.getMinutes() - next.getTimezoneOffset());
     return next.toISOString().slice(0, 16);
+}
+
+function roleLabel(role: string): string {
+    return role
+        .split(/[-_]/)
+        .filter(Boolean)
+        .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
+        .join(' ');
 }
 function settingsStyle(appearance: OriginalAppearance): CSSProperties {
     const dark = appearance === 'dark';

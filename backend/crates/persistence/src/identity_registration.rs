@@ -61,8 +61,8 @@ async fn register(
         .begin()
         .await
         .map_err(|_| IdentityRegistrationError::Unavailable)?;
-    let access_link_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT id FROM access_links \
+    let access_link = sqlx::query_as::<_, RegistrationAccessLinkRow>(
+        "SELECT id, payload FROM access_links \
          WHERE token_hash = $1 AND purpose = 'registration' AND is_enabled \
            AND expires_at > NOW() \
            AND (usage_policy <> 'one_time' OR redeemed_at IS NULL) FOR UPDATE",
@@ -72,13 +72,13 @@ async fn register(
     .await
     .map_err(|_| IdentityRegistrationError::Unavailable)?;
 
-    if let Some(access_link_id) = access_link_id {
+    if let Some(access_link) = access_link {
         return register_with_access_link(
             application_database,
             identity_database,
             draft,
             application_transaction,
-            access_link_id,
+            access_link,
         )
         .await;
     }
@@ -163,8 +163,13 @@ async fn register_with_access_link(
     identity_database: &PgPool,
     draft: IdentityRegistrationDraft,
     mut application_transaction: Transaction<'_, Postgres>,
-    access_link_id: Uuid,
+    access_link: RegistrationAccessLinkRow,
 ) -> Result<IdentityRegistration, IdentityRegistrationError> {
+    // Decode and validate application-owned link policy before provisioning an
+    // identity. A malformed payload must not create an orphaned identity in
+    // the separate identity database.
+    let access_link_roles = registration_access_link_roles(&access_link.payload)
+        .ok_or(IdentityRegistrationError::InvalidRegistrationToken)?;
     let subject_id = Uuid::new_v4();
     let mut identity_transaction = identity_database
         .begin()
@@ -176,7 +181,6 @@ async fn register_with_access_link(
         .await
         .map_err(|_| IdentityRegistrationError::Unavailable)?;
 
-    let access_link_roles = vec!["learner".to_owned()];
     let principal_id = match create_application_principal(
         &mut application_transaction,
         subject_id,
@@ -193,7 +197,7 @@ async fn register_with_access_link(
                 application_database,
                 identity_database,
                 subject_id,
-                RegistrationReservation::AccessLink(access_link_id),
+                RegistrationReservation::AccessLink(access_link.id),
             )
             .await;
             return Err(IdentityRegistrationError::Unavailable);
@@ -204,18 +208,18 @@ async fn register_with_access_link(
          VALUES ($1, $2, $3)",
     )
     .bind(Uuid::new_v4())
-    .bind(access_link_id)
+    .bind(access_link.id)
     .bind(principal_id)
     .execute(&mut *application_transaction)
     .await
     {
-        tracing::error!(%error, %access_link_id, "could not record registration access-link redemption");
+        tracing::error!(%error, access_link_id = %access_link.id, "could not record registration access-link redemption");
         let _ = application_transaction.rollback().await;
         compensate_registration(
             application_database,
             identity_database,
             subject_id,
-            RegistrationReservation::AccessLink(access_link_id),
+            RegistrationReservation::AccessLink(access_link.id),
         )
         .await;
         return Err(IdentityRegistrationError::Unavailable);
@@ -224,18 +228,18 @@ async fn register_with_access_link(
         "UPDATE access_links SET redeemed_by_principal_id = COALESCE(redeemed_by_principal_id, $2), \
          redeemed_at = COALESCE(redeemed_at, NOW()), updated_at = NOW() WHERE id = $1",
     )
-    .bind(access_link_id)
+    .bind(access_link.id)
     .bind(principal_id)
     .execute(&mut *application_transaction)
     .await
     {
-        tracing::error!(%error, %access_link_id, "could not mark registration access link as redeemed");
+        tracing::error!(%error, access_link_id = %access_link.id, "could not mark registration access link as redeemed");
         let _ = application_transaction.rollback().await;
         compensate_registration(
             application_database,
             identity_database,
             subject_id,
-            RegistrationReservation::AccessLink(access_link_id),
+            RegistrationReservation::AccessLink(access_link.id),
         )
         .await;
         return Err(IdentityRegistrationError::Unavailable);
@@ -245,7 +249,7 @@ async fn register_with_access_link(
             application_database,
             identity_database,
             subject_id,
-            RegistrationReservation::AccessLink(access_link_id),
+            RegistrationReservation::AccessLink(access_link.id),
         )
         .await;
         return Err(IdentityRegistrationError::Unavailable);
@@ -254,7 +258,7 @@ async fn register_with_access_link(
         application_database,
         identity_database,
         subject_id,
-        RegistrationReservation::AccessLink(access_link_id),
+        RegistrationReservation::AccessLink(access_link.id),
     )
     .await
 }
@@ -348,6 +352,12 @@ struct RegistrationTokenRow {
     roles: Json<Value>,
 }
 
+#[derive(sqlx::FromRow)]
+struct RegistrationAccessLinkRow {
+    id: Uuid,
+    payload: Value,
+}
+
 fn registration_token_roles(value: &Value) -> Option<Vec<String>> {
     let roles = value
         .as_array()?
@@ -358,6 +368,50 @@ fn registration_token_roles(value: &Value) -> Option<Vec<String>> {
         .map(str::to_owned)
         .collect::<Vec<_>>();
     (!roles.is_empty() && roles.iter().all(|role| !role.is_empty())).then_some(roles)
+}
+
+fn registration_access_link_roles(value: &Value) -> Option<Vec<String>> {
+    let Some(value) = value.get("roles") else {
+        // Links made before role selection was migrated represented the
+        // source's default learner enrollment.
+        return Some(vec!["learner".to_owned()]);
+    };
+    registration_token_roles(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::registration_access_link_roles;
+
+    #[test]
+    fn legacy_registration_access_links_keep_the_learner_default() {
+        assert_eq!(
+            registration_access_link_roles(&json!({})),
+            Some(vec!["learner".to_owned()])
+        );
+    }
+
+    #[test]
+    fn registration_access_links_use_their_selected_roles() {
+        assert_eq!(
+            registration_access_link_roles(&json!({ "roles": ["learner", "learning_support"] })),
+            Some(vec!["learner".to_owned(), "learning_support".to_owned()])
+        );
+    }
+
+    #[test]
+    fn malformed_registration_access_link_roles_are_rejected_before_provisioning() {
+        assert_eq!(
+            registration_access_link_roles(&json!({ "roles": [] })),
+            None
+        );
+        assert_eq!(
+            registration_access_link_roles(&json!({ "roles": [42] })),
+            None
+        );
+    }
 }
 
 async fn activate_or_compensate(

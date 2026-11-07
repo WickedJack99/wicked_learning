@@ -28,6 +28,8 @@ pub struct CreateAccessLinkRequest {
     item_grants: Vec<ItemGrantRequest>,
     note: Option<String>,
     purpose: AccessLinkPurpose,
+    #[serde(default)]
+    roles: Vec<String>,
     tool_id: Option<String>,
     #[serde(default = "one_time")]
     usage_policy: AccessLinkUsagePolicy,
@@ -201,11 +203,28 @@ fn form_from_request(request: CreateAccessLinkRequest) -> Result<AccessLinkForm,
         .filter(|value| !value.trim().is_empty())
         .map(|value| Uuid::parse_str(value).map_err(|_| ApiError::invalid_request()))
         .transpose()?;
+    let mut roles = request
+        .roles
+        .into_iter()
+        .map(|role| role.trim().to_owned())
+        .collect::<Vec<_>>();
+    roles.sort();
+    roles.dedup();
+    if (request.purpose == AccessLinkPurpose::Registration && roles.is_empty())
+        || roles.len() > 100
+        || roles
+            .iter()
+            .any(|role| role.is_empty() || role.chars().count() > 80)
+        || (request.purpose != AccessLinkPurpose::Registration && !roles.is_empty())
+    {
+        return Err(ApiError::invalid_request());
+    }
     Ok(AccessLinkForm {
         expires_at,
         item_grants,
         note,
         purpose: request.purpose,
+        roles,
         tool_id,
         usage_policy: request.usage_policy,
     })
@@ -232,7 +251,9 @@ fn hex_sha256(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{hex_sha256, new_token};
+    use wicked_learning_domain::access_link::{AccessLinkPurpose, AccessLinkUsagePolicy};
+
+    use super::{CreateAccessLinkRequest, form_from_request, hex_sha256, new_token};
 
     #[test]
     fn access_link_tokens_are_opaque_and_only_the_digest_is_persistable() {
@@ -241,5 +262,54 @@ mod tests {
         assert_eq!(token.len(), 69);
         assert_ne!(hex_sha256(&token), token);
         assert_eq!(hex_sha256(&token).len(), 64);
+    }
+
+    #[test]
+    fn registration_links_normalize_and_retain_selected_roles() {
+        let result = form_from_request(CreateAccessLinkRequest {
+            expires_at: "2099-01-01T00:00:00Z".to_owned(),
+            item_grants: vec![],
+            note: None,
+            purpose: AccessLinkPurpose::Registration,
+            roles: vec![
+                " learning_support ".to_owned(),
+                "learner".to_owned(),
+                "learner".to_owned(),
+            ],
+            tool_id: None,
+            usage_policy: AccessLinkUsagePolicy::OneTime,
+        });
+        assert!(result.is_ok());
+        let form = match result {
+            Ok(form) => form,
+            Err(_) => unreachable!("selected registration roles are valid request input"),
+        };
+
+        assert_eq!(form.roles, ["learner", "learning_support"]);
+    }
+
+    #[test]
+    fn registration_links_require_roles_and_other_link_types_reject_them() {
+        let registration_without_roles = CreateAccessLinkRequest {
+            expires_at: "2099-01-01T00:00:00Z".to_owned(),
+            item_grants: vec![],
+            note: None,
+            purpose: AccessLinkPurpose::Registration,
+            roles: vec![],
+            tool_id: None,
+            usage_policy: AccessLinkUsagePolicy::OneTime,
+        };
+        assert!(form_from_request(registration_without_roles).is_err());
+
+        let tool_link_with_roles = CreateAccessLinkRequest {
+            expires_at: "2099-01-01T00:00:00Z".to_owned(),
+            item_grants: vec![],
+            note: None,
+            purpose: AccessLinkPurpose::GrantTool,
+            roles: vec!["learner".to_owned()],
+            tool_id: None,
+            usage_policy: AccessLinkUsagePolicy::OneTime,
+        };
+        assert!(form_from_request(tool_link_with_roles).is_err());
     }
 }

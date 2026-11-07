@@ -79,6 +79,7 @@ pub struct AccessLinkGrantOption {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct AccessLinkAdminData {
+    pub assignable_roles: Vec<String>,
     pub items: Vec<AccessLinkGrantOption>,
     pub links: Vec<AccessLinkSummary>,
     pub pagination: AccessLinkPagination,

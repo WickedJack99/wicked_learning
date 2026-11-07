@@ -117,10 +117,18 @@ impl Port for PostgresAccessLinkRepository<'_> {
                     })).collect::<Vec<_>>() })
                 }
                 AccessLinkPurpose::Registration => {
-                    if form.tool_id.is_some() || !form.item_grants.is_empty() {
+                    if form.tool_id.is_some()
+                        || !form.item_grants.is_empty()
+                        || !roles_are_assignable(
+                            &mut transaction,
+                            principal.subject_id,
+                            &form.roles,
+                        )
+                        .await?
+                    {
                         return Ok(None);
                     }
-                    json!({})
+                    json!({ "roles": form.roles })
                 }
                 AccessLinkPurpose::TemporaryLogin => {
                     if form.tool_id.is_some()
@@ -165,11 +173,13 @@ impl Port for PostgresAccessLinkRepository<'_> {
 
     fn list(
         &self,
+        actor_subject_id: Uuid,
         page: i64,
     ) -> impl std::future::Future<Output = Result<AccessLinkAdminData, AccessLinkError>> + Send
     {
         async move {
             const PER_PAGE: i64 = 8;
+            let assignable_roles = assignable_roles(self.pool, actor_subject_id).await?;
             let total = sqlx::query_scalar::<_, i64>("SELECT count(*) FROM access_links")
                 .fetch_one(self.pool)
                 .await
@@ -205,6 +215,7 @@ impl Port for PostgresAccessLinkRepository<'_> {
             .await
             .map_err(log_error)?;
             Ok(AccessLinkAdminData {
+                assignable_roles,
                 items: items.into_iter().map(GrantOptionRow::into_domain).collect(),
                 links: rows.into_iter().filter_map(summary_from_row).collect(),
                 pagination: AccessLinkPagination {
@@ -373,6 +384,49 @@ async fn principal_id(
     .bind(subject_id)
     .fetch_optional(&mut **transaction)
     .await
+}
+
+async fn assignable_roles(
+    pool: &PgPool,
+    actor_subject_id: Uuid,
+) -> Result<Vec<String>, AccessLinkError> {
+    sqlx::query_scalar::<_, String>(
+        "SELECT role_key FROM application_roles WHERE level <= COALESCE(( \
+         SELECT MAX(roles.level) FROM application_principals AS principals \
+         INNER JOIN application_principal_roles AS principal_roles ON principal_roles.principal_id = principals.id \
+         INNER JOIN application_roles AS roles ON roles.role_key = principal_roles.role_key \
+         WHERE principals.identity_subject_id = $1 \
+         ), 0) ORDER BY level DESC, role_key ASC",
+    )
+    .bind(actor_subject_id)
+    .fetch_all(pool)
+    .await
+    .map_err(log_error)
+}
+
+async fn roles_are_assignable(
+    transaction: &mut Transaction<'_, Postgres>,
+    actor_subject_id: Uuid,
+    roles: &[String],
+) -> Result<bool, AccessLinkError> {
+    if roles.is_empty() {
+        return Ok(false);
+    }
+    let count = sqlx::query_scalar::<_, i64>(
+        "SELECT count(*) FROM application_roles WHERE role_key = ANY($1) \
+         AND level <= COALESCE(( \
+           SELECT MAX(roles.level) FROM application_principals AS principals \
+           INNER JOIN application_principal_roles AS principal_roles ON principal_roles.principal_id = principals.id \
+           INNER JOIN application_roles AS roles ON roles.role_key = principal_roles.role_key \
+           WHERE principals.identity_subject_id = $2 \
+         ), 0)",
+    )
+    .bind(roles)
+    .bind(actor_subject_id)
+    .fetch_one(&mut **transaction)
+    .await
+    .map_err(log_error)?;
+    Ok(count == i64::try_from(roles.len()).unwrap_or(i64::MAX))
 }
 
 async fn tool_exists(

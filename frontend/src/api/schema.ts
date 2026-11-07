@@ -2337,6 +2337,8 @@ export interface components {
             title: string;
         };
         AccessLinkAdminData: {
+            /** @description Role keys the current issuer may grant through a registration link. */
+            assignable_roles: string[];
             items: components["schemas"]["AccessLinkGrantOption"][];
             links: components["schemas"]["AccessLinkSummary"][];
             pagination: components["schemas"]["AccessLinkPagination"];
@@ -2360,6 +2362,8 @@ export interface components {
             note?: string | null;
             /** @enum {string} */
             purpose: "grant_tool" | "grant_items" | "registration" | "temporary_login";
+            /** @description Required only for registration links; every role must be assignable by the current issuer. */
+            roles?: string[];
             /** Format: uuid */
             tool_id?: string | null;
             /**

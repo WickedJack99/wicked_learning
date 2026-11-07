@@ -3146,8 +3146,8 @@ application database verifies that every role exists and is at or below the
 issuer's highest role level. Registration locks and consumes the invitation,
 then uses those keys when it creates the new application principal. Existing
 callers that omit roles retain the safe baseline-learner behavior. Registration
-access links stay baseline learner until their separate role-selection contract
-is migrated.
+access links are governed by their separate, application-owned role-selection
+contract (ADR-082).
 
 **Why:** This preserves source hierarchy behavior without copying application
 role definitions into the identity database. It also keeps identity's limited
@@ -3160,8 +3160,9 @@ creation would risk activating an account with missing access. Both are
 rejected.
 
 **Limits and follow-up:** The source-adapted invitation controls are now
-available in the Users panel. Account deletion is complete; access-link role
-selection remains a separate lifecycle slice.
+available in the Users panel. Account deletion and access-link role selection
+have separate lifecycle slices because their persistence and redemption paths
+differ.
 
 ## ADR-081: Account deletion is a resumable deprovisioning workflow
 
@@ -3197,6 +3198,48 @@ the source's deletion semantics. These alternatives are rejected.
 authorized delete contract; a future operational scheduler may reconcile
 stale jobs. The source-adapted Users panel now exposes the complete migrated
 workspace through that contract.
+
+## ADR-082: Registration access links carry application-owned role selections
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** The source access-link workspace lets an administrator choose the
+roles a registration link grants. The Rust replatform uses separate identity
+and application databases, so the identity database must not become a second
+owner of application-role policy. Earlier local Rust registration links also
+predate this role-selection contract and represented the source learner
+default.
+
+**Decision:** A registration access link stores its normalized selected role
+keys in the existing application-database JSON payload. Creation rejects an
+empty selection and verifies every key exists and is at or below the issuer's
+highest role level. The administrative read contract returns only those
+assignable role keys for the source-adapted multi-select control.
+
+Registration locks the access link, validates its payload before provisioning
+an identity, creates the application principal with the selected role keys,
+then records redemption and activates the identity through the existing
+compensating workflow. A selected role that is removed before redemption makes
+provisioning fail and compensates the identity rather than silently granting a
+different role. A link with no `roles` payload field is only the backward
+compatible representation of an older locally created Rust link and grants
+`learner`; a present but malformed or empty role payload is rejected.
+
+**Why:** This preserves the source workflow while keeping credentials,
+password hashes and session state in the identity database, and application
+roles and authorization policy in the application database. It also makes bad
+or stale application payloads fail closed before they can create an orphaned
+identity.
+
+**Alternatives:** Copying role definitions into the identity database would
+make authorization ownership ambiguous. Encoding permissions rather than role
+keys in the link would make later role changes inconsistent. Keeping an
+unconditional learner fallback for malformed new links would silently weaken an
+administrator's selected policy. These alternatives are rejected.
+
+**Limits and follow-up:** This applies only to registration access links.
+Identity-owned administrator invitations retain ADR-080's separate lifecycle;
+tool, item and temporary-login links do not accept role selections.
 
 ## Phase 1 gate
 

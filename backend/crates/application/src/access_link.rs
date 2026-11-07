@@ -21,6 +21,7 @@ pub struct AccessLinkForm {
     pub item_grants: Vec<AccessLinkItemGrant>,
     pub note: Option<String>,
     pub purpose: AccessLinkPurpose,
+    pub roles: Vec<String>,
     pub tool_id: Option<Uuid>,
     pub usage_policy: AccessLinkUsagePolicy,
 }
@@ -37,6 +38,7 @@ pub trait AccessLinkRepository {
     ) -> impl Future<Output = Result<Option<AccessLinkSummary>, AccessLinkError>> + Send;
     fn list(
         &self,
+        actor_subject_id: Uuid,
         page: i64,
     ) -> impl Future<Output = Result<AccessLinkAdminData, AccessLinkError>> + Send;
     fn redeem(
@@ -79,7 +81,10 @@ where
         if !principal.has_capability(ApplicationCapability::ManageAccessLinks) {
             return Ok(None);
         }
-        self.repository.list(page.clamp(1, 10_000)).await.map(Some)
+        self.repository
+            .list(principal.subject_id, page.clamp(1, 10_000))
+            .await
+            .map(Some)
     }
 }
 
