@@ -3866,6 +3866,10 @@ export interface components {
             label: string;
         };
         AdminRoles: {
+            /** @description Server-calculated permission to delete a non-system role. */
+            can_delete_roles: boolean;
+            /** @description Server-calculated permission to create or update roles. */
+            can_update_roles: boolean;
             permission_resources: components["schemas"]["AdminPermissionResource"][];
             roles: components["schemas"]["AdminRole"][];
         };

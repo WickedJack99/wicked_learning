@@ -5761,8 +5761,14 @@ components:
     AdminRoles:
       type: object
       additionalProperties: false
-      required: [permission_resources, roles]
+      required: [can_delete_roles, can_update_roles, permission_resources, roles]
       properties:
+        can_delete_roles:
+          type: boolean
+          description: Server-calculated permission to delete a non-system role.
+        can_update_roles:
+          type: boolean
+          description: Server-calculated permission to create or update roles.
         permission_resources:
           type: array
           items: { $ref: '#/components/schemas/AdminPermissionResource' }

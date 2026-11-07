@@ -98,6 +98,12 @@ const OriginalAdminUsersPage = lazy(async () => {
     return { default: module.OriginalAdminUsersPage };
 });
 
+const OriginalAdminRolesPage = lazy(async () => {
+    const module = await import('./original-admin-roles');
+
+    return { default: module.OriginalAdminRolesPage };
+});
+
 const OriginalAccessLinkRedeemPage = lazy(async () => {
     const module = await import('./original-access-links');
 
@@ -362,6 +368,10 @@ export function App() {
             new URLSearchParams(location.search).get('panel') ===
                 'admin-access' &&
             new URLSearchParams(location.search).get('access') === 'users';
+        const rolesPanel =
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-access' &&
+            new URLSearchParams(location.search).get('access') === 'roles';
         const groupPanel =
             new URLSearchParams(location.search).get('panel') ===
                 'admin-access' &&
@@ -389,6 +399,10 @@ export function App() {
                     />
                 </Suspense>
             );
+        }
+
+        if (rolesPanel) {
+            return <Suspense fallback={null}><OriginalAdminRolesPage appearance={appearance} /></Suspense>;
         }
 
         if (groupPanel) {

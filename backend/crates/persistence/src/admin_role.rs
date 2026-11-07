@@ -98,6 +98,8 @@ impl Port for PostgresAdminRoleRepository<'_> {
                 }
             }
             Ok(AdminRoles {
+                can_delete_roles: false,
+                can_update_roles: false,
                 permission_resources: permission_resources(),
                 roles,
             })

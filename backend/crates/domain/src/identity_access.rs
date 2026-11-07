@@ -50,6 +50,8 @@ pub struct AdminRole {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct AdminRoles {
+    pub can_delete_roles: bool,
+    pub can_update_roles: bool,
     pub permission_resources: Vec<AdminPermissionResource>,
     pub roles: Vec<AdminRole>,
 }

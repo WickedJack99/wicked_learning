@@ -132,7 +132,13 @@ where
         {
             return Ok(None);
         }
-        self.repository.list().await.map(Some)
+        self.repository.list().await.map(|roles| {
+            Some(AdminRoles {
+                can_delete_roles: principal.has_permission("roles", "rud"),
+                can_update_roles: principal.has_permission("roles", "ru"),
+                ..roles
+            })
+        })
     }
 }
 
@@ -193,6 +199,8 @@ mod tests {
         ) -> impl std::future::Future<Output = Result<AdminRoles, AdminRoleError>> + Send {
             async {
                 Ok(AdminRoles {
+                    can_delete_roles: false,
+                    can_update_roles: false,
                     permission_resources: vec![],
                     roles: vec![],
                 })
@@ -247,6 +255,24 @@ mod tests {
                 .expect("authorization result"),
             None
         );
+    }
+
+    #[tokio::test]
+    async fn projects_server_owned_role_management_flags() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["platform_administrator".to_owned()],
+            capabilities: vec!["role_permission:roles:rud:all".to_owned()],
+        };
+
+        let roles = AdminRolesQuery::new(&Repository)
+            .execute(&principal)
+            .await
+            .expect("query result")
+            .expect("authorized projection");
+
+        assert!(roles.can_update_roles);
+        assert!(roles.can_delete_roles);
     }
 
     #[test]
