@@ -61,7 +61,17 @@ pub async fn upload(
     }
     let replaced_object_key = result?;
     if let Some(replaced_object_key) = replaced_object_key {
-        if let Some(replaced_object_key) = MediaObjectKey::from_stored_value(&replaced_object_key) {
+        let is_reported = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS (SELECT 1 FROM organization_icon_reports WHERE icon_object_key = $1)",
+        )
+        .bind(&replaced_object_key)
+        .fetch_one(&state.application_database)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+        if !is_reported
+            && let Some(replaced_object_key) =
+                MediaObjectKey::from_stored_value(&replaced_object_key)
+        {
             let _ = state.media_store.delete(&replaced_object_key).await;
         }
     }
@@ -127,7 +137,7 @@ pub async fn report(
     if reason.is_some_and(|value| value.chars().count() > 1000) {
         return Err(ApiError::invalid_request());
     }
-    let inserted = sqlx::query("INSERT INTO organization_icon_reports (id, organization_id, reported_by_principal_id, icon_id, icon_set_by_principal_id, icon_object_key, reason) SELECT $1, organizations.id, reporter.id, organization_icons.id, organizations.icon_set_by_principal_id, organization_icons.object_key, $4 FROM organizations JOIN application_principals AS reporter ON reporter.identity_subject_id = $2 JOIN organization_icons ON organization_icons.id = organizations.icon_id WHERE organizations.slug = $3")
+    let inserted = sqlx::query("INSERT INTO organization_icon_reports (id, organization_id, reported_by_principal_id, icon_id, icon_set_by_principal_id, icon_object_key, icon_content_type, reason) SELECT $1, organizations.id, reporter.id, organization_icons.id, organizations.icon_set_by_principal_id, organization_icons.object_key, organization_icons.content_type, $4 FROM organizations JOIN application_principals AS reporter ON reporter.identity_subject_id = $2 JOIN organization_icons ON organization_icons.id = organizations.icon_id WHERE organizations.slug = $3")
         .bind(Uuid::new_v4()).bind(subject.subject_id()).bind(&slug).bind(reason).execute(&state.application_database).await.map_err(|_| ApiError::service_unavailable())?;
     if inserted.rows_affected() != 1 {
         return Err(ApiError::not_found());

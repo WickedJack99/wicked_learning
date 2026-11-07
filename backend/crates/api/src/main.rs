@@ -54,6 +54,7 @@ mod login_rate_limit;
 pub mod media_store;
 mod organization;
 mod organization_icon;
+mod organization_icon_moderation;
 mod passwords;
 mod platform_feedback;
 mod platform_feedback_review;
@@ -351,6 +352,9 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/organizations/{slug}/icon", post(organization_icon::upload).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
         .route("/api/v1/organizations/{slug}/icon-reports", post(organization_icon::report))
         .route("/api/v1/organization-icons/{icon_id}", get(organization_icon::show))
+        .route("/api/v1/admin/organization-icon-reports", get(organization_icon_moderation::index))
+        .route("/api/v1/admin/organization-icon-reports/{report_id}", patch(organization_icon_moderation::resolve))
+        .route("/api/v1/admin/organization-icon-reports/{report_id}/icon", get(organization_icon_moderation::show_icon))
         .route("/api/v1/organizations/{slug}/join-requests", post(organization::request_join))
         .route("/api/v1/organizations/{slug}/membership", delete(organization::leave))
         .route("/api/v1/organizations/{slug}/messages", post(organization::send_message))

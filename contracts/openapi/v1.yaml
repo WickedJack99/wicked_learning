@@ -871,6 +871,39 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The icon is unavailable. }
         '503': { description: The application database or mounted media store is unavailable. }
+  /admin/organization-icon-reports:
+    get:
+      operationId: getOrganizationIconReports
+      summary: Read pending organization-icon reports for an authorized moderator.
+      responses:
+        '200': { description: Pending reports, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationIconReportPage' } } } }
+        '401': { description: Authentication is required. }
+        '404': { description: Organization-icon moderation is unavailable to the current principal. }
+        '503': { description: The application or identity database is unavailable. }
+  /admin/organization-icon-reports/{report_id}:
+    patch:
+      operationId: resolveOrganizationIconReport
+      summary: Dismiss one report or remove its organization's current icon.
+      parameters: [ { name: report_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ResolveOrganizationIconReportRequest' } } }
+      responses:
+        '204': { description: The report was resolved. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The pending report is unavailable or moderation is unauthorized. }
+        '503': { description: The application database is unavailable. }
+  /admin/organization-icon-reports/{report_id}/icon:
+    get:
+      operationId: getReportedOrganizationIcon
+      summary: Read the immutable reported-icon snapshot for an authorized moderator.
+      parameters: [ { name: report_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: Reported image bytes. }
+        '401': { description: Authentication is required. }
+        '404': { description: The icon snapshot is unavailable or moderation is unauthorized. }
+        '503': { description: The application database or mounted media store is unavailable. }
   /organizations/{slug}/join-requests:
     post:
       operationId: requestOrganizationMembership
@@ -5037,6 +5070,51 @@ components:
       additionalProperties: false
       properties:
         reason: { type: [string, 'null'], maxLength: 1000 }
+    OrganizationIconReportIdentity:
+      type: object
+      additionalProperties: false
+      required: [email, name, subject_id]
+      properties:
+        email: { type: [string, 'null'], format: email }
+        name: { type: [string, 'null'], maxLength: 255 }
+        subject_id: { type: string, format: uuid }
+    OrganizationIconReportOrganization:
+      type: object
+      additionalProperties: false
+      required: [name, slug]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, pattern: '^[a-z0-9-]{1,140}$' }
+    OrganizationIconReport:
+      type: object
+      additionalProperties: false
+      required: [created_at, icon_setter, icon_url, id, organization, reason, reporter]
+      properties:
+        created_at: { type: string, format: date-time }
+        icon_setter:
+          oneOf:
+            - $ref: '#/components/schemas/OrganizationIconReportIdentity'
+            - type: 'null'
+        icon_url: { type: [string, 'null'] }
+        id: { type: string, format: uuid }
+        organization: { $ref: '#/components/schemas/OrganizationIconReportOrganization' }
+        reason: { type: [string, 'null'], maxLength: 1000 }
+        reporter: { $ref: '#/components/schemas/OrganizationIconReportIdentity' }
+    OrganizationIconReportPage:
+      type: object
+      additionalProperties: false
+      required: [reports]
+      properties:
+        reports:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/OrganizationIconReport' }
+    ResolveOrganizationIconReportRequest:
+      type: object
+      additionalProperties: false
+      required: [remove_icon]
+      properties:
+        remove_icon: { type: boolean }
     LearnerGroup:
       type: object
       additionalProperties: false

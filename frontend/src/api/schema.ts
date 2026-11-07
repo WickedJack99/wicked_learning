@@ -662,6 +662,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/organization-icon-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read pending organization-icon reports for an authorized moderator. */
+        get: operations["getOrganizationIconReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/organization-icon-reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Dismiss one report or remove its organization's current icon. */
+        patch: operations["resolveOrganizationIconReport"];
+        trace?: never;
+    };
+    "/admin/organization-icon-reports/{report_id}/icon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the immutable reported-icon snapshot for an authorized moderator. */
+        get: operations["getReportedOrganizationIcon"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{slug}/join-requests": {
         parameters: {
             query?: never;
@@ -3331,6 +3382,34 @@ export interface components {
         };
         OrganizationIconReportRequest: {
             reason?: string | null;
+        };
+        OrganizationIconReportIdentity: {
+            /** Format: email */
+            email: string | null;
+            name: string | null;
+            /** Format: uuid */
+            subject_id: string;
+        };
+        OrganizationIconReportOrganization: {
+            name: string;
+            slug: string;
+        };
+        OrganizationIconReport: {
+            /** Format: date-time */
+            created_at: string;
+            icon_setter: components["schemas"]["OrganizationIconReportIdentity"] | null;
+            icon_url: string | null;
+            /** Format: uuid */
+            id: string;
+            organization: components["schemas"]["OrganizationIconReportOrganization"];
+            reason: string | null;
+            reporter: components["schemas"]["OrganizationIconReportIdentity"];
+        };
+        OrganizationIconReportPage: {
+            reports: components["schemas"]["OrganizationIconReport"][];
+        };
+        ResolveOrganizationIconReportRequest: {
+            remove_icon: boolean;
         };
         LearnerGroup: {
             admin_chat_required_votes: number;
@@ -6069,6 +6148,143 @@ export interface operations {
                 content?: never;
             };
             /** @description The icon is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or mounted media store is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getOrganizationIconReports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending reports */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationIconReportPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Organization-icon moderation is unavailable to the current principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resolveOrganizationIconReport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveOrganizationIconReportRequest"];
+            };
+        };
+        responses: {
+            /** @description The report was resolved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The pending report is unavailable or moderation is unauthorized. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getReportedOrganizationIcon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reported image bytes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The icon snapshot is unavailable or moderation is unauthorized. */
             404: {
                 headers: {
                     [name: string]: unknown;

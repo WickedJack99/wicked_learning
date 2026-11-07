@@ -80,6 +80,12 @@ const OriginalGroupManagementPage = lazy(async () => {
     return { default: module.OriginalGroupManagementPage };
 });
 
+const OriginalOrganizationIconModerationPage = lazy(async () => {
+    const module = await import('./original-organization-icon-moderation');
+
+    return { default: module.OriginalOrganizationIconModerationPage };
+});
+
 /**
  * Each active route is a source-derived React surface with an available Rust
  * contract. Do not add placeholder pages here: extract the corresponding
@@ -378,6 +384,17 @@ export function App() {
                     />
                 </Suspense>
             );
+        }
+
+        if (
+            supportPanel &&
+            new URLSearchParams(location.search).get('support') ===
+                'organization-icons'
+        ) {
+            if (!currentUser.capabilities.includes('organization_icons_moderate')) {
+                return <Navigate replace to="/home" />;
+            }
+            return <Suspense fallback={null}><OriginalOrganizationIconModerationPage appearance={appearance} /></Suspense>;
         }
 
         if (

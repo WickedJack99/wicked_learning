@@ -136,6 +136,19 @@ test('organizations preserve the source membership, leadership and chat workflow
         await expect(page.getByText(`A member chat message (${marker}).`)).toBeVisible();
         await expect(page.getByRole('button', { name: /Members \(2\)/ })).toBeVisible();
 
+        await page.goto(
+            new URL('/settings?panel=admin-learning-support&support=organization-icons', origin).toString(),
+        );
+        await expect(page.getByRole('heading', { name: 'Organization Icons' })).toBeVisible();
+        await expect(page.getByText(`Organization E2E ${marker}`)).toBeVisible();
+        await page.getByRole('button', { name: 'Remove icon' }).click();
+        await expect(page.getByText('No pending organization icon reports.')).toBeVisible();
+        const afterRemoval = await request.get(
+            api(`/api/v1/organizations/${organization.slug}`),
+        );
+        expect(afterRemoval.status()).toBe(200);
+        expect((await afterRemoval.json()).organization.icon_url).toBeNull();
+
         const deleted = await request.delete(
             api(`/api/v1/organizations/${organization.slug}`),
             { headers: { Origin: origin, 'X-CSRF-Token': firstCsrf } },

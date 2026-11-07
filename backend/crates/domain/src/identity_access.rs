@@ -4,6 +4,7 @@ use uuid::Uuid;
 pub enum ApplicationCapability {
     ManageLearningGroups,
     ModerateLearnerMessages,
+    ModerateOrganizationIcons,
     ManageJournalFeedbackPolicy,
     ReviewJournalFeedback,
     ReviewPlatformFeedback,
@@ -16,6 +17,7 @@ impl ApplicationCapability {
         match self {
             Self::ManageLearningGroups => "learning_groups_manage",
             Self::ModerateLearnerMessages => "learner_messages_moderate",
+            Self::ModerateOrganizationIcons => "organization_icons_moderate",
             Self::ManageJournalFeedbackPolicy => "journal_feedback_policy_manage",
             Self::ReviewJournalFeedback => "journal_feedback_review",
             Self::ReviewPlatformFeedback => "platform_feedback_review",

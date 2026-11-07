@@ -2820,9 +2820,8 @@ browser refresh mutate leadership. Storing user names alongside memberships
 would duplicate identity data. A new organization UI would introduce visual
 and interaction drift. These alternatives are rejected.
 
-**Limits and follow-up:** Administrator icon-report resolution remains
-explicitly incomplete. It requires its own settings/authorization evidence
-before being presented as migrated functionality.
+**Limits and follow-up:** Remaining organisation administration and policy
+surfaces are separate work; completed icon moderation is recorded in ADR-074.
 
 ## ADR-072: Organisation icons use authenticated mounted-media objects
 
@@ -2854,11 +2853,10 @@ database would make routine media serving and backups needlessly heavy. Saving
 only a mutable current icon reference in a report would make moderation
 evidence drift after replacement. These alternatives are rejected.
 
-**Limits and follow-up:** This does not implement the source administrator
-queue that resolves reports or removes an icon. That is a later administration
-slice. A failed best-effort deletion of an already-replaced mounted object can
-leave an orphan for a future bounded media cleanup job; it cannot invalidate
-the committed replacement.
+**Limits and follow-up:** Administrator resolution is supplied by ADR-074. A
+failed best-effort deletion of an already-replaced mounted object can leave an
+orphan for a future bounded media cleanup job; it cannot invalidate the
+committed replacement.
 
 ## ADR-073: Random organisation leadership rotates by explicit scheduler command
 
@@ -2890,6 +2888,37 @@ duplicate-replica and restart ambiguity. These alternatives are rejected.
 scheduler before production cutover; the current local stack demonstrates the
 command but does not run a production schedule. Its database clock defines the
 month boundary, matching the PostgreSQL deployment's UTC convention.
+
+## ADR-074: Organisation-icon moderation has a separate capability and snapshot reader
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** A member's icon report needs a source-shaped administrator queue.
+Deleting or replacing the live icon must not alter the file a moderator reviews,
+and ordinary signed-in learners must not see reports or their reporter data.
+
+**Decision:** Add the independently granted `organization_icons_moderate`
+capability (initially held by the migrated platform-administrator role). Its
+private queue lists pending reports with only the source-needed organization,
+reporter and setter projection. A moderator sees the immutable report snapshot,
+then may dismiss the report or remove the organization's current icon. Resolving
+is a CSRF-protected transaction and the snapshot image is available only through
+the moderator route. Replacement preserves mounted objects referenced by a
+report, rather than deleting its evidence.
+
+**Why:** This mirrors the source distinction between reporting and moderation,
+keeps identity projections least-privilege, and avoids turning a historical
+report into a reference to a different image.
+
+**Alternatives:** Reusing a generic platform-admin role check would make future
+delegation impossible. Serving report snapshots through the ordinary current
+icon URL would erase the evidence after removal. Keeping a public static URL
+would expose moderator-only context. These alternatives are rejected.
+
+**Limits and follow-up:** The queue currently returns at most 100 pending
+reports, which is suitable for the local migration slice but needs source-style
+server pagination before a high-volume production cutover. General organization
+policy settings remain a separate administration slice.
 
 ## Phase 1 gate
 
