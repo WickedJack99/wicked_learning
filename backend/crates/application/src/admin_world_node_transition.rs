@@ -85,6 +85,7 @@ pub fn fallback_output_label(connector: &str) -> String {
         "outcome" => "Outcome".to_owned(),
         "travel" => "Travel".to_owned(),
         "arrived" => "Arrived".to_owned(),
+        "dialogue-end-pending" => "A End".to_owned(),
         "completed" => "Completed".to_owned(),
         value => value
             .split('-')
@@ -148,10 +149,7 @@ mod tests {
         assert_eq!(trigger_for_connector("outcome"), "outcome");
         assert_eq!(trigger_for_connector("travel"), "portal");
         assert_eq!(trigger_for_connector("dialogue-end-pending"), "completed");
-        assert_eq!(
-            fallback_output_label("dialogue-end-pending"),
-            "Dialogue End Pending"
-        );
+        assert_eq!(fallback_output_label("dialogue-end-pending"), "A End");
     }
 
     #[test]
