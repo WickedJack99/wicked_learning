@@ -45,6 +45,16 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(page.getByLabel('Learner invitation')).toBeVisible();
     await page.getByRole('button', { name: 'Close activity form' }).click();
 
+    await page.getByRole('button', { name: 'Obstacle' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Add Obstacle' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Add a tool')).toBeVisible();
+    await expect(page.getByLabel('Prompt bubble')).toBeVisible();
+    await expect(page.getByLabel('Dark obstacle image')).toBeVisible();
+    await expect(page.getByLabel('Success animation')).toHaveValue('zoom');
+    await page.getByRole('button', { name: 'Close activity form' }).click();
+
     await page.getByRole('button', { name: 'Reflection' }).click();
     await expect(
         page.getByRole('heading', { name: 'Add Reflection' }),

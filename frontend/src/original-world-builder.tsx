@@ -60,7 +60,38 @@ type SupportedActivityType =
     | 'reflection'
     | 'item_grant'
     | 'tool_grant'
-    | 'item_obstacle';
+    | 'item_obstacle'
+    | 'obstacle';
+type ObstacleForm = {
+    allowedToolIds: string[];
+    backgroundDark: string;
+    backgroundLight: string;
+    backgroundMirrored: boolean;
+    bubbleBorderColorDark: string;
+    bubbleBorderColorLight: string;
+    bubbleColorDark: string;
+    bubbleColorLight: string;
+    bubbleOpacityDark: string;
+    bubbleOpacityLight: string;
+    imageDark: string;
+    imageLight: string;
+    imageMirrored: boolean;
+    persistAfterSolved: boolean;
+    promptText: string;
+    revisitBackgroundDark: string;
+    revisitBackgroundLight: string;
+    revisitBackgroundMirrored: boolean;
+    revisitImageDark: string;
+    revisitImageLight: string;
+    revisitImageMirrored: boolean;
+    revisitText: string;
+    successAnimation: string;
+    successText: string;
+    typingSpeed: string;
+    width: string;
+    x: string;
+    y: string;
+};
 type ActivityAuthorForm = {
     backgroundDark: string;
     backgroundLight: string;
@@ -102,6 +133,7 @@ type ActivityAuthorForm = {
     items: Array<{ itemId: string; quantity: string }>;
     nextStep: string;
     note: string;
+    obstacle: ObstacleForm;
     prompt: string;
     slug: string;
     subtopic: string;
@@ -902,6 +934,14 @@ function ActivityGraph({
                         >
                             <Plus className="size-3.5" />
                             Item obstacle
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'obstacle' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Obstacle
                         </button>
                     </div>
                 </div>
@@ -1748,7 +1788,9 @@ function ActivityAuthorDialog({
                 ? 'Item grant'
                 : type === 'tool_grant'
                   ? 'Tool grant'
-                  : 'Item obstacle';
+                  : type === 'item_obstacle'
+                    ? 'Item obstacle'
+                    : 'Obstacle';
 
     const updateField = (field: keyof ActivityAuthorForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -1790,6 +1832,14 @@ function ActivityAuthorDialog({
         }
         const completeItemObstacle =
             itemObstacle ?? defaultItemObstacleRequest();
+        const obstacle = obstacleRequest(form.obstacle);
+        if (type === 'obstacle' && !obstacle) {
+            setError(
+                'Use valid colors and values within the shown source ranges before saving.',
+            );
+            return;
+        }
+        const completeObstacle = obstacle ?? defaultObstacleRequest();
 
         setSaving(true);
         try {
@@ -1904,6 +1954,32 @@ function ActivityAuthorDialog({
                             probability_percent:
                                 completeItemGrant.probabilityPercent,
                         },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { node_id: nodeId },
+                        },
+                    },
+                ));
+            } else if (type === 'obstacle' && activity) {
+                ({ response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/obstacle',
+                    {
+                        body: {
+                            ...common,
+                            ...completeObstacle,
+                            updated_at: activity.updated_at,
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { activity_id: activity.id },
+                        },
+                    },
+                ));
+            } else if (type === 'obstacle') {
+                ({ response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/obstacle-activities',
+                    {
+                        body: { ...common, ...completeObstacle },
                         params: {
                             header: { 'X-CSRF-Token': token },
                             path: { node_id: nodeId },
@@ -2095,6 +2171,14 @@ function ActivityAuthorDialog({
                             items={items}
                             onChange={setForm}
                             sounds={sounds}
+                        />
+                    ) : type === 'obstacle' ? (
+                        <ObstacleFields
+                            form={form.obstacle}
+                            onChange={(obstacle) =>
+                                setForm((current) => ({ ...current, obstacle }))
+                            }
+                            tools={tools}
                         />
                     ) : (
                         <ToolGrantFields
@@ -2616,6 +2700,255 @@ function ItemObstacleFields({
     );
 }
 
+function ObstacleFields({
+    form,
+    onChange,
+    tools,
+}: {
+    form: ObstacleForm;
+    onChange: (form: ObstacleForm) => void;
+    tools: EditableTool[];
+}) {
+    const update = <Key extends keyof ObstacleForm>(
+        key: Key,
+        value: ObstacleForm[Key],
+    ) => onChange({ ...form, [key]: value });
+    const imageFields: Array<[keyof ObstacleForm, string]> = [
+        ['backgroundDark', 'Dark background'],
+        ['backgroundLight', 'Light background'],
+        ['imageDark', 'Dark obstacle image'],
+        ['imageLight', 'Light obstacle image'],
+        ['revisitBackgroundDark', 'Dark cleared background'],
+        ['revisitBackgroundLight', 'Light cleared background'],
+        ['revisitImageDark', 'Dark cleared image'],
+        ['revisitImageLight', 'Light cleared image'],
+    ];
+    return (
+        <>
+            <section className="grid gap-3 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <h3 className="text-sm font-medium">Tools that work here</h3>
+                <select
+                    aria-label="Add a tool"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                    onChange={(event) => {
+                        const id = event.target.value;
+                        if (id && !form.allowedToolIds.includes(id))
+                            update('allowedToolIds', [
+                                ...form.allowedToolIds,
+                                id,
+                            ]);
+                    }}
+                    value=""
+                >
+                    <option value="">Add a tool</option>
+                    {tools
+                        .filter(
+                            (tool) => !form.allowedToolIds.includes(tool.id),
+                        )
+                        .map((tool) => (
+                            <option key={tool.id} value={tool.id}>
+                                {tool.title}
+                            </option>
+                        ))}
+                </select>
+                <div className="flex flex-wrap gap-2">
+                    {form.allowedToolIds.map((id) => {
+                        const tool = tools.find(
+                            (candidate) => candidate.id === id,
+                        );
+                        return tool ? (
+                            <button
+                                className="rounded-md bg-teal-100 px-2 py-1 text-sm text-teal-800 dark:bg-teal-300/10 dark:text-teal-200"
+                                key={id}
+                                onClick={() =>
+                                    update(
+                                        'allowedToolIds',
+                                        form.allowedToolIds.filter(
+                                            (value) => value !== id,
+                                        ),
+                                    )
+                                }
+                                type="button"
+                            >
+                                {tool.title} ×
+                            </button>
+                        ) : null;
+                    })}
+                </div>
+                <label className="flex items-center gap-3 text-sm font-medium">
+                    <input
+                        checked={form.persistAfterSolved}
+                        onChange={(event) =>
+                            update('persistAfterSolved', event.target.checked)
+                        }
+                        type="checkbox"
+                    />
+                    Stay cleared for learner
+                </label>
+            </section>
+            <ActivityTextField
+                className="md:col-span-2"
+                label="Prompt bubble"
+                onChange={(value) => update('promptText', value)}
+                textarea
+                value={form.promptText}
+            />
+            <ActivityTextField
+                className="md:col-span-2"
+                label="Success bubble"
+                onChange={(value) => update('successText', value)}
+                textarea
+                value={form.successText}
+            />
+            <ActivityTextField
+                className="md:col-span-2"
+                label="Cleared revisit bubble"
+                onChange={(value) => update('revisitText', value)}
+                textarea
+                value={form.revisitText}
+            />
+            <section className="grid gap-3 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <h3 className="text-sm font-medium">Obstacle scenes</h3>
+                <div className="grid gap-3 md:grid-cols-2">
+                    {imageFields.map(([field, label]) => (
+                        <ActivityTextField
+                            key={field}
+                            label={label}
+                            onChange={(value) => update(field, value)}
+                            value={String(form[field])}
+                        />
+                    ))}
+                </div>
+                {(
+                    [
+                        [
+                            'backgroundMirrored',
+                            'Mirror background horizontally',
+                        ],
+                        ['imageMirrored', 'Mirror obstacle image horizontally'],
+                        [
+                            'revisitBackgroundMirrored',
+                            'Mirror cleared background horizontally',
+                        ],
+                        [
+                            'revisitImageMirrored',
+                            'Mirror cleared image horizontally',
+                        ],
+                    ] as Array<[keyof ObstacleForm, string]>
+                ).map(([field, label]) => (
+                    <label
+                        className="flex items-center gap-3 text-sm font-medium"
+                        key={field}
+                    >
+                        <input
+                            checked={Boolean(form[field])}
+                            onChange={(event) =>
+                                update(field, event.target.checked)
+                            }
+                            type="checkbox"
+                        />
+                        {label}
+                    </label>
+                ))}
+            </section>
+            <section className="grid gap-3 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+                <h3 className="text-sm font-medium">Position and bubble</h3>
+                <div className="grid gap-3 md:grid-cols-3">
+                    <ToolGrantNumberField
+                        label="Obstacle x position"
+                        max={100}
+                        min={0}
+                        onChange={(value) => update('x', value)}
+                        suffix="%"
+                        value={form.x}
+                    />
+                    <ToolGrantNumberField
+                        label="Obstacle y position"
+                        max={100}
+                        min={0}
+                        onChange={(value) => update('y', value)}
+                        suffix="%"
+                        value={form.y}
+                    />
+                    <ToolGrantNumberField
+                        label="Obstacle width"
+                        max={100}
+                        min={1}
+                        onChange={(value) => update('width', value)}
+                        suffix="%"
+                        value={form.width}
+                    />
+                    <ToolGrantNumberField
+                        label="Dark opacity"
+                        max={100}
+                        min={0}
+                        onChange={(value) => update('bubbleOpacityDark', value)}
+                        suffix="%"
+                        value={form.bubbleOpacityDark}
+                    />
+                    <ToolGrantNumberField
+                        label="Light opacity"
+                        max={100}
+                        min={0}
+                        onChange={(value) =>
+                            update('bubbleOpacityLight', value)
+                        }
+                        suffix="%"
+                        value={form.bubbleOpacityLight}
+                    />
+                    <ToolGrantNumberField
+                        label="Typing speed"
+                        max={250}
+                        min={1}
+                        onChange={(value) => update('typingSpeed', value)}
+                        suffix="ms"
+                        value={form.typingSpeed}
+                    />
+                    <ToolGrantColorField
+                        label="Dark bubble color"
+                        onChange={(value) => update('bubbleColorDark', value)}
+                        value={form.bubbleColorDark}
+                    />
+                    <ToolGrantColorField
+                        label="Dark bubble border"
+                        onChange={(value) =>
+                            update('bubbleBorderColorDark', value)
+                        }
+                        value={form.bubbleBorderColorDark}
+                    />
+                    <ToolGrantColorField
+                        label="Light bubble color"
+                        onChange={(value) => update('bubbleColorLight', value)}
+                        value={form.bubbleColorLight}
+                    />
+                    <ToolGrantColorField
+                        label="Light bubble border"
+                        onChange={(value) =>
+                            update('bubbleBorderColorLight', value)
+                        }
+                        value={form.bubbleBorderColorLight}
+                    />
+                    <label className="grid gap-2 text-sm font-medium">
+                        Success animation
+                        <select
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-950/40"
+                            onChange={(event) =>
+                                update('successAnimation', event.target.value)
+                            }
+                            value={form.successAnimation}
+                        >
+                            <option value="zoom">Zoom</option>
+                            <option value="shake">Shake</option>
+                            <option value="rotate">Rotate</option>
+                            <option value="none">None</option>
+                        </select>
+                    </label>
+                </div>
+            </section>
+        </>
+    );
+}
+
 function ToolGrantFields({
     form,
     onChange,
@@ -2962,6 +3295,7 @@ function activityAuthorForm(
             configString(config, 'nextStep') ||
             'Choose a useful next step, then continue when you are ready.',
         note: configString(config, 'note'),
+        obstacle: obstacleForm(config, tools),
         prompt: activity
             ? configString(config, 'prompt')
             : 'What feels clearer now?',
@@ -2986,6 +3320,67 @@ function activityAuthorForm(
     };
 }
 
+function obstacleForm(
+    config: Record<string, unknown>,
+    tools: EditableTool[],
+): ObstacleForm {
+    const allowed = config.allowedToolIds;
+    const allowedToolIds = Array.isArray(allowed)
+        ? allowed.flatMap((slug) => {
+              const tool =
+                  typeof slug === 'string'
+                      ? tools.find((candidate) => candidate.slug === slug)
+                      : undefined;
+              return tool ? [tool.id] : [];
+          })
+        : [];
+    return {
+        allowedToolIds,
+        backgroundDark: configString(config, 'backgroundDark'),
+        backgroundLight: configString(config, 'backgroundLight'),
+        backgroundMirrored: configBoolean(config, 'backgroundMirrored'),
+        bubbleBorderColorDark: configStringOr(
+            config,
+            'bubbleBorderColorDark',
+            '#2dd4bf',
+        ),
+        bubbleBorderColorLight: configStringOr(
+            config,
+            'bubbleBorderColorLight',
+            '#0891b2',
+        ),
+        bubbleColorDark: configStringOr(config, 'bubbleColorDark', '#0f172a'),
+        bubbleColorLight: configStringOr(config, 'bubbleColorLight', '#ffffff'),
+        bubbleOpacityDark: String(
+            configNumber(config, 'bubbleOpacityDark', 92),
+        ),
+        bubbleOpacityLight: String(
+            configNumber(config, 'bubbleOpacityLight', 94),
+        ),
+        imageDark: configString(config, 'obstacleImageDark'),
+        imageLight: configString(config, 'obstacleImageLight'),
+        imageMirrored: configBoolean(config, 'obstacleImageMirrored'),
+        persistAfterSolved: configBoolean(config, 'persistAfterSolved', true),
+        promptText: configString(config, 'promptText'),
+        revisitBackgroundDark: configString(config, 'revisitBackgroundDark'),
+        revisitBackgroundLight: configString(config, 'revisitBackgroundLight'),
+        revisitBackgroundMirrored: configBoolean(
+            config,
+            'revisitBackgroundMirrored',
+        ),
+        revisitImageDark: configString(config, 'revisitImageDark'),
+        revisitImageLight: configString(config, 'revisitImageLight'),
+        revisitImageMirrored: configBoolean(config, 'revisitImageMirrored'),
+        revisitText: configString(config, 'revisitText'),
+        successAnimation: configStringOr(config, 'successAnimation', 'zoom'),
+        successText: configString(config, 'successText'),
+        typingSpeed: String(configNumber(config, 'typingSpeed', 24)),
+        width: String(configNumber(config, 'obstacleWidth', 28)),
+        x: String(configNumber(config, 'obstacleX', 50)),
+        y: String(configNumber(config, 'obstacleY', 50)),
+    };
+}
+
 function configString(config: Record<string, unknown>, key: string): string {
     const value = config[key];
     return typeof value === 'string' ? value : '';
@@ -2999,8 +3394,12 @@ function configStringOr(
     return configString(config, key) || fallback;
 }
 
-function configBoolean(config: Record<string, unknown>, key: string): boolean {
-    return config[key] === true;
+function configBoolean(
+    config: Record<string, unknown>,
+    key: string,
+    fallback = false,
+): boolean {
+    return typeof config[key] === 'boolean' ? config[key] : fallback;
 }
 
 function configNumber(
@@ -3163,6 +3562,130 @@ function itemObstacleRequest(form: ActivityAuthorForm): {
             ? optionalValue(form.itemObstacleSoundTransitionId)
             : null,
     };
+}
+
+function obstacleRequest(form: ObstacleForm): {
+    allowed_tool_ids: string[];
+    background_dark: string | null;
+    background_light: string | null;
+    background_mirrored: boolean;
+    bubble_border_color_dark: string;
+    bubble_border_color_light: string;
+    bubble_color_dark: string;
+    bubble_color_light: string;
+    bubble_opacity_dark: number;
+    bubble_opacity_light: number;
+    obstacle_image_dark: string | null;
+    obstacle_image_light: string | null;
+    obstacle_image_mirrored: boolean;
+    persist_after_solved: boolean;
+    prompt_text: string | null;
+    obstacle_x: number;
+    obstacle_y: number;
+    obstacle_width: number;
+    revisit_background_dark: string | null;
+    revisit_background_light: string | null;
+    revisit_background_mirrored: boolean;
+    revisit_image_dark: string | null;
+    revisit_image_light: string | null;
+    revisit_image_mirrored: boolean;
+    revisit_text: string | null;
+    success_animation: 'none' | 'zoom' | 'shake' | 'rotate';
+    success_text: string | null;
+    typing_speed: number;
+} | null {
+    const values = [
+        Number(form.bubbleOpacityDark),
+        Number(form.bubbleOpacityLight),
+        Number(form.x),
+        Number(form.y),
+        Number(form.width),
+        Number(form.typingSpeed),
+    ];
+    if (
+        !validHexColor(form.bubbleBorderColorDark) ||
+        !validHexColor(form.bubbleBorderColorLight) ||
+        !validHexColor(form.bubbleColorDark) ||
+        !validHexColor(form.bubbleColorLight) ||
+        !within(values[0], 0, 100) ||
+        !within(values[1], 0, 100) ||
+        !within(values[2], 0, 100) ||
+        !within(values[3], 0, 100) ||
+        !within(values[4], 1, 100) ||
+        !within(values[5], 1, 250) ||
+        form.allowedToolIds.length > 100 ||
+        !['none', 'zoom', 'shake', 'rotate'].includes(form.successAnimation)
+    )
+        return null;
+    return {
+        allowed_tool_ids: form.allowedToolIds,
+        background_dark: optionalValue(form.backgroundDark),
+        background_light: optionalValue(form.backgroundLight),
+        background_mirrored: form.backgroundMirrored,
+        bubble_border_color_dark: form.bubbleBorderColorDark,
+        bubble_border_color_light: form.bubbleBorderColorLight,
+        bubble_color_dark: form.bubbleColorDark,
+        bubble_color_light: form.bubbleColorLight,
+        bubble_opacity_dark: values[0],
+        bubble_opacity_light: values[1],
+        obstacle_image_dark: optionalValue(form.imageDark),
+        obstacle_image_light: optionalValue(form.imageLight),
+        obstacle_image_mirrored: form.imageMirrored,
+        persist_after_solved: form.persistAfterSolved,
+        prompt_text: optionalValue(form.promptText),
+        obstacle_x: values[2],
+        obstacle_y: values[3],
+        obstacle_width: values[4],
+        revisit_background_dark: optionalValue(form.revisitBackgroundDark),
+        revisit_background_light: optionalValue(form.revisitBackgroundLight),
+        revisit_background_mirrored: form.revisitBackgroundMirrored,
+        revisit_image_dark: optionalValue(form.revisitImageDark),
+        revisit_image_light: optionalValue(form.revisitImageLight),
+        revisit_image_mirrored: form.revisitImageMirrored,
+        revisit_text: optionalValue(form.revisitText),
+        success_animation: form.successAnimation as
+            | 'none'
+            | 'zoom'
+            | 'shake'
+            | 'rotate',
+        success_text: optionalValue(form.successText),
+        typing_speed: values[5],
+    };
+}
+
+function defaultObstacleRequest(): NonNullable<
+    ReturnType<typeof obstacleRequest>
+> {
+    return obstacleRequest({
+        allowedToolIds: [],
+        backgroundDark: '',
+        backgroundLight: '',
+        backgroundMirrored: false,
+        bubbleBorderColorDark: '#2dd4bf',
+        bubbleBorderColorLight: '#0891b2',
+        bubbleColorDark: '#0f172a',
+        bubbleColorLight: '#ffffff',
+        bubbleOpacityDark: '92',
+        bubbleOpacityLight: '94',
+        imageDark: '',
+        imageLight: '',
+        imageMirrored: false,
+        persistAfterSolved: true,
+        promptText: '',
+        revisitBackgroundDark: '',
+        revisitBackgroundLight: '',
+        revisitBackgroundMirrored: false,
+        revisitImageDark: '',
+        revisitImageLight: '',
+        revisitImageMirrored: false,
+        revisitText: '',
+        successAnimation: 'zoom',
+        successText: '',
+        typingSpeed: '24',
+        width: '28',
+        x: '50',
+        y: '50',
+    })!;
 }
 
 function defaultItemObstacleRequest(): NonNullable<
@@ -3392,7 +3915,8 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'reflection' ||
         type === 'item_grant' ||
         type === 'tool_grant' ||
-        type === 'item_obstacle'
+        type === 'item_obstacle' ||
+        type === 'obstacle'
     );
 }
 
