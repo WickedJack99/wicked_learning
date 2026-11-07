@@ -880,6 +880,52 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /admin/world-builder/nodes/{node_id}/activity-graph-layout:
+    patch:
+      operationId: updateAdminWorldBuilderNodeActivityGraphLayout
+      summary: Save a selected node activity graph's start or end position.
+      description: This source-derived authoring command requires World Activities update authority, its scoped editable map, and a same-origin CSRF token. It changes editor layout only; learner starts and activity playback remain unchanged.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityGraphLayoutRequest' }
+      responses:
+        '200':
+          description: The complete persisted special-node layout.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityGraphLayoutResponse' }
+        '400':
+          description: The special graph node or its position is invalid.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401':
+          description: The browser has no authenticated session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '403':
+          description: The same-origin CSRF check failed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404':
+          description: The node is unknown or outside the caller's authoring scope.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: The application database is unavailable.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
   /learner/maps/{map_slug}/nodes/{node_slug}/bookmark:
     post:
       operationId: createLearnerNodeBookmark
@@ -7412,6 +7458,26 @@ components:
           type: array
           maxItems: 10000
           items: { $ref: '#/components/schemas/AdminEditableTool' }
+    UpdateAdminActivityGraphLayoutRequest:
+      type: object
+      additionalProperties: false
+      required: [node, position]
+      properties:
+        node: { type: string, enum: [start, end] }
+        position: { $ref: '#/components/schemas/AdminActivityGraphLayoutPosition' }
+    AdminActivityGraphLayoutPosition:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x: { type: number }
+        y: { type: number }
+    AdminActivityGraphLayoutResponse:
+      type: object
+      additionalProperties: false
+      required: [graph_layout]
+      properties:
+        graph_layout: { type: object, additionalProperties: true }
     AdminActivityGraph:
       type: object
       additionalProperties: false

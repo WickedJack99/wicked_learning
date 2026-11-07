@@ -13,6 +13,7 @@ mod admin_user;
 mod admin_world_graph;
 mod admin_world_map;
 mod admin_world_node;
+mod admin_world_node_layout;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -550,6 +551,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}",
             get(admin_world_node::show),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout",
+            patch(admin_world_node_layout::update),
         )
         .route(
             "/api/v1/admin/roles/{role_key}",
@@ -1274,6 +1279,41 @@ mod tests {
             )
             .await
             .expect("World Builder node response");
+
+        assert_eq!(response.status(), 401);
+    }
+
+    #[tokio::test]
+    async fn world_builder_node_layout_requires_an_authenticated_session() {
+        let state = AppState {
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/activity-graph-layout")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"node":"start","position":{"x":10,"y":20}}"#))
+                    .expect("a valid World Builder node layout request"),
+            )
+            .await
+            .expect("World Builder node layout response");
 
         assert_eq!(response.status(), 401);
     }

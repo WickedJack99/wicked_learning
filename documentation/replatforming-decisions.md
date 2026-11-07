@@ -3682,6 +3682,13 @@ catalog tables hold these facts rather than learner-playback records. AI review
 templates, review history and review-queue commands remain unavailable, so the
 existing World Builder React route is still deliberately not exposed.
 
+**Follow-up command boundary:** The first selected-node mutation persists only
+the activity graph's special `start`/`end` coordinates. It rounds the source's
+numeric position input, locks the scoped node while updating its authoring-only
+layout JSON, and uses the same activity-update scope and CSRF boundary as the
+read. It does not imply that route starts, activity positions, transitions or
+any learner-facing behavior may be updated yet.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

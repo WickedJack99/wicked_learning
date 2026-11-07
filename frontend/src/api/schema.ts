@@ -671,6 +671,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/activity-graph-layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save a selected node activity graph's start or end position.
+         * @description This source-derived authoring command requires World Activities update authority, its scoped editable map, and a same-origin CSRF token. It changes editor layout only; learner starts and activity playback remain unchanged.
+         */
+        patch: operations["updateAdminWorldBuilderNodeActivityGraphLayout"];
+        trace?: never;
+    };
     "/learner/maps/{map_slug}/nodes/{node_slug}/bookmark": {
         parameters: {
             query?: never;
@@ -4946,6 +4966,20 @@ export interface components {
             sounds: components["schemas"]["AdminEditableSound"][];
             tools: components["schemas"]["AdminEditableTool"][];
         };
+        UpdateAdminActivityGraphLayoutRequest: {
+            /** @enum {string} */
+            node: "start" | "end";
+            position: components["schemas"]["AdminActivityGraphLayoutPosition"];
+        };
+        AdminActivityGraphLayoutPosition: {
+            x: number;
+            y: number;
+        };
+        AdminActivityGraphLayoutResponse: {
+            graph_layout: {
+                [key: string]: unknown;
+            };
+        };
         AdminActivityGraph: {
             world: components["schemas"]["AdminActivityGraphReference"];
             map: components["schemas"]["AdminActivityGraphReference"];
@@ -7323,6 +7357,77 @@ export interface operations {
                 };
             };
             /** @description The node is unknown or unavailable through the source activity-editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateAdminWorldBuilderNodeActivityGraphLayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivityGraphLayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description The complete persisted special-node layout. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityGraphLayoutResponse"];
+                };
+            };
+            /** @description The special graph node or its position is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The node is unknown or outside the caller's authoring scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

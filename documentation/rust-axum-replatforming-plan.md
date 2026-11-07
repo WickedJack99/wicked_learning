@@ -913,6 +913,12 @@ items/tools/sounds, source records and active concept/topic options from
 dedicated authoring facts. It remains distinct from learner route playback.
 AI review history/templates, the review queue and unlock diagnostics remain
 unavailable until their associated authoring and AI records exist.
+The first graph mutation is now available at `PATCH
+/api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
+the original editor's independently persisted, rounded `start`/`end` graph
+positions under the same scoped activity-authoring and CSRF boundary, without
+changing learner starts, activities or playback. The remaining activity, route,
+transition, revision and source-catalog commands are still not exposed.
 No World Builder React route is exposed from these partial contracts: the next
 slice must adapt the existing World Builder React components against all three
 read contracts, rather than inventing a reduced editor.
