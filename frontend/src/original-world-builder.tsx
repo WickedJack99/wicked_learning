@@ -17,7 +17,9 @@ import {
     CircleCheck,
     GitBranch,
     Map as MapIcon,
+    Plus,
     Route,
+    X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
@@ -45,6 +47,18 @@ type WorldPortalEdge = Edge<PortalLink>;
 type ActivityNode = Node<ActivityNodeData, 'activity'>;
 type SpecialNode = Node<{ label: string }, 'special'>;
 type ActivityFlowNode = ActivityNode | SpecialNode;
+type SupportedActivityType = 'open_practice' | 'reflection';
+type ActivityAuthorForm = {
+    introduction: string;
+    nextStep: string;
+    note: string;
+    prompt: string;
+    slug: string;
+    subtopic: string;
+    title: string;
+    topic: string;
+    type: SupportedActivityType;
+};
 
 /**
  * Source-adapted from the Laravel `AdminWorldIndex` and activity-graph
@@ -81,6 +95,7 @@ function WorldBuilderContent() {
     const [worldGraph, setWorldGraph] = useState<WorldGraph | null>(null);
     const [editableMap, setEditableMap] = useState<EditableMap | null>(null);
     const [editableNode, setEditableNode] = useState<EditableNode | null>(null);
+    const [nodeReload, setNodeReload] = useState(0);
     const [portal, setPortal] = useState<PortalLink | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -189,7 +204,7 @@ function WorldBuilderContent() {
         return () => {
             current = false;
         };
-    }, [selectedNodeId]);
+    }, [nodeReload, selectedNodeId]);
 
     if (error && !worldGraph) {
         return <WorldBuilderStatus message={error} />;
@@ -230,6 +245,9 @@ function WorldBuilderContent() {
                     {editableNode ? (
                         <ActivityGraph
                             document={editableNode}
+                            onReload={() =>
+                                setNodeReload((current) => current + 1)
+                            }
                             onSelectMap={() =>
                                 selectedMapId && selectMap(selectedMapId)
                             }
@@ -472,9 +490,11 @@ function NodeDetails({
 
 function ActivityGraph({
     document,
+    onReload,
     onSelectMap,
 }: {
     document: EditableNode;
+    onReload: () => void;
     onSelectMap: () => void;
 }) {
     const graph = document.activity_graph;
@@ -535,6 +555,10 @@ function ActivityGraph({
     const [savingActivityId, setSavingActivityId] = useState<string | null>(
         null,
     );
+    const [editor, setEditor] = useState<{
+        activity?: Activity;
+        type: SupportedActivityType;
+    } | null>(null);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -567,40 +591,85 @@ function ActivityGraph({
     }, []);
 
     return (
-        <div className="h-[34rem]">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 text-sm dark:border-white/10">
-                <button
-                    className="inline-flex items-center gap-2 font-medium text-teal-700 hover:underline dark:text-teal-300"
-                    onClick={onSelectMap}
-                    type="button"
+        <>
+            <div className="h-[34rem]">
+                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 text-sm dark:border-white/10">
+                    <button
+                        className="inline-flex items-center gap-2 font-medium text-teal-700 hover:underline dark:text-teal-300"
+                        onClick={onSelectMap}
+                        type="button"
+                    >
+                        <ArrowLeft className="size-4" />
+                        Back to map
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <span className="hidden text-slate-500 lg:inline">
+                            {savingActivityId
+                                ? 'Saving position…'
+                                : 'Drag activity cards to arrange this graph.'}
+                        </span>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'open_practice' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Open practice
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'reflection' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Reflection
+                        </button>
+                    </div>
+                </div>
+                <ReactFlow<ActivityFlowNode, Edge>
+                    edges={edges}
+                    fitView
+                    minZoom={0.12}
+                    nodeTypes={{
+                        activity: ActivityGraphCard,
+                        special: SpecialGraphNode,
+                    }}
+                    nodes={nodes}
+                    onEdgesChange={onEdgesChange}
+                    onNodeClick={(_, node) => {
+                        if (
+                            node.type === 'activity' &&
+                            isSupportedActivityType(
+                                node.data.activity.activity_type,
+                            )
+                        ) {
+                            setEditor({
+                                activity: node.data.activity,
+                                type: node.data.activity.activity_type,
+                            });
+                        }
+                    }}
+                    onNodeDragStop={(_, node) => void savePosition(node)}
+                    onNodesChange={onNodesChange}
+                    proOptions={{ hideAttribution: true }}
                 >
-                    <ArrowLeft className="size-4" />
-                    Back to map
-                </button>
-                <span className="text-slate-500">
-                    {savingActivityId
-                        ? 'Saving position…'
-                        : 'Drag activity cards to arrange this graph.'}
-                </span>
+                    <Background gap={20} />
+                    <Controls />
+                </ReactFlow>
             </div>
-            <ReactFlow<ActivityFlowNode, Edge>
-                edges={edges}
-                fitView
-                minZoom={0.12}
-                nodeTypes={{
-                    activity: ActivityGraphCard,
-                    special: SpecialGraphNode,
-                }}
-                nodes={nodes}
-                onEdgesChange={onEdgesChange}
-                onNodeDragStop={(_, node) => void savePosition(node)}
-                onNodesChange={onNodesChange}
-                proOptions={{ hideAttribution: true }}
-            >
-                <Background gap={20} />
-                <Controls />
-            </ReactFlow>
-        </div>
+            {editor ? (
+                <ActivityAuthorDialog
+                    activity={editor.activity}
+                    nodeId={graph.node.id}
+                    onClose={() => setEditor(null)}
+                    onSaved={() => {
+                        setEditor(null);
+                        onReload();
+                    }}
+                    type={editor.type}
+                />
+            ) : null}
+        </>
     );
 }
 
@@ -643,6 +712,342 @@ function ActivityGraphCard({
             </p>
         </div>
     );
+}
+
+function ActivityAuthorDialog({
+    activity,
+    nodeId,
+    onClose,
+    onSaved,
+    type,
+}: {
+    activity?: Activity;
+    nodeId: string;
+    onClose: () => void;
+    onSaved: () => void;
+    type: SupportedActivityType;
+}) {
+    const [form, setForm] = useState(() => activityAuthorForm(type, activity));
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const isEditing = activity !== undefined;
+    const typeLabel = type === 'open_practice' ? 'Open practice' : 'Reflection';
+
+    const updateField = (field: keyof ActivityAuthorForm, value: string) => {
+        setForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const save = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError(null);
+        if (!form.title.trim()) {
+            setError('Add an activity title before saving.');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const token = await getCsrfToken();
+            const common = {
+                introduction: optionalValue(form.introduction),
+                slug: optionalValue(form.slug),
+                title: form.title,
+            };
+            let response: Response;
+
+            if (type === 'open_practice') {
+                if (activity) {
+                    ({ response } = await apiClient.PATCH(
+                        '/admin/world-builder/activities/{activity_id}/open-practice',
+                        {
+                            body: {
+                                ...common,
+                                next_step: optionalValue(form.nextStep),
+                                updated_at: activity.updated_at,
+                            },
+                            params: {
+                                header: { 'X-CSRF-Token': token },
+                                path: { activity_id: activity.id },
+                            },
+                        },
+                    ));
+                } else {
+                    ({ response } = await apiClient.POST(
+                        '/admin/world-builder/nodes/{node_id}/open-practice-activities',
+                        {
+                            body: {
+                                ...common,
+                                next_step: optionalValue(form.nextStep),
+                            },
+                            params: {
+                                header: { 'X-CSRF-Token': token },
+                                path: { node_id: nodeId },
+                            },
+                        },
+                    ));
+                }
+            } else if (activity) {
+                ({ response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/reflection',
+                    {
+                        body: {
+                            ...common,
+                            note: optionalValue(form.note),
+                            prompt: optionalValue(form.prompt),
+                            subtopic: optionalValue(form.subtopic),
+                            topic: optionalValue(form.topic),
+                            updated_at: activity.updated_at,
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { activity_id: activity.id },
+                        },
+                    },
+                ));
+            } else {
+                ({ response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/reflection-activities',
+                    {
+                        body: {
+                            ...common,
+                            note: optionalValue(form.note),
+                            prompt: optionalValue(form.prompt),
+                            subtopic: optionalValue(form.subtopic),
+                            topic: optionalValue(form.topic),
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { node_id: nodeId },
+                        },
+                    },
+                ));
+            }
+
+            if (!response.ok) {
+                setError(
+                    response.status === 409
+                        ? 'This activity changed elsewhere. Close this form, reload the graph, and review the newer version.'
+                        : 'The activity could not be saved. Check the field values and try again.',
+                );
+                return;
+            }
+            onSaved();
+        } catch {
+            setError(
+                'The activity could not be saved. Check your connection and try again.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="activity-author-dialog-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <form
+                className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                onSubmit={(event) => void save(event)}
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
+                            Activity graph
+                        </p>
+                        <h2
+                            className="mt-1 text-xl font-semibold"
+                            id="activity-author-dialog-title"
+                        >
+                            {isEditing
+                                ? `Edit ${typeLabel}`
+                                : `Add ${typeLabel}`}
+                        </h2>
+                    </div>
+                    <button
+                        aria-label="Close activity form"
+                        className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
+
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <ActivityTextField
+                        autoFocus
+                        label="Title"
+                        onChange={(value) => updateField('title', value)}
+                        required
+                        value={form.title}
+                    />
+                    <ActivityTextField
+                        label="Optional slug"
+                        onChange={(value) => updateField('slug', value)}
+                        value={form.slug}
+                    />
+                    <ActivityTextField
+                        className="md:col-span-2"
+                        label="Introduction"
+                        onChange={(value) => updateField('introduction', value)}
+                        textarea
+                        value={form.introduction}
+                    />
+                    {type === 'open_practice' ? (
+                        <ActivityTextField
+                            className="md:col-span-2"
+                            label="Learner invitation"
+                            onChange={(value) => updateField('nextStep', value)}
+                            textarea
+                            value={form.nextStep}
+                        />
+                    ) : (
+                        <>
+                            <ActivityTextField
+                                className="md:col-span-2"
+                                label="Question"
+                                onChange={(value) =>
+                                    updateField('prompt', value)
+                                }
+                                textarea
+                                value={form.prompt}
+                            />
+                            <ActivityTextField
+                                label="Journal topic"
+                                onChange={(value) =>
+                                    updateField('topic', value)
+                                }
+                                value={form.topic}
+                            />
+                            <ActivityTextField
+                                label="Optional subtopic"
+                                onChange={(value) =>
+                                    updateField('subtopic', value)
+                                }
+                                value={form.subtopic}
+                            />
+                            <ActivityTextField
+                                className="md:col-span-2"
+                                label="Supporting note"
+                                onChange={(value) => updateField('note', value)}
+                                value={form.note}
+                            />
+                        </>
+                    )}
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                        disabled={saving}
+                        type="submit"
+                    >
+                        {saving
+                            ? 'Saving…'
+                            : isEditing
+                              ? 'Save activity'
+                              : 'Create activity'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}
+
+function ActivityTextField({
+    autoFocus = false,
+    className,
+    label,
+    onChange,
+    required = false,
+    textarea = false,
+    value,
+}: {
+    autoFocus?: boolean;
+    className?: string;
+    label: string;
+    onChange: (value: string) => void;
+    required?: boolean;
+    textarea?: boolean;
+    value: string;
+}) {
+    const controlClassName =
+        'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white';
+
+    return (
+        <label className={`grid gap-2 text-sm font-medium ${className ?? ''}`}>
+            {label}
+            {textarea ? (
+                <textarea
+                    autoFocus={autoFocus}
+                    className={`${controlClassName} min-h-28 resize-y`}
+                    onChange={(event) => onChange(event.target.value)}
+                    required={required}
+                    value={value}
+                />
+            ) : (
+                <input
+                    autoFocus={autoFocus}
+                    className={controlClassName}
+                    onChange={(event) => onChange(event.target.value)}
+                    required={required}
+                    value={value}
+                />
+            )}
+        </label>
+    );
+}
+
+function activityAuthorForm(
+    type: SupportedActivityType,
+    activity?: Activity,
+): ActivityAuthorForm {
+    const config = activity?.config ?? {};
+    return {
+        introduction: activity?.introduction ?? '',
+        nextStep:
+            configString(config, 'nextStep') ||
+            'Choose a useful next step, then continue when you are ready.',
+        note: configString(config, 'note'),
+        prompt: activity
+            ? configString(config, 'prompt')
+            : 'What feels clearer now?',
+        slug: activity?.slug ?? '',
+        subtopic: configString(config, 'subtopic'),
+        title: activity?.title ?? '',
+        topic: configString(config, 'topic'),
+        type,
+    };
+}
+
+function configString(config: Record<string, unknown>, key: string): string {
+    const value = config[key];
+    return typeof value === 'string' ? value : '';
+}
+
+function optionalValue(value: string): string | null {
+    const trimmed = value.trim();
+    return trimmed === '' ? null : trimmed;
+}
+
+function isSupportedActivityType(type: string): type is SupportedActivityType {
+    return type === 'open_practice' || type === 'reflection';
 }
 
 function SpecialGraphNode({ data }: { data: { label: string } }) {

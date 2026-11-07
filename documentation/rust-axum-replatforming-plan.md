@@ -1026,10 +1026,14 @@ The source-derived World Builder graph reader is now exposed through
 language to read the scoped world graph, then separately loads a selected map
 and selected node activity graph through all three Rust authoring-read
 contracts. Activity cards retain source graph dragging through the existing
-position command. The reader deliberately does not pretend that the source
-map/configuration/activity forms, histories, templates or media workflows are
-complete: those controls remain absent until their source workflows can be
-adapted end-to-end rather than replaced with a reduced editor.
+position command. Within a selected node, the graph now adapts the source
+Open Practice and Reflection create/edit forms through their complete typed
+Rust commands; it preserves their distinct invitation or reflection fields and
+refetches after a successful write. Other activity-card types deliberately
+remain read-only in this surface. The reader does not pretend that the source
+map/configuration forms, other activity editors, histories, templates or media
+workflows are complete: those controls remain absent until their source
+workflows can be adapted end-to-end rather than replaced with a reduced editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
