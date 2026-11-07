@@ -7,6 +7,7 @@ mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
 mod admin_learning_group;
+mod admin_learning_taxonomy;
 mod admin_registration_tokens;
 mod admin_role;
 mod admin_topics;
@@ -558,6 +559,18 @@ fn router(state: AppState) -> Router {
             delete(admin_user::destroy),
         )
         .route("/api/v1/admin/roles", get(admin_role::index).post(admin_role::create))
+        .route(
+            "/api/v1/admin/learning-taxonomy",
+            get(admin_learning_taxonomy::index),
+        )
+        .route(
+            "/api/v1/admin/competence-topics",
+            patch(admin_learning_taxonomy::sync_competence_topics),
+        )
+        .route(
+            "/api/v1/admin/learning-concepts",
+            patch(admin_learning_taxonomy::sync_learning_concepts),
+        )
         .route("/api/v1/admin/topics", get(admin_topics::index))
         .route("/api/v1/admin/topic-areas", post(admin_topics::create_area))
         .route(

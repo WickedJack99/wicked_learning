@@ -118,6 +118,12 @@ const OriginalTopicAdministrationPage = lazy(async () => {
     return { default: module.OriginalTopicAdministrationPage };
 });
 
+const OriginalLearningTaxonomyPage = lazy(async () => {
+    const module = await import('./original-learning-taxonomy');
+
+    return { default: module.OriginalLearningTaxonomyPage };
+});
+
 const OriginalAccessLinkRedeemPage = lazy(async () => {
     const module = await import('./original-access-links');
 
@@ -524,6 +530,17 @@ export function App() {
                 return <Navigate replace to="/home" />;
             }
             return <Suspense fallback={null}><OriginalAccessLinksPage appearance={appearance} /></Suspense>;
+        }
+
+        if (
+            supportPanel &&
+            new URLSearchParams(location.search).get('support') === 'taxonomy'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalLearningTaxonomyPage appearance={appearance} />
+                </Suspense>
+            );
         }
 
         if (

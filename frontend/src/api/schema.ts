@@ -1808,6 +1808,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/learning-taxonomy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the source-derived Competence Topics and Concept Library workspaces permitted to the current administrator. */
+        get: operations["getAdminLearningTaxonomy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/competence-topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace the complete source competence-topic catalog. */
+        patch: operations["syncAdminCompetenceTopics"];
+        trace?: never;
+    };
+    "/admin/learning-concepts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace the complete source reusable learning-concept catalog. */
+        patch: operations["syncAdminLearningConcepts"];
+        trace?: never;
+    };
     "/admin/topic-areas": {
         parameters: {
             query?: never;
@@ -4804,6 +4855,46 @@ export interface components {
         AdminLearningGroups: {
             groups: components["schemas"]["AdminLearningGroup"][];
             users: components["schemas"]["AdminLearningGroupUser"][];
+        };
+        AdminCompetenceTopic: {
+            aura_threshold: number;
+            description: string | null;
+            emittance_threshold: number;
+            growth_threshold: number;
+            is_active: boolean;
+            name: string;
+            slug: string;
+        };
+        AdminLearningConcept: {
+            description: string | null;
+            is_active: boolean;
+            name: string;
+            slug: string;
+        };
+        AdminLearningTaxonomy: {
+            can_manage_competence_topics: boolean;
+            can_manage_learning_concepts: boolean;
+            competence_topics: components["schemas"]["AdminCompetenceTopic"][];
+            learning_concepts: components["schemas"]["AdminLearningConcept"][];
+        };
+        SaveAdminCompetenceTopic: {
+            aura_threshold: number;
+            description?: string | null;
+            emittance_threshold: number;
+            growth_threshold: number;
+            is_active: boolean;
+            name: string;
+        };
+        SaveAdminCompetenceTopicsRequest: {
+            topics: components["schemas"]["SaveAdminCompetenceTopic"][];
+        };
+        SaveAdminLearningConcept: {
+            description?: string | null;
+            is_active: boolean;
+            name: string;
+        };
+        SaveAdminLearningConceptsRequest: {
+            concepts: components["schemas"]["SaveAdminLearningConcept"][];
         };
         AdminTopic: {
             content: string | null;
@@ -12509,6 +12600,167 @@ export interface operations {
                 content?: never;
             };
             /** @description The current principal cannot manage learner-facing topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminLearningTaxonomy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The permitted taxonomy definitions. Unpermitted collections are omitted as empty arrays. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningTaxonomy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage either taxonomy catalog. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    syncAdminCompetenceTopics: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminCompetenceTopicsRequest"];
+            };
+        };
+        responses: {
+            /** @description The complete catalog was synchronized. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source form values are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage competence topics. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    syncAdminLearningConcepts: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminLearningConceptsRequest"];
+            };
+        };
+        responses: {
+            /** @description The complete catalog was synchronized. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source form values are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot manage learning concepts. */
             404: {
                 headers: {
                     [name: string]: unknown;

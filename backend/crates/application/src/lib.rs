@@ -4,6 +4,7 @@ pub mod access_link;
 pub mod account_deletion;
 pub mod account_profile;
 pub mod admin_learning_group;
+pub mod admin_learning_taxonomy;
 pub mod admin_role;
 pub mod admin_topics;
 pub mod admin_user;

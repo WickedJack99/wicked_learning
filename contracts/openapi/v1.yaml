@@ -2351,6 +2351,53 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current principal cannot manage learner-facing topics. }
         '503': { description: The application database is unavailable. }
+  /admin/learning-taxonomy:
+    get:
+      operationId: getAdminLearningTaxonomy
+      summary: Read the source-derived Competence Topics and Concept Library workspaces permitted to the current administrator.
+      responses:
+        '200':
+          description: The permitted taxonomy definitions. Unpermitted collections are omitted as empty arrays.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminLearningTaxonomy' }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot manage either taxonomy catalog. }
+        '503': { description: The application database is unavailable. }
+  /admin/competence-topics:
+    patch:
+      operationId: syncAdminCompetenceTopics
+      summary: Replace the complete source competence-topic catalog.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminCompetenceTopicsRequest' }
+      responses:
+        '204': { description: The complete catalog was synchronized. }
+        '400': { description: The source form values are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot manage competence topics. }
+        '503': { description: The application database is unavailable. }
+  /admin/learning-concepts:
+    patch:
+      operationId: syncAdminLearningConcepts
+      summary: Replace the complete source reusable learning-concept catalog.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminLearningConceptsRequest' }
+      responses:
+        '204': { description: The complete catalog was synchronized. }
+        '400': { description: The source form values are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot manage learning concepts. }
+        '503': { description: The application database is unavailable. }
   /admin/topic-areas:
     post:
       operationId: createAdminTopicArea
@@ -7164,6 +7211,79 @@ components:
         users:
           type: array
           items: { $ref: '#/components/schemas/AdminLearningGroupUser' }
+    AdminCompetenceTopic:
+      type: object
+      additionalProperties: false
+      required: [aura_threshold, description, emittance_threshold, growth_threshold, is_active, name, slug]
+      properties:
+        aura_threshold: { type: number, minimum: 0.01, maximum: 100000 }
+        description: { type: [string, 'null'], maxLength: 2000 }
+        emittance_threshold: { type: number, minimum: 0.01, maximum: 100000 }
+        growth_threshold: { type: number, minimum: 0.01, maximum: 100000 }
+        is_active: { type: boolean }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, pattern: '^[a-z0-9-]{1,140}$' }
+    AdminLearningConcept:
+      type: object
+      additionalProperties: false
+      required: [description, is_active, name, slug]
+      properties:
+        description: { type: [string, 'null'], maxLength: 2000 }
+        is_active: { type: boolean }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, pattern: '^[a-z0-9-]{1,140}$' }
+    AdminLearningTaxonomy:
+      type: object
+      additionalProperties: false
+      required: [can_manage_competence_topics, can_manage_learning_concepts, competence_topics, learning_concepts]
+      properties:
+        can_manage_competence_topics: { type: boolean }
+        can_manage_learning_concepts: { type: boolean }
+        competence_topics:
+          type: array
+          maxItems: 200
+          items: { $ref: '#/components/schemas/AdminCompetenceTopic' }
+        learning_concepts:
+          type: array
+          maxItems: 200
+          items: { $ref: '#/components/schemas/AdminLearningConcept' }
+    SaveAdminCompetenceTopic:
+      type: object
+      additionalProperties: false
+      required: [aura_threshold, emittance_threshold, growth_threshold, is_active, name]
+      properties:
+        aura_threshold: { type: number, minimum: 0.01, maximum: 100000 }
+        description: { type: [string, 'null'], maxLength: 2000 }
+        emittance_threshold: { type: number, minimum: 0.01, maximum: 100000 }
+        growth_threshold: { type: number, minimum: 0.01, maximum: 100000 }
+        is_active: { type: boolean }
+        name: { type: string, minLength: 1, maxLength: 120 }
+    SaveAdminCompetenceTopicsRequest:
+      type: object
+      additionalProperties: false
+      required: [topics]
+      properties:
+        topics:
+          type: array
+          maxItems: 200
+          items: { $ref: '#/components/schemas/SaveAdminCompetenceTopic' }
+    SaveAdminLearningConcept:
+      type: object
+      additionalProperties: false
+      required: [is_active, name]
+      properties:
+        description: { type: [string, 'null'], maxLength: 2000 }
+        is_active: { type: boolean }
+        name: { type: string, minLength: 1, maxLength: 120 }
+    SaveAdminLearningConceptsRequest:
+      type: object
+      additionalProperties: false
+      required: [concepts]
+      properties:
+        concepts:
+          type: array
+          maxItems: 200
+          items: { $ref: '#/components/schemas/SaveAdminLearningConcept' }
     AdminTopic:
       type: object
       additionalProperties: false
