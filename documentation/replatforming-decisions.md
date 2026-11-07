@@ -3370,10 +3370,18 @@ management route. A reusable session-bound check preserves that security and
 interaction boundary without creating a browser-held sensitive-action token,
 and it will also serve the source passkey lifecycle.
 
-**Limits and follow-up:** The source-derived confirmation page and its return
-navigation are the next React slice. The settings route, TOTP status,
+**Implementation status:** The source-derived `/confirm-password` screen now
+uses the original authentication presentation and password-only confirmation
+form, returning safely to a local requested path or Personal Security. An
+anonymous visit returns through the normal login journey. The source passkey
+confirmation alternative is intentionally not shown until the Rust WebAuthn
+ceremony and confirmation contract exist, rather than exposing a nonfunctional
+control.
+
+**Limits and follow-up:** The settings route, TOTP status,
 disable/replacement and recovery-code lifecycle remain unavailable until their
-complete contracts are implemented.
+complete contracts are implemented. The later passkey slice must add its source
+confirmation alternative to this reusable session-bound boundary.
 
 ## Phase 1 gate
 

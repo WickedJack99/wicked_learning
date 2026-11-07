@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalLoginPage } from './original-login';
+import { OriginalConfirmPasswordPage } from './original-confirm-password';
 import { OriginalTwoFactorChallengePage } from './original-two-factor-challenge';
 import { OriginalOrganizationsPage } from './original-organizations';
 import { OriginalRegisterPage } from './original-register';
@@ -189,6 +190,7 @@ export function App() {
     const isPublicPresentationRoute =
         location.pathname === '/' ||
         location.pathname === '/login' ||
+        location.pathname === '/confirm-password' ||
         location.pathname === '/two-factor-challenge' ||
         location.pathname === '/register' ||
         location.pathname === '/source' ||
@@ -312,6 +314,33 @@ export function App() {
     if (location.pathname === '/login') {
         return (
             <OriginalLoginPage
+                appearance={appearance}
+                onAppearanceChange={setAppearance}
+                presentation={presentation!}
+            />
+        );
+    }
+
+    if (location.pathname === '/confirm-password') {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        if (currentUser.kind === 'anonymous') {
+            const next = `${location.pathname}${location.search}`;
+            return (
+                <Navigate
+                    replace
+                    to={`/login?next=${encodeURIComponent(next)}`}
+                />
+            );
+        }
+
+        return (
+            <OriginalConfirmPasswordPage
                 appearance={appearance}
                 onAppearanceChange={setAppearance}
                 presentation={presentation!}
