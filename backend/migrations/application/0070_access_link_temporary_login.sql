@@ -5,13 +5,6 @@ ALTER TABLE access_links
     ADD CONSTRAINT access_links_purpose_check
     CHECK (purpose IN ('grant_tool', 'grant_items', 'registration', 'temporary_login'));
 
-ALTER TABLE application_roles
-    DROP CONSTRAINT application_roles_key_check;
-
-ALTER TABLE application_roles
-    ADD CONSTRAINT application_roles_key_check
-    CHECK (role_key IN ('learner', 'learning_support', 'platform_administrator', 'temporary'));
-
 INSERT INTO application_roles (role_key)
 VALUES ('temporary')
 ON CONFLICT (role_key) DO NOTHING;
