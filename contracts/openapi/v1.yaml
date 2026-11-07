@@ -1204,6 +1204,49 @@ paths:
         '404': { description: The activity is unknown, not a Tool grant, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/item-obstacle-activities:
+    post:
+      operationId: createAdminWorldBuilderItemObstacleActivity
+      summary: Create an Item obstacle activity on an editable World Builder node.
+      description: The scoped writer resolves configured item and sound catalog UUIDs only after authorizing the selected node, then stores playback-safe item slugs and sound UUIDs.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminItemObstacleActivityRequest' } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminItemObstacleActivityResponse' } } } }
+        '400': { description: The source Item obstacle fields, catalog references, or requested slug are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/item-obstacle:
+    patch:
+      operationId: updateAdminWorldBuilderItemObstacleActivity
+      summary: Update an Item obstacle activity on an editable World Builder graph.
+      description: A complete source-shaped edit resolves every catalog UUID after scope authorization and returns a conflict instead of overwriting a newer activity.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminItemObstacleActivityRequest' } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminItemObstacleActivityResponse' } } } }
+        '400': { description: The source Item obstacle fields, catalog references, or timestamp are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown, not an Item obstacle, or outside the caller's authoring scope. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -8174,6 +8217,92 @@ components:
         typing_speed: { type: number, minimum: 1, maximum: 250 }
         updated_at: { type: string, format: date-time }
     UpdateAdminToolGrantActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    AdminItemObstacleSlotRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        item_id: { type: [string, 'null'], format: uuid }
+        x: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        y: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        width: { type: [number, 'null'], minimum: 1, maximum: 100 }
+    CreateAdminItemObstacleActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean, default: false }
+        met_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        met_background_light: { type: [string, 'null'], maxLength: 2048 }
+        met_background_mirrored: { type: boolean, default: false }
+        overlay_dark: { type: [string, 'null'], maxLength: 2048 }
+        overlay_light: { type: [string, 'null'], maxLength: 2048 }
+        overlay_mirrored: { type: boolean, default: false }
+        overlay_x: { type: number, minimum: 0, maximum: 100, default: 50 }
+        overlay_y: { type: number, minimum: 0, maximum: 100, default: 50 }
+        overlay_width: { type: number, minimum: 1, maximum: 100, default: 30 }
+        slots:
+          type: array
+          maxItems: 10
+          default: []
+          items: { $ref: '#/components/schemas/AdminItemObstacleSlotRequest' }
+        consume_on_each_entry: { type: boolean, default: false }
+        lock_minutes: { type: integer, minimum: 0, maximum: 10080, default: 0 }
+        sound_not_met_enabled: { type: boolean, default: false }
+        sound_not_met_id: { type: [string, 'null'], format: uuid }
+        sound_met_enabled: { type: boolean, default: false }
+        sound_met_id: { type: [string, 'null'], format: uuid }
+        sound_transition_enabled: { type: boolean, default: false }
+        sound_transition_id: { type: [string, 'null'], format: uuid }
+    CreateAdminItemObstacleActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminItemObstacleActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, background_dark, background_light, background_mirrored, met_background_dark, met_background_light, met_background_mirrored, overlay_dark, overlay_light, overlay_mirrored, overlay_x, overlay_y, overlay_width, slots, consume_on_each_entry, lock_minutes, sound_not_met_enabled, sound_not_met_id, sound_met_enabled, sound_met_id, sound_transition_enabled, sound_transition_id, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], minLength: 1, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean }
+        met_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        met_background_light: { type: [string, 'null'], maxLength: 2048 }
+        met_background_mirrored: { type: boolean }
+        overlay_dark: { type: [string, 'null'], maxLength: 2048 }
+        overlay_light: { type: [string, 'null'], maxLength: 2048 }
+        overlay_mirrored: { type: boolean }
+        overlay_x: { type: number, minimum: 0, maximum: 100 }
+        overlay_y: { type: number, minimum: 0, maximum: 100 }
+        overlay_width: { type: number, minimum: 1, maximum: 100 }
+        slots:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/AdminItemObstacleSlotRequest' }
+        consume_on_each_entry: { type: boolean }
+        lock_minutes: { type: integer, minimum: 0, maximum: 10080 }
+        sound_not_met_enabled: { type: boolean }
+        sound_not_met_id: { type: [string, 'null'], format: uuid }
+        sound_met_enabled: { type: boolean }
+        sound_met_id: { type: [string, 'null'], format: uuid }
+        sound_transition_enabled: { type: boolean }
+        sound_transition_id: { type: [string, 'null'], format: uuid }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminItemObstacleActivityResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

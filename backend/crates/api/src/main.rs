@@ -14,6 +14,7 @@ mod admin_world_activity_delete;
 mod admin_world_activity_position;
 mod admin_world_graph;
 mod admin_world_item_grant;
+mod admin_world_item_obstacle;
 mod admin_world_map;
 mod admin_world_node;
 mod admin_world_node_layout;
@@ -587,6 +588,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/reflection",
             patch(admin_world_reflection::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/item-obstacle-activities",
+            post(admin_world_item_obstacle::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/item-obstacle",
+            patch(admin_world_item_obstacle::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/tool-grant-activities",
@@ -1584,6 +1593,34 @@ mod tests {
             .expect("World Builder tool-grant update response");
 
         assert_eq!(tool_grant_update_response.status(), 401);
+
+        let item_obstacle_create_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000010/item-obstacle-activities")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"An item obstacle"}"#))
+                    .expect("a valid World Builder item-obstacle create request"),
+            )
+            .await
+            .expect("World Builder item-obstacle create response");
+
+        assert_eq!(item_obstacle_create_response.status(), 401);
+
+        let item_obstacle_update_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/item-obstacle")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"title":"An item obstacle","slug":null,"introduction":null,"background_dark":null,"background_light":null,"background_mirrored":false,"met_background_dark":null,"met_background_light":null,"met_background_mirrored":false,"overlay_dark":null,"overlay_light":null,"overlay_mirrored":false,"overlay_x":50,"overlay_y":50,"overlay_width":30,"slots":[],"consume_on_each_entry":false,"lock_minutes":0,"sound_not_met_enabled":false,"sound_not_met_id":null,"sound_met_enabled":false,"sound_met_id":null,"sound_transition_enabled":false,"sound_transition_id":null,"updated_at":"2026-11-07T17:00:00.000000Z"}"#))
+                    .expect("a valid World Builder item-obstacle update request"),
+            )
+            .await
+            .expect("World Builder item-obstacle update response");
+
+        assert_eq!(item_obstacle_update_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(

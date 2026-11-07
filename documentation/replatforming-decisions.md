@@ -3885,6 +3885,55 @@ snapshots or review history. The original UI may consume the contract only
 after its complete activity-editor adapter and browser parity evidence are
 available.
 
+## ADR-096: Item-obstacle authoring preserves slot and event-sound contracts
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Laravel's Item obstacle editor configures a required-item scene,
+a completed scene, optional overlay, up to ten positioned item slots, optional
+consumption and replay locking, plus three distinct source sound events. The
+greenfield learner writer consumes item slugs while learner sound playback
+expects canonical sound UUIDs. A browser must not be able to supply either
+playback identifier directly, and catalog lookups before the World Builder
+scope decision would disclose records to an out-of-scope caller.
+
+**Decision:** `POST /api/v1/admin/world-builder/nodes/{node_id}/item-obstacle-activities`
+and `PATCH /api/v1/admin/world-builder/activities/{activity_id}/item-obstacle`
+accept a complete, type-specific source form. It carries title, optional
+slug/introduction, normal and completed backgrounds, optional overlay,
+positioned slots, consumption/lock behavior and `notMet`, `met` and
+`transition` sound controls. Rust applies Laravel's source length, coordinate,
+integer, slot-count and catalog constraints, including its normalized `3..=60`
+slot display width. A blank source selector is retained through transport
+validation and omitted from the stored slot list, as Laravel's configuration
+service does. Creation uses ADR-093's deterministic primary route; editing
+requires the complete form and previously-read `updated_at`. A stale save
+receives `409`, while an unchanged save preserves its timestamp and review
+state.
+
+Persistence first locks and authorizes the node or activity through the
+existing all/own/assigned/direct-editor rule. It then resolves all populated
+`learning_items` UUIDs in a bounded batch and checks the at-most-three
+`learning_sounds` UUIDs in the same transaction. Missing catalog references
+are invalid. It writes only server-returned item slugs and canonical sound UUID
+strings into the known `activity_config` keys consumed by the learner Item
+obstacle and playback-sound readers. Updates preserve unrelated configuration
+keys and reset the available AI-review state only for actual content changes.
+The generic greenfield activity configuration migration is the storage
+boundary; this slice adds no Laravel migration, legacy identifier or data
+import.
+
+**Why:** This protects the authored condition and item-consumption behavior
+from forged browser references while retaining all three distinct feedback
+events and the source editor's scene fields. It keeps concurrency and catalog
+translation inside one transactional scoped writer instead of creating a
+generic JSON editor.
+
+**Limits and trigger:** This does not expose a replacement World Builder UI,
+catalog administration, a generic activity editor, version snapshots or review
+history. The original UI may consume the contract only after its complete
+activity-editor adapter and browser parity evidence are available.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
