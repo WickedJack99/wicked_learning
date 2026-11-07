@@ -1025,9 +1025,9 @@ The source-derived World Builder graph reader is now exposed through
 `/settings?panel=admin-world-builder`. It uses the original React Flow graph
 language to read the scoped world graph, then separately loads a selected map
 and selected node activity graph through all three Rust authoring-read
-contracts. Activity cards retain source graph dragging through the existing
-position command and the source delete confirmation through the scoped delete
-command; the node refetches only after a successful removal. Within a selected
+contracts. Activity cards and the Start/End graph markers retain source graph
+dragging through their existing scoped position commands, and the source delete
+confirmation through the scoped delete command; the node refetches only after a successful removal. Within a selected
 node, the graph also adapts source edge creation: an activity drag uses the
 typed transition command and a Start drag uses the typed start-route command.
 It renders every ordered learner start with its source connector IDs; selecting

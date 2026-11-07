@@ -35,6 +35,8 @@ test('a local world author can open the source-derived World Builder graph', asy
         `/settings?panel=admin-world-builder&map=${selectedMap.id}&node=${selectedMap.nodes[0].id}`,
     );
     await expect(page.getByText('Activity graph')).toBeVisible();
+    await expect(page.locator('[data-id="__start"]')).toBeVisible();
+    await expect(page.locator('[data-id="__end"]')).toBeVisible();
     await expect(
         page.locator('.react-flow__handle.source').first(),
     ).toBeVisible();

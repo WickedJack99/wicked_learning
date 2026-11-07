@@ -614,7 +614,6 @@ function ActivityGraph({
             type: 'special',
             data: { kind: 'start', label: 'Start' },
             position: graphPosition(graph.node.graph_layout, 'start', -260, 0),
-            draggable: false,
         };
         const activities: ActivityNode[] = graph.activities.map(
             (activity, index) => ({
@@ -632,7 +631,6 @@ function ActivityGraph({
             type: 'special',
             data: { kind: 'end', label: 'End' },
             position: graphPosition(graph.node.graph_layout, 'end', 720, 0),
-            draggable: false,
         };
 
         return [start, ...activities, end];
@@ -695,30 +693,49 @@ function ActivityGraph({
         setEdges(initialEdges);
     }, [initialEdges, initialNodes, setEdges, setNodes]);
 
-    const savePosition = useCallback(async (node: ActivityFlowNode) => {
-        if (node.id.startsWith('__')) {
-            return;
-        }
-        setSavingActivityId(node.id);
-        try {
-            const token = await getCsrfToken();
-            const { response } = await apiClient.PATCH(
-                '/admin/world-builder/activities/{activity_id}/graph-position',
-                {
-                    body: { position: node.position },
-                    params: {
-                        header: { 'X-CSRF-Token': token },
-                        path: { activity_id: node.id },
+    const savePosition = useCallback(
+        async (node: ActivityFlowNode) => {
+            setSavingActivityId(node.id);
+            try {
+                const token = await getCsrfToken();
+                if (node.id === '__start' || node.id === '__end') {
+                    const { response } = await apiClient.PATCH(
+                        '/admin/world-builder/nodes/{node_id}/activity-graph-layout',
+                        {
+                            body: {
+                                node: node.id === '__start' ? 'start' : 'end',
+                                position: node.position,
+                            },
+                            params: {
+                                header: { 'X-CSRF-Token': token },
+                                path: { node_id: graph.node.id },
+                            },
+                        },
+                    );
+                    if (!response.ok) {
+                        throw new Error('graph layout unavailable');
+                    }
+                    return;
+                }
+                const { response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/graph-position',
+                    {
+                        body: { position: node.position },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { activity_id: node.id },
+                        },
                     },
-                },
-            );
-            if (!response.ok) {
-                throw new Error('position unavailable');
+                );
+                if (!response.ok) {
+                    throw new Error('position unavailable');
+                }
+            } finally {
+                setSavingActivityId(null);
             }
-        } finally {
-            setSavingActivityId(null);
-        }
-    }, []);
+        },
+        [graph.node.id],
+    );
 
     const deleteActivity = async () => {
         if (!pendingDelete) {
