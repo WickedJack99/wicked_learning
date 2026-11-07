@@ -15,6 +15,7 @@ export function OriginalAccessLinksPage({
     appearance: OriginalAppearance;
 }) {
     const [data, setData] = useState<AdminData | null>(null);
+    const [page, setPage] = useState(1);
     const [purpose, setPurpose] = useState<
         'grant_tool' | 'grant_items' | 'registration' | 'temporary_login'
     >('grant_tool');
@@ -30,16 +31,18 @@ export function OriginalAccessLinksPage({
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
 
-    function load(): void {
+    function load(requestedPage: number): void {
         void apiClient
-            .GET('/admin/access-links')
+            .GET('/admin/access-links', {
+                params: { query: { page: requestedPage } },
+            })
             .then(({ data, response }) => {
                 if (!response.ok || !data) throw new Error('unavailable');
                 setData(data);
             })
             .catch(() => setError('Access links are temporarily unavailable.'));
     }
-    useEffect(load, []);
+    useEffect(() => load(page), [page]);
 
     async function create(): Promise<void> {
         setSaving(true);
@@ -309,6 +312,37 @@ export function OriginalAccessLinksPage({
                             </button>
                         </article>
                     ))}
+                    {data && data.pagination.last_page > 1 ? (
+                        <div className="mt-3 flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3 text-sm">
+                            <button
+                                className="text-[var(--settings-accent)] disabled:opacity-40"
+                                disabled={data.pagination.current_page <= 1}
+                                onClick={() =>
+                                    setPage(data.pagination.current_page - 1)
+                                }
+                                type="button"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-[var(--settings-muted-text)]">
+                                Page {data.pagination.current_page} of{' '}
+                                {data.pagination.last_page}
+                            </span>
+                            <button
+                                className="text-[var(--settings-accent)] disabled:opacity-40"
+                                disabled={
+                                    data.pagination.current_page >=
+                                    data.pagination.last_page
+                                }
+                                onClick={() =>
+                                    setPage(data.pagination.current_page + 1)
+                                }
+                                type="button"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    ) : null}
                 </section>
                 {error ? (
                     <p className="mt-4 text-sm text-red-600" role="alert">
