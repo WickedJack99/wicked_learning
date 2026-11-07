@@ -919,6 +919,12 @@ the original editor's independently persisted, rounded `start`/`end` graph
 positions under the same scoped activity-authoring and CSRF boundary, without
 changing learner starts, activities or playback. The remaining activity, route,
 transition, revision and source-catalog commands are still not exposed.
+Ordinary activity-card dragging is now also available at `PATCH
+/api/v1/admin/world-builder/activities/{activity_id}/graph-position`. It
+preserves the source UI's finite-number validation and integer rounding, locks
+the scoped activity/node and changes only `graph_position_x`/`graph_position_y`.
+It is intentionally not an activity-content editor, does not start or end a
+learner route, and is not exposed through a substitute World Builder screen.
 The first route-start command pair now adds or removes a node's activity start
 membership through the source eligibility rule: an activity must belong to that
 node's map asset and an exit portal cannot be a learner start. Each command

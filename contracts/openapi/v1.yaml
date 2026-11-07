@@ -927,6 +927,36 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /admin/world-builder/activities/{activity_id}/graph-position:
+    patch:
+      operationId: updateAdminWorldBuilderActivityGraphPosition
+      summary: Save an ordinary activity card's World Builder graph position.
+      description: >-
+        This source-derived drag command rounds finite coordinates to integers
+        and changes authoring presentation only; it does not alter activity
+        content, starts, transitions, or learner playback.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityGraphPositionRequest' }
+      responses:
+        '200':
+          description: The persisted source-rounded activity-card position.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminActivityGraphPositionResponse' }
+        '400': { description: The graph position is not finite or is outside the supported integer range. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-transitions:
     post:
       operationId: createAdminWorldBuilderActivityTransition
@@ -7685,6 +7715,12 @@ components:
       properties:
         node: { type: string, enum: [start, end] }
         position: { $ref: '#/components/schemas/AdminActivityGraphLayoutPosition' }
+    UpdateAdminActivityGraphPositionRequest:
+      type: object
+      additionalProperties: false
+      required: [position]
+      properties:
+        position: { $ref: '#/components/schemas/AdminActivityGraphLayoutPosition' }
     AdminActivityGraphLayoutPosition:
       type: object
       additionalProperties: false
@@ -7698,6 +7734,12 @@ components:
       required: [graph_layout]
       properties:
         graph_layout: { type: object, additionalProperties: true }
+    AdminActivityGraphPositionResponse:
+      type: object
+      additionalProperties: false
+      required: [position]
+      properties:
+        position: { $ref: '#/components/schemas/AdminActivityGraphPosition' }
     CreateAdminActivityTransitionRequest:
       type: object
       additionalProperties: false

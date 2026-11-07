@@ -3704,6 +3704,16 @@ renumbers their positions and resynchronizes the preferred start only after a
 valid move. This keeps route selection stable under concurrent edits without
 altering learner progress or any activity graph edge.
 
+**Ordinary activity graph positions:** The source graph drag handler rounds an
+activity card's coordinates and sends only those presentation fields through
+the normal activity update route. The Rust contract makes that narrow intent
+explicit: it resolves the activity through its map asset's unique node, locks
+the scoped activity/node, accepts only finite positions representable as signed
+32-bit integers, applies source rounding, and writes no activity content,
+route start, transition or learner state. This enables the original graph's
+drag behavior without prematurely claiming that the much broader activity-edit
+form and its versioning/review side effects are migrated.
+
 **Transition identity correction:** Laravel identifies an authored activity edge
 by source activity, target activity and both connector handles. The initial
 greenfield transition constraint was narrower because it conflated the derived

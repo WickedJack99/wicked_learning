@@ -691,6 +691,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderNodeActivityGraphLayout"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/graph-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save an ordinary activity card's World Builder graph position.
+         * @description This source-derived drag command rounds finite coordinates to integers and changes authoring presentation only; it does not alter activity content, starts, transitions, or learner playback.
+         */
+        patch: operations["updateAdminWorldBuilderActivityGraphPosition"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -5088,6 +5108,9 @@ export interface components {
             node: "start" | "end";
             position: components["schemas"]["AdminActivityGraphLayoutPosition"];
         };
+        UpdateAdminActivityGraphPositionRequest: {
+            position: components["schemas"]["AdminActivityGraphLayoutPosition"];
+        };
         AdminActivityGraphLayoutPosition: {
             x: number;
             y: number;
@@ -5096,6 +5119,9 @@ export interface components {
             graph_layout: {
                 [key: string]: unknown;
             };
+        };
+        AdminActivityGraphPositionResponse: {
+            position: components["schemas"]["AdminActivityGraphPosition"];
         };
         CreateAdminActivityTransitionRequest: {
             /** Format: uuid */
@@ -7603,6 +7629,70 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    updateAdminWorldBuilderActivityGraphPosition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivityGraphPositionRequest"];
+            };
+        };
+        responses: {
+            /** @description The persisted source-rounded activity-card position. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityGraphPositionResponse"];
+                };
+            };
+            /** @description The graph position is not finite or is outside the supported integer range. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

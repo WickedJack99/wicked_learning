@@ -10,6 +10,7 @@ mod admin_learning_group;
 mod admin_registration_tokens;
 mod admin_role;
 mod admin_user;
+mod admin_world_activity_position;
 mod admin_world_graph;
 mod admin_world_map;
 mod admin_world_node;
@@ -557,6 +558,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout",
             patch(admin_world_node_layout::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/graph-position",
+            patch(admin_world_activity_position::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/start-routes",
@@ -1381,7 +1386,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn world_builder_activity_transition_commands_require_an_authenticated_session() {
+    async fn world_builder_activity_mutations_require_an_authenticated_session() {
         let state = AppState {
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
@@ -1400,7 +1405,21 @@ mod tests {
             webauthn: test_webauthn(),
         };
 
-        let response = router(state)
+        let position_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/graph-position")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"position":{"x":12,"y":-3}}"#))
+                    .expect("a valid World Builder activity-position request"),
+            )
+            .await
+            .expect("World Builder activity-position response");
+
+        assert_eq!(position_response.status(), 401);
+
+        let transition_response = router(state)
             .oneshot(
                 Request::builder()
                     .method("PATCH")
@@ -1412,7 +1431,7 @@ mod tests {
             .await
             .expect("World Builder transition response");
 
-        assert_eq!(response.status(), 401);
+        assert_eq!(transition_response.status(), 401);
     }
 
     #[tokio::test]
