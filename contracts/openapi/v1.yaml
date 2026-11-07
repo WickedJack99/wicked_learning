@@ -76,7 +76,7 @@ paths:
   /registration-tokens:
     post:
       operationId: createRegistrationToken
-      summary: Create a default-learner one-use registration token.
+      summary: Create a one-use registration token with roles the issuer may assign.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -92,7 +92,8 @@ paths:
               schema: { $ref: '#/components/schemas/CreateRegistrationTokenResponse' }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '422': { description: The expiry is invalid. }
+        '400': { description: The expiry, note or requested roles are invalid or exceed the issuer's hierarchy. }
+        '503': { description: The application or identity database is unavailable. }
     
   /access-links/{token}/redeem:
     post:
@@ -3006,6 +3007,11 @@ components:
       properties:
         expires_at: { type: [string, 'null'], format: date-time }
         note: { type: [string, 'null'], maxLength: 500 }
+        roles:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 80 }
     CreateRegistrationTokenResponse:
       type: object
       additionalProperties: false

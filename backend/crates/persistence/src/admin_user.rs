@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::admin_user::{
     AdminUserAccessForm, AdminUserAccessUpdate, AdminUserError, AdminUserRepository as Port,
@@ -69,6 +69,7 @@ struct RegistrationTokenRow {
     is_expired: bool,
     is_used: bool,
     note: Option<String>,
+    roles: Json<Value>,
     used_at: Option<String>,
     used_by_subject_id: Option<Uuid>,
 }
@@ -102,7 +103,7 @@ impl Port for PostgresAdminUserRepository<'_> {
                 });
             }
             let registration_tokens = sqlx::query_as::<_, RegistrationTokenRow>(
-                "SELECT id, created_by_subject_id, used_by_subject_id, note, \
+                "SELECT id, created_by_subject_id, used_by_subject_id, note, roles, \
                  to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, \
                  to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS expires_at, \
                  to_char(used_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS used_at, \
@@ -218,7 +219,7 @@ impl Port for PostgresAdminUserRepository<'_> {
                     is_expired: token.is_expired,
                     is_used: token.is_used,
                     note: token.note,
-                    roles: vec!["learner".to_owned()],
+                    roles: registration_token_roles(&token.roles.0),
                     used_at: token.used_at,
                     used_by: identity_reference(&identities, token.used_by_subject_id),
                 })
@@ -469,4 +470,20 @@ fn identity_reference(
             .unwrap_or_else(|| identity.normalized_email.clone()),
         subject_id: identity.subject_id.to_string(),
     })
+}
+
+fn registration_token_roles(value: &Value) -> Vec<String> {
+    let roles = value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter(|role| !role.is_empty())
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    if roles.is_empty() {
+        vec!["learner".to_owned()]
+    } else {
+        roles
+    }
 }

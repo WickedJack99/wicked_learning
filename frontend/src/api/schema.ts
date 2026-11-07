@@ -84,7 +84,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create a default-learner one-use registration token. */
+        /** Create a one-use registration token with roles the issuer may assign. */
         post: operations["createRegistrationToken"];
         delete?: never;
         options?: never;
@@ -2207,6 +2207,7 @@ export interface components {
             /** Format: date-time */
             expires_at?: string | null;
             note?: string | null;
+            roles?: string[];
         };
         CreateRegistrationTokenResponse: {
             token: string;
@@ -4483,6 +4484,13 @@ export interface operations {
                     "application/json": components["schemas"]["CreateRegistrationTokenResponse"];
                 };
             };
+            /** @description The expiry */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Authentication is required. */
             401: {
                 headers: {
@@ -4497,8 +4505,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The expiry is invalid. */
-            422: {
+            /** @description The application or identity database is unavailable. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

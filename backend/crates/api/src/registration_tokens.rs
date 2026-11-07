@@ -20,6 +20,8 @@ pub enum RegistrationTokenError {
     Database(#[from] sqlx::Error),
     #[error("could not safely write the registration token output file")]
     OutputFile(#[source] io::Error),
+    #[error("the selected roles are unavailable or exceed the issuer's hierarchy")]
+    InvalidRoles,
 }
 
 /// Creates a high-entropy, one-use invitation. The raw token is written once
@@ -59,24 +61,49 @@ pub async fn issue(
 /// Issues a browser-created default-learner invitation. Unlike the CLI path,
 /// the opaque token is returned to the caller exactly once.
 pub async fn issue_for_subject(
+    application_database: &PgPool,
     identity_database: &PgPool,
     created_by_subject_id: Uuid,
     expires_at: Option<String>,
     note: Option<String>,
+    roles: Vec<String>,
 ) -> Result<String, RegistrationTokenError> {
+    let actor_level = sqlx::query_scalar::<_, Option<i32>>(
+        "SELECT MAX(roles.level) FROM application_principals AS principals \
+         INNER JOIN application_principal_roles AS principal_roles ON principal_roles.principal_id = principals.id \
+         INNER JOIN application_roles AS roles ON roles.role_key = principal_roles.role_key \
+         WHERE principals.identity_subject_id = $1",
+    )
+    .bind(created_by_subject_id)
+    .fetch_one(application_database)
+    .await?;
+    let Some(actor_level) = actor_level else {
+        return Err(RegistrationTokenError::InvalidRoles);
+    };
+    let assignable_roles = sqlx::query_scalar::<_, String>(
+        "SELECT role_key FROM application_roles WHERE role_key = ANY($1) AND level <= $2 ORDER BY role_key ASC",
+    )
+    .bind(&roles)
+    .bind(actor_level)
+    .fetch_all(application_database)
+    .await?;
+    if assignable_roles != roles {
+        return Err(RegistrationTokenError::InvalidRoles);
+    }
     let token = format!(
         "wlrt_{}{}",
         Uuid::new_v4().simple(),
         Uuid::new_v4().simple()
     );
     sqlx::query(
-        "INSERT INTO identity_registration_tokens (id, token_hash, created_by_subject_id, expires_at, note) VALUES ($1, $2, $3, $4::timestamptz, $5)",
+        "INSERT INTO identity_registration_tokens (id, token_hash, created_by_subject_id, expires_at, note, roles) VALUES ($1, $2, $3, $4::timestamptz, $5, $6)",
     )
     .bind(Uuid::new_v4())
     .bind(hex_sha256(&token))
     .bind(created_by_subject_id)
     .bind(expires_at)
     .bind(note)
+    .bind(sqlx::types::Json(roles))
     .execute(identity_database)
     .await?;
     Ok(token)

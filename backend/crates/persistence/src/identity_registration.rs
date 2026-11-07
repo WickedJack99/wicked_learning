@@ -1,4 +1,5 @@
-use sqlx::{PgPool, Postgres, Transaction};
+use serde_json::Value;
+use sqlx::{PgPool, Postgres, Transaction, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::identity_registration::{
     IdentityRegistration, IdentityRegistrationDraft, IdentityRegistrationError,
@@ -95,8 +96,8 @@ async fn register_with_identity_token(
         .begin()
         .await
         .map_err(|_| IdentityRegistrationError::Unavailable)?;
-    let token_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT id FROM identity_registration_tokens \
+    let token = sqlx::query_as::<_, RegistrationTokenRow>(
+        "SELECT id, roles FROM identity_registration_tokens \
          WHERE token_hash = $1 AND used_at IS NULL \
          AND (expires_at IS NULL OR expires_at > NOW()) FOR UPDATE",
     )
@@ -105,12 +106,14 @@ async fn register_with_identity_token(
     .await
     .map_err(|_| IdentityRegistrationError::Unavailable)?
     .ok_or(IdentityRegistrationError::InvalidRegistrationToken)?;
+    let roles = registration_token_roles(&token.roles.0)
+        .ok_or(IdentityRegistrationError::InvalidRegistrationToken)?;
 
     provision_identity(
         &mut identity_transaction,
         subject_id,
         &draft,
-        Some(token_id),
+        Some(token.id),
     )
     .await?;
     identity_transaction
@@ -123,7 +126,7 @@ async fn register_with_identity_token(
         .await
         .map_err(|_| IdentityRegistrationError::Unavailable)?;
     if let Err(error) =
-        create_application_principal(&mut application_transaction, subject_id, &draft).await
+        create_application_principal(&mut application_transaction, subject_id, &draft, &roles).await
     {
         tracing::error!(%error, %subject_id, "could not create application data during registration");
         let _ = application_transaction.rollback().await;
@@ -173,10 +176,12 @@ async fn register_with_access_link(
         .await
         .map_err(|_| IdentityRegistrationError::Unavailable)?;
 
+    let access_link_roles = vec!["learner".to_owned()];
     let principal_id = match create_application_principal(
         &mut application_transaction,
         subject_id,
         &draft,
+        &access_link_roles,
     )
     .await
     {
@@ -310,6 +315,7 @@ async fn create_application_principal(
     transaction: &mut Transaction<'_, Postgres>,
     subject_id: Uuid,
     draft: &IdentityRegistrationDraft,
+    roles: &[String],
 ) -> Result<Uuid, sqlx::Error> {
     let principal_id = Uuid::new_v4();
     sqlx::query("INSERT INTO application_principals (id, identity_subject_id) VALUES ($1, $2)")
@@ -317,12 +323,15 @@ async fn create_application_principal(
         .bind(subject_id)
         .execute(&mut **transaction)
         .await?;
-    sqlx::query(
-        "INSERT INTO application_principal_roles (principal_id, role_key) VALUES ($1, 'learner')",
-    )
-    .bind(principal_id)
-    .execute(&mut **transaction)
-    .await?;
+    for role_key in roles {
+        sqlx::query(
+            "INSERT INTO application_principal_roles (principal_id, role_key) VALUES ($1, $2)",
+        )
+        .bind(principal_id)
+        .bind(role_key)
+        .execute(&mut **transaction)
+        .await?;
+    }
     sqlx::query(
         "INSERT INTO learner_appearance_preferences (principal_id, appearance) VALUES ($1, $2)",
     )
@@ -331,6 +340,24 @@ async fn create_application_principal(
     .execute(&mut **transaction)
     .await?;
     Ok(principal_id)
+}
+
+#[derive(sqlx::FromRow)]
+struct RegistrationTokenRow {
+    id: Uuid,
+    roles: Json<Value>,
+}
+
+fn registration_token_roles(value: &Value) -> Option<Vec<String>> {
+    let roles = value
+        .as_array()?
+        .iter()
+        .map(Value::as_str)
+        .collect::<Option<Vec<_>>>()?
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    (!roles.is_empty() && roles.iter().all(|role| !role.is_empty())).then_some(roles)
 }
 
 async fn activate_or_compensate(

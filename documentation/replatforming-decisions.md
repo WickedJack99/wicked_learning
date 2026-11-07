@@ -3122,6 +3122,38 @@ contract deliberately does not expose a replacement administration screen;
 the original React Access Management workspace must be lifted with its
 connected controls and browser evidence before it becomes user-facing.
 
+## ADR-080: Registration invitations carry validated application-role keys
+
+**Status:** Accepted — 7 November 2026
+
+**Problem:** Source invitations can grant the roles that their issuer is
+allowed to assign. Defaulting every new Rust invitation to `learner` would
+discard an administrator's selected access and make the eventual original
+Users workspace misleading.
+
+**Decision:** An invitation stores its selected role keys alongside its
+identity-owned hash, expiry and audit references. Before issuing it, the
+application database verifies that every role exists and is at or below the
+issuer's highest role level. Registration locks and consumes the invitation,
+then uses those keys when it creates the new application principal. Existing
+callers that omit roles retain the safe baseline-learner behavior. Registration
+access links stay baseline learner until their separate role-selection contract
+is migrated.
+
+**Why:** This preserves source hierarchy behavior without copying application
+role definitions into the identity database. It also keeps identity's limited
+responsibility clear: it safely holds a one-use invitation record but never
+authorizes a role by itself.
+
+**Alternatives:** Storing a role's permissions inside an invitation would make
+role edits and revocation inconsistent. Looking up only the role after account
+creation would risk activating an account with missing access. Both are
+rejected.
+
+**Limits and follow-up:** The original invitation controls are still not
+exposed; account deletion and access-link role selection remain separate
+lifecycle slices.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin
