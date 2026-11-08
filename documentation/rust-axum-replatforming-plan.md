@@ -580,6 +580,24 @@ permissions and editor assignments are excluded. The implemented transfer is
 JSON-reference-only: ZIP archives and media-byte copying are still an explicit
 media-lifecycle slice.
 
+### World Builder standalone MapAsset JSON-transfer slice — 8 November 2026
+
+The MapAsset editor now exposes the source-shaped `Export MapAsset` attachment,
+and the existing MapAsset surface exposes an `Import` dialog for the editable
+destination map. `GET /api/v1/admin/world-builder/assets/{asset_id}/export`
+applies the same `world_maps.ru` all/own/assigned/direct-editor scope as the
+asset writer. It emits one versioned `wicked-learning-map-asset` JSON manifest:
+the MapAsset, its optional compatibility Node, route/start/activity/dialogue
+graph, message topics and declared media URLs. Portal links, learner records,
+permissions, review/history data and media bytes are deliberately excluded.
+
+The preflight and import endpoints revalidate the bounded manifest. Import
+requires the target map's editor scope and matching current-World slug, creates
+fresh asset/node/route/activity/topic/dialogue identifiers transactionally,
+moves a colliding node position right, and remaps only declared node and
+message-topic references. It does not copy media bytes or implement the Laravel
+ZIP package variant; JSON references must resolve in the destination workspace.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

@@ -38,6 +38,8 @@ mod admin_world_item_obstacle;
 mod admin_world_map;
 mod admin_world_map_access;
 mod admin_world_map_asset;
+mod admin_world_map_asset_export;
+mod admin_world_map_asset_import;
 mod admin_world_map_create;
 mod admin_world_map_delete;
 mod admin_world_map_details;
@@ -705,6 +707,20 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/assets",
             post(admin_world_map_asset::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/asset-exports/import",
+            post(admin_world_map_asset_import::import)
+                .layer(DefaultBodyLimit::max(admin_world_map_asset_import::MAX_ASSET_MANIFEST_BYTES)),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/asset-exports/preflight",
+            post(admin_world_map_asset_import::preflight)
+                .layer(DefaultBodyLimit::max(admin_world_map_asset_import::MAX_ASSET_MANIFEST_BYTES)),
+        )
+        .route(
+            "/api/v1/admin/world-builder/assets/{asset_id}/export",
+            get(admin_world_map_asset_export::export),
         )
         .route(
             "/api/v1/admin/world-builder/assets/{asset_id}",

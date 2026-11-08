@@ -4233,6 +4233,33 @@ cover the new boundary; the frontend production build covers the lifted dialog.
 This is JSON only. ZIP packages and transfer of uploaded media bytes remain a
 separate media-lifecycle migration slice.
 
+## ADR-106: Standalone MapAsset transfer is JSON-only and map-scoped
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** An author needs to reuse one place without accidentally moving a
+portal, learner records, destination access rules, or arbitrary source-map
+content. The Laravel source additionally offers ZIP packages, but the Rust
+successor has no approved archive/media-copy lifecycle yet.
+
+**Decision:** The Rust authoring API exposes a version-1
+`wicked-learning-map-asset` JSON export for one source-authorized MapAsset and
+an import only into an existing map the principal may edit. The manifest may
+carry the optional linked Node and its authored graph, message topics and media
+references; it never carries portals, learner data, permissions, history,
+review records or media bytes. Preflight and import both validate the bounded
+shape. The writer rechecks the matching destination World in its transaction,
+uses fresh IDs and collision-safe node/asset slugs, remaps only explicit
+node/message-topic references, and commits the complete authored asset or
+nothing.
+
+**Why:** This preserves the source author's reuse workflow while preventing a
+single-place transfer from silently widening map or cross-map authority.
+
+**Limits:** JSON references point at media already available in the current
+workspace. The Laravel ZIP/package and file-copy form stays unavailable until
+the media lifecycle has equivalent integrity, rollback and operational proof.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

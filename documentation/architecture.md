@@ -283,12 +283,12 @@ of the export contract. The matching readiness validator caps collection sizes,
 checks slugs and graph links in memory, and performs only bounded workspace
 lookups; it never imports or mutates the submitted manifest. Its response also
 contains a bounded availability detail list for declared media references; it
-does not transfer media bytes for JSON manifests. A single-map portable package
-is also supported: it pairs the manifest with an explicit media index and
+does not transfer media bytes for JSON manifests. The Laravel source's
+single-map portable package pairs the manifest with an explicit media index and
 referenced uploaded files, validates archive paths and uncompressed size, then
 materializes each file under a fresh public-disk path before the existing map
-import action runs. The same bounded package boundary supports standalone
-MapAsset transfer and invokes the existing asset import action after replacing
+import action runs. That Laravel package boundary supports standalone MapAsset
+transfer and invokes the existing asset import action after replacing
 its media references. World packages reuse that same payload-agnostic archive
 boundary and the existing world serializer/import action. Bundled `/images`
 references are left unchanged. JSON manifests remain reference-only; the
@@ -297,22 +297,18 @@ files. The author import
 dialogs can preflight either a single-map or world manifest through this same
 server-side boundary, while the mutating import action validates again.
 
-The same serializer exposes an author-authorized `wicked-learning-map-asset`
-manifest for one MapAsset. It loads the asset's owning map and, when present,
-its internal authored node and activity graph, while leaving learner state,
-portals, permissions and revisions outside the contract. The standalone JSON
-manifest uses source IDs only as provenance; authored slugs remain
-the portable references for destination-side import. The World Builder accepts
-that manifest only for an existing map the author can edit and only when its
-source world matches the current workspace. The importer creates fresh asset,
-node and child authoring records transactionally, uses a unique destination
-node slug, and remaps source-ID message-topic references through the existing
-map importer. Media references must be declared in the manifest and use local
-bundled or public-storage paths. Public-storage references must point to an
-existing file; bundled paths remain versioned references without copying their
-bytes. A portable package may carry the referenced public-storage files and
-rewrites them to fresh destination paths. Learner state, permissions, portals
-and revisions are not imported.
+The Rust successor now exposes an author-authorized
+`wicked-learning-map-asset` version-1 JSON manifest for one MapAsset. It
+contains the owning World/map provenance, the asset, and when present its
+linked authored node/activity graph and message topics, while leaving learner
+state, portals, permissions and revisions outside the contract. The World
+Builder accepts it only for an existing map the author can edit and only when
+its source World matches the current workspace. The importer creates fresh
+asset, node and child authoring records transactionally, selects collision-safe
+destination slugs/positions, and remaps only declared node and message-topic
+references. JSON media references must already resolve in the current
+workspace; Rust does not yet implement portable MapAsset packages or copy media
+bytes. Learner state, permissions, portals and revisions are not imported.
 
 The World Builder also exposes a world export that resolves the current world,
 scopes its maps with the server-side map-edit boundary, batch-loads the shared

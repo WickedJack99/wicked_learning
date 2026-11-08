@@ -1182,6 +1182,7 @@ function MapAssetSurface({
     const { map } = document.editable_map;
     const [selected, setSelected] = useState<EditableMapAsset | null>(null);
     const [editorOpen, setEditorOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -1241,16 +1242,28 @@ function MapAssetSurface({
                         behavior.
                     </p>
                 </div>
-                <button
-                    className="inline-flex shrink-0 items-center gap-2 rounded-md bg-teal-400 px-3 py-2 text-sm font-semibold text-slate-950 shadow-xl hover:bg-teal-300 disabled:opacity-60"
-                    data-wl-id="authoring.map-asset.add"
-                    disabled={creating || map.map_assets_locked}
-                    onClick={() => void add()}
-                    type="button"
-                >
-                    <Plus className="size-4" />
-                    {creating ? 'Adding…' : 'Add MapAsset'}
-                </button>
+                <div className="flex shrink-0 gap-2">
+                    <button
+                        className="inline-flex items-center gap-2 rounded-md border border-white/30 bg-slate-950/80 px-3 py-2 text-sm font-semibold text-white shadow-xl hover:bg-slate-900 disabled:opacity-60"
+                        data-wl-id="authoring.map-asset.import.open"
+                        disabled={creating || map.map_assets_locked}
+                        onClick={() => setImportOpen(true)}
+                        type="button"
+                    >
+                        <FileJson className="size-4" />
+                        Import
+                    </button>
+                    <button
+                        className="inline-flex items-center gap-2 rounded-md bg-teal-400 px-3 py-2 text-sm font-semibold text-slate-950 shadow-xl hover:bg-teal-300 disabled:opacity-60"
+                        data-wl-id="authoring.map-asset.add"
+                        disabled={creating || map.map_assets_locked}
+                        onClick={() => void add()}
+                        type="button"
+                    >
+                        <Plus className="size-4" />
+                        {creating ? 'Adding…' : 'Add MapAsset'}
+                    </button>
+                </div>
             </div>
             {map.map_assets_locked ? (
                 <p className="absolute top-16 right-4 z-20 rounded-md border border-amber-200/40 bg-amber-950/75 px-3 py-2 text-xs text-amber-100 shadow-lg">
@@ -1333,6 +1346,16 @@ function MapAssetSurface({
                         onUpdated();
                     }}
                     sounds={document.sounds}
+                />
+            ) : null}
+            {importOpen ? (
+                <MapAssetImportDialog
+                    mapId={map.id}
+                    onClose={() => setImportOpen(false)}
+                    onImported={() => {
+                        setImportOpen(false);
+                        onUpdated();
+                    }}
                 />
             ) : null}
         </div>
@@ -1834,14 +1857,23 @@ function MapAssetEditorDialog({
                             </p>
                         ) : null}
                         <div className="flex flex-wrap justify-between gap-3">
-                            <button
-                                className="rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-300/10"
-                                disabled={deleting || saving}
-                                onClick={() => void remove()}
-                                type="button"
-                            >
-                                {deleting ? 'Deleting…' : 'Delete MapAsset'}
-                            </button>
+                            <span className="flex gap-2">
+                                <a
+                                    className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+                                    data-wl-id="authoring.map-asset.export"
+                                    href={`/api/v1/admin/world-builder/assets/${asset.id}/export`}
+                                >
+                                    Export MapAsset
+                                </a>
+                                <button
+                                    className="rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-300/10"
+                                    disabled={deleting || saving}
+                                    onClick={() => void remove()}
+                                    type="button"
+                                >
+                                    {deleting ? 'Deleting…' : 'Delete MapAsset'}
+                                </button>
+                            </span>
                             <span className="flex gap-2">
                                 <button
                                     className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
@@ -2757,6 +2789,143 @@ function MapImportDialog({
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
                     <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">Cancel</button>
                     <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || !title.trim() || checking || importing} type="submit"><FileJson className="size-4" />{importing ? 'Importing…' : 'Import map'}</button>
+                </div>
+            </form>
+        </div>
+    );
+}
+
+function MapAssetImportDialog({
+    mapId,
+    onClose,
+    onImported,
+}: {
+    mapId: string;
+    onClose: () => void;
+    onImported: () => void;
+}) {
+    const [file, setFile] = useState<File | null>(null);
+    const [result, setResult] = useState<MapExportPreflight | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [checking, setChecking] = useState(false);
+    const [importing, setImporting] = useState(false);
+
+    const check = async () => {
+        if (!file) {
+            setError('Choose a JSON MapAsset export first.');
+            return;
+        }
+        setChecking(true);
+        setError(null);
+        setResult(null);
+        const body = new FormData();
+        body.append('manifest', file);
+        try {
+            const response = await fetch(
+                `/api/v1/admin/world-builder/maps/${mapId}/asset-exports/preflight`,
+                { body, credentials: 'same-origin', method: 'POST' },
+            );
+            const payload = (await response.json()) as MapExportPreflight;
+            if (!response.ok) {
+                throw new Error('The MapAsset export could not be checked.');
+            }
+            setResult(payload);
+        } catch (reason) {
+            setError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'The MapAsset export could not be checked.',
+            );
+        } finally {
+            setChecking(false);
+        }
+    };
+
+    const importAsset = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!file || !result?.valid) {
+            setError('Check a valid MapAsset export before importing.');
+            return;
+        }
+        setImporting(true);
+        setError(null);
+        const body = new FormData();
+        body.append('manifest', file);
+        try {
+            const token = await getCsrfToken();
+            const response = await fetch(
+                `/api/v1/admin/world-builder/maps/${mapId}/asset-exports/import`,
+                {
+                    body,
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': token },
+                    method: 'POST',
+                },
+            );
+            const payload = (await response.json()) as { asset_id?: string };
+            if (!response.ok || !payload.asset_id) {
+                throw new Error(
+                    response.status === 400
+                        ? 'This export cannot be imported into this map. Check its workspace and managed media references.'
+                        : 'The MapAsset could not be imported. Refresh the World Builder and try again.',
+                );
+            }
+            onImported();
+        } catch (reason) {
+            setError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'The MapAsset could not be imported.',
+            );
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="map-asset-import-title"
+            aria-modal="true"
+            className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/55 p-4"
+            data-wl-id="authoring.map-asset.import.dialog"
+            role="dialog"
+        >
+            <form
+                className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                onSubmit={(event) => void importAsset(event)}
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
+                            World Builder
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold" id="map-asset-import-title">
+                            Import authored MapAsset
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Add one fresh MapAsset and its optional activity graph to this map from a validated JSON export. Learner records, portals, permissions, history and media bytes are not transferred.
+                        </p>
+                    </div>
+                    <button aria-label="Close MapAsset import" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button"><X className="size-5" /></button>
+                </div>
+                <label className="mt-5 block text-sm font-medium">
+                    JSON MapAsset export
+                    <input accept=".json,application/json,text/plain" className="mt-2 block w-full text-sm" disabled={checking || importing} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(null); setResult(null); }} type="file" />
+                </label>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{file?.name ?? 'No file selected.'}</p>
+                <button className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10" disabled={!file || checking || importing} onClick={() => void check()} type="button"><CircleCheck className="size-4" />{checking ? 'Checking…' : 'Check export'}</button>
+                {result ? (
+                    <section className="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10" role="status">
+                        <p className="font-medium">{result.summary}</p>
+                        <p className="mt-2 text-slate-600 dark:text-slate-300">{result.counts.nodes} node{result.counts.nodes === 1 ? '' : 's'} · {result.counts.activities} activities · {result.counts.mapAssets} MapAsset · {result.counts.mediaReferences} media references</p>
+                        {result.errors.map((message) => <p className="mt-2 text-red-700 dark:text-red-300" key={message}>{message}</p>)}
+                        {result.warnings.map((message) => <p className="mt-2 text-amber-700 dark:text-amber-300" key={message}>{message}</p>)}
+                    </section>
+                ) : null}
+                {error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">Cancel</button>
+                    <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || checking || importing} type="submit"><FileJson className="size-4" />{importing ? 'Importing…' : 'Import MapAsset'}</button>
                 </div>
             </form>
         </div>

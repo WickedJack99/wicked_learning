@@ -1184,6 +1184,72 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/asset-exports/preflight:
+    post:
+      operationId: preflightAdminWorldBuilderMapAssetExport
+      summary: Check a standalone MapAsset export without creating content.
+      description: Requires the source world-map update permission. The check is read-only and validates one optional node, its authored activity graph, one MapAsset and declared media references; standalone transfers never carry portals.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [manifest]
+              properties:
+                manifest:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: A bounded structural readiness report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWorldMapExportPreflightResult' }
+        '400': { description: The manifest upload is missing or exceeds the local safety limit. }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot import World Builder MapAssets. }
+        '503': { description: The identity or application service is unavailable. }
+  /admin/world-builder/maps/{map_id}/asset-exports/import:
+    post:
+      operationId: importAdminWorldBuilderMapAssetExport
+      summary: Import one validated standalone MapAsset into an editable map.
+      description: Requires the source world-map update permission and destination map editor scope. The destination World must match the manifest workspace. The import creates fresh MapAsset, optional Node, route, activities, message topics and dialogue records in one transaction, without learner, portal, permission, review, history or media-byte transfer.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [manifest]
+              properties:
+                manifest:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: The standalone MapAsset was created in the selected map.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportAdminWorldMapAssetResponse' }
+        '400': { description: The manifest or its managed media references are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The destination map is unknown or unavailable through the source editor scope. }
+        '503': { description: The identity or application database is unavailable. }
   /admin/world-builder/assets/{asset_id}:
     patch:
       operationId: updateAdminWorldBuilderMapAsset
@@ -1223,6 +1289,25 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The MapAsset is unknown or unavailable through the source delete scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/assets/{asset_id}/export:
+    get:
+      operationId: exportAdminWorldBuilderMapAsset
+      summary: Download one source-shaped standalone MapAsset JSON manifest.
+      description: Requires the source world-map update permission and the asset's scoped map editor policy. The manifest contains the MapAsset and optional linked Node/activity graph only; it excludes portals, learners, permissions, history, reviews and media bytes.
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: An attachment containing the standalone MapAsset JSON manifest.
+          content:
+            application/json:
+              schema: { type: object }
+        '401': { description: Authentication is required. }
+        '404': { description: The MapAsset is unknown or unavailable through the source editor scope. }
+        '503': { description: The identity or application database is unavailable. }
   /admin/world-builder/nodes/{node_id}:
     get:
       operationId: getAdminWorldBuilderNode
@@ -10060,6 +10145,12 @@ components:
       required: [map_id]
       properties:
         map_id: { type: string, format: uuid }
+    ImportAdminWorldMapAssetResponse:
+      type: object
+      additionalProperties: false
+      required: [asset_id]
+      properties:
+        asset_id: { type: string, format: uuid }
     ImportAdminWorldResponse:
       type: object
       additionalProperties: false

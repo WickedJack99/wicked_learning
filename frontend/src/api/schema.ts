@@ -915,6 +915,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/asset-exports/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a standalone MapAsset export without creating content.
+         * @description Requires the source world-map update permission. The check is read-only and validates one optional node, its authored activity graph, one MapAsset and declared media references; standalone transfers never carry portals.
+         */
+        post: operations["preflightAdminWorldBuilderMapAssetExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/maps/{map_id}/asset-exports/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import one validated standalone MapAsset into an editable map.
+         * @description Requires the source world-map update permission and destination map editor scope. The destination World must match the manifest workspace. The import creates fresh MapAsset, optional Node, route, activities, message topics and dialogue records in one transaction, without learner, portal, permission, review, history or media-byte transfer.
+         */
+        post: operations["importAdminWorldBuilderMapAssetExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/assets/{asset_id}": {
         parameters: {
             query?: never;
@@ -937,6 +977,26 @@ export interface paths {
          * @description Requires the source world-map update permission and the MapAsset's scoped map editor policy. Reusable media links in the image or JSON configuration are synchronized atomically with the authored surface.
          */
         patch: operations["updateAdminWorldBuilderMapAsset"];
+        trace?: never;
+    };
+    "/admin/world-builder/assets/{asset_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download one source-shaped standalone MapAsset JSON manifest.
+         * @description Requires the source world-map update permission and the asset's scoped map editor policy. The manifest contains the MapAsset and optional linked Node/activity graph only; it excludes portals, learners, permissions, history, reviews and media bytes.
+         */
+        get: operations["exportAdminWorldBuilderMapAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/world-builder/nodes/{node_id}": {
@@ -7088,6 +7148,10 @@ export interface components {
             /** Format: uuid */
             map_id: string;
         };
+        ImportAdminWorldMapAssetResponse: {
+            /** Format: uuid */
+            asset_id: string;
+        };
         ImportAdminWorldResponse: {
             map_ids: string[];
         };
@@ -11610,6 +11674,130 @@ export interface operations {
             };
         };
     };
+    preflightAdminWorldBuilderMapAssetExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    manifest: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A bounded structural readiness report. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminWorldMapExportPreflightResult"];
+                };
+            };
+            /** @description The manifest upload is missing or exceeds the local safety limit. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot import World Builder MapAssets. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    importAdminWorldBuilderMapAssetExport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    manifest: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The standalone MapAsset was created in the selected map. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportAdminWorldMapAssetResponse"];
+                };
+            };
+            /** @description The manifest or its managed media references are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The destination map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     deleteAdminWorldBuilderMapAsset: {
         parameters: {
             query?: never;
@@ -11715,6 +11903,49 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    exportAdminWorldBuilderMapAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An attachment containing the standalone MapAsset JSON manifest. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

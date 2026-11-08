@@ -543,7 +543,7 @@ async fn portal_endpoint(
         .await
 }
 
-async fn synchronize_media_references(
+pub(crate) async fn synchronize_media_references(
     transaction: &mut Transaction<'_, Postgres>,
     owner_kind: &str,
     owner_id: Uuid,
@@ -619,7 +619,7 @@ fn managed_media_references(value: &Value) -> Vec<(Uuid, String)> {
     references
 }
 
-fn remap_value(mut value: Value, ids: &HashMap<String, Uuid>, keys: &[&str]) -> Value {
+pub(crate) fn remap_value(mut value: Value, ids: &HashMap<String, Uuid>, keys: &[&str]) -> Value {
     match &mut value {
         Value::Object(object) => {
             for (key, nested) in object {
@@ -656,7 +656,7 @@ fn remap_identifier(value: &mut Value, ids: &HashMap<String, Uuid>) {
     }
 }
 
-fn protocol_error(message: &str) -> sqlx::Error {
+pub(crate) fn protocol_error(message: &str) -> sqlx::Error {
     sqlx::Error::Protocol(message.to_owned())
 }
 
