@@ -763,11 +763,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '503':
-          description: The application database is unavailable.
+          description: The identity or application database is unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/companion:
+    get:
+      operationId: getLearnerCompanion
+      summary: Resolve the signed-in learner's bounded Learning Companion for one source surface.
+      description: Returns a deterministic scripted projection only. It never invokes an AI provider, reveals an AI template or grants content mutation authority.
+      parameters:
+        - name: surface
+          in: query
+          required: true
+          schema: { type: string, enum: [desk, world, activity] }
+        - name: map_slug
+          in: query
+          description: Optional visible World map selection.
+          schema: { type: string, pattern: '^[a-z0-9-]+$' }
+        - name: activity_id
+          in: query
+          description: Required for an activity projection; its visible map/node context is resolved server-side.
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The enabled, source-scoped companion projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerCompanion' }
+        '204': { description: The companion is disabled or the requested published scope is unavailable to this learner. }
+        '400': { description: The surface/query combination is not source-valid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The identity has no application principal or role assignment. }
+        '503': { description: The identity or application database is unavailable. }
   /admin/world-builder:
     get:
       operationId: getAdminWorldBuilderGraph
@@ -10787,6 +10816,66 @@ components:
         reset_count:
           type: integer
           minimum: 0
+    LearnerCompanion:
+      type: object
+      additionalProperties: false
+      required: [avatar_color, avatar_position_x, avatar_position_y, avatar_scale, avatar_url, configuration, context, dialogue, display_name, message]
+      properties:
+        avatar_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        avatar_position_x: { type: integer, minimum: 0, maximum: 100 }
+        avatar_position_y: { type: integer, minimum: 0, maximum: 100 }
+        avatar_scale: { type: integer, minimum: 80, maximum: 200 }
+        avatar_url: { type: [string, 'null'], maxLength: 2048 }
+        configuration: { $ref: '#/components/schemas/LearnerCompanionConfiguration' }
+        context: { $ref: '#/components/schemas/LearnerCompanionContext' }
+        dialogue:
+          oneOf:
+            - $ref: '#/components/schemas/LearningCompanionDialogueGraph'
+            - type: 'null'
+        display_name: { type: string, minLength: 1, maxLength: 80 }
+        message: { type: string, minLength: 1, maxLength: 1200 }
+    LearnerCompanionConfiguration:
+      type: object
+      additionalProperties: false
+      required: [ai_enabled, mode, source_scope]
+      properties:
+        ai_enabled: { type: boolean }
+        mode: { type: string, enum: [scripted, guided_ai, open_ai] }
+        source_scope: { type: string, enum: [platform, world, map, node, activity] }
+    LearnerCompanionContext:
+      type: object
+      additionalProperties: false
+      required: [actions, activity, map, node, play_run_id, post_attempt_available, route, surface, topic, world]
+      properties:
+        actions:
+          type: array
+          maxItems: 2
+          items: { $ref: '#/components/schemas/LearnerCompanionAction' }
+        activity: { oneOf: [{ $ref: '#/components/schemas/LearnerCompanionReference' }, { type: 'null' }] }
+        map: { oneOf: [{ $ref: '#/components/schemas/LearnerCompanionReference' }, { type: 'null' }] }
+        node: { oneOf: [{ $ref: '#/components/schemas/LearnerCompanionReference' }, { type: 'null' }] }
+        play_run_id: { type: [string, 'null'], format: uuid }
+        post_attempt_available: { type: boolean }
+        route: { oneOf: [{ $ref: '#/components/schemas/LearnerCompanionReference' }, { type: 'null' }] }
+        surface: { type: string, enum: [desk, world, activity] }
+        topic: { oneOf: [{ $ref: '#/components/schemas/LearnerCompanionReference' }, { type: 'null' }] }
+        world: { oneOf: [{ $ref: '#/components/schemas/LearnerCompanionReference' }, { type: 'null' }] }
+    LearnerCompanionAction:
+      type: object
+      additionalProperties: false
+      required: [href, key, label, reason]
+      properties:
+        href: { type: string, pattern: '^/(topics|world(?:\\?map=[a-z0-9-]+(?:&focused=[a-z0-9-]+)?)?|home)$' }
+        key: { type: string, enum: [current-map, learning-desk, topics] }
+        label: { type: string, maxLength: 120 }
+        reason: { type: string, maxLength: 240 }
+    LearnerCompanionReference:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, maxLength: 240 }
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false

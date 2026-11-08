@@ -611,6 +611,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/companion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve the signed-in learner's bounded Learning Companion for one source surface.
+         * @description Returns a deterministic scripted projection only. It never invokes an AI provider, reveals an AI template or grants content mutation authority.
+         */
+        get: operations["getLearnerCompanion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder": {
         parameters: {
             query?: never;
@@ -7774,6 +7794,51 @@ export interface components {
             completion_count: number;
             reset_count: number;
         };
+        LearnerCompanion: {
+            avatar_color: string;
+            avatar_position_x: number;
+            avatar_position_y: number;
+            avatar_scale: number;
+            avatar_url: string | null;
+            configuration: components["schemas"]["LearnerCompanionConfiguration"];
+            context: components["schemas"]["LearnerCompanionContext"];
+            dialogue: components["schemas"]["LearningCompanionDialogueGraph"] | null;
+            display_name: string;
+            message: string;
+        };
+        LearnerCompanionConfiguration: {
+            ai_enabled: boolean;
+            /** @enum {string} */
+            mode: "scripted" | "guided_ai" | "open_ai";
+            /** @enum {string} */
+            source_scope: "platform" | "world" | "map" | "node" | "activity";
+        };
+        LearnerCompanionContext: {
+            actions: components["schemas"]["LearnerCompanionAction"][];
+            activity: components["schemas"]["LearnerCompanionReference"] | null;
+            map: components["schemas"]["LearnerCompanionReference"] | null;
+            node: components["schemas"]["LearnerCompanionReference"] | null;
+            /** Format: uuid */
+            play_run_id: string | null;
+            post_attempt_available: boolean;
+            route: components["schemas"]["LearnerCompanionReference"] | null;
+            /** @enum {string} */
+            surface: "desk" | "world" | "activity";
+            topic: components["schemas"]["LearnerCompanionReference"] | null;
+            world: components["schemas"]["LearnerCompanionReference"] | null;
+        };
+        LearnerCompanionAction: {
+            href: string;
+            /** @enum {string} */
+            key: "current-map" | "learning-desk" | "topics";
+            label: string;
+            reason: string;
+        };
+        LearnerCompanionReference: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
         LearnerWorldSnapshot: {
             world: components["schemas"]["PublicWorld"];
             items: components["schemas"]["LearnerItem"][];
@@ -11707,7 +11772,7 @@ export interface operations {
                     "application/json": components["schemas"]["Problem"];
                 };
             };
-            /** @description The application database is unavailable. */
+            /** @description The identity or application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -11715,6 +11780,67 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getLearnerCompanion: {
+        parameters: {
+            query: {
+                surface: "desk" | "world" | "activity";
+                /** @description Optional visible World map selection. */
+                map_slug?: string;
+                /** @description Required for an activity projection; its visible map/node context is resolved server-side. */
+                activity_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enabled, source-scoped companion projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerCompanion"];
+                };
+            };
+            /** @description The companion is disabled or the requested published scope is unavailable to this learner. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The surface/query combination is not source-valid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

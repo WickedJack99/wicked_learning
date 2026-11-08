@@ -1550,6 +1550,20 @@ authoring only: scope inheritance/overrides, learner context/action
 projections, provider turns and the source-adapted settings/launcher UI remain
 later slices in the agreed backend-first sequence.
 
+### Learning Companion learner context backend slice — 8 November 2026
+
+The Rust API now resolves the source-shaped companion projection for the
+authenticated learner desk, a visible World map, or a visible/playable activity.
+`GET /api/v1/learner/companion` returns only the bounded identity, deterministic
+navigation actions, AI-enabled indicator and validated dialogue graph; it never
+serializes an AI template, credential, answer history or mutation command.
+Dialogue assignment precedence is activity, node, map, then world, with the
+platform configuration providing the fallback identity/message.
+an inaccessible map or unplayable activity returns no companion. This slice
+resolves reusable assignments against the platform configuration only. Persisted
+per-scope visual/AI overrides, the provider-turn command, post-attempt context
+and the source-adapted launcher remain later slices.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

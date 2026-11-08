@@ -4595,6 +4595,33 @@ without reproducing authorization in the browser.
 **Limits:** This decision does not add settings inheritance, learner context,
 conversation state, provider calls or a browser authoring/launcher surface.
 
+## ADR-118: Learner companion context is an access-filtered, deterministic read model
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** Reusable graphs have no learner value until they are resolved at a
+specific desk, map or activity. Letting the browser select an assignment or
+construct navigation actions would leak inaccessible content and make dialogue
+precedence untestable.
+
+**Decision:** Add an authenticated learner read endpoint that resolves the
+enabled platform companion for exactly one source surface. World requests use a
+role-visible published map; activity requests additionally require a published,
+playable node. The resolver selects the first valid assigned graph in source
+precedence (activity, node, map, then world), validates it again before
+serialization, and emits only fixed source navigation actions and safe
+references. It returns no content when the companion is disabled or the scope
+is inaccessible. AI mode is reduced to an enabled indicator; template identity,
+credentials, learner answers and mutation capability remain server-side.
+
+**Why:** This creates a stable, access-filtered seam for lifting the existing
+launcher and dialogue UI while preventing it from becoming an authorization or
+AI-policy engine.
+
+**Limits:** Per-scope override persistence, post-attempt/run context, provider
+turns, conversation state and the frontend launcher are deliberately separate
+slices.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

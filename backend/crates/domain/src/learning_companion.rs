@@ -80,3 +80,57 @@ pub struct LearningCompanionAssignmentPage {
     pub pagination: LearningCompanionPagination,
     pub selected: Vec<LearningCompanionAssignment>,
 }
+
+/// A bounded learner-facing reference. UUIDs remain opaque identifiers and are
+/// emitted only after the enclosing map/activity visibility check succeeds.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct LearnerCompanionReference {
+    pub id: Uuid,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct LearnerCompanionAction {
+    pub href: String,
+    pub key: String,
+    pub label: String,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct LearnerCompanionConfiguration {
+    pub ai_enabled: bool,
+    pub mode: String,
+    pub source_scope: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct LearnerCompanionContext {
+    pub actions: Vec<LearnerCompanionAction>,
+    pub activity: Option<LearnerCompanionReference>,
+    pub map: Option<LearnerCompanionReference>,
+    pub node: Option<LearnerCompanionReference>,
+    pub play_run_id: Option<String>,
+    pub post_attempt_available: bool,
+    pub route: Option<LearnerCompanionReference>,
+    pub surface: String,
+    pub topic: Option<LearnerCompanionReference>,
+    pub world: Option<LearnerCompanionReference>,
+}
+
+/// The source-shaped deterministic companion projection. It deliberately
+/// excludes AI-template identity, credentials, learner answers and any write
+/// action; a provider turn is a separate guarded command.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct LearnerCompanion {
+    pub avatar_color: String,
+    pub avatar_position_x: i16,
+    pub avatar_position_y: i16,
+    pub avatar_scale: i16,
+    pub avatar_url: Option<String>,
+    pub configuration: LearnerCompanionConfiguration,
+    pub context: LearnerCompanionContext,
+    pub dialogue: Option<Value>,
+    pub display_name: String,
+    pub message: String,
+}

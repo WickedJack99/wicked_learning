@@ -92,6 +92,7 @@ mod learner_appearance_preference;
 mod learner_bookmark;
 mod learner_bookmark_map;
 mod learner_check_in;
+mod learner_companion;
 mod learner_competence;
 mod learner_desk_planning;
 mod learner_desk_search;
@@ -1113,6 +1114,7 @@ fn router(state: AppState) -> Router {
             patch(admin_learning_group::sync_members),
         )
         .route("/api/v1/learner/world", get(learner_world::show))
+        .route("/api/v1/learner/companion", get(learner_companion::show))
         .route("/api/v1/learner/groups", get(learner_group::index))
         .route("/api/v1/organizations", get(organization::index).post(organization::create))
         .route("/api/v1/organizations/{slug}", get(organization::show).patch(organization::update).delete(organization::delete))

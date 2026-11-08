@@ -86,7 +86,7 @@ impl CompanionDialogueForm {
         let name = required_string(name, 120)?;
         let dialogue_graph = match dialogue_graph {
             Some(Value::Null) | None => default_graph(),
-            Some(value) => parse_graph(&value)?,
+            Some(value) => parse_dialogue_graph(&value)?,
         };
         Some(Self {
             dialogue_graph,
@@ -275,7 +275,10 @@ fn default_graph() -> Value {
     })
 }
 
-fn parse_graph(value: &Value) -> Option<Value> {
+/// Normalizes only the bounded source dialogue grammar. Learner projections use
+/// the same parser so a corrupted persisted graph can never break a page or
+/// become browser-authoritative state.
+pub fn parse_dialogue_graph(value: &Value) -> Option<Value> {
     let graph = value.as_object()?;
     if graph.get("version")?.as_i64()? != 1 {
         return None;
