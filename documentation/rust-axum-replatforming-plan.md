@@ -1487,18 +1487,20 @@ RFC 3339, and rejects empty, self-referential, or mandatory cyclic locked-node
 unlock requirements. The typed contract and disposable browser proof cover the
 lifecycle. The standalone World Builder now lifts the source tile dialog's
 identity, description, state, hex-position and destructive lifecycle controls.
-It sends the complete stored visual configuration back unchanged during those
-metadata edits, so the remaining source visual/opening-rule controls can be
-lifted without a smaller MapAsset-only editor or accidental loss of media
-references.
+Its presentation section writes source-compatible label/hover text, visibility,
+dark/light colors, image placement and opacity, and selects reusable visuals
+through the established media picker. The existing writer synchronizes those
+references transactionally while preserving untouched visual configuration, so
+the remaining opening-rule and sound controls can be lifted without a smaller
+MapAsset-only editor or accidental loss of media references.
 
 The node's source `Lock for all users` backend action is also now available
 through a scoped typed command. It removes only existing learner tool-unlock
 rows for the selected editable node, never learner discovery or support-issued
-manual overrides. The node-dialog's remaining visual, opening-rule, sound and
-media-selection controls stay deferred until their complete source controls are
-lifted; the lifted source-styled dialog already exposes the `Lock for all
-users` confirmation alongside the currently available metadata edits.
+manual overrides. The node-dialog's remaining opening-rule and sound controls
+stay deferred until their complete source controls are lifted; the lifted
+source-styled dialog already exposes the `Lock for all users` confirmation
+alongside metadata and tile-presentation edits.
 
 The separate manual override command now sets or revokes a support-issued
 override only for a locked node in the actor's editable-map scope and a learner

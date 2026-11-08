@@ -59,13 +59,17 @@ test('a local author creates, edits, and deletes a source-shaped map tile', asyn
     await expect(page.getByRole('heading', { name: 'Edit map tile' })).toBeVisible();
     await page.getByLabel('Title').fill('Updated dialogue tile');
     await page.getByLabel('State').selectOption('recommended');
+    await page.getByLabel('MapAsset label').fill('Updated learner-facing tile label');
+    await page.getByLabel('Tile color').fill('#123456');
     const saved = page.waitForResponse((response) => response.request().method() === 'PATCH' && /\/api\/v1\/admin\/world-builder\/nodes\/[0-9a-f-]+$/.test(response.url()));
     await page.getByRole('button', { name: 'Save map tile' }).click();
     expect((await saved).status()).toBe(204);
     await expect(page.getByText('Updated dialogue tile', { exact: true })).toBeVisible();
     const savedNode = await page.request.get(`/api/v1/admin/world-builder/maps/${mapId}`);
     expect(savedNode.ok()).toBeTruthy();
-    expect(JSON.stringify(await savedNode.json())).toContain('Keep authored tile appearance');
+    const savedMapDocument = JSON.stringify(await savedNode.json());
+    expect(savedMapDocument).toContain('Updated learner-facing tile label');
+    expect(savedMapDocument).toContain('#123456');
 
     await page.getByRole('button', { name: 'Edit tile' }).last().click();
     page.once('dialog', (dialog) => dialog.accept());

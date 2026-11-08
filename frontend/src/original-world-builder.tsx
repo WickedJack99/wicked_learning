@@ -3244,6 +3244,9 @@ function OriginalWorldNodeDialog({
     const [q, setQ] = useState(String(node?.position.q ?? 0));
     const [r, setR] = useState(String(node?.position.r ?? 0));
     const [state, setState] = useState(node?.state ?? 'available');
+    const [visualConfig, setVisualConfig] = useState<Record<string, unknown>>(
+        () => node?.visual_config ?? {},
+    );
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -3261,7 +3264,7 @@ function OriginalWorldNodeDialog({
             position_q: positionQ,
             position_r: positionR,
             state,
-            visual_config: node?.visual_config ?? {},
+            visual_config: visualConfig,
         };
     };
 
@@ -3326,7 +3329,107 @@ function OriginalWorldNodeDialog({
         }
     };
 
-    return <div aria-labelledby="world-node-dialog-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.node.dialog" role="dialog"><form className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Map tile</p><h2 className="mt-1 text-xl font-semibold" id="world-node-dialog-title">{isEditing ? 'Edit map tile' : 'Add map tile'}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set the source tile identity, state and hex position. Existing appearance and opening rules stay intact while their complete source controls are lifted.</p></div><button aria-label="Close map tile dialog" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}<div className="mt-5 grid gap-4"><ActivityTextField label="Title" onChange={setTitle} value={title} /><ActivityTextField label="Slug" onChange={setSlug} value={slug} /><ActivityTextField label="Description" onChange={setDescription} textarea value={description} /><div className="grid gap-4 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label><label className="grid gap-1 text-sm font-medium">State<select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setState(event.target.value as typeof state)} value={state}>{[['active', 'Active'], ['available', 'Available'], ['completed', 'Completed'], ['hidden', 'Hidden'], ['hinted', 'Hinted'], ['locked', 'Locked'], ['recommended', 'Recommended']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div>{node ? <section className="mt-5 rounded-lg border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-300/25 dark:bg-amber-300/10"><h3 className="text-sm font-semibold text-amber-950 dark:text-amber-50">Learner-specific unlocks</h3><p className="mt-1 text-sm leading-6 text-amber-900 dark:text-amber-100">Lock this tile again for every learner by removing only saved tool-derived unlocks. Discovery and support overrides remain unchanged.</p><button className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15" disabled={saving} onClick={() => void resetToolUnlocks()} type="button"><LockKeyhole className="size-4" />Lock for all users</button></section> : null}<div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">{node ? <button className="mr-auto inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-60 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10" disabled={saving} onClick={() => void deleteNode()} type="button"><Trash2 className="size-4" />Delete map tile</button> : null}<button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : isEditing ? 'Save map tile' : 'Add map tile'}</button></div></form></div>;
+    return <div aria-labelledby="world-node-dialog-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.node.dialog" role="dialog"><form className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Map tile</p><h2 className="mt-1 text-xl font-semibold" id="world-node-dialog-title">{isEditing ? 'Edit map tile' : 'Add map tile'}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set the source tile identity, state and hex position. Edit its visual presentation below; opening rules and sounds remain intact while their source controls are lifted.</p></div><button aria-label="Close map tile dialog" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}<div className="mt-5 grid gap-4"><ActivityTextField label="Title" onChange={setTitle} value={title} /><ActivityTextField label="Slug" onChange={setSlug} value={slug} /><ActivityTextField label="Description" onChange={setDescription} textarea value={description} /><div className="grid gap-4 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label><label className="grid gap-1 text-sm font-medium">State<select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setState(event.target.value as typeof state)} value={state}>{[['active', 'Active'], ['available', 'Available'], ['completed', 'Completed'], ['hidden', 'Hidden'], ['hinted', 'Hinted'], ['locked', 'Locked'], ['recommended', 'Recommended']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div><NodeVisualPresentationFields config={visualConfig} onChange={setVisualConfig} />{node ? <section className="mt-5 rounded-lg border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-300/25 dark:bg-amber-300/10"><h3 className="text-sm font-semibold text-amber-950 dark:text-amber-50">Learner-specific unlocks</h3><p className="mt-1 text-sm leading-6 text-amber-900 dark:text-amber-100">Lock this tile again for every learner by removing only saved tool-derived unlocks. Discovery and support overrides remain unchanged.</p><button className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15" disabled={saving} onClick={() => void resetToolUnlocks()} type="button"><LockKeyhole className="size-4" />Lock for all users</button></section> : null}<div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">{node ? <button className="mr-auto inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-60 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10" disabled={saving} onClick={() => void deleteNode()} type="button"><Trash2 className="size-4" />Delete map tile</button> : null}<button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : isEditing ? 'Save map tile' : 'Add map tile'}</button></div></form></div>;
+}
+
+function NodeVisualPresentationFields({
+    config,
+    onChange,
+}: {
+    config: Record<string, unknown>;
+    onChange: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+}) {
+    const [mode, setMode] = useState<'dark' | 'light'>('dark');
+    const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+    const theme = nodeVisualObject(config[mode]);
+    const text = (key: string): string => typeof config[key] === 'string' ? config[key] : '';
+    const themeText = (key: string): string => typeof theme[key] === 'string' || typeof theme[key] === 'number' ? String(theme[key]) : '';
+    const update = (key: string, value: unknown) => onChange((current) => ({ ...current, [key]: value }));
+    const updateTheme = (key: string, value: string) => onChange((current) => ({ ...current, [mode]: { ...nodeVisualObject(current[mode]), [key]: value } }));
+    const updateFlag = (key: 'hideEmptySpace' | 'hideImage' | 'hideLabel', checked: boolean) => update(key, checked);
+    const themeColors: Array<[string, string]> = [
+        ['tileColor', 'Tile color'],
+        ['borderColor', 'Border color'],
+        ['foregroundColor', 'Foreground color'],
+        ['labelColor', 'Label color'],
+        ['highlightColor', 'Highlight color'],
+        ['highlightBorderColor', 'Highlight border color'],
+        ['highlightedLabelColor', 'Highlighted label color'],
+    ];
+    const themeNumbers: Array<[string, string, number, number]> = [
+        ['imageX', 'Image X %', 0, 100],
+        ['imageY', 'Image Y %', 0, 100],
+        ['imageWidth', 'Image size %', 10, 200],
+        ['imageRotation', 'Image rotation', -360, 360],
+    ];
+
+    return (
+        <section className="mt-5 border-t border-slate-200 pt-5 dark:border-white/10">
+            <div>
+                <h3 className="text-lg font-semibold">Tile presentation</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">The lifted source controls retain learner-visible text and the dark/light tile appearance. Selecting reusable media keeps its managed reference attached to this tile.</p>
+            </div>
+            <div className="mt-4 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <ActivityTextField label="MapAsset label" onChange={(value) => update('label', value)} value={text('label')} />
+                    <ActivityTextField label="Hover text" onChange={(value) => update('tooltip', value)} value={text('tooltip')} />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                    {([['hideEmptySpace', 'Hide empty space'], ['hideImage', 'Hide image'], ['hideLabel', 'Hide label']] as const).map(([key, label]) => (
+                        <label className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10" key={key}>
+                            <input checked={config[key] === true} onChange={(event) => updateFlag(key, event.target.checked)} type="checkbox" />
+                            {label}
+                        </label>
+                    ))}
+                </div>
+                <div className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                            <h4 className="font-semibold">Theme appearance</h4>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Edit the authored {mode} appearance.</p>
+                        </div>
+                        <label className="grid gap-1 text-sm font-medium">Theme
+                            <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setMode(event.target.value as 'dark' | 'light')} value={mode}>
+                                <option value="dark">Dark mode</option>
+                                <option value="light">Light mode</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {themeColors.map(([key, label]) => <ActivityTextField key={key} label={label} onChange={(value) => updateTheme(key, value)} value={themeText(key)} />)}
+                    </div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        <ActivityTextField label={`${mode === 'dark' ? 'Dark' : 'Light'} mode image`} onChange={(value) => updateTheme('imageUrl', value)} onSelectExisting={() => setMediaPickerOpen(true)} value={themeText('imageUrl')} />
+                        <div className="grid grid-cols-2 gap-3">
+                            {themeNumbers.map(([key, label, min, max]) => (
+                                <label className="grid gap-1 text-sm font-medium" key={key}>{label}
+                                    <input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" max={max} min={min} onChange={(event) => updateTheme(key, event.target.value)} step="any" type="number" value={themeText(key)} />
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {(['tileOpacity', 'foregroundOpacity', 'labelOpacity', 'highlightOpacity', 'borderOpacity', 'highlightBorderOpacity', 'highlightedLabelOpacity'] as const).map((key) => (
+                            <label className="grid gap-1 text-sm font-medium" key={key}>{key.replace(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`)}
+                                <input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" max="100" min="0" onChange={(event) => updateTheme(key, event.target.value)} step="any" type="number" value={themeText(key)} />
+                            </label>
+                        ))}
+                    </div>
+                    <div className="mt-4 min-h-28 rounded-lg border p-4" style={{ background: themeText('tileColor') || (mode === 'dark' ? '#253047' : '#dbeafe'), borderColor: themeText('borderColor') || themeText('tileColor'), color: themeText('labelColor') || (mode === 'dark' ? '#fff' : '#0f172a') }}>
+                        <p className="font-semibold">{text('label') || 'MapAsset label'}</p>
+                        {themeText('imageUrl') && !config.hideImage ? <img alt="Tile visual preview" className="mx-auto mt-2 max-h-20 object-contain" src={themeText('imageUrl')} style={{ transform: `rotate(${themeText('imageRotation') || '0'}deg)`, width: `${themeText('imageWidth') || '100'}%` }} /> : null}
+                    </div>
+                </div>
+            </div>
+            {mediaPickerOpen ? <MediaPicker onClose={() => setMediaPickerOpen(false)} onSelect={(asset) => { updateTheme('imageUrl', asset.url); setMediaPickerOpen(false); }} /> : null}
+        </section>
+    );
+}
+
+function nodeVisualObject(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : {};
 }
 
 const hexDirections = [
