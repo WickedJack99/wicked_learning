@@ -4566,9 +4566,9 @@ without conflating authoring setup with an AI turn or granting navigation and
 content-mutation authority to a companion.
 
 **Limits:** Scope inheritance, reusable dialogue graphs and assignments,
-learner-context projections, source-adapted administration UI and launcher
-placement remain separate migration slices. Guarded provider turns are defined
-by ADR-121.
+learner-context projections and source-adapted administration UI remain
+separate migration slices. Learner launcher placement is defined by ADR-122;
+guarded provider turns are defined by ADR-121.
 
 ## ADR-117: Reusable Learning Companion dialogues are bounded graphs with server-checked content scopes
 
@@ -4629,9 +4629,9 @@ for that activity. The browser cannot supply, select or override either value.
 launcher and dialogue UI while preventing it from becoming an authorization or
 AI-policy engine.
 
-**Limits:** Scope-configuration authoring, conversation state and the frontend
-launcher are deliberately separate slices. Guarded provider turns are defined
-by ADR-121.
+**Limits:** Scope-configuration authoring and conversation persistence remain
+separate slices. The frontend launcher is defined by ADR-122; guarded provider
+turns are defined by ADR-121.
 
 ## ADR-119: Companion scope configuration survives authored-content transfer
 
@@ -4732,8 +4732,39 @@ as a learning evaluator or browser policy engine. The evidence attribution
 prevents successful assisted work being silently represented as independent.
 
 **Limits:** This backend slice does not add conversation persistence, stream a
-provider response, create a generic orchestration layer, expose scoped
-configuration editing, or lift the source learner launcher/dialogue UI.
+provider response, create a generic orchestration layer or expose scoped
+configuration editing. Its source learner launcher/dialogue client is defined
+by ADR-122.
+
+## ADR-122: The source Learning Companion launcher remains a thin, transient client
+
+**Status:** Accepted — 9 November 2026
+
+**Problem:** The companion requires the original launcher and dialogue flow on
+learner surfaces, but reimplementing its policy, context selection, prompt
+construction or navigation authority in React would create a second
+authorization and AI decision system.
+
+**Decision:** Lift the launcher to the standalone React learner shell for the
+source desk, World, bookmarks, paths, competence, topics, organisations and
+activity playback surfaces. The client requests the deterministic companion
+projection for its current surface, traverses already-validated message,
+choice and end graph nodes only in its open panel, and maps authored navigation
+keys only to the returned server-owned actions. The World position reserves the
+space to the right of desktop map search; other source surfaces use the
+lower-left launcher. AI turns submit only a selected source assistance level,
+authored AI-node ID and server-owned opaque context to ADR-121. The client
+never accepts or sends a prompt, learner answer, provider/template identity or
+navigation/mutation command. Responses and recorded-support consequences are
+disclosed in the panel and are never retained as a transcript.
+
+**Why:** This preserves the source interaction and placement while retaining a
+single server authority for visibility, graph validity, run ownership,
+capabilities, evidence attribution and provider access.
+
+**Limits:** This does not add conversation persistence, a settings or scoped
+configuration editor, streaming, browser-created routes, or a general-purpose
+AI assistant.
 
 ## Phase 1 gate
 

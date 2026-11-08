@@ -102,7 +102,7 @@ pub(crate) async fn clear_companion_assistance(
     play_run_id: Uuid,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "UPDATE learner_activity_progress SET metadata = CASE WHEN jsonb_object_length(COALESCE(metadata->'companionAssistance', '{}'::jsonb) - $3::text) = 0 THEN metadata - 'companionAssistance' ELSE jsonb_set(metadata, '{companionAssistance}', COALESCE(metadata->'companionAssistance', '{}'::jsonb) - $3::text) END, updated_at = NOW() WHERE principal_id = $1 AND activity_id = $2",
+        "UPDATE learner_activity_progress SET metadata = CASE WHEN (COALESCE(metadata->'companionAssistance', '{}'::jsonb) - $3::text) = '{}'::jsonb THEN metadata - 'companionAssistance' ELSE jsonb_set(metadata, '{companionAssistance}', COALESCE(metadata->'companionAssistance', '{}'::jsonb) - $3::text) END, updated_at = NOW() WHERE principal_id = $1 AND activity_id = $2",
     )
     .bind(principal_id)
     .bind(activity_id)

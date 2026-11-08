@@ -26,6 +26,7 @@ import { OriginalSharedTaskActivity } from './original-shared-task-activity';
 import { OriginalLearningSupportRequest } from './original-learning-support-request';
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
+import { OriginalLearningCompanionLauncher } from './original-learning-companion';
 
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
@@ -295,8 +296,9 @@ export function OriginalOpenPracticePage({
     >(null);
     const [pendingCheckIn, setPendingCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
-    const [hiddenCheckInActivitySlug, setHiddenCheckInActivitySlug] =
-        useState<string | null>(null);
+    const [hiddenCheckInActivitySlug, setHiddenCheckInActivitySlug] = useState<
+        string | null
+    >(null);
     const [restarting, setRestarting] = useState(false);
     const headingRef = useRef<HTMLHeadingElement>(null);
     const showConclusionButtonRef = useRef<HTMLButtonElement>(null);
@@ -428,11 +430,7 @@ export function OriginalOpenPracticePage({
 
     async function complete(
         transitionLabel?: string | null,
-        confidenceAfterFeedback?:
-            | 'exploring'
-            | 'leaning'
-            | 'settled'
-            | null,
+        confidenceAfterFeedback?: 'exploring' | 'leaning' | 'settled' | null,
     ): Promise<void> {
         if (state.kind !== 'loaded' || completing) {
             return;
@@ -562,54 +560,63 @@ export function OriginalOpenPracticePage({
                                                 .activity_type === 'review'
                                           ? 'Review'
                                           : state.document.activity
-                                                .activity_type === 'reflection'
-                                          ? 'Reflection'
-                                          : state.document.activity
                                                   .activity_type ===
-                                              'tool_grant'
-                                            ? 'Tool grant'
+                                              'reflection'
+                                            ? 'Reflection'
                                             : state.document.activity
                                                     .activity_type ===
-                                                'item_grant'
-                                              ? 'Item grant'
+                                                'tool_grant'
+                                              ? 'Tool grant'
                                               : state.document.activity
                                                       .activity_type ===
-                                                  'item_obstacle'
-                                                ? 'Item obstacle'
+                                                  'item_grant'
+                                                ? 'Item grant'
                                                 : state.document.activity
                                                         .activity_type ===
-                                                    'obstacle'
-                                                  ? 'Obstacle'
+                                                    'item_obstacle'
+                                                  ? 'Item obstacle'
                                                   : state.document.activity
                                                           .activity_type ===
-                                                      'markdown'
-                                                    ? 'Reading'
+                                                      'obstacle'
+                                                    ? 'Obstacle'
                                                     : state.document.activity
-                                                              .activity_type ===
-                                                      'message_prompt'
-                                                    ? (state.document.activity
-                                                          .config as {
-                                                          messageAudience?: unknown;
-                                                      }).messageAudience === 'peers'
-                                                      ? 'Learner messages'
-                                                      : 'Learning Support'
-                                                    : state.document.activity
-                                                              .activity_type ===
-                                                          'message_wall'
-                                                      ? 'Peer notes'
+                                                            .activity_type ===
+                                                        'markdown'
+                                                      ? 'Reading'
                                                       : state.document.activity
                                                               .activity_type ===
-                                                          'npc_dialogue'
-                                                      ? 'Dialogue'
-                                                      : state.document.activity
+                                                          'message_prompt'
+                                                        ? (
+                                                              state.document
+                                                                  .activity
+                                                                  .config as {
+                                                                  messageAudience?: unknown;
+                                                              }
+                                                          ).messageAudience ===
+                                                          'peers'
+                                                            ? 'Learner messages'
+                                                            : 'Learning Support'
+                                                        : state.document
+                                                                .activity
                                                                 .activity_type ===
-                                                            'shared_task'
-                                                        ? 'Shared task'
-                                                        : state.document.activity
+                                                            'message_wall'
+                                                          ? 'Peer notes'
+                                                          : state.document
+                                                                  .activity
                                                                   .activity_type ===
-                                                              'portal'
-                                                          ? 'Portal'
-                                                : 'Open practice'}
+                                                              'npc_dialogue'
+                                                            ? 'Dialogue'
+                                                            : state.document
+                                                                    .activity
+                                                                    .activity_type ===
+                                                                'shared_task'
+                                                              ? 'Shared task'
+                                                              : state.document
+                                                                      .activity
+                                                                      .activity_type ===
+                                                                  'portal'
+                                                                ? 'Portal'
+                                                                : 'Open practice'}
                                 </p>
                                 <h3
                                     className="mt-1 scroll-mt-4 rounded-sm text-base font-semibold text-[var(--learner-heading-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-page-background)]"
@@ -629,7 +636,7 @@ export function OriginalOpenPracticePage({
                             </div>
                         </div>
                         {state.document.activity.activity_type ===
-                          'question' ? (
+                        'question' ? (
                             <QuestionActivity
                                 activity={state.document.activity}
                                 key={`${state.document.play_run_id}:${state.document.activity.slug}`}
@@ -642,7 +649,7 @@ export function OriginalOpenPracticePage({
                                 }
                             />
                         ) : state.document.activity.activity_type ===
-                          'reflection' ||
+                              'reflection' ||
                           state.document.activity.activity_type === 'review' ? (
                             <ReflectionActivity
                                 activity={state.document.activity}
@@ -701,9 +708,11 @@ export function OriginalOpenPracticePage({
                             />
                         ) : state.document.activity.activity_type ===
                           'message_prompt' ? (
-                            (state.document.activity.config as {
-                                messageAudience?: unknown;
-                            }).messageAudience === 'peers' ? (
+                            (
+                                state.document.activity.config as {
+                                    messageAudience?: unknown;
+                                }
+                            ).messageAudience === 'peers' ? (
                                 <OriginalPeerMessagePrompt
                                     activity={state.document.activity}
                                     appearance={appearance}
@@ -777,7 +786,9 @@ export function OriginalOpenPracticePage({
                                     type="button"
                                 >
                                     <RotateCcw className="size-4" />
-                                    {restarting ? 'Starting again…' : 'From beginning'}
+                                    {restarting
+                                        ? 'Starting again…'
+                                        : 'From beginning'}
                                 </button>
                             </div>
                         ) : null}
@@ -786,7 +797,9 @@ export function OriginalOpenPracticePage({
                             pendingCheckIn.activity.slug ? (
                             <div className="absolute inset-0 z-30 overflow-hidden rounded-lg shadow-2xl">
                                 <OriginalLearningCheckIn
-                                    activityTitle={pendingCheckIn.activity.title}
+                                    activityTitle={
+                                        pendingCheckIn.activity.title
+                                    }
                                     checkIn={pendingCheckIn.activity.check_in}
                                     onContinue={continueAfterCheckIn}
                                     onHide={() =>
@@ -794,7 +807,9 @@ export function OriginalOpenPracticePage({
                                             pendingCheckIn.activity.slug,
                                         )
                                     }
-                                    transitionLabel={pendingCheckIn.transitionLabel}
+                                    transitionLabel={
+                                        pendingCheckIn.transitionLabel
+                                    }
                                 />
                             </div>
                         ) : null}
@@ -803,7 +818,9 @@ export function OriginalOpenPracticePage({
                             pendingCheckIn.activity.slug ? (
                             <button
                                 className="absolute top-3 right-3 z-30 rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-3 py-2 text-sm font-medium text-[var(--learner-body-text)] shadow-lg transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
-                                onClick={() => setHiddenCheckInActivitySlug(null)}
+                                onClick={() =>
+                                    setHiddenCheckInActivitySlug(null)
+                                }
                                 ref={showConclusionButtonRef}
                                 type="button"
                             >
@@ -827,6 +844,15 @@ export function OriginalOpenPracticePage({
                         state.document.activity.activity_type === 'obstacle'
                     }
                     tools={state.document.tools ?? []}
+                />
+            ) : null}
+            {state.kind === 'loaded' ? (
+                <OriginalLearningCompanionLauncher
+                    scope={{
+                        activityId: state.document.activity.id,
+                        mapSlug: state.document.context.map_slug,
+                        surface: 'activity',
+                    }}
                 />
             ) : null}
         </main>
@@ -857,11 +883,13 @@ function ReflectionActivity({
     const prompt = typeof config.prompt === 'string' ? config.prompt : '';
     const note = typeof config.note === 'string' ? config.note : '';
     const responseType =
-        config.learningIntent === 'explain' || config.learningIntent === 'transfer'
+        config.learningIntent === 'explain' ||
+        config.learningIntent === 'transfer'
             ? config.learningIntent
             : null;
     const isReview =
-        activity.activity_type === 'review' || config.learningIntent === 'review';
+        activity.activity_type === 'review' ||
+        config.learningIntent === 'review';
     const isTransfer = responseType === 'transfer';
     const independentCheckPrompt =
         responseType && guidance?.independentCheckPrompt
@@ -869,13 +897,13 @@ function ReflectionActivity({
             : null;
     const hasPostResponseGuidance = Boolean(
         (responseType || isReview) &&
-            guidance &&
-            (guidance.purpose ||
-                guidance.evidence ||
-                guidance.responseFeedback ||
-                guidance.nextAction ||
-                guidance.independentCheckPrompt ||
-                guidance.rubric.length),
+        guidance &&
+        (guidance.purpose ||
+            guidance.evidence ||
+            guidance.responseFeedback ||
+            guidance.nextAction ||
+            guidance.independentCheckPrompt ||
+            guidance.rubric.length),
     );
     const [reflection, setReflection] = useState('');
     const [responseContext, setResponseContext] = useState('');
@@ -926,7 +954,10 @@ function ReflectionActivity({
                           body: {
                               ...(confidence ? { confidence } : {}),
                               ...(confidenceAfterFeedback
-                                  ? { confidence_after_feedback: confidenceAfterFeedback }
+                                  ? {
+                                        confidence_after_feedback:
+                                            confidenceAfterFeedback,
+                                    }
                                   : {}),
                               ...(outcome ? { outcome } : {}),
                           },
@@ -1020,7 +1051,8 @@ function ReflectionActivity({
                             Response saved privately
                         </p>
                         <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
-                            Take a moment to compare your response with the observation guidance before you continue.
+                            Take a moment to compare your response with the
+                            observation guidance before you continue.
                         </p>
                     </div>
                 </div>
@@ -1034,7 +1066,9 @@ function ReflectionActivity({
                             {independentCheckPrompt}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
-                            Try a fresh response without looking back. This stays private and is recorded separately; you can continue without it.
+                            Try a fresh response without looking back. This
+                            stays private and is recorded separately; you can
+                            continue without it.
                         </p>
                         <label
                             className="mt-3 block text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
@@ -1047,7 +1081,9 @@ function ReflectionActivity({
                             disabled={independentResponseSaved}
                             id="activity-independent-response"
                             onChange={(event) =>
-                                setIndependentResponse(event.currentTarget.value)
+                                setIndependentResponse(
+                                    event.currentTarget.value,
+                                )
                             }
                             placeholder="Write what you can explain or apply on your own now."
                             value={independentResponse}
@@ -1080,7 +1116,8 @@ function ReflectionActivity({
                                 independentResponseSaved ||
                                 saving ||
                                 !independentResponse.trim() ||
-                                (isTransfer && !independentResponseContext.trim())
+                                (isTransfer &&
+                                    !independentResponseContext.trim())
                             }
                             onClick={() => void save(true)}
                             type="button"
@@ -1105,7 +1142,8 @@ function ReflectionActivity({
                             Compare your responses
                         </h3>
                         <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
-                            Notice what changed or stayed consistent. Both responses remain private.
+                            Notice what changed or stayed consistent. Both
+                            responses remain private.
                         </p>
                         <div className="mt-3 grid gap-3 md:grid-cols-2">
                             <ReflectionResponseComparison
@@ -1123,7 +1161,8 @@ function ReflectionActivity({
                         </div>
                     </section>
                 ) : null}
-                {independentResponseSaved && guidance?.independentCheckFeedback ? (
+                {independentResponseSaved &&
+                guidance?.independentCheckFeedback ? (
                     <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
                             After your independent check
@@ -1136,18 +1175,24 @@ function ReflectionActivity({
                 {responseType || isReview ? (
                     <fieldset className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <legend className="px-1 text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
-                            After comparing, how settled does this feel now? (optional)
+                            After comparing, how settled does this feel now?
+                            (optional)
                         </legend>
                         <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
-                            This is a reflection on your understanding, not a grade.
+                            This is a reflection on your understanding, not a
+                            grade.
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {reflectionConfidenceOptions.map((option) => (
                                 <button
-                                    aria-pressed={confidenceAfterFeedback === option.value}
+                                    aria-pressed={
+                                        confidenceAfterFeedback === option.value
+                                    }
                                     className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300"
                                     key={option.value}
-                                    onClick={() => setConfidenceAfterFeedback(option.value)}
+                                    onClick={() =>
+                                        setConfidenceAfterFeedback(option.value)
+                                    }
                                     type="button"
                                 >
                                     {option.label}
@@ -1156,14 +1201,24 @@ function ReflectionActivity({
                         </div>
                     </fieldset>
                 ) : null}
-                {error ? <p className="text-sm text-red-300" role="alert">{error}</p> : null}
+                {error ? (
+                    <p className="text-sm text-red-300" role="alert">
+                        {error}
+                    </p>
+                ) : null}
                 <p className="text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
                     This response stays in your private journal.
                 </p>
                 <button
                     className="mt-auto inline-flex h-9 items-center justify-center rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
                     disabled={saving}
-                    onClick={() => void complete().catch(() => setError('The activity could not continue. Try again.'))}
+                    onClick={() =>
+                        void complete().catch(() =>
+                            setError(
+                                'The activity could not continue. Try again.',
+                            ),
+                        )
+                    }
                     ref={postResponseContinueRef}
                     type="button"
                 >
@@ -1181,7 +1236,8 @@ function ReflectionActivity({
             </div>
             {isReview ? (
                 <p className="rounded-lg border border-cyan-500/20 bg-cyan-50 p-3 text-xs leading-5 text-cyan-900 dark:border-teal-200/20 dark:bg-teal-100/8 dark:text-teal-100">
-                    Return to the idea and notice what feels clearer, more connected, or still open.
+                    Return to the idea and notice what feels clearer, more
+                    connected, or still open.
                 </p>
             ) : null}
             {isReview && activity.review_context.length ? (
@@ -1190,7 +1246,8 @@ function ReflectionActivity({
                         Earlier notes from you
                     </p>
                     <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
-                        Look back if it helps. You can also write without comparing.
+                        Look back if it helps. You can also write without
+                        comparing.
                     </p>
                     <div className="mt-2 grid gap-2">
                         {activity.review_context.map((entry) => (
@@ -1199,7 +1256,8 @@ function ReflectionActivity({
                                 key={entry.id}
                             >
                                 <summary className="cursor-pointer text-xs font-medium text-cyan-900 dark:text-teal-100">
-                                    {formatReviewDate(entry.created_at)} · {entry.question}
+                                    {formatReviewDate(entry.created_at)} ·{' '}
+                                    {entry.question}
                                 </summary>
                                 <p className="mt-2 text-xs leading-5 whitespace-pre-wrap text-cyan-950/80 dark:text-teal-50/80">
                                     {entry.reflection}
@@ -1227,7 +1285,8 @@ function ReflectionActivity({
             {responseType ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                        How settled does your starting understanding feel? (optional)
+                        How settled does your starting understanding feel?
+                        (optional)
                     </legend>
                     <div className="mt-2 flex flex-wrap gap-2">
                         {reflectionConfidenceOptions.map((option) => (
@@ -1253,7 +1312,9 @@ function ReflectionActivity({
                 </label>
             ) : null}
             <textarea
-                aria-describedby={responseType ? 'activity-response-help' : undefined}
+                aria-describedby={
+                    responseType ? 'activity-response-help' : undefined
+                }
                 className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
                 id="activity-reflection-response"
                 onChange={(event) => setReflection(event.currentTarget.value)}
@@ -1264,7 +1325,7 @@ function ReflectionActivity({
                           ? 'Write the idea in your own words.'
                           : isReview
                             ? 'Write what feels clearer or still open.'
-                          : 'Write a short note for yourself.'
+                            : 'Write a short note for yourself.'
                 }
                 value={reflection}
             />
@@ -1306,8 +1367,24 @@ function ReflectionActivity({
                         {guidance.rubric.map((cue) => {
                             const checked = observedCues.includes(cue);
                             return (
-                                <label className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-white/60 px-2.5 py-2 text-xs leading-5 text-slate-600 dark:border-white/10 dark:bg-slate-950/20 dark:text-slate-300" key={cue}>
-                                    <input checked={checked} onChange={() => setObservedCues((current) => checked ? current.filter((value) => value !== cue) : [...current, cue])} type="checkbox" />
+                                <label
+                                    className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-white/60 px-2.5 py-2 text-xs leading-5 text-slate-600 dark:border-white/10 dark:bg-slate-950/20 dark:text-slate-300"
+                                    key={cue}
+                                >
+                                    <input
+                                        checked={checked}
+                                        onChange={() =>
+                                            setObservedCues((current) =>
+                                                checked
+                                                    ? current.filter(
+                                                          (value) =>
+                                                              value !== cue,
+                                                      )
+                                                    : [...current, cue],
+                                            )
+                                        }
+                                        type="checkbox"
+                                    />
                                     <span>{cue}</span>
                                 </label>
                             );
@@ -1318,7 +1395,8 @@ function ReflectionActivity({
             {isReview ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                        After your response, how settled does this feel before comparing with the guidance? (optional)
+                        After your response, how settled does this feel before
+                        comparing with the guidance? (optional)
                     </legend>
                     <div
                         aria-label="After your response, how settled does this feel before comparing with the guidance? (optional)"
@@ -1384,7 +1462,11 @@ function ReflectionActivity({
             ) : null}
             <button
                 className="mt-auto inline-flex h-9 items-center justify-center rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-                disabled={saving || reflection.trim().length === 0 || (isTransfer && !responseContext.trim())}
+                disabled={
+                    saving ||
+                    reflection.trim().length === 0 ||
+                    (isTransfer && !responseContext.trim())
+                }
                 onClick={() => void save()}
                 type="button"
             >
@@ -1426,7 +1508,9 @@ const reviewOutcomeOptions: Array<{
     { label: 'Still open', value: 'open' },
 ];
 
-function reviewOutcomeDescription(outcome: 'clearer' | 'connected' | 'open'): string {
+function reviewOutcomeDescription(
+    outcome: 'clearer' | 'connected' | 'open',
+): string {
     return {
         clearer: 'The idea feels easier to explain or use now.',
         connected: 'A relationship or context is more visible now.',
@@ -1470,8 +1554,8 @@ function asReflectionGuidance(value: unknown): ReflectionGuidance | null {
         responseFeedback: text('responseFeedback'),
         rubric,
     };
-    return Object.values(normalized).some(
-        (entry) => Array.isArray(entry) ? entry.length > 0 : entry !== null,
+    return Object.values(normalized).some((entry) =>
+        Array.isArray(entry) ? entry.length > 0 : entry !== null,
     )
         ? normalized
         : null;
@@ -1521,16 +1605,27 @@ function ReflectionGuidance({ guidance }: { guidance: ReflectionGuidance }) {
     return (
         <>
             {entries.map(([label, value]) => (
-                <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20" key={label}>
-                    <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">{label}</p>
-                    <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">{value}</p>
+                <div
+                    className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20"
+                    key={label}
+                >
+                    <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                        {label}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                        {value}
+                    </p>
                 </div>
             ))}
             {guidance.rubric.length ? (
                 <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
-                    <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">Observable cues</p>
+                    <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                        Observable cues
+                    </p>
                     <ul className="mt-1 grid gap-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
-                        {guidance.rubric.map((cue) => <li key={cue}>{cue}</li>)}
+                        {guidance.rubric.map((cue) => (
+                            <li key={cue}>{cue}</li>
+                        ))}
                     </ul>
                 </div>
             ) : null}
@@ -1669,7 +1764,8 @@ function QuestionActivity({
                         },
                     },
                 );
-                if (!response.ok || !data) throw new Error('queue recall failed');
+                if (!response.ok || !data)
+                    throw new Error('queue recall failed');
                 setRecallItemId(data.recall_item_id);
             }
         } catch {
@@ -1781,7 +1877,8 @@ function QuestionActivity({
                             <span className="normal-case"> (optional)</span>
                         </legend>
                         <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                            This is a reflection on your understanding, not a grade.
+                            This is a reflection on your understanding, not a
+                            grade.
                         </p>
                         <div
                             aria-label="After comparing, how settled does this feel now?"
@@ -1819,7 +1916,10 @@ function QuestionActivity({
                             onClick={() => void toggleRecall()}
                             type="button"
                         >
-                            <Bookmark aria-hidden="true" className="mr-2 size-4" />
+                            <Bookmark
+                                aria-hidden="true"
+                                className="mr-2 size-4"
+                            />
                             {recallItemId
                                 ? 'Remove from recall queue'
                                 : 'Keep for later recall'}
@@ -1830,8 +1930,13 @@ function QuestionActivity({
                                 : 'Save this question when you want to return to it without changing your route.'}
                         </p>
                         {recallError ? (
-                            <p aria-live="polite" className="mt-2 text-xs text-red-600 dark:text-red-300" role="status">
-                                This recall choice could not be saved. Try again.
+                            <p
+                                aria-live="polite"
+                                className="mt-2 text-xs text-red-600 dark:text-red-300"
+                                role="status"
+                            >
+                                This recall choice could not be saved. Try
+                                again.
                             </p>
                         ) : null}
                     </div>

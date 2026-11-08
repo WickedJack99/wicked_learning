@@ -31,6 +31,7 @@ import type { OriginalAppearance } from './original-appearance';
 import { OriginalJournalOverlay } from './original-journal';
 import { OriginalGroupControl } from './original-group-control';
 import { OriginalToolBelt } from './original-tool-belt';
+import { OriginalLearningCompanionLauncher } from './original-learning-companion';
 import { resolveOriginalWorldTheme } from './original-world-theme';
 import { useLearnerSoundPreferences } from './learner-sound-preferences';
 
@@ -384,7 +385,11 @@ function PublicWorldSurface({
                         },
                     },
                 );
-                if (response.ok && data && (data.discovered || data.is_unlocked)) {
+                if (
+                    response.ok &&
+                    data &&
+                    (data.discovered || data.is_unlocked)
+                ) {
                     onRefresh();
                 }
                 return response.ok && data?.is_unlocked === true;
@@ -436,6 +441,12 @@ function PublicWorldSurface({
                 theme={selectedMapTheme!}
                 world={world}
             />
+
+            {isAuthenticated ? (
+                <OriginalLearningCompanionLauncher
+                    scope={{ mapSlug: selectedMap.slug, surface: 'world' }}
+                />
+            ) : null}
 
             {isAuthenticated ? (
                 <OriginalToolBelt
@@ -578,18 +589,22 @@ function WorldNavigation({
                     style={{ borderColor: 'var(--learner-border-color)' }}
                 >
                     {learnerNavigationItems.map((item) => {
-                        const active = item.href === '/home'
-                            ? location.pathname === item.href
-                            : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+                        const active =
+                            item.href === '/home'
+                                ? location.pathname === item.href
+                                : location.pathname === item.href ||
+                                  location.pathname.startsWith(`${item.href}/`);
 
-                        return <Link
-                            aria-current={active ? 'page' : undefined}
-                            className={`relative inline-flex shrink-0 items-center gap-2 px-2 py-3 text-sm transition hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none xl:py-[1.35rem] 2xl:px-3 ${active ? 'text-[var(--learner-heading-text)] after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-[var(--learner-accent)]' : 'text-[var(--learner-muted-text)]'}`}
-                            key={item.href}
-                            to={item.href}
-                        >
-                            {item.label}
-                        </Link>;
+                        return (
+                            <Link
+                                aria-current={active ? 'page' : undefined}
+                                className={`relative inline-flex shrink-0 items-center gap-2 px-2 py-3 text-sm transition hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none xl:py-[1.35rem] 2xl:px-3 ${active ? 'text-[var(--learner-heading-text)] after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-[var(--learner-accent)]' : 'text-[var(--learner-muted-text)]'}`}
+                                key={item.href}
+                                to={item.href}
+                            >
+                                {item.label}
+                            </Link>
+                        );
                     })}
                 </nav>
                 {isAuthenticated && userEmail ? (
@@ -600,7 +615,9 @@ function WorldNavigation({
                             aria-label="Journal"
                             className="grid size-10 place-items-center rounded-lg border bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)] hover:text-[var(--learner-heading-text)]"
                             onClick={() => setIsJournalOpen(true)}
-                            style={{ borderColor: 'var(--learner-border-color)' }}
+                            style={{
+                                borderColor: 'var(--learner-border-color)',
+                            }}
                             type="button"
                         >
                             <NotebookPen className="size-4" />
@@ -611,7 +628,9 @@ function WorldNavigation({
                             aria-label="Open user menu"
                             className="flex h-10 items-center gap-2 rounded-lg border bg-[var(--learner-panel-background)] px-2.5 text-[var(--learner-heading-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)]"
                             onClick={() => setIsUserMenuOpen((open) => !open)}
-                            style={{ borderColor: 'var(--learner-border-color)' }}
+                            style={{
+                                borderColor: 'var(--learner-border-color)',
+                            }}
                             type="button"
                         >
                             <span className="grid size-7 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">
@@ -718,15 +737,17 @@ function PublicMapSurface({
     const soundPreferences = useLearnerSoundPreferences();
     const interactionAudio = useRef<HTMLAudioElement | null>(null);
     const playInteractionSound = useCallback(
-        (visualConfig: Record<string, unknown>, trigger: MapAssetSoundTrigger) => {
+        (
+            visualConfig: Record<string, unknown>,
+            trigger: MapAssetSoundTrigger,
+        ) => {
             const sound = mapAssetInteractionSound(visualConfig, trigger);
             if (!sound || soundPreferences.muted) return;
             interactionAudio.current?.pause();
             const audio = new Audio(sound.url);
-            audio.volume = Math.max(
-                0,
-                Math.min(100, soundPreferences.effects_volume),
-            ) / 100;
+            audio.volume =
+                Math.max(0, Math.min(100, soundPreferences.effects_volume)) /
+                100;
             interactionAudio.current = audio;
             void audio.play().catch(() => undefined);
         },
@@ -892,11 +913,11 @@ function PublicMapSurface({
                     const selected = node?.slug === selectedNode?.slug;
                     const isBookmarked = Boolean(
                         node &&
-                            bookmarkedNodes.some(
-                                (bookmark) =>
-                                    bookmark.map_slug === map.slug &&
-                                    bookmark.node_slug === node.slug,
-                            ),
+                        bookmarkedNodes.some(
+                            (bookmark) =>
+                                bookmark.map_slug === map.slug &&
+                                bookmark.node_slug === node.slug,
+                        ),
                     );
                     const isCompleted = Boolean(
                         node && completedNodeSlugs.has(node.slug),
@@ -991,7 +1012,7 @@ function PublicMapSurface({
                                         (node.state === 'locked' ||
                                             node.state === 'hidden')
                                       ? `Use ${selectedTool.title} on ${label}`
-                                    : `${label}, ${node?.state === 'locked' ? 'locked' : 'open location'}`
+                                      : `${label}, ${node?.state === 'locked' ? 'locked' : 'open location'}`
                             }
                             aria-pressed={canToggle ? isToggled : undefined}
                             className={`pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none ${isHidden ? 'pointer-events-none' : ''}`}
@@ -1006,7 +1027,10 @@ function PublicMapSurface({
                             key={asset.slug}
                             onClick={(event) => {
                                 event.stopPropagation();
-                                playInteractionSound(node?.visual_config ?? asset.visual_config, 'click');
+                                playInteractionSound(
+                                    node?.visual_config ?? asset.visual_config,
+                                    'click',
+                                );
                                 if (canToggle) {
                                     setToggledAssetSlugs((current) =>
                                         current.includes(asset.slug)
@@ -1025,7 +1049,8 @@ function PublicMapSurface({
                                             (unlocked) => {
                                                 if (unlocked) {
                                                     playInteractionSound(
-                                                        node?.visual_config ?? asset.visual_config,
+                                                        node?.visual_config ??
+                                                            asset.visual_config,
                                                         'unlock',
                                                     );
                                                 }
@@ -1461,7 +1486,6 @@ function NodeDrawer({
     swipe: PanelSwipe | null;
     theme: Record<string, unknown>;
 }) {
-
     return (
         <aside
             aria-label="Selected learning place"

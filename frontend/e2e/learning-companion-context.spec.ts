@@ -1,9 +1,14 @@
 import { expect, test } from '@playwright/test';
 
-test('a learner receives bounded authored, active-run, and completed companion context', async ({ page }) => {
+test('a learner receives bounded authored, active-run, and completed companion context', async ({
+    page,
+}) => {
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable local administrator');
+    test.skip(
+        !email || !password,
+        'requires the disposable local administrator',
+    );
 
     await page.goto('/login');
     await page.getByLabel('Email address').fill(email!);
@@ -18,21 +23,29 @@ test('a learner receives bounded authored, active-run, and completed companion c
         Origin: new URL(page.url()).origin,
         'X-CSRF-Token': token,
     };
-    const settingsResponse = await page.request.get('/api/v1/admin/learning-companion');
+    const settingsResponse = await page.request.get(
+        '/api/v1/admin/learning-companion',
+    );
     expect(settingsResponse.status()).toBe(200);
     const originalSettings = await settingsResponse.json();
 
     try {
-        const enabled = await page.request.patch('/api/v1/admin/learning-companion', {
-            data: { ...originalSettings, enabled: true },
-            headers,
-        });
+        const enabled = await page.request.patch(
+            '/api/v1/admin/learning-companion',
+            {
+                data: { ...originalSettings, enabled: true },
+                headers,
+            },
+        );
         expect(enabled.status()).toBe(200);
 
-        const created = await page.request.post('/api/v1/admin/learning-companion/dialogues', {
-            data: { name: `World context dialogue ${Date.now()}` },
-            headers,
-        });
+        const created = await page.request.post(
+            '/api/v1/admin/learning-companion/dialogues',
+            {
+                data: { name: `World context dialogue ${Date.now()}` },
+                headers,
+            },
+        );
         expect(created.status()).toBe(201);
         const dialogue = (await created.json()) as { id: string };
 
@@ -44,7 +57,9 @@ test('a learner receives bounded authored, active-run, and completed companion c
             const assignmentPage = (await assignments.json()) as {
                 items: Array<{ scope_id: string; scope_type: string }>;
             };
-            const activity = assignmentPage.items.find((item) => item.scope_type === 'activity');
+            const activity = assignmentPage.items.find(
+                (item) => item.scope_type === 'activity',
+            );
             expect(activity).toBeDefined();
 
             const saved = await page.request.put(
@@ -70,10 +85,14 @@ test('a learner receives bounded authored, active-run, and completed companion c
 
         const activityContextDialogue = await page.request.post(
             '/api/v1/admin/learning-companion/dialogues',
-            { data: { name: `Activity context dialogue ${Date.now()}` }, headers },
+            {
+                data: { name: `Activity context dialogue ${Date.now()}` },
+                headers,
+            },
         );
         expect(activityContextDialogue.status()).toBe(201);
-        const activityContextDialogueId = (await activityContextDialogue.json()) as { id: string };
+        const activityContextDialogueId =
+            (await activityContextDialogue.json()) as { id: string };
 
         try {
             const assignments = await page.request.get(
@@ -81,15 +100,25 @@ test('a learner receives bounded authored, active-run, and completed companion c
             );
             expect(assignments.status()).toBe(200);
             const assignmentPage = (await assignments.json()) as {
-                items: Array<{ label: string; scope_id: string; scope_type: string }>;
+                items: Array<{
+                    label: string;
+                    scope_id: string;
+                    scope_type: string;
+                }>;
             };
-            const activity = assignmentPage.items.find((item) => item.scope_type === 'activity');
+            const activity = assignmentPage.items.find(
+                (item) => item.scope_type === 'activity',
+            );
             expect(activity).toBeDefined();
 
             const world = await page.request.get('/api/v1/learner/world');
             expect(world.status()).toBe(200);
             const worldDocument = (await world.json()) as {
-                start_routes: Array<{ activity_slug: string; start_id: string }>;
+                start_routes: Array<{
+                    activity_slug: string;
+                    node_slug: string;
+                    start_id: string;
+                }>;
             };
             const start = worldDocument.start_routes.find(
                 (candidate) => candidate.activity_slug === 'find-your-place',
@@ -107,9 +136,14 @@ test('a learner receives bounded authored, active-run, and completed companion c
             );
             expect(started.status()).toBe(200);
             const run = (await started.json()) as { play_run_id: string };
-            const playback = await page.request.get(`/api/v1/learner/play-runs/${run.play_run_id}`);
+            const playback = await page.request.get(
+                `/api/v1/learner/play-runs/${run.play_run_id}`,
+            );
             expect(playback.status()).toBe(200);
-            const playbackDocument = (await playback.json()) as { activity: { slug: string } };
+            const playbackDocument = (await playback.json()) as {
+                activity: { id: string; slug: string };
+            };
+            expect(playbackDocument.activity.id).toBe(activity!.scope_id);
 
             const activeCompanion = await page.request.get(
                 `/api/v1/learner/companion?surface=activity&activity_id=${activity!.scope_id}`,
@@ -122,7 +156,21 @@ test('a learner receives bounded authored, active-run, and completed companion c
                     route: { id: start!.start_id },
                 },
             });
-            expect(typeof activePayload.context.post_attempt_available).toBe('boolean');
+            expect(typeof activePayload.context.post_attempt_available).toBe(
+                'boolean',
+            );
+
+            await page.goto(
+                `/learning/nodes/${encodeURIComponent(start!.node_slug)}/play?run=${encodeURIComponent(run.play_run_id)}`,
+            );
+            const launcher = page.locator(
+                '[data-wl-id="learner.companion.launcher"]',
+            );
+            await expect(launcher).toBeVisible();
+            await launcher.click();
+            await expect(
+                page.locator('[data-wl-id="learner.companion.panel"]'),
+            ).toBeVisible();
 
             const completed = await page.request.post(
                 `/api/v1/learner/play-runs/${run.play_run_id}/activities/${playbackDocument.activity.slug}/complete`,
@@ -143,10 +191,13 @@ test('a learner receives bounded authored, active-run, and completed companion c
             );
         }
     } finally {
-        const restored = await page.request.patch('/api/v1/admin/learning-companion', {
-            data: originalSettings,
-            headers,
-        });
+        const restored = await page.request.patch(
+            '/api/v1/admin/learning-companion',
+            {
+                data: originalSettings,
+                headers,
+            },
+        );
         expect(restored.status()).toBe(200);
     }
 });

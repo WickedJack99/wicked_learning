@@ -27,6 +27,7 @@ import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
 import { OriginalWorldBuilderPage } from './original-world-builder';
+import { OriginalLearningCompanionLauncher } from './original-learning-companion';
 import {
     PublicInformationPage,
     PublicSourceCodePage,
@@ -310,19 +311,35 @@ export function App() {
         );
     }
 
-    const accessLinkMatch = location.pathname.match(/^\/access-links\/([^/]+)$/);
+    const accessLinkMatch = location.pathname.match(
+        /^\/access-links\/([^/]+)$/,
+    );
     if (accessLinkMatch) {
         const token = decodeURIComponent(accessLinkMatch[1]);
-        return <Suspense fallback={null}><OriginalAccessLinkRedeemPage token={token} isAuthenticated={currentUser.kind === 'loaded'} /></Suspense>;
+        return (
+            <Suspense fallback={null}>
+                <OriginalAccessLinkRedeemPage
+                    token={token}
+                    isAuthenticated={currentUser.kind === 'loaded'}
+                />
+            </Suspense>
+        );
     }
 
     if (location.pathname === '/bookmarks') {
         return (
-            <OriginalBookmarksPage
-                appearance={appearance}
-                isAuthenticationLoading={currentUser.kind === 'loading'}
-                isAuthenticated={currentUser.kind === 'loaded'}
-            />
+            <>
+                <OriginalBookmarksPage
+                    appearance={appearance}
+                    isAuthenticationLoading={currentUser.kind === 'loading'}
+                    isAuthenticated={currentUser.kind === 'loaded'}
+                />
+                {currentUser.kind === 'loaded' ? (
+                    <OriginalLearningCompanionLauncher
+                        scope={{ surface: 'desk' }}
+                    />
+                ) : null}
+            </>
         );
     }
 
@@ -339,31 +356,23 @@ export function App() {
         }
 
         return (
-            <OriginalRecallDeskPage
-                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
-                userEmail={currentUser.email}
-                userSubjectId={currentUser.subjectId}
-            />
+            <>
+                <OriginalRecallDeskPage
+                    onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                    userEmail={currentUser.email}
+                    userSubjectId={currentUser.subjectId}
+                />
+                <OriginalLearningCompanionLauncher
+                    scope={{ surface: 'desk' }}
+                />
+            </>
         );
     }
 
     if (location.pathname === '/paths') {
         return (
-            <OriginalPathsPage
-                isAuthenticationLoading={currentUser.kind === 'loading'}
-                isAuthenticated={currentUser.kind === 'loaded'}
-                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
-                userEmail={
-                    currentUser.kind === 'loaded' ? currentUser.email : ''
-                }
-            />
-        );
-    }
-
-    if (location.pathname === '/competence') {
-        return (
-            <Suspense fallback={null}>
-                <OriginalCompetencePage
+            <>
+                <OriginalPathsPage
                     isAuthenticationLoading={currentUser.kind === 'loading'}
                     isAuthenticated={currentUser.kind === 'loaded'}
                     onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
@@ -371,7 +380,38 @@ export function App() {
                         currentUser.kind === 'loaded' ? currentUser.email : ''
                     }
                 />
-            </Suspense>
+                {currentUser.kind === 'loaded' ? (
+                    <OriginalLearningCompanionLauncher
+                        scope={{ surface: 'desk' }}
+                    />
+                ) : null}
+            </>
+        );
+    }
+
+    if (location.pathname === '/competence') {
+        return (
+            <>
+                <Suspense fallback={null}>
+                    <OriginalCompetencePage
+                        isAuthenticationLoading={currentUser.kind === 'loading'}
+                        isAuthenticated={currentUser.kind === 'loaded'}
+                        onSignedOut={() =>
+                            setCurrentUser({ kind: 'anonymous' })
+                        }
+                        userEmail={
+                            currentUser.kind === 'loaded'
+                                ? currentUser.email
+                                : ''
+                        }
+                    />
+                </Suspense>
+                {currentUser.kind === 'loaded' ? (
+                    <OriginalLearningCompanionLauncher
+                        scope={{ surface: 'desk' }}
+                    />
+                ) : null}
+            </>
         );
     }
 
@@ -380,14 +420,21 @@ export function App() {
         /^\/topics\/[^/]+$/.test(location.pathname)
     ) {
         return (
-            <OriginalTopicsPage
-                isAuthenticationLoading={currentUser.kind === 'loading'}
-                isAuthenticated={currentUser.kind === 'loaded'}
-                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
-                userEmail={
-                    currentUser.kind === 'loaded' ? currentUser.email : ''
-                }
-            />
+            <>
+                <OriginalTopicsPage
+                    isAuthenticationLoading={currentUser.kind === 'loading'}
+                    isAuthenticated={currentUser.kind === 'loaded'}
+                    onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                    userEmail={
+                        currentUser.kind === 'loaded' ? currentUser.email : ''
+                    }
+                />
+                {currentUser.kind === 'loaded' ? (
+                    <OriginalLearningCompanionLauncher
+                        scope={{ surface: 'desk' }}
+                    />
+                ) : null}
+            </>
         );
     }
 
@@ -411,7 +458,9 @@ export function App() {
         );
     }
 
-    const passwordResetMatch = location.pathname.match(/^\/reset-password\/([^/]+)$/);
+    const passwordResetMatch = location.pathname.match(
+        /^\/reset-password\/([^/]+)$/,
+    );
     if (passwordResetMatch) {
         return (
             <OriginalResetPasswordPage
@@ -508,20 +557,31 @@ export function App() {
         );
     }
 
-    const organizationMatch = location.pathname.match(/^\/organizations\/([^/]+)$/);
+    const organizationMatch = location.pathname.match(
+        /^\/organizations\/([^/]+)$/,
+    );
     if (location.pathname === '/organizations' || organizationMatch) {
         return (
-            <OriginalOrganizationsPage
-                isAuthenticated={currentUser.kind === 'loaded'}
-                isAuthenticationLoading={currentUser.kind === 'loading'}
-                onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
-                userEmail={currentUser.kind === 'loaded' ? currentUser.email : ''}
-                slug={
-                    organizationMatch
-                        ? decodeURIComponent(organizationMatch[1])
-                        : undefined
-                }
-            />
+            <>
+                <OriginalOrganizationsPage
+                    isAuthenticated={currentUser.kind === 'loaded'}
+                    isAuthenticationLoading={currentUser.kind === 'loading'}
+                    onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                    userEmail={
+                        currentUser.kind === 'loaded' ? currentUser.email : ''
+                    }
+                    slug={
+                        organizationMatch
+                            ? decodeURIComponent(organizationMatch[1])
+                            : undefined
+                    }
+                />
+                {currentUser.kind === 'loaded' ? (
+                    <OriginalLearningCompanionLauncher
+                        scope={{ surface: 'desk' }}
+                    />
+                ) : null}
+            </>
         );
     }
 
@@ -563,36 +623,81 @@ export function App() {
             new URLSearchParams(location.search).get('panel') ===
             'admin-ai-integrations'
         ) {
-            return <Suspense fallback={null}><OriginalAiSettingsPage appearance={appearance} /></Suspense>;
+            return (
+                <Suspense fallback={null}>
+                    <OriginalAiSettingsPage appearance={appearance} />
+                </Suspense>
+            );
         }
 
-        if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'cursors') {
-            return <Suspense fallback={null}><OriginalCursorSettingsPage appearance={appearance} /></Suspense>;
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-assets' &&
+            new URLSearchParams(location.search).get('asset') === 'cursors'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalCursorSettingsPage appearance={appearance} />
+                </Suspense>
+            );
         }
-        if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'sounds') {
-            return <Suspense fallback={null}><OriginalSoundLibraryPage /></Suspense>;
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-assets' &&
+            new URLSearchParams(location.search).get('asset') === 'sounds'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalSoundLibraryPage />
+                </Suspense>
+            );
         }
-        if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'dialogue-sounds') {
-            return <Suspense fallback={null}><OriginalDialogueTypingSoundSetsPage /></Suspense>;
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-assets' &&
+            new URLSearchParams(location.search).get('asset') ===
+                'dialogue-sounds'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalDialogueTypingSoundSetsPage />
+                </Suspense>
+            );
         }
-        if (new URLSearchParams(location.search).get('panel') === 'admin-assets') {
-            return <Suspense fallback={null}><OriginalMediaLibraryPage /></Suspense>;
+        if (
+            new URLSearchParams(location.search).get('panel') === 'admin-assets'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalMediaLibraryPage />
+                </Suspense>
+            );
         }
 
         if (
             new URLSearchParams(location.search).get('panel') ===
                 'admin-presentation-localization' &&
-            new URLSearchParams(location.search).get('presentation') === 'palette'
+            new URLSearchParams(location.search).get('presentation') ===
+                'palette'
         ) {
-            return <Suspense fallback={null}><OriginalPublicPalettePage appearance={appearance} /></Suspense>;
+            return (
+                <Suspense fallback={null}>
+                    <OriginalPublicPalettePage appearance={appearance} />
+                </Suspense>
+            );
         }
 
         if (
             new URLSearchParams(location.search).get('panel') ===
-            'admin-presentation-localization' &&
-            new URLSearchParams(location.search).get('presentation') === 'public'
+                'admin-presentation-localization' &&
+            new URLSearchParams(location.search).get('presentation') ===
+                'public'
         ) {
-            return <Suspense fallback={null}><OriginalPublicPresentationPage appearance={appearance} /></Suspense>;
+            return (
+                <Suspense fallback={null}>
+                    <OriginalPublicPresentationPage appearance={appearance} />
+                </Suspense>
+            );
         }
 
         if (usersPanel) {
@@ -607,7 +712,11 @@ export function App() {
         }
 
         if (rolesPanel) {
-            return <Suspense fallback={null}><OriginalAdminRolesPage appearance={appearance} /></Suspense>;
+            return (
+                <Suspense fallback={null}>
+                    <OriginalAdminRolesPage appearance={appearance} />
+                </Suspense>
+            );
         }
 
         if (groupPanel) {
@@ -619,13 +728,18 @@ export function App() {
         }
 
         const accessLinksPanel =
-            new URLSearchParams(location.search).get('panel') === 'admin-access' &&
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-access' &&
             new URLSearchParams(location.search).get('access') === 'links';
         if (accessLinksPanel) {
             if (!currentUser.capabilities.includes('access_links_manage')) {
                 return <Navigate replace to="/home" />;
             }
-            return <Suspense fallback={null}><OriginalAccessLinksPage appearance={appearance} /></Suspense>;
+            return (
+                <Suspense fallback={null}>
+                    <OriginalAccessLinksPage appearance={appearance} />
+                </Suspense>
+            );
         }
 
         if (
@@ -644,9 +758,7 @@ export function App() {
             new URLSearchParams(location.search).get('support') ===
                 'platform-feedback'
         ) {
-            if (
-                !currentUser.capabilities.includes('platform_feedback_view')
-            ) {
+            if (!currentUser.capabilities.includes('platform_feedback_view')) {
                 return <Navigate replace to="/home" />;
             }
 
@@ -667,10 +779,20 @@ export function App() {
             new URLSearchParams(location.search).get('support') ===
                 'organization-icons'
         ) {
-            if (!currentUser.capabilities.includes('organization_icons_moderate')) {
+            if (
+                !currentUser.capabilities.includes(
+                    'organization_icons_moderate',
+                )
+            ) {
                 return <Navigate replace to="/home" />;
             }
-            return <Suspense fallback={null}><OriginalOrganizationIconModerationPage appearance={appearance} /></Suspense>;
+            return (
+                <Suspense fallback={null}>
+                    <OriginalOrganizationIconModerationPage
+                        appearance={appearance}
+                    />
+                </Suspense>
+            );
         }
 
         if (
@@ -797,8 +919,17 @@ export function App() {
             return <Navigate replace to="/home" />;
         }
 
-        if (new URLSearchParams(location.search).get('support') === 'support-signals') {
-            return <Suspense fallback={null}><OriginalLearningSupportSignalsPage appearance={appearance} /></Suspense>;
+        if (
+            new URLSearchParams(location.search).get('support') ===
+            'support-signals'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalLearningSupportSignalsPage
+                        appearance={appearance}
+                    />
+                </Suspense>
+            );
         }
 
         return (

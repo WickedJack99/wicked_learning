@@ -794,6 +794,9 @@ pub struct LearnerPlaybackContext {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerPlaybackActivity {
+    /// The already-authorized activity identity is needed only to resolve the
+    /// companion's server-owned activity context for this same play run.
+    pub id: String,
     pub slug: String,
     pub title: String,
     pub description: String,

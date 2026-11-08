@@ -6390,6 +6390,8 @@ export interface components {
             route_label: string | null;
         };
         LearnerPlaybackActivity: {
+            /** Format: uuid */
+            id: string;
             slug: string;
             title: string;
             description: string;

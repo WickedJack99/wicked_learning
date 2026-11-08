@@ -8702,8 +8702,11 @@ components:
     LearnerPlaybackActivity:
       type: object
       additionalProperties: false
-      required: [slug, title, description, activity_type, config, sounds, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue, portal, shared_task]
+      required: [id, slug, title, description, activity_type, config, sounds, completion, question_feedback, recall_item_id, check_in, review_context, npc_dialogue, portal, shared_task]
       properties:
+        id:
+          type: string
+          format: uuid
         slug:
           type: string
           pattern: '^[a-z0-9-]+$'

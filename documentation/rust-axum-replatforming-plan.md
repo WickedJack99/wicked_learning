@@ -1547,8 +1547,9 @@ to up to 100 worlds, maps, nodes or activities. The assignment target list and
 writer both intersect the caller's companion permission with the relevant map,
 node or activity authoring scope, including direct map editing groups. This is
 dialogue authoring only: scope-configuration authoring, learner context/action
-projections and the source-adapted settings/launcher UI remain later slices in
-the agreed backend-first sequence. Guarded provider turns are defined below.
+projections and the source-adapted settings UI remain later slices in the
+agreed backend-first sequence. Guarded provider turns and the learner launcher
+are defined below.
 
 ### Learning Companion learner context backend slice — 8 November 2026
 
@@ -1567,8 +1568,8 @@ inaccessible map or unplayable activity returns no companion. For an active
 activity it also reads the matching server-owned route run and route start, and
 independently exposes completed-activity eligibility for bounded post-attempt
 assistance; neither value comes from a browser parameter. Scope-configuration
-authoring and the source-adapted launcher remain later slices. The guarded
-provider-turn command is defined below.
+authoring remains a later slice. The guarded provider-turn command and
+source-adapted launcher are defined below.
 
 ### Learning Companion scoped-configuration transfer slice — 8 November 2026
 
@@ -1581,9 +1582,9 @@ references. Standalone MapAsset transfer preserves only node/activity scope,
 matching its ownership boundary. The browser round trip exports a disposable
 map, adds distinct map/node/activity values to the manifest, preflights and
 imports it, then asserts the World export retained all three. This is
-transfer integrity only: scope-configuration authoring, activity-history and
-template snapshot parity and the lifted launcher remain later slices. Guarded
-provider turns are defined below.
+transfer integrity only: scope-configuration authoring and activity-history
+and template snapshot parity remain later slices. Guarded provider turns and
+the lifted launcher are defined below.
 
 ### Learning Companion activity-snapshot retention slice — 8 November 2026
 
@@ -1595,8 +1596,7 @@ restore keep the same object and their existing media-reference traversal.
 Malformed legacy snapshot values fall back safely to an empty object. This
 keeps established rollback and reuse workflows from silently discarding a
 learner-context override without creating a configuration editor, applying a
-template's value to a new activity, invoking a provider or lifting the learner
-launcher.
+template's value to a new activity or invoking a provider.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
@@ -1616,7 +1616,27 @@ accepted. One successful provider call returns bounded plain text with the
 source disclosure. Question/hint help is recorded only against the active
 activity run and replaces independent completion evidence with the recorded
 support level; post-attempt support never rewrites earlier evidence. The
-separate source-adapted launcher remains a later frontend slice.
+source-adapted launcher that invokes this boundary is defined below.
+
+### Learning Companion learner launcher slice — 9 November 2026
+
+The standalone React frontend now lifts the source Learning Companion launcher
+and local dialogue traversal onto the existing learner desk, World map,
+bookmarks, paths, competence, topics, organisations and activity-player
+surfaces. It fetches only the server-owned companion projection, opens only
+for authenticated learners when that projection is available, and uses the
+source visual framing values for the companion avatar. The World placement sits
+beside the desktop map-search control; the other source surfaces retain the
+lower-left launcher. Message, choice and end nodes retain their transient
+Back/Restart traversal, while navigation choices resolve only to the bounded
+server-generated actions. AI nodes submit only their authored node ID, chosen
+source assistance level and opaque server-owned context through the guarded
+turn endpoint; no browser prompt, answer, template or navigation command is
+introduced. The panel repeats the bounded-context disclosure and distinguishes
+recorded assistance from independent evidence. The activity playback projection
+now includes its already-authorized activity UUID solely so this client can
+request the companion context for that same run. A disposable authenticated
+browser check opens the launcher during an active activity run.
 
 ### 7. Complete the replacement deliberately
 
