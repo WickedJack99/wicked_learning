@@ -792,6 +792,9 @@ The World Builder provides:
   sound reference and retains the sound's server-owned playback metadata
 - a live MapAsset preview using the learner renderer
 - light/dark map palettes and previewable controls
+- source-adapted map-visual configuration for dark/light colors, background
+  images and positioned decorative layers, with reusable-media upload/selection
+  and a learner-scene preview
 - activity, NPC dialogue and Markdown graph editors, plus Portal Entry/Exit
   direction, same-world Exit targeting, layered dark/light Portal visuals,
   arrival behavior and learner-scene preview

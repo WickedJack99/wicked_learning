@@ -4352,6 +4352,37 @@ browser update/list/restore/cleanup proof cover the slice. It does not restore
 linked nodes, activities, routes, map metadata, access rules, media bytes or
 learner state.
 
+## ADR-110: Map visuals remain a scoped configuration and media-lifecycle write
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The Laravel Map Configuration editor changes learner-facing theme
+and decorative-image data on a map, but it must not turn a client-supplied JSON
+blob into arbitrary persisted configuration, strand reusable images, or expose
+draft-map imagery to learners.
+
+**Decision:** The standalone successor exposes one CSRF-protected map-visuals
+write endpoint under the same `world_maps.ru` all/own/assigned/direct-editor
+scope as other map configuration. It accepts only the source dark/light visual
+fields and bounded decorative-layer geometry, ignores unrecognized submitted
+keys, and recursively merges recognized object fields without deleting stored
+legacy configuration. Decorative layer arrays are replaced as a unit, matching
+the source form. Save synchronizes canonical managed-media URLs as `map`
+references; duplication copies those references and deletion removes them. The
+learner media endpoint authorizes a map-owned image only through a published,
+role-visible map and World. The standalone dialog is exposed only with this
+backend contract and uses the existing upload/select-media workflow.
+
+**Why:** This preserves source authoring behavior and the existing media
+integrity model while keeping theme editing inside the map boundary. It makes
+the full user-facing configuration capability available without waiting for
+unrelated authoring workflows.
+
+**Evidence and limits:** Parser/authorization and persistence merge/reference
+tests, OpenAPI generation, full Rust suite, frontend build and a local browser
+save/read/cleanup proof cover this slice. It does not migrate map-layout editing,
+visual-history restore or non-map activity forms.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

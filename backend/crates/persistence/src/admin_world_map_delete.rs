@@ -85,6 +85,12 @@ async fn delete_map(
     // key, so remove authored-owner links before the database cascade deletes
     // those owners. Otherwise a reusable visual would be permanently marked
     // as referenced after its source map disappeared.
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = 'map' AND owner_id = $1",
+    )
+    .bind(map.id)
+    .execute(&mut *transaction)
+    .await?;
     sqlx::query("DELETE FROM reusable_media_asset_references WHERE owner_kind = 'map_asset' AND owner_id IN (SELECT id FROM learning_map_assets WHERE map_id = $1)")
         .bind(map.id)
         .execute(&mut *transaction)

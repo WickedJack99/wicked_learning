@@ -79,6 +79,39 @@ type MapDetailsVersionPage =
     components['schemas']['AdminMapDetailsVersionPage'];
 type MapAssetVersionPage =
     components['schemas']['AdminMapAssetVersionPage'];
+type MapVisualMode = 'dark' | 'light';
+type MapVisualAssetForm = {
+    id: string;
+    imageUrl: string;
+    opacity: number;
+    width: number;
+    x: number;
+    y: number;
+};
+type MapVisualThemeForm = {
+    accentColor: string;
+    assets: MapVisualAssetForm[];
+    imageUrl: string;
+    overlay: string;
+    pageBackground: string;
+    panelBackground: string;
+    panelBorderColor: string;
+    panelMutedTextColor: string;
+    panelTextColor: string;
+    sideControlActiveBackground: string;
+    sideControlActiveIconColor: string;
+    sideControlActiveTextColor: string;
+    sideControlBackground: string;
+    sideControlBorderColor: string;
+    sideControlIconColor: string;
+    sideControlTextColor: string;
+    sidePanelBackground: string;
+    sidePanelBorderColor: string;
+    sidePanelHeadingColor: string;
+    sidePanelMutedTextColor: string;
+    sidePanelTextColor: string;
+};
+type MapVisualForm = Record<MapVisualMode, MapVisualThemeForm>;
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -3135,6 +3168,7 @@ function MapDetails({
 }) {
     const { map } = document.editable_map;
     const [editOpen, setEditOpen] = useState(false);
+    const [visualsOpen, setVisualsOpen] = useState(false);
     const [accessOpen, setAccessOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -3190,6 +3224,14 @@ function MapDetails({
                 type="button"
             >
                 Edit map details
+            </button>
+            <button
+                className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                data-wl-id="authoring.map-visuals.open"
+                onClick={() => setVisualsOpen(true)}
+                type="button"
+            >
+                Configure map visuals
             </button>
             <button
                 className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
@@ -3322,6 +3364,16 @@ function MapDetails({
                     onRestored={onUpdated}
                     onSaved={() => {
                         setEditOpen(false);
+                        onUpdated();
+                    }}
+                />
+            ) : null}
+            {visualsOpen ? (
+                <MapVisualsDialog
+                    document={document}
+                    onClose={() => setVisualsOpen(false)}
+                    onSaved={() => {
+                        setVisualsOpen(false);
                         onUpdated();
                     }}
                 />
@@ -4086,6 +4138,239 @@ function EditMapAccessDialog({
             </form>
         </div>
     );
+}
+
+const mapVisualSections = [
+    {
+        id: 'general',
+        label: 'General',
+        description: 'Overlay, page background and accent color.',
+        fields: [
+            ['overlay', 'Map overlay'],
+            ['pageBackground', 'Map background'],
+            ['accentColor', 'Accent'],
+        ],
+    },
+    {
+        id: 'titlePanel',
+        label: 'Map title panel',
+        description: 'The current-map title panel in the top-left corner.',
+        fields: [
+            ['panelBackground', 'Background'],
+            ['panelBorderColor', 'Border'],
+            ['panelTextColor', 'Text'],
+            ['panelMutedTextColor', 'Muted text'],
+        ],
+    },
+    {
+        id: 'sidePanel',
+        label: 'MapAsset side panel',
+        description: 'The focused MapAsset description panel.',
+        fields: [
+            ['sidePanelBackground', 'Background'],
+            ['sidePanelBorderColor', 'Border'],
+            ['sidePanelHeadingColor', 'Heading'],
+            ['sidePanelTextColor', 'Text'],
+            ['sidePanelMutedTextColor', 'Muted text'],
+        ],
+    },
+    {
+        id: 'rightControl',
+        label: 'Right control',
+        description: 'Inventory, tools and future player controls.',
+        fields: [
+            ['sideControlBackground', 'Background'],
+            ['sideControlBorderColor', 'Border'],
+            ['sideControlIconColor', 'Icon'],
+            ['sideControlTextColor', 'Text'],
+            ['sideControlActiveBackground', 'Active background'],
+            ['sideControlActiveIconColor', 'Active icon'],
+            ['sideControlActiveTextColor', 'Active text'],
+        ],
+    },
+] as const;
+
+function emptyMapVisualTheme(): MapVisualThemeForm {
+    return {
+        accentColor: '',
+        assets: [],
+        imageUrl: '',
+        overlay: '',
+        pageBackground: '',
+        panelBackground: '',
+        panelBorderColor: '',
+        panelMutedTextColor: '',
+        panelTextColor: '',
+        sideControlActiveBackground: '',
+        sideControlActiveIconColor: '',
+        sideControlActiveTextColor: '',
+        sideControlBackground: '',
+        sideControlBorderColor: '',
+        sideControlIconColor: '',
+        sideControlTextColor: '',
+        sidePanelBackground: '',
+        sidePanelBorderColor: '',
+        sidePanelHeadingColor: '',
+        sidePanelMutedTextColor: '',
+        sidePanelTextColor: '',
+    };
+}
+
+function mapVisualTheme(value: unknown): MapVisualThemeForm {
+    const source = value && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : {};
+    const theme = emptyMapVisualTheme();
+    for (const key of Object.keys(theme)) {
+        if (key === 'assets') continue;
+        if (typeof source[key] === 'string') {
+            theme[key as Exclude<keyof MapVisualThemeForm, 'assets'>] = source[key] as never;
+        }
+    }
+    if (Array.isArray(source.assets)) {
+        theme.assets = source.assets.flatMap((asset) => {
+            if (!asset || typeof asset !== 'object' || Array.isArray(asset)) return [];
+            const candidate = asset as Record<string, unknown>;
+            return [{
+                id: typeof candidate.id === 'string' ? candidate.id : crypto.randomUUID(),
+                imageUrl: typeof candidate.imageUrl === 'string' ? candidate.imageUrl : '',
+                opacity: typeof candidate.opacity === 'number' ? candidate.opacity : 100,
+                width: typeof candidate.width === 'number' ? candidate.width : 20,
+                x: typeof candidate.x === 'number' ? candidate.x : 50,
+                y: typeof candidate.y === 'number' ? candidate.y : 50,
+            }];
+        });
+    }
+    return theme;
+}
+
+function mapVisualForm(value: unknown): MapVisualForm {
+    const source = value && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : {};
+    return {
+        dark: mapVisualTheme(source.dark),
+        light: mapVisualTheme(source.light),
+    };
+}
+
+function MapVisualsDialog({
+    document,
+    onClose,
+    onSaved,
+}: {
+    document: EditableMap;
+    onClose: () => void;
+    onSaved: () => void;
+}) {
+    const { map } = document.editable_map;
+    const [form, setForm] = useState(() => mapVisualForm(map.background_config));
+    const [mode, setMode] = useState<MapVisualMode>('dark');
+    const [section, setSection] = useState<'general' | 'titlePanel' | 'sidePanel' | 'rightControl' | 'backgroundImage' | 'assets'>('general');
+    const [mediaTarget, setMediaTarget] = useState<{ assetId?: string; mode: MapVisualMode } | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const values = form[mode];
+    const selectedSection = mapVisualSections.find((candidate) => candidate.id === section);
+
+    const updateTheme = (patch: Partial<MapVisualThemeForm>) => {
+        setForm((current) => ({
+            ...current,
+            [mode]: { ...current[mode], ...patch },
+        }));
+    };
+    const updateAsset = (id: string, patch: Partial<MapVisualAssetForm>) => {
+        setForm((current) => ({
+            ...current,
+            [mode]: {
+                ...current[mode],
+                assets: current[mode].assets.map((asset) => asset.id === id ? { ...asset, ...patch } : asset),
+            },
+        }));
+    };
+    const chooseMedia = (asset: MediaAsset) => {
+        if (!mediaTarget) return;
+        if (mediaTarget.assetId) {
+            setForm((current) => ({
+                ...current,
+                [mediaTarget.mode]: {
+                    ...current[mediaTarget.mode],
+                    assets: current[mediaTarget.mode].assets.map((layer) => layer.id === mediaTarget.assetId ? { ...layer, imageUrl: asset.url } : layer),
+                },
+            }));
+        } else {
+            setForm((current) => ({
+                ...current,
+                [mediaTarget.mode]: { ...current[mediaTarget.mode], imageUrl: asset.url },
+            }));
+        }
+        setMediaTarget(null);
+    };
+    const save = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError(null);
+        setSaving(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/maps/{map_id}/visuals',
+                {
+                    body: { background_config: form },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { map_id: map.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                setError(response.status === 400
+                    ? 'Use valid colors and image URLs; decorative layers must stay within their allowed bounds.'
+                    : 'The map visuals could not be saved. Refresh the World Builder and try again.');
+                return;
+            }
+            onSaved();
+        } catch {
+            setError('The map visuals could not be saved. Check your connection and try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div aria-labelledby="map-visuals-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4" role="dialog">
+            <form className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}>
+                <div className="border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl font-semibold" id="map-visuals-title">Configure map visuals</h2>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Adapted from the Laravel map configuration: set a complete dark and light learner-facing map scene.</p>
+                        </div>
+                        <button aria-label="Close map visuals" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button>
+                    </div>
+                    <div className="mt-4 flex gap-2" role="tablist" aria-label="Map visual mode">
+                        {(['dark', 'light'] as const).map((candidate) => <button aria-selected={mode === candidate} className={`rounded-md px-3 py-2 text-sm font-medium ${mode === candidate ? 'bg-teal-700 text-white dark:bg-teal-400 dark:text-slate-950' : 'border border-slate-300 hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10'}`} key={candidate} onClick={() => setMode(candidate)} role="tab" type="button">{candidate === 'dark' ? 'Dark mode' : 'Light mode'}</button>)}
+                    </div>
+                </div>
+                {error ? <p className="mx-5 mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{error}</p> : null}
+                <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[13rem_minmax(0,1fr)]">
+                    <nav className="border-b border-slate-200 p-3 dark:border-white/10 md:border-r md:border-b-0" aria-label="Map visual sections">
+                        {[...mapVisualSections, { id: 'backgroundImage' as const, label: 'Background image', description: 'The main map background image for this mode.' }, { id: 'assets' as const, label: 'Assets', description: 'Decorative map layers placed over the background.' }].map((candidate) => <button className={`mb-1 block w-full rounded-md px-3 py-2 text-left text-sm ${section === candidate.id ? 'bg-teal-50 font-semibold text-teal-950 dark:bg-teal-400/15 dark:text-teal-100' : 'hover:bg-slate-100 dark:hover:bg-white/10'}`} key={candidate.id} onClick={() => setSection(candidate.id)} type="button">{candidate.label}</button>)}
+                    </nav>
+                    <div className="p-5">
+                        {selectedSection ? <><h3 className="text-lg font-semibold">{selectedSection.label}</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{selectedSection.description}</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{selectedSection.fields.map(([key, label]) => <label className="grid gap-1 text-sm font-medium" key={key}>{label}<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => updateTheme({ [key]: event.target.value } as Partial<MapVisualThemeForm>)} placeholder="CSS color, gradient, or overlay" value={values[key as Exclude<keyof MapVisualThemeForm, 'assets'>] as string} /></label>)}</div><MapVisualPreview theme={values} /></> : null}
+                        {section === 'backgroundImage' ? <><h3 className="text-lg font-semibold">Background image</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">The main map background image for {mode} mode.</p><label className="mt-5 grid gap-1 text-sm font-medium">Image URL<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => updateTheme({ imageUrl: event.target.value })} value={values.imageUrl} /></label><button className="mt-3 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10" onClick={() => setMediaTarget({ mode })} type="button">Upload or select visual</button><MapVisualPreview theme={values} /></> : null}
+                        {section === 'assets' ? <><div className="flex items-start justify-between gap-3"><div><h3 className="text-lg font-semibold">Map assets</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Add decorative layers over the map background.</p></div><button className="inline-flex items-center gap-2 rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10" onClick={() => updateTheme({ assets: [...values.assets, { id: crypto.randomUUID(), imageUrl: '', opacity: 100, width: 20, x: 50, y: 50 }] })} type="button"><Plus className="size-4" />Add layer</button></div>{values.assets.length === 0 ? <p className="mt-5 rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/20">No map assets configured for {mode} mode yet.</p> : <div className="mt-5 grid gap-5">{values.assets.map((asset, index) => <section className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0 dark:border-white/10" key={asset.id}><div className="flex items-center justify-between"><h4 className="font-semibold">Asset {index + 1}</h4><button className="inline-flex items-center gap-1 text-sm font-medium text-red-700 hover:underline dark:text-red-300" onClick={() => updateTheme({ assets: values.assets.filter((layer) => layer.id !== asset.id) })} type="button"><Trash2 className="size-4" />Remove</button></div><label className="mt-3 grid gap-1 text-sm font-medium">Asset image<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => updateAsset(asset.id, { imageUrl: event.target.value })} value={asset.imageUrl} /></label><button className="mt-3 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10" onClick={() => setMediaTarget({ assetId: asset.id, mode })} type="button">Upload or select visual</button><div className="mt-3 grid gap-3 sm:grid-cols-4"><NumberField label="X %" max={100} min={0} onChange={(x) => updateAsset(asset.id, { x })} value={asset.x} /><NumberField label="Y %" max={100} min={0} onChange={(y) => updateAsset(asset.id, { y })} value={asset.y} /><NumberField label="Size %" max={200} min={1} onChange={(width) => updateAsset(asset.id, { width })} value={asset.width} /><NumberField label="Transparency %" max={100} min={0} onChange={(opacity) => updateAsset(asset.id, { opacity })} value={asset.opacity} /></div></section>)}</div>}<MapVisualPreview theme={values} /></> : null}
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4 dark:border-white/10"><button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" data-wl-id="authoring.map-visuals.save" disabled={saving} type="submit">{saving ? 'Saving…' : 'Save map visuals'}</button></div>
+            </form>
+            {mediaTarget ? <MediaPicker onClose={() => setMediaTarget(null)} onSelect={chooseMedia} /> : null}
+        </div>
+    );
+}
+
+function MapVisualPreview({ theme }: { theme: MapVisualThemeForm }) {
+    return <div className="relative mt-6 aspect-video overflow-hidden rounded-lg border border-slate-300 bg-slate-950 dark:border-white/20" style={{ background: theme.pageBackground || '#0f172a', backgroundImage: theme.imageUrl ? `url(${theme.imageUrl})` : undefined, backgroundPosition: 'center', backgroundSize: 'cover' }}><div className="absolute inset-0" style={{ background: theme.overlay }} />{theme.assets.map((asset) => asset.imageUrl ? <img alt="" className="absolute -translate-x-1/2 -translate-y-1/2 object-contain" key={asset.id} src={asset.imageUrl} style={{ left: `${asset.x}%`, opacity: asset.opacity / 100, top: `${asset.y}%`, width: `${asset.width}%` }} /> : null)}<div className="absolute top-3 left-3 rounded border p-2 text-xs" style={{ background: theme.panelBackground || 'rgba(15,23,42,.88)', borderColor: theme.panelBorderColor || 'rgba(255,255,255,.25)', color: theme.panelTextColor || '#fff' }}>Current map<br /><span style={{ color: theme.panelMutedTextColor || '#cbd5e1' }}>Learner preview</span></div><div className="absolute top-3 right-3 rounded border p-2 text-xs" style={{ background: theme.sideControlBackground || 'rgba(15,23,42,.88)', borderColor: theme.sideControlBorderColor || 'rgba(255,255,255,.25)', color: theme.sideControlTextColor || '#fff' }}>Controls</div></div>;
 }
 
 function EditMapDetailsDialog({

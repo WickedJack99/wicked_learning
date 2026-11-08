@@ -614,6 +614,24 @@ restoration wording. Its local browser proof writes disposable details,
 observes the prior immutable version, restores it, and leaves the visible World
 details unchanged.
 
+### World Builder map-visuals slice — 8 November 2026
+
+`PATCH /api/v1/admin/world-builder/maps/{map_id}/visuals` now migrates the
+Laravel Map Configuration visuals as a complete map-scoped authoring slice.
+It accepts only the source dark/light theme vocabulary: map, title-panel,
+MapAsset-side-panel and control colors, a background image, and bounded
+positioned decorative layers. The writer retains unrelated legacy configuration
+while merging recognized fields, replaces the submitted layer list atomically,
+and uses the source `world_maps.ru` all/own/assigned/direct-editor check.
+
+The lifted World Builder dialog retains the source section navigation, dark and
+light mode editors, image upload/reusable-media selection, X/Y/size/opacity
+layer controls and visual preview. Map-owned reusable-media references are
+synchronized on save, copied when a map is duplicated, removed when it is
+deleted, and delivered to learners only for a published role-visible map. The
+local browser proof saves a background and layer from the media library, reads
+the persisted configuration, then proves map deletion releases both references.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
@@ -1413,9 +1431,8 @@ visual, its `activity_start` records synchronize transactionally and clean up
 on route or map deletion, and learner delivery permits it only through the
 published route's visible map. Wiring the selection/reference writer into other
 activity forms, grouped reference presentation and orphan reconciliation remain
-explicit completion work. Other
-activity-card types and map/configuration forms deliberately remain read-only
-in this surface.
+explicit completion work. Other activity-card types deliberately remain
+read-only in this surface.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

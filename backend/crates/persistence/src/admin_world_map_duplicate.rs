@@ -196,6 +196,7 @@ async fn duplicate_map(
     clone_media_references(
         &mut transaction,
         source.id,
+        duplicate_id,
         &asset_ids,
         &activity_ids,
         &start_ids,
@@ -534,11 +535,17 @@ async fn clone_portals(
 
 async fn clone_media_references(
     transaction: &mut Transaction<'_, Postgres>,
-    _source_map_id: Uuid,
+    source_map_id: Uuid,
+    duplicate_map_id: Uuid,
     asset_ids: &HashMap<Uuid, Uuid>,
     activity_ids: &HashMap<Uuid, Uuid>,
     start_ids: &HashMap<Uuid, Uuid>,
 ) -> Result<(), sqlx::Error> {
+    sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT asset_id, owner_kind, $1, field_key FROM reusable_media_asset_references WHERE owner_kind = 'map' AND owner_id = $2 ON CONFLICT DO NOTHING")
+        .bind(duplicate_map_id)
+        .bind(source_map_id)
+        .execute(&mut **transaction)
+        .await?;
     for (owner_kind, ids) in [
         ("map_asset", asset_ids),
         ("activity", activity_ids),

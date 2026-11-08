@@ -1177,6 +1177,33 @@ paths:
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '409': { description: The map changed after this browser copy was loaded. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/visuals:
+    patch:
+      operationId: updateAdminWorldBuilderMapVisuals
+      summary: Update source map visual configuration for one scoped World Builder map.
+      description: Requires the source world-map update permission and its map-specific all, own, assigned or direct-editor scope. The writer retains existing configuration outside Laravel's bounded dark/light visual fields and synchronizes referenced reusable visual media.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminWorldMapVisualsRequest' }
+      responses:
+        '200':
+          description: The source map visual configuration was saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminWorldMapVisualsResponse' }
+        '400': { description: The bounded source visual configuration is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map is unknown or unavailable through the source editor scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/versions:
     get:
       operationId: listAdminWorldBuilderMapDetailVersions
@@ -10386,6 +10413,64 @@ components:
       properties:
         map_id: { type: string, format: uuid }
         updated_at: { type: string, format: date-time }
+    UpdateAdminWorldMapVisualsRequest:
+      type: object
+      additionalProperties: false
+      required: [background_config]
+      properties:
+        background_config:
+          type: object
+          description: Source dark/light map visual fields. Unrecognised legacy fields are ignored on input and retained if already stored.
+          additionalProperties: true
+          properties:
+            dark: { $ref: '#/components/schemas/AdminWorldMapVisualTheme' }
+            light: { $ref: '#/components/schemas/AdminWorldMapVisualTheme' }
+    UpdateAdminWorldMapVisualsResponse:
+      type: object
+      additionalProperties: false
+      required: [map_id, background_config]
+      properties:
+        map_id: { type: string, format: uuid }
+        background_config:
+          type: object
+          additionalProperties: true
+    AdminWorldMapVisualTheme:
+      type: object
+      additionalProperties: true
+      properties:
+        accentColor: { type: string, maxLength: 255, nullable: true }
+        overlay: { type: string, maxLength: 255, nullable: true }
+        pageBackground: { type: string, maxLength: 255, nullable: true }
+        panelBackground: { type: string, maxLength: 255, nullable: true }
+        panelBorderColor: { type: string, maxLength: 255, nullable: true }
+        panelMutedTextColor: { type: string, maxLength: 255, nullable: true }
+        panelTextColor: { type: string, maxLength: 255, nullable: true }
+        sideControlActiveBackground: { type: string, maxLength: 255, nullable: true }
+        sideControlActiveIconColor: { type: string, maxLength: 255, nullable: true }
+        sideControlActiveTextColor: { type: string, maxLength: 255, nullable: true }
+        sideControlBackground: { type: string, maxLength: 255, nullable: true }
+        sideControlBorderColor: { type: string, maxLength: 255, nullable: true }
+        sideControlIconColor: { type: string, maxLength: 255, nullable: true }
+        sideControlTextColor: { type: string, maxLength: 255, nullable: true }
+        sidePanelBackground: { type: string, maxLength: 255, nullable: true }
+        sidePanelBorderColor: { type: string, maxLength: 255, nullable: true }
+        sidePanelHeadingColor: { type: string, maxLength: 255, nullable: true }
+        sidePanelMutedTextColor: { type: string, maxLength: 255, nullable: true }
+        sidePanelTextColor: { type: string, maxLength: 255, nullable: true }
+        imageUrl: { type: string, maxLength: 2048, nullable: true }
+        completedDimOpacity: { type: number, minimum: 0, maximum: 100, nullable: true }
+        assets:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              id: { type: string, maxLength: 80, nullable: true }
+              imageUrl: { type: string, maxLength: 2048, nullable: true }
+              x: { type: number, minimum: 0, maximum: 100, nullable: true }
+              y: { type: number, minimum: 0, maximum: 100, nullable: true }
+              width: { type: number, minimum: 1, maximum: 200, nullable: true }
+              opacity: { type: number, minimum: 0, maximum: 100, nullable: true }
     AdminMapDetailsVersion:
       type: object
       additionalProperties: false

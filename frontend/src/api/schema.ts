@@ -915,6 +915,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapDetails"];
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/visuals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update source map visual configuration for one scoped World Builder map.
+         * @description Requires the source world-map update permission and its map-specific all, own, assigned or direct-editor scope. The writer retains existing configuration outside Laravel's bounded dark/light visual fields and synchronizes referenced reusable visual media.
+         */
+        patch: operations["updateAdminWorldBuilderMapVisuals"];
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/versions": {
         parameters: {
             query?: never;
@@ -7338,6 +7358,57 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        UpdateAdminWorldMapVisualsRequest: {
+            /** @description Source dark/light map visual fields. Unrecognised legacy fields are ignored on input and retained if already stored. */
+            background_config: {
+                dark?: components["schemas"]["AdminWorldMapVisualTheme"];
+                light?: components["schemas"]["AdminWorldMapVisualTheme"];
+            } & {
+                [key: string]: unknown;
+            };
+        };
+        UpdateAdminWorldMapVisualsResponse: {
+            /** Format: uuid */
+            map_id: string;
+            background_config: {
+                [key: string]: unknown;
+            };
+        };
+        AdminWorldMapVisualTheme: {
+            accentColor?: string | null;
+            overlay?: string | null;
+            pageBackground?: string | null;
+            panelBackground?: string | null;
+            panelBorderColor?: string | null;
+            panelMutedTextColor?: string | null;
+            panelTextColor?: string | null;
+            sideControlActiveBackground?: string | null;
+            sideControlActiveIconColor?: string | null;
+            sideControlActiveTextColor?: string | null;
+            sideControlBackground?: string | null;
+            sideControlBorderColor?: string | null;
+            sideControlIconColor?: string | null;
+            sideControlTextColor?: string | null;
+            sidePanelBackground?: string | null;
+            sidePanelBorderColor?: string | null;
+            sidePanelHeadingColor?: string | null;
+            sidePanelMutedTextColor?: string | null;
+            sidePanelTextColor?: string | null;
+            imageUrl?: string | null;
+            completedDimOpacity?: number | null;
+            assets?: ({
+                id?: string | null;
+                imageUrl?: string | null;
+                x?: number | null;
+                y?: number | null;
+                width?: number | null;
+                opacity?: number | null;
+            } & {
+                [key: string]: unknown;
+            })[];
+        } & {
+            [key: string]: unknown;
+        };
         AdminMapDetailsVersion: {
             /** Format: uuid */
             id: string;
@@ -11891,6 +11962,70 @@ export interface operations {
             };
             /** @description The map changed after this browser copy was loaded. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMapVisuals: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminWorldMapVisualsRequest"];
+            };
+        };
+        responses: {
+            /** @description The source map visual configuration was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminWorldMapVisualsResponse"];
+                };
+            };
+            /** @description The bounded source visual configuration is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source editor scope. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

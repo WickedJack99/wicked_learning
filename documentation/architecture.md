@@ -364,6 +364,15 @@ copies authored configuration but excludes learner progress, map history,
 activity review runs and editor groups; duplicated activities are marked for a
 new authoring review pass.
 
+Map visual configuration is a separate map-scoped writer over
+`learning_maps.background_config`, rather than a learner-world write. It
+allowlists the Laravel dark/light theme fields, merges them into unrelated
+stored configuration and treats decorative layers as a replacement list. It
+synchronizes managed background and layer image URLs as `map` media references;
+map duplicate/delete operations preserve or remove those references with the
+map. Learner media serving admits those references only when the map and its
+World are published and the map is visible to the requester's roles.
+
 `LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
 Its bounded query supplies active names to the activity graph and all records
 to the permission-controlled Concept Library editor. Saving the catalog
