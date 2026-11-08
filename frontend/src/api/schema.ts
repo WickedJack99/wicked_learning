@@ -7637,7 +7637,10 @@ export interface components {
             position_r: number;
             /** @enum {string} */
             state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
-            /** @default {} */
+            /**
+             * @description Source node visual configuration. Catalog references may use a current tool or item UUID (or its stable slug); the server rejects unavailable references and persists the learner-safe slug. Node prerequisite IDs remain UUIDs. `datetime-local` schedule values are interpreted as UTC and canonicalized to RFC 3339 before persistence.
+             * @default {}
+             */
             visual_config: {
                 [key: string]: unknown;
             };

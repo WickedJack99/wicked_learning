@@ -868,6 +868,15 @@ browser dialog is required before this becomes an author-facing replacement.
 Node deletion cleans incoming transitions and completed-node unlock references
 before deleting the linked asset graph, preventing stale authoring references.
 
+**Availability-reference boundary:** Node writer input may name current
+tool/item catalog UUIDs, because source author controls select catalog records,
+but it persists their verified stable slugs for Rust learner availability.
+Prerequisite node UUIDs and role keys are verified before a write; enabled
+unlock configurations cannot be empty, self-referential, or make a mandatory
+locked-node cycle. Source `datetime-local` schedule input is canonicalized to
+UTC RFC 3339 before persistence so the learner state resolver never has to
+guess an authoring browser's locale or silently ignore a valid schedule.
+
 **State-model evolution:** Application migration `0029` creates normalized
 tool, item, ownership, discovery, tool-use and manual-opening records before
 their source writers are lifted. The reader consumes each fact without turning

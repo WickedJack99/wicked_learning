@@ -1468,7 +1468,11 @@ creating the complete node in the gap; it deliberately does not snapshot a
 membership-changing layout. `DELETE .../nodes/{node_id}` requires the stricter
 source node-delete scope, removes incoming transitions and completed-node
 unlock references from other nodes, then deletes the linked MapAsset graph in
-one transaction. The typed contract and disposable browser proof cover the
+one transaction. Before any create, update, or insert commits, it resolves
+author-selected tool/item UUIDs to verified learner-safe slugs, validates node
+and role references, canonicalizes source `datetime-local` schedules to UTC
+RFC 3339, and rejects empty, self-referential, or mandatory cyclic locked-node
+unlock requirements. The typed contract and disposable browser proof cover the
 lifecycle; lifting the existing Laravel node-dialog UI remains a subsequent
 frontend adaptation step rather than an excuse to reintroduce a smaller
 MapAsset-only editor.

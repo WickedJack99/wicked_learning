@@ -337,6 +337,7 @@ fn merge(target: &mut Value, source: Value) {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AdminWorldNodeWriteError {
+    Invalid,
     Unavailable,
 }
 

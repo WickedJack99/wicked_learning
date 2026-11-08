@@ -10,7 +10,7 @@ use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_map_layout::HexPosition,
     admin_world_node::AdminWorldNodeQuery,
-    admin_world_node_write::{AdminWorldNodeWriteCommand, WorldNodeForm},
+    admin_world_node_write::{AdminWorldNodeWriteCommand, AdminWorldNodeWriteError, WorldNodeForm},
 };
 use wicked_learning_domain::world_content::AdminEditableNode;
 use wicked_learning_persistence::{
@@ -110,7 +110,7 @@ pub async fn create(
     let created = AdminWorldNodeWriteCommand::new(&repository)
         .create(&principal, map_id, &form)
         .await
-        .map_err(|_| ApiError::service_unavailable())?
+        .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok((
         StatusCode::CREATED,
@@ -144,7 +144,7 @@ pub async fn insert(
     let created = AdminWorldNodeWriteCommand::new(&repository)
         .insert(&principal, node_id, direction, &form)
         .await
-        .map_err(|_| ApiError::service_unavailable())?
+        .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok((
         StatusCode::CREATED,
@@ -171,7 +171,7 @@ pub async fn update(
     AdminWorldNodeWriteCommand::new(&repository)
         .update(&principal, node_id, &form)
         .await
-        .map_err(|_| ApiError::service_unavailable())?
+        .map_err(map_error)?
         .then_some(StatusCode::NO_CONTENT)
         .ok_or_else(ApiError::not_found)
 }
@@ -190,9 +190,16 @@ pub async fn delete(
     AdminWorldNodeWriteCommand::new(&repository)
         .delete(&principal, node_id)
         .await
-        .map_err(|_| ApiError::service_unavailable())?
+        .map_err(map_error)?
         .then_some(StatusCode::NO_CONTENT)
         .ok_or_else(ApiError::not_found)
+}
+
+fn map_error(error: AdminWorldNodeWriteError) -> ApiError {
+    match error {
+        AdminWorldNodeWriteError::Invalid => ApiError::invalid_request(),
+        AdminWorldNodeWriteError::Unavailable => ApiError::service_unavailable(),
+    }
 }
 
 #[cfg(test)]

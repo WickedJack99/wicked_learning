@@ -154,6 +154,12 @@ existing immutable map-layout snapshot, but inserts and deletes do not because
 they change node membership. Deleting a node removes incoming activity
 transitions, prunes completed-node prerequisites from remaining visual
 configuration, and deletes its linked MapAsset graph in the same transaction.
+Before a node write is committed, catalog UUID references are resolved to the
+stable tool/item slugs consumed by learner availability, prerequisite nodes and
+roles are proven to exist, local author date-time controls are canonicalized to
+UTC RFC 3339 instants, and malformed, self-referential or mandatory cyclic
+locked-node prerequisites are rejected. This keeps author-facing catalog IDs
+out of learner state evaluation without making invalid content appear usable.
 
 Topic detail requests identify the active section and load only that section's
 paginated collection or trail evidence; inactive sections use empty bounded

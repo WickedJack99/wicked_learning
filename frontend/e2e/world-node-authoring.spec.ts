@@ -16,6 +16,10 @@ type MapDocument = {
     };
 };
 
+type NodeAuthoringDocument = {
+    tools: Array<{ id: string; slug: string }>;
+};
+
 const node = (title: string, q: number, r: number, state = 'available') => ({
     title,
     description: `${title} description`,
@@ -91,6 +95,94 @@ test('a local author writes the complete source node lifecycle', async ({ page }
     );
     expect(second.status()).toBe(201);
     const secondCreated = (await second.json()) as { node_id: string };
+
+    const authoring = await page.request.get(
+        `/api/v1/admin/world-builder/nodes/${firstCreated.node_id}`,
+    );
+    expect(authoring.ok()).toBeTruthy();
+    const tool = (await authoring.json() as NodeAuthoringDocument).tools[0];
+    if (!tool) throw new Error('the local authoring catalogue has no tool');
+    const reveal = await page.request.post(
+        `/api/v1/admin/world-builder/maps/${mapId}/nodes`,
+        {
+            data: {
+                ...node('Catalog tool reference', -2, 0, 'hidden'),
+                visual_config: {
+                    reveal: { enabled: true, toolId: tool.id },
+                },
+            },
+            headers,
+        },
+    );
+    expect(reveal.status()).toBe(201);
+    const revealCreated = (await reveal.json()) as { node_id: string };
+    const normalizedReveal = (await document()).editable_map.map.nodes.find(
+        (candidate) => candidate.id === revealCreated.node_id,
+    );
+    expect(normalizedReveal?.visual_config).toMatchObject({
+        reveal: { enabled: true, toolId: tool.slug },
+    });
+
+    const rejectedPrerequisite = await page.request.post(
+        `/api/v1/admin/world-builder/maps/${mapId}/nodes`,
+        {
+            data: {
+                ...node('Rejected prerequisite', -1, 0, 'locked'),
+                visual_config: {
+                    unlock: {
+                        enabled: true,
+                        requiredNodeIds: [
+                            '00000000-0000-4000-8000-000000000000',
+                        ],
+                    },
+                },
+            },
+            headers,
+        },
+    );
+    expect(rejectedPrerequisite.status()).toBe(400);
+    const prerequisite = await page.request.post(
+        `/api/v1/admin/world-builder/maps/${mapId}/nodes`,
+        {
+            data: {
+                ...node('Locked prerequisite', -1, 0, 'locked'),
+                visual_config: {
+                    unlock: {
+                        enabled: true,
+                        requiredNodeIds: [firstCreated.node_id],
+                    },
+                    schedule: { unlockAt: '2026-11-08T12:10' },
+                },
+            },
+            headers,
+        },
+    );
+    expect(prerequisite.status()).toBe(201);
+    const prerequisiteCreated = (await prerequisite.json()) as { node_id: string };
+    const configuredPrerequisite = (await document()).editable_map.map.nodes.find(
+        (candidate) => candidate.id === prerequisiteCreated.node_id,
+    );
+    expect(configuredPrerequisite?.visual_config).toMatchObject({
+        schedule: { unlockAt: '2026-11-08T12:10:00Z' },
+        unlock: { requiredNodeIds: [firstCreated.node_id] },
+    });
+
+    const rejectedSelfPrerequisite = await page.request.patch(
+        `/api/v1/admin/world-builder/nodes/${firstCreated.node_id}`,
+        {
+            data: {
+                ...node('First source node', 0, 0, 'locked'),
+                visual_config: {
+                    unlock: {
+                        enabled: true,
+                        requiredNodeIds: [firstCreated.node_id],
+                    },
+                },
+            },
+            headers,
+        },
+    );
+    expect(rejectedSelfPrerequisite.status()).toBe(400);
 
     const moved = await page.request.patch(
         `/api/v1/admin/world-builder/nodes/${firstCreated.node_id}`,
