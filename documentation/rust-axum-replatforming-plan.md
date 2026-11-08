@@ -938,8 +938,17 @@ ordered starts, portal targets, and the source's exit-portal candidates from
 every map in the same World; it also returns message topics, reusable
 items/tools/sounds, source records and active concept/topic options from
 dedicated authoring facts. It remains distinct from learner route playback.
-AI review history/templates, the review queue and unlock diagnostics remain
-unavailable until their associated authoring and AI records exist.
+The source World Builder review queue is now available at `GET
+/api/v1/admin/world-builder/review-queue`: it preserves the source four-card
+default, twelve-item maximum and map/node/activity ordering, while applying the
+same activity-authoring all/own/assigned/direct-editor scope as the selected
+node reader. Overview map cards now report their real scoped pending-review
+counts, and selected-node activity documents include up to five compact,
+immutable review-run summaries when runs exist. This reader stores no learner
+data and does not invoke an AI provider or write authored content. AI provider
+credentials, enabled review templates, guarded execution and source metadata
+suggestion application remain separate AI-administration work; unlock
+diagnostics also remain unavailable.
 The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
 the original editor's independently persisted, rounded `start`/`end` graph

@@ -631,6 +631,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/review-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the bounded pending activity-review queue for maps editable by the current author.
+         * @description The queue preserves the source World Builder's four-item default and twelve-item maximum. It contains only pending activities on maps within the current principal's activity-authoring scope; it does not expose learner data or invoke an AI provider.
+         */
+        get: operations["getAdminWorldBuilderReviewQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps": {
         parameters: {
             query?: never;
@@ -6290,6 +6310,34 @@ export interface components {
             portal_candidates: components["schemas"]["AdminPortalCandidate"][];
             portal_links: components["schemas"]["AdminPortalLink"][];
         };
+        AdminWorldReviewQueuePage: {
+            items: components["schemas"]["AdminWorldReviewQueueItem"][];
+            pagination: components["schemas"]["AdminWorldReviewQueuePagination"];
+        };
+        AdminWorldReviewQueuePagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+        AdminWorldReviewQueueItem: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            activity_type: string;
+            map: components["schemas"]["AdminWorldReviewQueueMap"];
+            node: components["schemas"]["AdminWorldReviewQueueNode"];
+        };
+        AdminWorldReviewQueueMap: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        AdminWorldReviewQueueNode: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
         AdminWorldSummary: {
             /** Format: uuid */
             id: string;
@@ -9764,6 +9812,57 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getAdminWorldBuilderReviewQueue: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending activities in source map/node/activity order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminWorldReviewQueuePage"];
+                };
+            };
+            /** @description The requested queue page is outside the bounded source limits. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The review queue is unavailable to this principal or no authoring World exists. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

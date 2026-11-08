@@ -78,6 +78,12 @@ struct NodeRow {
 }
 
 #[derive(FromRow)]
+struct ReviewCountRow {
+    map_id: Uuid,
+    review_count: i64,
+}
+
+#[derive(FromRow)]
 struct PortalLinkRow {
     id: Uuid,
     label: Option<String>,
@@ -128,6 +134,7 @@ async fn load_editable_graph(
     let maps = load_scoped_maps(pool, world.id, principal).await?;
     let map_ids = maps.iter().map(|map| map.id).collect::<Vec<_>>();
     let nodes = load_nodes(pool, &map_ids).await?;
+    let review_counts = load_review_counts(pool, &map_ids).await?;
     let mut nodes_by_map = HashMap::<Uuid, Vec<AdminNodeSummary>>::new();
     for node in nodes {
         nodes_by_map
@@ -152,10 +159,7 @@ async fn load_editable_graph(
             description: map.description,
             updated_at: map.updated_at,
             node_count: nodes.len() as i64,
-            // AI review status and its queue are not yet represented by the
-            // Rust schema. The source-shaped zero preserves a stable graph
-            // field without pretending this authoring workflow is migrated.
-            review_count: 0,
+            review_count: review_counts.get(&map.id).copied().unwrap_or(0),
             access_roles: map.access_roles.0,
             nodes,
         });
@@ -173,6 +177,35 @@ async fn load_editable_graph(
         portal_candidates,
         portal_links: load_portal_links(pool, &map_ids).await?,
     }))
+}
+
+async fn load_review_counts(
+    pool: &PgPool,
+    map_ids: &[Uuid],
+) -> Result<HashMap<Uuid, i64>, sqlx::Error> {
+    if map_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let rows = sqlx::query_as::<_, ReviewCountRow>(
+        "SELECT maps.id AS map_id, COUNT(activities.id)::BIGINT AS review_count \
+         FROM learning_maps AS maps \
+         INNER JOIN learning_nodes AS nodes ON nodes.map_id = maps.id \
+         INNER JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id \
+         INNER JOIN learning_routes AS routes ON routes.map_asset_id = assets.id \
+         INNER JOIN learning_activities AS activities ON activities.route_id = routes.id \
+         WHERE maps.id = ANY($1) \
+           AND (activities.ai_review_status IS NULL OR activities.ai_review_status <> 'reviewed') \
+         GROUP BY maps.id",
+    )
+    .bind(map_ids)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| (row.map_id, row.review_count))
+        .collect())
 }
 
 async fn load_scoped_maps(

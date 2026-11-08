@@ -10,10 +10,11 @@ use wicked_learning_domain::{
         AdminActivityConnector, AdminActivityConnectors, AdminActivityGraph, AdminActivityGraphMap,
         AdminActivityGraphNode, AdminActivityGraphPosition, AdminActivityGraphWorld,
         AdminActivityPortalCandidate, AdminActivityPortalLink, AdminActivityPortalTargetActivity,
-        AdminActivityPortalTargetNode, AdminActivityStartRoute, AdminActivityTransition,
-        AdminActivityTypeDefinition, AdminEditableActivity, AdminEditableItem, AdminEditableNode,
-        AdminEditableSound, AdminEditableTool, AdminMessageTopicOption, AdminPortalMode,
-        AdminSourceRecord, AdminSourceRecordPage, AdminSourceRecordPagination,
+        AdminActivityPortalTargetNode, AdminActivityReviewHistoryEntry, AdminActivityStartRoute,
+        AdminActivityTransition, AdminActivityTypeDefinition, AdminEditableActivity,
+        AdminEditableItem, AdminEditableNode, AdminEditableSound, AdminEditableTool,
+        AdminMessageTopicOption, AdminPortalMode, AdminSourceRecord, AdminSourceRecordPage,
+        AdminSourceRecordPagination,
     },
 };
 
@@ -80,6 +81,16 @@ struct ActivityRow {
     ai_review: Option<Value>,
     x: Option<f64>,
     y: Option<f64>,
+}
+
+#[derive(FromRow)]
+struct ReviewHistoryRow {
+    id: Uuid,
+    activity_id: Uuid,
+    reviewed_at: String,
+    summary: Option<String>,
+    provider: String,
+    model: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -227,6 +238,7 @@ async fn load_editable_node(
         .iter()
         .map(|activity| activity.id)
         .collect::<Vec<_>>();
+    let mut review_history = load_review_history(pool, &activity_ids).await?;
     let start_activity_id = eligible_start_activity_id(&activities, node.start_activity_id);
     let starts = load_starts(pool, node.id).await?;
     let transitions = load_transitions(pool, &activity_ids).await?;
@@ -261,7 +273,7 @@ async fn load_editable_node(
             ai_review_status: activity.ai_review_status,
             ai_reviewed_at: activity.ai_reviewed_at,
             ai_review: activity.ai_review,
-            ai_review_history: vec![],
+            ai_review_history: review_history.remove(&activity.id).unwrap_or_default(),
             portal_link,
             position: AdminActivityGraphPosition {
                 x: activity.x,
@@ -362,6 +374,41 @@ async fn load_activities(
     };
     sqlx::query_as("SELECT activities.id, activities.slug, activities.activity_type, activities.title, activities.introduction, activities.activity_config AS config, to_char(activities.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, activities.ai_review_status, to_char(activities.ai_reviewed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS ai_reviewed_at, activities.ai_review, activities.graph_position_x AS x, activities.graph_position_y AS y FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE routes.map_asset_id = $1 ORDER BY routes.position ASC, activities.position ASC, activities.slug ASC")
         .bind(map_asset_id).fetch_all(pool).await
+}
+
+async fn load_review_history(
+    pool: &PgPool,
+    activity_ids: &[Uuid],
+) -> Result<std::collections::HashMap<Uuid, Vec<AdminActivityReviewHistoryEntry>>, sqlx::Error> {
+    if activity_ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let rows = sqlx::query_as::<_, ReviewHistoryRow>(
+        "SELECT id, activity_id, \
+                to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS reviewed_at, \
+                review #>> '{review,summary}' AS summary, provider, model \
+         FROM learning_activity_review_runs \
+         WHERE activity_id = ANY($1) \
+         ORDER BY activity_id ASC, created_at DESC, id DESC",
+    )
+    .bind(activity_ids)
+    .fetch_all(pool)
+    .await?;
+    let mut history =
+        std::collections::HashMap::<Uuid, Vec<AdminActivityReviewHistoryEntry>>::new();
+    for row in rows {
+        let entries = history.entry(row.activity_id).or_default();
+        if entries.len() < 5 {
+            entries.push(AdminActivityReviewHistoryEntry {
+                id: row.id,
+                reviewed_at: Some(row.reviewed_at),
+                summary: row.summary,
+                provider: row.provider,
+                model: row.model,
+            });
+        }
+    }
+    Ok(history)
 }
 
 async fn load_starts(

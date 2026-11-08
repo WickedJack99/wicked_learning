@@ -37,6 +37,7 @@ pub mod admin_world_open_practice;
 pub mod admin_world_portal;
 pub mod admin_world_question;
 pub mod admin_world_reflection;
+pub mod admin_world_review_queue;
 pub mod admin_world_shared_task;
 pub mod admin_world_tool_grant;
 pub mod current_user;

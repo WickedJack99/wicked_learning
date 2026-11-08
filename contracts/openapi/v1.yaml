@@ -804,6 +804,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/world-builder/review-queue:
+    get:
+      operationId: getAdminWorldBuilderReviewQueue
+      summary: Read the bounded pending activity-review queue for maps editable by the current author.
+      description: The queue preserves the source World Builder's four-item default and twelve-item maximum. It contains only pending activities on maps within the current principal's activity-authoring scope; it does not expose learner data or invoke an AI provider.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12, default: 4 }
+      responses:
+        '200':
+          description: Pending activities in source map/node/activity order.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWorldReviewQueuePage' }
+        '400': { description: The requested queue page is outside the bounded source limits. }
+        '401': { description: Authentication is required. }
+        '404': { description: The review queue is unavailable to this principal or no authoring World exists. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps:
     post:
       operationId: createAdminWorldBuilderMap
@@ -9071,6 +9093,49 @@ components:
           maxItems: 10000
           items:
             $ref: '#/components/schemas/AdminPortalLink'
+    AdminWorldReviewQueuePage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/AdminWorldReviewQueueItem' }
+        pagination: { $ref: '#/components/schemas/AdminWorldReviewQueuePagination' }
+    AdminWorldReviewQueuePagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 12 }
+        total: { type: integer, minimum: 0 }
+    AdminWorldReviewQueueItem:
+      type: object
+      additionalProperties: false
+      required: [id, title, activity_type, map, node]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        activity_type: { type: string }
+        map: { $ref: '#/components/schemas/AdminWorldReviewQueueMap' }
+        node: { $ref: '#/components/schemas/AdminWorldReviewQueueNode' }
+    AdminWorldReviewQueueMap:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+    AdminWorldReviewQueueNode:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
     AdminWorldSummary:
       type: object
       additionalProperties: false

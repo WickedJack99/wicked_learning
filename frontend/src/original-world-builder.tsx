@@ -55,6 +55,7 @@ type ActivityConnector = components['schemas']['AdminActivityConnector'];
 type ActivityStartRoute = components['schemas']['AdminActivityStartRoute'];
 type MessageTopic = components['schemas']['AdminMessageTopicOption'];
 type PortalCandidate = components['schemas']['AdminActivityPortalCandidate'];
+type ReviewQueue = components['schemas']['AdminWorldReviewQueuePage'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -332,6 +333,12 @@ function WorldBuilderContent() {
     const [error, setError] = useState<string | null>(null);
     const [createMapOpen, setCreateMapOpen] = useState(false);
     const [sourceCatalogOpen, setSourceCatalogOpen] = useState(false);
+    const [reviewQueueOpen, setReviewQueueOpen] = useState(false);
+    const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
+    const [reviewQueueError, setReviewQueueError] = useState<string | null>(
+        null,
+    );
+    const [reviewQueuePage, setReviewQueuePage] = useState(1);
 
     const selectMap = useCallback(
         (mapId: string) => {
@@ -440,6 +447,43 @@ function WorldBuilderContent() {
         };
     }, [nodeReload, selectedNodeId]);
 
+    useEffect(() => {
+        if (!reviewQueueOpen) {
+            return;
+        }
+        let current = true;
+        setReviewQueue(null);
+        setReviewQueueError(null);
+        void apiClient
+            .GET('/admin/world-builder/review-queue', {
+                params: { query: { page: reviewQueuePage, per_page: 4 } },
+            })
+            .then(({ data, response }) => {
+                if (!current) {
+                    return;
+                }
+                if (!response.ok || !data) {
+                    setReviewQueueError('The review queue could not be loaded.');
+                    return;
+                }
+                setReviewQueue(data);
+            })
+            .catch(() => {
+                if (current) {
+                    setReviewQueueError('The review queue could not be loaded.');
+                }
+            });
+        return () => {
+            current = false;
+        };
+    }, [reviewQueueOpen, reviewQueuePage]);
+
+    const reviewCount =
+        worldGraph?.maps.reduce(
+            (total, map) => total + map.review_count,
+            0,
+        ) ?? 0;
+
     if (error && !worldGraph) {
         return <WorldBuilderStatus message={error} />;
     }
@@ -476,6 +520,16 @@ function WorldBuilderContent() {
                         type="button"
                     >
                         Source catalog
+                    </button>
+                    <button
+                        className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100 dark:hover:bg-amber-300/20"
+                        onClick={() => {
+                            setReviewQueuePage(1);
+                            setReviewQueueOpen(true);
+                        }}
+                        type="button"
+                    >
+                        Review queue{reviewCount > 0 ? ` (${reviewCount})` : ''}
                     </button>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
@@ -572,7 +626,132 @@ function WorldBuilderContent() {
                     onClose={() => setSourceCatalogOpen(false)}
                 />
             ) : null}
+            {reviewQueueOpen ? (
+                <WorldBuilderReviewQueueDialog
+                    error={reviewQueueError}
+                    onClose={() => setReviewQueueOpen(false)}
+                    onOpenActivity={(mapId, nodeId) => {
+                        setReviewQueueOpen(false);
+                        selectNode(mapId, nodeId);
+                    }}
+                    onPageChange={setReviewQueuePage}
+                    page={reviewQueue}
+                />
+            ) : null}
         </main>
+    );
+}
+
+function WorldBuilderReviewQueueDialog({
+    error,
+    onClose,
+    onOpenActivity,
+    onPageChange,
+    page,
+}: {
+    error: string | null;
+    onClose: () => void;
+    onOpenActivity: (mapId: string, nodeId: string) => void;
+    onPageChange: (page: number) => void;
+    page: ReviewQueue | null;
+}) {
+    return (
+        <div
+            aria-labelledby="world-builder-review-queue-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <section className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.18em] text-amber-700 uppercase dark:text-amber-300">
+                            World Builder
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold" id="world-builder-review-queue-title">
+                            Review queue
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Activities changed since their last AI review. Open one to inspect its authored context; this queue never includes learner data.
+                        </p>
+                    </div>
+                    <button
+                        aria-label="Close review queue"
+                        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+                {error ? (
+                    <p className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : !page ? (
+                    <p className="mt-5 text-sm text-slate-600 dark:text-slate-300">
+                        Loading review queue…
+                    </p>
+                ) : page.items.length === 0 ? (
+                    <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-300/20 dark:bg-emerald-300/10 dark:text-emerald-100">
+                        No editable activities currently need review.
+                    </p>
+                ) : (
+                    <div className="mt-5 grid gap-3">
+                        {page.items.map((item) => (
+                            <article
+                                className="rounded-lg border border-slate-200 p-4 dark:border-white/10"
+                                key={item.id}
+                            >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-xs font-medium tracking-[0.14em] text-amber-700 uppercase dark:text-amber-300">
+                                            {item.activity_type}
+                                        </p>
+                                        <h3 className="mt-1 font-semibold">{item.title}</h3>
+                                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                            {item.map.title} · {item.node.title}
+                                        </p>
+                                    </div>
+                                    <button
+                                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                                        onClick={() => onOpenActivity(item.map.id, item.node.id)}
+                                        type="button"
+                                    >
+                                        Open activity graph
+                                    </button>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                )}
+                {page && page.pagination.last_page > 1 ? (
+                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm dark:border-white/10">
+                        <span>
+                            Page {page.pagination.current_page} of {page.pagination.last_page}
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                className="rounded-md border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20"
+                                disabled={page.pagination.current_page === 1}
+                                onClick={() => onPageChange(page.pagination.current_page - 1)}
+                                type="button"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                className="rounded-md border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20"
+                                disabled={page.pagination.current_page === page.pagination.last_page}
+                                onClick={() => onPageChange(page.pagination.current_page + 1)}
+                                type="button"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
+            </section>
+        </div>
     );
 }
 

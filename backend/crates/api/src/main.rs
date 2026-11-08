@@ -43,6 +43,7 @@ mod admin_world_portal;
 mod admin_world_question;
 mod admin_world_reflection;
 mod admin_world_review;
+mod admin_world_review_queue;
 mod admin_world_shared_task;
 mod admin_world_tool_grant;
 mod bootstrap;
@@ -607,6 +608,10 @@ fn router(state: AppState) -> Router {
             patch(admin_topics::update_topic),
         )
         .route("/api/v1/admin/world-builder", get(admin_world_graph::show))
+        .route(
+            "/api/v1/admin/world-builder/review-queue",
+            get(admin_world_review_queue::index),
+        )
         .route(
             "/api/v1/admin/world-builder/maps",
             post(admin_world_map_create::create),

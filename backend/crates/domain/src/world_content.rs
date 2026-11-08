@@ -602,6 +602,45 @@ pub struct AdminActivityReviewHistoryEntry {
     pub model: Option<String>,
 }
 
+/// The source World Builder's globally scoped, author-visible list of
+/// activities that have changed since their last completed review. It is
+/// deliberately separate from the learner graph and contains only maps the
+/// current principal may edit.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminWorldReviewQueuePage {
+    pub items: Vec<AdminWorldReviewQueueItem>,
+    pub pagination: AdminWorldReviewQueuePagination,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminWorldReviewQueuePagination {
+    pub current_page: i64,
+    pub last_page: i64,
+    pub per_page: i64,
+    pub total: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminWorldReviewQueueItem {
+    pub id: Uuid,
+    pub title: String,
+    pub activity_type: String,
+    pub map: AdminWorldReviewQueueMap,
+    pub node: AdminWorldReviewQueueNode,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminWorldReviewQueueMap {
+    pub id: Uuid,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminWorldReviewQueueNode {
+    pub id: Uuid,
+    pub title: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminActivityPortalLink {
     pub id: Uuid,
