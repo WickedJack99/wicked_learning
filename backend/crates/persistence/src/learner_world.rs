@@ -15,6 +15,7 @@ use wicked_learning_domain::{
     },
 };
 
+use crate::learner_media::learner_media_url;
 use crate::learner_node_availability::PostgresLearnerNodeAvailability;
 use crate::learner_paths::{learning_areas, learning_intent, time_guide_minutes};
 use crate::public_world::load_first_visible as load_visible_world;
@@ -275,8 +276,8 @@ async fn load_first_visible(
                     activity_slug: row.activity_slug,
                     label: row.label,
                     description: row.description,
-                    image_dark: row.image_dark,
-                    image_light: row.image_light,
+                    image_dark: row.image_dark.as_deref().map(learner_media_url),
+                    image_light: row.image_light.as_deref().map(learner_media_url),
                     button_color_dark: row.button_color_dark,
                     button_border_color_dark: row.button_border_color_dark,
                     button_color_light: row.button_color_light,
