@@ -1585,6 +1585,19 @@ transfer integrity only: scope-configuration authoring, activity-history and
 template snapshot parity, provider turns and the lifted launcher remain later
 slices.
 
+### Learning Companion activity-snapshot retention slice — 8 November 2026
+
+The source Activity History and reusable Activity Template Library now retain
+the stored activity-level object-only `companionConfig` in their snapshots and
+immutable revisions. Restoring an activity revision writes the selected object
+with the selected activity graph fields; template creation, update and revision
+restore keep the same object and their existing media-reference traversal.
+Malformed legacy snapshot values fall back safely to an empty object. This
+keeps established rollback and reuse workflows from silently discarding a
+learner-context override without creating a configuration editor, applying a
+template's value to a new activity, invoking a provider or lifting the learner
+launcher.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

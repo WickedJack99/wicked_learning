@@ -97,6 +97,7 @@ struct ActivitySnapshotRow {
     title: String,
     introduction: Option<String>,
     activity_type: String,
+    companion_config: Value,
     config: Value,
     graph_position_x: Option<f64>,
     graph_position_y: Option<f64>,
@@ -319,7 +320,7 @@ async fn snapshot(
     activity_id: Uuid,
 ) -> Result<Value, sqlx::Error> {
     let activity = sqlx::query_as::<_, ActivitySnapshotRow>(
-        "SELECT slug, title, introduction, activity_type, activity_config AS config, graph_position_x, graph_position_y FROM learning_activities WHERE id = $1",
+        "SELECT slug, title, introduction, activity_type, companion_config, activity_config AS config, graph_position_x, graph_position_y FROM learning_activities WHERE id = $1",
     )
     .bind(activity_id)
     .fetch_one(&mut **transaction)
@@ -346,8 +347,22 @@ async fn snapshot(
     } else {
         vec![]
     };
-    Ok(json!({
-        "companionConfig": {},
+    Ok(activity_snapshot(
+        activity,
+        transitions,
+        dialogue_nodes,
+        dialogue_transitions,
+    ))
+}
+
+fn activity_snapshot(
+    activity: ActivitySnapshotRow,
+    transitions: Vec<TransitionSnapshotRow>,
+    dialogue_nodes: Vec<NpcDialogueNodeSnapshotRow>,
+    dialogue_transitions: Vec<NpcDialogueTransitionSnapshotRow>,
+) -> Value {
+    json!({
+        "companionConfig": object_or_empty(&activity.companion_config),
         "config": activity.config,
         "graphPositionX": activity.graph_position_x,
         "graphPositionY": activity.graph_position_y,
@@ -375,7 +390,7 @@ async fn snapshot(
             "trigger": transition.trigger,
             "triggerValue": transition.trigger_value,
         })).collect::<Vec<_>>(),
-    }))
+    })
 }
 
 async fn restore_npc_dialogue_graph(
@@ -483,6 +498,44 @@ async fn restore_npc_dialogue_graph(
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preserves_only_object_shaped_companion_configuration_in_history_snapshots() {
+        assert_eq!(
+            object_or_empty(&json!({"welcome_message": "Saved with this revision."})),
+            json!({"welcome_message": "Saved with this revision."})
+        );
+        assert_eq!(object_or_empty(&json!(["not a configuration"])), json!({}));
+    }
+
+    #[test]
+    fn captures_activity_companion_configuration_in_a_history_snapshot() {
+        let snapshot = activity_snapshot(
+            ActivitySnapshotRow {
+                slug: "saved-context".to_owned(),
+                title: "Saved context".to_owned(),
+                introduction: None,
+                activity_type: "markdown".to_owned(),
+                companion_config: json!({"welcome_message": "Keep this context."}),
+                config: json!({}),
+                graph_position_x: None,
+                graph_position_y: None,
+            },
+            vec![],
+            vec![],
+            vec![],
+        );
+
+        assert_eq!(
+            snapshot["companionConfig"],
+            json!({"welcome_message": "Keep this context."})
+        );
+    }
+}
+
 fn summary(row: VersionRow) -> AdminActivityVersionSummary {
     AdminActivityVersionSummary {
         id: row.id,
@@ -510,13 +563,20 @@ fn snapshot_string(snapshot: &Value, key: &str) -> Option<String> {
     snapshot.get(key).and_then(Value::as_str).map(str::to_owned)
 }
 
+fn object_or_empty(value: &Value) -> Value {
+    value
+        .is_object()
+        .then(|| value.clone())
+        .unwrap_or_else(|| json!({}))
+}
+
 async fn restore_activity_fields(
     transaction: &mut Transaction<'_, Postgres>,
     activity_id: Uuid,
     snapshot: &Value,
 ) -> Result<(), sqlx::Error> {
     let current = sqlx::query_as::<_, ActivitySnapshotRow>(
-        "SELECT slug, title, introduction, activity_type, activity_config AS config, graph_position_x, graph_position_y FROM learning_activities WHERE id = $1",
+        "SELECT slug, title, introduction, activity_type, companion_config, activity_config AS config, graph_position_x, graph_position_y FROM learning_activities WHERE id = $1",
     )
     .bind(activity_id)
     .fetch_one(&mut **transaction)
@@ -533,10 +593,14 @@ async fn restore_activity_fields(
         .filter(|value| value.is_object())
         .cloned()
         .unwrap_or(current.config);
+    let companion_config = snapshot
+        .get("companionConfig")
+        .map(object_or_empty)
+        .unwrap_or_else(|| json!({}));
     let graph_position_x = snapshot.get("graphPositionX").and_then(Value::as_f64);
     let graph_position_y = snapshot.get("graphPositionY").and_then(Value::as_f64);
     sqlx::query(
-        "UPDATE learning_activities SET slug = $2, title = $3, description = $4, introduction = $5, activity_type = $6, activity_config = $7, graph_position_x = $8, graph_position_y = $9, ai_review_status = 'needs_review', ai_reviewed_at = NULL, ai_review = NULL, updated_at = NOW() WHERE id = $1",
+        "UPDATE learning_activities SET slug = $2, title = $3, description = $4, introduction = $5, activity_type = $6, activity_config = $7, companion_config = $8, graph_position_x = $9, graph_position_y = $10, ai_review_status = 'needs_review', ai_reviewed_at = NULL, ai_review = NULL, updated_at = NOW() WHERE id = $1",
     )
     .bind(activity_id)
     .bind(slug)
@@ -545,6 +609,7 @@ async fn restore_activity_fields(
     .bind(introduction)
     .bind(activity_type)
     .bind(config)
+    .bind(companion_config)
     .bind(graph_position_x)
     .bind(graph_position_y)
     .execute(&mut **transaction)

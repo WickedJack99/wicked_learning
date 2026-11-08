@@ -2183,7 +2183,7 @@ paths:
     get:
       operationId: getAdminWorldBuilderActivityVersions
       summary: Read bounded Activity History for one editable activity.
-      description: Returns immutable pre-change snapshots only after the same scoped world-activity authorization as the activity editor.
+      description: Returns immutable pre-change snapshots only after the same scoped world-activity authorization as the activity editor. Each snapshot includes the activity's object-shaped Learning Companion configuration.
       parameters:
         - name: activity_id
           in: path
@@ -2232,7 +2232,7 @@ paths:
     post:
       operationId: restoreAdminWorldBuilderActivityVersion
       summary: Restore one immutable Activity History snapshot.
-      description: Atomically preserves the current activity as a new snapshot, restores the selected activity and its outgoing transitions, and resets its review state.
+      description: Atomically preserves the current activity as a new snapshot, restores the selected activity, its object-shaped Learning Companion configuration and its outgoing transitions, and resets its review state.
       parameters:
         - name: activity_id
           in: path
@@ -2675,6 +2675,7 @@ paths:
     post:
       operationId: createAdminActivityTemplate
       summary: Save an editable activity as a private reusable template.
+      description: Captures the source-shaped activity snapshot, including its object-shaped Learning Companion configuration, without creating a companion configuration editor.
       parameters:
         - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
         - { $ref: '#/components/parameters/CsrfTokenHeader' }
@@ -2690,6 +2691,7 @@ paths:
     get:
       operationId: getAdminActivityTemplate
       summary: Preview one visible template.
+      description: Returns the source-shaped template snapshot, including any object-shaped Learning Companion configuration captured from the activity.
       parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } } ]
       responses:
         '200': { description: The source-shaped template snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateDetailsResponse' } } } }
@@ -2711,6 +2713,7 @@ paths:
     patch:
       operationId: updateAdminActivityTemplateFromActivity
       summary: Replace a creator-owned template snapshot from an editable activity.
+      description: Records the current template revision, then captures the selected activity's source-shaped snapshot including its object-shaped Learning Companion configuration.
       parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
       responses: { '200': { description: The updated template, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateResponse' } } } }, '401': { description: The browser has no authenticated session. }, '403': { description: The same-origin CSRF check failed. }, '404': { description: The template or activity is unavailable to this author. }, '503': { description: The application database is unavailable. } }
   /admin/activity-templates/{template_id}/sharing:
@@ -2735,6 +2738,7 @@ paths:
     post:
       operationId: restoreAdminActivityTemplateRevision
       summary: Restore a creator-owned template revision while retaining the current snapshot.
+      description: Restores the complete source-shaped template snapshot, including any object-shaped Learning Companion configuration, while retaining the outgoing snapshot as a new revision.
       parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: revision_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
       responses: { '200': { description: The restored template, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateResponse' } } } }, '401': { description: The browser has no authenticated session. }, '403': { description: The same-origin CSRF check failed. }, '404': { description: The revision is unavailable or read-only. }, '503': { description: The application database is unavailable. } }
   /admin/source-records:

@@ -899,9 +899,9 @@ learner-facing configuration and restore an earlier version without losing the
 current configuration. Structural node placement and broader map history remain
 separate authoring concerns.
 
-Activity history includes an activity's outgoing route connections, so authors
-can restore a previous branch configuration together with its activity
-settings. An NPC dialogue activity also restores its source dialogue nodes,
+Activity history includes an activity's outgoing route connections and
+object-shaped Learning Companion configuration, so authors can restore a
+previous branch configuration together with its activity settings. An NPC dialogue activity also restores its source dialogue nodes,
 edges and author-only graph layout as one activity snapshot, then reconciles
 its reusable-media references. Start-route records and node placement remain
 separate histories. Older activity history entries without route or dialogue
@@ -910,6 +910,11 @@ graph data remain safe to restore without removing current connections.
 Activity edits use the activity's current authoring snapshot, so a stale form is
 rejected instead of silently overwriting a newer activity or its related
 configuration.
+
+Reusable activity-template snapshots and their immutable revisions retain the
+same object-shaped Learning Companion configuration as the source activity.
+This preserves an authored template's stored context without adding a separate
+Companion editor to the template workflow.
 
 Map configuration keeps its existing section menus but switches nested authoring
 navigation to compact horizontal controls below wide-desktop layouts. Detail and

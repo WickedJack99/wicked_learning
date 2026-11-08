@@ -52,7 +52,10 @@ test('a local author can inspect and restore a source-shaped activity history en
         `/settings?panel=admin-world-builder&map=${map.id}&node=${map.nodes[0].id}`,
     );
     await expect(page.locator(`[data-id="${activity.id}"]`)).toBeVisible();
-    await page.locator(`[data-id="${activity.id}"]`).click();
+    await page
+        .locator(`[data-id="${activity.id}"]`)
+        .getByRole('heading', { name: activity.title, exact: true })
+        .click();
     await expect(
         page.getByRole('heading', { name: 'Edit Open practice' }),
     ).toBeVisible();

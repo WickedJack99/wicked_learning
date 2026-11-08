@@ -194,6 +194,7 @@ struct ScopedActivity {
     activity_type: String,
     title: String,
     introduction: Option<String>,
+    companion_config: Value,
     config: Value,
 }
 const TEMPLATE_SELECT: &str = "templates.id, templates.created_by_principal_id, templates.organization_id, organizations.name AS organization_name, templates.name, templates.activity_type, templates.snapshot, to_char(templates.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at";
@@ -321,7 +322,7 @@ async fn scoped_activity(
     let Some(principal_id) = principal_id(tx, principal).await? else {
         return Ok(None);
     };
-    let Some(activity) = sqlx::query_as::<_, ScopedActivity>("SELECT nodes.map_id, maps.created_by_principal_id AS map_creator_id, activities.activity_type, activities.title, activities.introduction, activities.activity_config AS config FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE activities.id = $1 FOR UPDATE OF activities, nodes").bind(activity_id).fetch_optional(&mut **tx).await? else { return Ok(None); };
+    let Some(activity) = sqlx::query_as::<_, ScopedActivity>("SELECT nodes.map_id, maps.created_by_principal_id AS map_creator_id, activities.activity_type, activities.title, activities.introduction, activities.companion_config, activities.activity_config AS config FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE activities.id = $1 FOR UPDATE OF activities, nodes").bind(activity_id).fetch_optional(&mut **tx).await? else { return Ok(None); };
     let direct: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM learning_map_editing_groups AS groups INNER JOIN learning_group_memberships AS memberships ON memberships.group_id = groups.group_id WHERE groups.map_id = $1 AND memberships.principal_id = $2)").bind(activity.map_id).bind(principal_id).fetch_one(&mut **tx).await?;
     let Some(scope) = principal.permission_scope("world_activities", "ru") else {
         return Ok(None);
@@ -333,7 +334,7 @@ async fn scoped_activity(
     Ok((allowed && activity.activity_type != "npc_dialogue").then_some(activity))
 }
 fn activity_snapshot(activity: &ScopedActivity) -> Value {
-    json!({ "companionConfig": {}, "config": activity.config, "introduction": activity.introduction, "question": if activity.activity_type == "question" { activity.config.clone() } else { Value::Null }, "title": activity.title, "type": activity.activity_type })
+    json!({ "companionConfig": activity.companion_config, "config": activity.config, "introduction": activity.introduction, "question": if activity.activity_type == "question" { activity.config.clone() } else { Value::Null }, "title": activity.title, "type": activity.activity_type })
 }
 fn managed_media_references(snapshot: &Value) -> Vec<(Uuid, String)> {
     fn visit(value: &Value, path: String, references: &mut Vec<(Uuid, String)>, depth: usize) {
@@ -762,6 +763,24 @@ mod tests {
         assert_eq!(
             managed_media_references(&snapshot),
             vec![(asset_id, "config.background".to_owned())]
+        );
+    }
+
+    #[test]
+    fn captures_the_activity_companion_configuration_in_a_template_snapshot() {
+        let activity = ScopedActivity {
+            map_id: Uuid::new_v4(),
+            map_creator_id: None,
+            activity_type: "markdown".to_owned(),
+            title: "Companion context".to_owned(),
+            introduction: None,
+            companion_config: json!({"welcome_message": "A saved companion context."}),
+            config: json!({}),
+        };
+
+        assert_eq!(
+            activity_snapshot(&activity)["companionConfig"],
+            json!({"welcome_message": "A saved companion context."})
         );
     }
 }

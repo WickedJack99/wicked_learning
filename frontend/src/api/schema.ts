@@ -824,7 +824,7 @@ export interface paths {
         };
         /**
          * Download a source-shaped authored map manifest.
-         * @description Requires the selected map's source edit scope. The manifest contains authored map graph and media references only; learner records, authoring history, review runs and editor assignments are excluded.
+         * @description Requires the selected map's source edit scope. The manifest contains authored map graph and media references only, including object-shaped Learning Companion configuration at map, node and activity scope; learner records, authoring history, review runs and editor assignments are excluded.
          */
         get: operations["exportAdminWorldBuilderMap"];
         put?: never;
@@ -864,7 +864,7 @@ export interface paths {
         };
         /**
          * Download a source-shaped editable-world manifest.
-         * @description Returns the current World and maps in the authenticated author's source map-editing scope. Each map uses the single-map export format; learner records, history, review data and editor assignments are excluded.
+         * @description Returns the current World and maps in the authenticated author's source map-editing scope. Each map uses the single-map export format, including its object-shaped Learning Companion configuration; learner records, history, review data and editor assignments are excluded.
          */
         get: operations["exportAdminWorldBuilderWorld"];
         put?: never;
@@ -1006,7 +1006,7 @@ export interface paths {
         put?: never;
         /**
          * Check a map export manifest without creating content.
-         * @description Requires the source world-map update permission. The check is read-only and validates either a bounded JSON manifest or its portable ZIP package before a later import.
+         * @description Requires the source world-map update permission. The check is read-only and validates either a bounded JSON manifest or its portable ZIP package before a later import, rejecting any present map, node or activity Learning Companion configuration that is not an object or null.
          */
         post: operations["preflightAdminWorldBuilderMapExport"];
         delete?: never;
@@ -1026,7 +1026,7 @@ export interface paths {
         put?: never;
         /**
          * Import one validated authored map manifest as a fresh draft.
-         * @description Requires the source world-map update permission. ZIP packages materialize only their declared managed media as fresh server-owned objects; the destination World must match the manifest workspace and the upload cannot set destination access restrictions or transfer learner, review, history or editor-assignment records.
+         * @description Requires the source world-map update permission. ZIP packages materialize only their declared managed media as fresh server-owned objects; the destination World must match the manifest workspace. Valid object-shaped Learning Companion configuration on maps, nodes and activities is retained, while the upload cannot set destination access restrictions or transfer learner, review, history or editor-assignment records.
          */
         post: operations["importAdminWorldBuilderMapExport"];
         delete?: never;
@@ -1257,7 +1257,7 @@ export interface paths {
         put?: never;
         /**
          * Check a standalone MapAsset export without creating content.
-         * @description Requires the source world-map update permission. The check is read-only and validates a JSON manifest or portable ZIP package containing one optional node, its authored activity graph, one MapAsset and declared media references; standalone transfers never carry portals.
+         * @description Requires the source world-map update permission. The check is read-only and validates a JSON manifest or portable ZIP package containing one optional node, its authored activity graph, one MapAsset and declared media references; valid object-shaped Learning Companion configuration on the node and its activities is retained, and standalone transfers never carry portals.
          */
         post: operations["preflightAdminWorldBuilderMapAssetExport"];
         delete?: never;
@@ -1277,7 +1277,7 @@ export interface paths {
         put?: never;
         /**
          * Import one validated standalone MapAsset into an editable map.
-         * @description Requires the source world-map update permission and destination map editor scope. The destination World must match the manifest workspace. ZIP packages materialize only their declared managed media as fresh server-owned objects before the import creates fresh MapAsset, optional Node, route, activities, message topics and dialogue records in one transaction; it never transfers learner, portal, permission, review or history data.
+         * @description Requires the source world-map update permission and destination map editor scope. The destination World must match the manifest workspace. ZIP packages materialize only their declared managed media as fresh server-owned objects before the import creates fresh MapAsset, optional Node, route, activities, message topics and dialogue records in one transaction, retaining valid object-shaped node and activity Learning Companion configuration; it never transfers learner, portal, permission, review or history data.
          */
         post: operations["importAdminWorldBuilderMapAssetExport"];
         delete?: never;
@@ -1359,7 +1359,7 @@ export interface paths {
         };
         /**
          * Download one source-shaped standalone MapAsset JSON manifest.
-         * @description Requires the source world-map update permission and the asset's scoped map editor policy. The manifest contains the MapAsset and optional linked Node/activity graph only; it excludes portals, learners, permissions, history, reviews and media bytes.
+         * @description Requires the source world-map update permission and the asset's scoped map editor policy. The manifest contains the MapAsset and optional linked Node/activity graph only, including object-shaped node and activity Learning Companion configuration; it excludes portals, learners, permissions, history, reviews and media bytes.
          */
         get: operations["exportAdminWorldBuilderMapAsset"];
         put?: never;
@@ -1681,7 +1681,7 @@ export interface paths {
         };
         /**
          * Read bounded Activity History for one editable activity.
-         * @description Returns immutable pre-change snapshots only after the same scoped world-activity authorization as the activity editor.
+         * @description Returns immutable pre-change snapshots only after the same scoped world-activity authorization as the activity editor. Each snapshot includes the activity's object-shaped Learning Companion configuration.
          */
         get: operations["getAdminWorldBuilderActivityVersions"];
         put?: never;
@@ -1704,7 +1704,7 @@ export interface paths {
         put?: never;
         /**
          * Restore one immutable Activity History snapshot.
-         * @description Atomically preserves the current activity as a new snapshot, restores the selected activity and its outgoing transitions, and resets its review state.
+         * @description Atomically preserves the current activity as a new snapshot, restores the selected activity, its object-shaped Learning Companion configuration and its outgoing transitions, and resets its review state.
          */
         post: operations["restoreAdminWorldBuilderActivityVersion"];
         delete?: never;
@@ -2137,7 +2137,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Save an editable activity as a private reusable template. */
+        /**
+         * Save an editable activity as a private reusable template.
+         * @description Captures the source-shaped activity snapshot, including its object-shaped Learning Companion configuration, without creating a companion configuration editor.
+         */
         post: operations["createAdminActivityTemplate"];
         delete?: never;
         options?: never;
@@ -2152,7 +2155,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Preview one visible template. */
+        /**
+         * Preview one visible template.
+         * @description Returns the source-shaped template snapshot, including any object-shaped Learning Companion configuration captured from the activity.
+         */
         get: operations["getAdminActivityTemplate"];
         put?: never;
         post?: never;
@@ -2177,7 +2183,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Replace a creator-owned template snapshot from an editable activity. */
+        /**
+         * Replace a creator-owned template snapshot from an editable activity.
+         * @description Records the current template revision, then captures the selected activity's source-shaped snapshot including its object-shaped Learning Companion configuration.
+         */
         patch: operations["updateAdminActivityTemplateFromActivity"];
         trace?: never;
     };
@@ -2225,7 +2234,10 @@ export interface paths {
         /** Inspect one visible template revision. */
         get: operations["getAdminActivityTemplateRevision"];
         put?: never;
-        /** Restore a creator-owned template revision while retaining the current snapshot. */
+        /**
+         * Restore a creator-owned template revision while retaining the current snapshot.
+         * @description Restores the complete source-shaped template snapshot, including any object-shaped Learning Companion configuration, while retaining the outgoing snapshot as a new revision.
+         */
         post: operations["restoreAdminActivityTemplateRevision"];
         delete?: never;
         options?: never;

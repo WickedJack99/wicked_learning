@@ -4658,9 +4658,39 @@ slices.
 
 **Evidence and limits:** Focused structural-validation coverage and the local
 browser export → edit → preflight → import → World export round trip prove map,
-node and activity retention. This does not migrate activity-history or
-template snapshots, add a scope-configuration form, or authorize provider
-turns.
+node and activity retention. Activity-history and template snapshot retention
+is defined separately below. This does not add a scope-configuration form or
+authorize provider turns.
+
+## ADR-120: Activity revisions and reusable templates retain companion configuration
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The source activity-history and reusable-template workflows save
+the activity's `companionConfig`. Recording Rust snapshots with an empty object
+would make a later activity restore or template revision lose an authored
+inherited override without any author action.
+
+**Decision:** Activity History reads the activity's stored object-only
+configuration into every pre-change snapshot and restores it with the selected
+snapshot alongside the activity fields and route transitions. Reusable activity
+templates, their updates and their immutable revisions capture the same stored
+object. Existing template media-reference traversal therefore continues to
+protect any managed media URL inside the saved object. Malformed legacy snapshot
+values restore as an empty object, matching the source's safe array fallback.
+This does not expose the value as a new template or history form field.
+
+**Why:** Revision and template workflows are established authoring transfer
+boundaries. Retaining their existing source-owned configuration avoids a silent
+learner-context change while preserving the agreed backend-first scope-editor
+boundary.
+
+**Evidence and limits:** Focused persistence tests cover object preservation
+and the safe malformed fallback; the existing local browser activity-history
+and template save/update/restore/copy workflows remain the end-to-end proof of
+their lifecycle. Scope-configuration authoring, a template-to-activity
+configuration handoff, provider turns and the learner launcher remain separate
+slices.
 
 ## Phase 1 gate
 
