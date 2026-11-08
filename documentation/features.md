@@ -52,6 +52,9 @@ Current map behavior includes:
 - no learner-side dragging of MapAssets
 - role-based map access
 - locked, hidden, hinted, available, recommended and completed learner states
+- source-authored `active` is also retained as a visible node state; under the
+  current availability policy, only `hidden` and `locked` alter whether a
+  learner can open an otherwise eligible node
 - unlock rules based on completed MapAssets, tools, learner roles, item
   possession, time and nested AND/OR groups
 - authored locked-node prerequisite cycles are rejected when every successful

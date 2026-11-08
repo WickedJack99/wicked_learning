@@ -139,6 +139,12 @@ keeps the Inertia response and hydrated route models bounded while preserving
 unlock and reveal rules that are configured in node JSON and cannot yet be
 expressed as a portable SQL scope.
 
+The application schema retains the source node-state vocabulary (`active`,
+`available`, `completed`, `hidden`, `hinted`, `locked`, and `recommended`).
+The availability adapter deliberately treats the five visible values alike and
+continues to reserve special opening behavior for `hidden` and `locked` only;
+unknown persisted values fail closed rather than becoming learner-playable.
+
 Topic detail requests identify the active section and load only that section's
 paginated collection or trail evidence; inactive sections use empty bounded
 defaults. This keeps the initial Inertia payload and related queries scoped to

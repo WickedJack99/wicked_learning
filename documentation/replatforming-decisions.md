@@ -849,6 +849,15 @@ discovery or tool-use fact. Answer events, item grants and staff manual
 openings still have no Rust writer; absent facts remain unavailable instead of
 being treated as satisfied.
 
+**Source-state compatibility:** Migration `0095` retains all seven node-state
+strings accepted by the source authoring form: `active`, `available`,
+`completed`, `hidden`, `hinted`, `locked`, and `recommended`. Current learner
+availability continues to give special treatment only to `hidden` and
+`locked`; the other five are visible after the ordinary access and authored
+unlock checks. Unknown persisted values still fail closed. The OpenAPI contract
+and generated React types expose the same vocabulary so a future node editor
+does not silently lose authored state while its complete writer is lifted.
+
 **State-model evolution:** Application migration `0029` creates normalized
 tool, item, ownership, discovery, tool-use and manual-opening records before
 their source writers are lifted. The reader consumes each fact without turning

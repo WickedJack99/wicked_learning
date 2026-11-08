@@ -5423,7 +5423,7 @@ export interface components {
             q: number;
             r: number;
             /** @enum {string} */
-            state: "available" | "locked" | "hidden";
+            state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
             visual_config: {
                 [key: string]: unknown;
             };
@@ -6022,7 +6022,7 @@ export interface components {
             label: string | null;
             map_title: string;
             /** @enum {string} */
-            node_state: "available" | "locked" | "hidden";
+            node_state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
             node_title: string;
         };
         LearnerPortalTravelResult: {
@@ -7661,7 +7661,7 @@ export interface components {
                 r: number;
             };
             /** @enum {string} */
-            state: "available" | "locked" | "hidden";
+            state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
             visual_config: {
                 [key: string]: unknown;
             };
@@ -7687,7 +7687,7 @@ export interface components {
                 r: number;
             };
             /** @enum {string} */
-            state: "available" | "locked" | "hidden";
+            state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
             visual_config: {
                 [key: string]: unknown;
             };

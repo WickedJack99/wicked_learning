@@ -130,9 +130,32 @@ async fn load_node_ids(
 /// state. Unknown authored values fail closed rather than becoming playable.
 pub fn authored_node_state(state: &str) -> LearnerNodeState {
     match state {
-        "available" => LearnerNodeState::Available,
         "locked" => LearnerNodeState::Locked,
         "hidden" => LearnerNodeState::Hidden,
+        "active" | "available" | "completed" | "hinted" | "recommended" => {
+            LearnerNodeState::Available
+        }
         _ => LearnerNodeState::Hidden,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use wicked_learning_domain::learner_availability::LearnerNodeState;
+
+    use super::authored_node_state;
+
+    #[test]
+    fn preserves_source_visible_node_states_without_making_unknown_values_playable() {
+        for state in ["active", "available", "completed", "hinted", "recommended"] {
+            assert_eq!(authored_node_state(state), LearnerNodeState::Available);
+        }
+
+        assert_eq!(authored_node_state("locked"), LearnerNodeState::Locked);
+        assert_eq!(authored_node_state("hidden"), LearnerNodeState::Hidden);
+        assert_eq!(
+            authored_node_state("unrecognized"),
+            LearnerNodeState::Hidden
+        );
     }
 }

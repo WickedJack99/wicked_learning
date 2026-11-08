@@ -7280,7 +7280,7 @@ components:
           type: integer
         state:
           type: string
-          enum: [available, locked, hidden]
+          enum: [active, available, completed, hidden, hinted, locked, recommended]
         visual_config:
           type: object
           additionalProperties: true
@@ -8363,7 +8363,7 @@ components:
         description: { type: [string, 'null'], maxLength: 2000 }
         label: { type: [string, 'null'], maxLength: 240 }
         map_title: { type: string, maxLength: 240 }
-        node_state: { type: string, enum: [available, locked, hidden] }
+        node_state: { type: string, enum: [active, available, completed, hidden, hinted, locked, recommended] }
         node_title: { type: string, maxLength: 240 }
     LearnerPortalTravelResult:
       type: object
@@ -10767,7 +10767,7 @@ components:
           properties:
             q: { type: integer }
             r: { type: integer }
-        state: { type: string, enum: [available, locked, hidden] }
+        state: { type: string, enum: [active, available, completed, hidden, hinted, locked, recommended] }
         visual_config: { type: object, additionalProperties: true }
         unlock_diagnostics:
           type: array
@@ -10799,7 +10799,7 @@ components:
           properties:
             q: { type: integer }
             r: { type: integer }
-        state: { type: string, enum: [available, locked, hidden] }
+        state: { type: string, enum: [active, available, completed, hidden, hinted, locked, recommended] }
         visual_config: { type: object, additionalProperties: true }
         unlock_diagnostics:
           type: array
