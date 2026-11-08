@@ -7,6 +7,7 @@ mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
 mod admin_activity_templates;
+mod admin_ai_settings;
 mod admin_learning_group;
 mod admin_learning_taxonomy;
 mod admin_media_assets;
@@ -46,6 +47,7 @@ mod admin_world_review;
 mod admin_world_review_queue;
 mod admin_world_shared_task;
 mod admin_world_tool_grant;
+mod ai_credential_crypto;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -164,6 +166,7 @@ const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 
 #[derive(Clone)]
 pub(crate) struct AppState {
+    ai_credential_cipher: ai_credential_crypto::AiCredentialCipher,
     application_database: PgPool,
     csrf_cookie_key: String,
     identity_database: PgPool,
@@ -249,6 +252,9 @@ async fn main() -> ExitCode {
     };
 
     let state = AppState {
+        ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+            configuration.ai_credential_encryption_key,
+        ),
         application_database,
         csrf_cookie_key: configuration.csrf_cookie_key,
         identity_database,
@@ -580,6 +586,23 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/learning-taxonomy",
             get(admin_learning_taxonomy::index),
+        )
+        .route("/api/v1/admin/ai/settings", get(admin_ai_settings::index))
+        .route(
+            "/api/v1/admin/ai/providers",
+            post(admin_ai_settings::create_provider),
+        )
+        .route(
+            "/api/v1/admin/ai/providers/{provider_id}",
+            patch(admin_ai_settings::update_provider).delete(admin_ai_settings::delete_provider),
+        )
+        .route(
+            "/api/v1/admin/ai/templates",
+            post(admin_ai_settings::create_template),
+        )
+        .route(
+            "/api/v1/admin/ai/templates/{template_id}",
+            patch(admin_ai_settings::update_template).delete(admin_ai_settings::delete_template),
         )
         .route(
             "/api/v1/admin/competence-topics",
@@ -1259,7 +1282,7 @@ mod tests {
     use sqlx::postgres::PgPoolOptions;
     use tower::ServiceExt;
 
-    use super::{AppState, configure_webauthn, router};
+    use super::{AppState, ai_credential_crypto, configure_webauthn, router};
 
     fn test_webauthn() -> webauthn_rs::prelude::Webauthn {
         configure_webauthn("http://localhost:8081").expect("a valid local WebAuthn configuration")
@@ -1284,6 +1307,9 @@ mod tests {
     #[tokio::test]
     async fn liveness_does_not_depend_on_a_database_connection() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1327,6 +1353,9 @@ mod tests {
     #[tokio::test]
     async fn anonymous_session_status_is_safe_and_does_not_query_a_database() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1369,6 +1398,9 @@ mod tests {
     #[tokio::test]
     async fn current_user_requires_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1411,6 +1443,9 @@ mod tests {
     #[tokio::test]
     async fn learner_world_requires_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1453,6 +1488,9 @@ mod tests {
     #[tokio::test]
     async fn world_builder_requires_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1495,6 +1533,9 @@ mod tests {
     #[tokio::test]
     async fn world_builder_map_requires_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1537,6 +1578,9 @@ mod tests {
     #[tokio::test]
     async fn world_builder_node_requires_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1570,6 +1614,9 @@ mod tests {
     #[tokio::test]
     async fn world_builder_node_layout_requires_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1605,6 +1652,9 @@ mod tests {
     #[tokio::test]
     async fn world_builder_node_start_routes_require_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1640,6 +1690,9 @@ mod tests {
     #[tokio::test]
     async fn world_builder_activity_mutations_require_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1896,6 +1949,9 @@ mod tests {
     #[tokio::test]
     async fn learner_journal_export_requires_an_authenticated_session() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1938,6 +1994,9 @@ mod tests {
     #[tokio::test]
     async fn csrf_token_uses_a_non_cacheable_http_only_cookie() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -1982,6 +2041,9 @@ mod tests {
     #[tokio::test]
     async fn login_is_rate_limited_before_identity_lookup() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
@@ -2043,6 +2105,9 @@ mod tests {
     #[tokio::test]
     async fn login_rejects_an_untrusted_origin_before_identity_lookup() {
         let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
             application_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),

@@ -946,9 +946,16 @@ node reader. Overview map cards now report their real scoped pending-review
 counts, and selected-node activity documents include up to five compact,
 immutable review-run summaries when runs exist. This reader stores no learner
 data and does not invoke an AI provider or write authored content. AI provider
-credentials, enabled review templates, guarded execution and source metadata
-suggestion application remain separate AI-administration work; unlock
-diagnostics also remain unavailable.
+credentials and reusable agent templates are now available at
+`/settings?panel=admin-ai-integrations`: the source Provider keys, Agent
+templates and Guardrails sections use typed Rust contracts and the source
+`ai.ro`/`ai.ru`/`ai.rud` permission levels. Provider key plaintext is encrypted
+with purpose-separated server-side material and is never read back into the
+browser; deleting a provider detaches its templates. This is configuration
+only: it does not invoke a model provider, expose an enabled review helper, or
+write review results. Guarded execution and source-metadata suggestion
+application remain separate AI slices; unlock diagnostics also remain
+unavailable.
 The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
 the original editor's independently persisted, rounded `start`/`end` graph

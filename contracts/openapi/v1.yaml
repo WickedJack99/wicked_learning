@@ -3479,6 +3479,142 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The role is unavailable or the current principal cannot delete roles. }
         '503': { description: The application database is unavailable. }
+  /admin/ai/settings:
+    get:
+      operationId: getAdminAiSettings
+      summary: Read source-adapted provider credentials and reusable agent-template settings.
+      description: The response never includes provider API-key plaintext, encrypted ciphertext or encryption nonces. It configures future guarded AI work but does not invoke a provider.
+      responses:
+        '200':
+          description: Provider metadata, template configuration and the source guardrail copy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAiSettings' }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot read AI settings. }
+        '503': { description: The application database is unavailable. }
+  /admin/ai/providers:
+    post:
+      operationId: createAdminAiProvider
+      summary: Save a provider credential with server-side encryption.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminAiProviderRequest' }
+      responses:
+        '201':
+          description: The safe provider credential projection, without key plaintext.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAiProviderResponse' }
+        '400': { description: The provider settings are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot update AI settings. }
+        '503': { description: The application database or encryption service is unavailable. }
+  /admin/ai/providers/{provider_id}:
+    parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateAdminAiProvider
+      summary: Update source-shaped provider metadata while preserving an omitted or blank API key.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminAiProviderRequest' }
+      responses:
+        '200':
+          description: The safe updated provider projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAiProviderResponse' }
+        '400': { description: The provider settings are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The provider is unavailable or the principal cannot update AI settings. }
+        '503': { description: The application database or encryption service is unavailable. }
+    delete:
+      operationId: deleteAdminAiProvider
+      summary: Delete a provider credential and detach, rather than delete, its templates.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The provider was deleted and related template credential references were cleared. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The provider is unavailable or the principal cannot delete AI settings. }
+        '503': { description: The application database is unavailable. }
+  /admin/ai/templates:
+    post:
+      operationId: createAdminAiTemplate
+      summary: Create a reusable source-shaped agent template without invoking a model provider.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminAiTemplateRequest' }
+      responses:
+        '201':
+          description: The saved safe template projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAiTemplateResponse' }
+        '400': { description: The source template form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current principal cannot update AI settings. }
+        '409': { description: The supplied template slug already exists. }
+        '503': { description: The application database is unavailable. }
+  /admin/ai/templates/{template_id}:
+    parameters:
+      - name: template_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateAdminAiTemplate
+      summary: Update a reusable agent template without invoking a model provider.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveAdminAiTemplateRequest' }
+      responses:
+        '200':
+          description: The saved safe template projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAiTemplateResponse' }
+        '400': { description: The source template form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The template is unavailable or the principal cannot update AI settings. }
+        '409': { description: The supplied template slug already exists. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminAiTemplate
+      summary: Delete one reusable agent template.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The template was deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The template is unavailable or the principal cannot delete AI settings. }
+        '503': { description: The application database is unavailable. }
   /admin/access-links:
     get:
       operationId: getAdminAccessLinks
@@ -8434,6 +8570,134 @@ components:
       required: [role]
       properties:
         role: { $ref: '#/components/schemas/AdminRole' }
+    AdminAiProviderCredential:
+      type: object
+      additionalProperties: false
+      required: [id, label, provider, base_url, has_api_key, api_key_last_four, organization, enabled, monthly_token_limit, monthly_cost_limit_cents, notes, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        provider: { type: string, enum: [openai, anthropic, gemini, xai, bedrock, ollama, compatible, local] }
+        base_url: { type: [string, 'null'], format: uri, maxLength: 255 }
+        has_api_key: { type: boolean }
+        api_key_last_four: { type: [string, 'null'], maxLength: 8 }
+        organization: { type: [string, 'null'], maxLength: 255 }
+        enabled: { type: boolean }
+        monthly_token_limit: { type: [integer, 'null'], minimum: 1 }
+        monthly_cost_limit_cents: { type: [integer, 'null'], minimum: 1 }
+        notes: { type: [string, 'null'], maxLength: 5000 }
+        updated_at: { type: string, format: date-time }
+    AdminAiAgentTemplate:
+      type: object
+      additionalProperties: false
+      required: [id, ai_provider_credential_id, provider_label, name, slug, purpose, model, system_prompt, task_prompt, temperature, reasoning_effort, max_output_tokens, concurrency_limit, monthly_token_limit, enabled, guarded_context, created_by_name, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        ai_provider_credential_id: { type: [string, 'null'], format: uuid }
+        provider_label: { type: [string, 'null'], maxLength: 120 }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, pattern: '^[A-Za-z0-9_-]{1,140}$' }
+        purpose: { type: string, enum: [sdt_design, asset_generation, learner_feedback, learner_companion, general_assistant, content_authoring, activity_review] }
+        model: { type: [string, 'null'], maxLength: 120 }
+        system_prompt: { type: [string, 'null'], maxLength: 12000 }
+        task_prompt: { type: [string, 'null'], maxLength: 12000 }
+        temperature: { type: [number, 'null'], minimum: 0, maximum: 2 }
+        reasoning_effort: { type: [string, 'null'], enum: [none, low, medium, high, xhigh, max] }
+        max_output_tokens: { type: [integer, 'null'], minimum: 1, maximum: 128000 }
+        concurrency_limit: { type: integer, minimum: 1, maximum: 20 }
+        monthly_token_limit: { type: [integer, 'null'], minimum: 1 }
+        enabled: { type: boolean }
+        guarded_context: { type: boolean }
+        created_by_name: { type: [string, 'null'], maxLength: 255 }
+        updated_at: { type: string, format: date-time }
+    AdminAiOption:
+      type: object
+      additionalProperties: false
+      required: [value, label]
+      properties:
+        value: { type: string, minLength: 1, maxLength: 80 }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 500 }
+    AdminAiModelControlRule:
+      type: object
+      additionalProperties: false
+      required: [provider, model_prefix, mode]
+      properties:
+        provider: { type: string, minLength: 1, maxLength: 40 }
+        model_prefix: { type: string, minLength: 1, maxLength: 120 }
+        mode: { type: string, enum: [reasoning, flexible] }
+    AdminAiSettings:
+      type: object
+      additionalProperties: false
+      required: [provider_credentials, agent_templates, provider_options, purpose_options, model_control_rules, guardrail_notes]
+      properties:
+        provider_credentials:
+          type: array
+          items: { $ref: '#/components/schemas/AdminAiProviderCredential' }
+        agent_templates:
+          type: array
+          items: { $ref: '#/components/schemas/AdminAiAgentTemplate' }
+        provider_options:
+          type: array
+          maxItems: 8
+          items: { $ref: '#/components/schemas/AdminAiOption' }
+        purpose_options:
+          type: array
+          maxItems: 7
+          items: { $ref: '#/components/schemas/AdminAiOption' }
+        model_control_rules:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/AdminAiModelControlRule' }
+        guardrail_notes:
+          type: array
+          maxItems: 12
+          items: { type: string, maxLength: 500 }
+    SaveAdminAiProviderRequest:
+      type: object
+      additionalProperties: false
+      required: [label, provider]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 120 }
+        provider: { type: string, enum: [openai, anthropic, gemini, xai, bedrock, ollama, compatible, local] }
+        base_url: { type: [string, 'null'], format: uri, maxLength: 255 }
+        api_key: { type: [string, 'null'], maxLength: 2000, writeOnly: true }
+        organization: { type: [string, 'null'], maxLength: 255 }
+        enabled: { type: boolean, default: false }
+        monthly_token_limit: { type: [integer, 'null'], minimum: 1 }
+        monthly_cost_limit_cents: { type: [integer, 'null'], minimum: 1 }
+        notes: { type: [string, 'null'], maxLength: 5000 }
+    SaveAdminAiTemplateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, purpose, concurrency_limit]
+      properties:
+        ai_provider_credential_id: { type: [string, 'null'], format: uuid }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], pattern: '^[A-Za-z0-9_-]{1,140}$' }
+        purpose: { type: string, enum: [sdt_design, asset_generation, learner_feedback, learner_companion, general_assistant, content_authoring, activity_review] }
+        model: { type: [string, 'null'], maxLength: 120 }
+        system_prompt: { type: [string, 'null'], maxLength: 12000 }
+        task_prompt: { type: [string, 'null'], maxLength: 12000 }
+        temperature: { type: [number, 'null'], minimum: 0, maximum: 2 }
+        reasoning_effort: { type: [string, 'null'], enum: [none, low, medium, high, xhigh, max] }
+        max_output_tokens: { type: [integer, 'null'], minimum: 1, maximum: 128000 }
+        concurrency_limit: { type: integer, minimum: 1, maximum: 20 }
+        monthly_token_limit: { type: [integer, 'null'], minimum: 1 }
+        enabled: { type: boolean, default: false }
+        guarded_context: { type: boolean, default: true }
+    AdminAiProviderResponse:
+      type: object
+      additionalProperties: false
+      required: [provider_credential]
+      properties:
+        provider_credential: { $ref: '#/components/schemas/AdminAiProviderCredential' }
+    AdminAiTemplateResponse:
+      type: object
+      additionalProperties: false
+      required: [agent_template]
+      properties:
+        agent_template: { $ref: '#/components/schemas/AdminAiAgentTemplate' }
     SaveAdminRoleRequest:
       type: object
       additionalProperties: false

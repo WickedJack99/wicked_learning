@@ -138,6 +138,12 @@ const OriginalAdminRolesPage = lazy(async () => {
     return { default: module.OriginalAdminRolesPage };
 });
 
+const OriginalAiSettingsPage = lazy(async () => {
+    const module = await import('./original-ai-settings');
+
+    return { default: module.OriginalAiSettingsPage };
+});
+
 const OriginalTopicAdministrationPage = lazy(async () => {
     const module = await import('./original-topic-administration');
 
@@ -537,6 +543,13 @@ export function App() {
             'admin-world-builder'
         ) {
             return <OriginalWorldBuilderPage isAuthenticated />;
+        }
+
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+            'admin-ai-integrations'
+        ) {
+            return <Suspense fallback={null}><OriginalAiSettingsPage appearance={appearance} /></Suspense>;
         }
 
         if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'cursors') {

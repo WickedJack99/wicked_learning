@@ -31,6 +31,7 @@ services:
       # Base64 key in every shared environment and retain it for the life of
       # any enrolled TOTP factors.
       TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-d2lja2VkLWxlYXJuaW5nLWxvY2FsLXRvdHAta2V5LTA=}
+      AI_CREDENTIAL_ENCRYPTION_KEY: ${AI_CREDENTIAL_ENCRYPTION_KEY:-d2lja2VkLWxlYXJuaW5nLWxvY2FsLWFpLWtleS0wMDE=}
       RUST_LOG: ${RUST_LOG:-info}
     depends_on:
       application-db:

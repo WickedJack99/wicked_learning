@@ -2809,6 +2809,100 @@ export interface paths {
         patch: operations["updateAdminRole"];
         trace?: never;
     };
+    "/admin/ai/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read source-adapted provider credentials and reusable agent-template settings.
+         * @description The response never includes provider API-key plaintext, encrypted ciphertext or encryption nonces. It configures future guarded AI work but does not invoke a provider.
+         */
+        get: operations["getAdminAiSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a provider credential with server-side encryption. */
+        post: operations["createAdminAiProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/providers/{provider_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a provider credential and detach, rather than delete, its templates. */
+        delete: operations["deleteAdminAiProvider"];
+        options?: never;
+        head?: never;
+        /** Update source-shaped provider metadata while preserving an omitted or blank API key. */
+        patch: operations["updateAdminAiProvider"];
+        trace?: never;
+    };
+    "/admin/ai/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a reusable source-shaped agent template without invoking a model provider. */
+        post: operations["createAdminAiTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one reusable agent template. */
+        delete: operations["deleteAdminAiTemplate"];
+        options?: never;
+        head?: never;
+        /** Update a reusable agent template without invoking a model provider. */
+        patch: operations["updateAdminAiTemplate"];
+        trace?: never;
+    };
     "/admin/access-links": {
         parameters: {
             query?: never;
@@ -5896,6 +5990,109 @@ export interface components {
         };
         AdminRoleResponse: {
             role: components["schemas"]["AdminRole"];
+        };
+        AdminAiProviderCredential: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** @enum {string} */
+            provider: "openai" | "anthropic" | "gemini" | "xai" | "bedrock" | "ollama" | "compatible" | "local";
+            /** Format: uri */
+            base_url: string | null;
+            has_api_key: boolean;
+            api_key_last_four: string | null;
+            organization: string | null;
+            enabled: boolean;
+            monthly_token_limit: number | null;
+            monthly_cost_limit_cents: number | null;
+            notes: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AdminAiAgentTemplate: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ai_provider_credential_id: string | null;
+            provider_label: string | null;
+            name: string;
+            slug: string;
+            /** @enum {string} */
+            purpose: "sdt_design" | "asset_generation" | "learner_feedback" | "learner_companion" | "general_assistant" | "content_authoring" | "activity_review";
+            model: string | null;
+            system_prompt: string | null;
+            task_prompt: string | null;
+            temperature: number | null;
+            /** @enum {string|null} */
+            reasoning_effort: "none" | "low" | "medium" | "high" | "xhigh" | "max" | null;
+            max_output_tokens: number | null;
+            concurrency_limit: number;
+            monthly_token_limit: number | null;
+            enabled: boolean;
+            guarded_context: boolean;
+            created_by_name: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AdminAiOption: {
+            value: string;
+            label: string;
+            description?: string;
+        };
+        AdminAiModelControlRule: {
+            provider: string;
+            model_prefix: string;
+            /** @enum {string} */
+            mode: "reasoning" | "flexible";
+        };
+        AdminAiSettings: {
+            provider_credentials: components["schemas"]["AdminAiProviderCredential"][];
+            agent_templates: components["schemas"]["AdminAiAgentTemplate"][];
+            provider_options: components["schemas"]["AdminAiOption"][];
+            purpose_options: components["schemas"]["AdminAiOption"][];
+            model_control_rules: components["schemas"]["AdminAiModelControlRule"][];
+            guardrail_notes: string[];
+        };
+        SaveAdminAiProviderRequest: {
+            label: string;
+            /** @enum {string} */
+            provider: "openai" | "anthropic" | "gemini" | "xai" | "bedrock" | "ollama" | "compatible" | "local";
+            /** Format: uri */
+            base_url?: string | null;
+            api_key?: string | null;
+            organization?: string | null;
+            /** @default false */
+            enabled: boolean;
+            monthly_token_limit?: number | null;
+            monthly_cost_limit_cents?: number | null;
+            notes?: string | null;
+        };
+        SaveAdminAiTemplateRequest: {
+            /** Format: uuid */
+            ai_provider_credential_id?: string | null;
+            name: string;
+            slug?: string | null;
+            /** @enum {string} */
+            purpose: "sdt_design" | "asset_generation" | "learner_feedback" | "learner_companion" | "general_assistant" | "content_authoring" | "activity_review";
+            model?: string | null;
+            system_prompt?: string | null;
+            task_prompt?: string | null;
+            temperature?: number | null;
+            /** @enum {string|null} */
+            reasoning_effort?: "none" | "low" | "medium" | "high" | "xhigh" | "max" | null;
+            max_output_tokens?: number | null;
+            concurrency_limit: number;
+            monthly_token_limit?: number | null;
+            /** @default false */
+            enabled: boolean;
+            /** @default true */
+            guarded_context: boolean;
+        };
+        AdminAiProviderResponse: {
+            provider_credential: components["schemas"]["AdminAiProviderCredential"];
+        };
+        AdminAiTemplateResponse: {
+            agent_template: components["schemas"]["AdminAiAgentTemplate"];
         };
         SaveAdminRoleRequest: {
             description?: string | null;
@@ -18023,6 +18220,415 @@ export interface operations {
             };
             /** @description The role is unavailable or the current principal cannot update roles. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminAiSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Provider metadata, template configuration and the source guardrail copy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAiSettings"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot read AI settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminAiProvider: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminAiProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description The safe provider credential projection, without key plaintext. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAiProviderResponse"];
+                };
+            };
+            /** @description The provider settings are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot update AI settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or encryption service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminAiProvider: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The provider was deleted and related template credential references were cleared. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The provider is unavailable or the principal cannot delete AI settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminAiProvider: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminAiProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description The safe updated provider projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAiProviderResponse"];
+                };
+            };
+            /** @description The provider settings are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The provider is unavailable or the principal cannot update AI settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or encryption service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminAiTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminAiTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved safe template projection. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAiTemplateResponse"];
+                };
+            };
+            /** @description The source template form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot update AI settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied template slug already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminAiTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The template was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is unavailable or the principal cannot delete AI settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminAiTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminAiTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved safe template projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAiTemplateResponse"];
+                };
+            };
+            /** @description The source template form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is unavailable or the principal cannot update AI settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied template slug already exists. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

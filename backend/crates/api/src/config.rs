@@ -12,6 +12,7 @@ use url::Url;
 
 #[derive(Clone)]
 pub struct Config {
+    pub ai_credential_encryption_key: [u8; 32],
     pub application_database_url: String,
     pub csrf_cookie_key: String,
     pub email: EmailConfig,
@@ -62,6 +63,8 @@ pub enum ConfigError {
     InvalidCsrfCookieKey,
     #[error("TOTP_ENCRYPTION_KEY must be a Base64-encoded 32-byte key")]
     InvalidTotpEncryptionKey,
+    #[error("AI_CREDENTIAL_ENCRYPTION_KEY must be a Base64-encoded 32-byte key")]
+    InvalidAiCredentialEncryptionKey,
     #[error("PUBLIC_ORIGIN must be an absolute HTTP or HTTPS origin")]
     InvalidPublicOrigin,
     #[error("MAIL_FROM_ADDRESS must be a valid email address")]
@@ -122,6 +125,7 @@ pub fn normalize_email(email: &str) -> Result<String, ConfigError> {
 impl Config {
     pub fn from_environment() -> Result<Self, ConfigError> {
         Ok(Self {
+            ai_credential_encryption_key: ai_credential_encryption_key()?,
             application_database_url: required("APPLICATION_DATABASE_URL")?,
             csrf_cookie_key: csrf_cookie_key()?,
             email: email_config()?,
@@ -234,6 +238,10 @@ fn totp_encryption_key() -> Result<[u8; 32], ConfigError> {
     validate_totp_encryption_key(required("TOTP_ENCRYPTION_KEY")?)
 }
 
+fn ai_credential_encryption_key() -> Result<[u8; 32], ConfigError> {
+    validate_ai_credential_encryption_key(required("AI_CREDENTIAL_ENCRYPTION_KEY")?)
+}
+
 fn validate_totp_encryption_key(value: String) -> Result<[u8; 32], ConfigError> {
     let decoded = STANDARD
         .decode(value)
@@ -244,6 +252,14 @@ fn validate_totp_encryption_key(value: String) -> Result<[u8; 32], ConfigError> 
         .map_err(|_| ConfigError::InvalidTotpEncryptionKey)
 }
 
+fn validate_ai_credential_encryption_key(value: String) -> Result<[u8; 32], ConfigError> {
+    STANDARD
+        .decode(value)
+        .map_err(|_| ConfigError::InvalidAiCredentialEncryptionKey)?
+        .try_into()
+        .map_err(|_| ConfigError::InvalidAiCredentialEncryptionKey)
+}
+
 fn required(name: &'static str) -> Result<String, ConfigError> {
     env::var(name).map_err(|_| ConfigError::Missing(name))
 }
@@ -251,7 +267,8 @@ fn required(name: &'static str) -> Result<String, ConfigError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ConfigError, normalize_email, normalize_public_origin, validate_csrf_cookie_key,
+        ConfigError, normalize_email, normalize_public_origin,
+        validate_ai_credential_encryption_key, validate_csrf_cookie_key,
         validate_totp_encryption_key,
     };
 
@@ -297,6 +314,21 @@ mod tests {
         assert!(matches!(
             validate_totp_encryption_key("dG9vLXNob3J0".to_owned()),
             Err(ConfigError::InvalidTotpEncryptionKey)
+        ));
+    }
+
+    #[test]
+    fn ai_credential_key_is_separate_and_requires_exactly_thirty_two_bytes() {
+        assert_eq!(
+            validate_ai_credential_encryption_key(
+                "d2lja2VkLWxlYXJuaW5nLWxvY2FsLWFpLWtleS0wMDE=".to_owned()
+            )
+            .expect("a 32-byte key"),
+            *b"wicked-learning-local-ai-key-001"
+        );
+        assert!(matches!(
+            validate_ai_credential_encryption_key("not-base64".to_owned()),
+            Err(ConfigError::InvalidAiCredentialEncryptionKey)
         ));
     }
 }
