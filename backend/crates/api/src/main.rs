@@ -748,6 +748,10 @@ fn router(state: AppState) -> Router {
             post(admin_world_map_asset::create),
         )
         .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/nodes",
+            post(admin_world_node::create),
+        )
+        .route(
             "/api/v1/admin/world-builder/maps/{map_id}/asset-exports/import",
             post(admin_world_map_asset_import::import)
                 .layer(DefaultBodyLimit::max(admin_world_map_asset_import::MAX_ASSET_MANIFEST_BYTES)),
@@ -775,7 +779,9 @@ fn router(state: AppState) -> Router {
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}",
-            get(admin_world_node::show),
+            get(admin_world_node::show)
+                .patch(admin_world_node::update)
+                .delete(admin_world_node::delete),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout",
@@ -792,6 +798,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/insert-map-asset",
             post(admin_world_map_asset::insert),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/insert",
+            post(admin_world_node::insert),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/graph-position",

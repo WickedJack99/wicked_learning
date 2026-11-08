@@ -1086,6 +1086,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a source-shaped hex-grid node, default MapAsset, and draft route.
+         * @description Requires source world-node update permission plus its all, own, assigned, or direct editing-group map scope. The node, its default focusable MapAsset, and a draft route are created atomically.
+         */
+        post: operations["createAdminWorldBuilderNode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/asset-exports/preflight": {
         parameters: {
             query?: never;
@@ -1219,15 +1239,23 @@ export interface paths {
         };
         /**
          * Read one source-shaped, editable World Builder node activity graph.
-         * @description This authoring-only read requires world-activity update permission and the source all/own/assigned/direct-editor map scope. It supplies the existing React node editor's graph and support data but authorizes no mutation.
+         * @description This authoring-only read requires world-activity update permission and the source all/own/assigned/direct-editor map scope. It supplies the existing React node editor's graph and support data.
          */
         get: operations["getAdminWorldBuilderNode"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a source node and its linked MapAsset graph.
+         * @description Requires source world-node delete permission and its all, own, or assigned scope. Incoming activity transitions and other nodes' completed-node prerequisites are removed transactionally before the linked MapAsset cascade.
+         */
+        delete: operations["deleteAdminWorldBuilderNode"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update a source-shaped node and optionally move its hex position.
+         * @description Requires source world-map update permission and its scoped map-editor policy. A genuine position change snapshots the outgoing layout before the node is saved.
+         */
+        patch: operations["updateAdminWorldBuilderNode"];
         trace?: never;
     };
     "/admin/world-builder/nodes/{node_id}/activity-graph-layout": {
@@ -1298,6 +1326,26 @@ export interface paths {
          * @description Requires the source world-map update permission and scoped map-editor policy. The occupied directional chain is shifted atomically before the new MapAsset, linked node, and draft route are created.
          */
         post: operations["insertAdminWorldBuilderMapAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/nodes/{node_id}/insert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Insert a complete source-shaped node between adjacent hex-grid neighbors.
+         * @description Requires source world-map update permission and scoped map-editor policy. The occupied directional chain moves atomically, then the new node, its default MapAsset, and draft route occupy the gap. This membership change does not create a layout revision.
+         */
+        post: operations["insertAdminWorldBuilderNode"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7581,6 +7629,29 @@ export interface components {
             /** Format: uuid */
             node_id: string;
         };
+        UpsertAdminWorldNodeRequest: {
+            title: string;
+            slug?: string | null;
+            description?: string | null;
+            position_q: number;
+            position_r: number;
+            /** @enum {string} */
+            state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
+            /** @default {} */
+            visual_config: {
+                [key: string]: unknown;
+            };
+        };
+        InsertAdminWorldNodeRequest: {
+            direction: components["schemas"]["AdminMapLayoutDirection"];
+            node: components["schemas"]["UpsertAdminWorldNodeRequest"];
+        };
+        CreateAdminWorldNodeResponse: {
+            /** Format: uuid */
+            node_id: string;
+            /** Format: uuid */
+            asset_id: string;
+        };
         AdminMapAssetVersion: {
             /** Format: uuid */
             id: string;
@@ -12626,6 +12697,70 @@ export interface operations {
             };
         };
     };
+    createAdminWorldBuilderNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAdminWorldNodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The node and its linked draft content were created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminWorldNodeResponse"];
+                };
+            };
+            /** @description The source node form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     preflightAdminWorldBuilderMapAssetExport: {
         parameters: {
             query?: never;
@@ -13064,6 +13199,119 @@ export interface operations {
             };
         };
     };
+    deleteAdminWorldBuilderNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The node and linked draft graph were deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node or scoped node-delete access is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAdminWorldNodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The node was saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source node form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     updateAdminWorldBuilderNodeActivityGraphLayout: {
         parameters: {
             query?: never;
@@ -13313,6 +13561,70 @@ export interface operations {
                 content?: never;
             };
             /** @description The node */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    insertAdminWorldBuilderNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InsertAdminWorldNodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The complete node was inserted and the directional chain was moved. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminWorldNodeResponse"];
+                };
+            };
+            /** @description The direction or source node form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The origin */
             404: {
                 headers: {
                     [name: string]: unknown;

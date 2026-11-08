@@ -1383,6 +1383,33 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/nodes:
+    post:
+      operationId: createAdminWorldBuilderNode
+      summary: Create a source-shaped hex-grid node, default MapAsset, and draft route.
+      description: Requires source world-node update permission plus its all, own, assigned, or direct editing-group map scope. The node, its default focusable MapAsset, and a draft route are created atomically.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpsertAdminWorldNodeRequest' }
+      responses:
+        '201':
+          description: The node and its linked draft content were created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminWorldNodeResponse' }
+        '400': { description: The source node form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map, position, slug, or scoped node editor access is unavailable. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/asset-exports/preflight:
     post:
       operationId: preflightAdminWorldBuilderMapAssetExport
@@ -1561,7 +1588,7 @@ paths:
     get:
       operationId: getAdminWorldBuilderNode
       summary: Read one source-shaped, editable World Builder node activity graph.
-      description: This authoring-only read requires world-activity update permission and the source all/own/assigned/direct-editor map scope. It supplies the existing React node editor's graph and support data but authorizes no mutation.
+      description: This authoring-only read requires world-activity update permission and the source all/own/assigned/direct-editor map scope. It supplies the existing React node editor's graph and support data.
       parameters:
         - name: node_id
           in: path
@@ -1593,6 +1620,44 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+    patch:
+      operationId: updateAdminWorldBuilderNode
+      summary: Update a source-shaped node and optionally move its hex position.
+      description: Requires source world-map update permission and its scoped map-editor policy. A genuine position change snapshots the outgoing layout before the node is saved.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpsertAdminWorldNodeRequest' }
+      responses:
+        '204': { description: The node was saved. }
+        '400': { description: The source node form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The node, position, slug, or scoped map editor access is unavailable. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminWorldBuilderNode
+      summary: Delete a source node and its linked MapAsset graph.
+      description: Requires source world-node delete permission and its all, own, or assigned scope. Incoming activity transitions and other nodes' completed-node prerequisites are removed transactionally before the linked MapAsset cascade.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The node and linked draft graph were deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The node or scoped node-delete access is unavailable. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/activity-graph-layout:
     patch:
       operationId: updateAdminWorldBuilderNodeActivityGraphLayout
@@ -1714,6 +1779,33 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The node, requested neighbor, or scoped map editor access is unavailable. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/insert:
+    post:
+      operationId: insertAdminWorldBuilderNode
+      summary: Insert a complete source-shaped node between adjacent hex-grid neighbors.
+      description: Requires source world-map update permission and scoped map-editor policy. The occupied directional chain moves atomically, then the new node, its default MapAsset, and draft route occupy the gap. This membership change does not create a layout revision.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsertAdminWorldNodeRequest' }
+      responses:
+        '201':
+          description: The complete node was inserted and the directional chain was moved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminWorldNodeResponse' }
+        '400': { description: The direction or source node form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The origin, neighbor, slug, or scoped map editor access is unavailable. }
         '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/graph-position:
     patch:
@@ -10683,6 +10775,35 @@ components:
       properties:
         asset_id: { type: string, format: uuid }
         node_id: { type: string, format: uuid }
+    UpsertAdminWorldNodeRequest:
+      type: object
+      additionalProperties: false
+      required: [title, position_q, position_r, state]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], pattern: '^[a-z0-9-]+$', maxLength: 140 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        position_q: { type: integer }
+        position_r: { type: integer }
+        state: { type: string, enum: [active, available, completed, hidden, hinted, locked, recommended] }
+        visual_config:
+          type: object
+          additionalProperties: true
+          default: {}
+    InsertAdminWorldNodeRequest:
+      type: object
+      additionalProperties: false
+      required: [direction, node]
+      properties:
+        direction: { $ref: '#/components/schemas/AdminMapLayoutDirection' }
+        node: { $ref: '#/components/schemas/UpsertAdminWorldNodeRequest' }
+    CreateAdminWorldNodeResponse:
+      type: object
+      additionalProperties: false
+      required: [node_id, asset_id]
+      properties:
+        node_id: { type: string, format: uuid }
+        asset_id: { type: string, format: uuid }
     AdminMapAssetVersion:
       type: object
       additionalProperties: false

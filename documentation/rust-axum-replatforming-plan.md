@@ -1357,7 +1357,7 @@ writer resolves a map-scoped existing or new topic, preserves the source
 peer/support and response-type boundaries, rejects a prompt/wall type switch,
 and stores all ten authored dark/light message-surface colors with the source
 live preview under the same scoped CSRF and optimistic-concurrency boundary.
-Its source Create world node dialog is also available through `POST
+Its source Create world map dialog is also available through `POST
 /api/v1/admin/world-builder/maps`: title, optional slug and description retain
 their source bounds; Rust resolves the current authoring World, assigns the
 creating principal, generates collision-safe omitted slugs and returns a draft
@@ -1453,6 +1453,25 @@ a new MapAsset, linked tile and draft route atomically in the gap. Insertion
 does not create a layout revision because it changes membership; its browser
 proof verifies the origin, inserted tile and shifted neighbor coordinates, then
 removes the disposable map.
+
+The complete source node writer now has its own contract instead of treating a
+default MapAsset as an authoring substitute. `POST
+/api/v1/admin/world-builder/maps/{map_id}/nodes` creates the requested
+hex-grid node, default focusable MapAsset, and draft route atomically under the
+source `world_nodes` update scope. `PATCH
+/api/v1/admin/world-builder/nodes/{node_id}` follows the source map-editor
+scope, records a layout snapshot only when the coordinate changes, and saves
+the title, optional slug, description, seven source states, and complete
+source-compatible visual configuration. `POST .../nodes/{node_id}/insert`
+uses the source map-editor scope to move an occupied directional chain before
+creating the complete node in the gap; it deliberately does not snapshot a
+membership-changing layout. `DELETE .../nodes/{node_id}` requires the stricter
+source node-delete scope, removes incoming transitions and completed-node
+unlock references from other nodes, then deletes the linked MapAsset graph in
+one transaction. The typed contract and disposable browser proof cover the
+lifecycle; lifting the existing Laravel node-dialog UI remains a subsequent
+frontend adaptation step rather than an excuse to reintroduce a smaller
+MapAsset-only editor.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

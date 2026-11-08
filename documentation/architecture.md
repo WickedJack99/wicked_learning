@@ -145,6 +145,16 @@ The availability adapter deliberately treats the five visible values alike and
 continues to reserve special opening behavior for `hidden` and `locked` only;
 unknown persisted values fail closed rather than becoming learner-playable.
 
+Node authoring is a separate transactional boundary from the MapAsset surface.
+Creating a node writes its requested hex position and visual configuration plus
+the default linked focusable MapAsset and draft route. A source-style adjacent
+insert locks the affected map nodes, moves the occupied directional chain in
+reverse, then writes the new node into the gap. Position changes record the
+existing immutable map-layout snapshot, but inserts and deletes do not because
+they change node membership. Deleting a node removes incoming activity
+transitions, prunes completed-node prerequisites from remaining visual
+configuration, and deletes its linked MapAsset graph in the same transaction.
+
 Topic detail requests identify the active section and load only that section's
 paginated collection or trail evidence; inactive sections use empty bounded
 defaults. This keeps the initial Inertia payload and related queries scoped to

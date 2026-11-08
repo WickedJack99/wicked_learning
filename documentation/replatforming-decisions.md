@@ -858,6 +858,16 @@ unlock checks. Unknown persisted values still fail closed. The OpenAPI contract
 and generated React types expose the same vocabulary so a future node editor
 does not silently lose authored state while its complete writer is lifted.
 
+**Node-writer boundary:** The Rust node writer is intentionally distinct from
+the older MapAsset convenience writer. It preserves the source split between
+node-create/delete permission (`world_nodes`) and map-editor update/adjacent
+insert permission (`world_maps`), with direct editing-group authority only
+where the source grants it. It writes the requested compatibility node,
+default focusable MapAsset and draft route atomically; a later source-adapted
+browser dialog is required before this becomes an author-facing replacement.
+Node deletion cleans incoming transitions and completed-node unlock references
+before deleting the linked asset graph, preventing stale authoring references.
+
 **State-model evolution:** Application migration `0029` creates normalized
 tool, item, ownership, discovery, tool-use and manual-opening records before
 their source writers are lifted. The reader consumes each fact without turning
