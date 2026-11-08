@@ -867,8 +867,9 @@ source controls are still being lifted.
 The Rust backend for a selected node's source `Lock for all users` action now
 resets only learner-specific tool unlocks. It deliberately preserves discovery
 and explicit support overrides, so resetting a tool-derived condition cannot
-silently erase other learner-state causes. Its editor control remains deferred
-until the complete source visual/opening-rule dialog is available.
+silently erase other learner-state causes. The lifted map-tile dialog exposes
+that confirmation while the complete source visual/opening-rule dialog is
+still being lifted.
 
 The corresponding support-issued manual override is now also available to the
 backend for one locked node and one learner already visible through the

@@ -69,6 +69,10 @@ test('a local author creates, edits, and deletes a source-shaped map tile', asyn
 
     await page.getByRole('button', { name: 'Edit tile' }).last().click();
     page.once('dialog', (dialog) => dialog.accept());
+    const unlocksReset = page.waitForResponse((response) => response.request().method() === 'POST' && /\/api\/v1\/admin\/world-builder\/nodes\/[0-9a-f-]+\/reset-unlocks$/.test(response.url()));
+    await page.getByRole('button', { name: 'Lock for all users' }).click();
+    expect((await unlocksReset).status()).toBe(200);
+    page.once('dialog', (dialog) => dialog.accept());
     const deleted = page.waitForResponse((response) => response.request().method() === 'DELETE' && /\/api\/v1\/admin\/world-builder\/nodes\/[0-9a-f-]+$/.test(response.url()));
     await page.getByRole('button', { name: 'Delete map tile' }).click();
     expect((await deleted).status()).toBe(204);

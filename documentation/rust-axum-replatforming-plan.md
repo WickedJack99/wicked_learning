@@ -1497,8 +1497,8 @@ through a scoped typed command. It removes only existing learner tool-unlock
 rows for the selected editable node, never learner discovery or support-issued
 manual overrides. The node-dialog's remaining visual, opening-rule, sound and
 media-selection controls stay deferred until their complete source controls are
-lifted; the Rust writer already preserves them during the currently available
-metadata edits.
+lifted; the lifted source-styled dialog already exposes the `Lock for all
+users` confirmation alongside the currently available metadata edits.
 
 The separate manual override command now sets or revokes a support-issued
 override only for a locked node in the actor's editable-map scope and a learner
