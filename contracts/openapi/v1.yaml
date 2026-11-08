@@ -1131,6 +1131,87 @@ paths:
         '401': { description: The browser has no authenticated session. }
         '404': { description: The identity cannot author activities. }
         '503': { description: The application database is unavailable. }
+  /admin/media-assets:
+    get:
+      operationId: getAdminMediaAssets
+      summary: List bounded reusable visual assets available to an authorized administrator.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 12, default: 12 } }
+        - { name: q, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: tag, in: query, schema: { type: string, maxLength: 40 } }
+      responses:
+        '200': { description: A bounded reusable visual page., content: { application/json: { schema: { $ref: '#/components/schemas/AdminMediaAssetPage' } } } }
+        '400': { description: The page or filters are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot view reusable visual assets. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: uploadAdminMediaAsset
+      summary: Upload one fresh reusable visual after byte-level type validation.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } }
+      responses:
+        '201': { description: The stored visual asset., content: { application/json: { schema: { $ref: '#/components/schemas/AdminMediaAssetResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage reusable visual assets. }
+        '413': { description: The upload exceeds five MiB. }
+        '422': { description: The uploaded bytes are not an accepted image format. }
+        '503': { description: Media storage or the application database is unavailable. }
+  /admin/media-assets/{asset_id}:
+    patch:
+      operationId: updateAdminMediaAssetMetadata
+      summary: Save bounded searchable metadata for one reusable visual asset.
+      parameters: [ { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminMediaAssetMetadataRequest' } } } }
+      responses:
+        '200': { description: The saved visual asset., content: { application/json: { schema: { $ref: '#/components/schemas/AdminMediaAssetResponse' } } } }
+        '400': { description: The metadata is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The asset is unavailable or read-only. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminMediaAsset
+      summary: Delete an unreferenced reusable visual asset.
+      parameters: [ { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The visual was removed. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The asset is unavailable, referenced, or cannot be deleted by this identity. }
+        '503': { description: The application database is unavailable. }
+  /admin/media-assets/{asset_id}/replace:
+    post:
+      operationId: replaceAdminMediaAsset
+      summary: Replace an asset's bytes while preserving its stable reusable reference.
+      parameters: [ { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } }
+      responses:
+        '200': { description: The replacement visual asset., content: { application/json: { schema: { $ref: '#/components/schemas/AdminMediaAssetResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The asset is unavailable or read-only. }
+        '413': { description: The upload exceeds five MiB. }
+        '422': { description: The uploaded bytes are not an accepted image format. }
+        '503': { description: Media storage or the application database is unavailable. }
+  /admin/media-assets/{asset_id}/content:
+    get:
+      operationId: getAdminMediaAssetContent
+      summary: Preview or download authorized private reusable visual bytes.
+      parameters:
+        - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: download, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '200': { description: The image bytes with restrictive content and cache headers. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The asset is unavailable to this identity. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/templates:
     post:
       operationId: createAdminActivityTemplate
@@ -9561,6 +9642,56 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
+    AdminMediaAssetReferenceGroup:
+      type: object
+      required: [count, label]
+      properties:
+        count: { type: integer, minimum: 0 }
+        label: { type: string }
+    AdminMediaAsset:
+      type: object
+      required: [id, can_delete, can_view_path, content_type, display_name, reference_count, reference_groups, tags, updated_at, url]
+      properties:
+        id: { type: string, format: uuid }
+        can_delete: { type: boolean }
+        can_view_path: { type: boolean }
+        category: { type: [string, 'null'] }
+        content_type: { type: string, enum: [image/gif, image/jpeg, image/png, image/webp, image/svg+xml] }
+        display_name: { type: string, maxLength: 160 }
+        has_transparency: { type: [boolean, 'null'] }
+        is_animated: { type: [boolean, 'null'] }
+        reference_count: { type: integer, minimum: 0 }
+        reference_groups: { type: array, items: { $ref: '#/components/schemas/AdminMediaAssetReferenceGroup' } }
+        tags: { type: array, maxItems: 12, items: { type: string, maxLength: 40 } }
+        updated_at: { type: string, format: date-time }
+        url: { type: string }
+    AdminMediaAssetPagination:
+      type: object
+      required: [page, per_page, total, last_page]
+      properties:
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 12 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
+    AdminMediaAssetPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminMediaAsset' } }
+        pagination: { $ref: '#/components/schemas/AdminMediaAssetPagination' }
+    AdminMediaAssetResponse:
+      type: object
+      required: [asset]
+      properties:
+        asset: { $ref: '#/components/schemas/AdminMediaAsset' }
+    AdminMediaAssetMetadataRequest:
+      type: object
+      properties:
+        display_name: { type: [string, 'null'], maxLength: 160 }
+        category: { type: [string, 'null'], maxLength: 80 }
+        tags: { type: array, maxItems: 12, items: { type: string, maxLength: 40 } }
+        has_transparency: { type: [boolean, 'null'] }
+        is_animated: { type: [boolean, 'null'] }
         slug: { type: string }
         icon: { type: [string, 'null'] }
         url: { type: string }

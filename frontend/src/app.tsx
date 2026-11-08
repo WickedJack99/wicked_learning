@@ -124,6 +124,12 @@ const OriginalLearningTaxonomyPage = lazy(async () => {
     return { default: module.OriginalLearningTaxonomyPage };
 });
 
+const OriginalMediaLibraryPage = lazy(async () => {
+    const module = await import('./original-media-library');
+
+    return { default: module.OriginalMediaLibraryPage };
+});
+
 const OriginalAccessLinkRedeemPage = lazy(async () => {
     const module = await import('./original-access-links');
 
@@ -497,6 +503,10 @@ export function App() {
             'admin-world-builder'
         ) {
             return <OriginalWorldBuilderPage isAuthenticated />;
+        }
+
+        if (new URLSearchParams(location.search).get('panel') === 'admin-assets') {
+            return <Suspense fallback={null}><OriginalMediaLibraryPage /></Suspense>;
         }
 
         if (usersPanel) {

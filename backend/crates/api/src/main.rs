@@ -9,6 +9,7 @@ mod account_two_factor;
 mod admin_activity_templates;
 mod admin_learning_group;
 mod admin_learning_taxonomy;
+mod admin_media_assets;
 mod admin_registration_tokens;
 mod admin_role;
 mod admin_source_records;
@@ -646,6 +647,10 @@ fn router(state: AppState) -> Router {
             post(admin_source_records::restore),
         )
         .route("/api/v1/admin/activity-templates", get(admin_activity_templates::index))
+        .route("/api/v1/admin/media-assets", get(admin_media_assets::index).post(admin_media_assets::upload).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
+        .route("/api/v1/admin/media-assets/{asset_id}", patch(admin_media_assets::update_metadata).delete(admin_media_assets::delete))
+        .route("/api/v1/admin/media-assets/{asset_id}/replace", post(admin_media_assets::replace).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
+        .route("/api/v1/admin/media-assets/{asset_id}/content", get(admin_media_assets::content))
         .route("/api/v1/admin/world-builder/activities/{activity_id}/templates", post(admin_activity_templates::create))
         .route("/api/v1/admin/activity-templates/{template_id}", get(admin_activity_templates::show).patch(admin_activity_templates::rename).delete(admin_activity_templates::delete))
         .route("/api/v1/admin/activity-templates/{template_id}/from-activity/{activity_id}", patch(admin_activity_templates::update_from_activity))

@@ -833,6 +833,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/media-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List bounded reusable visual assets available to an authorized administrator. */
+        get: operations["getAdminMediaAssets"];
+        put?: never;
+        /** Upload one fresh reusable visual after byte-level type validation. */
+        post: operations["uploadAdminMediaAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/media-assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an unreferenced reusable visual asset. */
+        delete: operations["deleteAdminMediaAsset"];
+        options?: never;
+        head?: never;
+        /** Save bounded searchable metadata for one reusable visual asset. */
+        patch: operations["updateAdminMediaAssetMetadata"];
+        trace?: never;
+    };
+    "/admin/media-assets/{asset_id}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace an asset's bytes while preserving its stable reusable reference. */
+        post: operations["replaceAdminMediaAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/media-assets/{asset_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview or download authorized private reusable visual bytes. */
+        get: operations["getAdminMediaAssetContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/templates": {
         parameters: {
             query?: never;
@@ -6567,12 +6637,54 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
-            slug: string;
-            icon: string | null;
+        };
+        AdminMediaAssetReferenceGroup: {
+            count: number;
+            label: string;
+        };
+        AdminMediaAsset: {
+            /** Format: uuid */
+            id: string;
+            can_delete: boolean;
+            can_view_path: boolean;
+            category?: string | null;
+            /** @enum {string} */
+            content_type: "image/gif" | "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml";
+            display_name: string;
+            has_transparency?: boolean | null;
+            is_animated?: boolean | null;
+            reference_count: number;
+            reference_groups: components["schemas"]["AdminMediaAssetReferenceGroup"][];
+            tags: string[];
+            /** Format: date-time */
+            updated_at: string;
             url: string;
-            volume: number;
-            play_seconds: number | null;
-            loop_enabled: boolean;
+        };
+        AdminMediaAssetPagination: {
+            page: number;
+            per_page: number;
+            total: number;
+            last_page: number;
+        };
+        AdminMediaAssetPage: {
+            items: components["schemas"]["AdminMediaAsset"][];
+            pagination: components["schemas"]["AdminMediaAssetPagination"];
+        };
+        AdminMediaAssetResponse: {
+            asset: components["schemas"]["AdminMediaAsset"];
+        };
+        AdminMediaAssetMetadataRequest: {
+            display_name?: string | null;
+            category?: string | null;
+            tags?: string[];
+            has_transparency?: boolean | null;
+            is_animated?: boolean | null;
+            slug?: string;
+            icon?: string | null;
+            url?: string;
+            volume?: number;
+            play_seconds?: number | null;
+            loop_enabled?: boolean;
         };
         AdminEditableActivity: {
             /** Format: uuid */
@@ -9447,6 +9559,363 @@ export interface operations {
                 content?: never;
             };
             /** @description The identity cannot author activities. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminMediaAssets: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                q?: string;
+                tag?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded reusable visual page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMediaAssetPage"];
+                };
+            };
+            /** @description The page or filters are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot view reusable visual assets. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    uploadAdminMediaAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The stored visual asset. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMediaAssetResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot manage reusable visual assets. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The upload exceeds five MiB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The uploaded bytes are not an accepted image format. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Media storage or the application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminMediaAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The visual was removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The asset is unavailable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminMediaAssetMetadata: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminMediaAssetMetadataRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved visual asset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMediaAssetResponse"];
+                };
+            };
+            /** @description The metadata is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The asset is unavailable or read-only. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replaceAdminMediaAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The replacement visual asset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMediaAssetResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The asset is unavailable or read-only. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The upload exceeds five MiB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The uploaded bytes are not an accepted image format. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Media storage or the application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminMediaAssetContent: {
+        parameters: {
+            query?: {
+                download?: boolean;
+            };
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image bytes with restrictive content and cache headers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The asset is unavailable to this identity. */
             404: {
                 headers: {
                     [name: string]: unknown;
