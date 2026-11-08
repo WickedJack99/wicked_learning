@@ -160,6 +160,13 @@ roles are proven to exist, local author date-time controls are canonicalized to
 UTC RFC 3339 instants, and malformed, self-referential or mandatory cyclic
 locked-node prerequisites are rejected. This keeps author-facing catalog IDs
 out of learner state evaluation without making invalid content appear usable.
+Managed reusable-visual URLs in either node theme are validated and recorded as
+normalized node-owned media references in that same transaction. Imports and
+map duplication recreate those references after their node-ID remaps; deleting
+a node or map releases them. Learner world serialization rewrites active node
+visual URLs to the protected learner-media endpoint, whose serving query also
+requires the linked node, MapAsset, map and World to be published and visible
+through the map role policy.
 
 Topic detail requests identify the active section and load only that section's
 paginated collection or trail evidence; inactive sections use empty bounded

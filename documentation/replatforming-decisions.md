@@ -877,6 +877,17 @@ locked-node cycle. Source `datetime-local` schedule input is canonicalized to
 UTC RFC 3339 before persistence so the learner state resolver never has to
 guess an authoring browser's locale or silently ignore a valid schedule.
 
+**Node visual-media boundary:** A source node theme may name a managed reusable
+visual in its dark or light `imageUrl`. Direct writes replace that node's
+normalized media-reference rows in the same transaction and reject a missing
+managed asset; JSON import and map duplication recreate the rows only after
+their node-ID remaps. Node and map deletion remove the rows before their owner
+cascade. Learner snapshots rewrite valid managed paths to the learner-media
+route, which authorizes delivery only when the linked node, MapAsset, map and
+World are published and the requester has the map's role-visible access. This
+keeps selection, replacement, deletion and learner delivery tied to one saved
+owner instead of leaving a working author URL that the learner cannot fetch.
+
 **State-model evolution:** Application migration `0029` creates normalized
 tool, item, ownership, discovery, tool-use and manual-opening records before
 their source writers are lifted. The reader consumes each fact without turning

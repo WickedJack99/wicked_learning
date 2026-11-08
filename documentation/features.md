@@ -787,9 +787,11 @@ The World Builder provides:
 - a map-level lock for MapAsset placement
 - one MapAsset editor for surface, text, learner panel, activities, rules,
   visuals, sounds and deletion
-- source-adapted reusable visual selection for MapAsset surfaces, route visuals,
-  and Obstacle, Tool Grant, Item Grant and Item Obstacle activity scenes; saved
-  references protect selected media until the authored owner is removed or changed
+- source-adapted reusable visual selection for MapAsset surfaces, node light/dark
+  themes, route visuals, and Obstacle, Tool Grant, Item Grant and Item Obstacle
+  activity scenes; saved references protect selected media until the authored
+  owner is removed or changed, and eligible published node visuals use the
+  protected learner-media path
 - source-adapted Scene ambience controls on every activity: authors can enable,
   select, preview or clear one reusable sound; the activity stores only that
   sound reference and retains the sound's server-owned playback metadata

@@ -297,6 +297,20 @@ pub(crate) async fn import_map_in_transaction(
     for (activity_id, config) in activity_media {
         synchronize_media_references(transaction, "activity", activity_id, &config).await?;
     }
+    for (node_slug, node_id) in &nodes_by_slug {
+        let Some(node) = nodes
+            .iter()
+            .find(|node| string(object(node), "slug") == node_slug)
+        else {
+            continue;
+        };
+        let config = remap_value(
+            json_value(object(node), "visualConfig"),
+            &nodes_by_source,
+            &["nodeId", "node_id", "requiredNodeIds"],
+        );
+        synchronize_media_references(transaction, "node", *node_id, &config).await?;
+    }
     Ok(Some(map_id))
 }
 

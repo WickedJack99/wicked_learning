@@ -193,7 +193,7 @@ pub async fn load_first_visible(
                 q: node.q,
                 r: node.r,
                 state: node.state,
-                visual_config: node.visual_config,
+                visual_config: learner_node_visual_config(node.visual_config),
             });
     }
     Ok(Some(LoadedWorld {
@@ -265,6 +265,10 @@ fn learner_map_asset_visual_config(config: Value, sound_urls: &HashMap<Uuid, Str
     config
 }
 
+fn learner_node_visual_config(config: Value) -> Value {
+    learner_media_config(config)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -272,7 +276,7 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::learner_map_asset_visual_config;
+    use super::{learner_map_asset_visual_config, learner_node_visual_config};
 
     #[test]
     fn projects_only_resolved_published_interaction_sound_urls() {
@@ -292,5 +296,26 @@ mod tests {
             Some(&json!("/api/v1/public/sounds/current/content")),
         );
         assert_eq!(config.pointer("/sounds/unlock/url"), Some(&json!(null)));
+    }
+
+    #[test]
+    fn projects_managed_node_theme_images_to_the_learner_media_route() {
+        let media = Uuid::new_v4();
+
+        let config = learner_node_visual_config(json!({
+            "dark": { "imageUrl": format!("/api/v1/admin/media-assets/{media}/content") },
+            "light": { "imageUrl": "/images/nodes/bundled.svg" }
+        }));
+
+        assert_eq!(
+            config.pointer("/dark/imageUrl"),
+            Some(&json!(format!(
+                "/api/v1/learner/media-assets/{media}/content"
+            ))),
+        );
+        assert_eq!(
+            config.pointer("/light/imageUrl"),
+            Some(&json!("/images/nodes/bundled.svg")),
+        );
     }
 }

@@ -1097,7 +1097,7 @@ export interface paths {
         put?: never;
         /**
          * Create a source-shaped hex-grid node, default MapAsset, and draft route.
-         * @description Requires source world-node update permission plus its all, own, assigned, or direct editing-group map scope. The node, its default focusable MapAsset, and a draft route are created atomically.
+         * @description Requires source world-node update permission plus its all, own, assigned, or direct editing-group map scope. The node, its default focusable MapAsset, and a draft route are created atomically. Managed visual URLs in the node theme are validated and registered as reusable-media references in the same transaction.
          */
         post: operations["createAdminWorldBuilderNode"];
         delete?: never;
@@ -1246,14 +1246,14 @@ export interface paths {
         post?: never;
         /**
          * Delete a source node and its linked MapAsset graph.
-         * @description Requires source world-node delete permission and its all, own, or assigned scope. Incoming activity transitions and other nodes' completed-node prerequisites are removed transactionally before the linked MapAsset cascade.
+         * @description Requires source world-node delete permission and its all, own, or assigned scope. Incoming activity transitions, node visual-media references, and other nodes' completed-node prerequisites are removed transactionally before the linked MapAsset cascade.
          */
         delete: operations["deleteAdminWorldBuilderNode"];
         options?: never;
         head?: never;
         /**
          * Update a source-shaped node and optionally move its hex position.
-         * @description Requires source world-map update permission and its scoped map-editor policy. A genuine position change snapshots the outgoing layout before the node is saved.
+         * @description Requires source world-map update permission and its scoped map-editor policy. A genuine position change snapshots the outgoing layout before the node is saved. Managed visual URLs replace the node's normalized reusable-media references atomically.
          */
         patch: operations["updateAdminWorldBuilderNode"];
         trace?: never;
@@ -7638,7 +7638,7 @@ export interface components {
             /** @enum {string} */
             state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
             /**
-             * @description Source node visual configuration. Catalog references may use a current tool or item UUID (or its stable slug); the server rejects unavailable references and persists the learner-safe slug. Node prerequisite IDs remain UUIDs. `datetime-local` schedule values are interpreted as UTC and canonicalized to RFC 3339 before persistence.
+             * @description Source node visual configuration. Catalog references may use a current tool or item UUID (or its stable slug); the server rejects unavailable references and persists the learner-safe slug. Node prerequisite IDs remain UUIDs. Managed `/api/v1/admin/media-assets/{uuid}/content` theme URLs must identify a reusable visual in the current workspace; they are registered atomically and learner payloads rewrite them to the protected learner-media route. `datetime-local` schedule values are interpreted as UTC and canonicalized to RFC 3339 before persistence.
              * @default {}
              */
             visual_config: {

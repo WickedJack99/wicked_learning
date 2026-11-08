@@ -11,6 +11,8 @@ use wicked_learning_application::{
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
+use crate::admin_world_map_import::synchronize_media_references;
+
 pub struct PostgresAdminWorldMapDuplicateRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -388,21 +390,23 @@ async fn remap_nodes(
         let Some(duplicate_id) = node_ids.get(&row.id) else {
             continue;
         };
+        let visual_config = remap_value(
+            row.visual_config.clone(),
+            node_ids,
+            &["nodeId", "node_id", "requiredNodeIds"],
+        );
         sqlx::query(
             "UPDATE learning_nodes SET visual_config = $2, start_activity_id = $3 WHERE id = $1",
         )
         .bind(duplicate_id)
-        .bind(remap_value(
-            row.visual_config.clone(),
-            node_ids,
-            &["nodeId", "node_id", "requiredNodeIds"],
-        ))
+        .bind(&visual_config)
         .bind(
             row.start_activity_id
                 .and_then(|id| activity_ids.get(&id).copied()),
         )
         .execute(&mut **transaction)
         .await?;
+        synchronize_media_references(transaction, "node", *duplicate_id, &visual_config).await?;
     }
     Ok(())
 }

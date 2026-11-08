@@ -145,8 +145,14 @@ async fn import_asset(
         let nodes_by_source = optional_string(node, "sourceId")
             .map(|source_id| HashMap::from([(source_id.to_owned(), node_id)]))
             .unwrap_or_default();
+        let visual_config = remap_value(
+            json_value(node, "visualConfig"),
+            &nodes_by_source,
+            &["nodeId", "node_id", "requiredNodeIds"],
+        );
         sqlx::query("INSERT INTO learning_nodes (id,map_id,map_asset_id,slug,title,description,position_q,position_r,state,visual_config,activity_graph_layout) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)")
-            .bind(node_id).bind(map_id).bind(asset_id).bind(&node_slug).bind(optional_string(node,"title").unwrap_or(&node_slug)).bind(optional_string(node,"description").unwrap_or_default()).bind(position_q).bind(position_r).bind(optional_string(node,"state").unwrap_or("available")).bind(remap_value(json_value(node,"visualConfig"), &nodes_by_source, &["nodeId", "node_id", "requiredNodeIds"])).bind(json_value(node,"activityGraphLayout")).execute(&mut *transaction).await?;
+            .bind(node_id).bind(map_id).bind(asset_id).bind(&node_slug).bind(optional_string(node,"title").unwrap_or(&node_slug)).bind(optional_string(node,"description").unwrap_or_default()).bind(position_q).bind(position_r).bind(optional_string(node,"state").unwrap_or("available")).bind(&visual_config).bind(json_value(node,"activityGraphLayout")).execute(&mut *transaction).await?;
+        synchronize_media_references(&mut transaction, "node", node_id, &visual_config).await?;
         let route_id = Uuid::new_v4();
         sqlx::query("INSERT INTO learning_routes (id,map_asset_id,slug,title,description,position) VALUES ($1,$2,'default','Default route','',0)")
             .bind(route_id).bind(asset_id).execute(&mut *transaction).await?;

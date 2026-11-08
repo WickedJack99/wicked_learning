@@ -20,7 +20,13 @@ type NodeAuthoringDocument = {
     tools: Array<{ id: string; slug: string }>;
 };
 
-const node = (title: string, q: number, r: number, state = 'available') => ({
+const node = (
+    title: string,
+    q: number,
+    r: number,
+    state = 'available',
+    imageUrl?: string,
+) => ({
     title,
     description: `${title} description`,
     position_q: q,
@@ -28,6 +34,7 @@ const node = (title: string, q: number, r: number, state = 'available') => ({
     state,
     visual_config: {
         dark: {
+            ...(imageUrl ? { imageUrl } : {}),
             imageRotation: '0',
             imageWidth: '100',
             imageX: '50',
@@ -35,6 +42,7 @@ const node = (title: string, q: number, r: number, state = 'available') => ({
             tileOpacity: '100',
         },
         light: {
+            ...(imageUrl ? { imageUrl } : {}),
             imageRotation: '0',
             imageWidth: '100',
             imageX: '50',
@@ -55,6 +63,35 @@ test('a local author writes the complete source node lifecycle', async ({ page }
     await page.getByLabel('Password').fill(password!);
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/world$/);
+
+    await page.goto('/settings?panel=admin-assets');
+    const upload = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith('/api/v1/admin/media-assets'),
+    );
+    await page.locator('input[type="file"]').first().setInputFiles({
+        buffer: Buffer.from(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path fill="#0f766e" d="M0 0h24v24H0z"/></svg>',
+        ),
+        mimeType: 'image/svg+xml',
+        name: 'node-visual.svg',
+    });
+    const uploaded = await upload;
+    expect(uploaded.status()).toBe(201);
+    const media = (await uploaded.json()) as {
+        asset: { id: string; url: string };
+    };
+    const mediaName = `Node visual ${Date.now()}`;
+    await page.getByLabel('Visual name').fill(mediaName);
+    const savedMetadata = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            response.url().includes(`/api/v1/admin/media-assets/${media.asset.id}`),
+    );
+    await page.getByRole('button', { name: 'Save details' }).click();
+    expect((await savedMetadata).status()).toBe(200);
+
     await page.goto('/settings?panel=admin-world-builder');
 
     const mapTitle = `Node authoring ${Date.now()}`;
@@ -79,10 +116,29 @@ test('a local author writes the complete source node lifecycle', async ({ page }
         (await (
             await page.request.get(`/api/v1/admin/world-builder/maps/${mapId}`)
         ).json()) as MapDocument;
+    const referenceCount = async () => {
+        const response = await page.request.get(
+            `/api/v1/admin/media-assets?page=1&per_page=12&q=${encodeURIComponent(mediaName)}`,
+        );
+        const assets = (await response.json()) as {
+            items: Array<{ id: string; reference_count: number }>;
+        };
+        return assets.items.find((asset) => asset.id === media.asset.id)
+            ?.reference_count;
+    };
 
     const first = await page.request.post(
         `/api/v1/admin/world-builder/maps/${mapId}/nodes`,
-        { data: node('First source node', 0, 0, 'recommended'), headers },
+        {
+            data: node(
+                'First source node',
+                0,
+                0,
+                'recommended',
+                media.asset.url,
+            ),
+            headers,
+        },
     );
     expect(first.status()).toBe(201);
     const firstCreated = (await first.json()) as {
@@ -91,10 +147,20 @@ test('a local author writes the complete source node lifecycle', async ({ page }
     };
     const second = await page.request.post(
         `/api/v1/admin/world-builder/maps/${mapId}/nodes`,
-        { data: node('Second source node', 1, 0, 'hidden'), headers },
+        {
+            data: node(
+                'Second source node',
+                1,
+                0,
+                'hidden',
+                media.asset.url,
+            ),
+            headers,
+        },
     );
     expect(second.status()).toBe(201);
     const secondCreated = (await second.json()) as { node_id: string };
+    await expect.poll(referenceCount).toBe(4);
 
     const authoring = await page.request.get(
         `/api/v1/admin/world-builder/nodes/${firstCreated.node_id}`,
@@ -192,6 +258,7 @@ test('a local author writes the complete source node lifecycle', async ({ page }
         },
     );
     expect(moved.status()).toBe(204);
+    await expect.poll(referenceCount).toBe(2);
     const layoutHistory = await page.request.get(
         `/api/v1/admin/world-builder/maps/${mapId}/layout-versions?page=1&per_page=6`,
     );
@@ -253,6 +320,7 @@ test('a local author writes the complete source node lifecycle', async ({ page }
             (asset) => asset.node_id === secondCreated.node_id,
         ),
     ).toBeFalsy();
+    await expect.poll(referenceCount).toBe(0);
 
     await page.getByRole('button', { name: 'Delete map' }).click();
     await page.getByRole('button', { name: 'Delete world map' }).click();

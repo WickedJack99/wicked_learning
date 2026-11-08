@@ -13,6 +13,10 @@ use wicked_learning_application::{
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
+use crate::admin_world_map_import::synchronize_media_references;
+
+const MEDIA_REFERENCE_KIND: &str = "node";
+
 pub struct PostgresAdminWorldNodeWriteRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -293,6 +297,7 @@ async fn update(
         .bind(Json(&form.visual_config))
         .execute(&mut *transaction)
         .await?;
+    synchronize_node_media_references(&mut transaction, node.id, &form.visual_config).await?;
     transaction.commit().await?;
     Ok(true)
 }
@@ -333,6 +338,7 @@ async fn delete(
         return Ok(false);
     }
     remove_unlock_references(&mut transaction, node.map_id, node.id).await?;
+    clear_node_media_references(&mut transaction, node.id).await?;
     if let Some(asset_id) = node.map_asset_id {
         sqlx::query("DELETE FROM learning_activity_transitions WHERE to_activity_id IN (SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE routes.map_asset_id = $1)")
             .bind(asset_id)
@@ -851,7 +857,7 @@ async fn create_records(
     map_id: Uuid,
     form: &WorldNodeForm,
     position: HexPosition,
-) -> Result<Option<CreatedWorldNode>, sqlx::Error> {
+) -> Result<Option<CreatedWorldNode>, WriteFailure> {
     let Some(node_slug) = usable_slug(transaction, map_id, form, None).await? else {
         return Ok(None);
     };
@@ -888,6 +894,7 @@ async fn create_records(
         .bind(Json(&form.visual_config))
         .execute(&mut **transaction)
         .await?;
+    synchronize_node_media_references(transaction, node_id, &form.visual_config).await?;
     sqlx::query("INSERT INTO learning_routes (id, map_asset_id, slug, title, description, position, published_at) VALUES ($1, $2, 'map-asset', $3, $4, 0, NULL)")
         .bind(route_id)
         .bind(asset_id)
@@ -896,6 +903,34 @@ async fn create_records(
         .execute(&mut **transaction)
         .await?;
     Ok(Some(CreatedWorldNode { node_id, asset_id }))
+}
+
+async fn clear_node_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    node_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id = $2",
+    )
+    .bind(MEDIA_REFERENCE_KIND)
+    .bind(node_id)
+    .execute(&mut **transaction)
+    .await?;
+    Ok(())
+}
+
+async fn synchronize_node_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    node_id: Uuid,
+    visual_config: &Value,
+) -> Result<(), WriteFailure> {
+    clear_node_media_references(transaction, node_id).await?;
+    synchronize_media_references(transaction, MEDIA_REFERENCE_KIND, node_id, visual_config)
+        .await
+        .map_err(|error| match error {
+            sqlx::Error::Protocol(_) => WriteFailure::Invalid,
+            error => WriteFailure::Database(error),
+        })
 }
 
 async fn principal_id(
