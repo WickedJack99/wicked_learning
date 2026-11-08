@@ -1488,6 +1488,13 @@ manual overrides. The source-adapted node-dialog control remains deferred with
 the other World Builder editing controls until the remaining authoring backend
 contracts are complete.
 
+The separate manual override command now sets or revokes a support-issued
+override only for a locked node in the actor's editable-map scope and a learner
+within that actor's `learner_support_signals.ro` all/group/self visibility
+scope. It is backend-only until the full scoped support-signals reader and the
+source-adapted control are lifted; a caller-supplied opaque learner subject is
+only a lookup input and never grants visibility by itself.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

@@ -395,6 +395,18 @@ count. It neither deletes discovery nor revokes explicit support overrides in
 `learner_node_manual_unlocks`; those learner facts have different causes and
 must remain separate from an author resetting tool-derived availability.
 
+An explicit learner-node override is a separate support intervention. Its
+write endpoint accepts an opaque learner identity subject but authorizes it
+server-side through the intersection of the selected locked node's normal
+`world_maps.ru` editable-map scope and the actor's
+`learner_support_signals.ro` learner-visibility scope. The latter is all,
+shared-group or self scope; an unrecognized scope fails closed. Enabled
+overrides are active `learner_node_manual_unlocks` rows and revocation marks
+only that support fact as revoked. This prevents a map editor from selecting
+an arbitrary learner while preserving the independent discovery and tool-use
+causes of availability. The endpoint remains backend-only until the scoped
+support-signals reader and source-adapted authoring controls are migrated.
+
 Map details retain their separate scoped authoring boundary. `learning_map_versions`
 stores the outgoing title, normalized description, optional learning-topic ID,
 MapAsset lock state, acting application principal and creation time before every

@@ -4517,6 +4517,28 @@ source-adapted World Builder control.
 learner-state causes auditable and avoiding an authoring write that could
 silently revoke support staff intervention.
 
+## ADR-115: Manual learner-node overrides require intersected authoring and support scopes
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The source World Builder can explicitly unlock a locked node for a
+learner. A map editor alone must not turn that write into arbitrary learner
+lookup or intervention, while a support reader alone must not mutate a map it
+cannot edit.
+
+**Decision:** Add a CSRF-protected command that accepts a locked node and an
+opaque learner identity subject, but authorizes the pair inside the backend.
+It requires the normal `world_maps.ru` all/own/assigned/direct-editor check for
+the node's map and `learner_support_signals.ro` visibility for the learner:
+all, shared group or self. Unknown scope values deny access. Enabling upserts
+an active `learner_node_manual_unlocks` row; revocation marks only that row
+revoked. The endpoint remains backend-only until the scoped support-signals
+reader and source-adapted editor control are migrated.
+
+**Why:** This preserves the source support boundary, keeps explicit
+interventions distinct from discovery and tool use, and avoids exposing a
+browser route that could select learners outside the caller's evidence scope.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

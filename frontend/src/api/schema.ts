@@ -691,6 +691,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/manual-unlocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set one support-scoped learner's explicit override for a locked node.
+         * @description Requires source world-map update authority and scoped learner-support-signals read authority. The backend rechecks that the selected learner is within the caller's support scope.
+         */
+        post: operations["setAdminWorldBuilderNodeManualUnlock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/review-queue": {
         parameters: {
             query?: never;
@@ -7923,6 +7943,11 @@ export interface components {
             /** Format: int64 */
             reset_count: number;
         };
+        SetAdminWorldNodeManualUnlockRequest: {
+            /** Format: uuid */
+            learner_subject_id: string;
+            enabled: boolean;
+        };
         AdminEditableMap: {
             can_delete_world_maps: boolean;
             can_manage_map_access: boolean;
@@ -11641,6 +11666,68 @@ export interface operations {
                 content?: never;
             };
             /** @description The node is unavailable through the caller's map-edit scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setAdminWorldBuilderNodeManualUnlock: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAdminWorldNodeManualUnlockRequest"];
+            };
+        };
+        responses: {
+            /** @description The override was set or revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The manual-unlock form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node or learner is unavailable through the caller's authoring and support scopes. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -55,6 +55,7 @@ mod admin_world_markdown;
 mod admin_world_message;
 mod admin_world_node;
 mod admin_world_node_layout;
+mod admin_world_node_manual_unlock;
 mod admin_world_node_starts;
 mod admin_world_node_transition;
 mod admin_world_node_unlock;
@@ -823,6 +824,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/reset-unlocks",
             post(admin_world_node_unlock::reset_tool_unlocks),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/manual-unlocks",
+            post(admin_world_node_manual_unlock::set_manual_unlock),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/insert-map-asset",

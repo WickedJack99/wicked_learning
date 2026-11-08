@@ -49,6 +49,7 @@ pub mod admin_world_markdown;
 pub mod admin_world_message;
 pub mod admin_world_node;
 pub mod admin_world_node_layout;
+pub mod admin_world_node_manual_unlock;
 pub mod admin_world_node_starts;
 pub mod admin_world_node_transition;
 pub mod admin_world_node_unlock;

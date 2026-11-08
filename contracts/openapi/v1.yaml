@@ -847,6 +847,24 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The node is unavailable through the caller's map-edit scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/manual-unlocks:
+    post:
+      operationId: setAdminWorldBuilderNodeManualUnlock
+      summary: Set one support-scoped learner's explicit override for a locked node.
+      description: Requires source world-map update authority and scoped learner-support-signals read authority. The backend rechecks that the selected learner is within the caller's support scope.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetAdminWorldNodeManualUnlockRequest' }
+      responses:
+        '204': { description: The override was set or revoked. }
+        '400': { description: The manual-unlock form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The node or learner is unavailable through the caller's authoring and support scopes. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/review-queue:
     get:
       operationId: getAdminWorldBuilderReviewQueue
@@ -11059,6 +11077,13 @@ components:
       required: [reset_count]
       properties:
         reset_count: { type: integer, format: int64, minimum: 0 }
+    SetAdminWorldNodeManualUnlockRequest:
+      type: object
+      additionalProperties: false
+      required: [learner_subject_id, enabled]
+      properties:
+        learner_subject_id: { type: string, format: uuid }
+        enabled: { type: boolean }
     AdminEditableMap:
       type: object
       additionalProperties: false
