@@ -4135,8 +4135,9 @@ targets and recursively collected media URL references. The endpoint performs
 no write and deliberately does not select learner records, versions, review
 runs or editor assignments. Target question configuration is included from the
 activity configuration owned by the Rust activity model; Laravel-only
-translation or companion records are not fabricated where target storage does
-not exist.
+translation records are not fabricated where target storage does not exist.
+Rust-owned map, node and activity companion configuration is carried as its
+validated object-shaped authored data.
 
 **Why:** A source-shaped, bounded projection gives authors a useful portable
 manifest while preserving established authorization and avoiding accidental
@@ -4212,8 +4213,8 @@ enabling the import action.
 API test suites, generated OpenAPI types, frontend production build, and a
 credential-gated local browser flow cover export, preflight, source removal,
 fresh import and cleanup. This is JSON-manifest import only: it does not carry
-media bytes or accept ZIP packages, Laravel-only translation/companion records,
-or cross-world transfer.
+media bytes or accept ZIP packages, Laravel-only translation records, or
+cross-world transfer.
 
 ## ADR-104: World JSON export composes only individually editable maps
 
@@ -4629,6 +4630,37 @@ AI-policy engine.
 
 **Limits:** Scope-configuration authoring, provider turns, conversation state
 and the frontend launcher are deliberately separate slices.
+
+## ADR-119: Companion scope configuration survives authored-content transfer
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** Scoped companion configuration is persisted on map, node and
+activity records. Export, import, duplication or standalone MapAsset reuse
+that silently drops it would change a learner-facing resolution result even
+though the author did not edit the companion policy.
+
+**Decision:** The existing map projection includes `companionConfig` at map,
+node and activity scope. Map, World and portable package imports revalidate
+that any present value is an object or null, carry it through their existing
+fresh-record writers, and register any managed media URL within it alongside
+the owner's other configuration. Map duplication copies the same stored values
+and keeps its existing normalized-media reference path. The standalone
+MapAsset projection/import carries only node and activity scope, because it
+does not own a map. Unknown inner keys remain data; the learner resolver alone
+applies its existing bounded allowlist. No configuration editor or launcher is
+introduced by this transfer-only decision.
+
+**Why:** This makes the new Rust-owned inherited configuration behave like the
+other authored graph facts across established source transfer workflows while
+keeping configuration interpretation and authoring as separate backend-first
+slices.
+
+**Evidence and limits:** Focused structural-validation coverage and the local
+browser export → edit → preflight → import → World export round trip prove map,
+node and activity retention. This does not migrate activity-history or
+template snapshots, add a scope-configuration form, or authorize provider
+turns.
 
 ## Phase 1 gate
 

@@ -150,9 +150,16 @@ async fn import_asset(
             &nodes_by_source,
             &["nodeId", "node_id", "requiredNodeIds"],
         );
-        sqlx::query("INSERT INTO learning_nodes (id,map_id,map_asset_id,slug,title,description,position_q,position_r,state,visual_config,activity_graph_layout) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)")
-            .bind(node_id).bind(map_id).bind(asset_id).bind(&node_slug).bind(optional_string(node,"title").unwrap_or(&node_slug)).bind(optional_string(node,"description").unwrap_or_default()).bind(position_q).bind(position_r).bind(optional_string(node,"state").unwrap_or("available")).bind(&visual_config).bind(json_value(node,"activityGraphLayout")).execute(&mut *transaction).await?;
-        synchronize_media_references(&mut transaction, "node", node_id, &visual_config).await?;
+        let companion_config = json_value(node, "companionConfig");
+        sqlx::query("INSERT INTO learning_nodes (id,map_id,map_asset_id,slug,title,description,position_q,position_r,state,visual_config,activity_graph_layout,companion_config) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)")
+            .bind(node_id).bind(map_id).bind(asset_id).bind(&node_slug).bind(optional_string(node,"title").unwrap_or(&node_slug)).bind(optional_string(node,"description").unwrap_or_default()).bind(position_q).bind(position_r).bind(optional_string(node,"state").unwrap_or("available")).bind(&visual_config).bind(json_value(node,"activityGraphLayout")).bind(&companion_config).execute(&mut *transaction).await?;
+        synchronize_media_references(
+            &mut transaction,
+            "node",
+            node_id,
+            &json!({"visualConfig": visual_config, "companionConfig": companion_config}),
+        )
+        .await?;
         let route_id = Uuid::new_v4();
         sqlx::query("INSERT INTO learning_routes (id,map_asset_id,slug,title,description,position) VALUES ($1,$2,'default','Default route','',0)")
             .bind(route_id).bind(asset_id).execute(&mut *transaction).await?;
@@ -168,10 +175,14 @@ async fn import_asset(
                 &topics_by_source,
                 &["messageTopicId"],
             );
-            sqlx::query("INSERT INTO learning_activities (id,route_id,slug,title,description,position,activity_type,activity_config,introduction,graph_position_x,graph_position_y,ai_review_status) VALUES ($1,$2,$3,$4,'',$5,$6,$7,$8,$9,$10,'needs_review')")
-                .bind(activity_id).bind(route_id).bind(activity_slug).bind(string(activity,"title")).bind(number(activity,"sortOrder",0.0) as i16).bind(string(activity,"type")).bind(&config).bind(optional_string(activity,"introduction")).bind(optional_number(graph_position,"x")).bind(optional_number(graph_position,"y")).execute(&mut *transaction).await?;
+            let companion_config = json_value(activity, "companionConfig");
+            sqlx::query("INSERT INTO learning_activities (id,route_id,slug,title,description,position,activity_type,activity_config,introduction,graph_position_x,graph_position_y,ai_review_status,companion_config) VALUES ($1,$2,$3,$4,'',$5,$6,$7,$8,$9,$10,'needs_review',$11)")
+                .bind(activity_id).bind(route_id).bind(activity_slug).bind(string(activity,"title")).bind(number(activity,"sortOrder",0.0) as i16).bind(string(activity,"type")).bind(&config).bind(optional_string(activity,"introduction")).bind(optional_number(graph_position,"x")).bind(optional_number(graph_position,"y")).bind(&companion_config).execute(&mut *transaction).await?;
             activities_by_slug.insert(activity_slug.to_owned(), activity_id);
-            activity_media.push((activity_id, config));
+            activity_media.push((
+                activity_id,
+                json!({"config": config, "companionConfig": companion_config}),
+            ));
         }
         if let Some(start_slug) = optional_string(node, "startActivitySlug")
             && let Some(activity_id) = activities_by_slug.get(start_slug)

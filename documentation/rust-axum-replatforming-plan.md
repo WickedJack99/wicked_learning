@@ -1570,6 +1570,21 @@ assistance; neither value comes from a browser parameter. Scope-configuration
 authoring, the provider-turn command and the source-adapted launcher remain
 later slices.
 
+### Learning Companion scoped-configuration transfer slice — 8 November 2026
+
+The existing authored-content transfer boundaries now preserve the
+Rust-owned object-only `companionConfig` at map, node and activity scope.
+Single-map, World and portable-package manifests serialize it; structural
+preflight rejects a present non-object/non-null value; imports and duplication
+copy it to fresh records and include it when synchronizing managed-media
+references. Standalone MapAsset transfer preserves only node/activity scope,
+matching its ownership boundary. The browser round trip exports a disposable
+map, adds distinct map/node/activity values to the manifest, preflights and
+imports it, then asserts the World export retained all three. This is
+transfer integrity only: scope-configuration authoring, activity-history and
+template snapshot parity, provider turns and the lifted launcher remain later
+slices.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

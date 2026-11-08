@@ -125,8 +125,8 @@ pub(crate) async fn import_map_in_transaction(
     if optional_string(map, "topicSlug").is_some() && topic_id.is_none() {
         return Ok(None);
     }
-    sqlx::query("INSERT INTO learning_maps (id, world_id, slug, title, description, position, background_config, grid_config, map_assets_locked, access_roles, topic_id, created_by_principal_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'[\"public\"]'::jsonb,$10,$11)")
-        .bind(map_id).bind(world_id).bind(slug).bind(&form.title).bind(optional_string(map,"description").unwrap_or_default()).bind(position).bind(json_value(map,"backgroundConfig")).bind(json_value(map,"gridConfig")).bind(boolean(map,"mapAssetsLocked")).bind(topic_id).bind(principal_id).execute(&mut **transaction).await?;
+    sqlx::query("INSERT INTO learning_maps (id, world_id, slug, title, description, position, background_config, grid_config, map_assets_locked, access_roles, topic_id, created_by_principal_id, companion_config) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'[\"public\"]'::jsonb,$10,$11,$12)")
+        .bind(map_id).bind(world_id).bind(slug).bind(&form.title).bind(optional_string(map,"description").unwrap_or_default()).bind(position).bind(json_value(map,"backgroundConfig")).bind(json_value(map,"gridConfig")).bind(boolean(map,"mapAssetsLocked")).bind(topic_id).bind(principal_id).bind(json_value(map,"companionConfig")).execute(&mut **transaction).await?;
     let assets = list(payload, "mapAssets");
     let nodes = list(payload, "nodes");
     let mut assets_by_node = HashMap::new();
@@ -173,8 +173,8 @@ pub(crate) async fn import_map_in_transaction(
         let slug = string(node, "slug");
         let id = Uuid::new_v4();
         let position = object_value(node, "position");
-        sqlx::query("INSERT INTO learning_nodes (id,map_id,map_asset_id,slug,title,description,position_q,position_r,state,visual_config,activity_graph_layout) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)")
-            .bind(id).bind(map_id).bind(assets_by_node.get(slug).copied()).bind(slug).bind(optional_string(node,"title").unwrap_or(slug)).bind(optional_string(node,"description").unwrap_or_default()).bind(number(position,"q",0.0) as i32).bind(number(position,"r",0.0) as i32).bind(optional_string(node,"state").unwrap_or("available")).bind(json_value(node,"visualConfig")).bind(json_value(node,"activityGraphLayout")).execute(&mut **transaction).await?;
+        sqlx::query("INSERT INTO learning_nodes (id,map_id,map_asset_id,slug,title,description,position_q,position_r,state,visual_config,activity_graph_layout,companion_config) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)")
+            .bind(id).bind(map_id).bind(assets_by_node.get(slug).copied()).bind(slug).bind(optional_string(node,"title").unwrap_or(slug)).bind(optional_string(node,"description").unwrap_or_default()).bind(number(position,"q",0.0) as i32).bind(number(position,"r",0.0) as i32).bind(optional_string(node,"state").unwrap_or("available")).bind(json_value(node,"visualConfig")).bind(json_value(node,"activityGraphLayout")).bind(json_value(node,"companionConfig")).execute(&mut **transaction).await?;
         nodes_by_slug.insert(slug.to_owned(), id);
         if let Some(source_id) = optional_string(node, "sourceId") {
             nodes_by_source.insert(source_id.to_owned(), id);
@@ -220,9 +220,13 @@ pub(crate) async fn import_map_in_transaction(
                 &message_topics_by_source,
                 &["messageTopicId"],
             );
-            sqlx::query("INSERT INTO learning_activities (id,route_id,slug,title,description,position,activity_type,activity_config,introduction,graph_position_x,graph_position_y,ai_review_status) VALUES ($1,$2,$3,$4,'',$5,$6,$7,$8,$9,$10,'needs_review')")
-                .bind(activity_id).bind(route_id).bind(activity_slug).bind(string(activity,"title")).bind(number(activity,"sortOrder",0.0) as i16).bind(string(activity,"type")).bind(&config).bind(optional_string(activity,"introduction")).bind(optional_number(graph_position,"x")).bind(optional_number(graph_position,"y")).execute(&mut **transaction).await?;
-            activity_media.push((activity_id, config));
+            let companion_config = json_value(activity, "companionConfig");
+            sqlx::query("INSERT INTO learning_activities (id,route_id,slug,title,description,position,activity_type,activity_config,introduction,graph_position_x,graph_position_y,ai_review_status,companion_config) VALUES ($1,$2,$3,$4,'',$5,$6,$7,$8,$9,$10,'needs_review',$11)")
+                .bind(activity_id).bind(route_id).bind(activity_slug).bind(string(activity,"title")).bind(number(activity,"sortOrder",0.0) as i16).bind(string(activity,"type")).bind(&config).bind(optional_string(activity,"introduction")).bind(optional_number(graph_position,"x")).bind(optional_number(graph_position,"y")).bind(&companion_config).execute(&mut **transaction).await?;
+            activity_media.push((
+                activity_id,
+                json!({"config": config, "companionConfig": companion_config}),
+            ));
             activities_by_key.insert(
                 (node_slug.to_owned(), activity_slug.to_owned()),
                 activity_id,
@@ -304,13 +308,14 @@ pub(crate) async fn import_map_in_transaction(
         else {
             continue;
         };
-        let config = remap_value(
+        let visual_config = remap_value(
             json_value(object(node), "visualConfig"),
             &nodes_by_source,
             &["nodeId", "node_id", "requiredNodeIds"],
         );
-        synchronize_media_references(transaction, "node", *node_id, &config).await?;
+        synchronize_media_references(transaction, "node", *node_id, &json!({"visualConfig": visual_config, "companionConfig": json_value(object(node), "companionConfig")})).await?;
     }
+    synchronize_media_references(transaction, "map", map_id, &json!({"backgroundConfig": json_value(map, "backgroundConfig"), "gridConfig": json_value(map, "gridConfig"), "companionConfig": json_value(map, "companionConfig")})).await?;
     Ok(Some(map_id))
 }
 

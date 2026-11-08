@@ -59,6 +59,7 @@ struct NodeRow {
     position_q: i32,
     position_r: i32,
     state: String,
+    companion_config: Value,
     visual_config: Value,
     activity_graph_layout: Value,
     start_activity_id: Option<Uuid>,
@@ -75,6 +76,7 @@ struct ActivityRow {
     position: i16,
     published_at: Option<sqlx::types::time::OffsetDateTime>,
     activity_type: String,
+    companion_config: Value,
     activity_config: Value,
     introduction: Option<String>,
     graph_position_x: Option<f64>,
@@ -169,7 +171,7 @@ async fn duplicate_map(
     .bind(source.world_id)
     .fetch_one(&mut *transaction)
     .await?;
-    sqlx::query("INSERT INTO learning_maps (id, world_id, slug, title, description, position, published_at, background_config, grid_config, map_assets_locked, access_roles, topic_id, created_by_principal_id) SELECT $1, world_id, $2, $3, description, $4, published_at, background_config, grid_config, map_assets_locked, access_roles, topic_id, $5 FROM learning_maps WHERE id = $6")
+    sqlx::query("INSERT INTO learning_maps (id, world_id, slug, title, description, position, published_at, background_config, grid_config, map_assets_locked, access_roles, topic_id, created_by_principal_id, companion_config) SELECT $1, world_id, $2, $3, description, $4, published_at, background_config, grid_config, map_assets_locked, access_roles, topic_id, $5, companion_config FROM learning_maps WHERE id = $6")
         .bind(duplicate_id).bind(slug).bind(&form.title).bind(position).bind(principal_id).bind(source.id)
         .execute(&mut *transaction).await?;
 
@@ -311,7 +313,7 @@ async fn source_nodes(
     transaction: &mut Transaction<'_, Postgres>,
     map_id: Uuid,
 ) -> Result<Vec<NodeRow>, sqlx::Error> {
-    sqlx::query_as("SELECT id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, activity_graph_layout, start_activity_id, published_at FROM learning_nodes WHERE map_id = $1 ORDER BY id")
+    sqlx::query_as("SELECT id, map_asset_id, slug, title, description, position_q, position_r, state, companion_config, visual_config, activity_graph_layout, start_activity_id, published_at FROM learning_nodes WHERE map_id = $1 ORDER BY id")
         .bind(map_id).fetch_all(&mut **transaction).await
 }
 
@@ -324,8 +326,8 @@ async fn clone_nodes(
     let mut ids = HashMap::new();
     for row in rows {
         let duplicate_id = Uuid::new_v4();
-        sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at, activity_graph_layout) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)")
-            .bind(duplicate_id).bind(duplicate_map_id).bind(row.map_asset_id.and_then(|id| asset_ids.get(&id).copied())).bind(&row.slug).bind(&row.title).bind(&row.description).bind(row.position_q).bind(row.position_r).bind(&row.state).bind(&row.visual_config).bind(row.published_at).bind(&row.activity_graph_layout).execute(&mut **transaction).await?;
+        sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at, activity_graph_layout, companion_config) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)")
+            .bind(duplicate_id).bind(duplicate_map_id).bind(row.map_asset_id.and_then(|id| asset_ids.get(&id).copied())).bind(&row.slug).bind(&row.title).bind(&row.description).bind(row.position_q).bind(row.position_r).bind(&row.state).bind(&row.visual_config).bind(row.published_at).bind(&row.activity_graph_layout).bind(&row.companion_config).execute(&mut **transaction).await?;
         ids.insert(row.id, duplicate_id);
     }
     Ok(ids)
@@ -357,7 +359,7 @@ async fn source_activities(
     transaction: &mut Transaction<'_, Postgres>,
     map_id: Uuid,
 ) -> Result<Vec<ActivityRow>, sqlx::Error> {
-    sqlx::query_as("SELECT activities.id, activities.route_id, activities.slug, activities.title, activities.description, activities.position, activities.published_at, activities.activity_type, activities.activity_config, activities.introduction, activities.graph_position_x, activities.graph_position_y FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id WHERE assets.map_id = $1 ORDER BY activities.id")
+    sqlx::query_as("SELECT activities.id, activities.route_id, activities.slug, activities.title, activities.description, activities.position, activities.published_at, activities.activity_type, activities.companion_config, activities.activity_config, activities.introduction, activities.graph_position_x, activities.graph_position_y FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id WHERE assets.map_id = $1 ORDER BY activities.id")
         .bind(map_id).fetch_all(&mut **transaction).await
 }
 
@@ -373,8 +375,8 @@ async fn clone_activities(
             continue;
         };
         let duplicate_id = Uuid::new_v4();
-        sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status, ai_reviewed_at, ai_review) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'needs_review', NULL, NULL)")
-            .bind(duplicate_id).bind(route_id).bind(&row.slug).bind(&row.title).bind(&row.description).bind(row.position).bind(row.published_at).bind(&row.activity_type).bind(remap_value(row.activity_config.clone(), topic_ids, &["messageTopicId"])).bind(&row.introduction).bind(row.graph_position_x).bind(row.graph_position_y).execute(&mut **transaction).await?;
+        sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status, ai_reviewed_at, ai_review, companion_config) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'needs_review', NULL, NULL, $13)")
+            .bind(duplicate_id).bind(route_id).bind(&row.slug).bind(&row.title).bind(&row.description).bind(row.position).bind(row.published_at).bind(&row.activity_type).bind(remap_value(row.activity_config.clone(), topic_ids, &["messageTopicId"])).bind(&row.introduction).bind(row.graph_position_x).bind(row.graph_position_y).bind(&row.companion_config).execute(&mut **transaction).await?;
         ids.insert(row.id, duplicate_id);
     }
     Ok(ids)
@@ -406,7 +408,7 @@ async fn remap_nodes(
         )
         .execute(&mut **transaction)
         .await?;
-        synchronize_media_references(transaction, "node", *duplicate_id, &visual_config).await?;
+        synchronize_media_references(transaction, "node", *duplicate_id, &serde_json::json!({"visualConfig": visual_config, "companionConfig": row.companion_config})).await?;
     }
     Ok(())
 }

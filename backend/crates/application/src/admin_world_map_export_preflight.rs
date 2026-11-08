@@ -70,6 +70,11 @@ pub fn validate_manifest(manifest: &[u8]) -> MapExportPreflightResult {
     let map = object(payload.get("map"), "map", &mut errors);
     slug(world.get("slug"), "world.slug", &mut errors);
     slug(map.get("slug"), "map.slug", &mut errors);
+    optional_object(
+        map.get("companionConfig"),
+        "map.companionConfig",
+        &mut errors,
+    );
 
     let nodes = list(payload.get("nodes"), "nodes", MAX_NODES, &mut errors);
     result_counts.nodes = nodes.len();
@@ -81,6 +86,11 @@ pub fn validate_manifest(manifest: &[u8]) -> MapExportPreflightResult {
             add_error(&mut errors, format!("{path} must be an object."));
             continue;
         };
+        optional_object(
+            node.get("companionConfig"),
+            &format!("{path}.companionConfig"),
+            &mut errors,
+        );
         let Some(node_slug) = slug(node.get("slug"), &format!("{path}.slug"), &mut errors) else {
             continue;
         };
@@ -101,6 +111,11 @@ pub fn validate_manifest(manifest: &[u8]) -> MapExportPreflightResult {
                 add_error(&mut errors, format!("{activity_path} must be an object."));
                 continue;
             };
+            optional_object(
+                activity.get("companionConfig"),
+                &format!("{activity_path}.companionConfig"),
+                &mut errors,
+            );
             let Some(activity_slug) = slug(
                 activity.get("slug"),
                 &format!("{activity_path}.slug"),
@@ -416,6 +431,11 @@ fn object<'a>(
         }
     }
 }
+fn optional_object(value: Option<&Value>, path: &str, errors: &mut Vec<String>) {
+    if value.is_some_and(|value| !value.is_null() && !value.is_object()) {
+        add_error(errors, format!("{path} must be an object or null."));
+    }
+}
 fn list<'a>(
     value: Option<&'a Value>,
     path: &str,
@@ -501,6 +521,19 @@ mod tests {
                 .errors
                 .iter()
                 .any(|error| error.contains("toSourceId"))
+        );
+    }
+
+    #[test]
+    fn rejects_non_object_companion_configuration() {
+        let result = validate_manifest(br#"{"format":"wicked-learning-map","formatVersion":1,"world":{"slug":"world"},"map":{"slug":"map","companionConfig":[]},"nodes":[],"mapAssets":[],"portalTargets":[],"references":{"mediaUrls":[]}}"#);
+
+        assert!(!result.valid);
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|error| error.contains("map.companionConfig"))
         );
     }
 }

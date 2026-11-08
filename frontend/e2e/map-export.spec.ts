@@ -3,9 +3,14 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
 type WorldMapManifest = {
-    map: { slug: string; title: string };
+    map: {
+        slug: string;
+        title: string;
+        companionConfig?: Record<string, unknown>;
+    };
     nodes: Array<{
         slug: string;
+        companionConfig?: Record<string, unknown>;
         activities: Array<Record<string, unknown>>;
     }>;
     portalTargets: Array<Record<string, string>>;
@@ -45,7 +50,7 @@ test('a local author exports, validates, and imports a source-shaped map manifes
 
     const response = page.waitForResponse((candidate) => candidate.url().includes(`/api/v1/admin/world-builder/maps/${map.id}/export`));
     const download = page.waitForEvent('download');
-    await page.getByRole('link', { name: 'Export map' }).click();
+    await page.getByRole('link', { name: 'Export map', exact: true }).click();
     const manifest = await download;
     expect((await response).headers()['content-type']).toContain('application/json');
     expect(manifest.suggestedFilename()).toContain('wicked-learning-map.json');
@@ -55,14 +60,45 @@ test('a local author exports, validates, and imports a source-shaped map manifes
         throw new Error('the export download has no file');
     }
 
-    const payload = JSON.parse(await readFile(filePath, 'utf8')) as { format: string; formatVersion: number; map: { title: string }; mapAssets: unknown[]; nodes: unknown[]; references: { mediaUrls: string[] } };
+    const payload = JSON.parse(await readFile(filePath, 'utf8')) as {
+        format: string;
+        formatVersion: number;
+        map: { title: string; companionConfig?: Record<string, unknown> };
+        mapAssets: unknown[];
+        nodes: Array<{
+            companionConfig?: Record<string, unknown>;
+            activities: Array<Record<string, unknown>>;
+        }>;
+        references: { mediaUrls: string[] };
+    };
     expect(payload).toMatchObject({ format: 'wicked-learning-map', formatVersion: 1, map: { title } });
     expect(payload.mapAssets).toHaveLength(1);
     expect(payload.nodes).toHaveLength(1);
     expect(Array.isArray(payload.references.mediaUrls)).toBeTruthy();
 
+    const exportedNode = payload.nodes[0];
+
+    if (!exportedNode) {
+        throw new Error('the disposable export map has no node');
+    }
+
+    payload.map.companionConfig = { display_name: 'Map transfer companion' };
+    exportedNode.companionConfig = { avatar_color: '#123456' };
+    exportedNode.activities = [
+        {
+            slug: 'companion-config-activity',
+            title: 'Companion config activity',
+            type: 'markdown',
+            companionConfig: { welcome_message: 'Transferred without loss.' },
+            transitions: [],
+            dialogueNodes: [],
+            dialogueTransitions: [],
+        },
+    ];
+    await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`);
+
     const worldDownload = page.waitForEvent('download');
-    await page.getByRole('link', { name: 'Export world' }).click();
+    await page.getByRole('link', { name: 'Export world', exact: true }).click();
     const worldManifest = await worldDownload;
     expect(worldManifest.suggestedFilename()).toContain(
         'wicked-learning-world.json',
@@ -140,7 +176,7 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     await expect(page.getByRole('heading', { name: importedTitle })).toBeVisible();
 
     const importedWorldDownload = page.waitForEvent('download');
-    await page.getByRole('link', { name: 'Export world' }).click();
+    await page.getByRole('link', { name: 'Export world', exact: true }).click();
     const importedWorld = await importedWorldDownload;
     const importedWorldFilePath = await importedWorld.path();
 
@@ -161,6 +197,24 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     if (importedMapPayload.length !== 1) {
         throw new Error('the imported map was not uniquely present in the World export');
     }
+
+    expect(importedMapPayload[0]).toMatchObject({
+        map: {
+            companionConfig: { display_name: 'Map transfer companion' },
+        },
+        nodes: [
+            expect.objectContaining({
+                companionConfig: { avatar_color: '#123456' },
+                activities: [
+                    expect.objectContaining({
+                        companionConfig: {
+                            welcome_message: 'Transferred without loss.',
+                        },
+                    }),
+                ],
+            }),
+        ],
+    });
 
     const portalNonce = Date.now();
     const sourceTitle = `World source ${portalNonce}`;
