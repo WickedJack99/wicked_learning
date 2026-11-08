@@ -242,7 +242,11 @@ history remain outside this bounded layout slice.
 `LearningMapAssetVersion` applies the same transaction to mutable MapAsset
 surface and interaction configuration. Its permission-protected endpoint
 paginates one asset's revisions, and restore validates the asset relation before
-recording the current configuration and applying the selected version.
+recording the current configuration and applying the selected version. The
+snapshot contains only the source editor's learner-facing image/text, placement,
+locking, interaction, visual and sound fields; it never includes nodes, routes,
+activities, access rules or learner state. Restore keeps the archived visual
+configuration intact and reconciles its reusable-media references transactionally.
 
 `LearningActivityVersion` stores an immutable JSON snapshot of an activity's
 details, type-specific configuration, graph position, companion override and

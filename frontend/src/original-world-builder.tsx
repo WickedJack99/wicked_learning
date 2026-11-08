@@ -77,6 +77,8 @@ type WorldDetailsVersionPage =
     components['schemas']['AdminWorldDetailsVersionPage'];
 type MapDetailsVersionPage =
     components['schemas']['AdminMapDetailsVersionPage'];
+type MapAssetVersionPage =
+    components['schemas']['AdminMapAssetVersionPage'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -1907,6 +1909,209 @@ function MapAssetSurface({
     );
 }
 
+function MapAssetHistoryDialog({
+    assetId,
+    onClose,
+    onRestored,
+}: {
+    assetId: string;
+    onClose: () => void;
+    onRestored: (
+        restored: components['schemas']['RestoreAdminWorldMapAssetVersionResponse'],
+    ) => void;
+}) {
+    const [history, setHistory] = useState<MapAssetVersionPage | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [restoringVersionId, setRestoringVersionId] = useState<string | null>(
+        null,
+    );
+
+    const loadHistory = useCallback(
+        async (page = 1) => {
+            setLoading(true);
+            setError(false);
+            try {
+                const { data, response } = await apiClient.GET(
+                    '/admin/world-builder/assets/{asset_id}/versions',
+                    {
+                        params: {
+                            path: { asset_id: assetId },
+                            query: { page, per_page: 4 },
+                        },
+                    },
+                );
+                if (!response.ok || !data) {
+                    throw new Error('The MapAsset history could not be loaded.');
+                }
+                setHistory(data);
+            } catch {
+                setError(true);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [assetId],
+    );
+
+    useEffect(() => {
+        void loadHistory();
+    }, [loadHistory]);
+
+    const restore = async (
+        version: components['schemas']['AdminMapAssetVersion'],
+    ) => {
+        if (
+            !window.confirm(
+                'Restore this MapAsset version? The current configuration will be preserved in history.',
+            )
+        ) {
+            return;
+        }
+
+        setRestoringVersionId(version.id);
+        setError(false);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/admin/world-builder/assets/{asset_id}/versions/{version_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { asset_id: assetId, version_id: version.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                throw new Error('The MapAsset version could not be restored.');
+            }
+            onRestored(data);
+            await loadHistory(history?.page ?? 1);
+        } catch {
+            setError(true);
+        } finally {
+            setRestoringVersionId(null);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="map-asset-history-title"
+            aria-modal="true"
+            className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/55 p-4"
+            data-wl-id="authoring.map-asset-history.dialog"
+            role="dialog"
+        >
+            <section className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 className="text-xl font-semibold" id="map-asset-history-title">
+                            MapAsset history
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Review earlier learner-facing configuration and restore a version without losing the current state.
+                        </p>
+                    </div>
+                    <button
+                        aria-label="Close MapAsset history"
+                        className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
+                        disabled={restoringVersionId !== null}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+                {loading ? (
+                    <p aria-live="polite" className="mt-4" role="status">
+                        Loading MapAsset history…
+                    </p>
+                ) : error ? (
+                    <p
+                        className="mt-4 text-sm text-red-700 dark:text-red-300"
+                        role="status"
+                    >
+                        MapAsset history could not be loaded. Try again.
+                    </p>
+                ) : history && history.items.length > 0 ? (
+                    <div className="mt-4 grid gap-2">
+                        {history.items.map((version) => (
+                            <div
+                                className="grid gap-2 rounded-md border border-slate-200 p-3 dark:border-white/10"
+                                key={version.id}
+                            >
+                                <div className="flex items-baseline justify-between gap-3">
+                                    <p className="text-sm font-medium">
+                                        {version.text || 'Untitled MapAsset'}
+                                    </p>
+                                    <time className="text-xs text-slate-500 dark:text-slate-400">
+                                        {formatWorldDetailsVersionDate(
+                                            version.created_at,
+                                        )}
+                                    </time>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-300">
+                                    {version.image_url || 'No image'} ·{' '}
+                                    {version.interaction_mode || 'default'}
+                                </p>
+                                <button
+                                    className="inline-flex justify-self-end rounded-md px-2 py-1 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                                    disabled={restoringVersionId !== null}
+                                    onClick={() => void restore(version)}
+                                    type="button"
+                                >
+                                    <RefreshCw className="mr-1 size-4" />
+                                    {restoringVersionId === version.id
+                                        ? 'Restoring…'
+                                        : 'Restore this version'}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                        No earlier MapAsset configuration yet. The first update
+                        will create one.
+                    </p>
+                )}
+                {history && history.last_page > 1 ? (
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                        <button
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
+                            disabled={loading || history.page <= 1}
+                            onClick={() => void loadHistory(history.page - 1)}
+                            type="button"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Page {history.page} of {history.last_page}
+                        </span>
+                        <button
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
+                            disabled={loading || history.page >= history.last_page}
+                            onClick={() => void loadHistory(history.page + 1)}
+                            type="button"
+                        >
+                            Next
+                        </button>
+                    </div>
+                ) : null}
+                <div className="mt-6 flex justify-end">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
+                        disabled={restoringVersionId !== null}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Close
+                    </button>
+                </div>
+            </section>
+        </div>
+    );
+}
+
 function MapAssetEditorDialog({
     asset,
     mapId,
@@ -1930,8 +2135,17 @@ function MapAssetEditorDialog({
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [mediaOpen, setMediaOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [hasRestoredVersion, setHasRestoredVersion] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isToggle = form.interaction_mode === 'toggle';
+
+    const close = () => {
+        onClose();
+        if (hasRestoredVersion) {
+            onSaved();
+        }
+    };
 
     const set = <Key extends keyof MapAssetRequest>(
         key: Key,
@@ -2058,7 +2272,7 @@ function MapAssetEditorDialog({
                     <button
                         aria-label="Close MapAsset editor"
                         className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
-                        onClick={onClose}
+                        onClick={close}
                         type="button"
                     >
                         <X className="size-5" />
@@ -2403,6 +2617,14 @@ function MapAssetEditorDialog({
                         ) : null}
                         <div className="flex flex-wrap justify-between gap-3">
                             <span className="flex gap-2">
+                                <button
+                                    className="rounded-md px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-50 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                                    disabled={deleting || saving}
+                                    onClick={() => setHistoryOpen(true)}
+                                    type="button"
+                                >
+                                    Previous versions
+                                </button>
                                 <a
                                     className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
                                     data-wl-id="authoring.map-asset.export"
@@ -2422,7 +2644,7 @@ function MapAssetEditorDialog({
                             <span className="flex gap-2">
                                 <button
                                     className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
-                                    onClick={onClose}
+                                    onClick={close}
                                     type="button"
                                 >
                                     Cancel
@@ -2492,6 +2714,29 @@ function MapAssetEditorDialog({
                         onSelect={(media) => {
                             set('image_url', media.url);
                             setMediaOpen(false);
+                        }}
+                    />
+                ) : null}
+                {historyOpen ? (
+                    <MapAssetHistoryDialog
+                        assetId={asset.id}
+                        onClose={() => setHistoryOpen(false)}
+                        onRestored={(restored) => {
+                            setForm({
+                                image_url: restored.image_url,
+                                text: restored.text,
+                                position_x: restored.position_x,
+                                position_y: restored.position_y,
+                                position_z: restored.position_z,
+                                width: restored.width,
+                                opacity: restored.opacity,
+                                locked: restored.locked,
+                                interaction_mode: restored.interaction_mode,
+                                interaction_config: restored.interaction_config,
+                                visual_config: restored.visual_config,
+                                sound_config: restored.sound_config,
+                            });
+                            setHasRestoredVersion(true);
                         }}
                     />
                 ) : null}

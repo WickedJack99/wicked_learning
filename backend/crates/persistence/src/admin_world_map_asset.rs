@@ -3,7 +3,7 @@ use sqlx::{FromRow, PgPool, Postgres, Transaction, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_map_asset::{
     AdminWorldMapAssetError, AdminWorldMapAssetRepository as Port, CreatedWorldMapAsset,
-    WorldMapAssetForm,
+    MapAssetVersion, MapAssetVersionPage, RestoredWorldMapAsset, WorldMapAssetForm,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -61,6 +61,37 @@ impl Port for PostgresAdminWorldMapAssetRepository<'_> {
                 .map_err(unavailable)
         }
     }
+
+    fn list_map_asset_versions(
+        &self,
+        principal: &AuthorizedPrincipal,
+        asset_id: Uuid,
+        page: u32,
+        per_page: u32,
+    ) -> impl std::future::Future<
+        Output = Result<Option<MapAssetVersionPage>, AdminWorldMapAssetError>,
+    > + Send {
+        async move {
+            list_versions(self.pool, principal, asset_id, page, per_page)
+                .await
+                .map_err(unavailable)
+        }
+    }
+
+    fn restore_map_asset_version(
+        &self,
+        principal: &AuthorizedPrincipal,
+        asset_id: Uuid,
+        version_id: Uuid,
+    ) -> impl std::future::Future<
+        Output = Result<Option<RestoredWorldMapAsset>, AdminWorldMapAssetError>,
+    > + Send {
+        async move {
+            restore_version(self.pool, principal, asset_id, version_id)
+                .await
+                .map_err(unavailable)
+        }
+    }
 }
 
 fn unavailable(error: sqlx::Error) -> AdminWorldMapAssetError {
@@ -77,6 +108,42 @@ struct ScopedMap {
 struct ScopedAsset {
     map_id: Uuid,
     creator_id: Option<Uuid>,
+}
+
+#[derive(FromRow)]
+struct AssetSnapshot {
+    map_id: Uuid,
+    creator_id: Option<Uuid>,
+    image_url: Option<String>,
+    text: Option<String>,
+    position_x: f64,
+    position_y: f64,
+    position_z: i32,
+    width: f64,
+    opacity: f64,
+    locked: bool,
+    interaction_mode: String,
+    interaction_config: Value,
+    visual_config: Value,
+    sound_config: Value,
+}
+
+#[derive(FromRow)]
+struct VersionRow {
+    id: Uuid,
+    image_url: Option<String>,
+    text: Option<String>,
+    position_x: f64,
+    position_y: f64,
+    position_z: i32,
+    width: f64,
+    opacity: f64,
+    locked: bool,
+    interaction_mode: String,
+    interaction_config: Value,
+    visual_config: Value,
+    sound_config: Value,
+    created_at: String,
 }
 
 async fn create(
@@ -138,8 +205,8 @@ async fn update(
     let Some(principal_id) = principal_id(&mut tx, principal).await? else {
         return Ok(false);
     };
-    let Some(asset) = sqlx::query_as::<_, ScopedAsset>(
-        "SELECT assets.map_id, maps.created_by_principal_id AS creator_id FROM learning_map_assets AS assets INNER JOIN learning_maps AS maps ON maps.id = assets.map_id WHERE assets.id = $1 FOR UPDATE OF assets, maps",
+    let Some(asset) = sqlx::query_as::<_, AssetSnapshot>(
+        "SELECT assets.map_id, maps.created_by_principal_id AS creator_id, assets.image_url, assets.text, assets.position_x, assets.position_y, assets.position_z, assets.width, assets.opacity, assets.locked, assets.interaction_mode, assets.interaction_config, assets.visual_config, assets.sound_config FROM learning_map_assets AS assets INNER JOIN learning_maps AS maps ON maps.id = assets.map_id WHERE assets.id = $1 FOR UPDATE OF assets, maps",
     )
     .bind(asset_id)
     .fetch_optional(&mut *tx)
@@ -158,12 +225,161 @@ async fn update(
     {
         return Ok(false);
     }
+    snapshot(&mut tx, asset_id, principal_id, &asset).await?;
     let visual_config = normalized_visual_config(&mut tx, &form.visual_config).await?;
     sqlx::query("UPDATE learning_map_assets SET image_url = $2, text = $3, position_x = $4, position_y = $5, position_z = $6, width = $7, opacity = $8, locked = $9, interaction_mode = $10, interaction_config = $11, visual_config = $12, sound_config = $13, updated_at = NOW() WHERE id = $1")
         .bind(asset_id).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(form.width).bind(form.opacity).bind(form.locked).bind(&form.interaction_mode).bind(Json(&form.interaction_config)).bind(Json(&visual_config)).bind(Json(&form.sound_config)).execute(&mut *tx).await?;
     synchronize_media_references(&mut tx, asset_id, form).await?;
     tx.commit().await?;
     Ok(true)
+}
+
+async fn list_versions(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    asset_id: Uuid,
+    page: u32,
+    per_page: u32,
+) -> Result<Option<MapAssetVersionPage>, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let Some(principal_id) = principal_id(&mut tx, principal).await? else {
+        return Ok(None);
+    };
+    let Some(asset) = sqlx::query_as::<_, ScopedAsset>(
+        "SELECT assets.map_id, maps.created_by_principal_id AS creator_id FROM learning_map_assets AS assets INNER JOIN learning_maps AS maps ON maps.id = assets.map_id WHERE assets.id = $1",
+    )
+    .bind(asset_id)
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        return Ok(None);
+    };
+    if !editable(
+        &mut tx,
+        principal,
+        principal_id,
+        asset.map_id,
+        asset.creator_id,
+    )
+    .await?
+    {
+        return Ok(None);
+    }
+    let total: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM learning_map_asset_versions WHERE map_asset_id = $1",
+    )
+    .bind(asset_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    let offset = i64::from(page.saturating_sub(1)) * i64::from(per_page);
+    let rows = sqlx::query_as::<_, VersionRow>(
+        "SELECT id, image_url, text, position_x, position_y, position_z, width, opacity, locked, interaction_mode, interaction_config, visual_config, sound_config, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at FROM learning_map_asset_versions WHERE map_asset_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3",
+    )
+    .bind(asset_id)
+    .bind(i64::from(per_page))
+    .bind(offset)
+    .fetch_all(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(Some(MapAssetVersionPage {
+        items: rows.into_iter().map(version_from_row).collect(),
+        page,
+        per_page,
+        total: total.max(0) as u64,
+    }))
+}
+
+async fn restore_version(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    asset_id: Uuid,
+    version_id: Uuid,
+) -> Result<Option<RestoredWorldMapAsset>, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let Some(principal_id) = principal_id(&mut tx, principal).await? else {
+        return Ok(None);
+    };
+    let Some(asset) = sqlx::query_as::<_, AssetSnapshot>(
+        "SELECT assets.map_id, maps.created_by_principal_id AS creator_id, assets.image_url, assets.text, assets.position_x, assets.position_y, assets.position_z, assets.width, assets.opacity, assets.locked, assets.interaction_mode, assets.interaction_config, assets.visual_config, assets.sound_config FROM learning_map_assets AS assets INNER JOIN learning_maps AS maps ON maps.id = assets.map_id WHERE assets.id = $1 FOR UPDATE OF assets, maps",
+    )
+    .bind(asset_id)
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        return Ok(None);
+    };
+    if !editable(
+        &mut tx,
+        principal,
+        principal_id,
+        asset.map_id,
+        asset.creator_id,
+    )
+    .await?
+    {
+        return Ok(None);
+    }
+    let Some(version) = sqlx::query_as::<_, VersionRow>(
+        "SELECT id, image_url, text, position_x, position_y, position_z, width, opacity, locked, interaction_mode, interaction_config, visual_config, sound_config, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at FROM learning_map_asset_versions WHERE id = $1 AND map_asset_id = $2",
+    )
+    .bind(version_id)
+    .bind(asset_id)
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        return Ok(None);
+    };
+    let form = WorldMapAssetForm::parse(
+        version.image_url.as_deref(),
+        version.text.as_deref(),
+        version.position_x,
+        version.position_y,
+        version.position_z,
+        version.width,
+        version.opacity,
+        version.locked,
+        &version.interaction_mode,
+        version.interaction_config,
+        version.visual_config,
+        version.sound_config,
+    )
+    .ok_or_else(|| sqlx::Error::Protocol("map asset history is invalid".to_owned()))?;
+    snapshot(&mut tx, asset_id, principal_id, &asset).await?;
+    sqlx::query("UPDATE learning_map_assets SET image_url = $2, text = $3, position_x = $4, position_y = $5, position_z = $6, width = $7, opacity = $8, locked = $9, interaction_mode = $10, interaction_config = $11, visual_config = $12, sound_config = $13, updated_at = NOW() WHERE id = $1")
+        .bind(asset_id).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(form.width).bind(form.opacity).bind(form.locked).bind(&form.interaction_mode).bind(Json(&form.interaction_config)).bind(Json(&form.visual_config)).bind(Json(&form.sound_config)).execute(&mut *tx).await?;
+    synchronize_media_references(&mut tx, asset_id, &form).await?;
+    tx.commit().await?;
+    Ok(Some(RestoredWorldMapAsset { asset_id, form }))
+}
+
+async fn snapshot(
+    tx: &mut Transaction<'_, Postgres>,
+    asset_id: Uuid,
+    principal_id: Uuid,
+    asset: &AssetSnapshot,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("INSERT INTO learning_map_asset_versions (id, map_asset_id, changed_by_principal_id, image_url, text, position_x, position_y, position_z, width, opacity, locked, interaction_mode, interaction_config, visual_config, sound_config) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)")
+        .bind(Uuid::new_v4()).bind(asset_id).bind(principal_id).bind(&asset.image_url).bind(&asset.text).bind(asset.position_x).bind(asset.position_y).bind(asset.position_z).bind(asset.width).bind(asset.opacity).bind(asset.locked).bind(&asset.interaction_mode).bind(Json(&asset.interaction_config)).bind(Json(&asset.visual_config)).bind(Json(&asset.sound_config)).execute(&mut **tx).await?;
+    Ok(())
+}
+
+fn version_from_row(row: VersionRow) -> MapAssetVersion {
+    MapAssetVersion {
+        id: row.id,
+        image_url: row.image_url,
+        text: row.text,
+        position_x: row.position_x,
+        position_y: row.position_y,
+        position_z: row.position_z,
+        width: row.width,
+        opacity: row.opacity,
+        locked: row.locked,
+        interaction_mode: row.interaction_mode,
+        interaction_config: row.interaction_config,
+        visual_config: row.visual_config,
+        sound_config: row.sound_config,
+        created_at: row.created_at,
+    }
 }
 
 async fn normalized_visual_config(

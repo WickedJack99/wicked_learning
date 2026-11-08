@@ -1361,6 +1361,15 @@ reuse the same scoped map-editor authority; every update and restore snapshots
 the current title, description, topic and MapAsset-lock state first. Restoring
 keeps the form open with the returned values and refreshed history, then the
 browser refetches the graph when the author closes it. The same source-derived
+MapAsset editor now also exposes its bounded configuration history through
+`GET /api/v1/admin/world-builder/assets/{asset_id}/versions` and restores a
+same-asset revision through `POST
+/api/v1/admin/world-builder/assets/{asset_id}/versions/{version_id}`. Every
+accepted MapAsset update or restore snapshots the outgoing learner-facing
+surface, placement, interaction and sound configuration first. The lifted
+history dialog updates the still-open editor with the restored configuration,
+refreshes its own revision list, and refetches the map only when the author
+closes the editor. The same source-derived
 Access dialog now keeps map
 viewer roles and group-editor assignments as separate commands: the latter
 accepts an empty replacement or only learning groups manageable by the caller,

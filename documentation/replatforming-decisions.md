@@ -4321,6 +4321,37 @@ gated browser edit/list/restore/cleanup proof cover the slice. It does not
 restore map slugs, layout, MapAssets, activity data, access rules or learner
 state; those have their own source workflows and history boundaries.
 
+## ADR-109: MapAsset configuration history is scoped to one mutable surface
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The source MapAsset editor lets an authorized map editor reverse
+its learner-facing configuration without reviving an unrelated activity graph,
+route or another MapAsset's state. The standalone successor needs the same
+rollback boundary without revalidating a historical media selection out of
+existence.
+
+**Decision:** The successor records an immutable `learning_map_asset_versions`
+row before every accepted MapAsset update and restore. A revision contains the
+source editor's image/text, geometry, locking, interaction mode and
+configuration JSON, acting application principal and creation time. The bounded
+newest-first list and restore use the same `world_maps.ru`
+all/own/assigned/direct-editor check as the MapAsset writer, and restore accepts
+only a revision belonging to the selected asset. It locks the asset/map, stores
+the outgoing state, restores the selected configuration and reconciles managed
+media references in one transaction. The lifted dialog keeps the editor open,
+refreshes history and refreshes the surrounding map only when that editor
+closes.
+
+**Why:** This retains a reversible source-authoring workflow without letting an
+asset revision alter linked node/activity data, map access or learner progress.
+
+**Evidence and limits:** Migration, generated OpenAPI types, application
+authorization test, Rust suite, production frontend build and credential-gated
+browser update/list/restore/cleanup proof cover the slice. It does not restore
+linked nodes, activities, routes, map metadata, access rules, media bytes or
+learner state.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

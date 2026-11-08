@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
 };
 use axum_login::AuthSession;
@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 use wicked_learning_application::admin_world_map_asset::{
-    AdminWorldMapAssetCommand, WorldMapAssetForm,
+    AdminWorldMapAssetCommand, AdminWorldMapAssetHistoryQuery, MapAssetVersionPage,
+    RestoreWorldMapAssetVersionCommand, WorldMapAssetForm,
 };
 use wicked_learning_persistence::admin_world_map_asset::PostgresAdminWorldMapAssetRepository;
 
@@ -41,6 +42,66 @@ pub struct MapAssetRequest {
 pub struct CreateMapAssetResponse {
     pub asset_id: Uuid,
     pub node_id: Uuid,
+}
+
+#[derive(Deserialize)]
+pub struct MapAssetVersionsQuery {
+    #[serde(default = "default_page")]
+    page: u32,
+    #[serde(default = "default_per_page")]
+    per_page: u32,
+}
+
+fn default_page() -> u32 {
+    1
+}
+
+fn default_per_page() -> u32 {
+    4
+}
+
+#[derive(Serialize)]
+pub struct MapAssetVersionResponse {
+    pub id: Uuid,
+    pub image_url: Option<String>,
+    pub text: Option<String>,
+    pub position_x: f64,
+    pub position_y: f64,
+    pub position_z: i32,
+    pub width: f64,
+    pub opacity: f64,
+    pub locked: bool,
+    pub interaction_mode: String,
+    pub interaction_config: Value,
+    pub visual_config: Value,
+    pub sound_config: Value,
+    pub created_at: String,
+}
+
+#[derive(Serialize)]
+pub struct MapAssetVersionsResponse {
+    pub items: Vec<MapAssetVersionResponse>,
+    pub page: u32,
+    pub per_page: u32,
+    pub total: u64,
+    pub last_page: u32,
+}
+
+#[derive(Serialize)]
+pub struct RestoreMapAssetVersionResponse {
+    pub asset_id: Uuid,
+    pub image_url: Option<String>,
+    pub text: Option<String>,
+    pub position_x: f64,
+    pub position_y: f64,
+    pub position_z: i32,
+    pub width: f64,
+    pub opacity: f64,
+    pub locked: bool,
+    pub interaction_mode: String,
+    pub interaction_config: Value,
+    pub visual_config: Value,
+    pub sound_config: Value,
 }
 
 fn empty_object() -> Value {
@@ -113,6 +174,91 @@ pub async fn update(
         .map_err(|_| ApiError::service_unavailable())?
         .then_some(StatusCode::NO_CONTENT)
         .ok_or_else(ApiError::not_found)
+}
+
+pub async fn versions(
+    State(state): State<AppState>,
+    Path(asset_id): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+    Query(query): Query<MapAssetVersionsQuery>,
+) -> Result<Json<MapAssetVersionsResponse>, ApiError> {
+    let asset_id = Uuid::parse_str(&asset_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = PostgresAdminWorldMapAssetRepository::new(&state.application_database);
+    let page = AdminWorldMapAssetHistoryQuery::new(&repository)
+        .execute(&principal, asset_id, query.page, query.per_page)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(version_response(page)))
+}
+
+pub async fn restore(
+    State(state): State<AppState>,
+    Path((asset_id, version_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<RestoreMapAssetVersionResponse>, ApiError> {
+    let asset_id = Uuid::parse_str(&asset_id).map_err(|_| ApiError::not_found())?;
+    let version_id = Uuid::parse_str(&version_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresAdminWorldMapAssetRepository::new(&state.application_database);
+    let restored = RestoreWorldMapAssetVersionCommand::new(&repository)
+        .execute(&principal, asset_id, version_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(RestoreMapAssetVersionResponse {
+        asset_id: restored.asset_id,
+        image_url: restored.form.image_url,
+        text: restored.form.text,
+        position_x: restored.form.position_x,
+        position_y: restored.form.position_y,
+        position_z: restored.form.position_z,
+        width: restored.form.width,
+        opacity: restored.form.opacity,
+        locked: restored.form.locked,
+        interaction_mode: restored.form.interaction_mode,
+        interaction_config: restored.form.interaction_config,
+        visual_config: restored.form.visual_config,
+        sound_config: restored.form.sound_config,
+    }))
+}
+
+fn version_response(page: MapAssetVersionPage) -> MapAssetVersionsResponse {
+    let last_page = if page.total == 0 {
+        1
+    } else {
+        page.total.div_ceil(u64::from(page.per_page)) as u32
+    };
+    MapAssetVersionsResponse {
+        items: page
+            .items
+            .into_iter()
+            .map(|version| MapAssetVersionResponse {
+                id: version.id,
+                image_url: version.image_url,
+                text: version.text,
+                position_x: version.position_x,
+                position_y: version.position_y,
+                position_z: version.position_z,
+                width: version.width,
+                opacity: version.opacity,
+                locked: version.locked,
+                interaction_mode: version.interaction_mode,
+                interaction_config: version.interaction_config,
+                visual_config: version.visual_config,
+                sound_config: version.sound_config,
+                created_at: version.created_at,
+            })
+            .collect(),
+        page: page.page,
+        per_page: page.per_page,
+        total: page.total,
+        last_page,
+    }
 }
 
 pub async fn delete(

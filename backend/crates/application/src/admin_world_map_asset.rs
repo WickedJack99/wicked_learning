@@ -168,6 +168,38 @@ pub struct CreatedWorldMapAsset {
     pub node_id: Uuid,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct MapAssetVersion {
+    pub id: Uuid,
+    pub image_url: Option<String>,
+    pub text: Option<String>,
+    pub position_x: f64,
+    pub position_y: f64,
+    pub position_z: i32,
+    pub width: f64,
+    pub opacity: f64,
+    pub locked: bool,
+    pub interaction_mode: String,
+    pub interaction_config: Value,
+    pub visual_config: Value,
+    pub sound_config: Value,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MapAssetVersionPage {
+    pub items: Vec<MapAssetVersion>,
+    pub page: u32,
+    pub per_page: u32,
+    pub total: u64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RestoredWorldMapAsset {
+    pub asset_id: Uuid,
+    pub form: WorldMapAssetForm,
+}
+
 pub trait AdminWorldMapAssetRepository {
     fn create_map_asset(
         &self,
@@ -188,6 +220,79 @@ pub trait AdminWorldMapAssetRepository {
         principal: &AuthorizedPrincipal,
         asset_id: Uuid,
     ) -> impl Future<Output = Result<bool, AdminWorldMapAssetError>> + Send;
+
+    fn list_map_asset_versions(
+        &self,
+        principal: &AuthorizedPrincipal,
+        asset_id: Uuid,
+        page: u32,
+        per_page: u32,
+    ) -> impl Future<Output = Result<Option<MapAssetVersionPage>, AdminWorldMapAssetError>> + Send;
+
+    fn restore_map_asset_version(
+        &self,
+        principal: &AuthorizedPrincipal,
+        asset_id: Uuid,
+        version_id: Uuid,
+    ) -> impl Future<Output = Result<Option<RestoredWorldMapAsset>, AdminWorldMapAssetError>> + Send;
+}
+
+pub struct AdminWorldMapAssetHistoryQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> AdminWorldMapAssetHistoryQuery<'repository, Repository>
+where
+    Repository: AdminWorldMapAssetRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        asset_id: Uuid,
+        page: u32,
+        per_page: u32,
+    ) -> Result<Option<MapAssetVersionPage>, AdminWorldMapAssetError> {
+        if !principal.has_permission("world_maps", "ru")
+            || page == 0
+            || !(1..=24).contains(&per_page)
+        {
+            return Ok(None);
+        }
+        self.repository
+            .list_map_asset_versions(principal, asset_id, page, per_page)
+            .await
+    }
+}
+
+pub struct RestoreWorldMapAssetVersionCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> RestoreWorldMapAssetVersionCommand<'repository, Repository>
+where
+    Repository: AdminWorldMapAssetRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        asset_id: Uuid,
+        version_id: Uuid,
+    ) -> Result<Option<RestoredWorldMapAsset>, AdminWorldMapAssetError> {
+        if !principal.has_permission("world_maps", "ru") {
+            return Ok(None);
+        }
+        self.repository
+            .restore_map_asset_version(principal, asset_id, version_id)
+            .await
+    }
 }
 
 /// The Laravel surface creates a compatibility node when an author adds a
@@ -247,9 +352,82 @@ where
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    use std::{
+        future::Future,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+    };
 
-    use super::WorldMapAssetForm;
+    use serde_json::json;
+    use uuid::Uuid;
+    use wicked_learning_domain::identity_access::AuthorizedPrincipal;
+
+    use super::{
+        AdminWorldMapAssetError, AdminWorldMapAssetHistoryQuery, AdminWorldMapAssetRepository,
+        CreatedWorldMapAsset, MapAssetVersionPage, RestoreWorldMapAssetVersionCommand,
+        RestoredWorldMapAsset, WorldMapAssetForm,
+    };
+
+    struct RecordingRepository {
+        called: Arc<AtomicBool>,
+    }
+
+    impl AdminWorldMapAssetRepository for RecordingRepository {
+        fn create_map_asset(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: &WorldMapAssetForm,
+        ) -> impl Future<Output = Result<Option<CreatedWorldMapAsset>, AdminWorldMapAssetError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn update_map_asset(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: &WorldMapAssetForm,
+        ) -> impl Future<Output = Result<bool, AdminWorldMapAssetError>> + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(false) }
+        }
+
+        fn delete_map_asset(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+        ) -> impl Future<Output = Result<bool, AdminWorldMapAssetError>> + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(false) }
+        }
+
+        fn list_map_asset_versions(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: u32,
+            _: u32,
+        ) -> impl Future<Output = Result<Option<MapAssetVersionPage>, AdminWorldMapAssetError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn restore_map_asset_version(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: Uuid,
+        ) -> impl Future<Output = Result<Option<RestoredWorldMapAsset>, AdminWorldMapAssetError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+    }
 
     fn valid_form(mode: &str) -> Option<WorldMapAssetForm> {
         WorldMapAssetForm::parse(
@@ -400,5 +578,31 @@ mod tests {
             json!({}),
         )
         .is_none());
+    }
+
+    #[tokio::test]
+    async fn map_asset_history_and_restore_require_scoped_map_update_permission() {
+        let repository = RecordingRepository {
+            called: Arc::new(AtomicBool::new(false)),
+        };
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_maps:r:all".to_owned()],
+        };
+        let asset_id = Uuid::new_v4();
+
+        let history = AdminWorldMapAssetHistoryQuery::new(&repository)
+            .execute(&principal, asset_id, 1, 4)
+            .await
+            .expect("authorization check");
+        let restored = RestoreWorldMapAssetVersionCommand::new(&repository)
+            .execute(&principal, asset_id, Uuid::new_v4())
+            .await
+            .expect("authorization check");
+
+        assert!(history.is_none());
+        assert!(restored.is_none());
+        assert!(!repository.called.load(Ordering::SeqCst));
     }
 }

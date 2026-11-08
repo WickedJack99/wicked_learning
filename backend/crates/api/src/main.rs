@@ -748,6 +748,14 @@ fn router(state: AppState) -> Router {
             patch(admin_world_map_asset::update).delete(admin_world_map_asset::delete),
         )
         .route(
+            "/api/v1/admin/world-builder/assets/{asset_id}/versions",
+            get(admin_world_map_asset::versions),
+        )
+        .route(
+            "/api/v1/admin/world-builder/assets/{asset_id}/versions/{version_id}",
+            post(admin_world_map_asset::restore),
+        )
+        .route(
             "/api/v1/admin/world-builder/nodes/{node_id}",
             get(admin_world_node::show),
         )

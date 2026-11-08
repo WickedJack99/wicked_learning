@@ -1079,6 +1079,46 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapAsset"];
         trace?: never;
     };
+    "/admin/world-builder/assets/{asset_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List immutable configuration versions for one scoped MapAsset.
+         * @description Requires the source world-map update permission and the MapAsset's scoped map editor policy.
+         */
+        get: operations["listAdminWorldBuilderMapAssetVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/assets/{asset_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore one scoped MapAsset configuration version.
+         * @description Requires the source map editor scope. The current configuration is first recorded as a fresh immutable version.
+         */
+        post: operations["restoreAdminWorldBuilderMapAssetVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/assets/{asset_id}/export": {
         parameters: {
             query?: never;
@@ -7361,6 +7401,61 @@ export interface components {
             /** Format: uuid */
             node_id: string;
         };
+        AdminMapAssetVersion: {
+            /** Format: uuid */
+            id: string;
+            image_url: string | null;
+            text: string | null;
+            position_x: number;
+            position_y: number;
+            position_z: number;
+            width: number;
+            opacity: number;
+            locked: boolean;
+            /** @enum {string} */
+            interaction_mode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
+            interaction_config: {
+                [key: string]: unknown;
+            };
+            visual_config: {
+                [key: string]: unknown;
+            };
+            sound_config: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            created_at: string;
+        };
+        AdminMapAssetVersionPage: {
+            items: components["schemas"]["AdminMapAssetVersion"][];
+            page: number;
+            per_page: number;
+            total: number;
+            last_page: number;
+        };
+        RestoreAdminWorldMapAssetVersionResponse: {
+            /** Format: uuid */
+            asset_id: string;
+            image_url: string | null;
+            text: string | null;
+            position_x: number;
+            position_y: number;
+            position_z: number;
+            width: number;
+            opacity: number;
+            locked: boolean;
+            /** @enum {string} */
+            interaction_mode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
+            interaction_config: {
+                [key: string]: unknown;
+            };
+            visual_config: {
+                [key: string]: unknown;
+            };
+            sound_config: {
+                [key: string]: unknown;
+            };
+        };
         AdminMapSummary: {
             /** Format: uuid */
             id: string;
@@ -12320,6 +12415,106 @@ export interface operations {
                 content?: never;
             };
             /** @description The MapAsset is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listAdminWorldBuilderMapAssetVersions: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded newest-first page of MapAsset configuration versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMapAssetVersionPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restoreAdminWorldBuilderMapAssetVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                asset_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The selected MapAsset configuration was restored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreAdminWorldMapAssetVersionResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset or version is unavailable through the source editor scope. */
             404: {
                 headers: {
                     [name: string]: unknown;
