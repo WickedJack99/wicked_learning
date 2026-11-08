@@ -1285,6 +1285,84 @@ paths:
         '400': { description: The presentation payload exceeds its source-compatible bounds. }
         '404': { description: The identity cannot update public presentation settings. }
         '503': { description: The application database is unavailable. }
+  /admin/public-information-pages:
+    get:
+      operationId: getAdminPublicInformationPages
+      summary: Read the three authorized source-adapted public-information page drafts.
+      responses:
+        '200':
+          description: The fixed public information pages editable by this deployment.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 3
+                items:
+                  $ref: '#/components/schemas/PublicPage'
+        '404': { description: The identity cannot read public presentation settings. }
+        '503': { description: The application database is unavailable. }
+  /admin/public-information-pages/{slug}:
+    patch:
+      operationId: updateAdminPublicInformationPage
+      summary: Save markdown for one fixed, authorized public-information page.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [about, imprint, data-protection]
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminPublicInformationPageUpdate'
+      responses:
+        '200':
+          description: The saved public information page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPage'
+        '400': { description: The markdown exceeds the source-compatible bound. }
+        '404': { description: The page is not one of the fixed source pages or the identity cannot update it. }
+        '503': { description: The application database is unavailable. }
+  /admin/public-source-links:
+    get:
+      operationId: getAdminPublicSourceLinks
+      summary: Read the authorized origin and modified-source link settings.
+      responses:
+        '200':
+          description: The source-link editor model.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicSourceLinks'
+        '404': { description: The identity cannot read public presentation settings. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateAdminPublicSourceLinks
+      summary: Replace the authorized origin and ordered modified-source links.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicSourceLinks'
+      responses:
+        '200':
+          description: The saved source-link editor model.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicSourceLinks'
+        '400': { description: A link violates the source-compatible label, URL, or twelve-link bounds. }
+        '404': { description: The identity cannot update public presentation settings. }
+        '503': { description: The application database is unavailable. }
   /admin/media-assets/{asset_id}:
     patch:
       operationId: updateAdminMediaAssetMetadata
@@ -5532,7 +5610,17 @@ components:
           example: About Wicked Learning
         body:
           type: string
-          description: Plain text with paragraph breaks; the client must render it as text, not HTML.
+          description: Markdown source rendered by the lifted public information surface.
+    AdminPublicInformationPageUpdate:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: Source-adapted Markdown content for the selected fixed public page.
     PublicPresentation:
       type: object
       additionalProperties: false

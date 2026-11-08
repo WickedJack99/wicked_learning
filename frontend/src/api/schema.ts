@@ -933,6 +933,58 @@ export interface paths {
         patch: operations["updateAdminPublicPresentation"];
         trace?: never;
     };
+    "/admin/public-information-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the three authorized source-adapted public-information page drafts. */
+        get: operations["getAdminPublicInformationPages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/public-information-pages/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save markdown for one fixed, authorized public-information page. */
+        patch: operations["updateAdminPublicInformationPage"];
+        trace?: never;
+    };
+    "/admin/public-source-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authorized origin and modified-source link settings. */
+        get: operations["getAdminPublicSourceLinks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace the authorized origin and ordered modified-source links. */
+        patch: operations["updateAdminPublicSourceLinks"];
+        trace?: never;
+    };
     "/admin/media-assets/{asset_id}": {
         parameters: {
             query?: never;
@@ -3958,7 +4010,11 @@ export interface components {
             slug: string;
             /** @example About Wicked Learning */
             title: string;
-            /** @description Plain text with paragraph breaks; the client must render it as text, not HTML. */
+            /** @description Markdown source rendered by the lifted public information surface. */
+            body: string;
+        };
+        AdminPublicInformationPageUpdate: {
+            /** @description Source-adapted Markdown content for the selected fixed public page. */
             body: string;
         };
         PublicPresentation: {
@@ -10162,6 +10218,172 @@ export interface operations {
                 };
             };
             /** @description The presentation payload exceeds its source-compatible bounds. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot update public presentation settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminPublicInformationPages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The fixed public information pages editable by this deployment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPage"][];
+                };
+            };
+            /** @description The identity cannot read public presentation settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminPublicInformationPage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                slug: "about" | "imprint" | "data-protection";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPublicInformationPageUpdate"];
+            };
+        };
+        responses: {
+            /** @description The saved public information page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPage"];
+                };
+            };
+            /** @description The markdown exceeds the source-compatible bound. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The page is not one of the fixed source pages or the identity cannot update it. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminPublicSourceLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The source-link editor model. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSourceLinks"];
+                };
+            };
+            /** @description The identity cannot read public presentation settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminPublicSourceLinks: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicSourceLinks"];
+            };
+        };
+        responses: {
+            /** @description The saved source-link editor model. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSourceLinks"];
+                };
+            };
+            /** @description A link violates the source-compatible label */
             400: {
                 headers: {
                     [name: string]: unknown;

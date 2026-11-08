@@ -10,6 +10,7 @@ mod admin_activity_templates;
 mod admin_learning_group;
 mod admin_learning_taxonomy;
 mod admin_media_assets;
+mod admin_public_content;
 mod admin_public_presentation;
 mod admin_registration_tokens;
 mod admin_role;
@@ -671,6 +672,9 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/learner/media-assets/{asset_id}/content", get(learner_media_assets::content))
         .route("/api/v1/public/media-assets/{asset_id}/content", get(public_media_assets::content))
         .route("/api/v1/admin/public-presentation", get(admin_public_presentation::show).patch(admin_public_presentation::update))
+        .route("/api/v1/admin/public-information-pages", get(admin_public_content::pages))
+        .route("/api/v1/admin/public-information-pages/{slug}", patch(admin_public_content::update_page))
+        .route("/api/v1/admin/public-source-links", get(admin_public_content::source_links).patch(admin_public_content::update_source_links))
         .route("/api/v1/admin/world-builder/activities/{activity_id}/templates", post(admin_activity_templates::create))
         .route("/api/v1/admin/activity-templates/{template_id}", get(admin_activity_templates::show).patch(admin_activity_templates::rename).delete(admin_activity_templates::delete))
         .route("/api/v1/admin/activity-templates/{template_id}/from-activity/{activity_id}", patch(admin_activity_templates::update_from_activity))

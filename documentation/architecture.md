@@ -590,6 +590,13 @@ saved library URLs to the public-media route, whose query independently checks
 that the reference remains active; all other reusable visuals keep their
 existing protected delivery rules.
 
+The same `presentation` permission owns the separate public-content writers:
+the fixed About, Imprint and Data protection routes accept only bounded Markdown
+updates, while the source-code page replaces one required HTTP(S) origin and up
+to twelve ordered modified-source links transactionally. Their anonymous
+readers remain independent projections, so editor authorization, CSRF checks
+and private settings-state never become requirements for a visitor.
+
 ## Implementation Boundaries
 
 Controllers and React pages should remain thin. Preferred backend ownership:

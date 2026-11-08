@@ -93,20 +93,20 @@ pub struct PublicPalette {
     pub welcome_overlay_opacity: u8,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicPage {
     pub slug: String,
     pub title: String,
     pub body: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicSourceLink {
     pub label: String,
     pub url: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicSourceLinks {
     pub origin: PublicSourceLink,
     pub modified_sources: Vec<PublicSourceLink>,
