@@ -65,9 +65,36 @@ test('a local author can open the guarded source-derived activity review dialog'
         },
     );
     expect(metadataResponse.status()).toBe(200);
+    const metadata = await metadataResponse.json() as { updated_at: string };
+    const sourcesResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activityId}/source-references`,
+        {
+            data: {
+                source_references: [{
+                    anchor: null,
+                    concepts: ['Systems Thinking'],
+                    excerpt: 'A development-only source reference.',
+                    published_at: null,
+                    publisher: 'Wicked Learning test',
+                    rights: null,
+                    title: 'Source-reference test',
+                    url: 'https://example.test/source-reference',
+                }],
+                updated_at: metadata.updated_at,
+            },
+            headers: { 'X-CSRF-Token': token },
+        },
+    );
+    expect(sourcesResponse.status()).toBe(200);
 
+    await page.reload();
     const card = page.locator('[data-id]').filter({ hasText: `Review target ${suffix}` });
     await expect(card).toBeVisible();
+    await card.getByRole('button', { name: 'Sources' }).click();
+    const sourcesDialog = page.locator('[data-wl-id="authoring.activity-source-references"]');
+    await expect(sourcesDialog).toBeVisible();
+    await expect(sourcesDialog.getByDisplayValue('Source-reference test')).toBeVisible();
+    await sourcesDialog.getByRole('button', { name: 'Close source references' }).click();
     await card.getByRole('button', { name: 'Review activity' }).click();
     const dialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
     await expect(dialog).toBeVisible();

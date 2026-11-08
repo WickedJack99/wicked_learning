@@ -1220,6 +1220,37 @@ paths:
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '409': { description: The activity changed while the author was reviewing the draft. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/source-references:
+    patch:
+      operationId: updateAdminWorldBuilderActivitySourceReferences
+      summary: Save inspectable copied source references for one editable activity.
+      description: >-
+        An author may choose a reusable catalog entry or edit a citation in the
+        activity form. This command saves only the activity-owned copied fields,
+        records a pre-change version, and resets the activity review state.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivitySourceReferencesRequest' }
+      responses:
+        '200':
+          description: The activity-owned source references were saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminActivitySourceReferencesResponse' }
+        '400': { description: The complete source-reference form is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '409': { description: The activity changed while the author was editing references. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/versions:
     get:
       operationId: getAdminWorldBuilderActivityVersions
@@ -10837,6 +10868,39 @@ components:
         topic: { type: string, minLength: 1, maxLength: 120 }
         weight: { type: number, exclusiveMinimum: 0, maximum: 1000 }
     UpdateAdminActivityLearningDesignResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivitySourceReferencesRequest:
+      type: object
+      additionalProperties: false
+      required: [source_references, updated_at]
+      properties:
+        source_references:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/AdminActivitySourceReferenceInput' }
+        updated_at: { type: string, format: date-time }
+    AdminActivitySourceReferenceInput:
+      type: object
+      additionalProperties: false
+      required: [anchor, concepts, excerpt, published_at, publisher, rights, title, url]
+      properties:
+        anchor: { type: [string, 'null'], maxLength: 600 }
+        concepts:
+          type: array
+          maxItems: 8
+          items: { type: string, maxLength: 120 }
+        excerpt: { type: [string, 'null'], maxLength: 800 }
+        published_at: { type: [string, 'null'], maxLength: 600 }
+        publisher: { type: [string, 'null'], maxLength: 600 }
+        rights: { type: [string, 'null'], maxLength: 600 }
+        title: { type: [string, 'null'], maxLength: 600 }
+        url: { type: [string, 'null'], maxLength: 2000 }
+    UpdateAdminActivitySourceReferencesResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

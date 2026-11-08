@@ -1026,9 +1026,14 @@ Editing or restoring always preserves the current source as a new version;
 deleting a catalog record removes only that reusable entry and its history,
 never copied source metadata already held by activities or learner evidence.
 The original source-catalog controls are available within the Rust World
-Builder workspace as a temporary source-derived access point; reconnecting its
-“use this source” control to each remaining activity editor stays a distinct
-activity-form migration slice.
+Builder workspace as a temporary source-derived access point. Every editable
+Rust activity card now opens a source-derived Source references dialog: an
+author may attach a saved catalog record as an activity-owned copied citation
+or enter the same bounded citation fields directly. The explicit source save
+records a pre-change version, resets the review state, and deliberately never
+keeps a catalog-record foreign key, so later library edits cannot silently
+change learner evidence or review context. Saving an ad-hoc citation back into
+the reusable catalog remains a separate catalog-convenience migration.
 Reflection creation and editing are now available through `POST
 /api/v1/admin/world-builder/nodes/{node_id}/reflection-activities` and `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/reflection`. They retain

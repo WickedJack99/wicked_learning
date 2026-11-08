@@ -7,6 +7,7 @@ mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
 mod admin_activity_learning_design;
+mod admin_activity_source_references;
 mod admin_activity_templates;
 mod admin_ai_settings;
 mod admin_learning_group;
@@ -685,6 +686,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/learning-design",
             patch(admin_activity_learning_design::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/source-references",
+            patch(admin_activity_source_references::update),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/versions",
@@ -1762,6 +1767,20 @@ mod tests {
             .expect("World Builder learning-design response");
 
         assert_eq!(learning_design_response.status(), 401);
+
+        let source_references_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/source-references")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"source_references":[{"title":"A source","url":"https://example.test","anchor":null,"concepts":[],"excerpt":null,"published_at":null,"publisher":null,"rights":null}],"updated_at":"2026-11-08T09:00:00.000000Z"}"#))
+                    .expect("a valid World Builder source-references request"),
+            )
+            .await
+            .expect("World Builder source-references response");
+
+        assert_eq!(source_references_response.status(), 401);
 
         let delete_response = router(state.clone())
             .oneshot(

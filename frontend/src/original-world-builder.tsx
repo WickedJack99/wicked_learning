@@ -37,6 +37,7 @@ import {
     OriginalActivityLearningDesignDialog,
     type LearningDesignSuggestions,
 } from './original-activity-learning-design';
+import { OriginalActivitySourceReferencesDialog } from './original-activity-source-references';
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
 import { OriginalNpcDialogueEditor } from './original-npc-dialogue-editor';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
@@ -73,6 +74,7 @@ type ActivityNodeData = {
     onDelete: (activity: Activity) => void;
     onHistory: (activity: Activity) => void;
     onReview: (activity: Activity) => void;
+    onSourceReferences: (activity: Activity) => void;
     onSaveTemplate: (activity: Activity) => void;
     onUpdateTemplate: (activity: Activity) => void;
 };
@@ -2588,6 +2590,7 @@ function ActivityGraph({
         null,
     );
     const [reviewActivity, setReviewActivity] = useState<Activity | null>(null);
+    const [sourceReferencesActivity, setSourceReferencesActivity] = useState<Activity | null>(null);
     const [learningDesignDraft, setLearningDesignDraft] = useState<{
         activity: Activity;
         suggestions: LearningDesignSuggestions;
@@ -2621,6 +2624,7 @@ function ActivityGraph({
                     onDelete: setPendingDelete,
                     onHistory: setHistoryActivity,
                     onReview: setReviewActivity,
+                    onSourceReferences: setSourceReferencesActivity,
                     onSaveTemplate: (candidate) =>
                         setTemplateDialog({
                             activity: candidate,
@@ -3224,6 +3228,18 @@ function ActivityGraph({
                     suggestions={learningDesignDraft.suggestions}
                 />
             ) : null}
+            {sourceReferencesActivity ? (
+                <OriginalActivitySourceReferencesDialog
+                    activity={sourceReferencesActivity}
+                    evidenceConceptOptions={graph.evidence_concept_options}
+                    onClose={() => setSourceReferencesActivity(null)}
+                    onSaved={() => {
+                        setSourceReferencesActivity(null);
+                        onReload();
+                    }}
+                    sourceRecords={graph.source_records.items}
+                />
+            ) : null}
             {templateDialog ? (
                 <OriginalActivityTemplatesDialog
                     activity={templateDialog.activity}
@@ -3328,6 +3344,17 @@ function ActivityGraphCard({
                 type="button"
             >
                 Activity history
+            </button>
+            <button
+                className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
+                data-wl-id="authoring.activity-source-references.open"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    data.onSourceReferences(activity);
+                }}
+                type="button"
+            >
+                Sources
             </button>
             {data.canReview && data.activity.ai_review_status === 'needs_review' ? (
                 <button

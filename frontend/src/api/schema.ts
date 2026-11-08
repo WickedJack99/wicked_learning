@@ -899,6 +899,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderActivityLearningDesign"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/source-references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save inspectable copied source references for one editable activity.
+         * @description An author may choose a reusable catalog entry or edit a citation in the activity form. This command saves only the activity-owned copied fields, records a pre-change version, and resets the activity review state.
+         */
+        patch: operations["updateAdminWorldBuilderActivitySourceReferences"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/versions": {
         parameters: {
             query?: never;
@@ -7706,6 +7726,27 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        UpdateAdminActivitySourceReferencesRequest: {
+            source_references: components["schemas"]["AdminActivitySourceReferenceInput"][];
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AdminActivitySourceReferenceInput: {
+            anchor: string | null;
+            concepts: string[];
+            excerpt: string | null;
+            published_at: string | null;
+            publisher: string | null;
+            rights: string | null;
+            title: string | null;
+            url: string | null;
+        };
+        UpdateAdminActivitySourceReferencesResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         AdminActivityPortalCandidate: {
             /** Format: uuid */
             id: string;
@@ -10994,6 +11035,77 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity changed while the author was reviewing the draft. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderActivitySourceReferences: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivitySourceReferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description The activity-owned source references were saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminActivitySourceReferencesResponse"];
+                };
+            };
+            /** @description The complete source-reference form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed while the author was editing references. */
             409: {
                 headers: {
                     [name: string]: unknown;
