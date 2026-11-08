@@ -35,7 +35,11 @@ import {
     type OriginalAppearance,
     useOriginalAppearance,
 } from './original-appearance';
-import type { PublicPresentation } from './public-presentation';
+import {
+    applyPublicCursorStyle,
+    clearPublicCursorStyle,
+    type PublicPresentation,
+} from './public-presentation';
 import { PublicWorldPage } from './public-world';
 
 type CurrentUserState =
@@ -92,6 +96,10 @@ const OriginalPublicPresentationPage = lazy(async () => {
     const module = await import('./original-public-presentation');
 
     return { default: module.OriginalPublicPresentationPage };
+});
+const OriginalCursorSettingsPage = lazy(async () => {
+    const module = await import('./original-cursor-settings');
+    return { default: module.OriginalCursorSettingsPage };
 });
 
 const OriginalGroupManagementPage = lazy(async () => {
@@ -222,6 +230,14 @@ export function App() {
             isCurrent = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (presentationState.kind === 'loaded') {
+            applyPublicCursorStyle(presentationState.presentation);
+        } else {
+            clearPublicCursorStyle();
+        }
+    }, [presentationState]);
 
     const isPublicPresentationRoute =
         location.pathname === '/' ||
@@ -517,6 +533,9 @@ export function App() {
             return <OriginalWorldBuilderPage isAuthenticated />;
         }
 
+        if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'cursors') {
+            return <Suspense fallback={null}><OriginalCursorSettingsPage appearance={appearance} /></Suspense>;
+        }
         if (new URLSearchParams(location.search).get('panel') === 'admin-assets') {
             return <Suspense fallback={null}><OriginalMediaLibraryPage /></Suspense>;
         }

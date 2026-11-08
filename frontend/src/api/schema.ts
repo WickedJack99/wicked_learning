@@ -4020,12 +4020,27 @@ export interface components {
         PublicPresentation: {
             branding: components["schemas"]["PublicBranding"];
             auth: components["schemas"]["PublicPresentationAuth"];
+            cursors: components["schemas"]["PublicCursors"];
             welcome: components["schemas"]["PublicWelcome"];
             public_palette: components["schemas"]["PublicPaletteModes"];
         };
         PublicBranding: {
             /** @description Deployment-provided logo URL or same-origin asset path. */
             logo: string;
+        };
+        PublicCursors: {
+            action?: components["schemas"]["PublicCursor"];
+            default?: components["schemas"]["PublicCursor"];
+            denied?: components["schemas"]["PublicCursor"];
+            grab?: components["schemas"]["PublicCursor"];
+            text?: components["schemas"]["PublicCursor"];
+        };
+        PublicCursor: {
+            fallback: string | null;
+            hotspot_x: number | null;
+            hotspot_y: number | null;
+            image: string | null;
+            size: number | null;
         };
         PublicPresentationAuth: {
             login: components["schemas"]["PublicAppearanceThemes"];

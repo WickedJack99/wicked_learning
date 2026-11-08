@@ -6,6 +6,25 @@ export type PublicPresentation = components['schemas']['PublicPresentation'];
 export type PublicAppearance = 'dark' | 'light';
 type PublicPage = 'login' | 'register' | 'welcome';
 type PublicPalette = components['schemas']['PublicPalette'];
+type PublicCursor = components['schemas']['PublicCursor'];
+
+const defaultCursors = {
+    action: { fallback: 'pointer', hotspot_x: 12, hotspot_y: 4, image: '/images/cursors/fantasy-pointer.png', size: 32 },
+    default: { fallback: 'default', hotspot_x: 4, hotspot_y: 4, image: '/images/cursors/fantasy-cursor.png', size: 32 },
+    denied: { fallback: 'not-allowed', hotspot_x: 12, hotspot_y: 10, image: '/images/cursors/fantasy-denied-cursor.png', size: 40 },
+    grab: { fallback: 'grab', hotspot_x: 12, hotspot_y: 10, image: '/images/cursors/fantasy-grab-backhand.png', size: 40 },
+    text: { fallback: 'text', hotspot_x: 13, hotspot_y: 30, image: '/images/cursors/fantasy-text-cursor.png', size: 40 },
+} satisfies Record<keyof components['schemas']['PublicCursors'], PublicCursor>;
+
+const cursorVariables = [
+    '--platform-action-cursor',
+    '--platform-cursor',
+    '--platform-denied-cursor',
+    '--platform-grab-cursor',
+    '--platform-text-cursor',
+] as const;
+
+export type PublicCursorVariables = Record<(typeof cursorVariables)[number], string>;
 
 /**
  * These are the source presentation helpers, adapted to the compact public
@@ -44,7 +63,77 @@ export function publicPresentationStyle(
         '--public-heading-text': paletteColor(palette, 'heading_text'),
         '--public-muted-text': paletteColor(palette, 'muted_text'),
         '--public-welcome-overlay': paletteColor(palette, 'welcome_overlay'),
+        ...publicCursorStyle(presentation),
     } as CSSProperties;
+}
+
+/** Matches the source cursor resolver, including default-role fallback and
+ * SVG sizing around a stored reusable-media URL. */
+export function publicCursorStyle(
+    presentation: PublicPresentation,
+): PublicCursorVariables {
+    return {
+        '--platform-action-cursor': cursorCss(presentation.cursors.action, defaultCursors.action),
+        '--platform-cursor': cursorCss(presentation.cursors.default, defaultCursors.default),
+        '--platform-denied-cursor': cursorCss(presentation.cursors.denied, defaultCursors.denied),
+        '--platform-grab-cursor': cursorCss(presentation.cursors.grab, defaultCursors.grab),
+        '--platform-text-cursor': cursorCss(presentation.cursors.text, defaultCursors.text),
+    };
+}
+
+export function clearPublicCursorStyle(): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    for (const variable of cursorVariables) {
+        document.documentElement.style.removeProperty(variable);
+    }
+}
+
+export function applyPublicCursorStyle(presentation: PublicPresentation): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    for (const [variable, value] of Object.entries(publicCursorStyle(presentation))) {
+        document.documentElement.style.setProperty(variable, value);
+    }
+}
+
+function cursorCss(cursor: PublicCursor | undefined, fallback: PublicCursor): string {
+    const image = cursor?.image || fallback.image;
+    const fallbackName = cursor?.fallback || fallback.fallback;
+    const hotspotX = numericCursorValue(cursor?.hotspot_x, fallback.hotspot_x ?? 0);
+    const hotspotY = numericCursorValue(cursor?.hotspot_y, fallback.hotspot_y ?? 0);
+    const size = Math.min(128, Math.max(16, Math.round(numericCursorValue(cursor?.size, fallback.size ?? 32))));
+
+    return `url("${sizedCursorAssetUrl(assetUrl(image ?? ''), size)}") ${hotspotX} ${hotspotY}, ${fallbackName}`;
+}
+
+function numericCursorValue(value: number | null | undefined, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function assetUrl(path: string): string {
+    if (typeof window === 'undefined' || !path.startsWith('/')) {
+        return path;
+    }
+
+    return new URL(path, window.location.origin).toString();
+}
+
+function sizedCursorAssetUrl(image: string, size: number): string {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><image href="${escapeXmlAttribute(image)}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/></svg>`;
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function escapeXmlAttribute(value: string): string {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
 }
 
 export function welcomeBackgroundImage(

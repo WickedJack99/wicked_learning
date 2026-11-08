@@ -81,6 +81,15 @@ test('the public-presentation endpoint returns the source-derived browser shell 
 
     expect(presentation).toMatchObject({
         branding: { logo: '/images/logo.png' },
+        cursors: {
+            default: {
+                fallback: 'default',
+                hotspot_x: 4,
+                hotspot_y: 4,
+                image: '/images/cursors/fantasy-cursor.png',
+                size: 32,
+            },
+        },
         auth: {
             login: {
                 dark: {

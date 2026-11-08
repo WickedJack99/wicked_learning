@@ -585,10 +585,11 @@ translation hook. Administrator-managed platform languages remain in the
 access-controlled learning content must not be copied into the global catalog.
 
 The public-presentation editor stores canonical reusable-media references in
-the application database. Its anonymous read projection rewrites only those
-saved library URLs to the public-media route, whose query independently checks
-that the reference remains active; all other reusable visuals keep their
-existing protected delivery rules.
+the application database, including logo, auth/welcome backgrounds and optional
+cursor-role images. Its anonymous read projection rewrites only those saved
+library URLs to the public-media route, whose query independently checks that
+the reference remains active; all other reusable visuals keep their existing
+protected delivery rules.
 
 The same `presentation` permission owns the separate public-content writers:
 the fixed About, Imprint and Data protection routes accept only bounded Markdown

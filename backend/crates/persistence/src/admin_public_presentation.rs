@@ -104,6 +104,19 @@ fn media_references(presentation: &PublicPresentation) -> Vec<(Uuid, String)> {
             format!("welcome.pages.{index}.backgrounds.light"),
         );
     }
+    for (role, cursor) in [
+        ("action", presentation.cursors.action.as_ref()),
+        ("default", presentation.cursors.default.as_ref()),
+        ("denied", presentation.cursors.denied.as_ref()),
+        ("grab", presentation.cursors.grab.as_ref()),
+        ("text", presentation.cursors.text.as_ref()),
+    ] {
+        push_optional_reference(
+            &mut references,
+            cursor.and_then(|cursor| cursor.image.as_deref()),
+            format!("cursors.{role}.image"),
+        );
+    }
     references
 }
 
@@ -158,20 +171,30 @@ mod tests {
     use uuid::Uuid;
     use wicked_learning_domain::platform_presentation::{
         PublicAppearanceImages, PublicAppearanceThemes, PublicAuthTheme, PublicBranding,
-        PublicPalette, PublicPaletteModes, PublicPresentation, PublicPresentationAuth,
-        PublicWelcome, PublicWelcomePage,
+        PublicCursors, PublicPalette, PublicPaletteModes, PublicPresentation,
+        PublicPresentationAuth, PublicWelcome, PublicWelcomePage,
     };
 
     use super::media_references;
 
     #[test]
     fn tracks_only_canonical_reusable_visual_urls() {
-        let visual = Uuid::new_v4();
-        let presentation = presentation(&format!("/api/v1/admin/media-assets/{visual}/content"));
+        let logo = Uuid::new_v4();
+        let cursor = Uuid::new_v4();
+        let mut presentation = presentation(&format!("/api/v1/admin/media-assets/{logo}/content"));
+        presentation
+            .cursors
+            .action
+            .as_mut()
+            .expect("the source action role exists")
+            .image = Some(format!("/api/v1/admin/media-assets/{cursor}/content"));
 
         assert_eq!(
             media_references(&presentation),
-            vec![(visual, "branding.logo".to_owned())]
+            vec![
+                (logo, "branding.logo".to_owned()),
+                (cursor, "cursors.action.image".to_owned()),
+            ]
         );
     }
 
@@ -219,6 +242,7 @@ mod tests {
                     light: theme,
                 },
             },
+            cursors: PublicCursors::default(),
             welcome: PublicWelcome {
                 pages: vec![PublicWelcomePage {
                     backgrounds: PublicAppearanceImages {

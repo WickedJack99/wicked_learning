@@ -1013,11 +1013,11 @@ from the deployment setting. Returning the legacy Laravel setting wholesale
 would expose unrelated configuration and preserve its storage format as a
 Rust contract. Both are rejected.
 
-**Limitations and trigger:** This does not add an administrator writer,
-presentation audit history, validation UI, configured information-page
-ordering, or the full source cursor/theme set. A later administrator slice
-must validate and write this typed model under appropriate authorization;
-until then, the seeded source defaults are the only supported configuration.
+**Limitations and trigger:** The later administrator slices now provide the
+authorized writer, source-shaped public-content settings and full source cursor
+set, including public-safe reusable-media delivery. Presentation audit history,
+configured information-page ordering and the remaining source palette controls
+still require their own modeled contracts and evidence.
 
 ## ADR-032: Private check-ins are normalized and bound to an owned completed run
 

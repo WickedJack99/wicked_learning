@@ -3,8 +3,8 @@ use std::future::Future;
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     platform_presentation::{
-        PublicAppearanceImages, PublicAppearanceThemes, PublicAuthTheme, PublicPalette,
-        PublicPresentation, PublicWelcomePage,
+        PublicAppearanceImages, PublicAppearanceThemes, PublicAuthTheme, PublicCursor,
+        PublicPalette, PublicPresentation, PublicWelcomePage,
     },
 };
 
@@ -83,11 +83,28 @@ pub fn valid_public_presentation(presentation: &PublicPresentation) -> bool {
         && valid_auth_themes(&presentation.auth.login)
         && valid_auth_themes(&presentation.auth.register)
         && valid_auth_themes(&presentation.auth.welcome)
+        && optional_valid_cursor(presentation.cursors.action.as_ref())
+        && optional_valid_cursor(presentation.cursors.default.as_ref())
+        && optional_valid_cursor(presentation.cursors.denied.as_ref())
+        && optional_valid_cursor(presentation.cursors.grab.as_ref())
+        && optional_valid_cursor(presentation.cursors.text.as_ref())
         && presentation.welcome.pages.len() <= 12
         && !presentation.welcome.pages.is_empty()
         && presentation.welcome.pages.iter().all(valid_welcome_page)
         && valid_palette(&presentation.public_palette.dark)
         && valid_palette(&presentation.public_palette.light)
+}
+
+fn valid_cursors(cursor: &PublicCursor) -> bool {
+    optional_bounded(cursor.image.as_deref(), 2_048)
+        && cursor.hotspot_x.is_none_or(|value| value <= 64)
+        && cursor.hotspot_y.is_none_or(|value| value <= 64)
+        && cursor.size.is_none_or(|value| (16..=128).contains(&value))
+        && optional_bounded(cursor.fallback.as_deref(), 32)
+}
+
+fn optional_valid_cursor(cursor: Option<&PublicCursor>) -> bool {
+    cursor.is_none_or(valid_cursors)
 }
 
 fn valid_auth_themes(themes: &PublicAppearanceThemes) -> bool {
@@ -162,7 +179,7 @@ mod tests {
     use wicked_learning_domain::{
         identity_access::AuthorizedPrincipal,
         platform_presentation::{
-            PublicAppearanceThemes, PublicAuthTheme, PublicBranding, PublicPalette,
+            PublicAppearanceThemes, PublicAuthTheme, PublicBranding, PublicCursors, PublicPalette,
             PublicPaletteModes, PublicPresentation, PublicPresentationAuth, PublicWelcome,
         },
     };
@@ -236,6 +253,30 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn public_presentation_rejects_an_out_of_range_cursor_size_before_writing() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:presentation:ru:all".to_owned()],
+        };
+        let mut invalid = presentation();
+        invalid
+            .cursors
+            .action
+            .as_mut()
+            .expect("the source default action cursor exists")
+            .size = Some(15);
+
+        assert!(
+            UpdateAdminPublicPresentation::new(&Repository)
+                .execute(&principal, invalid)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
     fn presentation() -> PublicPresentation {
         let theme = PublicAuthTheme {
             background_color: "#000".to_owned(),
@@ -280,6 +321,7 @@ mod tests {
                     light: theme,
                 },
             },
+            cursors: PublicCursors::default(),
             welcome: PublicWelcome {
                 pages: vec![
                     wicked_learning_domain::platform_presentation::PublicWelcomePage {

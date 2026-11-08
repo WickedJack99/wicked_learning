@@ -8,6 +8,31 @@ body,
 
 body {
     min-width: 20rem;
+    cursor: var(--platform-cursor, default);
+}
+
+a,
+button,
+label,
+select,
+[role='button'] {
+    cursor: var(--platform-action-cursor, pointer);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    cursor: var(--platform-denied-cursor, not-allowed);
+}
+
+input,
+textarea {
+    cursor: var(--platform-text-cursor, text);
+}
+
+[draggable='true'] {
+    cursor: var(--platform-grab-cursor, grab);
 }
 
 @keyframes item-grant-fly {

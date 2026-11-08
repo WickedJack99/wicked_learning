@@ -34,8 +34,8 @@ mod tests {
     use std::future::ready;
 
     use wicked_learning_domain::platform_presentation::{
-        PublicAppearanceThemes, PublicAuthTheme, PublicBranding, PublicPalette, PublicPaletteModes,
-        PublicPresentation, PublicPresentationAuth, PublicWelcome,
+        PublicAppearanceThemes, PublicAuthTheme, PublicBranding, PublicCursors, PublicPalette,
+        PublicPaletteModes, PublicPresentation, PublicPresentationAuth, PublicWelcome,
     };
 
     use super::{
@@ -110,6 +110,7 @@ mod tests {
                     light: theme,
                 },
             },
+            cursors: PublicCursors::default(),
             welcome: PublicWelcome { pages: vec![] },
             public_palette: PublicPaletteModes {
                 dark: palette.clone(),

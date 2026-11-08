@@ -10,8 +10,77 @@ use serde::{Deserialize, Serialize};
 pub struct PublicPresentation {
     pub branding: PublicBranding,
     pub auth: PublicPresentationAuth,
+    #[serde(default)]
+    pub cursors: PublicCursors,
     pub welcome: PublicWelcome,
     pub public_palette: PublicPaletteModes,
+}
+
+/// The source has five named cursor roles. Their individual values are
+/// optional: the browser resolves an omitted setting to the source default.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct PublicCursors {
+    #[serde(default)]
+    pub action: Option<PublicCursor>,
+    #[serde(default)]
+    pub default: Option<PublicCursor>,
+    #[serde(default)]
+    pub denied: Option<PublicCursor>,
+    #[serde(default)]
+    pub grab: Option<PublicCursor>,
+    #[serde(default)]
+    pub text: Option<PublicCursor>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct PublicCursor {
+    pub fallback: Option<String>,
+    pub hotspot_x: Option<u8>,
+    pub hotspot_y: Option<u8>,
+    pub image: Option<String>,
+    pub size: Option<u8>,
+}
+
+impl Default for PublicCursors {
+    fn default() -> Self {
+        Self {
+            action: Some(PublicCursor {
+                fallback: Some("pointer".to_owned()),
+                hotspot_x: Some(12),
+                hotspot_y: Some(4),
+                image: Some("/images/cursors/fantasy-pointer.png".to_owned()),
+                size: Some(32),
+            }),
+            default: Some(PublicCursor {
+                fallback: Some("default".to_owned()),
+                hotspot_x: Some(4),
+                hotspot_y: Some(4),
+                image: Some("/images/cursors/fantasy-cursor.png".to_owned()),
+                size: Some(32),
+            }),
+            denied: Some(PublicCursor {
+                fallback: Some("not-allowed".to_owned()),
+                hotspot_x: Some(12),
+                hotspot_y: Some(10),
+                image: Some("/images/cursors/fantasy-denied-cursor.png".to_owned()),
+                size: Some(40),
+            }),
+            grab: Some(PublicCursor {
+                fallback: Some("grab".to_owned()),
+                hotspot_x: Some(12),
+                hotspot_y: Some(10),
+                image: Some("/images/cursors/fantasy-grab-backhand.png".to_owned()),
+                size: Some(40),
+            }),
+            text: Some(PublicCursor {
+                fallback: Some("text".to_owned()),
+                hotspot_x: Some(13),
+                hotspot_y: Some(30),
+                image: Some("/images/cursors/fantasy-text-cursor.png".to_owned()),
+                size: Some(40),
+            }),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

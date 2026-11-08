@@ -5624,12 +5624,14 @@ components:
     PublicPresentation:
       type: object
       additionalProperties: false
-      required: [branding, auth, welcome, public_palette]
+      required: [branding, auth, cursors, welcome, public_palette]
       properties:
         branding:
           $ref: '#/components/schemas/PublicBranding'
         auth:
           $ref: '#/components/schemas/PublicPresentationAuth'
+        cursors:
+          $ref: '#/components/schemas/PublicCursors'
         welcome:
           $ref: '#/components/schemas/PublicWelcome'
         public_palette:
@@ -5643,6 +5645,25 @@ components:
           type: string
           maxLength: 2048
           description: Deployment-provided logo URL or same-origin asset path.
+    PublicCursors:
+      type: object
+      additionalProperties: false
+      properties:
+        action: { $ref: '#/components/schemas/PublicCursor' }
+        default: { $ref: '#/components/schemas/PublicCursor' }
+        denied: { $ref: '#/components/schemas/PublicCursor' }
+        grab: { $ref: '#/components/schemas/PublicCursor' }
+        text: { $ref: '#/components/schemas/PublicCursor' }
+    PublicCursor:
+      type: object
+      additionalProperties: false
+      required: [fallback, hotspot_x, hotspot_y, image, size]
+      properties:
+        fallback: { type: [string, 'null'], maxLength: 32 }
+        hotspot_x: { type: [integer, 'null'], minimum: 0, maximum: 64 }
+        hotspot_y: { type: [integer, 'null'], minimum: 0, maximum: 64 }
+        image: { type: [string, 'null'], maxLength: 2048 }
+        size: { type: [integer, 'null'], minimum: 16, maximum: 128 }
     PublicPresentationAuth:
       type: object
       additionalProperties: false
