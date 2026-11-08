@@ -974,7 +974,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Serve a reusable visual only through a published MapAsset or activity-start route visible to the learner. */
+        /** Serve a reusable visual only through a published MapAsset, activity-start route, or activity visible to the learner. */
         get: operations["getLearnerMediaAssetContent"];
         put?: never;
         post?: never;
@@ -1390,7 +1390,7 @@ export interface paths {
         put?: never;
         /**
          * Create an Obstacle activity on an editable World Builder node.
-         * @description The scoped writer resolves configured tool catalog UUIDs only after authorizing the selected node, then stores playback-safe tool slugs.
+         * @description The scoped writer resolves configured tool catalog UUIDs only after authorizing the selected node, stores playback-safe tool slugs, and atomically records managed reusable visual references from obstacle image fields.
          */
         post: operations["createAdminWorldBuilderObstacleActivity"];
         delete?: never;
@@ -1414,7 +1414,7 @@ export interface paths {
         head?: never;
         /**
          * Update an Obstacle activity on an editable World Builder graph.
-         * @description A complete source-shaped edit resolves every tool UUID after scope authorization and returns a conflict instead of overwriting a newer activity.
+         * @description A complete source-shaped edit resolves every tool UUID after scope authorization, synchronizes managed reusable visual references from obstacle image fields, and returns a conflict instead of overwriting a newer activity.
          */
         patch: operations["updateAdminWorldBuilderObstacleActivity"];
         trace?: never;
@@ -10315,7 +10315,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The asset is not actively referenced by a visible published MapAsset or activity-start route. */
+            /** @description The asset is not actively referenced by a visible published MapAsset, activity-start route, or activity. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -28,6 +28,7 @@ use crate::{
         configured_slots, item_obstacle_passed_for_run, load_inventory,
         load_state as load_item_obstacle_state,
     },
+    learner_media::learner_media_config,
     learner_node_availability::PostgresLearnerNodeAvailability,
     learner_obstacle_tool::{
         configured_tool_slugs as configured_obstacle_tool_slugs, obstacle_is_persistently_resolved,
@@ -1596,7 +1597,8 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
-            let mut config = with_safe_ambient_sound(config, &activity_config);
+            let mut config =
+                learner_media_config(with_safe_ambient_sound(config, &activity_config));
             let sounds = load_playback_sounds(&mut transaction, &config)
                 .await
                 .map_err(|_| LearnerPlaybackReadError)?;

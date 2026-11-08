@@ -93,6 +93,10 @@ async fn delete_map(
         .bind(map.id)
         .execute(&mut *transaction)
         .await?;
+    sqlx::query("DELETE FROM reusable_media_asset_references WHERE owner_kind = 'activity' AND owner_id IN (SELECT activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id WHERE assets.map_id = $1)")
+        .bind(map.id)
+        .execute(&mut *transaction)
+        .await?;
     sqlx::query("DELETE FROM learning_maps WHERE id = $1")
         .bind(map.id)
         .execute(&mut *transaction)

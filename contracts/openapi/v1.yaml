@@ -1304,13 +1304,13 @@ paths:
   /learner/media-assets/{asset_id}/content:
     get:
       operationId: getLearnerMediaAssetContent
-      summary: Serve a reusable visual only through a published MapAsset or activity-start route visible to the learner.
+      summary: Serve a reusable visual only through a published MapAsset, activity-start route, or activity visible to the learner.
       parameters:
         - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200': { description: The image bytes with restrictive content and short private cache headers. }
         '403': { description: A signed-in identity has no active application principal. }
-        '404': { description: The asset is not actively referenced by a visible published MapAsset or activity-start route. }
+        '404': { description: 'The asset is not actively referenced by a visible published MapAsset, activity-start route, or activity.' }
         '503': { description: The media store or application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/templates:
     post:
@@ -1810,7 +1810,7 @@ paths:
     post:
       operationId: createAdminWorldBuilderObstacleActivity
       summary: Create an Obstacle activity on an editable World Builder node.
-      description: The scoped writer resolves configured tool catalog UUIDs only after authorizing the selected node, then stores playback-safe tool slugs.
+      description: The scoped writer resolves configured tool catalog UUIDs only after authorizing the selected node, stores playback-safe tool slugs, and atomically records managed reusable visual references from obstacle image fields.
       parameters:
         - name: node_id
           in: path
@@ -1831,7 +1831,7 @@ paths:
     patch:
       operationId: updateAdminWorldBuilderObstacleActivity
       summary: Update an Obstacle activity on an editable World Builder graph.
-      description: A complete source-shaped edit resolves every tool UUID after scope authorization and returns a conflict instead of overwriting a newer activity.
+      description: A complete source-shaped edit resolves every tool UUID after scope authorization, synchronizes managed reusable visual references from obstacle image fields, and returns a conflict instead of overwriting a newer activity.
       parameters:
         - name: activity_id
           in: path

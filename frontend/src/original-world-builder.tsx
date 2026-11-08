@@ -4028,6 +4028,7 @@ function ActivityTextField({
     className,
     label,
     onChange,
+    onSelectExisting,
     required = false,
     textarea = false,
     value,
@@ -4036,6 +4037,7 @@ function ActivityTextField({
     className?: string;
     label: string;
     onChange: (value: string) => void;
+    onSelectExisting?: () => void;
     required?: boolean;
     textarea?: boolean;
     value: string;
@@ -4044,26 +4046,37 @@ function ActivityTextField({
         'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white';
 
     return (
-        <label className={`grid gap-2 text-sm font-medium ${className ?? ''}`}>
-            {label}
-            {textarea ? (
-                <textarea
-                    autoFocus={autoFocus}
-                    className={`${controlClassName} min-h-28 resize-y`}
-                    onChange={(event) => onChange(event.target.value)}
-                    required={required}
-                    value={value}
-                />
-            ) : (
-                <input
-                    autoFocus={autoFocus}
-                    className={controlClassName}
-                    onChange={(event) => onChange(event.target.value)}
-                    required={required}
-                    value={value}
-                />
-            )}
-        </label>
+        <div className={`grid gap-2 ${className ?? ''}`}>
+            <label className="grid gap-2 text-sm font-medium">
+                {label}
+                {textarea ? (
+                    <textarea
+                        autoFocus={autoFocus}
+                        className={`${controlClassName} min-h-28 resize-y`}
+                        onChange={(event) => onChange(event.target.value)}
+                        required={required}
+                        value={value}
+                    />
+                ) : (
+                    <input
+                        autoFocus={autoFocus}
+                        className={controlClassName}
+                        onChange={(event) => onChange(event.target.value)}
+                        required={required}
+                        value={value}
+                    />
+                )}
+            </label>
+            {onSelectExisting ? (
+                <button
+                    className="justify-self-start rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                    onClick={onSelectExisting}
+                    type="button"
+                >
+                    Select existing
+                </button>
+            ) : null}
+        </div>
     );
 }
 
@@ -4518,11 +4531,23 @@ function ObstacleFields({
     onChange: (form: ObstacleForm) => void;
     tools: EditableTool[];
 }) {
+    type ObstacleImageField =
+        | 'backgroundDark'
+        | 'backgroundLight'
+        | 'imageDark'
+        | 'imageLight'
+        | 'revisitBackgroundDark'
+        | 'revisitBackgroundLight'
+        | 'revisitImageDark'
+        | 'revisitImageLight';
+    const [mediaTarget, setMediaTarget] = useState<ObstacleImageField | null>(
+        null,
+    );
     const update = <Key extends keyof ObstacleForm>(
         key: Key,
         value: ObstacleForm[Key],
     ) => onChange({ ...form, [key]: value });
-    const imageFields: Array<[keyof ObstacleForm, string]> = [
+    const imageFields: Array<[ObstacleImageField, string]> = [
         ['backgroundDark', 'Dark background'],
         ['backgroundLight', 'Light background'],
         ['imageDark', 'Dark obstacle image'],
@@ -4624,6 +4649,7 @@ function ObstacleFields({
                             key={field}
                             label={label}
                             onChange={(value) => update(field, value)}
+                            onSelectExisting={() => setMediaTarget(field)}
                             value={String(form[field])}
                         />
                     ))}
@@ -4754,6 +4780,15 @@ function ObstacleFields({
                     </label>
                 </div>
             </section>
+            {mediaTarget ? (
+                <MediaPicker
+                    onClose={() => setMediaTarget(null)}
+                    onSelect={(media) => {
+                        update(mediaTarget, media.url);
+                        setMediaTarget(null);
+                    }}
+                />
+            ) : null}
         </>
     );
 }

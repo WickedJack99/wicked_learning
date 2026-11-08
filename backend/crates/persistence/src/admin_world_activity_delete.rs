@@ -84,6 +84,12 @@ async fn delete_activity(
 
     // This mirrors DeleteLearningActivity: remove the activity's route starts,
     // then recompute the node's compatibility preferred start before deleting.
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = 'activity' AND owner_id = $1",
+    )
+    .bind(activity.id)
+    .execute(&mut *transaction)
+    .await?;
     sqlx::query("DELETE FROM learning_activity_starts WHERE node_id = $1 AND activity_id = $2")
         .bind(activity.node_id)
         .bind(activity.id)

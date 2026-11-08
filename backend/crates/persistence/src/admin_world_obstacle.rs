@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_item_grant::generated_slug,
@@ -13,6 +13,19 @@ use wicked_learning_application::{
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
 use crate::admin_world_activity_history::record_activity_version;
+
+const MEDIA_ASSET_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
+const MEDIA_REFERENCE_KIND: &str = "activity";
+const OBSTACLE_MEDIA_FIELDS: [&str; 8] = [
+    "backgroundDark",
+    "backgroundLight",
+    "obstacleImageDark",
+    "obstacleImageLight",
+    "revisitBackgroundDark",
+    "revisitBackgroundLight",
+    "revisitImageDark",
+    "revisitImageLight",
+];
 
 pub struct PostgresAdminWorldObstacleRepository<'pool> {
     pool: &'pool PgPool,
@@ -135,6 +148,7 @@ async fn create(
     .fetch_one(&mut *transaction)
     .await?;
     let id = Uuid::new_v4();
+    let activity_config = config(form, &tool_slugs);
     sqlx::query(
         "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'obstacle', $7, $8, 'needs_review')",
     )
@@ -144,10 +158,11 @@ async fn create(
     .bind(&form.title)
     .bind(form.introduction.clone().unwrap_or_default())
     .bind(position)
-    .bind(config(form, &tool_slugs))
+    .bind(&activity_config)
     .bind(&form.introduction)
     .execute(&mut *transaction)
     .await?;
+    synchronize_media_references(&mut transaction, id, &activity_config).await?;
     transaction.commit().await?;
     Ok(Some(id))
 }
@@ -182,6 +197,7 @@ async fn update(
     {
         target.insert(key.clone(), value.clone());
     }
+    synchronize_media_references(&mut transaction, activity_id, &config_value).await?;
     if current.slug == slug
         && current.title == form.title
         && current.introduction == form.introduction
@@ -272,6 +288,51 @@ fn config(form: &ObstacleActivityForm, tool_slugs: &[String]) -> Value {
         "successText": form.success_text,
         "typingSpeed": form.typing_speed,
     })
+}
+
+fn media_references(config: &Value) -> Vec<(Uuid, &'static str)> {
+    let Some(config) = config.as_object() else {
+        return vec![];
+    };
+
+    OBSTACLE_MEDIA_FIELDS
+        .iter()
+        .filter_map(|field_key| {
+            let asset_id = config
+                .get(*field_key)?
+                .as_str()?
+                .strip_prefix(MEDIA_ASSET_CONTENT_PREFIX)?
+                .strip_suffix("/content")?;
+            Uuid::parse_str(asset_id)
+                .ok()
+                .map(|asset_id| (asset_id, *field_key))
+        })
+        .collect()
+}
+
+async fn synchronize_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    activity_id: Uuid,
+    config: &Value,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id = $2",
+    )
+    .bind(MEDIA_REFERENCE_KIND)
+    .bind(activity_id)
+    .execute(&mut **transaction)
+    .await?;
+
+    for (asset_id, field_key) in media_references(config) {
+        sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT id, $2, $3, $4 FROM reusable_media_assets WHERE id = $1 ON CONFLICT DO NOTHING")
+            .bind(asset_id)
+            .bind(MEDIA_REFERENCE_KIND)
+            .bind(activity_id)
+            .bind(field_key)
+            .execute(&mut **transaction)
+            .await?;
+    }
+    Ok(())
 }
 
 async fn unique_slug(
@@ -404,7 +465,7 @@ mod tests {
     use uuid::Uuid;
     use wicked_learning_application::admin_world_obstacle::ObstacleActivityForm;
 
-    use super::config;
+    use super::{config, media_references};
 
     #[test]
     fn stores_only_server_resolved_tool_slugs_for_playback() {
@@ -446,6 +507,27 @@ mod tests {
         assert_eq!(
             config(&form, &["lens".to_owned()]).get("allowedToolIds"),
             Some(&json!(["lens"]))
+        );
+    }
+
+    #[test]
+    fn finds_only_exact_reusable_visual_urls_in_obstacle_image_fields() {
+        let background = Uuid::new_v4();
+        let obstacle = Uuid::new_v4();
+        let config = json!({
+            "backgroundDark": format!("/api/v1/admin/media-assets/{background}/content"),
+            "obstacleImageLight": format!("/api/v1/admin/media-assets/{obstacle}/content"),
+            "revisitImageDark": "https://example.test/cleared.svg",
+            "promptText": format!("/api/v1/admin/media-assets/{background}/content"),
+            "backgroundLight": format!("/api/v1/admin/media-assets/{background}/thumbnail"),
+        });
+
+        assert_eq!(
+            media_references(&config),
+            vec![
+                (background, "backgroundDark"),
+                (obstacle, "obstacleImageLight"),
+            ]
         );
     }
 }
