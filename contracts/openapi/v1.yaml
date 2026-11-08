@@ -1304,13 +1304,13 @@ paths:
   /learner/media-assets/{asset_id}/content:
     get:
       operationId: getLearnerMediaAssetContent
-      summary: Serve a reusable visual only through a published MapAsset visible to the learner.
+      summary: Serve a reusable visual only through a published MapAsset or activity-start route visible to the learner.
       parameters:
         - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200': { description: The image bytes with restrictive content and short private cache headers. }
         '403': { description: A signed-in identity has no active application principal. }
-        '404': { description: The asset is not actively referenced by a visible published MapAsset. }
+        '404': { description: The asset is not actively referenced by a visible published MapAsset or activity-start route. }
         '503': { description: The media store or application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/templates:
     post:
@@ -1999,7 +1999,7 @@ paths:
     patch:
       operationId: updateAdminWorldBuilderStartRoute
       summary: Save learner-facing presentation fields for one World Builder route start.
-      description: This source-derived authoring command changes only the selected route's label, description, images and light/dark button colors. It does not change activity membership, order, learner progress or activity playback.
+      description: This source-derived authoring command changes only the selected route's label, description, images and light/dark button colors. Managed reusable-media image URLs are normalized as activity-start references, keeping their media available while the route exists. It does not change activity membership, order, learner progress or activity playback.
       parameters:
         - name: start_route_id
           in: path

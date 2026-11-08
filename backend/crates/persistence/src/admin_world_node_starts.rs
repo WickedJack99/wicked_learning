@@ -11,6 +11,9 @@ use wicked_learning_domain::{
     world_content::AdminActivityStartRoute,
 };
 
+const MEDIA_ASSET_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
+const MEDIA_REFERENCE_KIND: &str = "activity_start";
+
 pub struct PostgresAdminWorldNodeStartsRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -230,6 +233,14 @@ async fn remove_starts(
     let Some(node) = lock_editable_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
     };
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id IN (SELECT id FROM learning_activity_starts WHERE node_id = $2 AND ($3::uuid IS NULL OR activity_id = $3))",
+    )
+    .bind(MEDIA_REFERENCE_KIND)
+    .bind(node.id)
+    .bind(activity_id)
+    .execute(&mut *transaction)
+    .await?;
     if let Some(activity_id) = activity_id {
         sqlx::query("DELETE FROM learning_activity_starts WHERE node_id = $1 AND activity_id = $2")
             .bind(node.id)
@@ -278,6 +289,7 @@ async fn update_start(
     .bind(&form.button_border_color_light)
     .execute(&mut *transaction)
     .await?;
+    synchronize_media_references(&mut transaction, start.id, form).await?;
     let result = load_node_starts(&mut transaction, start.node_id).await?;
     transaction.commit().await?;
     Ok(Some(result))
@@ -338,6 +350,13 @@ async fn delete_start(
     else {
         return Ok(None);
     };
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id = $2",
+    )
+    .bind(MEDIA_REFERENCE_KIND)
+    .bind(start.id)
+    .execute(&mut *transaction)
+    .await?;
     sqlx::query("DELETE FROM learning_activity_starts WHERE id = $1")
         .bind(start.id)
         .execute(&mut *transaction)
@@ -499,4 +518,88 @@ async fn load_node_starts(
         start_activity_id: load_start_activity_id(transaction, node_id).await?,
         start_routes: load_starts(transaction, node_id).await?,
     })
+}
+
+fn media_references(form: &StartRouteForm) -> Vec<(Uuid, &'static str)> {
+    [
+        (form.image_dark.as_deref(), "image_dark"),
+        (form.image_light.as_deref(), "image_light"),
+    ]
+    .into_iter()
+    .filter_map(|(url, field_key)| {
+        let asset_id = url?
+            .strip_prefix(MEDIA_ASSET_CONTENT_PREFIX)?
+            .strip_suffix("/content")?;
+        Uuid::parse_str(asset_id)
+            .ok()
+            .map(|asset_id| (asset_id, field_key))
+    })
+    .collect()
+}
+
+async fn synchronize_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    start_route_id: Uuid,
+    form: &StartRouteForm,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id = $2",
+    )
+    .bind(MEDIA_REFERENCE_KIND)
+    .bind(start_route_id)
+    .execute(&mut **transaction)
+    .await?;
+    for (asset_id, field_key) in media_references(form) {
+        sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT id, $2, $3, $4 FROM reusable_media_assets WHERE id = $1 ON CONFLICT DO NOTHING")
+            .bind(asset_id)
+            .bind(MEDIA_REFERENCE_KIND)
+            .bind(start_route_id)
+            .bind(field_key)
+            .execute(&mut **transaction)
+            .await?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+    use wicked_learning_application::admin_world_node_starts::StartRouteForm;
+
+    use super::media_references;
+
+    #[test]
+    fn finds_only_exact_reusable_route_visual_urls() {
+        let dark = Uuid::new_v4();
+        let light = Uuid::new_v4();
+        let form = StartRouteForm::parse(
+            None,
+            None,
+            Some(&format!("/api/v1/admin/media-assets/{dark}/content")),
+            Some(&format!("/api/v1/admin/media-assets/{light}/content")),
+            None,
+            None,
+            None,
+            None,
+        )
+        .expect("valid route visual form");
+
+        assert_eq!(
+            media_references(&form),
+            vec![(dark, "image_dark"), (light, "image_light")]
+        );
+
+        let unmanaged = StartRouteForm::parse(
+            None,
+            None,
+            Some("https://example.test/visual.svg"),
+            Some(&format!("/api/v1/admin/media-assets/{light}/thumbnail")),
+            None,
+            None,
+            None,
+            None,
+        )
+        .expect("valid unmanaged route visual form");
+        assert!(media_references(&unmanaged).is_empty());
+    }
 }

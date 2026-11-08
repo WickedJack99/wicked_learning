@@ -974,7 +974,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Serve a reusable visual only through a published MapAsset visible to the learner. */
+        /** Serve a reusable visual only through a published MapAsset or activity-start route visible to the learner. */
         get: operations["getLearnerMediaAssetContent"];
         put?: never;
         post?: never;
@@ -1511,7 +1511,7 @@ export interface paths {
         head?: never;
         /**
          * Save learner-facing presentation fields for one World Builder route start.
-         * @description This source-derived authoring command changes only the selected route's label, description, images and light/dark button colors. It does not change activity membership, order, learner progress or activity playback.
+         * @description This source-derived authoring command changes only the selected route's label, description, images and light/dark button colors. Managed reusable-media image URLs are normalized as activity-start references, keeping their media available while the route exists. It does not change activity membership, order, learner progress or activity playback.
          */
         patch: operations["updateAdminWorldBuilderStartRoute"];
         trace?: never;
@@ -10315,7 +10315,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The asset is not actively referenced by a visible published MapAsset. */
+            /** @description The asset is not actively referenced by a visible published MapAsset or activity-start route. */
             404: {
                 headers: {
                     [name: string]: unknown;

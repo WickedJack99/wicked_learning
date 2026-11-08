@@ -1428,7 +1428,7 @@ function MediaPicker({
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                             Selection stores a stable Rust-owned media
                             reference, so this visual is protected from deletion
-                            while this MapAsset uses it.
+                            while authored content uses it.
                         </p>
                     </div>
                     <button
@@ -2967,6 +2967,9 @@ function StartRouteEditorDialog({
     );
     const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [mediaTarget, setMediaTarget] = useState<
+        'imageDark' | 'imageLight' | null
+    >(null);
 
     const update = <Key extends keyof StartRouteForm>(
         key: Key,
@@ -3151,11 +3154,13 @@ function StartRouteEditorDialog({
                         <RouteField
                             label="Dark route image"
                             onChange={(value) => update('imageDark', value)}
+                            onSelectExisting={() => setMediaTarget('imageDark')}
                             value={form.imageDark}
                         />
                         <RouteField
                             label="Light route image"
                             onChange={(value) => update('imageLight', value)}
+                            onSelectExisting={() => setMediaTarget('imageLight')}
                             value={form.imageLight}
                         />
                         <RouteField
@@ -3217,6 +3222,15 @@ function StartRouteEditorDialog({
                     </div>
                 </div>
             </section>
+            {mediaTarget ? (
+                <MediaPicker
+                    onClose={() => setMediaTarget(null)}
+                    onSelect={(asset) => {
+                        update(mediaTarget, asset.url);
+                        setMediaTarget(null);
+                    }}
+                />
+            ) : null}
         </div>
     );
 }
@@ -3224,10 +3238,12 @@ function StartRouteEditorDialog({
 function RouteField({
     label,
     onChange,
+    onSelectExisting,
     value,
 }: {
     label: string;
     onChange: (value: string) => void;
+    onSelectExisting?: () => void;
     value: string;
 }) {
     return (
@@ -3239,6 +3255,15 @@ function RouteField({
                 onChange={(event) => onChange(event.target.value)}
                 value={value}
             />
+            {onSelectExisting ? (
+                <button
+                    className="justify-self-start rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 dark:border-white/15 dark:hover:bg-white/10"
+                    onClick={onSelectExisting}
+                    type="button"
+                >
+                    Select existing
+                </button>
+            ) : null}
         </label>
     );
 }
