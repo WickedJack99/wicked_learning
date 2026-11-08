@@ -78,6 +78,7 @@ pub mod learner_bookmark;
 pub mod learner_bookmark_map;
 pub mod learner_check_in;
 pub mod learner_companion;
+pub mod learner_companion_turn;
 pub mod learner_competence;
 pub mod learner_desk_planning;
 pub mod learner_desk_search;

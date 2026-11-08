@@ -797,6 +797,28 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The identity has no application principal or role assignment. }
         '503': { description: The identity or application database is unavailable. }
+  /learner/companion/turn:
+    post:
+      operationId: createLearnerCompanionTurn
+      summary: Run one bounded authored Learning Companion AI turn.
+      description: Resolves the learner's visible source surface, authored AI dialogue node, guarded template and allowed context server-side. The browser cannot supply prompt text, private learner responses, template identity, navigation or content mutations. A successful question or hint turn records only its assistance level for the active activity run; post-attempt support never changes earlier evidence.
+      parameters:
+        - { $ref: '#/components/parameters/CsrfTokenHeader' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLearnerCompanionTurnRequest' }
+      responses:
+        '200':
+          description: One bounded plain-text response with its learner disclosure.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerCompanionTurn' }
+        '401': { description: Authentication is required. }
+        '403': { description: The same-origin CSRF check failed. }
+        '422': { description: The companion, authored node, active run, post-attempt eligibility or guarded provider configuration is unavailable. }
+        '503': { description: The identity or application database is unavailable. }
   /admin/world-builder:
     get:
       operationId: getAdminWorldBuilderGraph
@@ -10846,6 +10868,38 @@ components:
         ai_enabled: { type: boolean }
         mode: { type: string, enum: [scripted, guided_ai, open_ai] }
         source_scope: { type: string, enum: [platform, world, map, node, activity] }
+    CreateLearnerCompanionTurnRequest:
+      type: object
+      additionalProperties: false
+      required: [surface, dialogue_node_id, assistance_level]
+      properties:
+        surface: { type: string, enum: [desk, world, activity] }
+        map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        activity_id: { type: string, format: uuid }
+        dialogue_node_id: { type: string, minLength: 1, maxLength: 80 }
+        assistance_level: { type: string, enum: [off, question, hint, post-attempt] }
+        play_run_id: { type: string, format: uuid }
+    LearnerCompanionTurn:
+      type: object
+      additionalProperties: false
+      required: [node_id, text, assistance_level, disclosure]
+      properties:
+        node_id: { type: string, maxLength: 80 }
+        text: { type: string, maxLength: 1200 }
+        assistance_level: { type: string, enum: [untracked, questions_only, hint, post_attempt_support] }
+        disclosure:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerCompanionTurnDisclosure'
+            - type: 'null'
+    LearnerCompanionTurnDisclosure:
+      type: object
+      additionalProperties: false
+      required: [kind, uses_private_learner_response, can_navigate, can_change_content]
+      properties:
+        kind: { type: string, enum: [bounded_authored_context] }
+        uses_private_learner_response: { type: boolean, enum: [false] }
+        can_navigate: { type: boolean, enum: [false] }
+        can_change_content: { type: boolean, enum: [false] }
     LearnerCompanionContext:
       type: object
       additionalProperties: false

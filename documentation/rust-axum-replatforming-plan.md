@@ -1547,8 +1547,8 @@ to up to 100 worlds, maps, nodes or activities. The assignment target list and
 writer both intersect the caller's companion permission with the relevant map,
 node or activity authoring scope, including direct map editing groups. This is
 dialogue authoring only: scope-configuration authoring, learner context/action
-projections, provider turns and the source-adapted settings/launcher UI remain
-later slices in the agreed backend-first sequence.
+projections and the source-adapted settings/launcher UI remain later slices in
+the agreed backend-first sequence. Guarded provider turns are defined below.
 
 ### Learning Companion learner context backend slice — 8 November 2026
 
@@ -1567,8 +1567,8 @@ inaccessible map or unplayable activity returns no companion. For an active
 activity it also reads the matching server-owned route run and route start, and
 independently exposes completed-activity eligibility for bounded post-attempt
 assistance; neither value comes from a browser parameter. Scope-configuration
-authoring, the provider-turn command and the source-adapted launcher remain
-later slices.
+authoring and the source-adapted launcher remain later slices. The guarded
+provider-turn command is defined below.
 
 ### Learning Companion scoped-configuration transfer slice — 8 November 2026
 
@@ -1582,8 +1582,8 @@ matching its ownership boundary. The browser round trip exports a disposable
 map, adds distinct map/node/activity values to the manifest, preflights and
 imports it, then asserts the World export retained all three. This is
 transfer integrity only: scope-configuration authoring, activity-history and
-template snapshot parity, provider turns and the lifted launcher remain later
-slices.
+template snapshot parity and the lifted launcher remain later slices. Guarded
+provider turns are defined below.
 
 ### Learning Companion activity-snapshot retention slice — 8 November 2026
 
@@ -1601,6 +1601,22 @@ launcher.
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.
+
+### Learning Companion guarded provider-turn backend slice — 8 November 2026
+
+Rust now owns the source-shaped single-turn provider boundary for an authored
+Learning Companion AI node. `POST /api/v1/learner/companion/turn` accepts only
+the current desk, World-map or activity surface, an authored node ID, one of
+the four source assistance choices and an opaque active-run ID. It resolves
+the published, playable scope; inherited configuration; assigned dialogue;
+active run; completed activity; guarded `learner_companion` template; and
+capability intersection server-side. Browser prompt material, template IDs,
+private learner answers and navigation/content mutation commands are never
+accepted. One successful provider call returns bounded plain text with the
+source disclosure. Question/hint help is recorded only against the active
+activity run and replaces independent completion evidence with the recorded
+support level; post-attempt support never rewrites earlier evidence. The
+separate source-adapted launcher remains a later frontend slice.
 
 ### 7. Complete the replacement deliberately
 

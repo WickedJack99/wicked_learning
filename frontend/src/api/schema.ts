@@ -631,6 +631,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/companion/turn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run one bounded authored Learning Companion AI turn.
+         * @description Resolves the learner's visible source surface, authored AI dialogue node, guarded template and allowed context server-side. The browser cannot supply prompt text, private learner responses, template identity, navigation or content mutations. A successful question or hint turn records only its assistance level for the active activity run; post-attempt support never changes earlier evidence.
+         */
+        post: operations["createLearnerCompanionTurn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder": {
         parameters: {
             query?: never;
@@ -7825,6 +7845,35 @@ export interface components {
             /** @enum {string} */
             source_scope: "platform" | "world" | "map" | "node" | "activity";
         };
+        CreateLearnerCompanionTurnRequest: {
+            /** @enum {string} */
+            surface: "desk" | "world" | "activity";
+            map_slug?: string;
+            /** Format: uuid */
+            activity_id?: string;
+            dialogue_node_id: string;
+            /** @enum {string} */
+            assistance_level: "off" | "question" | "hint" | "post-attempt";
+            /** Format: uuid */
+            play_run_id?: string;
+        };
+        LearnerCompanionTurn: {
+            node_id: string;
+            text: string;
+            /** @enum {string} */
+            assistance_level: "untracked" | "questions_only" | "hint" | "post_attempt_support";
+            disclosure: components["schemas"]["LearnerCompanionTurnDisclosure"] | null;
+        };
+        LearnerCompanionTurnDisclosure: {
+            /** @enum {string} */
+            kind: "bounded_authored_context";
+            /** @enum {boolean} */
+            uses_private_learner_response: false;
+            /** @enum {boolean} */
+            can_navigate: false;
+            /** @enum {boolean} */
+            can_change_content: false;
+        };
         LearnerCompanionContext: {
             actions: components["schemas"]["LearnerCompanionAction"][];
             activity: components["schemas"]["LearnerCompanionReference"] | null;
@@ -11842,6 +11891,61 @@ export interface operations {
             };
             /** @description The identity has no application principal or role assignment. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createLearnerCompanionTurn: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLearnerCompanionTurnRequest"];
+            };
+        };
+        responses: {
+            /** @description One bounded plain-text response with its learner disclosure. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerCompanionTurn"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The companion */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -22,7 +22,10 @@ use wicked_learning_domain::{
 };
 
 use crate::{
-    learner_evidence::{CompletionEvidence, record_completion_evidence, record_topic_visit},
+    learner_evidence::{
+        CompletionEvidence, clear_companion_assistance, companion_assistance_level,
+        record_completion_evidence, record_topic_visit,
+    },
     learner_item_grant::{configured_chance_basis_points, configured_item_grants},
     learner_item_obstacle::{
         configured_slots, item_obstacle_passed_for_run, load_inventory,
@@ -2093,17 +2096,21 @@ async fn complete_current_activity(
             transaction.commit().await?;
             return Ok(None);
         };
+        let assistance_level = companion_assistance_level(
+            &mut transaction,
+            current.principal_id,
+            current.activity_id,
+            play_run_id,
+            question_attempt.is_some(),
+        )
+        .await?;
         record_completion_evidence(
             &mut transaction,
             CompletionEvidence {
                 activity_config: &current.activity_config,
                 activity_id: current.activity_id,
                 activity_type: &current.activity_type,
-                assistance_level: if question_attempt.is_some() {
-                    "independent"
-                } else {
-                    "untracked"
-                },
+                assistance_level: &assistance_level,
                 attempt_number,
                 calibration,
                 confidence: attempt_confidence,
@@ -2118,6 +2125,13 @@ async fn complete_current_activity(
                 reflection_response_type: observable_reflection
                     .map(|reflection| reflection.response_type.as_str()),
             },
+        )
+        .await?;
+        clear_companion_assistance(
+            &mut transaction,
+            current.principal_id,
+            current.activity_id,
+            play_run_id,
         )
         .await?;
         transaction.commit().await?;
@@ -2259,17 +2273,21 @@ async fn complete_current_activity(
         } else {
             observable_reflection.and_then(|reflection| reflection.observed_cues.clone())
         };
+    let assistance_level = companion_assistance_level(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+        play_run_id,
+        question_attempt.is_some(),
+    )
+    .await?;
     record_completion_evidence(
         &mut transaction,
         CompletionEvidence {
             activity_config: &current.activity_config,
             activity_id: current.activity_id,
             activity_type: &current.activity_type,
-            assistance_level: if question_attempt.is_some() {
-                "independent"
-            } else {
-                "untracked"
-            },
+            assistance_level: &assistance_level,
             attempt_number: question_attempt
                 .as_ref()
                 .map_or(1, |attempt| attempt.attempt_number),
@@ -2286,6 +2304,13 @@ async fn complete_current_activity(
             reflection_response_type: observable_reflection
                 .map(|reflection| reflection.response_type.as_str()),
         },
+    )
+    .await?;
+    clear_companion_assistance(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+        play_run_id,
     )
     .await?;
 
@@ -2403,13 +2428,21 @@ async fn complete_current_message_activity(
     };
 
     mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
+    let assistance_level = companion_assistance_level(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+        play_run_id,
+        false,
+    )
+    .await?;
     record_completion_evidence(
         &mut transaction,
         CompletionEvidence {
             activity_config: &current.activity_config,
             activity_id: current.activity_id,
             activity_type: &current.activity_type,
-            assistance_level: "untracked",
+            assistance_level: &assistance_level,
             attempt_number: 1,
             calibration: None,
             confidence: None,
@@ -2422,6 +2455,13 @@ async fn complete_current_message_activity(
             principal_id: current.principal_id,
             reflection_response_type: None,
         },
+    )
+    .await?;
+    clear_companion_assistance(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+        play_run_id,
     )
     .await?;
 

@@ -66,6 +66,52 @@ pub(crate) async fn record_completion_evidence(
     Ok(())
 }
 
+/// Resolve the strongest recorded companion support for this owned play run.
+/// The caller holds the active route-progress lock, so the result remains
+/// coupled to the completion evidence written in the same transaction.
+pub(crate) async fn companion_assistance_level(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+    play_run_id: Uuid,
+    question_was_independent: bool,
+) -> Result<String, sqlx::Error> {
+    let recorded = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT metadata #>> ARRAY['companionAssistance', $3::text, 'level'] FROM learner_activity_progress WHERE principal_id = $1 AND activity_id = $2 FOR UPDATE",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .bind(play_run_id.to_string())
+    .fetch_optional(&mut **transaction)
+    .await?
+    .flatten();
+    Ok(match recorded.as_deref() {
+        Some("hint") => "hint".to_owned(),
+        Some("questions_only") => "questions_only".to_owned(),
+        _ if question_was_independent => "independent".to_owned(),
+        _ => "untracked".to_owned(),
+    })
+}
+
+/// Remove the transient per-run companion support after completion has taken
+/// its durable evidence snapshot.
+pub(crate) async fn clear_companion_assistance(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+    play_run_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "UPDATE learner_activity_progress SET metadata = CASE WHEN jsonb_object_length(COALESCE(metadata->'companionAssistance', '{}'::jsonb) - $3::text) = 0 THEN metadata - 'companionAssistance' ELSE jsonb_set(metadata, '{companionAssistance}', COALESCE(metadata->'companionAssistance', '{}'::jsonb) - $3::text) END, updated_at = NOW() WHERE principal_id = $1 AND activity_id = $2",
+    )
+    .bind(principal_id)
+    .bind(activity_id)
+    .bind(play_run_id.to_string())
+    .execute(&mut **transaction)
+    .await?;
+    Ok(())
+}
+
 /// Preserve the source's private topic-to-topic history when an authorized
 /// learner enters a supported activity. Visiting a topic is not completion
 /// evidence, so this is deliberately separate from `record_completion_evidence`.

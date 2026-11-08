@@ -93,6 +93,7 @@ mod learner_bookmark;
 mod learner_bookmark_map;
 mod learner_check_in;
 mod learner_companion;
+mod learner_companion_turn;
 mod learner_competence;
 mod learner_desk_planning;
 mod learner_desk_search;
@@ -1115,6 +1116,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/learner/world", get(learner_world::show))
         .route("/api/v1/learner/companion", get(learner_companion::show))
+        .route(
+            "/api/v1/learner/companion/turn",
+            post(learner_companion_turn::create),
+        )
         .route("/api/v1/learner/groups", get(learner_group::index))
         .route("/api/v1/organizations", get(organization::index).post(organization::create))
         .route("/api/v1/organizations/{slug}", get(organization::show).patch(organization::update).delete(organization::delete))
@@ -1719,6 +1724,46 @@ mod tests {
                 .to_bytes(),
             "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
         );
+    }
+
+    #[tokio::test]
+    async fn learner_companion_turn_requires_an_authenticated_session() {
+        let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/learner/companion/turn")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"surface":"desk","dialogue_node_id":"ai-turn","assistance_level":"off"}"#,
+                    ))
+                    .expect("a valid companion-turn request"),
+            )
+            .await
+            .expect("companion-turn response");
+
+        assert_eq!(response.status(), 401);
     }
 
     #[tokio::test]

@@ -4566,8 +4566,9 @@ without conflating authoring setup with an AI turn or granting navigation and
 content-mutation authority to a companion.
 
 **Limits:** Scope inheritance, reusable dialogue graphs and assignments,
-learner-context projections, source-adapted administration UI, launcher
-placement and provider turns remain separate migration slices.
+learner-context projections, source-adapted administration UI and launcher
+placement remain separate migration slices. Guarded provider turns are defined
+by ADR-121.
 
 ## ADR-117: Reusable Learning Companion dialogues are bounded graphs with server-checked content scopes
 
@@ -4628,8 +4629,9 @@ for that activity. The browser cannot supply, select or override either value.
 launcher and dialogue UI while preventing it from becoming an authorization or
 AI-policy engine.
 
-**Limits:** Scope-configuration authoring, provider turns, conversation state
-and the frontend launcher are deliberately separate slices.
+**Limits:** Scope-configuration authoring, conversation state and the frontend
+launcher are deliberately separate slices. Guarded provider turns are defined
+by ADR-121.
 
 ## ADR-119: Companion scope configuration survives authored-content transfer
 
@@ -4689,8 +4691,49 @@ boundary.
 and the safe malformed fallback; the existing local browser activity-history
 and template save/update/restore/copy workflows remain the end-to-end proof of
 their lifecycle. Scope-configuration authoring, a template-to-activity
-configuration handoff, provider turns and the learner launcher remain separate
-slices.
+configuration handoff and the learner launcher remain separate slices. Guarded
+provider turns are defined by ADR-121.
+
+## ADR-121: Learning Companion provider turns resolve only bounded authored context
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The source Learning Companion can invoke a configured provider for
+one authored AI dialogue node, but the request cannot let a browser nominate a
+template, add an instruction, supply a private learner response, select an
+unowned run, navigate a learner, or turn optional help into unmarked
+independent evidence.
+
+**Decision:** `POST /api/v1/learner/companion/turn` accepts only a
+source-valid surface, optional visible map, required activity when applicable,
+authored AI-node ID, assistance level and opaque run ID. Rust reuses the
+learner companion resolver's published visibility, node availability,
+inherited configuration and assigned-graph resolution before it considers the
+request. It verifies an AI-enabled guided/open mode, an authored `ai` node,
+the intersection of graph and platform capabilities, the active caller-owned
+run for question/hint help, and completed-activity status for post-attempt
+help. It selects only an enabled guarded `learner_companion` template with an
+enabled OpenAI-compatible provider credential, decrypting that key only at the
+outbound adapter. The adapter sends a plain-text prompt composed solely from
+authored instruction and allowlisted context, caps output at 400 tokens and
+returns at most 1,200 response characters. It never receives browser prompt
+material, learner answers, confidence, journal/group content, or a mutation
+command.
+
+Successful pre-completion question/hint turns store the strongest support
+level under the owned play run in private activity-progress metadata. Completion
+uses that level for evidence and removes the transient record. Post-attempt
+support neither records assistance nor rewrites completed evidence. Every
+response carries the source disclosure that its context is bounded, does not
+use a private learner response, and cannot navigate or change content.
+
+**Why:** This preserves optional, inspectable help without treating the model
+as a learning evaluator or browser policy engine. The evidence attribution
+prevents successful assisted work being silently represented as independent.
+
+**Limits:** This backend slice does not add conversation persistence, stream a
+provider response, create a generic orchestration layer, expose scoped
+configuration editing, or lift the source learner launcher/dialogue UI.
 
 ## Phase 1 gate
 

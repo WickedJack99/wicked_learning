@@ -186,6 +186,14 @@ impl ApiError {
         }
     }
 
+    pub fn companion_turn_rejected() -> Self {
+        Self {
+            code: "companion_turn_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The Learning Companion request cannot be completed safely.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",

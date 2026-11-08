@@ -8,7 +8,10 @@ use wicked_learning_domain::{
 };
 
 use crate::{
-    learner_evidence::{CompletionEvidence, record_completion_evidence},
+    learner_evidence::{
+        CompletionEvidence, clear_companion_assistance, companion_assistance_level,
+        record_completion_evidence,
+    },
     learner_node_availability::PostgresLearnerNodeAvailability,
 };
 
@@ -151,13 +154,21 @@ async fn travel(
     }
 
     mark_activity_completed(&mut transaction, source.principal_id, source.activity_id).await?;
+    let assistance_level = companion_assistance_level(
+        &mut transaction,
+        source.principal_id,
+        source.activity_id,
+        play_run_id,
+        false,
+    )
+    .await?;
     record_completion_evidence(
         &mut transaction,
         CompletionEvidence {
             activity_config: &source.activity_config,
             activity_id: source.activity_id,
             activity_type: "portal",
-            assistance_level: "untracked",
+            assistance_level: &assistance_level,
             attempt_number: 1,
             calibration: None,
             confidence: None,
@@ -170,6 +181,13 @@ async fn travel(
             principal_id: source.principal_id,
             reflection_response_type: None,
         },
+    )
+    .await?;
+    clear_companion_assistance(
+        &mut transaction,
+        source.principal_id,
+        source.activity_id,
+        play_run_id,
     )
     .await?;
     let completed = sqlx::query(
