@@ -4036,6 +4036,43 @@ generic audio-event API.
 event names, map-level ambience, or a new public media route. Managed sound
 creation remains in the dedicated sound-library workflow.
 
+## ADR-100: Map duplication is an atomic scoped authoring transfer
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** Source authors can duplicate an editable map as a practical
+starting point for a new place. A shallow map copy would leave route graphs,
+message topics, dialogue events, preferred starts, portals or normalized media
+references pointing into the source map. Copying learner history, historical
+versions, review runs or editor assignments would incorrectly transfer private
+or governance state.
+
+**Decision:** `POST /api/v1/admin/world-builder/maps/{map_id}/duplicate`
+requires source `world_maps.ru` permission and the selected map's existing
+all/own/assigned/direct-editor scope. In one transaction it creates a fresh
+map in the same World and copies target-owned authoring facts: MapAssets,
+compatibility nodes, routes, activities, message topics, activity starts,
+activity transitions, NPC dialogue nodes/transitions, outgoing portal links
+and normalized visual-media reference rows. It remaps only declared internal
+node/message-topic/dialogue/start/activity/portal references; an outbound
+portal retains a destination outside the copied map. Map presentation/access
+fields and published state are preserved, while the new map creator is the
+requesting author and every copied activity is reset to `needs_review` with no
+review payload. Learner-owned rows, activity versions, review runs and map
+editor-group assignments are never selected.
+
+**Why:** This maintains the source dialog and useful copy semantics without
+leaking learner records, extending editing authority, or creating dangling
+media protection rows. The single transaction makes a failed copy leave no
+partial authoring graph.
+
+**Evidence and limits:** The generated OpenAPI client, focused application and
+persistence tests, frontend build, and credential-gated local Playwright flow
+cover a disposable map/MapAsset copy with fresh identities and preserved
+geometry. Deeper export/import package parity, companion assignments and
+Laravel-only question/translation transfer remain separate source inventory
+work; this decision does not claim their target records exist.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -916,6 +916,14 @@ workspace references and map-slug conflicts without creating or changing content
 The same preflight also shows a bounded availability list for declared media
 references, so missing local files are visible before an import is attempted.
 
+The Rust World Builder now carries this map-copy workflow through its selected
+map dialog. Its transaction copies the target platform's MapAssets, linked
+nodes/routes/activities, message topics, starts, activity and dialogue graphs,
+portal links and normalized reusable-media references with fresh identifiers.
+It remaps copied internal references while retaining an outbound portal target,
+resets copied activity review state, and leaves learner data, authoring history,
+review runs and editor assignments behind.
+
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
 author's existing editable world graph. Copies preserve reusable content and

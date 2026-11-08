@@ -489,6 +489,23 @@ the source controls and preview; learner playback honours the private mute and
 effects-volume preferences. The unlock effect waits for the server-confirmed
 unlock result rather than treating a tool click as success.
 
+### World Builder map-duplication slice — 8 November 2026
+
+The source `DuplicateMapDialog` now has a Rust/React successor on the selected
+World Builder map. `POST /api/v1/admin/world-builder/maps/{map_id}/duplicate`
+uses the same scoped map-editor authority as an edit, rather than granting a
+general map-create capability. One database transaction gives the copy fresh
+map, MapAsset, node, route, activity, message-topic, start and dialogue-graph
+identities; remaps in-map node, message-topic, dialogue-event, preferred-start,
+transition and internal-portal references; retains an outbound portal's
+existing destination; and recreates normalized visual-media reference rows.
+It preserves authored presentation/access fields and resets copied activities
+to `needs_review` with no recorded review. Learner state, review runs, history
+versions and map-editor-group assignments are intentionally excluded. The
+source-style dialog makes that boundary visible, and its local browser proof
+creates a disposable map/MapAsset, duplicates it, confirms fresh map/asset/node
+identities with preserved geometry, then deletes both maps.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

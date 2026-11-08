@@ -17,6 +17,7 @@ import {
     BookmarkPlus,
     CircleAlert,
     CircleCheck,
+    Copy,
     GitBranch,
     Map as MapIcon,
     Plus,
@@ -350,6 +351,7 @@ function WorldBuilderContent() {
     const [portal, setPortal] = useState<PortalLink | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [createMapOpen, setCreateMapOpen] = useState(false);
+    const [duplicateMapOpen, setDuplicateMapOpen] = useState(false);
     const [sourceCatalogOpen, setSourceCatalogOpen] = useState(false);
     const [reviewQueueOpen, setReviewQueueOpen] = useState(false);
     const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
@@ -604,6 +606,7 @@ function WorldBuilderContent() {
                     ) : editableMap && selectedMapId ? (
                         <MapDetails
                             document={editableMap}
+                            onDuplicate={() => setDuplicateMapOpen(true)}
                             onUpdated={() => {
                                 setMapReload((current) => current + 1);
                                 void loadWorld();
@@ -634,6 +637,17 @@ function WorldBuilderContent() {
                     onClose={() => setCreateMapOpen(false)}
                     onCreated={(mapId) => {
                         setCreateMapOpen(false);
+                        void loadWorld();
+                        selectMap(mapId);
+                    }}
+                />
+            ) : null}
+            {duplicateMapOpen && editableMap ? (
+                <DuplicateMapDialog
+                    map={editableMap.editable_map.map}
+                    onClose={() => setDuplicateMapOpen(false)}
+                    onCreated={(mapId) => {
+                        setDuplicateMapOpen(false);
                         void loadWorld();
                         selectMap(mapId);
                     }}
@@ -881,6 +895,121 @@ function CreateMapDialog({
                         type="submit"
                     >
                         {saving ? 'Creating…' : 'Create'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}
+
+function DuplicateMapDialog({
+    map,
+    onClose,
+    onCreated,
+}: {
+    map: EditableMap['editable_map']['map'];
+    onClose: () => void;
+    onCreated: (mapId: string) => void;
+}) {
+    const [title, setTitle] = useState(`${map.title} copy`);
+    const [slug, setSlug] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    const duplicate = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!title.trim()) {
+            setError('Add a title for the copied map.');
+            return;
+        }
+        setError(null);
+        setSaving(true);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/admin/world-builder/maps/{map_id}/duplicate',
+                {
+                    body: { slug: optionalValue(slug), title },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { map_id: map.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                setError(
+                    response.status === 400
+                        ? 'Use a title and a lowercase unique slug within the shown limits.'
+                        : 'The map could not be duplicated. Refresh the World Builder and try again.',
+                );
+                return;
+            }
+            onCreated(data.map_id);
+        } catch {
+            setError(
+                'The map could not be duplicated. Check your connection and try again.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="duplicate-map-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <form
+                className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                onSubmit={(event) => void duplicate(event)}
+            >
+                <h2 className="text-xl font-semibold" id="duplicate-map-title">
+                    Duplicate authored map
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    Create a new map in this world with its authored activities,
+                    routes, MapAssets, and internal connections copied over.
+                </p>
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
+                <div className="mt-5 grid gap-4">
+                    <ActivityTextField
+                        label="New map title"
+                        onChange={setTitle}
+                        value={title}
+                    />
+                    <ActivityTextField
+                        label="Slug (optional)"
+                        onChange={setSlug}
+                        value={slug}
+                    />
+                </div>
+                <p className="mt-4 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    Learner history, map history, review runs, and editor groups
+                    are not copied. Activities return to authoring review;
+                    portals leaving this map retain their destination.
+                </p>
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+                        disabled={saving}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950"
+                        disabled={saving}
+                        type="submit"
+                    >
+                        <Copy className="mr-1 inline size-4" />
+                        {saving ? 'Duplicating…' : 'Duplicate map'}
                     </button>
                 </div>
             </form>
@@ -2115,11 +2244,13 @@ function SelectField({
 
 function MapDetails({
     document,
+    onDuplicate,
     onDeleted,
     onUpdated,
     onSelectNode,
 }: {
     document: EditableMap;
+    onDuplicate: () => void;
     onDeleted: () => void;
     onUpdated: () => void;
     onSelectNode: (nodeId: string) => void;
@@ -2180,6 +2311,14 @@ function MapDetails({
                 type="button"
             >
                 Edit map details
+            </button>
+            <button
+                className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                onClick={onDuplicate}
+                type="button"
+            >
+                <Copy className="mr-1 inline size-4" />
+                Duplicate map
             </button>
             {document.can_manage_map_access ? (
                 <button

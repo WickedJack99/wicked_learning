@@ -34,6 +34,7 @@ pub mod admin_world_map_asset;
 pub mod admin_world_map_create;
 pub mod admin_world_map_delete;
 pub mod admin_world_map_details;
+pub mod admin_world_map_duplicate;
 pub mod admin_world_map_editing_groups;
 pub mod admin_world_markdown;
 pub mod admin_world_message;

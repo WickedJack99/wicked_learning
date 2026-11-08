@@ -695,6 +695,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate one source-scoped authored World Builder map.
+         * @description Requires the source world-map update permission and the selected map's all, own, assigned or direct-editor scope. It copies map-owned authoring content with new identifiers, remaps internal references, retains outbound portal destinations, resets activity review state, and excludes learner history, review runs, versions and editor assignments.
+         */
+        post: operations["duplicateAdminWorldBuilderMap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/details": {
         parameters: {
             query?: never;
@@ -6917,6 +6937,14 @@ export interface components {
             /** Format: uuid */
             map_id: string;
         };
+        DuplicateAdminWorldMapRequest: {
+            title: string;
+            slug?: string | null;
+        };
+        DuplicateAdminWorldMapResponse: {
+            /** Format: uuid */
+            map_id: string;
+        };
         UpdateAdminWorldMapDetailsRequest: {
             title: string;
             description: string | null;
@@ -10765,6 +10793,70 @@ export interface operations {
                 content?: never;
             };
             /** @description The map is unknown or unavailable through the source delete scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    duplicateAdminWorldBuilderMap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateAdminWorldMapRequest"];
+            };
+        };
+        responses: {
+            /** @description The authored copy was created and can be opened in the World Builder. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicateAdminWorldMapResponse"];
+                };
+            };
+            /** @description The title or slug is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source map is unknown or unavailable through the source editor scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -39,6 +39,7 @@ mod admin_world_map_asset;
 mod admin_world_map_create;
 mod admin_world_map_delete;
 mod admin_world_map_details;
+mod admin_world_map_duplicate;
 mod admin_world_map_editing_groups;
 mod admin_world_markdown;
 mod admin_world_message;
@@ -653,6 +654,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}",
             get(admin_world_map::show).delete(admin_world_map_delete::delete),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/duplicate",
+            post(admin_world_map_duplicate::duplicate),
         )
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/details",

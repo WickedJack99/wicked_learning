@@ -906,6 +906,33 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source delete scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/duplicate:
+    post:
+      operationId: duplicateAdminWorldBuilderMap
+      summary: Duplicate one source-scoped authored World Builder map.
+      description: Requires the source world-map update permission and the selected map's all, own, assigned or direct-editor scope. It copies map-owned authoring content with new identifiers, remaps internal references, retains outbound portal destinations, resets activity review state, and excludes learner history, review runs, versions and editor assignments.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DuplicateAdminWorldMapRequest' }
+      responses:
+        '201':
+          description: The authored copy was created and can be opened in the World Builder.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DuplicateAdminWorldMapResponse' }
+        '400': { description: The title or slug is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The source map is unknown or unavailable through the source editor scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/details:
     patch:
       operationId: updateAdminWorldBuilderMapDetails
@@ -9825,6 +9852,19 @@ components:
         slug: { type: string, nullable: true, maxLength: 140, pattern: '^[a-z0-9-]+$' }
         description: { type: string, nullable: true, maxLength: 1000 }
     CreateAdminWorldMapResponse:
+      type: object
+      additionalProperties: false
+      required: [map_id]
+      properties:
+        map_id: { type: string, format: uuid }
+    DuplicateAdminWorldMapRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, nullable: true, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+    DuplicateAdminWorldMapResponse:
       type: object
       additionalProperties: false
       required: [map_id]
