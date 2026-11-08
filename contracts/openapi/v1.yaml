@@ -952,6 +952,34 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/map-exports/preflight:
+    post:
+      operationId: preflightAdminWorldBuilderMapExport
+      summary: Check a map export manifest without creating content.
+      description: Requires the source world-map update permission. The check is read-only and validates the manifest's bounded authored graph before a later import.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [manifest]
+              properties:
+                manifest:
+                  type: string
+                  format: binary
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: A bounded structural readiness report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWorldMapExportPreflightResult' }
+        '400': { description: The manifest upload is missing or exceeds the local safety limit. }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot create or import World Builder maps. }
+        '503': { description: The identity or application service is unavailable. }
   /admin/world-builder/maps/{map_id}/details:
     patch:
       operationId: updateAdminWorldBuilderMapDetails
@@ -9862,6 +9890,29 @@ components:
         title: { type: string }
         description: { type: string }
         updated_at: { type: string, format: date-time }
+    AdminWorldMapExportPreflightResult:
+      type: object
+      additionalProperties: false
+      required: [valid, summary, errors, warnings, counts]
+      properties:
+        valid: { type: boolean }
+        summary: { type: string }
+        errors:
+          type: array
+          items: { type: string }
+        warnings:
+          type: array
+          items: { type: string }
+        counts:
+          type: object
+          additionalProperties: false
+          required: [nodes, activities, mapAssets, portalTargets, mediaReferences]
+          properties:
+            nodes: { type: integer, minimum: 0 }
+            activities: { type: integer, minimum: 0 }
+            mapAssets: { type: integer, minimum: 0 }
+            portalTargets: { type: integer, minimum: 0 }
+            mediaReferences: { type: integer, minimum: 0 }
     CreateAdminWorldMapRequest:
       type: object
       additionalProperties: false

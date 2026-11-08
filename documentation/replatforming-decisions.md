@@ -4108,6 +4108,34 @@ prove the current manifest path. It does not upload media bytes, import a map,
 validate an imported graph or claim complete Laravel package parity; those are
 separate transfer slices with their own integrity evidence.
 
+## ADR-102: Map structural preflight is a bounded non-mutating gate
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** An author needs meaningful feedback about malformed exported graph
+data before an eventual import can allocate any destination records. Treating a
+client-side parse as validation would miss broken graph references, while
+combining this initial read-only check with import writes would make it hard to
+show errors safely and clearly.
+
+**Decision:** `POST /api/v1/admin/world-builder/map-exports/preflight` accepts
+one CSRF-protected multipart JSON manifest up to 5 MiB from a principal with
+`world_maps.ru`. It creates no record and validates the versioned manifest,
+collection caps, slugs, node/activity references, start and transition targets,
+MapAsset node ownership, portal sources and declared media-reference strings.
+The source-adapted selected-map dialog displays its bounded result. The endpoint
+is deliberately outside the dynamic map-ID route family so it cannot be
+misinterpreted as an operation on a map named `export`.
+
+**Why:** This gives import a safe first integrity gate and preserves the
+source workflow's explicit validation step without inventing a browser-owned
+import decision or allowing malformed data to begin a transaction.
+
+**Limits and follow-up:** This slice does not accept ZIP packages, resolve
+destination workspace/topic/portal records, verify managed-media availability,
+or write an import. Those checks remain mandatory at the future package/import
+boundary and cannot be inferred from this structural result.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

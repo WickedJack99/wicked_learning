@@ -8,6 +8,7 @@ publish.workspace = true
 [dependencies]
 deunicode = "1"
 futures-util = "0.3"
+serde.workspace = true
 serde_json = "1"
 uuid.workspace = true
 wicked-learning-domain = { path = "../domain" }

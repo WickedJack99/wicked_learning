@@ -43,6 +43,19 @@ test('a local author downloads the source-shaped map manifest', async ({ page })
     expect(payload.nodes).toHaveLength(1);
     expect(Array.isArray(payload.references.mediaUrls)).toBeTruthy();
 
+    await page.getByRole('button', { name: 'Validate map export' }).click();
+    await page.getByLabel('JSON export file').setInputFiles(filePath);
+    const preflight = page.waitForResponse((candidate) => candidate.url().includes('/api/v1/admin/world-builder/map-exports/preflight'));
+    await page.getByRole('button', { name: 'Check manifest' }).click();
+    const preflightResponse = await preflight;
+    if (preflightResponse.status() !== 200) {
+        throw new Error(await preflightResponse.text());
+    }
+    await expect(page.getByRole('status')).toContainText(
+        'The map export is structurally ready for transfer.',
+    );
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+
     await page.getByRole('button', { name: 'Delete map' }).click();
     await page.getByRole('button', { name: 'Delete world map' }).click();
 });

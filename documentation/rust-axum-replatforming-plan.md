@@ -521,6 +521,19 @@ creates an isolated map and MapAsset, downloads and validates that attachment,
 then deletes the disposable map. Package media and import/preflight parity are
 still separate transfer slices.
 
+### World Builder map-export structural-preflight slice — 8 November 2026
+
+The selected-map dialog now also lifts the source validation entry point. It
+accepts one bounded JSON manifest and returns a readiness report without
+creating or changing content. Rust validates the versioned manifest shape,
+bounded collection sizes, slugs, node/activity links, MapAsset node references,
+portal sources and declared media-reference values; malformed graphs remain
+visible before a later importer can write anything. The report is
+CSRF-protected like the source upload workflow, and the browser proof downloads
+an export, uploads that exact file for validation, observes the ready result,
+then removes the disposable map. Destination workspace/media availability and
+package/archive preflight remain part of the subsequent import slice.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

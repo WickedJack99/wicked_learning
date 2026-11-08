@@ -735,6 +735,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/map-exports/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a map export manifest without creating content.
+         * @description Requires the source world-map update permission. The check is read-only and validates the manifest's bounded authored graph before a later import.
+         */
+        post: operations["preflightAdminWorldBuilderMapExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/details": {
         parameters: {
             query?: never;
@@ -6948,6 +6968,19 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        AdminWorldMapExportPreflightResult: {
+            valid: boolean;
+            summary: string;
+            errors: string[];
+            warnings: string[];
+            counts: {
+                nodes: number;
+                activities: number;
+                mapAssets: number;
+                portalTargets: number;
+                mediaReferences: number;
+            };
+        };
         CreateAdminWorldMapRequest: {
             title: string;
             slug?: string | null;
@@ -10929,6 +10962,64 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    preflightAdminWorldBuilderMapExport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    manifest: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A bounded structural readiness report. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminWorldMapExportPreflightResult"];
+                };
+            };
+            /** @description The manifest upload is missing or exceeds the local safety limit. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot create or import World Builder maps. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application service is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

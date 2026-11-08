@@ -931,6 +931,12 @@ media bytes. Learner records, authoring history, review runs and editor-group
 assignments are not exported. This is the JSON-manifest step only; transfer
 packages, import and preflight remain separate workflows.
 
+The Rust World Builder can structurally validate one selected JSON map export
+without creating or changing content. It reports bounded graph and reference
+errors before an import is attempted. Destination workspace and managed-media
+availability checks remain with the future import/package preflight, rather
+than being guessed from a browser upload.
+
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
 author's existing editable world graph. Copies preserve reusable content and
