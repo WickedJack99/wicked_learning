@@ -4728,6 +4728,90 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request and companion update permission are required. }
         '503': { description: The application database is unavailable. }
+  /admin/learning-companion/dialogues:
+    get:
+      operationId: listAdminLearningCompanionDialogues
+      summary: List reusable Learning Companion dialogue graphs.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 12 } }
+        - { name: search, in: query, schema: { type: string, maxLength: 120 } }
+      responses:
+        '200': { description: A bounded page of reusable authored graphs., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLearningCompanionDialoguePage' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: The current principal cannot read Learning Companion settings. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminLearningCompanionDialogue
+      summary: Create a bounded reusable Learning Companion dialogue graph.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaveAdminLearningCompanionDialogueRequest' } } } }
+      responses:
+        '201': { description: The created dialogue graph., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLearningCompanionDialogue' } } } }
+        '400': { description: The bounded dialogue graph is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and companion update permission are required. }
+        '503': { description: The application database is unavailable. }
+  /admin/learning-companion/dialogues/{dialogue_id}:
+    parameters: [ { name: dialogue_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    get:
+      operationId: getAdminLearningCompanionDialogue
+      summary: Read one reusable Learning Companion dialogue graph.
+      responses:
+        '200': { description: The dialogue graph and assignment count., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLearningCompanionDialogue' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: The current principal cannot read Learning Companion settings. }
+        '404': { description: The dialogue does not exist. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateAdminLearningCompanionDialogue
+      summary: Replace one reusable Learning Companion dialogue graph.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaveAdminLearningCompanionDialogueRequest' } } } }
+      responses:
+        '200': { description: The saved dialogue graph., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLearningCompanionDialogue' } } } }
+        '400': { description: The bounded dialogue graph is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and companion update permission are required. }
+        '404': { description: The dialogue does not exist. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminLearningCompanionDialogue
+      summary: Delete one reusable Learning Companion dialogue graph and its assignments.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The dialogue and assignments were deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and companion update permission are required. }
+        '404': { description: The dialogue does not exist. }
+        '503': { description: The application database is unavailable. }
+  /admin/learning-companion/dialogues/{dialogue_id}/assignments:
+    parameters: [ { name: dialogue_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    get:
+      operationId: getAdminLearningCompanionDialogueAssignments
+      summary: List source-authorized assignment targets for one dialogue graph.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 12 } }
+        - { name: search, in: query, schema: { type: string, maxLength: 120 } }
+      responses:
+        '200': { description: Scoped targets and selected assignments., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLearningCompanionAssignmentPage' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: The current principal cannot update Learning Companion settings. }
+        '404': { description: The dialogue does not exist. }
+        '503': { description: The application database is unavailable. }
+    put:
+      operationId: syncAdminLearningCompanionDialogueAssignments
+      summary: Replace a dialogue graph's source-authorized content assignments.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SyncAdminLearningCompanionDialogueAssignmentsRequest' } } } }
+      responses:
+        '200': { description: The normalized assignment list., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLearningCompanionAssignmentSyncResponse' } } } }
+        '400': { description: An assignment is malformed, unavailable, or outside the caller's authoring scope. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and companion update permission are required. }
+        '404': { description: The dialogue does not exist. }
+        '503': { description: The application database is unavailable. }
   /admin/ai/providers:
     post:
       operationId: createAdminAiProvider
@@ -9971,6 +10055,98 @@ components:
           maxItems: 3
           uniqueItems: true
           items: { type: string, enum: [current-context, topic-context, route-context, nearby-places, navigation-alternatives, revisit-options] }
+    AdminLearningCompanionPagination:
+      type: object
+      additionalProperties: false
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 12 }
+        total: { type: integer, minimum: 0 }
+    AdminLearningCompanionDialogueSummary:
+      type: object
+      additionalProperties: false
+      required: [id, name, assignments_count, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        assignments_count: { type: integer, minimum: 0 }
+        updated_at: { type: string, format: date-time }
+    AdminLearningCompanionDialogue:
+      type: object
+      additionalProperties: false
+      required: [id, name, assignments_count, updated_at, dialogue_graph]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        assignments_count: { type: integer, minimum: 0 }
+        updated_at: { type: string, format: date-time }
+        dialogue_graph: { $ref: '#/components/schemas/LearningCompanionDialogueGraph' }
+    AdminLearningCompanionDialoguePage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminLearningCompanionDialogueSummary' } }
+        pagination: { $ref: '#/components/schemas/AdminLearningCompanionPagination' }
+    LearningCompanionDialogueGraph:
+      type: object
+      additionalProperties: false
+      required: [version, start, nodes]
+      properties:
+        version: { type: integer, const: 1 }
+        start: { type: string, minLength: 1, maxLength: 80 }
+        nodes:
+          type: array
+          minItems: 1
+          maxItems: 24
+          items: { type: object }
+    SaveAdminLearningCompanionDialogueRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        dialogue_graph: { oneOf: [ { $ref: '#/components/schemas/LearningCompanionDialogueGraph' }, { type: 'null' } ] }
+    AdminLearningCompanionAssignment:
+      type: object
+      additionalProperties: false
+      required: [scope_type, scope_id]
+      properties:
+        scope_type: { type: string, enum: [world, map, node, activity] }
+        scope_id: { type: string, format: uuid }
+    AdminLearningCompanionAssignmentTarget:
+      type: object
+      additionalProperties: false
+      required: [scope_type, scope_id, label, context, selected]
+      properties:
+        scope_type: { type: string, enum: [world, map, node, activity] }
+        scope_id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 240 }
+        context: { type: string, minLength: 1, maxLength: 600 }
+        selected: { type: boolean }
+    AdminLearningCompanionAssignmentPage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination, selected]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminLearningCompanionAssignmentTarget' } }
+        pagination: { $ref: '#/components/schemas/AdminLearningCompanionPagination' }
+        selected: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/AdminLearningCompanionAssignment' } }
+    SyncAdminLearningCompanionDialogueAssignmentsRequest:
+      type: object
+      additionalProperties: false
+      required: [assignments]
+      properties:
+        assignments: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/AdminLearningCompanionAssignment' } }
+    AdminLearningCompanionAssignmentSyncResponse:
+      type: object
+      additionalProperties: false
+      required: [assignments, assignments_count]
+      properties:
+        assignments: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/AdminLearningCompanionAssignment' } }
+        assignments_count: { type: integer, minimum: 0, maximum: 100 }
     SaveAdminAiProviderRequest:
       type: object
       additionalProperties: false

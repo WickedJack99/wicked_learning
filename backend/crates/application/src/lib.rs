@@ -14,6 +14,7 @@ pub mod admin_activity_templates;
 pub mod admin_ai_settings;
 pub mod admin_dialogue_typing_sound_set;
 pub mod admin_learning_companion;
+pub mod admin_learning_companion_dialogue;
 pub mod admin_learning_group;
 pub mod admin_learning_support_signals;
 pub mod admin_learning_taxonomy;

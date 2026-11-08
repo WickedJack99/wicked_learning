@@ -1535,9 +1535,20 @@ most three allowlisted context capabilities. `GET` and CSRF-protected `PATCH`
 `/api/v1/admin/learning-companion` require the existing `companion` role
 permission; template selection is constrained server-side to the intended
 purpose. The endpoint is a configuration boundary only: it never invokes a
-provider or resolves learner context. Scope inheritance, reusable dialogue
-graphs, learner context/action projections, turns and the source-adapted
-settings/launcher UI remain later slices in the agreed backend-first sequence.
+provider or resolves learner context.
+
+### Learning Companion dialogue authoring backend slice — 8 November 2026
+
+Reusable source-shaped dialogue graphs are now Rust-owned. The companion role
+can list, create, read, replace and delete graphs through the typed API; every
+graph is bounded to the source's version-one, 24-node grammar, permitted
+navigation actions and three allowlisted AI capabilities. Graphs can be scoped
+to up to 100 worlds, maps, nodes or activities. The assignment target list and
+writer both intersect the caller's companion permission with the relevant map,
+node or activity authoring scope, including direct map editing groups. This is
+authoring only: scope inheritance/overrides, learner context/action
+projections, provider turns and the source-adapted settings/launcher UI remain
+later slices in the agreed backend-first sequence.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

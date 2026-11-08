@@ -3890,6 +3890,65 @@ export interface paths {
         patch: operations["updateAdminLearningCompanionSettings"];
         trace?: never;
     };
+    "/admin/learning-companion/dialogues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List reusable Learning Companion dialogue graphs. */
+        get: operations["listAdminLearningCompanionDialogues"];
+        put?: never;
+        /** Create a bounded reusable Learning Companion dialogue graph. */
+        post: operations["createAdminLearningCompanionDialogue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/learning-companion/dialogues/{dialogue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dialogue_id: string;
+            };
+            cookie?: never;
+        };
+        /** Read one reusable Learning Companion dialogue graph. */
+        get: operations["getAdminLearningCompanionDialogue"];
+        put?: never;
+        post?: never;
+        /** Delete one reusable Learning Companion dialogue graph and its assignments. */
+        delete: operations["deleteAdminLearningCompanionDialogue"];
+        options?: never;
+        head?: never;
+        /** Replace one reusable Learning Companion dialogue graph. */
+        patch: operations["updateAdminLearningCompanionDialogue"];
+        trace?: never;
+    };
+    "/admin/learning-companion/dialogues/{dialogue_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dialogue_id: string;
+            };
+            cookie?: never;
+        };
+        /** List source-authorized assignment targets for one dialogue graph. */
+        get: operations["getAdminLearningCompanionDialogueAssignments"];
+        /** Replace a dialogue graph's source-authorized content assignments. */
+        put: operations["syncAdminLearningCompanionDialogueAssignments"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/ai/providers": {
         parameters: {
             query?: never;
@@ -7212,6 +7271,70 @@ export interface components {
             /** Format: uuid */
             ai_template_id: string | null;
             ai_capabilities: ("current-context" | "topic-context" | "route-context" | "nearby-places" | "navigation-alternatives" | "revisit-options")[];
+        };
+        AdminLearningCompanionPagination: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+        AdminLearningCompanionDialogueSummary: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            assignments_count: number;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AdminLearningCompanionDialogue: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            assignments_count: number;
+            /** Format: date-time */
+            updated_at: string;
+            dialogue_graph: components["schemas"]["LearningCompanionDialogueGraph"];
+        };
+        AdminLearningCompanionDialoguePage: {
+            items: components["schemas"]["AdminLearningCompanionDialogueSummary"][];
+            pagination: components["schemas"]["AdminLearningCompanionPagination"];
+        };
+        LearningCompanionDialogueGraph: {
+            /** @constant */
+            version: 1;
+            start: string;
+            nodes: Record<string, never>[];
+        };
+        SaveAdminLearningCompanionDialogueRequest: {
+            name: string;
+            dialogue_graph?: components["schemas"]["LearningCompanionDialogueGraph"] | null;
+        };
+        AdminLearningCompanionAssignment: {
+            /** @enum {string} */
+            scope_type: "world" | "map" | "node" | "activity";
+            /** Format: uuid */
+            scope_id: string;
+        };
+        AdminLearningCompanionAssignmentTarget: {
+            /** @enum {string} */
+            scope_type: "world" | "map" | "node" | "activity";
+            /** Format: uuid */
+            scope_id: string;
+            label: string;
+            context: string;
+            selected: boolean;
+        };
+        AdminLearningCompanionAssignmentPage: {
+            items: components["schemas"]["AdminLearningCompanionAssignmentTarget"][];
+            pagination: components["schemas"]["AdminLearningCompanionPagination"];
+            selected: components["schemas"]["AdminLearningCompanionAssignment"][];
+        };
+        SyncAdminLearningCompanionDialogueAssignmentsRequest: {
+            assignments: components["schemas"]["AdminLearningCompanionAssignment"][];
+        };
+        AdminLearningCompanionAssignmentSyncResponse: {
+            assignments: components["schemas"]["AdminLearningCompanionAssignment"][];
+            assignments_count: number;
         };
         SaveAdminAiProviderRequest: {
             label: string;
@@ -23373,6 +23496,389 @@ export interface operations {
             };
             /** @description A valid same-origin CSRF request and companion update permission are required. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listAdminLearningCompanionDialogues: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded page of reusable authored graphs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionDialoguePage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot read Learning Companion settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminLearningCompanionDialogue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminLearningCompanionDialogueRequest"];
+            };
+        };
+        responses: {
+            /** @description The created dialogue graph. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionDialogue"];
+                };
+            };
+            /** @description The bounded dialogue graph is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and companion update permission are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminLearningCompanionDialogue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dialogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dialogue graph and assignment count. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionDialogue"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot read Learning Companion settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminLearningCompanionDialogue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                dialogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dialogue and assignments were deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and companion update permission are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminLearningCompanionDialogue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                dialogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAdminLearningCompanionDialogueRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved dialogue graph. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionDialogue"];
+                };
+            };
+            /** @description The bounded dialogue graph is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and companion update permission are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminLearningCompanionDialogueAssignments: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                search?: string;
+            };
+            header?: never;
+            path: {
+                dialogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Scoped targets and selected assignments. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionAssignmentPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot update Learning Companion settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    syncAdminLearningCompanionDialogueAssignments: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                dialogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncAdminLearningCompanionDialogueAssignmentsRequest"];
+            };
+        };
+        responses: {
+            /** @description The normalized assignment list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionAssignmentSyncResponse"];
+                };
+            };
+            /** @description An assignment is malformed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and companion update permission are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue does not exist. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

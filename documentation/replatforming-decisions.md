@@ -4568,6 +4568,33 @@ content-mutation authority to a companion.
 learner-context projections, source-adapted administration UI, launcher
 placement and provider turns remain separate migration slices.
 
+## ADR-117: Reusable Learning Companion dialogues are bounded graphs with server-checked content scopes
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** A reusable companion dialogue must preserve the source's authored
+graph grammar while allowing it to be assigned only to content the author can
+edit. Letting the browser validate graph structure or submit arbitrary scope
+identifiers would make the eventual learner resolver depend on untrusted,
+unbounded authoring state.
+
+**Decision:** Store UUID-keyed dialogue graphs and separate world, map, node or
+activity assignments in the Rust application database. The application accepts
+only the source version-one graph grammar: at most 24 uniquely identified
+message, choice, AI or end nodes, a valid start target, permitted navigation
+actions and at most three allowlisted AI capabilities. It validates each graph
+before persistence. The companion permission gates the dialogue endpoints;
+assignment reads and writes additionally project and recheck the matching map,
+node or activity authoring scope, including direct map editing-group access.
+Assignments are capped at 100 and cascade when a dialogue is deleted.
+
+**Why:** This keeps authored dialogue policy and its content reach auditable at
+the API boundary, so later learner resolution can select a known-safe graph
+without reproducing authorization in the browser.
+
+**Limits:** This decision does not add settings inheritance, learner context,
+conversation state, provider calls or a browser authoring/launcher surface.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

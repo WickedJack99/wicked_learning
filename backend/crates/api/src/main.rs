@@ -16,6 +16,7 @@ mod admin_activity_templates;
 mod admin_ai_settings;
 mod admin_dialogue_typing_sound_set;
 mod admin_learning_companion;
+mod admin_learning_companion_dialogue;
 mod admin_learning_group;
 mod admin_learning_support_signals;
 mod admin_learning_taxonomy;
@@ -623,6 +624,22 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/learning-companion",
             get(admin_learning_companion::show).patch(admin_learning_companion::update),
+        )
+        .route(
+            "/api/v1/admin/learning-companion/dialogues",
+            get(admin_learning_companion_dialogue::index)
+                .post(admin_learning_companion_dialogue::create),
+        )
+        .route(
+            "/api/v1/admin/learning-companion/dialogues/{dialogue_id}",
+            get(admin_learning_companion_dialogue::show)
+                .patch(admin_learning_companion_dialogue::update)
+                .delete(admin_learning_companion_dialogue::delete),
+        )
+        .route(
+            "/api/v1/admin/learning-companion/dialogues/{dialogue_id}/assignments",
+            get(admin_learning_companion_dialogue::assignments)
+                .put(admin_learning_companion_dialogue::sync_assignments),
         )
         .route(
             "/api/v1/admin/ai/providers",
