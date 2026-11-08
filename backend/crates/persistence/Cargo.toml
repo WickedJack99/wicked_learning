@@ -10,7 +10,7 @@ async-stream = "0.3"
 futures-util = "0.3"
 serde.workspace = true
 serde_json = "1"
-sqlx = { version = "0.8", default-features = false, features = ["json", "macros", "postgres", "runtime-tokio-rustls", "uuid"] }
+sqlx = { version = "0.8", default-features = false, features = ["json", "macros", "postgres", "runtime-tokio-rustls", "time", "uuid"] }
 time = { version = "0.3", features = ["parsing"] }
 tracing = "0.1"
 uuid.workspace = true

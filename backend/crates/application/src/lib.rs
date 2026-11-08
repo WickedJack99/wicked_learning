@@ -38,6 +38,7 @@ pub mod admin_world_map_duplicate;
 pub mod admin_world_map_editing_groups;
 pub mod admin_world_map_export;
 pub mod admin_world_map_export_preflight;
+pub mod admin_world_map_import;
 pub mod admin_world_markdown;
 pub mod admin_world_message;
 pub mod admin_world_node;

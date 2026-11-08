@@ -43,6 +43,7 @@ mod admin_world_map_duplicate;
 mod admin_world_map_editing_groups;
 mod admin_world_map_export;
 mod admin_world_map_export_preflight;
+mod admin_world_map_import;
 mod admin_world_markdown;
 mod admin_world_message;
 mod admin_world_node;
@@ -668,6 +669,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/map-exports/preflight",
             post(admin_world_map_export_preflight::preflight),
+        )
+        .route(
+            "/api/v1/admin/world-builder/map-exports/import",
+            post(admin_world_map_import::import),
         )
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/details",

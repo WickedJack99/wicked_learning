@@ -755,6 +755,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/map-exports/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import one validated authored map manifest as a fresh draft.
+         * @description Requires the source world-map update permission. The destination World must match the manifest workspace; the uploaded file cannot set destination access restrictions or transfer learner, review, history or editor-assignment records.
+         */
+        post: operations["importAdminWorldBuilderMapExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/details": {
         parameters: {
             query?: never;
@@ -6998,6 +7018,10 @@ export interface components {
             /** Format: uuid */
             map_id: string;
         };
+        ImportAdminWorldMapResponse: {
+            /** Format: uuid */
+            map_id: string;
+        };
         UpdateAdminWorldMapDetailsRequest: {
             title: string;
             description: string | null;
@@ -11020,6 +11044,73 @@ export interface operations {
                 content?: never;
             };
             /** @description The identity or application service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    importAdminWorldBuilderMapExport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    manifest: string;
+                    title: string;
+                    slug?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The imported map was created and can be opened in the World Builder. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportAdminWorldMapResponse"];
+                };
+            };
+            /** @description The form */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot create World Builder maps. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

@@ -980,6 +980,38 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current principal cannot create or import World Builder maps. }
         '503': { description: The identity or application service is unavailable. }
+  /admin/world-builder/map-exports/import:
+    post:
+      operationId: importAdminWorldBuilderMapExport
+      summary: Import one validated authored map manifest as a fresh draft.
+      description: Requires the source world-map update permission. The destination World must match the manifest workspace; the uploaded file cannot set destination access restrictions or transfer learner, review, history or editor-assignment records.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [manifest, title]
+              properties:
+                manifest:
+                  type: string
+                  format: binary
+                title: { type: string, minLength: 1, maxLength: 120 }
+                slug: { type: string, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+      responses:
+        '201':
+          description: The imported map was created and can be opened in the World Builder.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportAdminWorldMapResponse' }
+        '400': { description: The form, manifest, workspace references or managed media references are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The current principal cannot create World Builder maps. }
+        '503': { description: The identity or application database is unavailable. }
   /admin/world-builder/maps/{map_id}/details:
     patch:
       operationId: updateAdminWorldBuilderMapDetails
@@ -9935,6 +9967,12 @@ components:
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: string, nullable: true, maxLength: 140, pattern: '^[a-z0-9-]+$' }
     DuplicateAdminWorldMapResponse:
+      type: object
+      additionalProperties: false
+      required: [map_id]
+      properties:
+        map_id: { type: string, format: uuid }
+    ImportAdminWorldMapResponse:
       type: object
       additionalProperties: false
       required: [map_id]

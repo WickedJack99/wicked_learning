@@ -534,6 +534,24 @@ an export, uploads that exact file for validation, observes the ready result,
 then removes the disposable map. Destination workspace/media availability and
 package/archive preflight remain part of the subsequent import slice.
 
+### World Builder map JSON-import slice — 8 November 2026
+
+`POST /api/v1/admin/world-builder/map-exports/import` now accepts a
+CSRF-protected, bounded JSON manifest plus destination title and optional slug.
+It repeats structural validation in the application boundary, then commits one
+fresh draft map transaction only when the source workspace matches the current
+World and declared topic, portal and managed-media dependencies resolve there.
+The persistence command recreates MapAssets, nodes/routes, starts, activities,
+activity and dialogue transitions, message topics and portal links with fresh
+identifiers; it remaps only declared internal reference fields and resets
+activities to review. The manifest cannot transfer destination access rules,
+learner state, authoring history, review data or editor assignments. A source
+adapted header dialog requires the existing preflight before enabling Import.
+The credential-gated browser proof exports a disposable map, validates it,
+deletes the source, imports the downloaded file as a new map and removes that
+result. ZIP/media-byte packages remain a separate integrity and media-lifecycle
+slice.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

@@ -135,6 +135,72 @@ pub fn validate_manifest(manifest: &[u8]) -> MapExportPreflightResult {
                 );
             }
             result_counts.activities += 1;
+
+            let dialogue_nodes = list(
+                activity.get("dialogueNodes"),
+                &format!("{activity_path}.dialogueNodes"),
+                MAX_ACTIVITIES,
+                &mut errors,
+            );
+            let mut dialogue_source_ids = std::collections::BTreeSet::new();
+            for (dialogue_index, dialogue) in dialogue_nodes.iter().enumerate() {
+                let dialogue_path = format!("{activity_path}.dialogueNodes.{dialogue_index}");
+                let Some(dialogue) = dialogue.as_object() else {
+                    add_error(&mut errors, format!("{dialogue_path} must be an object."));
+                    continue;
+                };
+                let Some(source_id) = dialogue.get("sourceId").and_then(Value::as_str) else {
+                    add_error(
+                        &mut errors,
+                        format!("{dialogue_path}.sourceId must be a string."),
+                    );
+                    continue;
+                };
+                if !dialogue_source_ids.insert(source_id.to_owned()) {
+                    add_error(
+                        &mut errors,
+                        format!("Duplicate dialogue source ID '{source_id}' in '{activity_path}'."),
+                    );
+                }
+            }
+            for (transition_index, transition) in list(
+                activity.get("dialogueTransitions"),
+                &format!("{activity_path}.dialogueTransitions"),
+                MAX_ACTIVITIES,
+                &mut errors,
+            )
+            .iter()
+            .enumerate()
+            {
+                let transition_path =
+                    format!("{activity_path}.dialogueTransitions.{transition_index}");
+                let Some(transition) = transition.as_object() else {
+                    add_error(&mut errors, format!("{transition_path} must be an object."));
+                    continue;
+                };
+                if transition
+                    .get("toSourceId")
+                    .and_then(Value::as_str)
+                    .is_none_or(|source_id| !dialogue_source_ids.contains(source_id))
+                {
+                    add_error(
+                        &mut errors,
+                        format!(
+                            "{transition_path}.toSourceId must name a dialogue node in the same activity."
+                        ),
+                    );
+                }
+                if let Some(source_id) = transition.get("fromSourceId").and_then(Value::as_str)
+                    && !dialogue_source_ids.contains(source_id)
+                {
+                    add_error(
+                        &mut errors,
+                        format!(
+                            "{transition_path}.fromSourceId must name a dialogue node in the same activity."
+                        ),
+                    );
+                }
+            }
         }
         node_activities.insert(node_slug, activity_slugs);
     }
@@ -242,6 +308,27 @@ pub fn validate_manifest(manifest: &[u8]) -> MapExportPreflightResult {
             add_error(
                 &mut errors,
                 format!("portalTargets.{index}.sourceNodeSlug must name an exported node."),
+            );
+        }
+        let source_activity = portal.get("sourceActivitySlug").and_then(Value::as_str);
+        if source_node
+            .and_then(|node| node_activities.get(node))
+            .is_none_or(|activities| {
+                source_activity.is_none_or(|activity| !activities.contains(activity))
+            })
+        {
+            add_error(
+                &mut errors,
+                format!(
+                    "portalTargets.{index}.sourceActivitySlug must name an activity in its source node."
+                ),
+            );
+        }
+        for key in ["targetMapSlug", "targetNodeSlug", "targetActivitySlug"] {
+            slug(
+                portal.get(key),
+                &format!("portalTargets.{index}.{key}"),
+                &mut errors,
             );
         }
     }
@@ -381,6 +468,18 @@ mod tests {
                 .errors
                 .iter()
                 .any(|error| error.contains("toActivitySlug"))
+        );
+    }
+
+    #[test]
+    fn rejects_dialogue_edges_that_escape_their_activity() {
+        let result = validate_manifest(br#"{"format":"wicked-learning-map","formatVersion":1,"world":{"slug":"world"},"map":{"slug":"map"},"nodes":[{"slug":"node","activities":[{"slug":"start","type":"npc_dialogue","title":"Start","transitions":[],"dialogueNodes":[{"sourceId":"node-a"}],"dialogueTransitions":[{"toSourceId":"node-b"}]}]}],"mapAssets":[],"portalTargets":[],"references":{"mediaUrls":[]}}"#);
+        assert!(!result.valid);
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|error| error.contains("toSourceId"))
         );
     }
 }

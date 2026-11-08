@@ -4136,6 +4136,44 @@ destination workspace/topic/portal records, verify managed-media availability,
 or write an import. Those checks remain mandatory at the future package/import
 boundary and cannot be inferred from this structural result.
 
+## ADR-103: Map JSON import revalidates and creates a fresh scoped draft
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** A successful browser-side preflight does not prove that a manifest
+belongs to the active World, that its topic, portal or managed-media targets
+exist at import time, or that a write will preserve its internal graph without
+carrying source IDs and governance state into the destination. Letting an
+uploaded JSON document set access roles would also let another context alter
+the destination's learner visibility policy.
+
+**Decision:** `POST /api/v1/admin/world-builder/map-exports/import` accepts a
+CSRF-protected multipart `manifest`, destination `title` and optional `slug`
+from a principal with `world_maps.ru`. It reruns the structural manifest gate
+before opening one database transaction. The transaction resolves the current
+World and requires its slug to equal the manifest world, resolves an optional
+destination topic, requires every external portal target and managed-media URL
+to resolve in that World/database, and either writes a complete new map or
+rolls back. It recreates MapAssets, nodes, deterministic target routes,
+activities, starts, transitions, dialogue graphs, message topics and portals
+with fresh identifiers, remapping only declared node/message-topic references.
+The destination starts as a draft with activity review reset and public default
+access; the manifest cannot import access roles, learner records, review
+payloads, version/history rows or editor assignments.
+
+**Why:** Revalidating at the writer keeps the preflight useful without making it
+an authorization or consistency token, while the single transaction prevents a
+partially imported authored graph or media-protection records. The lifted
+source dialog makes validation visible and requires a valid result before
+enabling the import action.
+
+**Evidence and limits:** Focused application validation tests, persistence and
+API test suites, generated OpenAPI types, frontend production build, and a
+credential-gated local browser flow cover export, preflight, source removal,
+fresh import and cleanup. This is JSON-manifest import only: it does not carry
+media bytes or accept ZIP packages, Laravel-only translation/companion records,
+or cross-world transfer.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

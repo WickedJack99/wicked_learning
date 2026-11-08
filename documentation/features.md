@@ -928,14 +928,19 @@ The selected Rust World Builder map dialog also offers a source-shaped JSON
 export. It downloads the scoped map's current authored graph, MapAssets,
 message topics, portal targets and referenced media URLs without embedding
 media bytes. Learner records, authoring history, review runs and editor-group
-assignments are not exported. This is the JSON-manifest step only; transfer
-packages, import and preflight remain separate workflows.
+assignments are not exported.
 
 The Rust World Builder can structurally validate one selected JSON map export
 without creating or changing content. It reports bounded graph and reference
-errors before an import is attempted. Destination workspace and managed-media
-availability checks remain with the future import/package preflight, rather
-than being guessed from a browser upload.
+errors before an import is attempted. From the World Builder header, an author
+can then import that validated JSON export as a fresh draft map. The server
+rechecks its structure, requires the current workspace, topic and portal
+targets to exist, remaps node and message-topic identifiers, recreates
+activities, starts, transitions and dialogue graphs with fresh IDs, and records
+only destination-available managed-media references. Uploaded access roles,
+learner records, history, review payloads and editor assignments are ignored.
+A failed destination or media check rolls back the entire import. ZIP packages
+and media-byte transfer remain separate work.
 
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
