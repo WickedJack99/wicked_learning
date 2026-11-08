@@ -38,16 +38,11 @@ test('a local support-author can set and revoke a manual node override', async (
     expect(node.status()).toBe(201);
     const { node_id: nodeId } = (await node.json()) as { node_id: string };
 
-    for (const enabled of [true, false]) {
-        expect(
-            (
-                await page.request.post(
-                    `/api/v1/admin/world-builder/nodes/${nodeId}/manual-unlocks`,
-                    { data: { learner_subject_id: learnerSubjectId, enabled }, headers },
-                )
-            ).status(),
-        ).toBe(204);
-    }
+    expect((await page.request.post(`/api/v1/admin/world-builder/nodes/${nodeId}/manual-unlocks`, { data: { learner_subject_id: learnerSubjectId, enabled: true }, headers })).status()).toBe(204);
+    const signals = await page.request.get('/api/v1/admin/learning-support/signals');
+    expect(signals.ok()).toBeTruthy();
+    expect(JSON.stringify(await signals.json())).toContain('Manual unlock target');
+    expect((await page.request.post(`/api/v1/admin/world-builder/nodes/${nodeId}/manual-unlocks`, { data: { learner_subject_id: learnerSubjectId, enabled: false }, headers })).status()).toBe(204);
 
     expect(
         (await page.request.delete(`/api/v1/admin/world-builder/maps/${mapId}`, { headers })).status(),
