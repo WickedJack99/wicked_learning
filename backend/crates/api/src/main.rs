@@ -23,6 +23,7 @@ mod admin_world_item_grant;
 mod admin_world_item_obstacle;
 mod admin_world_map;
 mod admin_world_map_access;
+mod admin_world_map_asset;
 mod admin_world_map_create;
 mod admin_world_map_delete;
 mod admin_world_map_details;
@@ -614,6 +615,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/editing-groups",
             patch(admin_world_map_editing_groups::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/assets",
+            post(admin_world_map_asset::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/assets/{asset_id}",
+            patch(admin_world_map_asset::update).delete(admin_world_map_asset::delete),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}",

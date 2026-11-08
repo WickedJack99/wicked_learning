@@ -81,6 +81,14 @@ async fn delete_map(
 
     // The fresh schema cascades map-owned assets, nodes, routes, activities,
     // portal links and learner state in the same transaction.
+    // Generic media references intentionally do not use a polymorphic foreign
+    // key, so remove MapAsset-owned links before the database cascade deletes
+    // those owners. Otherwise a reusable visual would be permanently marked
+    // as referenced after its source map disappeared.
+    sqlx::query("DELETE FROM reusable_media_asset_references WHERE owner_kind = 'map_asset' AND owner_id IN (SELECT id FROM learning_map_assets WHERE map_id = $1)")
+        .bind(map.id)
+        .execute(&mut *transaction)
+        .await?;
     sqlx::query("DELETE FROM learning_maps WHERE id = $1")
         .bind(map.id)
         .execute(&mut *transaction)

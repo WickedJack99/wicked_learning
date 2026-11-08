@@ -32,6 +32,7 @@ import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
+import { PublicMapAssetVisual } from './public-map-asset-visual';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -41,6 +42,10 @@ type EditableNode = components['schemas']['AdminEditableNode'];
 type Activity = components['schemas']['AdminEditableActivity'];
 type EditableItem = components['schemas']['AdminEditableItem'];
 type EditableSound = components['schemas']['AdminEditableSound'];
+type EditableMapAsset = components['schemas']['AdminEditableMapAsset'];
+type MediaAsset = components['schemas']['AdminMediaAsset'];
+type MediaAssetPage = components['schemas']['AdminMediaAssetPage'];
+type MapAssetRequest = components['schemas']['UpsertAdminWorldMapAssetRequest'];
 type EditableTool = components['schemas']['AdminEditableTool'];
 type ActivityTransition = components['schemas']['AdminActivityTransition'];
 type ActivityConnector = components['schemas']['AdminActivityConnector'];
@@ -382,6 +387,17 @@ function WorldBuilderContent() {
                                 selectedMapId && selectMap(selectedMapId)
                             }
                         />
+                    ) : editableMap && selectedMapId ? (
+                        <MapAssetSurface
+                            document={editableMap}
+                            onOpenNode={(nodeId) =>
+                                selectNode(selectedMapId, nodeId)
+                            }
+                            onUpdated={() => {
+                                setMapReload((current) => current + 1);
+                                void loadWorld();
+                            }}
+                        />
                     ) : (
                         <WorldGraphCanvas
                             graph={worldGraph}
@@ -652,6 +668,929 @@ function MapGraphCard({
                     : 'Activity reviews current'}
             </p>
         </div>
+    );
+}
+
+function MapAssetSurface({
+    document,
+    onOpenNode,
+    onUpdated,
+}: {
+    document: EditableMap;
+    onOpenNode: (nodeId: string) => void;
+    onUpdated: () => void;
+}) {
+    const { map } = document.editable_map;
+    const [selected, setSelected] = useState<EditableMapAsset | null>(null);
+    const [editorOpen, setEditorOpen] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const add = async () => {
+        setCreating(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/admin/world-builder/maps/{map_id}/assets',
+                {
+                    body: defaultMapAssetRequest(),
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { map_id: map.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                throw new Error('create');
+            }
+            onUpdated();
+        } catch {
+            setError(
+                'The MapAsset could not be added. Check its map access and try again.',
+            );
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const choose = (asset: EditableMapAsset) => {
+        setSelected(asset);
+        setEditorOpen(true);
+    };
+
+    return (
+        <div
+            className="relative min-h-[34rem] overflow-hidden bg-slate-950"
+            data-wl-id="authoring.map-asset.surface"
+        >
+            <div
+                className="absolute inset-0 opacity-30"
+                style={{
+                    backgroundImage:
+                        'linear-gradient(rgba(94,234,212,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(94,234,212,.12) 1px, transparent 1px)',
+                    backgroundSize: '2rem 2rem',
+                }}
+            />
+            <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 p-4">
+                <div className="rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-white shadow-xl backdrop-blur-sm">
+                    <p className="text-xs font-medium tracking-[.18em] text-teal-300 uppercase">
+                        MapAsset surface
+                    </p>
+                    <p className="mt-1 text-sm text-white/75">
+                        Select an area to edit its learner-facing placement and
+                        behavior.
+                    </p>
+                </div>
+                <button
+                    className="inline-flex shrink-0 items-center gap-2 rounded-md bg-teal-400 px-3 py-2 text-sm font-semibold text-slate-950 shadow-xl hover:bg-teal-300 disabled:opacity-60"
+                    data-wl-id="authoring.map-asset.add"
+                    disabled={creating || map.map_assets_locked}
+                    onClick={() => void add()}
+                    type="button"
+                >
+                    <Plus className="size-4" />
+                    {creating ? 'Adding…' : 'Add MapAsset'}
+                </button>
+            </div>
+            {map.map_assets_locked ? (
+                <p className="absolute top-16 right-4 z-20 rounded-md border border-amber-200/40 bg-amber-950/75 px-3 py-2 text-xs text-amber-100 shadow-lg">
+                    The map surface is locked in Map details.
+                </p>
+            ) : null}
+            {error ? (
+                <p className="absolute bottom-4 left-4 z-20 rounded-md border border-amber-300/30 bg-amber-950/90 px-3 py-2 text-sm text-amber-100">
+                    {error}
+                </p>
+            ) : null}
+            <div className="absolute inset-0">
+                {map.map_assets.map((asset) => (
+                    <button
+                        aria-label={`Edit ${asset.text || 'MapAsset'}`}
+                        className="absolute -translate-x-1/2 -translate-y-1/2 rounded-lg transition outline-none hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-teal-300"
+                        data-wl-id={`authoring.map-asset.select.${asset.id}`}
+                        key={asset.id}
+                        onClick={() => choose(asset)}
+                        style={{
+                            left: `${asset.x}%`,
+                            opacity: asset.opacity,
+                            top: `${asset.y}%`,
+                            width: `${asset.width}%`,
+                            zIndex: asset.z + 10,
+                        }}
+                        type="button"
+                    >
+                        <PublicMapAssetVisual
+                            backgroundColor={
+                                stringValue(asset.visual_config, 'tileColor') ||
+                                '#0f766e'
+                            }
+                            highlighted={selected?.id === asset.id}
+                            highlightColor={
+                                stringValue(
+                                    asset.visual_config,
+                                    'highlightColor',
+                                ) || '#5eead4'
+                            }
+                            imageFit={stringValue(
+                                asset.visual_config,
+                                'imageFit',
+                            )}
+                            imagePosition={stringValue(
+                                asset.visual_config,
+                                'imagePosition',
+                            )}
+                            imageUrl={asset.image_url}
+                            label={asset.text}
+                        />
+                    </button>
+                ))}
+            </div>
+            {map.map_assets.length === 0 ? (
+                <div className="pointer-events-none absolute inset-0 grid place-items-center p-6 text-center">
+                    <div className="max-w-sm rounded-xl border border-white/10 bg-slate-950/80 p-6 text-white shadow-2xl backdrop-blur-sm">
+                        <p className="font-semibold">No MapAssets yet</p>
+                        <p className="mt-2 text-sm leading-6 text-white/70">
+                            Add the first visual area at the center of this map,
+                            then select it to configure its image, placement and
+                            learner interaction.
+                        </p>
+                    </div>
+                </div>
+            ) : null}
+            {editorOpen && selected ? (
+                <MapAssetEditorDialog
+                    asset={selected}
+                    mapId={map.id}
+                    onClose={() => setEditorOpen(false)}
+                    onDeleted={() => {
+                        setEditorOpen(false);
+                        setSelected(null);
+                        onUpdated();
+                    }}
+                    onOpenNode={onOpenNode}
+                    onSaved={() => {
+                        setEditorOpen(false);
+                        onUpdated();
+                    }}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function MapAssetEditorDialog({
+    asset,
+    mapId,
+    onClose,
+    onDeleted,
+    onOpenNode,
+    onSaved,
+}: {
+    asset: EditableMapAsset;
+    mapId: string;
+    onClose: () => void;
+    onDeleted: () => void;
+    onOpenNode: (nodeId: string) => void;
+    onSaved: () => void;
+}) {
+    const [form, setForm] = useState<MapAssetRequest>(() =>
+        mapAssetForm(asset),
+    );
+    const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [mediaOpen, setMediaOpen] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const isToggle = form.interaction_mode === 'toggle';
+
+    const set = <Key extends keyof MapAssetRequest>(
+        key: Key,
+        value: MapAssetRequest[Key],
+    ) => setForm((current) => ({ ...current, [key]: value }));
+    const updateToggleState = (
+        state: 'first' | 'second',
+        key: 'imageUrl' | 'x' | 'y' | 'width',
+        value: string | number | null,
+    ) => {
+        setForm((current) => ({
+            ...current,
+            interaction_config: {
+                ...(current.interaction_config ?? {}),
+                states: {
+                    ...objectValue(current.interaction_config, 'states'),
+                    [state]: {
+                        ...toggleState(current.interaction_config, state),
+                        [key]: value,
+                    },
+                },
+            },
+        }));
+    };
+    const save = async () => {
+        setSaving(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/assets/{asset_id}',
+                {
+                    body: form,
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { asset_id: asset.id },
+                    },
+                },
+            );
+            if (!response.ok) throw new Error('save');
+            onSaved();
+        } catch {
+            setError(
+                'The MapAsset could not be saved. Check every numeric field and toggle-state placement.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+    const remove = async () => {
+        if (
+            !window.confirm(
+                'Delete this MapAsset? Its route data will be removed, while its legacy activity tile remains unattached.',
+            )
+        )
+            return;
+        setDeleting(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.DELETE(
+                '/admin/world-builder/assets/{asset_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { asset_id: asset.id },
+                    },
+                },
+            );
+            if (!response.ok) throw new Error('delete');
+            onDeleted();
+        } catch {
+            setError('The MapAsset could not be deleted.');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="map-asset-editor-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4"
+            role="dialog"
+        >
+            <div className="mx-auto my-5 w-full max-w-5xl rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <header className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 dark:border-white/10">
+                    <div>
+                        <p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">
+                            MapAsset editor
+                        </p>
+                        <h2
+                            className="mt-1 text-xl font-semibold"
+                            id="map-asset-editor-title"
+                        >
+                            {asset.text || 'MapAsset'}
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            The same learner-facing surface controls used by the
+                            source World Builder.
+                        </p>
+                    </div>
+                    <button
+                        aria-label="Close MapAsset editor"
+                        className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </header>
+                <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                    <form
+                        className="grid gap-5"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            void save();
+                        }}
+                    >
+                        <fieldset>
+                            <legend className="font-semibold">
+                                Learner interaction
+                            </legend>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                Choose the clear behavior learners encounter on
+                                this map.
+                            </p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                {(
+                                    [
+                                        [
+                                            'focusable',
+                                            'Normal MapAsset',
+                                            'Opens its learner panel and activities.',
+                                        ],
+                                        [
+                                            'decorative',
+                                            'Not focusable',
+                                            'Stays visible without opening a learner panel.',
+                                        ],
+                                        [
+                                            'hide_on_hover',
+                                            'Hide on hover',
+                                            'Lets underlying objects be selected.',
+                                        ],
+                                        [
+                                            'toggle',
+                                            'Change state on click',
+                                            'Switches two positioned state sprites.',
+                                        ],
+                                    ] as const
+                                ).map(([mode, label, description]) => (
+                                    <label
+                                        className={`rounded-lg border p-3 text-sm ${form.interaction_mode === mode ? 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' : 'border-slate-200 dark:border-white/10'}`}
+                                        key={mode}
+                                    >
+                                        <input
+                                            checked={
+                                                form.interaction_mode === mode
+                                            }
+                                            className="mr-2 accent-teal-700"
+                                            name="interaction"
+                                            onChange={() =>
+                                                set('interaction_mode', mode)
+                                            }
+                                            type="radio"
+                                        />{' '}
+                                        <span className="font-medium">
+                                            {label}
+                                        </span>
+                                        <span className="mt-1 block text-xs leading-5 text-slate-500">
+                                            {description}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </fieldset>
+                        {!isToggle ? (
+                            <fieldset className="border-t border-slate-200 pt-5 dark:border-white/10">
+                                <legend className="font-semibold">Image</legend>
+                                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                    Use an existing reusable visual or a
+                                    source-compatible URL.
+                                </p>
+                                <div className="mt-3 flex gap-2">
+                                    <input
+                                        aria-label="MapAsset image URL"
+                                        className="min-w-0 flex-1 rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+                                        onChange={(event) =>
+                                            set(
+                                                'image_url',
+                                                event.target.value || null,
+                                            )
+                                        }
+                                        value={form.image_url ?? ''}
+                                    />
+                                    <button
+                                        className="rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                                        onClick={() => setMediaOpen(true)}
+                                        type="button"
+                                    >
+                                        Select existing
+                                    </button>
+                                </div>
+                            </fieldset>
+                        ) : (
+                            <ToggleStateFields
+                                form={form}
+                                onChange={updateToggleState}
+                            />
+                        )}
+                        <fieldset className="border-t border-slate-200 pt-5 dark:border-white/10">
+                            <legend className="font-semibold">
+                                Image framing
+                            </legend>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                <SelectField
+                                    label="Fit"
+                                    onChange={(value) =>
+                                        set('visual_config', {
+                                            ...(form.visual_config ?? {}),
+                                            imageFit: value,
+                                        })
+                                    }
+                                    options={[
+                                        ['contain', 'Show full image'],
+                                        ['cover', 'Fill frame and crop'],
+                                    ]}
+                                    value={
+                                        stringValue(
+                                            form.visual_config,
+                                            'imageFit',
+                                        ) || 'contain'
+                                    }
+                                />
+                                <SelectField
+                                    label="Anchor"
+                                    onChange={(value) =>
+                                        set('visual_config', {
+                                            ...(form.visual_config ?? {}),
+                                            imagePosition: value,
+                                        })
+                                    }
+                                    options={[
+                                        ['center', 'Center'],
+                                        ['top', 'Top'],
+                                        ['right', 'Right'],
+                                        ['bottom', 'Bottom'],
+                                        ['left', 'Left'],
+                                    ]}
+                                    value={
+                                        stringValue(
+                                            form.visual_config,
+                                            'imagePosition',
+                                        ) || 'center'
+                                    }
+                                />
+                            </div>
+                        </fieldset>
+                        <fieldset className="border-t border-slate-200 pt-5 dark:border-white/10">
+                            <legend className="font-semibold">Placement</legend>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                X and Y use map percentages. Higher Z appears
+                                above lower layers.
+                            </p>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                {(
+                                    [
+                                        [
+                                            'position_x',
+                                            'Horizontal position (X)',
+                                            0,
+                                            100,
+                                        ],
+                                        [
+                                            'position_y',
+                                            'Vertical position (Y)',
+                                            0,
+                                            100,
+                                        ],
+                                        [
+                                            'position_z',
+                                            'Layer depth (Z)',
+                                            -10000,
+                                            10000,
+                                        ],
+                                        ['width', 'MapAsset size', 1, 100],
+                                        ['opacity', 'Opacity', 0, 1],
+                                    ] as const
+                                ).map(([key, label, min, max]) => (
+                                    <NumberField
+                                        key={key}
+                                        label={label}
+                                        max={max}
+                                        min={min}
+                                        onChange={(value) => set(key, value)}
+                                        value={form[key]}
+                                    />
+                                ))}
+                            </div>
+                            <label className="mt-4 flex items-start gap-2 text-sm">
+                                <input
+                                    checked={form.locked}
+                                    className="mt-1 accent-teal-700"
+                                    onChange={(event) =>
+                                        set('locked', event.target.checked)
+                                    }
+                                    type="checkbox"
+                                />
+                                <span>
+                                    <strong className="block">
+                                        Lock MapAsset position
+                                    </strong>
+                                    <span className="mt-1 block text-xs leading-5 text-slate-500">
+                                        Prevents movement on the map surface;
+                                        numeric placement stays editable.
+                                    </span>
+                                </span>
+                            </label>
+                        </fieldset>
+                        <fieldset className="border-t border-slate-200 pt-5 dark:border-white/10">
+                            <legend className="font-semibold">Map text</legend>
+                            <label
+                                className="mt-3 block text-sm"
+                                htmlFor="map-asset-text"
+                            >
+                                Label shown on the MapAsset
+                                <input
+                                    className="mt-1 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20"
+                                    id="map-asset-text"
+                                    maxLength={255}
+                                    onChange={(event) =>
+                                        set('text', event.target.value || null)
+                                    }
+                                    value={form.text ?? ''}
+                                />
+                            </label>
+                        </fieldset>
+                        {error ? (
+                            <p
+                                className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100"
+                                role="alert"
+                            >
+                                {error}
+                            </p>
+                        ) : null}
+                        <div className="flex flex-wrap justify-between gap-3">
+                            <button
+                                className="rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-300/10"
+                                disabled={deleting || saving}
+                                onClick={() => void remove()}
+                                type="button"
+                            >
+                                {deleting ? 'Deleting…' : 'Delete MapAsset'}
+                            </button>
+                            <span className="flex gap-2">
+                                <button
+                                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                                    onClick={onClose}
+                                    type="button"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-50 dark:bg-teal-500 dark:text-slate-950"
+                                    disabled={saving || deleting}
+                                    type="submit"
+                                >
+                                    {saving ? 'Saving…' : 'Save MapAsset'}
+                                </button>
+                            </span>
+                        </div>
+                    </form>
+                    <aside className="rounded-xl border border-slate-200 bg-slate-950 p-4 text-white dark:border-white/10">
+                        <p className="text-xs font-medium tracking-[.18em] text-teal-300 uppercase">
+                            Live learner preview
+                        </p>
+                        <div className="mt-4 grid min-h-64 place-items-center rounded-lg border border-white/10 bg-slate-900 p-5">
+                            <div
+                                style={{
+                                    width: `${form.width}%`,
+                                    maxWidth: '13rem',
+                                    opacity: form.opacity,
+                                }}
+                            >
+                                <PublicMapAssetVisual
+                                    backgroundColor={
+                                        stringValue(
+                                            form.visual_config,
+                                            'tileColor',
+                                        ) || '#0f766e'
+                                    }
+                                    highlighted
+                                    imageFit={stringValue(
+                                        form.visual_config,
+                                        'imageFit',
+                                    )}
+                                    imagePosition={stringValue(
+                                        form.visual_config,
+                                        'imagePosition',
+                                    )}
+                                    imageUrl={form.image_url}
+                                    label={form.text}
+                                />
+                            </div>
+                        </div>
+                        {asset.node_id ? (
+                            <button
+                                className="mt-4 w-full rounded-md border border-teal-300/50 px-3 py-2 text-sm font-medium text-teal-100 hover:bg-teal-300/10"
+                                onClick={() => onOpenNode(asset.node_id!)}
+                                type="button"
+                            >
+                                Open activities and rules
+                            </button>
+                        ) : (
+                            <p className="mt-4 text-sm leading-6 text-white/70">
+                                This legacy MapAsset has no attached activity
+                                tile.
+                            </p>
+                        )}
+                    </aside>
+                </div>
+                {mediaOpen ? (
+                    <MediaPicker
+                        onClose={() => setMediaOpen(false)}
+                        onSelect={(media) => {
+                            set('image_url', media.url);
+                            setMediaOpen(false);
+                        }}
+                    />
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
+function ToggleStateFields({
+    form,
+    onChange,
+}: {
+    form: MapAssetRequest;
+    onChange: (
+        state: 'first' | 'second',
+        key: 'imageUrl' | 'x' | 'y' | 'width',
+        value: string | number | null,
+    ) => void;
+}) {
+    return (
+        <fieldset className="border-t border-slate-200 pt-5 dark:border-white/10">
+            <legend className="font-semibold">State sprites</legend>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                A learner click switches between these independently positioned
+                images.
+            </p>
+            <div className="mt-4 grid gap-4">
+                {(['first', 'second'] as const).map((state, index) => {
+                    const values = toggleState(form.interaction_config, state);
+                    return (
+                        <section
+                            className="rounded-lg border border-slate-200 p-4 dark:border-white/10"
+                            key={state}
+                        >
+                            <h3 className="font-medium">State {index + 1}</h3>
+                            <label className="mt-3 block text-sm">
+                                State image URL
+                                <input
+                                    className="mt-1 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20"
+                                    onChange={(event) =>
+                                        onChange(
+                                            state,
+                                            'imageUrl',
+                                            event.target.value || null,
+                                        )
+                                    }
+                                    value={stringValue(values, 'imageUrl')}
+                                />
+                            </label>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                <NumberField
+                                    label="Horizontal position (X)"
+                                    max={100}
+                                    min={0}
+                                    onChange={(value) =>
+                                        onChange(state, 'x', value)
+                                    }
+                                    value={numberValue(values, 'x', 50)}
+                                />
+                                <NumberField
+                                    label="Vertical position (Y)"
+                                    max={100}
+                                    min={0}
+                                    onChange={(value) =>
+                                        onChange(state, 'y', value)
+                                    }
+                                    value={numberValue(values, 'y', 50)}
+                                />
+                                <NumberField
+                                    label="Size %"
+                                    max={100}
+                                    min={1}
+                                    onChange={(value) =>
+                                        onChange(state, 'width', value)
+                                    }
+                                    value={numberValue(values, 'width', 14)}
+                                />
+                            </div>
+                        </section>
+                    );
+                })}
+            </div>
+        </fieldset>
+    );
+}
+
+function MediaPicker({
+    onClose,
+    onSelect,
+}: {
+    onClose: () => void;
+    onSelect: (asset: MediaAsset) => void;
+}) {
+    const [page, setPage] = useState<MediaAssetPage | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    useEffect(() => {
+        let current = true;
+        void apiClient
+            .GET('/admin/media-assets', {
+                params: { query: { page: 1, per_page: 12 } },
+            })
+            .then(({ data, response }) => {
+                if (!current) return;
+                if (!response.ok || !data) {
+                    setError(
+                        'Reusable visuals are unavailable for this account.',
+                    );
+                    return;
+                }
+                setPage(data);
+            })
+            .catch(
+                () =>
+                    current &&
+                    setError(
+                        'Reusable visuals are unavailable for this account.',
+                    ),
+            );
+        return () => {
+            current = false;
+        };
+    }, []);
+    return (
+        <div
+            aria-label="Select existing visual"
+            aria-modal="true"
+            className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 p-4"
+            role="dialog"
+        >
+            <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 className="text-xl font-semibold">
+                            Select existing visual
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            Selection stores a stable Rust-owned media
+                            reference, so this visual is protected from deletion
+                            while this MapAsset uses it.
+                        </p>
+                    </div>
+                    <button
+                        aria-label="Close media picker"
+                        className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+                {error ? (
+                    <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">
+                        {error}
+                    </p>
+                ) : (
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        {page?.items.map((asset) => (
+                            <button
+                                className="overflow-hidden rounded-lg border border-slate-200 text-left hover:border-teal-500 dark:border-white/10"
+                                key={asset.id}
+                                onClick={() => onSelect(asset)}
+                                type="button"
+                            >
+                                <div className="grid aspect-video place-items-center bg-slate-100 dark:bg-slate-900">
+                                    <img
+                                        alt=""
+                                        className="max-h-full max-w-full object-contain"
+                                        src={asset.url}
+                                    />
+                                </div>
+                                <span className="block p-3 text-sm font-medium">
+                                    {asset.display_name}
+                                </span>
+                            </button>
+                        )) ?? (
+                            <p className="col-span-full py-6 text-sm text-slate-500">
+                                Loading visuals…
+                            </p>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function defaultMapAssetRequest(): MapAssetRequest {
+    return {
+        image_url: null,
+        interaction_config: {},
+        interaction_mode: 'focusable',
+        locked: false,
+        opacity: 1,
+        position_x: 50,
+        position_y: 50,
+        position_z: 0,
+        sound_config: {},
+        text: null,
+        visual_config: {},
+        width: 14,
+    };
+}
+function mapAssetForm(asset: EditableMapAsset): MapAssetRequest {
+    return {
+        image_url: asset.image_url,
+        interaction_config: asset.interaction_config,
+        interaction_mode: asset.interaction_mode,
+        locked: asset.locked,
+        opacity: asset.opacity,
+        position_x: asset.x,
+        position_y: asset.y,
+        position_z: asset.z,
+        sound_config: asset.sound_config,
+        text: asset.text,
+        visual_config: asset.visual_config,
+        width: asset.width,
+    };
+}
+function objectValue(value: unknown, key: string): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const candidate = (value as Record<string, unknown>)[key];
+    return candidate &&
+        typeof candidate === 'object' &&
+        !Array.isArray(candidate)
+        ? (candidate as Record<string, unknown>)
+        : {};
+}
+function stringValue(value: unknown, key: string): string {
+    const candidate = objectValue({ value }, 'value')[key];
+    return typeof candidate === 'string' ? candidate : '';
+}
+function numberValue(
+    value: Record<string, unknown>,
+    key: string,
+    fallback: number,
+): number {
+    const candidate = value[key];
+    return typeof candidate === 'number' && Number.isFinite(candidate)
+        ? candidate
+        : fallback;
+}
+function toggleState(
+    value: unknown,
+    state: 'first' | 'second',
+): Record<string, unknown> {
+    return objectValue(objectValue(value, 'states'), state);
+}
+function NumberField({
+    label,
+    max,
+    min,
+    onChange,
+    value,
+}: {
+    label: string;
+    max: number;
+    min: number;
+    onChange: (value: number) => void;
+    value: number;
+}) {
+    return (
+        <label className="block text-sm">
+            {label}
+            <input
+                className="mt-1 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20"
+                max={max}
+                min={min}
+                onChange={(event) => onChange(Number(event.target.value))}
+                step="any"
+                type="number"
+                value={value}
+            />
+        </label>
+    );
+}
+function SelectField({
+    label,
+    onChange,
+    options,
+    value,
+}: {
+    label: string;
+    onChange: (value: string) => void;
+    options: Array<[string, string]>;
+    value: string;
+}) {
+    return (
+        <label className="block text-sm">
+            {label}
+            <select
+                className="mt-1 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20"
+                onChange={(event) => onChange(event.target.value)}
+                value={value}
+            >
+                {options.map(([key, option]) => (
+                    <option key={key} value={key}>
+                        {option}
+                    </option>
+                ))}
+            </select>
+        </label>
     );
 }
 

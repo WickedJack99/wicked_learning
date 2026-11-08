@@ -957,6 +957,72 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source map-access scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/assets:
+    post:
+      operationId: createAdminWorldBuilderMapAsset
+      summary: Add a source-shaped MapAsset and its activity-editor compatibility node.
+      description: Requires the source world-map update permission and the scoped map editor policy. The server creates the linked Node and draft route atomically, and records reusable visual references from its saved surface configuration.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpsertAdminWorldMapAssetRequest' }
+      responses:
+        '201':
+          description: The MapAsset and linked compatibility node were created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminWorldMapAssetResponse' }
+        '400': { description: The source MapAsset surface configuration is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map is unknown or unavailable through the source editor scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/assets/{asset_id}:
+    patch:
+      operationId: updateAdminWorldBuilderMapAsset
+      summary: Save one source-shaped MapAsset surface configuration.
+      description: Requires the source world-map update permission and the MapAsset's scoped map editor policy. Reusable media links in the image or JSON configuration are synchronized atomically with the authored surface.
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpsertAdminWorldMapAssetRequest' }
+      responses:
+        '204': { description: The MapAsset surface was saved. }
+        '400': { description: The source MapAsset surface configuration is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The MapAsset is unknown or unavailable through the source editor scope. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminWorldBuilderMapAsset
+      summary: Delete one source-scoped MapAsset.
+      description: Requires the source world-map delete permission and scoped map delete policy. Its linked route data cascades; the compatibility Node remains as an unattached legacy tile, matching the source asset-only deletion boundary.
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The MapAsset was deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The MapAsset is unknown or unavailable through the source delete scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}:
     get:
       operationId: getAdminWorldBuilderNode
@@ -8627,6 +8693,30 @@ components:
         group_ids:
           type: array
           items: { type: string, format: uuid }
+    UpsertAdminWorldMapAssetRequest:
+      type: object
+      additionalProperties: false
+      required: [position_x, position_y, position_z, width, opacity, interaction_mode]
+      properties:
+        image_url: { type: [string, 'null'], maxLength: 2048 }
+        text: { type: [string, 'null'], maxLength: 255 }
+        position_x: { type: number, minimum: 0, maximum: 100 }
+        position_y: { type: number, minimum: 0, maximum: 100 }
+        position_z: { type: integer, minimum: -10000, maximum: 10000 }
+        width: { type: number, minimum: 1, maximum: 100 }
+        opacity: { type: number, minimum: 0, maximum: 1 }
+        locked: { type: boolean, default: false }
+        interaction_mode: { type: string, enum: [focusable, decorative, hide_on_hover, toggle] }
+        interaction_config: { type: object, additionalProperties: true }
+        visual_config: { type: object, additionalProperties: true }
+        sound_config: { type: object, additionalProperties: true }
+    CreateAdminWorldMapAssetResponse:
+      type: object
+      additionalProperties: false
+      required: [asset_id, node_id]
+      properties:
+        asset_id: { type: string, format: uuid }
+        node_id: { type: string, format: uuid }
     AdminMapSummary:
       type: object
       additionalProperties: false

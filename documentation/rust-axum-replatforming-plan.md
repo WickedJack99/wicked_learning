@@ -657,7 +657,7 @@ private or identifier-based links will resolve in a deployed cutover.
 | `/learning/groups/*` | Floating World control and `/settings?panel=admin-access&access=groups` | Available | The source-derived member group-chat control and bounded platform-administrator group workspace are implemented through typed Rust contracts. |
 | `/settings?panel=admin-access&access=links`, `/access-links/{token}` | Same paths | Available | Administrators with the separate access-link capability can create, enable/disable and inspect bounded hashed tool/item grant, registration and temporary-login links. Registration links expose only roles the issuer may assign and create the selected application-role set through the documented compensating identity/application workflow; locally created links from before this contract retain the historical learner fallback. Temporary login creates and signs in a fresh temporary learner with a server-generated unknown verifier. Resource links remain redeemable only by a signed-in learner. Usage, expiry and replay policy are enforced server-side. |
 | `/admin/topics` | Same path | Available | The source-adapted Topic Structure workspace preserves its area/topic disclosure, forms, insertion/reordering controls and responsive layout. Typed Rust requests replace only the original Inertia transport; `content_topics` read/create/update authorization and source-shaped validation remain server-owned. |
-| `/settings?panel=admin-assets` | Same path | Partially available | The source-adapted reusable Visual Library provides bounded search/tag filtering, upload, metadata, replacement, private preview/download and unreferenced deletion through `assets` and `media_paths` permission checks. Reusable activity-template snapshots now register managed media URLs as normalized active and immutable-revision references, so a replacement keeps a stable asset identity and deletion cannot strand a saved template or restore point. It intentionally does not yet substitute media selection in World Builder or other authoring forms; those writers must create the same normalized references before generic media delivery can be declared complete. |
+| `/settings?panel=admin-assets` | Same path | Partially available | The source-adapted reusable Visual Library provides bounded search/tag filtering, upload, metadata, replacement, private preview/download and unreferenced deletion through `assets` and `media_paths` permission checks. Reusable activity-template snapshots now register managed media URLs as normalized active and immutable-revision references, so a replacement keeps a stable asset identity and deletion cannot strand a saved template or restore point. The World Builder MapAsset editor can select a reusable visual and maintains the same normalized reference through direct asset and map-cascade deletion. Other authoring forms still need equivalent selection writers before generic learner delivery can be declared complete. |
 | Remaining authoring/settings/admin routes | — | Not available | These belong to later authoring and administration slices with their own authorization tests. |
 | `/protected-media/*`                                                      | —                             | Not available       | The access-link preview, redemption and temporary-login contracts are available at their source paths as recorded above. Generic protected map/media serving remains deliberately deferred until the complete authoring media lifecycle—upload, selection, reference integrity, replacement, preview, authorization and deletion—has a Rust successor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
@@ -1114,11 +1114,17 @@ fresh normalized reference table is the deletion-integrity boundary for later
 selection writers. Preview and download use an authenticated private content
 route with opaque MediaStore keys, `nosniff`, sandbox CSP and private cache
 headers. The source-shaped browser library proves upload, metadata, replacement,
-preview/download affordance and deletion on fresh development data. Wiring the
-selection/reference writer into MapAsset, activity and template forms, grouped
-reference presentation, orphan reconciliation and generic learner-facing media
-delivery remain explicit completion work. Other activity-card types and
-map/configuration forms deliberately remain read-only in this surface.
+preview/download affordance and deletion on fresh development data. The source
+MapAsset surface now has a full-size selectable canvas, centered add action,
+source geometry and interaction controls, learner-rendered preview, activity
+handoff and scoped deletion. Selecting an existing reusable visual stores its
+private stable content path in the authored MapAsset and synchronizes the
+normalized `map_asset` reference transactionally; direct MapAsset and map
+cascade deletion both remove those links. Wiring the selection/reference writer
+into activity forms, grouped reference presentation, orphan reconciliation and
+generic learner-facing media delivery remain explicit completion work. Other
+activity-card types and map/configuration forms deliberately remain read-only
+in this surface.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

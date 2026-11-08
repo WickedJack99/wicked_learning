@@ -735,6 +735,50 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapEditingGroups"];
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a source-shaped MapAsset and its activity-editor compatibility node.
+         * @description Requires the source world-map update permission and the scoped map editor policy. The server creates the linked Node and draft route atomically, and records reusable visual references from its saved surface configuration.
+         */
+        post: operations["createAdminWorldBuilderMapAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete one source-scoped MapAsset.
+         * @description Requires the source world-map delete permission and scoped map delete policy. Its linked route data cascades; the compatibility Node remains as an unattached legacy tile, matching the source asset-only deletion boundary.
+         */
+        delete: operations["deleteAdminWorldBuilderMapAsset"];
+        options?: never;
+        head?: never;
+        /**
+         * Save one source-shaped MapAsset surface configuration.
+         * @description Requires the source world-map update permission and the MapAsset's scoped map editor policy. Reusable media links in the image or JSON configuration are synchronized atomically with the authored surface.
+         */
+        patch: operations["updateAdminWorldBuilderMapAsset"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}": {
         parameters: {
             query?: never;
@@ -5823,6 +5867,34 @@ export interface components {
         UpdateAdminWorldMapEditingGroupsRequest: {
             group_ids: string[];
         };
+        UpsertAdminWorldMapAssetRequest: {
+            image_url?: string | null;
+            text?: string | null;
+            position_x: number;
+            position_y: number;
+            position_z: number;
+            width: number;
+            opacity: number;
+            /** @default false */
+            locked: boolean;
+            /** @enum {string} */
+            interaction_mode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
+            interaction_config?: {
+                [key: string]: unknown;
+            };
+            visual_config?: {
+                [key: string]: unknown;
+            };
+            sound_config?: {
+                [key: string]: unknown;
+            };
+        };
+        CreateAdminWorldMapAssetResponse: {
+            /** Format: uuid */
+            asset_id: string;
+            /** Format: uuid */
+            node_id: string;
+        };
         AdminMapSummary: {
             /** Format: uuid */
             id: string;
@@ -9241,6 +9313,183 @@ export interface operations {
                 content?: never;
             };
             /** @description The map is unknown or unavailable through the source map-access scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderMapAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAdminWorldMapAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description The MapAsset and linked compatibility node were created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminWorldMapAssetResponse"];
+                };
+            };
+            /** @description The source MapAsset surface configuration is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminWorldBuilderMapAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The MapAsset was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unknown or unavailable through the source delete scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMapAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAdminWorldMapAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description The MapAsset surface was saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source MapAsset surface configuration is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unknown or unavailable through the source editor scope. */
             404: {
                 headers: {
                     [name: string]: unknown;
