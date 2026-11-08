@@ -4291,6 +4291,36 @@ credential-gated browser edit/version/restore proof cover this slice. It does
 not add multi-World browser routing, alter public World presentation, or grant
 map-scoped contributors global World-detail authority.
 
+## ADR-108: Map-detail history stays within the scoped map-editor boundary
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The source Map Details form makes its outgoing values reversible,
+but a map contributor must not gain global World-detail access or restore a
+revision from a different map. A stale browser form also must not overwrite a
+restore with its pre-restore timestamp.
+
+**Decision:** The standalone successor records an immutable
+`learning_map_versions` row before every accepted Map Details update and before
+every restore. Each row contains only the source form's title, description,
+optional topic, MapAsset-lock state, acting application principal and creation
+time. Listing and restore use the exact `world_maps.ru` all/own/assigned/direct
+editor check for the selected map. Restore locks that map, requires a version
+whose `map_id` matches it, saves the outgoing state first, and returns the new
+map details timestamp. The lifted Laravel dialog keeps the restored form open,
+updates its timestamp and reloads its bounded history; the surrounding graph is
+refetched only when the author closes that dialog.
+
+**Why:** Map-history rollback remains reversible and faithful to the source
+workflow while preserving the distinction between map-scoped authoring and the
+global World-details authority.
+
+**Evidence and limits:** The migration, generated OpenAPI types, application
+authorization checks, Rust suite, standalone production build and credential-
+gated browser edit/list/restore/cleanup proof cover the slice. It does not
+restore map slugs, layout, MapAssets, activity data, access rules or learner
+state; those have their own source workflows and history boundaries.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

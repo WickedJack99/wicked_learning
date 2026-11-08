@@ -710,6 +710,14 @@ fn router(state: AppState) -> Router {
             patch(admin_world_map_details::update),
         )
         .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/versions",
+            get(admin_world_map_details::versions),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/versions/{version_id}",
+            post(admin_world_map_details::restore),
+        )
+        .route(
             "/api/v1/admin/world-builder/maps/{map_id}/access",
             patch(admin_world_map_access::update),
         )

@@ -75,6 +75,8 @@ type WorldImportPreflight =
     components['schemas']['AdminWorldImportPreflightResult'];
 type WorldDetailsVersionPage =
     components['schemas']['AdminWorldDetailsVersionPage'];
+type MapDetailsVersionPage =
+    components['schemas']['AdminMapDetailsVersionPage'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -1050,6 +1052,215 @@ function EditWorldDetailsDialog({
                     </button>
                 </div>
             </form>
+        </div>
+    );
+}
+
+function MapDetailsHistoryDialog({
+    map,
+    onClose,
+    onRestored,
+}: {
+    map: EditableMap['editable_map']['map'];
+    onClose: () => void;
+    onRestored: (
+        restored: components['schemas']['RestoreAdminWorldMapDetailsVersionResponse'],
+    ) => void;
+}) {
+    const [history, setHistory] = useState<MapDetailsVersionPage | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [restoringVersionId, setRestoringVersionId] = useState<string | null>(
+        null,
+    );
+
+    const loadHistory = useCallback(
+        async (page = 1) => {
+            setLoading(true);
+            setError(false);
+            try {
+                const { data, response } = await apiClient.GET(
+                    '/admin/world-builder/maps/{map_id}/versions',
+                    {
+                        params: {
+                            path: { map_id: map.id },
+                            query: { page, per_page: 4 },
+                        },
+                    },
+                );
+                if (!response.ok || !data) {
+                    throw new Error('The map history could not be loaded.');
+                }
+                setHistory(data);
+            } catch {
+                setError(true);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [map.id],
+    );
+
+    useEffect(() => {
+        void loadHistory();
+    }, [loadHistory]);
+
+    const restore = async (
+        version: components['schemas']['AdminMapDetailsVersion'],
+    ) => {
+        if (
+            !window.confirm(
+                'Restore this map detail version? The current details will be preserved in history.',
+            )
+        ) {
+            return;
+        }
+
+        setRestoringVersionId(version.id);
+        setError(false);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/admin/world-builder/maps/{map_id}/versions/{version_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { map_id: map.id, version_id: version.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                throw new Error('The map detail version could not be restored.');
+            }
+            onRestored(data);
+            await loadHistory(history?.page ?? 1);
+        } catch {
+            setError(true);
+        } finally {
+            setRestoringVersionId(null);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="map-detail-history-title"
+            aria-modal="true"
+            className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"
+            data-wl-id="authoring.world-builder.map-details-history.dialog"
+            role="dialog"
+        >
+            <section className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h2
+                            className="text-xl font-semibold"
+                            id="map-detail-history-title"
+                        >
+                            Map detail history
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Review earlier map title, description, topic and
+                            asset-lock settings. Restoring preserves the current
+                            details as a new history entry.
+                        </p>
+                    </div>
+                    <button
+                        aria-label="Close map detail history"
+                        className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
+                        disabled={restoringVersionId !== null}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+                {loading ? (
+                    <p aria-live="polite" className="mt-4" role="status">
+                        Loading map history…
+                    </p>
+                ) : error ? (
+                    <p
+                        className="mt-4 text-sm text-red-700 dark:text-red-300"
+                        role="status"
+                    >
+                        Map history could not be loaded. Try again.
+                    </p>
+                ) : history && history.items.length > 0 ? (
+                    <div className="mt-4 grid gap-2">
+                        {history.items.map((version) => (
+                            <div
+                                className="grid gap-2 rounded-md border border-slate-200 p-3 dark:border-white/10"
+                                key={version.id}
+                            >
+                                <div className="flex items-baseline justify-between gap-3">
+                                    <p className="text-sm font-medium">
+                                        {version.title}
+                                    </p>
+                                    <time className="text-xs text-slate-500 dark:text-slate-400">
+                                        {formatWorldDetailsVersionDate(
+                                            version.created_at,
+                                        )}
+                                    </time>
+                                </div>
+                                <p className="line-clamp-1 text-xs text-slate-600 dark:text-slate-300">
+                                    {version.description || 'No description'}
+                                </p>
+                                <button
+                                    className="inline-flex justify-self-end rounded-md px-2 py-1 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                                    disabled={restoringVersionId !== null}
+                                    onClick={() => void restore(version)}
+                                    type="button"
+                                >
+                                    <RefreshCw className="mr-1 size-4" />
+                                    {restoringVersionId === version.id
+                                        ? 'Restoring…'
+                                        : 'Restore this version'}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                        No earlier map details yet. The first update will create
+                        one.
+                    </p>
+                )}
+                {history && history.last_page > 1 ? (
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                        <button
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
+                            disabled={loading || history.page <= 1}
+                            onClick={() => void loadHistory(history.page - 1)}
+                            type="button"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Page {history.page} of {history.last_page}
+                        </span>
+                        <button
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
+                            disabled={
+                                loading || history.page >= history.last_page
+                            }
+                            onClick={() => void loadHistory(history.page + 1)}
+                            type="button"
+                        >
+                            Next
+                        </button>
+                    </div>
+                ) : null}
+                <div className="mt-6 flex justify-end">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
+                        disabled={restoringVersionId !== null}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Close
+                    </button>
+                </div>
+            </section>
         </div>
     );
 }
@@ -2863,7 +3074,8 @@ function MapDetails({
                 <EditMapDetailsDialog
                     document={document}
                     onClose={() => setEditOpen(false)}
-                    onUpdated={() => {
+                    onRestored={onUpdated}
+                    onSaved={() => {
                         setEditOpen(false);
                         onUpdated();
                     }}
@@ -3634,21 +3846,33 @@ function EditMapAccessDialog({
 function EditMapDetailsDialog({
     document,
     onClose,
-    onUpdated,
+    onRestored,
+    onSaved,
 }: {
     document: EditableMap;
     onClose: () => void;
-    onUpdated: () => void;
+    onRestored: () => void;
+    onSaved: () => void;
 }) {
     const { map } = document.editable_map;
     const [title, setTitle] = useState(map.title);
     const [description, setDescription] = useState(map.description);
     const [topicId, setTopicId] = useState(map.topic_id ?? '');
+    const [updatedAt, setUpdatedAt] = useState(map.updated_at);
     const [mapAssetsLocked, setMapAssetsLocked] = useState(
         map.map_assets_locked,
     );
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [hasRestoredVersion, setHasRestoredVersion] = useState(false);
+
+    const close = () => {
+        onClose();
+        if (hasRestoredVersion) {
+            onRestored();
+        }
+    };
 
     const save = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -3668,7 +3892,7 @@ function EditMapDetailsDialog({
                         map_assets_locked: mapAssetsLocked,
                         title,
                         topic_id: optionalValue(topicId),
-                        updated_at: map.updated_at,
+                        updated_at: updatedAt,
                     },
                     params: {
                         header: { 'X-CSRF-Token': token },
@@ -3686,7 +3910,7 @@ function EditMapDetailsDialog({
                 );
                 return;
             }
-            onUpdated();
+            onSaved();
         } catch {
             setError(
                 'The map details could not be saved. Check your connection and try again.',
@@ -3771,9 +3995,17 @@ function EditMapDetailsDialog({
                 </div>
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
                     <button
+                        className="mr-auto rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                        disabled={saving}
+                        onClick={() => setHistoryOpen(true)}
+                        type="button"
+                    >
+                        Previous versions
+                    </button>
+                    <button
                         className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
                         disabled={saving}
-                        onClick={onClose}
+                        onClick={close}
                         type="button"
                     >
                         Cancel
@@ -3787,6 +4019,20 @@ function EditMapDetailsDialog({
                     </button>
                 </div>
             </form>
+            {historyOpen ? (
+                <MapDetailsHistoryDialog
+                    map={map}
+                    onClose={() => setHistoryOpen(false)}
+                    onRestored={(restored) => {
+                        setTitle(restored.title);
+                        setDescription(restored.description);
+                        setTopicId(restored.topic_id ?? '');
+                        setMapAssetsLocked(restored.map_assets_locked);
+                        setUpdatedAt(restored.updated_at);
+                        setHasRestoredVersion(true);
+                    }}
+                />
+            ) : null}
         </div>
     );
 }

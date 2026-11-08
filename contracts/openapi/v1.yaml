@@ -1177,6 +1177,56 @@ paths:
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '409': { description: The map changed after this browser copy was loaded. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/versions:
+    get:
+      operationId: listAdminWorldBuilderMapDetailVersions
+      summary: List immutable detail versions for one scoped World Builder map.
+      description: Requires the source world-map update permission and the selected map's all, own, assigned or direct-editor scope.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 24, default: 6 }
+      responses:
+        '200':
+          description: A bounded newest-first page of map-detail versions.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminMapDetailsVersionPage' }
+        '401': { description: Authentication is required. }
+        '404': { description: The map is unknown or unavailable through the source editor scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/versions/{version_id}:
+    post:
+      operationId: restoreAdminWorldBuilderMapDetailVersion
+      summary: Restore one scoped map-detail version.
+      description: Requires the source map editor scope. The current details are first recorded as a fresh immutable version.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: version_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The selected map detail version was restored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RestoreAdminWorldMapDetailsVersionResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map or version is unavailable through the source editor scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/access:
     patch:
       operationId: updateAdminWorldBuilderMapAccess
@@ -10285,6 +10335,38 @@ components:
       required: [map_id, updated_at]
       properties:
         map_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    AdminMapDetailsVersion:
+      type: object
+      additionalProperties: false
+      required: [id, title, description, topic_id, map_assets_locked, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        topic_id: { type: [string, 'null'], format: uuid }
+        map_assets_locked: { type: boolean }
+        created_at: { type: string, format: date-time }
+    AdminMapDetailsVersionPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, per_page, total, last_page]
+      properties:
+        items: { type: array, maxItems: 24, items: { $ref: '#/components/schemas/AdminMapDetailsVersion' } }
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
+    RestoreAdminWorldMapDetailsVersionResponse:
+      type: object
+      additionalProperties: false
+      required: [map_id, title, description, topic_id, map_assets_locked, updated_at]
+      properties:
+        map_id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        topic_id: { type: [string, 'null'], format: uuid }
+        map_assets_locked: { type: boolean }
         updated_at: { type: string, format: date-time }
     UpdateAdminWorldMapAccessRequest:
       type: object

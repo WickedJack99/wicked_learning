@@ -915,6 +915,46 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapDetails"];
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List immutable detail versions for one scoped World Builder map.
+         * @description Requires the source world-map update permission and the selected map's all, own, assigned or direct-editor scope.
+         */
+        get: operations["listAdminWorldBuilderMapDetailVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/maps/{map_id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore one scoped map-detail version.
+         * @description Requires the source map editor scope. The current details are first recorded as a fresh immutable version.
+         */
+        post: operations["restoreAdminWorldBuilderMapDetailVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/access": {
         parameters: {
             query?: never;
@@ -7258,6 +7298,35 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        AdminMapDetailsVersion: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            description: string;
+            /** Format: uuid */
+            topic_id: string | null;
+            map_assets_locked: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AdminMapDetailsVersionPage: {
+            items: components["schemas"]["AdminMapDetailsVersion"][];
+            page: number;
+            per_page: number;
+            total: number;
+            last_page: number;
+        };
+        RestoreAdminWorldMapDetailsVersionResponse: {
+            /** Format: uuid */
+            map_id: string;
+            title: string;
+            description: string;
+            /** Format: uuid */
+            topic_id: string | null;
+            map_assets_locked: boolean;
+            /** Format: date-time */
+            updated_at: string;
+        };
         UpdateAdminWorldMapAccessRequest: {
             access_roles: string[];
         };
@@ -11727,6 +11796,106 @@ export interface operations {
             };
             /** @description The map changed after this browser copy was loaded. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listAdminWorldBuilderMapDetailVersions: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded newest-first page of map-detail versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMapDetailsVersionPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restoreAdminWorldBuilderMapDetailVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The selected map detail version was restored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreAdminWorldMapDetailsVersionResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map or version is unavailable through the source editor scope. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

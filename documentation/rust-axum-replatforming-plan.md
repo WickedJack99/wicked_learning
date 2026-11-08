@@ -1352,7 +1352,16 @@ selected map's source Map Details form is also available through `PATCH
 /api/v1/admin/world-builder/maps/{map_id}/details`: title, nullable description
 and learning topic, and MapAsset locking save together through the map editor
 scope with an `updated_at` conflict boundary; the browser refetches the map and
-graph only after success. The same source-derived Access dialog now keeps map
+graph only after success. Its source-derived history dialog now lists bounded
+newest-first immutable revisions through `GET
+/api/v1/admin/world-builder/maps/{map_id}/versions` and restores a selected
+same-map revision through `POST
+/api/v1/admin/world-builder/maps/{map_id}/versions/{version_id}`. Both paths
+reuse the same scoped map-editor authority; every update and restore snapshots
+the current title, description, topic and MapAsset-lock state first. Restoring
+keeps the form open with the returned values and refreshed history, then the
+browser refetches the graph when the author closes it. The same source-derived
+Access dialog now keeps map
 viewer roles and group-editor assignments as separate commands: the latter
 accepts an empty replacement or only learning groups manageable by the caller,
 under the distinct map-access scope, and never changes learner visibility. The

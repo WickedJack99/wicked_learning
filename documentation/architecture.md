@@ -341,6 +341,17 @@ fields first. These bounded newest-first pages are exposed through dedicated
 World-detail endpoints, so map-level editor scope never grants authority to
 rename or describe the World.
 
+Map details retain their separate scoped authoring boundary. `learning_map_versions`
+stores the outgoing title, normalized description, optional learning-topic ID,
+MapAsset lock state, acting application principal and creation time before every
+accepted map-details update or restore. The bounded newest-first list and restore
+endpoints both reuse the source `world_maps.ru` all/own/assigned/direct-editor
+scope for that exact map. Restore locks the map, verifies that the requested
+version belongs to it, snapshots the current details, then writes the selected
+immutable values. This keeps a map-details rollback reversible without granting
+global World-detail access, changing map slugs, or touching tiles, learner state
+or map access rules.
+
 Same-workspace map duplication is a separate transactional authoring action from
 portable import. It remaps internal node, activity, MapAsset message-topic,
 question, dialogue-node, route and companion-assignment references while keeping
