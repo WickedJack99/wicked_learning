@@ -17,7 +17,7 @@ use crate::{
     learner_route_run::authenticated_principal,
 };
 
-pub const MAX_WORLD_MANIFEST_BYTES: usize = 50 * 1024 * 1024;
+pub const MAX_WORLD_MANIFEST_BYTES: usize = crate::world_transfer_package::MAX_PACKAGE_BYTES;
 
 #[derive(Serialize)]
 pub struct ImportWorldResponse {
@@ -34,8 +34,17 @@ pub async fn preflight(
     if !principal.has_permission("world_maps", "ru") {
         return Err(ApiError::not_found());
     }
-    let manifest = manifest_bytes(multipart).await?;
+    let manifest = preflight_manifest(manifest_bytes(multipart).await?)?;
     Ok(Json(preflight_world_manifest(&manifest)))
+}
+
+fn preflight_manifest(manifest: Vec<u8>) -> Result<Vec<u8>, ApiError> {
+    if !crate::world_transfer_package::is_package(&manifest) {
+        return Ok(manifest);
+    }
+    let package = crate::world_transfer_package::read_package(manifest)
+        .map_err(|_| ApiError::invalid_request())?;
+    serde_json::to_vec(&package.manifest).map_err(|_| ApiError::invalid_request())
 }
 
 /// Imports a bounded authored world bundle as fresh maps in the current World.
@@ -50,14 +59,43 @@ pub async fn import(
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let manifest = manifest_bytes(multipart).await?;
     let repository = PostgresAdminWorldImportRepository::new(&state.application_database);
-    let imported = AdminWorldImportCommand::new(&repository)
-        .execute(&principal, &manifest)
-        .await
-        .map_err(|error| match error {
-            AdminWorldImportError::Invalid => ApiError::invalid_request(),
-            AdminWorldImportError::Unavailable => ApiError::service_unavailable(),
-        })?
-        .ok_or_else(ApiError::not_found)?;
+    let imported = if crate::world_transfer_package::is_package(&manifest) {
+        let package = crate::world_transfer_package::read_package(manifest)
+            .map_err(|_| ApiError::invalid_request())?;
+        let materialized = crate::world_transfer_package::materialize_package(
+            &state,
+            principal.subject_id,
+            package,
+        )
+        .await?;
+        let result = AdminWorldImportCommand::new(&repository)
+            .execute(&principal, &materialized.manifest)
+            .await;
+        match result {
+            Ok(Some(imported)) => imported,
+            Ok(None) => {
+                crate::world_transfer_package::cleanup_materialized(&state, &materialized).await;
+                return Err(ApiError::not_found());
+            }
+            Err(AdminWorldImportError::Invalid) => {
+                crate::world_transfer_package::cleanup_materialized(&state, &materialized).await;
+                return Err(ApiError::invalid_request());
+            }
+            Err(AdminWorldImportError::Unavailable) => {
+                crate::world_transfer_package::cleanup_materialized(&state, &materialized).await;
+                return Err(ApiError::service_unavailable());
+            }
+        }
+    } else {
+        AdminWorldImportCommand::new(&repository)
+            .execute(&principal, &manifest)
+            .await
+            .map_err(|error| match error {
+                AdminWorldImportError::Invalid => ApiError::invalid_request(),
+                AdminWorldImportError::Unavailable => ApiError::service_unavailable(),
+            })?
+            .ok_or_else(ApiError::not_found)?
+    };
     Ok((
         StatusCode::CREATED,
         Json(ImportWorldResponse {

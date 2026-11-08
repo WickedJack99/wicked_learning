@@ -22,9 +22,19 @@ pub async fn preflight(
 ) -> Result<Json<MapExportPreflightResult>, ApiError> {
     let principal = authenticated_principal(&state, session).await?;
     let manifest = manifest_bytes(&mut multipart).await?;
+    let manifest = package_manifest(manifest)?;
     let result = AdminWorldMapExportPreflightQuery::execute(&principal, &manifest)
         .ok_or_else(ApiError::not_found)?;
     Ok(Json(result))
+}
+
+fn package_manifest(manifest: Vec<u8>) -> Result<Vec<u8>, ApiError> {
+    if !crate::world_transfer_package::is_package(&manifest) {
+        return Ok(manifest);
+    }
+    let package = crate::world_transfer_package::read_package(manifest)
+        .map_err(|_| ApiError::invalid_request())?;
+    serde_json::to_vec(&package.manifest).map_err(|_| ApiError::invalid_request())
 }
 
 async fn manifest_bytes(multipart: &mut Multipart) -> Result<Vec<u8>, ApiError> {

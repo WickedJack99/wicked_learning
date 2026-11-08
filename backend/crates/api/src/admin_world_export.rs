@@ -41,3 +41,23 @@ pub async fn export(
     );
     Ok(response)
 }
+
+/// Downloads the scoped World manifest and only its declared managed media.
+pub async fn export_package(
+    State(state): State<AppState>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Response, ApiError> {
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = PostgresAdminWorldExportRepository::new(&state.application_database);
+    let exported = AdminWorldExportQuery::new(&repository)
+        .execute(&principal)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    crate::world_transfer_package::package_response(
+        &state,
+        &exported.payload,
+        &exported.filename.replace(".json", ".zip"),
+    )
+    .await
+}

@@ -44,3 +44,25 @@ pub async fn export(
     );
     Ok(response)
 }
+
+/// Downloads one scoped MapAsset bundle with its explicitly referenced media.
+pub async fn export_package(
+    State(state): State<AppState>,
+    Path(asset_id): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Response, ApiError> {
+    let asset_id = Uuid::parse_str(&asset_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = PostgresAdminWorldMapAssetExportRepository::new(&state.application_database);
+    let exported = AdminWorldMapAssetExportQuery::new(&repository)
+        .execute(&principal, asset_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    crate::world_transfer_package::package_response(
+        &state,
+        &exported.payload,
+        &exported.filename.replace(".json", ".zip"),
+    )
+    .await
+}

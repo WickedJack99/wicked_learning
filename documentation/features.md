@@ -955,8 +955,11 @@ targets to exist, remaps node and message-topic identifiers, recreates
 activities, starts, transitions and dialogue graphs with fresh IDs, and records
 only destination-available managed-media references. Uploaded access roles,
 learner records, history, review payloads and editor assignments are ignored.
-A failed destination or media check rolls back the entire import. ZIP packages
-and media-byte transfer remain separate work.
+A failed destination or media check rolls back the entire import. Authors can
+also download and import a bounded portable ZIP package for a map, World or
+standalone MapAsset. It carries only explicitly referenced managed media,
+creates fresh destination media objects, rejects unsafe or duplicate archive
+entries, and cleans them up if the authored import fails.
 
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
@@ -981,7 +984,8 @@ previous snapshot is retained in a bounded, paginated history and can be
 restored. Existing activities remain independent copies. Replacing missing
 image references is available from the preview through the existing authorized
 image picker; selected replacements apply only to the new editable draft.
-Transferring media bytes remains future authoring work.
+JSON manifests remain reference-only; portable packages carry only explicitly
+referenced managed media and never add learner data.
 
 The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an

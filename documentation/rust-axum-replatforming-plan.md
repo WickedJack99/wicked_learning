@@ -549,8 +549,8 @@ learner state, authoring history, review data or editor assignments. A source
 adapted header dialog requires the existing preflight before enabling Import.
 The credential-gated browser proof exports a disposable map, validates it,
 deletes the source, imports the downloaded file as a new map and removes that
-result. ZIP/media-byte packages remain a separate integrity and media-lifecycle
-slice.
+result. The same dialog now accepts the bounded portable ZIP form, which carries
+only declared managed media through the verified transfer boundary.
 
 ### World Builder world JSON-export slice — 8 November 2026
 
@@ -562,8 +562,8 @@ deduplicates its media URL references. It is a read-only authoring projection
 that excludes learner state, histories, reviews and editing-group assignments.
 The credential-gated browser flow exports a disposable map and verifies that
 the world bundle contains that map before continuing the existing import and
-cleanup proof. World packages with media bytes remain a distinct dependency and
-media-lifecycle slice.
+cleanup proof. World packages with declared managed media now use the same
+bounded portable transfer boundary.
 
 ### World Builder world JSON-import slice — 8 November 2026
 
@@ -576,9 +576,9 @@ collision-safe slug and populated authored graph before resolving portal links,
 using the complete source-to-destination slug mapping for included maps. The
 transaction either writes every map and portal or rolls back. Destination
 access remains the server default; learner state, review/history records,
-permissions and editor assignments are excluded. The implemented transfer is
-JSON-reference-only: ZIP archives and media-byte copying are still an explicit
-media-lifecycle slice.
+permissions and editor assignments are excluded. JSON stays reference-only,
+while ZIP archives carry only declared managed media through the bounded
+portable transfer boundary.
 
 ### World Builder standalone MapAsset JSON-transfer slice — 8 November 2026
 
@@ -595,8 +595,9 @@ The preflight and import endpoints revalidate the bounded manifest. Import
 requires the target map's editor scope and matching current-World slug, creates
 fresh asset/node/route/activity/topic/dialogue identifiers transactionally,
 moves a colliding node position right, and remaps only declared node and
-message-topic references. It does not copy media bytes or implement the Laravel
-ZIP package variant; JSON references must resolve in the destination workspace.
+message-topic references. JSON references must resolve in the destination
+workspace; ZIP packages carry only declared managed media and create fresh
+destination objects.
 
 ### World Builder World-details history slice — 8 November 2026
 

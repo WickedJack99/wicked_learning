@@ -143,6 +143,7 @@ mod session_commands;
 mod session_status;
 mod temporary_access_login;
 mod totp_crypto;
+mod world_transfer_package;
 
 use std::{process::ExitCode, time::Duration};
 
@@ -658,6 +659,10 @@ fn router(state: AppState) -> Router {
             get(admin_world_export::export),
         )
         .route(
+            "/api/v1/admin/world-builder/world/export-package",
+            get(admin_world_export::export_package),
+        )
+        .route(
             "/api/v1/admin/world-builder/world/details",
             patch(admin_world_details::update),
         )
@@ -700,12 +705,18 @@ fn router(state: AppState) -> Router {
             get(admin_world_map_export::export),
         )
         .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/export-package",
+            get(admin_world_map_export::export_package),
+        )
+        .route(
             "/api/v1/admin/world-builder/map-exports/preflight",
-            post(admin_world_map_export_preflight::preflight),
+            post(admin_world_map_export_preflight::preflight)
+                .layer(DefaultBodyLimit::max(admin_world_map_import::MAX_MANIFEST_BYTES)),
         )
         .route(
             "/api/v1/admin/world-builder/map-exports/import",
-            post(admin_world_map_import::import),
+            post(admin_world_map_import::import)
+                .layer(DefaultBodyLimit::max(admin_world_map_import::MAX_MANIFEST_BYTES)),
         )
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/details",
@@ -764,6 +775,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/assets/{asset_id}/export",
             get(admin_world_map_asset_export::export),
+        )
+        .route(
+            "/api/v1/admin/world-builder/assets/{asset_id}/export-package",
+            get(admin_world_map_asset_export::export_package),
         )
         .route(
             "/api/v1/admin/world-builder/assets/{asset_id}",

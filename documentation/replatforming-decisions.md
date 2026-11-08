@@ -4454,6 +4454,24 @@ browser move/preview/restore, adjacent-swap/cleanup and adjacent-insertion
 chain/cleanup proofs cover the slice. It does not add a map backup or restore
 node content, MapAssets, access, media or learner data.
 
+## ADR-112: Portable author transfers materialize declared media before the existing writer
+
+**Status:** Accepted — 8 November 2026
+
+**Decision:** Map, World and standalone MapAsset exports additionally offer a
+bounded ZIP package containing the established JSON manifest, a versioned media
+index and only the managed media URLs declared by that manifest. The archive
+reader rejects unsafe or duplicate paths, unknown/unused entries, missing
+managed references and over-limit compressed input, entries or uncompressed
+payloads. Import materializes each accepted object under a fresh server-owned
+key and registry ID, rewrites only exact declared URLs, then delegates to the
+existing JSON writer. Any validation or writer failure removes the new rows and
+objects. JSON remains reference-only.
+
+**Why:** This preserves the source package boundary without granting an archive
+authority to select arbitrary storage objects or bypass the established scoped
+writer, media-reference integrity and transactional graph import rules.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

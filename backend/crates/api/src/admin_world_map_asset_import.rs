@@ -19,7 +19,7 @@ use crate::{
     learner_route_run::authenticated_principal,
 };
 
-pub const MAX_ASSET_MANIFEST_BYTES: usize = 5 * 1024 * 1024;
+pub const MAX_ASSET_MANIFEST_BYTES: usize = crate::world_transfer_package::MAX_PACKAGE_BYTES;
 
 #[derive(Serialize)]
 pub struct ImportMapAssetResponse {
@@ -31,12 +31,21 @@ pub async fn preflight(
     auth_session: AuthSession<IdentityBackend>,
     multipart: Multipart,
 ) -> Result<Json<MapExportPreflightResult>, ApiError> {
-    let manifest = manifest(multipart).await?;
+    let manifest = preflight_manifest(manifest(multipart).await?)?;
     let principal = authenticated_principal(&state, auth_session).await?;
     if !principal.has_permission("world_maps", "ru") {
         return Err(ApiError::not_found());
     }
     Ok(Json(validate_asset_manifest(&manifest)))
+}
+
+fn preflight_manifest(manifest: Vec<u8>) -> Result<Vec<u8>, ApiError> {
+    if !crate::world_transfer_package::is_package(&manifest) {
+        return Ok(manifest);
+    }
+    let package = crate::world_transfer_package::read_package(manifest)
+        .map_err(|_| ApiError::invalid_request())?;
+    serde_json::to_vec(&package.manifest).map_err(|_| ApiError::invalid_request())
 }
 
 pub async fn import(
@@ -52,14 +61,43 @@ pub async fn import(
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresAdminWorldMapAssetImportRepository::new(&state.application_database);
-    let asset_id = AdminWorldMapAssetImportCommand::new(&repository)
-        .execute(&principal, map_id, &manifest)
-        .await
-        .map_err(|error| match error {
-            AdminWorldMapAssetImportError::Invalid => ApiError::invalid_request(),
-            AdminWorldMapAssetImportError::Unavailable => ApiError::service_unavailable(),
-        })?
-        .ok_or_else(ApiError::not_found)?;
+    let asset_id = if crate::world_transfer_package::is_package(&manifest) {
+        let package = crate::world_transfer_package::read_package(manifest)
+            .map_err(|_| ApiError::invalid_request())?;
+        let materialized = crate::world_transfer_package::materialize_package(
+            &state,
+            principal.subject_id,
+            package,
+        )
+        .await?;
+        let result = AdminWorldMapAssetImportCommand::new(&repository)
+            .execute(&principal, map_id, &materialized.manifest)
+            .await;
+        match result {
+            Ok(Some(asset_id)) => asset_id,
+            Ok(None) => {
+                crate::world_transfer_package::cleanup_materialized(&state, &materialized).await;
+                return Err(ApiError::not_found());
+            }
+            Err(AdminWorldMapAssetImportError::Invalid) => {
+                crate::world_transfer_package::cleanup_materialized(&state, &materialized).await;
+                return Err(ApiError::invalid_request());
+            }
+            Err(AdminWorldMapAssetImportError::Unavailable) => {
+                crate::world_transfer_package::cleanup_materialized(&state, &materialized).await;
+                return Err(ApiError::service_unavailable());
+            }
+        }
+    } else {
+        AdminWorldMapAssetImportCommand::new(&repository)
+            .execute(&principal, map_id, &manifest)
+            .await
+            .map_err(|error| match error {
+                AdminWorldMapAssetImportError::Invalid => ApiError::invalid_request(),
+                AdminWorldMapAssetImportError::Unavailable => ApiError::service_unavailable(),
+            })?
+            .ok_or_else(ApiError::not_found)?
+    };
     Ok((
         StatusCode::CREATED,
         Json(ImportMapAssetResponse { asset_id }),

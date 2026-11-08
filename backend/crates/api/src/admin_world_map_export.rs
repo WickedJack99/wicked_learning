@@ -44,3 +44,25 @@ pub async fn export(
     );
     Ok(response)
 }
+
+/// Downloads the selected map together with explicitly declared managed media.
+pub async fn export_package(
+    State(state): State<AppState>,
+    Path(map_id): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Response, ApiError> {
+    let map_id = Uuid::parse_str(&map_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = PostgresAdminWorldMapExportRepository::new(&state.application_database);
+    let exported = AdminWorldMapExportQuery::new(&repository)
+        .execute(&principal, map_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    crate::world_transfer_package::package_response(
+        &state,
+        &exported.payload,
+        &exported.filename.replace(".json", ".zip"),
+    )
+    .await
+}

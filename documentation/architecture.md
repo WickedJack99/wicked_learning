@@ -340,8 +340,10 @@ its source World matches the current workspace. The importer creates fresh
 asset, node and child authoring records transactionally, selects collision-safe
 destination slugs/positions, and remaps only declared node and message-topic
 references. JSON media references must already resolve in the current
-workspace; Rust does not yet implement portable MapAsset packages or copy media
-bytes. Learner state, permissions, portals and revisions are not imported.
+workspace. Portable ZIP packages carry only declared managed media and create
+fresh opaque objects/registry rows before this same transactional writer
+resolves replaced URLs. Learner state, permissions, portals and revisions are
+not imported.
 
 The World Builder also exposes a world export that resolves the current world,
 scopes its maps with the server-side map-edit boundary, batch-loads the shared
@@ -361,8 +363,9 @@ creates fresh authored maps. Its media reference list follows the existing map
 import boundary: bundled `/images` paths remain reusable references and managed
 media URLs must resolve in the destination database. Media bytes do not cross
 in JSON, and learner state, history, permissions and editor groups are
-deliberately excluded. Laravel's ZIP world packages remain an explicitly
-unimplemented migration slice; the standalone dialog accepts JSON only.
+deliberately excluded. ZIP packages validate bounded entries, safe paths,
+duplicate names and manifest/index consistency before materializing only
+declared media; a failed writer removes those fresh media rows and objects.
 
 World title and description are a separate global authoring mutation from map
 editing. Rust resolves the same single current World as the World Builder graph,

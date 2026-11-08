@@ -735,6 +735,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/export-package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download one source-shaped portable map package.
+         * @description Requires the same scoped map-editor policy as JSON export. The ZIP contains the JSON manifest plus only explicitly declared managed media.
+         */
+        get: operations["exportAdminWorldBuilderMapPackage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/world/export": {
         parameters: {
             query?: never;
@@ -747,6 +767,26 @@ export interface paths {
          * @description Returns the current World and maps in the authenticated author's source map-editing scope. Each map uses the single-map export format; learner records, history, review data and editor assignments are excluded.
          */
         get: operations["exportAdminWorldBuilderWorld"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/world/export-package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the editable World as a portable package.
+         * @description Includes only maps selected by the scoped World export and their explicitly declared managed media.
+         */
+        get: operations["exportAdminWorldBuilderWorldPackage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -826,7 +866,7 @@ export interface paths {
         put?: never;
         /**
          * Check a world export bundle without creating content.
-         * @description Requires the source world-map update permission. The check is read-only and validates the bounded JSON world-bundle structure before import.
+         * @description Requires the source world-map update permission. The check is read-only and validates either a bounded JSON world bundle or its portable ZIP package before import.
          */
         post: operations["preflightAdminWorldBuilderWorldExport"];
         delete?: never;
@@ -846,7 +886,7 @@ export interface paths {
         put?: never;
         /**
          * Import a validated authored world bundle as fresh drafts.
-         * @description Requires the source world-map update permission. The destination World must match the manifest workspace; all destination maps are created and populated in one transaction before portal links are restored through source-to-destination slugs. The upload cannot set access restrictions or transfer learner, review, history or editor-assignment records.
+         * @description Requires the source world-map update permission. The destination World must match the manifest workspace; ZIP packages materialize only their declared managed media as fresh server-owned objects before all destination maps are created in one transaction. The upload cannot set access restrictions or transfer learner, review, history or editor-assignment records.
          */
         post: operations["importAdminWorldBuilderWorldExport"];
         delete?: never;
@@ -866,7 +906,7 @@ export interface paths {
         put?: never;
         /**
          * Check a map export manifest without creating content.
-         * @description Requires the source world-map update permission. The check is read-only and validates the manifest's bounded authored graph before a later import.
+         * @description Requires the source world-map update permission. The check is read-only and validates either a bounded JSON manifest or its portable ZIP package before a later import.
          */
         post: operations["preflightAdminWorldBuilderMapExport"];
         delete?: never;
@@ -886,7 +926,7 @@ export interface paths {
         put?: never;
         /**
          * Import one validated authored map manifest as a fresh draft.
-         * @description Requires the source world-map update permission. The destination World must match the manifest workspace; the uploaded file cannot set destination access restrictions or transfer learner, review, history or editor-assignment records.
+         * @description Requires the source world-map update permission. ZIP packages materialize only their declared managed media as fresh server-owned objects; the destination World must match the manifest workspace and the upload cannot set destination access restrictions or transfer learner, review, history or editor-assignment records.
          */
         post: operations["importAdminWorldBuilderMapExport"];
         delete?: never;
@@ -1117,7 +1157,7 @@ export interface paths {
         put?: never;
         /**
          * Check a standalone MapAsset export without creating content.
-         * @description Requires the source world-map update permission. The check is read-only and validates one optional node, its authored activity graph, one MapAsset and declared media references; standalone transfers never carry portals.
+         * @description Requires the source world-map update permission. The check is read-only and validates a JSON manifest or portable ZIP package containing one optional node, its authored activity graph, one MapAsset and declared media references; standalone transfers never carry portals.
          */
         post: operations["preflightAdminWorldBuilderMapAssetExport"];
         delete?: never;
@@ -1137,7 +1177,7 @@ export interface paths {
         put?: never;
         /**
          * Import one validated standalone MapAsset into an editable map.
-         * @description Requires the source world-map update permission and destination map editor scope. The destination World must match the manifest workspace. The import creates fresh MapAsset, optional Node, route, activities, message topics and dialogue records in one transaction, without learner, portal, permission, review, history or media-byte transfer.
+         * @description Requires the source world-map update permission and destination map editor scope. The destination World must match the manifest workspace. ZIP packages materialize only their declared managed media as fresh server-owned objects before the import creates fresh MapAsset, optional Node, route, activities, message topics and dialogue records in one transaction; it never transfers learner, portal, permission, review or history data.
          */
         post: operations["importAdminWorldBuilderMapAssetExport"];
         delete?: never;
@@ -1222,6 +1262,26 @@ export interface paths {
          * @description Requires the source world-map update permission and the asset's scoped map editor policy. The manifest contains the MapAsset and optional linked Node/activity graph only; it excludes portals, learners, permissions, history, reviews and media bytes.
          */
         get: operations["exportAdminWorldBuilderMapAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/assets/{asset_id}/export-package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download one standalone MapAsset portable package.
+         * @description Requires the existing scoped MapAsset export policy. The ZIP contains only the manifest and explicitly declared managed media.
+         */
+        get: operations["exportAdminWorldBuilderMapAssetPackage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11678,6 +11738,47 @@ export interface operations {
             };
         };
     };
+    exportAdminWorldBuilderMapPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded ZIP attachment containing the map manifest and referenced media. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map or a declared media object is unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database or media store is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     exportAdminWorldBuilderWorld: {
         parameters: {
             query?: never;
@@ -11713,6 +11814,45 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    exportAdminWorldBuilderWorldPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded ZIP attachment containing the World manifest and referenced media. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current World or a declared media object is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application database or media store is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -13136,6 +13276,47 @@ export interface operations {
                 content?: never;
             };
             /** @description The identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    exportAdminWorldBuilderMapAssetPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded ZIP attachment containing the MapAsset manifest and referenced media. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset or a declared media object is unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity or application database or media store is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
