@@ -6,6 +6,7 @@ mod account_password_confirmation;
 mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
+mod admin_activity_learning_design;
 mod admin_activity_templates;
 mod admin_ai_settings;
 mod admin_learning_group;
@@ -680,6 +681,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/ai-review",
             post(admin_world_activity_ai_review::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/learning-design",
+            patch(admin_activity_learning_design::update),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/versions",
@@ -1743,6 +1748,20 @@ mod tests {
             .expect("World Builder AI-review response");
 
         assert_eq!(ai_review_response.status(), 401);
+
+        let learning_design_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/learning-design")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"learning_intent":"explain","competence_topics":[{"topic":"Systems Thinking","weight":1}],"updated_at":"2026-11-08T09:00:00.000000Z"}"#))
+                    .expect("a valid World Builder learning-design request"),
+            )
+            .await
+            .expect("World Builder learning-design response");
+
+        assert_eq!(learning_design_response.status(), 401);
 
         let delete_response = router(state.clone())
             .oneshot(

@@ -40,7 +40,31 @@ test('a local author can open the guarded source-derived activity review dialog'
     await page.getByLabel('Title').fill(`Review target ${suffix}`);
     const created = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/open-practice-activities'));
     await page.getByRole('button', { name: 'Create activity' }).click();
-    expect((await created).status()).toBe(201);
+    const createdResponse = await created;
+    expect(createdResponse.status()).toBe(201);
+    const { activity_id: activityId } = await createdResponse.json() as { activity_id: string };
+
+    const nodeResponse = await page.request.get(`/api/v1/admin/world-builder/nodes/${target.nodeId}`);
+    expect(nodeResponse.ok()).toBeTruthy();
+    const node = await nodeResponse.json() as {
+        activity_graph: { activities: Array<{ id: string; updated_at: string }> };
+    };
+    const activity = node.activity_graph.activities.find((candidate) => candidate.id === activityId);
+    if (!activity) throw new Error('the newly created activity was not returned by the node graph');
+    const csrfResponse = await page.request.get('/api/v1/security/csrf');
+    const { token } = await csrfResponse.json() as { token: string };
+    const metadataResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activityId}/learning-design`,
+        {
+            data: {
+                learning_intent: 'explain',
+                competence_topics: [{ topic: 'Systems Thinking', weight: 1 }],
+                updated_at: activity.updated_at,
+            },
+            headers: { 'X-CSRF-Token': token },
+        },
+    );
+    expect(metadataResponse.status()).toBe(200);
 
     const card = page.locator('[data-id]').filter({ hasText: `Review target ${suffix}` });
     await expect(card).toBeVisible();

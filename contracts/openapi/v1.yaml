@@ -1189,6 +1189,37 @@ paths:
         '404': { description: The activity or enabled review helper is unavailable in the caller's authoring scope. }
         '422': { description: The provider response failed the strict activity-review contract. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/learning-design:
+    patch:
+      operationId: updateAdminWorldBuilderActivityLearningDesign
+      summary: Save tutor-reviewed learning purpose and competence topics for one editable activity.
+      description: >-
+        An AI review may prefill this explicit authoring draft, but this command
+        accepts only tutor-submitted fields, records a pre-change version, and
+        resets the review state. It never applies provider output directly.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityLearningDesignRequest' }
+      responses:
+        '200':
+          description: The reviewed authoring metadata was saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminActivityLearningDesignResponse' }
+        '400': { description: The complete source learning-design form is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '409': { description: The activity changed while the author was reviewing the draft. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/versions:
     get:
       operationId: getAdminWorldBuilderActivityVersions
@@ -10785,6 +10816,33 @@ components:
         ai_review_status: { type: string, enum: [reviewed] }
         ai_reviewed_at: { type: string, format: date-time }
         ai_review: { type: object, additionalProperties: true }
+    UpdateAdminActivityLearningDesignRequest:
+      type: object
+      additionalProperties: false
+      required: [learning_intent, competence_topics, updated_at]
+      properties:
+        learning_intent:
+          type: [string, 'null']
+          enum: [apply, explain, participate, reflect, retrieve, review, transfer, null]
+        competence_topics:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/AdminActivityCompetenceTopicInput' }
+        updated_at: { type: string, format: date-time }
+    AdminActivityCompetenceTopicInput:
+      type: object
+      additionalProperties: false
+      required: [topic, weight]
+      properties:
+        topic: { type: string, minLength: 1, maxLength: 120 }
+        weight: { type: number, exclusiveMinimum: 0, maximum: 1000 }
+    UpdateAdminActivityLearningDesignResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
     AdminActivityPortalCandidate:
       type: object
       additionalProperties: false

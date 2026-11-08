@@ -33,6 +33,10 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
 import { OriginalActivityAiReviewDialog } from './original-activity-ai-review';
+import {
+    OriginalActivityLearningDesignDialog,
+    type LearningDesignSuggestions,
+} from './original-activity-learning-design';
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
 import { OriginalNpcDialogueEditor } from './original-npc-dialogue-editor';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
@@ -2584,6 +2588,10 @@ function ActivityGraph({
         null,
     );
     const [reviewActivity, setReviewActivity] = useState<Activity | null>(null);
+    const [learningDesignDraft, setLearningDesignDraft] = useState<{
+        activity: Activity;
+        suggestions: LearningDesignSuggestions;
+    } | null>(null);
     const [templateDialog, setTemplateDialog] = useState<{
         activity?: Activity;
         mode: 'library' | 'save' | 'update';
@@ -3196,8 +3204,24 @@ function ActivityGraph({
                 <OriginalActivityAiReviewDialog
                     activity={reviewActivity}
                     onClose={() => setReviewActivity(null)}
+                    onEditLearningDesign={(activity, suggestions) => {
+                        setReviewActivity(null);
+                        setLearningDesignDraft({ activity, suggestions });
+                    }}
                     onReviewed={onReload}
                     templates={graph.ai_review_templates}
+                />
+            ) : null}
+            {learningDesignDraft ? (
+                <OriginalActivityLearningDesignDialog
+                    activity={learningDesignDraft.activity}
+                    competenceTopicOptions={graph.competence_topic_options}
+                    onClose={() => setLearningDesignDraft(null)}
+                    onSaved={() => {
+                        setLearningDesignDraft(null);
+                        onReload();
+                    }}
+                    suggestions={learningDesignDraft.suggestions}
                 />
             ) : null}
             {templateDialog ? (

@@ -879,6 +879,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/learning-design": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save tutor-reviewed learning purpose and competence topics for one editable activity.
+         * @description An AI review may prefill this explicit authoring draft, but this command accepts only tutor-submitted fields, records a pre-change version, and resets the review state. It never applies provider output directly.
+         */
+        patch: operations["updateAdminWorldBuilderActivityLearningDesign"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/versions": {
         parameters: {
             query?: never;
@@ -7669,6 +7689,23 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        UpdateAdminActivityLearningDesignRequest: {
+            /** @enum {string|null} */
+            learning_intent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer" | null;
+            competence_topics: components["schemas"]["AdminActivityCompetenceTopicInput"][];
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AdminActivityCompetenceTopicInput: {
+            topic: string;
+            weight: number;
+        };
+        UpdateAdminActivityLearningDesignResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         AdminActivityPortalCandidate: {
             /** Format: uuid */
             id: string;
@@ -10887,6 +10924,77 @@ export interface operations {
             };
             /** @description The provider response failed the strict activity-review contract. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderActivityLearningDesign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivityLearningDesignRequest"];
+            };
+        };
+        responses: {
+            /** @description The reviewed authoring metadata was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminActivityLearningDesignResponse"];
+                };
+            };
+            /** @description The complete source learning-design form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed while the author was reviewing the draft. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

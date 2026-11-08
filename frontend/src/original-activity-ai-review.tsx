@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import type { LearningDesignSuggestions } from './original-activity-learning-design';
 
 type Activity = components['schemas']['AdminEditableActivity'];
 type ReviewTemplate = components['schemas']['AdminActivityReviewTemplate'];
@@ -17,11 +18,16 @@ export function OriginalActivityAiReviewDialog({
     activity,
     templates,
     onClose,
+    onEditLearningDesign,
     onReviewed,
 }: {
     activity: Activity;
     templates: ReviewTemplate[];
     onClose: () => void;
+    onEditLearningDesign: (
+        activity: Activity,
+        suggestions: LearningDesignSuggestions,
+    ) => void;
     onReviewed: () => void;
 }) {
     const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
@@ -106,6 +112,9 @@ export function OriginalActivityAiReviewDialog({
                         review={current}
                         strengths={strengths}
                         suggestions={suggestions}
+                        onEditLearningDesign={(suggestions) =>
+                            onEditLearningDesign(activity, suggestions)
+                        }
                     />
                 ) : (
                     <form className="mt-6" onSubmit={(event) => void submit(event)}>
@@ -130,12 +139,17 @@ export function OriginalActivityAiReviewDialog({
     );
 }
 
-function ReviewResult({ learning, review, strengths, suggestions }: { learning: Record<string, unknown>; review: Record<string, unknown>; strengths: string[]; suggestions: string[] }) {
+function ReviewResult({ learning, review, strengths, suggestions, onEditLearningDesign }: { learning: Record<string, unknown>; review: Record<string, unknown>; strengths: string[]; suggestions: string[]; onEditLearningDesign: (suggestions: LearningDesignSuggestions) => void }) {
+    const metadataSuggestions = {
+        suggestedLearningIntent: text(learning.suggestedLearningIntent),
+        suggestedCompetenceTopics: stringList(learning.suggestedCompetenceTopics),
+    };
+    const hasMetadataSuggestions = metadataSuggestions.suggestedLearningIntent !== null || metadataSuggestions.suggestedCompetenceTopics.length > 0;
     return <div className="mt-6 grid gap-5" data-wl-id="authoring.activity-ai-review.result">
         <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-3 text-sm leading-6 text-violet-950 dark:border-violet-300/25 dark:bg-violet-300/10 dark:text-violet-50">{text(review.summary) || 'The review was saved without a summary.'}</p>
         <ReviewList heading="Strengths" items={strengths} />
         <ReviewList heading="Optional suggestions" items={suggestions} />
-        <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><h3 className="font-semibold">Learning-design alignment</h3><div className="mt-3 grid gap-3 text-sm"><Signal label="Purpose" value={record(learning.purpose)} /><Signal label="Topics" value={record(learning.topics)} /></div>{learning.suggestedLearningIntent || stringList(learning.suggestedCompetenceTopics).length ? <p className="mt-4 rounded-md bg-slate-100 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200">Suggested metadata is shown for consideration only. Applying activity metadata is not part of this review action.</p> : null}</section>
+        <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><h3 className="font-semibold">Learning-design alignment</h3><div className="mt-3 grid gap-3 text-sm"><Signal label="Purpose" value={record(learning.purpose)} /><Signal label="Topics" value={record(learning.topics)} /></div>{hasMetadataSuggestions ? <div className="mt-4 rounded-md bg-slate-100 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200"><p>Suggested metadata is shown for consideration only. It is never applied by this review action.</p><button className="mt-3 inline-flex items-center gap-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm font-medium hover:bg-white dark:border-white/20 dark:hover:bg-white/10" data-wl-id="authoring.activity-ai-review.edit-metadata" onClick={() => onEditLearningDesign(metadataSuggestions)} type="button"><Sparkles className="size-3.5" />Edit metadata draft</button><p className="mt-2 text-xs leading-5 text-slate-500">This opens a draft. Nothing changes until a tutor reviews and saves it.</p></div> : null}</section>
         <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><h3 className="font-semibold">Supportive learning environment</h3><div className="mt-3 grid gap-3 text-sm">{Object.entries(record(review.sdt)).map(([label, value]) => <Signal key={label} label={label} value={record(value)} />)}{Object.entries(record(review.feedbackGuidance)).map(([label, value]) => <Signal key={`feedback-${label}`} label={`Feedback: ${label}`} value={record(value)} />)}</div></section>
     </div>;
 }

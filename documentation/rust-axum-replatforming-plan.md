@@ -959,9 +959,13 @@ alone decrypts its provider key, submits only the source-bounded activity
 context and the strict versioned review schema, validates every model field
 before writing the activity's review record and immutable run, and never sends
 learner data. The source-derived dialog makes clear that the result is an
-authoring aid rather than a learner grade. It displays suggestions but cannot
-apply proposed metadata or alter activity content; source-metadata suggestion
-application remains a separate AI slice. Unlock diagnostics also remain
+authoring aid rather than a learner grade. When a review proposes a learning
+purpose or competence topics, its **Edit metadata draft** handoff opens an
+author-controlled source-shaped metadata form; it never sends provider output
+to the write route, and no change happens until the tutor explicitly saves the
+form. That save records pre-change history and returns the activity to
+`needs_review`; it does not change learner data or non-metadata activity
+fields. Unlock diagnostics also remain
 unavailable.
 The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
