@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('a local author selects a reusable obstacle visual and map cleanup removes its reference', async ({
+test('a local author selects reusable activity visuals and map cleanup removes their references', async ({
     page,
 }) => {
     test.setTimeout(60_000);
@@ -165,6 +165,76 @@ test('a local author selects a reusable obstacle visual and map cleanup removes 
                 ?.reference_count;
         })
         .toBe(1);
+
+    await page.getByRole('button', { name: 'Tool grant', exact: true }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Add Tool grant' }),
+    ).toBeVisible();
+    const createGrantForm = page.getByRole('dialog', {
+        name: 'Add Tool grant',
+    });
+    const grantTitle = `Disposable Tool grant ${Date.now()}`;
+    await createGrantForm.getByLabel('Title').fill(grantTitle);
+    const createdGrantResponse = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response
+                .url()
+                .includes(`/api/v1/admin/world-builder/nodes/${nodeId}/tool-grant-activities`),
+    );
+    await createGrantForm
+        .getByRole('button', { name: 'Create activity' })
+        .click();
+    expect((await createdGrantResponse).status()).toBe(201);
+
+    const nodeWithGrantResponse = await page.request.get(
+        `/api/v1/admin/world-builder/nodes/${nodeId}`,
+    );
+    expect(nodeWithGrantResponse.ok()).toBeTruthy();
+    const nodeWithGrant = (await nodeWithGrantResponse.json()) as {
+        activity_graph: { activities: Array<{ id: string; title: string }> };
+    };
+    const grant = nodeWithGrant.activity_graph.activities.find(
+        (candidate) => candidate.title === grantTitle,
+    );
+    if (!grant) throw new Error('the disposable Tool grant activity is missing');
+
+    await page.locator(`[data-id="${grant.id}"]`).click();
+    await expect(
+        page.getByRole('heading', { name: 'Edit Tool grant' }),
+    ).toBeVisible();
+    const grantForm = page.getByRole('dialog', { name: 'Edit Tool grant' });
+    await grantForm.getByRole('button', { name: 'Select existing' }).first().click();
+    await expect(
+        page.getByRole('heading', { name: 'Select existing visual' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: mediaName }).click();
+    await expect(grantForm.getByLabel('Dark background')).toHaveValue(
+        media.asset.url,
+    );
+    const savedGrantVisual = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            response
+                .url()
+                .includes(
+                    `/api/v1/admin/world-builder/activities/${grant.id}/tool-grant`,
+                ),
+    );
+    await grantForm.getByRole('button', { name: 'Save activity' }).click();
+    expect((await savedGrantVisual).status()).toBe(200);
+    await expect
+        .poll(async () => {
+            const response = await page.request.get(
+                `/api/v1/admin/media-assets?page=1&per_page=12&q=${encodeURIComponent(mediaName)}`,
+            );
+            const assets = (await response.json()) as {
+                items: Array<{ id: string; reference_count: number }>;
+            };
+            return assets.items.find((asset) => asset.id === media.asset.id)
+                ?.reference_count;
+        })
+        .toBe(2);
 
     await page.goto(
         `/settings?panel=admin-world-builder&map=${map.id}`,

@@ -1,5 +1,5 @@
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_open_practice::generated_slug,
@@ -11,6 +11,10 @@ use wicked_learning_application::{
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
 use crate::admin_world_activity_history::record_activity_version;
+
+const MEDIA_ASSET_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
+const MEDIA_REFERENCE_KIND: &str = "activity";
+const TOOL_GRANT_MEDIA_FIELDS: [&str; 2] = ["backgroundDark", "backgroundLight"];
 
 pub struct PostgresAdminWorldToolGrantRepository<'pool> {
     pool: &'pool PgPool,
@@ -108,8 +112,10 @@ async fn create(
     let slug = unique_slug(&mut transaction, map_asset_id, form, None).await?;
     let position: i16 = sqlx::query_scalar("SELECT (COALESCE(MAX(position), -1)::integer + 1)::smallint FROM learning_activities WHERE route_id = $1").bind(route_id).fetch_one(&mut *transaction).await?;
     let id = Uuid::new_v4();
+    let activity_config = config(form, tool_slug);
     sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'tool_grant', $7, $8, 'needs_review')")
-        .bind(id).bind(route_id).bind(slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(config(form, tool_slug)).bind(&form.introduction).execute(&mut *transaction).await?;
+        .bind(id).bind(route_id).bind(slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(&activity_config).bind(&form.introduction).execute(&mut *transaction).await?;
+    synchronize_media_references(&mut transaction, id, &activity_config).await?;
     transaction.commit().await?;
     Ok(Some(id))
 }
@@ -144,6 +150,7 @@ async fn update(
     {
         target.insert(key.clone(), value.clone());
     }
+    synchronize_media_references(&mut transaction, activity_id, &config_value).await?;
     if current.slug == slug
         && current.title == form.title
         && current.introduction == form.introduction
@@ -156,7 +163,9 @@ async fn update(
         }));
     }
     record_activity_version(&mut transaction, activity_id, principal).await?;
-    let updated_at: String = sqlx::query_scalar("UPDATE learning_activities SET slug = $2, title = $3, description = $4, introduction = $5, activity_config = $6, ai_review_status = 'needs_review', ai_reviewed_at = NULL, ai_review = NULL, updated_at = NOW() WHERE id = $1 RETURNING to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\")")
+    let updated_at: String = sqlx::query_scalar(
+        "UPDATE learning_activities SET slug = $2, title = $3, description = $4, introduction = $5, activity_config = $6, ai_review_status = 'needs_review', ai_reviewed_at = NULL, ai_review = NULL, updated_at = NOW() WHERE id = $1 RETURNING to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')",
+    )
         .bind(activity_id).bind(slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(&form.introduction).bind(config_value).fetch_one(&mut *transaction).await?;
     transaction.commit().await?;
     Ok(Some(UpdatedToolGrantActivity {
@@ -187,6 +196,51 @@ fn config(form: &ToolGrantActivityForm, tool_slug: Option<String>) -> Value {
         "bubbleOpacityDark": form.bubble_opacity_dark, "bubbleOpacityLight": form.bubble_opacity_light, "fadeDurationSeconds": form.fade_duration_seconds, "slideDirection": form.slide_direction, "slideDurationSeconds": form.slide_duration_seconds,
         "text": form.text, "toolId": tool_slug, "toolMirrored": form.tool_mirrored, "toolX": form.tool_x, "toolY": form.tool_y, "typingSpeed": form.typing_speed,
     })
+}
+
+fn media_references(config: &Value) -> Vec<(Uuid, &'static str)> {
+    let Some(config) = config.as_object() else {
+        return vec![];
+    };
+
+    TOOL_GRANT_MEDIA_FIELDS
+        .iter()
+        .filter_map(|field_key| {
+            let asset_id = config
+                .get(*field_key)?
+                .as_str()?
+                .strip_prefix(MEDIA_ASSET_CONTENT_PREFIX)?
+                .strip_suffix("/content")?;
+            Uuid::parse_str(asset_id)
+                .ok()
+                .map(|asset_id| (asset_id, *field_key))
+        })
+        .collect()
+}
+
+async fn synchronize_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    activity_id: Uuid,
+    config: &Value,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id = $2",
+    )
+    .bind(MEDIA_REFERENCE_KIND)
+    .bind(activity_id)
+    .execute(&mut **transaction)
+    .await?;
+
+    for (asset_id, field_key) in media_references(config) {
+        sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT id, $2, $3, $4 FROM reusable_media_assets WHERE id = $1 ON CONFLICT DO NOTHING")
+            .bind(asset_id)
+            .bind(MEDIA_REFERENCE_KIND)
+            .bind(activity_id)
+            .bind(field_key)
+            .execute(&mut **transaction)
+            .await?;
+    }
+    Ok(())
 }
 
 async fn unique_slug(
@@ -283,8 +337,9 @@ async fn scoped_access(
 
 #[cfg(test)]
 mod tests {
-    use super::config;
+    use super::{config, media_references};
     use serde_json::json;
+    use uuid::Uuid;
     use wicked_learning_application::admin_world_tool_grant::ToolGrantActivityForm;
     #[test]
     fn uses_only_the_server_resolved_tool_slug() {
@@ -296,6 +351,22 @@ mod tests {
         assert_eq!(
             config(&form, Some("lens".to_owned())).get("toolId"),
             Some(&json!("lens"))
+        );
+    }
+
+    #[test]
+    fn finds_only_exact_reusable_visual_urls_in_grant_background_fields() {
+        let dark = Uuid::new_v4();
+        let light = Uuid::new_v4();
+        let config = json!({
+            "backgroundDark": format!("/api/v1/admin/media-assets/{dark}/content"),
+            "backgroundLight": format!("/api/v1/admin/media-assets/{light}/content"),
+            "text": format!("/api/v1/admin/media-assets/{dark}/content"),
+        });
+
+        assert_eq!(
+            media_references(&config),
+            vec![(dark, "backgroundDark"), (light, "backgroundLight")]
         );
     }
 }

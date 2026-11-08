@@ -784,9 +784,9 @@ The World Builder provides:
 - a map-level lock for MapAsset placement
 - one MapAsset editor for surface, text, learner panel, activities, rules,
   visuals, sounds and deletion
-- source-adapted reusable visual selection for MapAsset surfaces, route visuals
-  and Obstacle activity scenes; saved references protect selected media until
-  the authored owner is removed or changed
+- source-adapted reusable visual selection for MapAsset surfaces, route visuals,
+  and Obstacle and Tool Grant activity scenes; saved references protect selected
+  media until the authored owner is removed or changed
 - a live MapAsset preview using the learner renderer
 - light/dark map palettes and previewable controls
 - activity, NPC dialogue and Markdown graph editors

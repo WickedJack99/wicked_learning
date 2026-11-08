@@ -4802,6 +4802,9 @@ function ToolGrantFields({
     onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
     tools: EditableTool[];
 }) {
+    const [mediaTarget, setMediaTarget] = useState<
+        'backgroundDark' | 'backgroundLight' | null
+    >(null);
     const update = (field: keyof ActivityAuthorForm, value: string | boolean) =>
         onChange((current) => ({ ...current, [field]: value }));
 
@@ -4840,11 +4843,13 @@ function ToolGrantFields({
                     <ActivityTextField
                         label="Dark background"
                         onChange={(value) => update('backgroundDark', value)}
+                        onSelectExisting={() => setMediaTarget('backgroundDark')}
                         value={form.backgroundDark}
                     />
                     <ActivityTextField
                         label="Light background"
                         onChange={(value) => update('backgroundLight', value)}
+                        onSelectExisting={() => setMediaTarget('backgroundLight')}
                         value={form.backgroundLight}
                     />
                     <ToolGrantNumberField
@@ -4988,6 +4993,15 @@ function ToolGrantFields({
                     />
                 </div>
             </section>
+            {mediaTarget ? (
+                <MediaPicker
+                    onClose={() => setMediaTarget(null)}
+                    onSelect={(media) => {
+                        update(mediaTarget, media.url);
+                        setMediaTarget(null);
+                    }}
+                />
+            ) : null}
         </>
     );
 }

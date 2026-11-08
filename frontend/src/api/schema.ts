@@ -1310,7 +1310,7 @@ export interface paths {
         put?: never;
         /**
          * Create a Tool grant activity on an editable World Builder node.
-         * @description The scoped writer resolves an optional tool catalog UUID to the server-owned playback slug after authorizing the selected node.
+         * @description The scoped writer resolves an optional tool catalog UUID to the server-owned playback slug after authorizing the selected node and atomically records managed reusable visual references from grant background fields.
          */
         post: operations["createAdminWorldBuilderToolGrantActivity"];
         delete?: never;
@@ -1334,7 +1334,7 @@ export interface paths {
         head?: never;
         /**
          * Update a Tool grant activity on an editable World Builder graph.
-         * @description A complete source-shaped edit uses the previously read timestamp and returns a conflict instead of overwriting a newer activity.
+         * @description A complete source-shaped edit synchronizes managed reusable visual references from grant background fields and uses the previously read timestamp to return a conflict instead of overwriting a newer activity.
          */
         patch: operations["updateAdminWorldBuilderToolGrantActivity"];
         trace?: never;
