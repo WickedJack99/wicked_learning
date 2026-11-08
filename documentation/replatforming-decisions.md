@@ -4174,6 +4174,35 @@ fresh import and cleanup. This is JSON-manifest import only: it does not carry
 media bytes or accept ZIP packages, Laravel-only translation/companion records,
 or cross-world transfer.
 
+## ADR-104: World JSON export composes only individually editable maps
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** A current World download needs to preserve the source's useful
+editable-world transfer boundary without accidentally widening an authoring
+overview permission into an export of other authors' maps. Reimplementing map
+serialization separately also risks a world bundle that silently diverges from
+the established map transfer contract.
+
+**Decision:** `GET /api/v1/admin/world-builder/world/export` returns a
+`wicked-learning-world` version-1 JSON attachment. It first resolves the
+current World, then applies the source `scopeMapsUserCanEdit()` boundary: all
+world-map update scope includes every map; otherwise own maps and maps with a
+direct editor-group assignment are included. The endpoint then reuses the
+single-map export projection for each selected map and deduplicates media URL
+references over those payloads. It is read-only and contains no learner rows,
+history/version records, review data or editor assignments.
+
+**Why:** The narrower selection preserves the source authorization contract,
+while reuse makes the embedded map representation exactly the separately
+downloadable manifest rather than a competing serializer.
+
+**Evidence and limits:** The generated contract, focused application tests,
+frontend production build and credential-gated browser download prove a
+disposable map appears in the World bundle. The JSON bundle names media
+references only; it neither transfers media bytes nor implements the source's
+ZIP world package/import workflow.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

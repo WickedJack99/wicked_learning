@@ -952,6 +952,20 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/world/export:
+    get:
+      operationId: exportAdminWorldBuilderWorld
+      summary: Download a source-shaped editable-world manifest.
+      description: Returns the current World and maps in the authenticated author's source map-editing scope. Each map uses the single-map export format; learner records, history, review data and editor assignments are excluded.
+      responses:
+        '200':
+          description: A JSON attachment named from the World slug.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { description: Authentication is required. }
+        '404': { description: The current World is unavailable. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/map-exports/preflight:
     post:
       operationId: preflightAdminWorldBuilderMapExport

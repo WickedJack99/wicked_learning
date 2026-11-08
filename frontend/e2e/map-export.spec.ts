@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
 test('a local author exports, validates, and imports a source-shaped map manifest', async ({ page }) => {
+    test.setTimeout(60_000);
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
     test.skip(!email || !password, 'requires the disposable local administrator');
@@ -42,6 +43,32 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     expect(payload.mapAssets).toHaveLength(1);
     expect(payload.nodes).toHaveLength(1);
     expect(Array.isArray(payload.references.mediaUrls)).toBeTruthy();
+
+    const worldDownload = page.waitForEvent('download');
+    await page.getByRole('link', { name: 'Export world' }).click();
+    const worldManifest = await worldDownload;
+    expect(worldManifest.suggestedFilename()).toContain(
+        'wicked-learning-world.json',
+    );
+    const worldFilePath = await worldManifest.path();
+    if (!worldFilePath) throw new Error('the World export download has no file');
+    const worldPayload = JSON.parse(await readFile(worldFilePath, 'utf8')) as {
+        format: string;
+        formatVersion: number;
+        maps: Array<{ format: string; map: { title: string } }>;
+        references: { mediaUrls: string[] };
+    };
+    expect(worldPayload).toMatchObject({
+        format: 'wicked-learning-world',
+        formatVersion: 1,
+    });
+    expect(worldPayload.maps).toContainEqual(
+        expect.objectContaining({
+            format: 'wicked-learning-map',
+            map: expect.objectContaining({ title }),
+        }),
+    );
+    expect(Array.isArray(worldPayload.references.mediaUrls)).toBeTruthy();
 
     await page.getByRole('button', { name: 'Validate map export' }).click();
     await page.getByLabel('JSON export file').setInputFiles(filePath);

@@ -735,6 +735,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/world/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a source-shaped editable-world manifest.
+         * @description Returns the current World and maps in the authenticated author's source map-editing scope. Each map uses the single-map export format; learner records, history, review data and editor assignments are excluded.
+         */
+        get: operations["exportAdminWorldBuilderWorld"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/map-exports/preflight": {
         parameters: {
             query?: never;
@@ -10979,6 +10999,49 @@ export interface operations {
                 content?: never;
             };
             /** @description The map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    exportAdminWorldBuilderWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A JSON attachment named from the World slug. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current World is unavailable. */
             404: {
                 headers: {
                     [name: string]: unknown;

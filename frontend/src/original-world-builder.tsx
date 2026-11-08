@@ -18,6 +18,7 @@ import {
     CircleAlert,
     CircleCheck,
     Copy,
+    Download,
     FileJson,
     GitBranch,
     Map as MapIcon,
@@ -563,6 +564,15 @@ function WorldBuilderContent() {
                         <FileJson className="mr-1 inline size-4" />
                         Import map
                     </button>
+                    <a
+                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
+                        data-wl-id="authoring.world-builder.world-export"
+                        download
+                        href="/api/v1/admin/world-builder/world/export"
+                    >
+                        <Download className="mr-1 inline size-4" />
+                        Export world
+                    </a>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
                         onClick={() => setCreateMapOpen(true)}

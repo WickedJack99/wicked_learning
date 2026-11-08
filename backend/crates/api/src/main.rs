@@ -30,6 +30,7 @@ mod admin_world_activity_ai_review;
 mod admin_world_activity_delete;
 mod admin_world_activity_history;
 mod admin_world_activity_position;
+mod admin_world_export;
 mod admin_world_graph;
 mod admin_world_item_grant;
 mod admin_world_item_obstacle;
@@ -646,6 +647,10 @@ fn router(state: AppState) -> Router {
             patch(admin_topics::update_topic),
         )
         .route("/api/v1/admin/world-builder", get(admin_world_graph::show))
+        .route(
+            "/api/v1/admin/world-builder/world/export",
+            get(admin_world_export::export),
+        )
         .route(
             "/api/v1/admin/world-builder/review-queue",
             get(admin_world_review_queue::index),

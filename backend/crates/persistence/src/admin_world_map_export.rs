@@ -78,6 +78,30 @@ async fn export_map(
         return Ok(None);
     }
 
+    let filename = format!("{}-wicked-learning-map.json", map.slug);
+    let payload = export_map_payload_from_row(pool, map).await?;
+    Ok(Some(ExportedWorldMap { filename, payload }))
+}
+
+/// Builds the public authored-map manifest after the caller has established
+/// its source editor scope. World export reuses this projection for each map
+/// it has already selected, so map and world downloads cannot drift apart.
+pub(crate) async fn export_map_payload(
+    pool: &PgPool,
+    map_id: Uuid,
+) -> Result<Option<Value>, sqlx::Error> {
+    let map = sqlx::query_as::<_, MapRow>("SELECT maps.id, maps.slug, maps.title, maps.description, worlds.slug AS world_slug, worlds.title AS world_title, maps.created_by_principal_id AS creator_id, maps.background_config, maps.grid_config, maps.access_roles, maps.map_assets_locked, topics.slug AS topic_slug FROM learning_maps AS maps INNER JOIN learning_worlds AS worlds ON worlds.id = maps.world_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id WHERE maps.id = $1")
+        .bind(map_id)
+        .fetch_optional(pool)
+        .await?;
+    let Some(map) = map else {
+        return Ok(None);
+    };
+
+    Ok(Some(export_map_payload_from_row(pool, map).await?))
+}
+
+async fn export_map_payload_from_row(pool: &PgPool, map: MapRow) -> Result<Value, sqlx::Error> {
     let nodes = nodes(pool, map.id).await?;
     let assets = assets(pool, map.id).await?;
     let portals = portals(pool, map.id).await?;
@@ -92,10 +116,7 @@ async fn export_map(
         "nodes": nodes, "mapAssets": assets, "portalTargets": portals,
         "references": {"mediaUrls": media_urls}
     });
-    Ok(Some(ExportedWorldMap {
-        filename: format!("{}-wicked-learning-map.json", map.slug),
-        payload,
-    }))
+    Ok(payload)
 }
 
 async fn nodes(pool: &PgPool, map_id: Uuid) -> Result<Vec<Value>, sqlx::Error> {
@@ -113,7 +134,7 @@ async fn portals(pool: &PgPool, map_id: Uuid) -> Result<Vec<Value>, sqlx::Error>
         .bind(map_id).fetch_all(pool).await
 }
 
-fn exported_at() -> String {
+pub(crate) fn exported_at() -> String {
     let now = time::OffsetDateTime::now_utc();
     format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
@@ -126,7 +147,7 @@ fn exported_at() -> String {
     )
 }
 
-fn collect_media_urls(value: &Value) -> Vec<String> {
+pub(crate) fn collect_media_urls(value: &Value) -> Vec<String> {
     fn visit(value: &Value, output: &mut Vec<String>) {
         match value {
             Value::Object(map) => {

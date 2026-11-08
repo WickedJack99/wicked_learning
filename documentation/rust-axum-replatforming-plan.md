@@ -552,6 +552,19 @@ deletes the source, imports the downloaded file as a new map and removes that
 result. ZIP/media-byte packages remain a separate integrity and media-lifecycle
 slice.
 
+### World Builder world JSON-export slice — 8 November 2026
+
+The World Builder header now exposes the source-shaped `Export world` download.
+`GET /api/v1/admin/world-builder/world/export` returns the current World plus
+only maps in the authenticated author's narrower source map-editing scope; each
+embedded map is the existing `wicked-learning-map` manifest and the bundle
+deduplicates its media URL references. It is a read-only authoring projection
+that excludes learner state, histories, reviews and editing-group assignments.
+The credential-gated browser flow exports a disposable map and verifies that
+the world bundle contains that map before continuing the existing import and
+cleanup proof. World packages with media bytes remain a distinct dependency and
+media-lifecycle slice.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
