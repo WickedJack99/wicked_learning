@@ -793,6 +793,18 @@ The World Builder provides:
   direction, same-world Exit targeting, layered dark/light Portal visuals,
   arrival behavior and learner-scene preview
 
+NPC dialogue activities use their own source-adapted graph editor rather than
+being flattened into the outer activity graph. Authors can create and position
+start, monologue, question, answer, reflection and end nodes; connect only
+their supported outputs; configure end connectors for the surrounding activity
+graph; and retain the source node presentation controls. Those controls include
+dark/light backgrounds and NPC images, layered scene assets selected from the
+reusable media library, motion, speech-bubble styling, typing sounds, tool
+grants and reflection journal context. Answer nodes can select same-world
+nodes to hide or unlock for the individual learner. Dialogue graph and layout
+edits keep bounded author-history snapshots, and selected reusable-media
+references stay protected while their node configuration uses them.
+
 Question activities can now be authored in the activity editor, including the
 prompt, answer choices, correctness, feedback, explanations and optional
 outcome keys for branching. Authors can connect an outcome branch to a matching
@@ -827,10 +839,11 @@ separate authoring concerns.
 
 Activity history includes an activity's outgoing route connections, so authors
 can restore a previous branch configuration together with its activity
-settings. Start-route records, node placement and separate NPC dialogue graphs
-remain separate histories and are not changed by an activity restore. Older
-activity history entries without route data remain safe to restore without
-removing current connections.
+settings. An NPC dialogue activity also restores its source dialogue nodes,
+edges and author-only graph layout as one activity snapshot, then reconciles
+its reusable-media references. Start-route records and node placement remain
+separate histories. Older activity history entries without route or dialogue
+graph data remain safe to restore without removing current connections.
 
 Activity edits use the activity's current authoring snapshot, so a stale form is
 rejected instead of silently overwriting a newer activity or its related

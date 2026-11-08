@@ -13,6 +13,8 @@ use wicked_learning_domain::{
     },
 };
 
+use crate::admin_world_npc_dialogue::synchronize_media_references as synchronize_npc_dialogue_media_references;
+
 pub struct PostgresAdminWorldActivityHistoryRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -112,6 +114,27 @@ struct TransitionSnapshotRow {
     rules: Value,
 }
 
+#[derive(FromRow)]
+struct NpcDialogueNodeSnapshotRow {
+    id: Uuid,
+    node_type: String,
+    title: String,
+    body: Option<String>,
+    config: Value,
+    sort_order: i16,
+    graph_position_x: Option<f64>,
+    graph_position_y: Option<f64>,
+}
+
+#[derive(FromRow)]
+struct NpcDialogueTransitionSnapshotRow {
+    id: Uuid,
+    from_node_id: Option<Uuid>,
+    to_node_id: Uuid,
+    from_connector: String,
+    to_connector: Option<String>,
+}
+
 async fn list_versions(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -195,6 +218,14 @@ async fn restore_version(
     };
     record_activity_version(&mut transaction, activity.id, principal).await?;
     restore_activity_fields(&mut transaction, activity.id, &version.snapshot).await?;
+    restore_npc_dialogue_graph(&mut transaction, activity.id, &version.snapshot).await?;
+    if version
+        .snapshot
+        .get("npcDialogueNodes")
+        .is_some_and(Value::is_array)
+    {
+        synchronize_npc_dialogue_media_references(&mut transaction, activity.id).await?;
+    }
     if let Some(transitions) = version
         .snapshot
         .get("transitions")
@@ -299,6 +330,22 @@ async fn snapshot(
     .bind(activity_id)
     .fetch_all(&mut **transaction)
     .await?;
+    let dialogue_nodes: Vec<NpcDialogueNodeSnapshotRow> = if activity.activity_type
+        == "npc_dialogue"
+    {
+        sqlx::query_as("SELECT id, node_type, title, body, node_config AS config, sort_order, graph_position_x, graph_position_y FROM learning_npc_dialogue_nodes WHERE activity_id = $1 ORDER BY sort_order ASC, id ASC")
+            .bind(activity_id).fetch_all(&mut **transaction).await?
+    } else {
+        vec![]
+    };
+    let dialogue_transitions: Vec<NpcDialogueTransitionSnapshotRow> = if activity.activity_type
+        == "npc_dialogue"
+    {
+        sqlx::query_as("SELECT id, from_node_id, to_node_id, from_connector, to_connector FROM learning_npc_dialogue_transitions WHERE activity_id = $1 ORDER BY created_at ASC, id ASC")
+            .bind(activity_id).fetch_all(&mut **transaction).await?
+    } else {
+        vec![]
+    };
     Ok(json!({
         "companionConfig": {},
         "config": activity.config,
@@ -308,6 +355,16 @@ async fn snapshot(
         "slug": activity.slug,
         "title": activity.title,
         "type": activity.activity_type,
+        "npcDialogueNodes": dialogue_nodes.into_iter().map(|node| json!({
+            "id": node.id, "type": node.node_type, "title": node.title, "body": node.body,
+            "config": node.config, "sortOrder": node.sort_order,
+            "graphPositionX": node.graph_position_x, "graphPositionY": node.graph_position_y,
+        })).collect::<Vec<_>>(),
+        "npcDialogueTransitions": dialogue_transitions.into_iter().map(|transition| json!({
+            "id": transition.id, "fromNodeId": transition.from_node_id,
+            "toNodeId": transition.to_node_id, "fromConnector": transition.from_connector,
+            "toConnector": transition.to_connector,
+        })).collect::<Vec<_>>(),
         "transitions": transitions.into_iter().map(|transition| json!({
             "fromConnector": transition.from_connector,
             "label": transition.label,
@@ -319,6 +376,111 @@ async fn snapshot(
             "triggerValue": transition.trigger_value,
         })).collect::<Vec<_>>(),
     }))
+}
+
+async fn restore_npc_dialogue_graph(
+    transaction: &mut Transaction<'_, Postgres>,
+    activity_id: Uuid,
+    snapshot: &Value,
+) -> Result<(), sqlx::Error> {
+    let Some(nodes) = snapshot.get("npcDialogueNodes").and_then(Value::as_array) else {
+        return Ok(());
+    };
+    sqlx::query("DELETE FROM learning_npc_dialogue_nodes WHERE activity_id = $1")
+        .bind(activity_id)
+        .execute(&mut **transaction)
+        .await?;
+    for node in nodes {
+        let Some(object) = node.as_object() else {
+            continue;
+        };
+        let Some(id) = object
+            .get("id")
+            .and_then(Value::as_str)
+            .and_then(|value| Uuid::parse_str(value).ok())
+        else {
+            continue;
+        };
+        let Some(node_type) = object.get("type").and_then(Value::as_str).filter(|value| {
+            matches!(
+                *value,
+                "npc_monologue" | "npc_question" | "reflection" | "answer" | "end"
+            )
+        }) else {
+            continue;
+        };
+        let Some(title) = object
+            .get("title")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty() && value.chars().count() <= 120)
+        else {
+            continue;
+        };
+        let body = object
+            .get("body")
+            .and_then(Value::as_str)
+            .filter(|value| value.chars().count() <= 4_000);
+        let config = object
+            .get("config")
+            .filter(|value| value.is_object())
+            .cloned()
+            .unwrap_or_else(|| json!({}));
+        let sort_order = object
+            .get("sortOrder")
+            .and_then(Value::as_i64)
+            .and_then(|value| i16::try_from(value).ok())
+            .unwrap_or(0);
+        sqlx::query("INSERT INTO learning_npc_dialogue_nodes (id, activity_id, node_type, title, body, node_config, sort_order, graph_position_x, graph_position_y) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)")
+            .bind(id).bind(activity_id).bind(node_type).bind(title).bind(body).bind(config).bind(sort_order)
+            .bind(object.get("graphPositionX").and_then(Value::as_f64)).bind(object.get("graphPositionY").and_then(Value::as_f64))
+            .execute(&mut **transaction).await?;
+    }
+    let Some(transitions) = snapshot
+        .get("npcDialogueTransitions")
+        .and_then(Value::as_array)
+    else {
+        return Ok(());
+    };
+    for transition in transitions {
+        let Some(object) = transition.as_object() else {
+            continue;
+        };
+        let Some(id) = object
+            .get("id")
+            .and_then(Value::as_str)
+            .and_then(|value| Uuid::parse_str(value).ok())
+        else {
+            continue;
+        };
+        let from_node_id = object
+            .get("fromNodeId")
+            .and_then(Value::as_str)
+            .and_then(|value| Uuid::parse_str(value).ok());
+        let Some(to_node_id) = object
+            .get("toNodeId")
+            .and_then(Value::as_str)
+            .and_then(|value| Uuid::parse_str(value).ok())
+        else {
+            continue;
+        };
+        let Some(from_connector) = object
+            .get("fromConnector")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty() && value.len() <= 80)
+        else {
+            continue;
+        };
+        let to_connector = object
+            .get("toConnector")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
+        sqlx::query("INSERT INTO learning_npc_dialogue_transitions (id, activity_id, from_node_id, to_node_id, from_connector, to_connector) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING")
+            .bind(id).bind(activity_id).bind(from_node_id).bind(to_node_id).bind(from_connector).bind(to_connector)
+            .execute(&mut **transaction).await?;
+    }
+    Ok(())
 }
 
 fn summary(row: VersionRow) -> AdminActivityVersionSummary {

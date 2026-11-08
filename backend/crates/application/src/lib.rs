@@ -31,6 +31,7 @@ pub mod admin_world_node;
 pub mod admin_world_node_layout;
 pub mod admin_world_node_starts;
 pub mod admin_world_node_transition;
+pub mod admin_world_npc_dialogue;
 pub mod admin_world_obstacle;
 pub mod admin_world_open_practice;
 pub mod admin_world_portal;

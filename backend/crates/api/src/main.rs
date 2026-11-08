@@ -36,6 +36,7 @@ mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
 mod admin_world_node_transition;
+mod admin_world_npc_dialogue;
 mod admin_world_obstacle;
 mod admin_world_open_practice;
 mod admin_world_portal;
@@ -730,6 +731,34 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/portal",
             patch(admin_world_portal::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/npc-dialogue-activities",
+            post(admin_world_npc_dialogue::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue",
+            get(admin_world_npc_dialogue::show),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes",
+            post(admin_world_npc_dialogue::create_node),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}",
+            patch(admin_world_npc_dialogue::update_node).delete(admin_world_npc_dialogue::delete_node),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue/transitions",
+            post(admin_world_npc_dialogue::create_transition),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue/transitions/{transition_id}",
+            delete(admin_world_npc_dialogue::delete_transition),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue/graph-layout",
+            patch(admin_world_npc_dialogue::update_layout),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/question-activities",

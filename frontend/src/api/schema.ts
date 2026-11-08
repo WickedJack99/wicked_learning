@@ -1420,6 +1420,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/npc-dialogue-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a source NPC dialogue graph activity on an editable node. */
+        post: operations["createAdminWorldBuilderNpcDialogueActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/npc-dialogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Load a source NPC dialogue graph editor document. */
+        get: operations["showAdminWorldBuilderNpcDialogue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a source NPC dialogue graph node. */
+        post: operations["createAdminWorldBuilderNpcDialogueNode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one source NPC dialogue graph node and its edges. */
+        delete: operations["deleteAdminWorldBuilderNpcDialogueNode"];
+        options?: never;
+        head?: never;
+        /** Replace one source NPC dialogue graph node. */
+        patch: operations["updateAdminWorldBuilderNpcDialogueNode"];
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/npc-dialogue/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect two source NPC dialogue graph nodes. */
+        post: operations["createAdminWorldBuilderNpcDialogueTransition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/npc-dialogue/transitions/{transition_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one source NPC dialogue graph edge. */
+        delete: operations["deleteAdminWorldBuilderNpcDialogueTransition"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/npc-dialogue/graph-layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save the source NPC dialogue start-node position. */
+        patch: operations["updateAdminWorldBuilderNpcDialogueGraphLayout"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/portal": {
         parameters: {
             query?: never;
@@ -6613,6 +6733,95 @@ export interface components {
             activity_id: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        CreateAdminNpcDialogueActivityRequest: {
+            title: string;
+            slug?: string | null;
+            introduction?: string | null;
+        };
+        CreateAdminNpcDialogueActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        AdminNpcDialogueCreatedResource: {
+            /** Format: uuid */
+            id: string;
+        };
+        AdminNpcDialoguePosition: {
+            x: number;
+            y: number;
+        };
+        AdminNpcDialogueNodeRequest: {
+            /** @enum {string} */
+            node_type: "npc_monologue" | "npc_question" | "reflection" | "answer" | "end";
+            title: string;
+            body: string | null;
+            config: {
+                [key: string]: unknown;
+            };
+            position: components["schemas"]["AdminNpcDialoguePosition"] | null;
+        };
+        AdminNpcDialogueTransitionRequest: {
+            /** Format: uuid */
+            from_node_id: string | null;
+            /** Format: uuid */
+            to_node_id: string;
+            from_connector: string;
+            to_connector: string;
+        };
+        AdminNpcDialogueGraph: {
+            activity: components["schemas"]["AdminNpcDialogueActivity"];
+            dialogue_nodes: components["schemas"]["AdminNpcDialogueNode"][];
+            transitions: components["schemas"]["AdminNpcDialogueTransition"][];
+            world_nodes: components["schemas"]["AdminNpcDialogueWorldNode"][];
+            typing_sound_sets: components["schemas"]["AdminNpcDialogueTypingSoundSet"][];
+        };
+        AdminNpcDialogueActivity: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            introduction: string | null;
+            graph_layout: {
+                [key: string]: unknown;
+            };
+        };
+        AdminNpcDialogueNode: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            node_type: "npc_monologue" | "npc_question" | "reflection" | "answer" | "end";
+            title: string;
+            body: string | null;
+            config: {
+                [key: string]: unknown;
+            };
+            position: {
+                x: number | null;
+                y: number | null;
+            };
+        };
+        AdminNpcDialogueTransition: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            from_node_id: string | null;
+            /** Format: uuid */
+            to_node_id: string;
+            from_connector: string;
+            to_connector: string;
+        };
+        AdminNpcDialogueWorldNode: {
+            /** Format: uuid */
+            id: string;
+            map_title: string;
+            title: string;
+        };
+        AdminNpcDialogueTypingSoundSet: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            is_default: boolean;
         };
         MarkdownActivityPageVisual: {
             page_color_dark: string;
@@ -12589,6 +12798,477 @@ export interface operations {
                 content?: never;
             };
             /** @description The node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderNpcDialogueActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminNpcDialogueActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created NPC dialogue activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminNpcDialogueActivityResponse"];
+                };
+            };
+            /** @description The source NPC dialogue activity fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    showAdminWorldBuilderNpcDialogue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The editable NPC dialogue graph. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminNpcDialogueGraph"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC dialogue activity is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderNpcDialogueNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialogueNodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The created dialogue node. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminNpcDialogueCreatedResource"];
+                };
+            };
+            /** @description The dialogue node is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC dialogue activity is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminWorldBuilderNpcDialogueNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+                dialogue_node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dialogue node was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC dialogue activity or node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderNpcDialogueNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+                dialogue_node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialogueNodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The dialogue node was saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue node is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC dialogue activity or node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderNpcDialogueTransition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialogueTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description The created dialogue transition. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminNpcDialogueCreatedResource"];
+                };
+            };
+            /** @description The dialogue transition is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC dialogue activity is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description That source connector is already connected. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminWorldBuilderNpcDialogueTransition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+                transition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dialogue transition was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC dialogue activity or transition is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderNpcDialogueGraphLayout: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialoguePosition"];
+            };
+        };
+        responses: {
+            /** @description The dialogue graph layout was saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The graph position is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC dialogue activity is unavailable to the caller. */
             404: {
                 headers: {
                     [name: string]: unknown;

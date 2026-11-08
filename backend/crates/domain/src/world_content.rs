@@ -502,6 +502,60 @@ pub struct AdminEditableActivity {
     pub connectors: AdminActivityConnectors,
 }
 
+/// The dedicated source-shaped NPC dialogue editor document. It is separate
+/// from the surrounding activity graph because dialogue nodes have their own
+/// transitions, layout and presentation configuration.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueGraph {
+    pub activity: AdminNpcDialogueActivity,
+    pub dialogue_nodes: Vec<AdminNpcDialogueNode>,
+    pub transitions: Vec<AdminNpcDialogueTransition>,
+    pub world_nodes: Vec<AdminNpcDialogueWorldNode>,
+    pub typing_sound_sets: Vec<AdminNpcDialogueTypingSoundSet>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueActivity {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub introduction: Option<String>,
+    pub graph_layout: Value,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueNode {
+    pub id: Uuid,
+    pub node_type: String,
+    pub title: String,
+    pub body: Option<String>,
+    pub config: Value,
+    pub position: AdminActivityGraphPosition,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueTransition {
+    pub id: Uuid,
+    pub from_node_id: Option<Uuid>,
+    pub to_node_id: Uuid,
+    pub from_connector: String,
+    pub to_connector: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueWorldNode {
+    pub id: Uuid,
+    pub map_title: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueTypingSoundSet {
+    pub id: Uuid,
+    pub name: String,
+    pub is_default: bool,
+}
+
 /// A bounded, author-only view of immutable activity configuration history.
 /// Snapshots never participate in learner playback reads.
 #[derive(Clone, Debug, Serialize)]

@@ -170,6 +170,14 @@ struct PortalLinkRow {
 }
 
 #[derive(FromRow)]
+struct NpcEndConnectorRow {
+    activity_id: Uuid,
+    id: Uuid,
+    title: String,
+    config: Value,
+}
+
+#[derive(FromRow)]
 struct SourceRecordRow {
     id: Uuid,
     anchor: Option<String>,
@@ -225,11 +233,22 @@ async fn load_editable_node(
     let portal_candidates = load_portal_candidates(pool, node.world_id).await?;
     let message_topics = load_message_topics(pool, node.map_asset_id).await?;
     let source_records = load_source_records(pool).await?;
+    let npc_connectors = load_npc_end_connectors(pool, &activity_ids).await?;
 
     let mut editable_activities = Vec::with_capacity(activities.len());
     for activity in activities {
         let portal_link = load_portal_link(pool, activity.id).await?;
-        let connectors = connectors_for(&activity.activity_type, &activity.config);
+        let connectors = if activity.activity_type == "npc_dialogue" {
+            AdminActivityConnectors {
+                inputs: vec![connector("in", "Entry")],
+                outputs: npc_connectors
+                    .get(&activity.id)
+                    .cloned()
+                    .unwrap_or_else(|| vec![connector("dialogue-end-pending", "A End")]),
+            }
+        } else {
+            connectors_for(&activity.activity_type, &activity.config)
+        };
         editable_activities.push(AdminEditableActivity {
             id: activity.id,
             slug: activity.slug,
@@ -280,6 +299,38 @@ async fn load_editable_node(
         sounds: load_sounds(pool).await?,
         tools: load_tools(pool).await?,
     }))
+}
+
+async fn load_npc_end_connectors(
+    pool: &PgPool,
+    activity_ids: &[Uuid],
+) -> Result<std::collections::HashMap<Uuid, Vec<AdminActivityConnector>>, sqlx::Error> {
+    if activity_ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let rows: Vec<NpcEndConnectorRow> = sqlx::query_as(
+        "SELECT activity_id, id, title, node_config AS config FROM learning_npc_dialogue_nodes WHERE activity_id = ANY($1) AND node_type = 'end' ORDER BY activity_id ASC, sort_order ASC, id ASC",
+    )
+    .bind(activity_ids)
+    .fetch_all(pool)
+    .await?;
+    let mut connectors = std::collections::HashMap::<Uuid, Vec<AdminActivityConnector>>::new();
+    for (index, row) in rows.into_iter().enumerate() {
+        let symbol = row
+            .config
+            .get("connectorSymbol")
+            .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| ["A", "B", "C", "D", "E", "F"][index % 6]);
+        connectors
+            .entry(row.activity_id)
+            .or_default()
+            .push(connector(
+                &format!("dialogue-end-{}", row.id),
+                &format!("{symbol} {}", row.title),
+            ));
+    }
+    Ok(connectors)
 }
 
 fn scope_allows_map(

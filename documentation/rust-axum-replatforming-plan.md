@@ -476,6 +476,17 @@ matching letter WAV while revealing text. The initial set uses only existing
 bundled public assets. General sound media, upload/authoring and learner sound
 preferences remain separate work and are not implied by this slice.
 
+The World Builder now also owns the matching source-adapted NPC dialogue graph
+editor. It creates a dedicated dialogue activity and default end node, preserves
+independent graph layout and transitions, exposes source node types and scene
+settings, resolves tool slugs and typing-sound sets server-side, and permits
+same-world answer hide/unlock events only. Real end-node outputs are projected
+into the surrounding activity graph by opaque end-node ID, so an author cannot
+connect a stale placeholder exit. Node, transition and layout mutations record
+bounded activity-history snapshots and synchronize reusable-media references.
+The local browser flow covers activity creation, dialogue-node save, authored
+graph transitions and the resulting outer exit connector.
+
 Transport-only loading, unavailable and authorization-error branches may be
 introduced where the original page received server props synchronously. They
 must use the surrounding lifted page surface and must not become a replacement
@@ -974,9 +985,11 @@ configuration and outbound routes, and restores a selected snapshot
 transactionally only within the same scoped `world_activities` authoring
 boundary. Restore first records the current state as a new snapshot, restores
 the selected activity and its outbound transitions, then resets review state;
-the migrated activity-content, transition and graph-position commands record
-their own pre-change snapshots, while unsupported source workflows remain
-outside this claim.
+an NPC dialogue activity restores its node/edge graph and author-only layout
+within that same snapshot, then reconciles reusable-media references. The
+migrated activity-content, transition and graph-position commands record their
+own pre-change snapshots, while unsupported source workflows remain outside
+this claim.
 The reusable source catalog is now available at `GET`/`POST
 /api/v1/admin/source-records`, with scoped `PATCH`/`DELETE` and bounded
 revision/restore endpoints beneath each record. It source-adapts Laravel's

@@ -32,6 +32,7 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
+import { OriginalNpcDialogueEditor } from './original-npc-dialogue-editor';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
 import { PortalScene } from './original-portal-activity';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
@@ -45,7 +46,7 @@ type Activity = components['schemas']['AdminEditableActivity'];
 type EditableItem = components['schemas']['AdminEditableItem'];
 type EditableSound = components['schemas']['AdminEditableSound'];
 type EditableMapAsset = components['schemas']['AdminEditableMapAsset'];
-type MediaAsset = components['schemas']['AdminMediaAsset'];
+export type MediaAsset = components['schemas']['AdminMediaAsset'];
 type MediaAssetPage = components['schemas']['AdminMediaAssetPage'];
 type MapAssetRequest = components['schemas']['UpsertAdminWorldMapAssetRequest'];
 type EditableTool = components['schemas']['AdminEditableTool'];
@@ -85,7 +86,8 @@ type SupportedActivityType =
     | 'question'
     | 'shared_task'
     | 'message_prompt'
-    | 'message_wall';
+    | 'message_wall'
+    | 'npc_dialogue';
 type ObstacleForm = {
     allowedToolIds: string[];
     backgroundDark: string;
@@ -1491,7 +1493,7 @@ function ToggleStateFields({
     );
 }
 
-function MediaPicker({
+export function MediaPicker({
     onClose,
     onSelect,
 }: {
@@ -2501,6 +2503,9 @@ function ActivityGraph({
         template?: { snapshot: { [key: string]: unknown }; title: string };
         type: SupportedActivityType;
     } | null>(null);
+    const [npcDialogueActivity, setNpcDialogueActivity] = useState<
+        Activity | 'create' | null
+    >(null);
     const [selectedTransition, setSelectedTransition] =
         useState<ActivityTransition | null>(null);
     const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -2711,6 +2716,24 @@ function ActivityGraph({
         [graph.node.id, onReload],
     );
 
+    if (npcDialogueActivity) {
+        return (
+            <OriginalNpcDialogueEditor
+                activityId={
+                    npcDialogueActivity === 'create'
+                        ? undefined
+                        : npcDialogueActivity.id
+                }
+                nodeId={graph.node.id}
+                onClose={() => {
+                    setNpcDialogueActivity(null);
+                    onReload();
+                }}
+                tools={document.tools}
+            />
+        );
+    }
+
     return (
         <>
             <div className="h-[34rem]">
@@ -2779,6 +2802,14 @@ function ActivityGraph({
                         >
                             <Plus className="size-3.5" />
                             Portal
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setNpcDialogueActivity('create')}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            NPC dialogue
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -2858,6 +2889,13 @@ function ActivityGraph({
                         void connectActivities(connection)
                     }
                     onNodeClick={(_, node) => {
+                        if (
+                            node.type === 'activity' &&
+                            node.data.activity.activity_type === 'npc_dialogue'
+                        ) {
+                            setNpcDialogueActivity(node.data.activity);
+                            return;
+                        }
                         if (
                             node.type === 'activity' &&
                             isSupportedActivityType(
@@ -6791,6 +6829,7 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'obstacle' ||
         type === 'question' ||
         type === 'shared_task' || type === 'message_prompt' || type === 'message_wall'
+        || type === 'npc_dialogue'
     );
 }
 

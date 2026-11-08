@@ -1841,6 +1841,103 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The node is unavailable to the caller. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/npc-dialogue-activities:
+    post:
+      operationId: createAdminWorldBuilderNpcDialogueActivity
+      summary: Create a source NPC dialogue graph activity on an editable node.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminNpcDialogueActivityRequest' } } } }
+      responses:
+        '201': { description: The created NPC dialogue activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminNpcDialogueActivityResponse' } } } }
+        '400': { description: The source NPC dialogue activity fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/npc-dialogue:
+    get:
+      operationId: showAdminWorldBuilderNpcDialogue
+      summary: Load a source NPC dialogue graph editor document.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: The editable NPC dialogue graph., content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueGraph' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The NPC dialogue activity is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/npc-dialogue/nodes:
+    post:
+      operationId: createAdminWorldBuilderNpcDialogueNode
+      summary: Add a source NPC dialogue graph node.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueNodeRequest' } } } }
+      responses:
+        '201': { description: The created dialogue node., content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueCreatedResource' } } } }
+        '400': { description: The dialogue node is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The NPC dialogue activity is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}:
+    patch:
+      operationId: updateAdminWorldBuilderNpcDialogueNode
+      summary: Replace one source NPC dialogue graph node.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: dialogue_node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueNodeRequest' } } } }
+      responses:
+        '204': { description: The dialogue node was saved. }
+        '400': { description: The dialogue node is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The NPC dialogue activity or node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminWorldBuilderNpcDialogueNode
+      summary: Delete one source NPC dialogue graph node and its edges.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: dialogue_node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The dialogue node was deleted. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The NPC dialogue activity or node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/npc-dialogue/transitions:
+    post:
+      operationId: createAdminWorldBuilderNpcDialogueTransition
+      summary: Connect two source NPC dialogue graph nodes.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueTransitionRequest' } } } }
+      responses:
+        '201': { description: The created dialogue transition., content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueCreatedResource' } } } }
+        '400': { description: The dialogue transition is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The NPC dialogue activity is unavailable to the caller. }
+        '409': { description: That source connector is already connected. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/npc-dialogue/transitions/{transition_id}:
+    delete:
+      operationId: deleteAdminWorldBuilderNpcDialogueTransition
+      summary: Delete one source NPC dialogue graph edge.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: transition_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The dialogue transition was deleted. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The NPC dialogue activity or transition is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/npc-dialogue/graph-layout:
+    patch:
+      operationId: updateAdminWorldBuilderNpcDialogueGraphLayout
+      summary: Save the source NPC dialogue start-node position.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialoguePosition' } } } }
+      responses:
+        '204': { description: The dialogue graph layout was saved. }
+        '400': { description: The graph position is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The NPC dialogue activity is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/portal:
     patch:
       operationId: updateAdminWorldBuilderPortalActivity
@@ -9574,6 +9671,116 @@ components:
       additionalProperties: false
       required: [activity_id, updated_at]
       properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
+    CreateAdminNpcDialogueActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+    CreateAdminNpcDialogueActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    AdminNpcDialogueCreatedResource:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties: { id: { type: string, format: uuid } }
+    AdminNpcDialoguePosition:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x: { type: number }
+        y: { type: number }
+    AdminNpcDialogueNodeRequest:
+      type: object
+      additionalProperties: false
+      required: [node_type, title, body, config, position]
+      properties:
+        node_type: { type: string, enum: [npc_monologue, npc_question, reflection, answer, end] }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        body: { type: [string, 'null'], maxLength: 4000 }
+        config: { type: object, additionalProperties: true }
+        position:
+          anyOf:
+            - $ref: '#/components/schemas/AdminNpcDialoguePosition'
+            - type: 'null'
+    AdminNpcDialogueTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [from_node_id, to_node_id, from_connector, to_connector]
+      properties:
+        from_node_id: { type: [string, 'null'], format: uuid }
+        to_node_id: { type: string, format: uuid }
+        from_connector: { type: string, minLength: 1, maxLength: 80 }
+        to_connector: { type: string, minLength: 1, maxLength: 80 }
+    AdminNpcDialogueGraph:
+      type: object
+      additionalProperties: false
+      required: [activity, dialogue_nodes, transitions, world_nodes, typing_sound_sets]
+      properties:
+        activity: { $ref: '#/components/schemas/AdminNpcDialogueActivity' }
+        dialogue_nodes: { type: array, maxItems: 80, items: { $ref: '#/components/schemas/AdminNpcDialogueNode' } }
+        transitions: { type: array, maxItems: 240, items: { $ref: '#/components/schemas/AdminNpcDialogueTransition' } }
+        world_nodes: { type: array, maxItems: 10000, items: { $ref: '#/components/schemas/AdminNpcDialogueWorldNode' } }
+        typing_sound_sets: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/AdminNpcDialogueTypingSoundSet' } }
+    AdminNpcDialogueActivity:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, introduction, graph_layout]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        introduction: { type: [string, 'null'] }
+        graph_layout: { type: object, additionalProperties: true }
+    AdminNpcDialogueNode:
+      type: object
+      additionalProperties: false
+      required: [id, node_type, title, body, config, position]
+      properties:
+        id: { type: string, format: uuid }
+        node_type: { type: string, enum: [npc_monologue, npc_question, reflection, answer, end] }
+        title: { type: string }
+        body: { type: [string, 'null'] }
+        config: { type: object, additionalProperties: true }
+        position:
+          type: object
+          additionalProperties: false
+          required: [x, y]
+          properties:
+            x: { type: [number, 'null'] }
+            y: { type: [number, 'null'] }
+    AdminNpcDialogueTransition:
+      type: object
+      additionalProperties: false
+      required: [id, from_node_id, to_node_id, from_connector, to_connector]
+      properties:
+        id: { type: string, format: uuid }
+        from_node_id: { type: [string, 'null'], format: uuid }
+        to_node_id: { type: string, format: uuid }
+        from_connector: { type: string }
+        to_connector: { type: string }
+    AdminNpcDialogueWorldNode:
+      type: object
+      additionalProperties: false
+      required: [id, map_title, title]
+      properties:
+        id: { type: string, format: uuid }
+        map_title: { type: string }
+        title: { type: string }
+    AdminNpcDialogueTypingSoundSet:
+      type: object
+      additionalProperties: false
+      required: [id, name, is_default]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        is_default: { type: boolean }
     MarkdownActivityPageVisual:
       type: object
       additionalProperties: false
