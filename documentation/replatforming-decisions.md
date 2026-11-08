@@ -4496,6 +4496,27 @@ editing controls; those follow the agreed backend-first authoring migration.
 authoring link as a browser-selected learner route or weakening the existing
 activity Portal arrival boundary.
 
+## ADR-114: Node unlock resets remove only tool-derived availability
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The source World Builder's `Lock for all users` action resets
+learner-specific tool unlocks for one node. Rust models tool unlocks,
+discovery and support-issued manual overrides as distinct persistence facts, so
+a broad learner-state deletion would revoke outcomes that the source action
+does not own.
+
+**Decision:** Add a CSRF-protected node reset command under the normal
+`world_maps.ru` all/own/assigned/direct-editor scope. It locks and authorizes
+the selected node, deletes only `learner_node_tool_uses` for it, and returns
+the affected count. It neither removes discovery nor changes active records in
+`learner_node_manual_unlocks`. The backend contract precedes the deferred
+source-adapted World Builder control.
+
+**Why:** The command preserves the source meaning while keeping distinct
+learner-state causes auditable and avoiding an authoring write that could
+silently revoke support staff intervention.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

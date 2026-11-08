@@ -52,6 +52,7 @@ pub mod admin_world_node;
 pub mod admin_world_node_layout;
 pub mod admin_world_node_starts;
 pub mod admin_world_node_transition;
+pub mod admin_world_node_unlock;
 pub mod admin_world_node_write;
 pub mod admin_world_npc_dialogue;
 pub mod admin_world_obstacle;

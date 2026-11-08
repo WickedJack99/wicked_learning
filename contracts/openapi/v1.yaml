@@ -835,6 +835,18 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The portal link is unavailable through the global/editable World scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/reset-unlocks:
+    post:
+      operationId: resetAdminWorldBuilderNodeToolUnlocks
+      summary: Reset learner-specific tool unlocks for one editable node.
+      description: Requires source world-map update authority. It removes only tool unlock records; learner discovery and explicit support overrides remain intact.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '200': { description: The reset completed., content: { application/json: { schema: { $ref: '#/components/schemas/ResetAdminWorldNodeToolUnlocksResponse' } } } }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The node is unavailable through the caller's map-edit scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/review-queue:
     get:
       operationId: getAdminWorldBuilderReviewQueue
@@ -11041,6 +11053,12 @@ components:
       required: [portal_link_id]
       properties:
         portal_link_id: { type: string, format: uuid }
+    ResetAdminWorldNodeToolUnlocksResponse:
+      type: object
+      additionalProperties: false
+      required: [reset_count]
+      properties:
+        reset_count: { type: integer, format: int64, minimum: 0 }
     AdminEditableMap:
       type: object
       additionalProperties: false

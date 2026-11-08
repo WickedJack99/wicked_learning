@@ -1481,6 +1481,13 @@ lifecycle; lifting the existing Laravel node-dialog UI remains a subsequent
 frontend adaptation step rather than an excuse to reintroduce a smaller
 MapAsset-only editor.
 
+The node's source `Lock for all users` backend action is also now available
+through a scoped typed command. It removes only existing learner tool-unlock
+rows for the selected editable node, never learner discovery or support-issued
+manual overrides. The source-adapted node-dialog control remains deferred with
+the other World Builder editing controls until the remaining authoring backend
+contracts are complete.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

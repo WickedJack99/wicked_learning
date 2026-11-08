@@ -388,6 +388,13 @@ source/target pair and never treats a submitted node as learner navigation.
 Map export, preflight, import and duplication preserve the nullable activity
 pair so a transfer cannot silently convert one portal kind into the other.
 
+The source node-level `Lock for all users` operation has a deliberately narrow
+Rust successor. Under the normal scoped `world_maps.ru` map-editor check, it
+deletes only `learner_node_tool_uses` for one node and reports the bounded row
+count. It neither deletes discovery nor revokes explicit support overrides in
+`learner_node_manual_unlocks`; those learner facts have different causes and
+must remain separate from an author resetting tool-derived availability.
+
 Map details retain their separate scoped authoring boundary. `learning_map_versions`
 stores the outgoing title, normalized description, optional learning-topic ID,
 MapAsset lock state, acting application principal and creation time before every

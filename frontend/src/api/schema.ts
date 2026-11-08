@@ -671,6 +671,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/reset-unlocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset learner-specific tool unlocks for one editable node.
+         * @description Requires source world-map update authority. It removes only tool unlock records; learner discovery and explicit support overrides remain intact.
+         */
+        post: operations["resetAdminWorldBuilderNodeToolUnlocks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/review-queue": {
         parameters: {
             query?: never;
@@ -7899,6 +7919,10 @@ export interface components {
             /** Format: uuid */
             portal_link_id: string;
         };
+        ResetAdminWorldNodeToolUnlocksResponse: {
+            /** Format: int64 */
+            reset_count: number;
+        };
         AdminEditableMap: {
             can_delete_world_maps: boolean;
             can_manage_map_access: boolean;
@@ -11564,6 +11588,59 @@ export interface operations {
                 content?: never;
             };
             /** @description The portal link is unavailable through the global/editable World scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resetAdminWorldBuilderNodeToolUnlocks: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reset completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetAdminWorldNodeToolUnlocksResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable through the caller's map-edit scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

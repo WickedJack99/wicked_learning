@@ -850,6 +850,12 @@ bounded, paginated node positions spatially, including each visible node's
 current position and whether restoring it would move that node, before
 restoring it, so the history cannot be mistaken for a complete map backup.
 
+The Rust backend for a selected node's source `Lock for all users` action now
+resets only learner-specific tool unlocks. It deliberately preserves discovery
+and explicit support overrides, so resetting a tool-derived condition cannot
+silently erase other learner-state causes. Its editor control remains deferred
+with the agreed backend-first World Builder migration.
+
 Authors can also inspect a bounded private history for an individual MapAsset's
 learner-facing configuration and restore an earlier version without losing the
 current configuration. Structural node placement and broader map history remain

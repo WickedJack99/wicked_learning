@@ -57,6 +57,7 @@ mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
 mod admin_world_node_transition;
+mod admin_world_node_unlock;
 mod admin_world_npc_dialogue;
 mod admin_world_obstacle;
 mod admin_world_open_practice;
@@ -818,6 +819,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/swap",
             patch(admin_world_map_layout::swap_node),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/reset-unlocks",
+            post(admin_world_node_unlock::reset_tool_unlocks),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/insert-map-asset",
