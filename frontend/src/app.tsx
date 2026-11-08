@@ -102,6 +102,12 @@ const OriginalCursorSettingsPage = lazy(async () => {
     return { default: module.OriginalCursorSettingsPage };
 });
 
+const OriginalPublicPalettePage = lazy(async () => {
+    const module = await import('./original-public-palette');
+
+    return { default: module.OriginalPublicPalettePage };
+});
+
 const OriginalGroupManagementPage = lazy(async () => {
     const module = await import('./original-group-management');
 
@@ -543,6 +549,14 @@ export function App() {
         if (
             new URLSearchParams(location.search).get('panel') ===
                 'admin-presentation-localization' &&
+            new URLSearchParams(location.search).get('presentation') === 'palette'
+        ) {
+            return <Suspense fallback={null}><OriginalPublicPalettePage appearance={appearance} /></Suspense>;
+        }
+
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+            'admin-presentation-localization' &&
             new URLSearchParams(location.search).get('presentation') === 'public'
         ) {
             return <Suspense fallback={null}><OriginalPublicPresentationPage appearance={appearance} /></Suspense>;
