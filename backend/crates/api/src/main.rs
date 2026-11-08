@@ -61,6 +61,7 @@ mod admin_world_npc_dialogue;
 mod admin_world_obstacle;
 mod admin_world_open_practice;
 mod admin_world_portal;
+mod admin_world_portal_link;
 mod admin_world_question;
 mod admin_world_reflection;
 mod admin_world_review;
@@ -654,6 +655,14 @@ fn router(state: AppState) -> Router {
             patch(admin_topics::update_topic),
         )
         .route("/api/v1/admin/world-builder", get(admin_world_graph::show))
+        .route(
+            "/api/v1/admin/world-builder/portal-links",
+            post(admin_world_portal_link::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/portal-links/{portal_link_id}",
+            delete(admin_world_portal_link::delete),
+        )
         .route(
             "/api/v1/admin/world-builder/world/export",
             get(admin_world_export::export),

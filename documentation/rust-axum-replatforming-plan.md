@@ -418,7 +418,10 @@ the stale timestamp, writes the server-owned Portal link only for an Entry
 Portal with a valid Exit target, records activity history, and keeps every
 selected or uploaded reusable visual referenced. The lifted World Builder form
 uses the existing reusable-visual picker/upload path and learner Portal scene
-for its preview. General map-link editing remains a separate work item.
+for its preview. Global map-link storage and API now preserve the source's
+distinct node-to-node links, including their nullable activity endpoints; the
+source-adapted editing controls remain deferred until the remaining backend
+authoring contracts are complete.
 
 ### Learner sound-preference slice — 6 November 2026
 

@@ -525,7 +525,7 @@ async fn load_portal_link(
     pool: &PgPool,
     activity_id: Uuid,
 ) -> Result<Option<AdminActivityPortalLink>, sqlx::Error> {
-    let row: Option<PortalLinkRow> = sqlx::query_as("SELECT links.source_activity_id AS id, links.label, links.description, target_activities.id AS target_activity_id, target_activities.title AS target_activity_title, target_nodes.id AS target_node_id, target_nodes.title AS target_node_title, target_maps.title AS target_map_title FROM learning_portal_links AS links INNER JOIN learning_activities AS target_activities ON target_activities.id = links.target_activity_id INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id INNER JOIN learning_maps AS target_maps ON target_maps.id = target_nodes.map_id WHERE links.source_activity_id = $1").bind(activity_id).fetch_optional(pool).await?;
+    let row: Option<PortalLinkRow> = sqlx::query_as("SELECT links.id, links.label, links.description, target_activities.id AS target_activity_id, target_activities.title AS target_activity_title, target_nodes.id AS target_node_id, target_nodes.title AS target_node_title, target_maps.title AS target_map_title FROM learning_portal_links AS links INNER JOIN learning_activities AS target_activities ON target_activities.id = links.target_activity_id INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id INNER JOIN learning_maps AS target_maps ON target_maps.id = target_nodes.map_id WHERE links.source_activity_id = $1").bind(activity_id).fetch_optional(pool).await?;
     Ok(row.map(|row| AdminActivityPortalLink {
         id: row.id,
         label: row.label,

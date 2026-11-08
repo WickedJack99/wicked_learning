@@ -121,8 +121,8 @@ struct StartRow {
 
 #[derive(FromRow)]
 struct PortalRow {
-    source_activity_id: Uuid,
-    target_activity_id: Uuid,
+    source_activity_id: Option<Uuid>,
+    target_activity_id: Option<Uuid>,
     source_node_id: Uuid,
     target_node_id: Uuid,
     label: Option<String>,
@@ -517,16 +517,24 @@ async fn clone_portals(
     let rows: Vec<PortalRow> = sqlx::query_as("SELECT links.source_activity_id, links.target_activity_id, links.source_node_id, links.target_node_id, links.label, links.description FROM learning_portal_links AS links INNER JOIN learning_nodes AS source_nodes ON source_nodes.id = links.source_node_id WHERE source_nodes.map_id = $1")
         .bind(source_map_id).fetch_all(&mut **transaction).await?;
     for row in rows {
-        let (Some(source_activity_id), Some(source_node_id)) = (
-            activity_ids.get(&row.source_activity_id),
-            node_ids.get(&row.source_node_id),
-        ) else {
+        let Some(source_node_id) = node_ids.get(&row.source_node_id).copied() else {
             continue;
         };
-        let target_activity_id = activity_ids
-            .get(&row.target_activity_id)
-            .copied()
-            .unwrap_or(row.target_activity_id);
+        let source_activity_id = match row.source_activity_id {
+            Some(activity_id) => {
+                let Some(activity_id) = activity_ids.get(&activity_id).copied() else {
+                    continue;
+                };
+                Some(activity_id)
+            }
+            None => None,
+        };
+        let target_activity_id = row.target_activity_id.map(|activity_id| {
+            activity_ids
+                .get(&activity_id)
+                .copied()
+                .unwrap_or(activity_id)
+        });
         let target_node_id = node_ids
             .get(&row.target_node_id)
             .copied()

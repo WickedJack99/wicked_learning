@@ -4472,6 +4472,30 @@ objects. JSON remains reference-only.
 authority to select arbitrary storage objects or bypass the established scoped
 writer, media-reference integrity and transactional graph import rules.
 
+## ADR-113: Global World Builder links remain distinct from activity portal travel
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** Laravel has two portal records in one table. An activity Portal
+has source and target activities and controls a learner arrival scene. The
+World Builder also creates a global node-to-node link with neither activity.
+Forcing the latter through the activity-travel writer would fabricate an exit
+scene, broaden learner navigation authority and erase source export/import
+semantics.
+
+**Decision:** Give each Rust portal row an opaque link ID, allow activity IDs
+only as an all-or-neither pair, and retain the unique non-null source-activity
+constraint for the existing travel writer. Add global create/delete endpoints
+that require `world_map_access.ru`, constrain create endpoints to the current
+editable World graph and reject same-node or duplicate source/target pairs.
+The graph projection, map transfer validation/import and map duplication retain
+the nullable pair. The backend endpoint does not yet expose new standalone
+editing controls; those follow the agreed backend-first authoring migration.
+
+**Why:** The model preserves both source contracts without treating a global
+authoring link as a browser-selected learner route or weakening the existing
+activity Portal arrival boundary.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

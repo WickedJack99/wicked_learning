@@ -428,44 +428,55 @@ async fn import_portals(
     for portal in list(payload, "portalTargets") {
         let portal = object(portal);
         let source_node_slug = string(portal, "sourceNodeSlug");
-        let source_activity_slug = string(portal, "sourceActivitySlug");
-        let (Some(source_node_id), Some(source_activity_id)) = (
-            nodes_by_slug.get(source_node_slug).copied(),
-            activities_by_key
-                .get(&(source_node_slug.to_owned(), source_activity_slug.to_owned()))
-                .copied(),
-        ) else {
+        let source_activity_slug = optional_string(portal, "sourceActivitySlug");
+        let target_activity_slug = optional_string(portal, "targetActivitySlug");
+        if source_activity_slug.is_some() != target_activity_slug.is_some() {
+            return Err(protocol_error(
+                "portal activities must be both present or both absent",
+            ));
+        }
+        let Some(source_node_id) = nodes_by_slug.get(source_node_slug).copied() else {
             return Err(protocol_error(
                 "portal source is not part of the imported map",
             ));
         };
+        let source_activity_id = source_activity_slug
+            .map(|slug| {
+                activities_by_key
+                    .get(&(source_node_slug.to_owned(), slug.to_owned()))
+                    .copied()
+                    .ok_or_else(|| protocol_error("portal source is not part of the imported map"))
+            })
+            .transpose()?;
         let target_map_slug = string(portal, "targetMapSlug");
         let target_node_slug = string(portal, "targetNodeSlug");
-        let target_activity_slug = string(portal, "targetActivitySlug");
         let (target_node_id, target_activity_id) = if target_map_slug == source_map_slug {
             let Some(target_node_id) = nodes_by_slug.get(target_node_slug).copied() else {
                 return Err(protocol_error(
                     "portal target node is not part of the imported map",
                 ));
             };
-            let Some(target_activity_id) = activities_by_key
-                .get(&(target_node_slug.to_owned(), target_activity_slug.to_owned()))
-                .copied()
-            else {
-                return Err(protocol_error(
-                    "portal target activity is not part of the imported map",
-                ));
-            };
+            let target_activity_id = target_activity_slug
+                .map(|slug| {
+                    activities_by_key
+                        .get(&(target_node_slug.to_owned(), slug.to_owned()))
+                        .copied()
+                        .ok_or_else(|| {
+                            protocol_error("portal target activity is not part of the imported map")
+                        })
+                })
+                .transpose()?;
             (target_node_id, target_activity_id)
         } else {
-            sqlx::query_as::<_, (Uuid, Uuid)>("SELECT nodes.id, activities.id FROM learning_maps AS maps INNER JOIN learning_nodes AS nodes ON nodes.map_id = maps.id INNER JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id INNER JOIN learning_routes AS routes ON routes.map_asset_id = assets.id INNER JOIN learning_activities AS activities ON activities.route_id = routes.id WHERE maps.world_id = $1 AND maps.slug = $2 AND nodes.slug = $3 AND activities.slug = $4 LIMIT 1")
-                .bind(world_id)
-                .bind(target_map_slug)
-                .bind(target_node_slug)
-                .bind(target_activity_slug)
-                .fetch_optional(&mut **transaction)
-                .await?
-                .ok_or_else(|| protocol_error("portal target is unavailable in this workspace"))?
+            portal_endpoint(
+                transaction,
+                world_id,
+                target_map_slug,
+                target_node_slug,
+                target_activity_slug,
+            )
+            .await?
+            .ok_or_else(|| protocol_error("portal target is unavailable in this workspace"))?
         };
         if source_node_id == target_node_id {
             return Err(protocol_error("portal target must be a different node"));
@@ -498,12 +509,19 @@ pub(crate) async fn import_deferred_portals(
     let payload = object(payload);
     for portal in list(payload, "portalTargets") {
         let portal = object(portal);
+        let source_activity_slug = optional_string(portal, "sourceActivitySlug");
+        let target_activity_slug = optional_string(portal, "targetActivitySlug");
+        if source_activity_slug.is_some() != target_activity_slug.is_some() {
+            return Err(protocol_error(
+                "portal activities must be both present or both absent",
+            ));
+        }
         let source = portal_endpoint(
             transaction,
             world_id,
             destination_map_slug,
             string(portal, "sourceNodeSlug"),
-            string(portal, "sourceActivitySlug"),
+            source_activity_slug,
         )
         .await?
         .ok_or_else(|| protocol_error("portal source is not part of the imported map"))?;
@@ -521,7 +539,7 @@ pub(crate) async fn import_deferred_portals(
             world_id,
             target_map_slug,
             string(portal, "targetNodeSlug"),
-            string(portal, "targetActivitySlug"),
+            target_activity_slug,
         )
         .await?
         .ok_or_else(|| protocol_error("portal target is unavailable in this workspace"))?;
@@ -546,15 +564,25 @@ async fn portal_endpoint(
     world_id: Uuid,
     map_slug: &str,
     node_slug: &str,
-    activity_slug: &str,
-) -> Result<Option<(Uuid, Uuid)>, sqlx::Error> {
-    sqlx::query_as::<_, (Uuid, Uuid)>("SELECT nodes.id, activities.id FROM learning_maps AS maps INNER JOIN learning_nodes AS nodes ON nodes.map_id = maps.id INNER JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id INNER JOIN learning_routes AS routes ON routes.map_asset_id = assets.id INNER JOIN learning_activities AS activities ON activities.route_id = routes.id WHERE maps.world_id = $1 AND maps.slug = $2 AND nodes.slug = $3 AND activities.slug = $4 LIMIT 1")
+    activity_slug: Option<&str>,
+) -> Result<Option<(Uuid, Option<Uuid>)>, sqlx::Error> {
+    if let Some(activity_slug) = activity_slug {
+        return sqlx::query_as::<_, (Uuid, Uuid)>("SELECT nodes.id, activities.id FROM learning_maps AS maps INNER JOIN learning_nodes AS nodes ON nodes.map_id = maps.id INNER JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id INNER JOIN learning_routes AS routes ON routes.map_asset_id = assets.id INNER JOIN learning_activities AS activities ON activities.route_id = routes.id WHERE maps.world_id = $1 AND maps.slug = $2 AND nodes.slug = $3 AND activities.slug = $4 LIMIT 1")
+            .bind(world_id)
+            .bind(map_slug)
+            .bind(node_slug)
+            .bind(activity_slug)
+            .fetch_optional(&mut **transaction)
+            .await
+            .map(|endpoint| endpoint.map(|(node_id, activity_id)| (node_id, Some(activity_id))));
+    }
+    sqlx::query_as::<_, (Uuid,)>("SELECT nodes.id FROM learning_maps AS maps INNER JOIN learning_nodes AS nodes ON nodes.map_id = maps.id WHERE maps.world_id = $1 AND maps.slug = $2 AND nodes.slug = $3 LIMIT 1")
         .bind(world_id)
         .bind(map_slug)
         .bind(node_slug)
-        .bind(activity_slug)
         .fetch_optional(&mut **transaction)
         .await
+        .map(|endpoint| endpoint.map(|(node_id,)| (node_id, None)))
 }
 
 pub(crate) async fn synchronize_media_references(

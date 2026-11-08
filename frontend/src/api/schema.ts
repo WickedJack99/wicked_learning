@@ -631,6 +631,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/portal-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a source-shaped global node-to-node portal link.
+         * @description Requires global source world-map-access update permission and two nodes inside the caller's editable World graph. This is distinct from an activity Portal's arrival-scene travel target.
+         */
+        post: operations["createAdminWorldBuilderPortalLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/portal-links/{portal_link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete one source-shaped World Builder portal link.
+         * @description Requires global source world-map-access update permission and a link with at least one endpoint in the caller's editable World graph.
+         */
+        delete: operations["deleteAdminWorldBuilderPortalLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/review-queue": {
         parameters: {
             query?: never;
@@ -7847,6 +7887,18 @@ export interface components {
             title: string;
             activity_type: string;
         };
+        CreateAdminWorldPortalLinkRequest: {
+            /** Format: uuid */
+            source_node_id: string;
+            /** Format: uuid */
+            target_node_id: string;
+            label?: string | null;
+            description?: string | null;
+        };
+        CreateAdminWorldPortalLinkResponse: {
+            /** Format: uuid */
+            portal_link_id: string;
+        };
         AdminEditableMap: {
             can_delete_world_maps: boolean;
             can_manage_map_access: boolean;
@@ -11404,6 +11456,126 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    createAdminWorldBuilderPortalLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminWorldPortalLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The global portal link was created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminWorldPortalLinkResponse"];
+                };
+            };
+            /** @description The source portal-link form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An endpoint is unavailable through the global/editable World scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source and target nodes are already linked. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminWorldBuilderPortalLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                portal_link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The portal link was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The portal link is unavailable through the global/editable World scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

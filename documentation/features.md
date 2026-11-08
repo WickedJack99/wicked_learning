@@ -942,9 +942,10 @@ review runs and editor assignments behind.
 
 The selected Rust World Builder map dialog also offers a source-shaped JSON
 export. It downloads the scoped map's current authored graph, MapAssets,
-message topics, portal targets and referenced media URLs without embedding
-media bytes. Learner records, authoring history, review runs and editor-group
-assignments are not exported.
+message topics, portal targets (including source node-to-node links with no
+activity endpoints) and referenced media URLs without embedding media bytes.
+Learner records, authoring history, review runs and editor-group assignments are
+not exported.
 
 The Rust World Builder can structurally validate one selected JSON map export
 without creating or changing content. It reports bounded graph and reference

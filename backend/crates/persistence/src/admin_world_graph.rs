@@ -90,12 +90,12 @@ struct PortalLinkRow {
     description: Option<String>,
     source_map_id: Uuid,
     target_map_id: Uuid,
-    source_activity_id: Uuid,
-    source_activity_title: String,
-    source_activity_type: String,
-    target_activity_id: Uuid,
-    target_activity_title: String,
-    target_activity_type: String,
+    source_activity_id: Option<Uuid>,
+    source_activity_title: Option<String>,
+    source_activity_type: Option<String>,
+    target_activity_id: Option<Uuid>,
+    target_activity_title: Option<String>,
+    target_activity_type: Option<String>,
     source_node_id: Uuid,
     source_node_slug: String,
     source_node_title: String,
@@ -275,7 +275,7 @@ async fn load_portal_links(
     }
 
     let rows = sqlx::query_as::<_, PortalLinkRow>(
-        "SELECT links.source_activity_id AS id, links.label, links.description, source_nodes.map_id AS source_map_id, target_nodes.map_id AS target_map_id, source_activities.id AS source_activity_id, source_activities.title AS source_activity_title, source_activities.activity_type AS source_activity_type, target_activities.id AS target_activity_id, target_activities.title AS target_activity_title, target_activities.activity_type AS target_activity_type, source_nodes.id AS source_node_id, source_nodes.slug AS source_node_slug, source_nodes.title AS source_node_title, source_nodes.description AS source_node_description, source_nodes.position_q AS source_node_q, source_nodes.position_r AS source_node_r, source_nodes.state AS source_node_state, source_nodes.visual_config AS source_node_visual_config, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.title AS target_node_title, target_nodes.description AS target_node_description, target_nodes.position_q AS target_node_q, target_nodes.position_r AS target_node_r, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config FROM learning_portal_links AS links INNER JOIN learning_activities AS source_activities ON source_activities.id = links.source_activity_id INNER JOIN learning_nodes AS source_nodes ON source_nodes.id = links.source_node_id INNER JOIN learning_activities AS target_activities ON target_activities.id = links.target_activity_id INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id WHERE source_nodes.map_id = ANY($1) OR target_nodes.map_id = ANY($1) ORDER BY source_nodes.map_id ASC, source_nodes.slug ASC, source_activities.slug ASC",
+        "SELECT links.id, links.label, links.description, source_nodes.map_id AS source_map_id, target_nodes.map_id AS target_map_id, source_activities.id AS source_activity_id, source_activities.title AS source_activity_title, source_activities.activity_type AS source_activity_type, target_activities.id AS target_activity_id, target_activities.title AS target_activity_title, target_activities.activity_type AS target_activity_type, source_nodes.id AS source_node_id, source_nodes.slug AS source_node_slug, source_nodes.title AS source_node_title, source_nodes.description AS source_node_description, source_nodes.position_q AS source_node_q, source_nodes.position_r AS source_node_r, source_nodes.state AS source_node_state, source_nodes.visual_config AS source_node_visual_config, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.title AS target_node_title, target_nodes.description AS target_node_description, target_nodes.position_q AS target_node_q, target_nodes.position_r AS target_node_r, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config FROM learning_portal_links AS links LEFT JOIN learning_activities AS source_activities ON source_activities.id = links.source_activity_id INNER JOIN learning_nodes AS source_nodes ON source_nodes.id = links.source_node_id LEFT JOIN learning_activities AS target_activities ON target_activities.id = links.target_activity_id INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id WHERE source_nodes.map_id = ANY($1) OR target_nodes.map_id = ANY($1) ORDER BY source_nodes.map_id ASC, source_nodes.slug ASC, source_activities.slug ASC NULLS FIRST, links.id ASC",
     )
     .bind(map_ids)
     .fetch_all(pool)
@@ -311,16 +311,24 @@ impl PortalLinkRow {
             description: self.description,
             source_map_id: self.source_map_id,
             target_map_id: self.target_map_id,
-            source_activity: Some(AdminPortalActivity {
-                id: self.source_activity_id,
-                title: self.source_activity_title,
-                activity_type: self.source_activity_type,
-            }),
-            target_activity: Some(AdminPortalActivity {
-                id: self.target_activity_id,
-                title: self.target_activity_title,
-                activity_type: self.target_activity_type,
-            }),
+            source_activity: self
+                .source_activity_id
+                .zip(self.source_activity_title)
+                .zip(self.source_activity_type)
+                .map(|((id, title), activity_type)| AdminPortalActivity {
+                    id,
+                    title,
+                    activity_type,
+                }),
+            target_activity: self
+                .target_activity_id
+                .zip(self.target_activity_title)
+                .zip(self.target_activity_type)
+                .map(|((id, title), activity_type)| AdminPortalActivity {
+                    id,
+                    title,
+                    activity_type,
+                }),
             source_node: AdminNodeSummary {
                 id: self.source_node_id,
                 slug: self.source_node_slug,

@@ -56,6 +56,7 @@ pub mod admin_world_npc_dialogue;
 pub mod admin_world_obstacle;
 pub mod admin_world_open_practice;
 pub mod admin_world_portal;
+pub mod admin_world_portal_link;
 pub mod admin_world_question;
 pub mod admin_world_reflection;
 pub mod admin_world_review_queue;

@@ -377,6 +377,17 @@ fields first. These bounded newest-first pages are exposed through dedicated
 World-detail endpoints, so map-level editor scope never grants authority to
 rename or describe the World.
 
+Global World Builder portal links are another distinct global authoring
+contract. A link always connects two different nodes in the caller's current
+editable-World projection and may have either both activity endpoints (the
+arrival-scene Portal contract) or neither (the source's node-to-node map link).
+`learning_portal_links` has its own opaque ID while retaining a unique optional
+source activity. The CSRF-protected create/delete API requires
+`world_map_access.ru`; it derives default labels server-side, rejects a duplicate
+source/target pair and never treats a submitted node as learner navigation.
+Map export, preflight, import and duplication preserve the nullable activity
+pair so a transfer cannot silently convert one portal kind into the other.
+
 Map details retain their separate scoped authoring boundary. `learning_map_versions`
 stores the outgoing title, normalized description, optional learning-topic ID,
 MapAsset lock state, acting application principal and creation time before every

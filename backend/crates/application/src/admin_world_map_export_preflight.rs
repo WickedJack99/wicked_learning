@@ -311,23 +311,37 @@ pub fn validate_manifest(manifest: &[u8]) -> MapExportPreflightResult {
             );
         }
         let source_activity = portal.get("sourceActivitySlug").and_then(Value::as_str);
-        if source_node
-            .and_then(|node| node_activities.get(node))
-            .is_none_or(|activities| {
-                source_activity.is_none_or(|activity| !activities.contains(activity))
-            })
-        {
+        let target_activity = portal.get("targetActivitySlug").and_then(Value::as_str);
+        if source_activity.is_some() != target_activity.is_some() {
             add_error(
                 &mut errors,
-                format!(
-                    "portalTargets.{index}.sourceActivitySlug must name an activity in its source node."
-                ),
+                format!("portalTargets.{index} must name both portal activities or neither."),
             );
         }
-        for key in ["targetMapSlug", "targetNodeSlug", "targetActivitySlug"] {
+        if let Some(source_activity) = source_activity {
+            if source_node
+                .and_then(|node| node_activities.get(node))
+                .is_none_or(|activities| !activities.contains(source_activity))
+            {
+                add_error(
+                    &mut errors,
+                    format!(
+                        "portalTargets.{index}.sourceActivitySlug must name an activity in its source node."
+                    ),
+                );
+            }
+        }
+        for key in ["targetMapSlug", "targetNodeSlug"] {
             slug(
                 portal.get(key),
                 &format!("portalTargets.{index}.{key}"),
+                &mut errors,
+            );
+        }
+        if target_activity.is_some() {
+            slug(
+                portal.get("targetActivitySlug"),
+                &format!("portalTargets.{index}.targetActivitySlug"),
                 &mut errors,
             );
         }
@@ -469,6 +483,13 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("toActivitySlug"))
         );
+    }
+
+    #[test]
+    fn accepts_a_global_portal_link_without_activity_endpoints() {
+        let result = validate_manifest(br#"{"format":"wicked-learning-map","formatVersion":1,"world":{"slug":"world"},"map":{"slug":"map"},"nodes":[{"slug":"source","activities":[]},{"slug":"target","activities":[]}],"mapAssets":[],"portalTargets":[{"sourceNodeSlug":"source","sourceActivitySlug":null,"targetMapSlug":"map","targetNodeSlug":"target","targetActivitySlug":null}],"references":{"mediaUrls":[]}}"#);
+
+        assert!(result.valid, "{:#?}", result.errors);
     }
 
     #[test]

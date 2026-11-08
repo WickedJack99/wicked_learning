@@ -804,6 +804,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/world-builder/portal-links:
+    post:
+      operationId: createAdminWorldBuilderPortalLink
+      summary: Create a source-shaped global node-to-node portal link.
+      description: Requires global source world-map-access update permission and two nodes inside the caller's editable World graph. This is distinct from an activity Portal's arrival-scene travel target.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdminWorldPortalLinkRequest' }
+      responses:
+        '201': { description: The global portal link was created., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminWorldPortalLinkResponse' } } } }
+        '400': { description: The source portal-link form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: An endpoint is unavailable through the global/editable World scope. }
+        '409': { description: The source and target nodes are already linked. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/portal-links/{portal_link_id}:
+    delete:
+      operationId: deleteAdminWorldBuilderPortalLink
+      summary: Delete one source-shaped World Builder portal link.
+      description: Requires global source world-map-access update permission and a link with at least one endpoint in the caller's editable World graph.
+      parameters: [ { name: portal_link_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The portal link was deleted. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The portal link is unavailable through the global/editable World scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/review-queue:
     get:
       operationId: getAdminWorldBuilderReviewQueue
@@ -10995,6 +11026,21 @@ components:
         id: { type: string, format: uuid }
         title: { type: string }
         activity_type: { type: string, pattern: '^[a-z][a-z0-9_]{0,63}$' }
+    CreateAdminWorldPortalLinkRequest:
+      type: object
+      additionalProperties: false
+      required: [source_node_id, target_node_id]
+      properties:
+        source_node_id: { type: string, format: uuid }
+        target_node_id: { type: string, format: uuid }
+        label: { type: [string, 'null'], maxLength: 160 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+    CreateAdminWorldPortalLinkResponse:
+      type: object
+      additionalProperties: false
+      required: [portal_link_id]
+      properties:
+        portal_link_id: { type: string, format: uuid }
     AdminEditableMap:
       type: object
       additionalProperties: false
