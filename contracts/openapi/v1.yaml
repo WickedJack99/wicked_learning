@@ -4693,6 +4693,41 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current principal cannot read AI settings. }
         '503': { description: The application database is unavailable. }
+  /admin/learning-companion:
+    get:
+      operationId: getAdminLearningCompanionSettings
+      summary: Read the source-adapted platform Learning Companion configuration.
+      description: This configuration controls the bounded platform identity and which authored AI dialogue nodes may be used. It does not invoke an AI provider or expose learner-private data.
+      responses:
+        '200':
+          description: The current platform companion configuration and eligible AI templates.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminLearningCompanionSettings' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current principal cannot read Learning Companion settings. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateAdminLearningCompanionSettings
+      summary: Replace the platform Learning Companion configuration.
+      description: Requires the source companion update permission. The selected optional template must be a Learning Companion template; this configuration alone never invokes a provider.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminLearningCompanionSettingsRequest' }
+      responses:
+        '200':
+          description: The saved platform companion configuration.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminLearningCompanionSettings' }
+        '400': { description: The platform companion form or selected AI template is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and companion update permission are required. }
+        '503': { description: The application database is unavailable. }
   /admin/ai/providers:
     post:
       operationId: createAdminAiProvider
@@ -9883,6 +9918,59 @@ components:
           type: array
           maxItems: 12
           items: { type: string, maxLength: 500 }
+    AdminLearningCompanionAiTemplateOption:
+      type: object
+      additionalProperties: false
+      required: [id, name, enabled]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        enabled: { type: boolean }
+    AdminLearningCompanionSettings:
+      type: object
+      additionalProperties: false
+      required: [enabled, display_name, avatar_url, avatar_color, avatar_position_x, avatar_position_y, avatar_scale, welcome_message, mode, ai_enabled, ai_template_id, ai_capabilities, ai_template_options]
+      properties:
+        enabled: { type: boolean }
+        display_name: { type: string, minLength: 1, maxLength: 80 }
+        avatar_url: { type: [string, 'null'], maxLength: 2048 }
+        avatar_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        avatar_position_x: { type: integer, minimum: 0, maximum: 100 }
+        avatar_position_y: { type: integer, minimum: 0, maximum: 100 }
+        avatar_scale: { type: integer, minimum: 80, maximum: 200 }
+        welcome_message: { type: string, minLength: 1, maxLength: 1200 }
+        mode: { type: string, enum: [scripted, guided_ai, open_ai] }
+        ai_enabled: { type: boolean }
+        ai_template_id: { type: [string, 'null'], format: uuid }
+        ai_capabilities:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items: { type: string, enum: [current-context, topic-context, route-context, nearby-places, navigation-alternatives, revisit-options] }
+        ai_template_options:
+          type: array
+          items: { $ref: '#/components/schemas/AdminLearningCompanionAiTemplateOption' }
+    UpdateAdminLearningCompanionSettingsRequest:
+      type: object
+      additionalProperties: false
+      required: [enabled, display_name, avatar_url, avatar_color, avatar_position_x, avatar_position_y, avatar_scale, welcome_message, mode, ai_enabled, ai_template_id, ai_capabilities]
+      properties:
+        enabled: { type: boolean }
+        display_name: { type: string, minLength: 1, maxLength: 80 }
+        avatar_url: { type: [string, 'null'], maxLength: 2048 }
+        avatar_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        avatar_position_x: { type: integer, minimum: 0, maximum: 100 }
+        avatar_position_y: { type: integer, minimum: 0, maximum: 100 }
+        avatar_scale: { type: integer, minimum: 80, maximum: 200 }
+        welcome_message: { type: string, minLength: 1, maxLength: 1200 }
+        mode: { type: string, enum: [scripted, guided_ai, open_ai] }
+        ai_enabled: { type: boolean }
+        ai_template_id: { type: [string, 'null'], format: uuid }
+        ai_capabilities:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items: { type: string, enum: [current-context, topic-context, route-context, nearby-places, navigation-alternatives, revisit-options] }
     SaveAdminAiProviderRequest:
       type: object
       additionalProperties: false

@@ -1525,6 +1525,20 @@ disposable browser test creates an unreachable prerequisite and proves the
 warning is visible. The calculation is server-side, uses only authoring reads,
 and does not change learner availability.
 
+### Learning Companion platform configuration backend slice — 8 November 2026
+
+The Rust application now persists the source-shaped singleton platform
+configuration for the Learning Companion: enabled state, display name, optional
+avatar URL and framing, color, orientation message, scripted/guided/open AI
+mode, guarded AI enablement, a `learner_companion` template reference and at
+most three allowlisted context capabilities. `GET` and CSRF-protected `PATCH`
+`/api/v1/admin/learning-companion` require the existing `companion` role
+permission; template selection is constrained server-side to the intended
+purpose. The endpoint is a configuration boundary only: it never invokes a
+provider or resolves learner context. Scope inheritance, reusable dialogue
+graphs, learner context/action projections, turns and the source-adapted
+settings/launcher UI remain later slices in the agreed backend-first sequence.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

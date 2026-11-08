@@ -4543,6 +4543,31 @@ rechecks both scopes.
 interventions distinct from discovery and tool use, and avoids exposing a
 browser route that could select learners outside the caller's evidence scope.
 
+## ADR-116: Learning Companion platform settings are a singleton permission-gated boundary
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The source companion identity and bounded AI-node policy are
+platform configuration, not learner input. Storing them as browser defaults or
+letting an arbitrary AI template be selected would let a client shape the
+assistant's authority and make later dialogue work depend on unvalidated state.
+
+**Decision:** Store one Rust-owned `learning_companion_settings` row with the
+source-bounded visual/orientation fields, mode, AI enablement, optional template
+reference and up to three allowlisted context capabilities. Expose it only
+through `GET` and CSRF-protected `PATCH /api/v1/admin/learning-companion`,
+guarded by `companion.ro` and `companion.ru` respectively. The writer verifies
+that a selected template has purpose `learner_companion`; saving the setting
+never invokes a provider, creates a dialogue graph or reads learner data.
+
+**Why:** This establishes an auditable, server-owned configuration prerequisite
+without conflating authoring setup with an AI turn or granting navigation and
+content-mutation authority to a companion.
+
+**Limits:** Scope inheritance, reusable dialogue graphs and assignments,
+learner-context projections, source-adapted administration UI, launcher
+placement and provider turns remain separate migration slices.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -15,6 +15,7 @@ mod admin_activity_source_references;
 mod admin_activity_templates;
 mod admin_ai_settings;
 mod admin_dialogue_typing_sound_set;
+mod admin_learning_companion;
 mod admin_learning_group;
 mod admin_learning_support_signals;
 mod admin_learning_taxonomy;
@@ -619,6 +620,10 @@ fn router(state: AppState) -> Router {
             get(admin_learning_taxonomy::index),
         )
         .route("/api/v1/admin/ai/settings", get(admin_ai_settings::index))
+        .route(
+            "/api/v1/admin/learning-companion",
+            get(admin_learning_companion::show).patch(admin_learning_companion::update),
+        )
         .route(
             "/api/v1/admin/ai/providers",
             post(admin_ai_settings::create_provider),

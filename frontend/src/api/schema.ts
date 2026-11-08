@@ -3866,6 +3866,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/learning-companion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the source-adapted platform Learning Companion configuration.
+         * @description This configuration controls the bounded platform identity and which authored AI dialogue nodes may be used. It does not invoke an AI provider or expose learner-private data.
+         */
+        get: operations["getAdminLearningCompanionSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace the platform Learning Companion configuration.
+         * @description Requires the source companion update permission. The selected optional template must be a Learning Companion template; this configuration alone never invokes a provider.
+         */
+        patch: operations["updateAdminLearningCompanionSettings"];
+        trace?: never;
+    };
     "/admin/ai/providers": {
         parameters: {
             query?: never;
@@ -7149,6 +7173,45 @@ export interface components {
             purpose_options: components["schemas"]["AdminAiOption"][];
             model_control_rules: components["schemas"]["AdminAiModelControlRule"][];
             guardrail_notes: string[];
+        };
+        AdminLearningCompanionAiTemplateOption: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            enabled: boolean;
+        };
+        AdminLearningCompanionSettings: {
+            enabled: boolean;
+            display_name: string;
+            avatar_url: string | null;
+            avatar_color: string;
+            avatar_position_x: number;
+            avatar_position_y: number;
+            avatar_scale: number;
+            welcome_message: string;
+            /** @enum {string} */
+            mode: "scripted" | "guided_ai" | "open_ai";
+            ai_enabled: boolean;
+            /** Format: uuid */
+            ai_template_id: string | null;
+            ai_capabilities: ("current-context" | "topic-context" | "route-context" | "nearby-places" | "navigation-alternatives" | "revisit-options")[];
+            ai_template_options: components["schemas"]["AdminLearningCompanionAiTemplateOption"][];
+        };
+        UpdateAdminLearningCompanionSettingsRequest: {
+            enabled: boolean;
+            display_name: string;
+            avatar_url: string | null;
+            avatar_color: string;
+            avatar_position_x: number;
+            avatar_position_y: number;
+            avatar_scale: number;
+            welcome_message: string;
+            /** @enum {string} */
+            mode: "scripted" | "guided_ai" | "open_ai";
+            ai_enabled: boolean;
+            /** Format: uuid */
+            ai_template_id: string | null;
+            ai_capabilities: ("current-context" | "topic-context" | "route-context" | "nearby-places" | "navigation-alternatives" | "revisit-options")[];
         };
         SaveAdminAiProviderRequest: {
             label: string;
@@ -23214,6 +23277,102 @@ export interface operations {
             };
             /** @description The current principal cannot read AI settings. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminLearningCompanionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current platform companion configuration and eligible AI templates. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionSettings"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current principal cannot read Learning Companion settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminLearningCompanionSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminLearningCompanionSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved platform companion configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLearningCompanionSettings"];
+                };
+            };
+            /** @description The platform companion form or selected AI template is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and companion update permission are required. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
