@@ -76,6 +76,7 @@ type SupportedActivityType =
     | 'tool_grant'
     | 'item_obstacle'
     | 'obstacle'
+    | 'question'
     | 'shared_task'
     | 'message_prompt'
     | 'message_wall';
@@ -152,6 +153,20 @@ type ActivityAuthorForm = {
     note: string;
     obstacle: ObstacleForm;
     prompt: string;
+    questionAllowMultiple: boolean;
+    questionExplanation: string;
+    questionFeedbackCorrect: string;
+    questionFeedbackIncorrect: string;
+    questionOptions: Array<{
+        body: string;
+        feedback: string;
+        isCorrect: boolean;
+        key: string;
+        label: string;
+        outcomeKey: string;
+        weights: Record<string, number>;
+    }>;
+    questionPrompt: string;
     messageActivityType: 'message_prompt' | 'message_wall';
     messageAllowResponses: boolean;
     messageAudience: 'peers' | 'support';
@@ -2679,6 +2694,14 @@ function ActivityGraph({
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'question' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Question
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
                             onClick={() => setEditor({ type: 'shared_task' })}
                             type="button"
                         >
@@ -3647,6 +3670,8 @@ function ActivityAuthorDialog({
                     ? 'Item obstacle'
                     : type === 'obstacle'
                       ? 'Obstacle'
+                      : type === 'question'
+                        ? 'Question'
                       : type === 'shared_task'
                         ? 'Shared task'
                         : type === 'message_prompt'
@@ -3730,6 +3755,23 @@ function ActivityAuthorDialog({
                 threshold: Number(form.sharedTaskThreshold),
                 validation_mode: form.sharedTaskValidationMode as 'minimum_length' | 'none',
             };
+            const question: components['schemas']['CreateAdminQuestionActivityRequest'] = {
+                ...common,
+                allow_multiple: form.questionAllowMultiple,
+                explanation: form.questionExplanation,
+                feedback_correct: form.questionFeedbackCorrect,
+                feedback_incorrect: form.questionFeedbackIncorrect,
+                options: form.questionOptions.map((option) => ({
+                    body: option.body,
+                    feedback: option.feedback,
+                    is_correct: option.isCorrect,
+                    key: optionalValue(option.key),
+                    label: option.label,
+                    outcome_key: option.outcomeKey,
+                    weights: option.weights,
+                })),
+                prompt: form.questionPrompt,
+            };
             const message = {
                 ...common,
                 activity_type: type as 'message_prompt' | 'message_wall',
@@ -3752,7 +3794,11 @@ function ActivityAuthorDialog({
                 topic_title: form.messageTopicTitle,
             } as components['schemas']['CreateAdminMessageActivityRequest'];
 
-            if ((type === 'message_prompt' || type === 'message_wall') && activity) {
+            if (type === 'question' && activity) {
+                ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/question', { body: { ...question, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
+            } else if (type === 'question') {
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/question-activities', { body: question, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+            } else if ((type === 'message_prompt' || type === 'message_wall') && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/message', { body: { ...message, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'message_prompt' || type === 'message_wall') {
                 ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/message-activities', { body: message, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
@@ -4097,6 +4143,8 @@ function ActivityAuthorDialog({
                             }
                             tools={tools}
                         />
+                    ) : type === 'question' ? (
+                        <QuestionFields form={form} onChange={setForm} />
                     ) : type === 'shared_task' ? (
                         <SharedTaskFields form={form} onChange={setForm} />
                     ) : type === 'message_prompt' || type === 'message_wall' ? (
@@ -4133,6 +4181,23 @@ function ActivityAuthorDialog({
             </form>
         </div>
     );
+}
+
+function QuestionFields({ form, onChange }: { form: ActivityAuthorForm; onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>> }) {
+    const update = (field: keyof ActivityAuthorForm, value: string | boolean) => onChange((current) => ({ ...current, [field]: value }));
+    const updateOption = (index: number, update: (option: ActivityAuthorForm['questionOptions'][number]) => ActivityAuthorForm['questionOptions'][number]) => onChange((current) => ({ ...current, questionOptions: current.questionOptions.map((option, optionIndex) => optionIndex === index ? update(option) : option) }));
+    return <>
+        <ActivityTextField className="md:col-span-2" label="Question prompt" onChange={(value) => update('questionPrompt', value)} required textarea value={form.questionPrompt} />
+        <ActivityTextField label="Correct feedback" onChange={(value) => update('questionFeedbackCorrect', value)} textarea value={form.questionFeedbackCorrect} />
+        <ActivityTextField label="Incorrect feedback" onChange={(value) => update('questionFeedbackIncorrect', value)} textarea value={form.questionFeedbackIncorrect} />
+        <ActivityTextField className="md:col-span-2" label="Explanation shown after answering" onChange={(value) => update('questionExplanation', value)} textarea value={form.questionExplanation} />
+        <label className="flex items-center gap-3 text-sm font-medium md:col-span-2"><input checked={form.questionAllowMultiple} onChange={(event) => update('questionAllowMultiple', event.target.checked)} type="checkbox" />Allow selecting more than one answer</label>
+        <div className="grid gap-4 md:col-span-2"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Answers</p><p className="text-sm text-slate-500 dark:text-slate-400">Mark correct answers and optionally connect an outcome key to a matching graph edge.</p></div><button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-white/20" disabled={form.questionOptions.length >= 12} onClick={() => onChange((current) => ({ ...current, questionOptions: [...current.questionOptions, emptyQuestionOption(String.fromCharCode(65 + current.questionOptions.length))] }))} type="button">Add answer</button></div>{form.questionOptions.map((option, index) => <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5" key={`question-option-${index}`}><div className="flex items-center justify-between"><p className="text-sm font-semibold">Answer {option.label || index + 1}</p><button className="text-sm text-red-700 disabled:opacity-50 dark:text-red-300" disabled={form.questionOptions.length <= 2} onClick={() => onChange((current) => ({ ...current, questionOptions: current.questionOptions.filter((_, optionIndex) => optionIndex !== index) }))} type="button">Remove</button></div><ActivityTextField label="Label" onChange={(value) => updateOption(index, (current) => ({ ...current, label: value }))} value={option.label} /><ActivityTextField className="md:col-span-2" label="Answer text" onChange={(value) => updateOption(index, (current) => ({ ...current, body: value }))} textarea value={option.body} /><ActivityTextField label="Outcome key (optional)" onChange={(value) => updateOption(index, (current) => ({ ...current, outcomeKey: value }))} value={option.outcomeKey} /><ActivityTextField label="Answer feedback (optional)" onChange={(value) => updateOption(index, (current) => ({ ...current, feedback: value }))} value={option.feedback} /><label className="flex items-center gap-3 text-sm font-medium"><input checked={option.isCorrect} onChange={(event) => updateOption(index, (current) => ({ ...current, isCorrect: event.target.checked }))} type="checkbox" />Correct answer</label></div>)}</div>
+    </>;
+}
+
+function emptyQuestionOption(label: string): ActivityAuthorForm['questionOptions'][number] {
+    return { body: '', feedback: '', isCorrect: false, key: '', label, outcomeKey: '', weights: {} };
 }
 
 function MessageActivityFields({ form, onChange, topics, type }: { form: ActivityAuthorForm; onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>; topics: MessageTopic[]; type: 'message_prompt' | 'message_wall' }) {
@@ -5410,6 +5475,12 @@ function activityAuthorForm(
             : type === 'message_prompt' || type === 'message_wall'
               ? 'Leave a helpful note or an encouraging thought for the next learner.'
               : 'What feels clearer now?',
+        questionAllowMultiple: configBoolean(config, 'allowMultiple'),
+        questionExplanation: configString(config, 'explanation'),
+        questionFeedbackCorrect: configString(config, 'feedbackCorrect'),
+        questionFeedbackIncorrect: configString(config, 'feedbackIncorrect'),
+        questionOptions: questionOptions(config),
+        questionPrompt: configString(config, 'prompt'),
         messageActivityType: type === 'message_wall' ? 'message_wall' : 'message_prompt',
         messageAllowResponses: configBoolean(config, 'messageAllowResponses'),
         messageAudience: configString(config, 'messageAudience') === 'support' ? 'support' : 'peers',
@@ -5553,6 +5624,23 @@ function configNumber(
     return typeof value === 'number' && Number.isFinite(value)
         ? value
         : fallback;
+}
+
+function questionOptions(config: Record<string, unknown>): ActivityAuthorForm['questionOptions'] {
+    if (!Array.isArray(config.options)) {
+        return [emptyQuestionOption('A'), emptyQuestionOption('B')];
+    }
+    const options = config.options.flatMap((value, index) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return [];
+        }
+        const option = value as Record<string, unknown>;
+        const weights = option.weights && typeof option.weights === 'object' && !Array.isArray(option.weights)
+            ? Object.fromEntries(Object.entries(option.weights).filter(([, weight]) => typeof weight === 'number' && Number.isFinite(weight))) as Record<string, number>
+            : {};
+        return [{ body: configString(option, 'body'), feedback: configString(option, 'feedback'), isCorrect: configBoolean(option, 'isCorrect'), key: configString(option, 'key'), label: configStringOr(option, 'label', String.fromCharCode(65 + index)), outcomeKey: configString(option, 'outcomeKey'), weights }];
+    });
+    return options.length >= 2 ? options.slice(0, 12) : [emptyQuestionOption('A'), emptyQuestionOption('B')];
 }
 
 function itemGrantItems(
@@ -6059,6 +6147,7 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'tool_grant' ||
         type === 'item_obstacle' ||
         type === 'obstacle' ||
+        type === 'question' ||
         type === 'shared_task' || type === 'message_prompt' || type === 'message_wall'
     );
 }

@@ -1794,6 +1794,33 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The node is unavailable to the caller. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/question-activities:
+    post:
+      operationId: createAdminWorldBuilderQuestionActivity
+      summary: Create a source Question activity on an editable node.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminQuestionActivityRequest' } } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminQuestionActivityResponse' } } } }
+        '400': { description: The source question fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/question:
+    patch:
+      operationId: updateAdminWorldBuilderQuestionActivity
+      summary: Update a source Question activity.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminQuestionActivityRequest' } } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminQuestionActivityResponse' } } } }
+        '400': { description: The source question fields or update timestamp are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unavailable to the caller. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/message:
     patch:
       operationId: updateAdminWorldBuilderMessageActivity
@@ -9387,6 +9414,50 @@ components:
       properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
     CreateAdminMessageActivityRequest:
       $ref: '#/components/schemas/MessageActivityForm'
+    CreateAdminQuestionActivityRequest:
+      $ref: '#/components/schemas/QuestionActivityForm'
+    CreateAdminQuestionActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminQuestionActivityRequest:
+      allOf:
+        - $ref: '#/components/schemas/QuestionActivityForm'
+        - type: object
+          required: [updated_at]
+          properties: { updated_at: { type: string, format: date-time } }
+    UpdateAdminQuestionActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
+    QuestionOptionForm:
+      type: object
+      additionalProperties: false
+      required: [label, body, is_correct, key, outcome_key, feedback, weights]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 30 }
+        body: { type: string, minLength: 1, maxLength: 2000 }
+        is_correct: { type: boolean }
+        key: { type: [string, 'null'], maxLength: 120 }
+        outcome_key: { type: string, maxLength: 120 }
+        feedback: { type: string, maxLength: 2000 }
+        weights: { type: object, maxProperties: 20, additionalProperties: { type: number, minimum: 0, maximum: 1000 } }
+    QuestionActivityForm:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, prompt, feedback_correct, feedback_incorrect, explanation, allow_multiple, options]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        prompt: { type: string, minLength: 1, maxLength: 4000 }
+        feedback_correct: { type: string, maxLength: 2000 }
+        feedback_incorrect: { type: string, maxLength: 2000 }
+        explanation: { type: string, maxLength: 4000 }
+        allow_multiple: { type: boolean }
+        options: { type: array, minItems: 2, maxItems: 12, items: { $ref: '#/components/schemas/QuestionOptionForm' } }
     CreateAdminMessageActivityResponse:
       type: object
       additionalProperties: false

@@ -37,6 +37,7 @@ mod admin_world_node_starts;
 mod admin_world_node_transition;
 mod admin_world_obstacle;
 mod admin_world_open_practice;
+mod admin_world_question;
 mod admin_world_reflection;
 mod admin_world_shared_task;
 mod admin_world_tool_grant;
@@ -702,6 +703,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/reflection",
             patch(admin_world_reflection::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/question-activities",
+            post(admin_world_question::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/question",
+            patch(admin_world_question::update),
         )
         .route("/api/v1/admin/world-builder/nodes/{node_id}/message-activities", post(admin_world_message::create))
         .route("/api/v1/admin/world-builder/activities/{activity_id}/message", patch(admin_world_message::update))

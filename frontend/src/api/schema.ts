@@ -1363,6 +1363,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/question-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a source Question activity on an editable node. */
+        post: operations["createAdminWorldBuilderQuestionActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/question": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a source Question activity. */
+        patch: operations["updateAdminWorldBuilderQuestionActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/message": {
         parameters: {
             query?: never;
@@ -6407,6 +6441,43 @@ export interface components {
             updated_at: string;
         };
         CreateAdminMessageActivityRequest: components["schemas"]["MessageActivityForm"];
+        CreateAdminQuestionActivityRequest: components["schemas"]["QuestionActivityForm"];
+        CreateAdminQuestionActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        UpdateAdminQuestionActivityRequest: components["schemas"]["QuestionActivityForm"] & {
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminQuestionActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        QuestionOptionForm: {
+            label: string;
+            body: string;
+            is_correct: boolean;
+            key: string | null;
+            outcome_key: string;
+            feedback: string;
+            weights: {
+                [key: string]: number;
+            };
+        };
+        QuestionActivityForm: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            prompt: string;
+            feedback_correct: string;
+            feedback_incorrect: string;
+            explanation: string;
+            allow_multiple: boolean;
+            options: components["schemas"]["QuestionOptionForm"][];
+        };
         CreateAdminMessageActivityResponse: {
             /** Format: uuid */
             activity_id: string;
@@ -12075,6 +12146,141 @@ export interface operations {
             };
             /** @description The node is unavailable to the caller. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderQuestionActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminQuestionActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminQuestionActivityResponse"];
+                };
+            };
+            /** @description The source question fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderQuestionActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminQuestionActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminQuestionActivityResponse"];
+                };
+            };
+            /** @description The source question fields or update timestamp are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

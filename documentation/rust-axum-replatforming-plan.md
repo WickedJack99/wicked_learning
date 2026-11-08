@@ -1067,7 +1067,7 @@ including learner guidance, optional light/dark images and button colors,
 ordering and a separate delete confirmation. Selecting an authored edge opens
 the source transition editor, preserving its label/outcome-only edit rule and
 direct connection deletion. It now adapts the source
-Open Practice, Reflection, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
+Open Practice, Reflection, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
 forms through their complete typed Rust commands. Shared Task preserves its source task/repeat/validation/cycle choices, anonymous contribution boundary, project brief and optional anonymous peer-review invitation under the same scoped, CSRF-protected, optimistic-concurrency writer; Item Grant resolves selected catalog UUIDs
 only at the scoped server command and retains its quantities, probability and
 scene configuration, while Tool Grant does the same for its optional tool and
@@ -1075,7 +1075,13 @@ retains the source bubble, motion, placement and scene fields. Each form
 refetches after a successful write. Item Obstacle carries its normal/completed
 scene fields, positioned catalog-item slots, replay/lock behavior and the
 three catalog-sound events through the typed scoped command. The World Builder
-also adapts source Message prompt and Message wall creation and editing. The
+also adapts source Question creation and editing: its prompt, global feedback,
+post-answer explanation, multiple-selection setting and two-to-twelve answer
+cards retain option labels, bodies, correctness, optional route outcome keys,
+feedback and hidden source weight maps under the same scoped CSRF and
+optimistic-concurrency boundary. Learner playback continues to receive only
+its existing safe question projection.
+It also adapts source Message prompt and Message wall creation and editing. The
 writer resolves a map-scoped existing or new topic, preserves the source
 peer/support and response-type boundaries, rejects a prompt/wall type switch,
 and stores all ten authored dark/light message-surface colors with the source
