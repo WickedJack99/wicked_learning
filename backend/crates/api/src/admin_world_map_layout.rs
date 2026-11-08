@@ -21,6 +21,11 @@ pub struct PositionRequest {
     r: i32,
 }
 #[derive(Deserialize)]
+pub struct DirectionRequest {
+    q: i32,
+    r: i32,
+}
+#[derive(Deserialize)]
 pub struct PageQuery {
     #[serde(default = "one")]
     page: u32,
@@ -38,6 +43,16 @@ fn position(value: PositionRequest) -> HexPosition {
         q: value.q,
         r: value.r,
     }
+}
+fn direction(value: DirectionRequest) -> Result<HexPosition, ApiError> {
+    let direction = HexPosition {
+        q: value.q,
+        r: value.r,
+    };
+    direction
+        .is_neighbor_direction()
+        .then_some(direction)
+        .ok_or_else(ApiError::invalid_request)
 }
 pub async fn update_node(
     State(state): State<AppState>,
@@ -58,6 +73,27 @@ pub async fn update_node(
         .map_err(|_| ApiError::service_unavailable())?
         .ok_or_else(ApiError::not_found)?;
     Ok(Json(p))
+}
+pub async fn swap_node(
+    State(state): State<AppState>,
+    Path(node_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth: AuthSession<IdentityBackend>,
+    Json(body): Json<DirectionRequest>,
+) -> Result<StatusCode, ApiError> {
+    let id = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let direction = direction(body)?;
+    let principal = authenticated_principal(&state, auth).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repo = PostgresAdminWorldMapLayoutRepository::new(&state.application_database);
+    let swapped = AdminWorldMapLayoutCommand::new(&repo)
+        .swap_node_position(&principal, id, direction)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    swapped
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
 }
 pub async fn versions(
     State(state): State<AppState>,

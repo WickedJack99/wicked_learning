@@ -14,6 +14,7 @@ import type { Connection, Edge, Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
     ArrowLeft,
+    ArrowRight,
     BookmarkPlus,
     CircleAlert,
     CircleCheck,
@@ -3201,6 +3202,47 @@ function MapNodePlacementDialog({
     return <div aria-labelledby="map-node-placement-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" role="dialog"><form className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-semibold" id="map-node-placement-title">Place map tile</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set <span className="font-medium">{node.title}</span> on the source hex grid. Saving preserves the outgoing layout in history.</p></div><button aria-label="Close tile placement" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{error}</p> : null}<div className="mt-5 grid grid-cols-2 gap-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label></div><div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10"><button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : 'Save placement'}</button></div></form></div>;
 }
 
+const hexDirections = [
+    { q: 1, r: 0, label: 'east', rotation: 0 },
+    { q: 1, r: -1, label: 'north-east', rotation: -60 },
+    { q: 0, r: -1, label: 'north-west', rotation: -120 },
+    { q: -1, r: 0, label: 'west', rotation: 180 },
+    { q: -1, r: 1, label: 'south-west', rotation: 120 },
+    { q: 0, r: 1, label: 'south-east', rotation: 60 },
+] as const;
+
+function MapNodeSwapControls({
+    node,
+    nodes,
+    onSwapped,
+}: {
+    node: components['schemas']['AdminNodeSummary'];
+    nodes: components['schemas']['AdminNodeSummary'][];
+    onSwapped: () => void;
+}) {
+    const [swapping, setSwapping] = useState<string | null>(null);
+    const [error, setError] = useState(false);
+    const swap = async (direction: (typeof hexDirections)[number]) => {
+        const neighbor = nodes.find((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r);
+        if (!neighbor) return;
+        setSwapping(direction.label);
+        setError(false);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH('/admin/world-builder/nodes/{node_id}/swap', { body: { q: direction.q, r: direction.r }, params: { header: { 'X-CSRF-Token': token }, path: { node_id: node.id } } });
+            if (!response.ok) throw new Error('swap unavailable');
+            onSwapped();
+        } catch {
+            setError(true);
+        } finally {
+            setSwapping(null);
+        }
+    };
+    const neighbors = hexDirections.filter((direction) => nodes.some((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r));
+    if (neighbors.length === 0) return null;
+    return <div className="border-t border-slate-200 px-3 py-2 dark:border-white/10"><p className="text-xs text-slate-500 dark:text-slate-400">Swap with neighboring hex tile</p><div className="mt-1 flex flex-wrap gap-1">{neighbors.map((direction) => { const neighbor = nodes.find((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r)!; return <button aria-label={`Swap ${node.title} with ${neighbor.title} ${direction.label}`} className="grid size-7 place-items-center rounded-full border border-teal-700/35 text-teal-700 hover:bg-teal-50 disabled:opacity-50 dark:border-teal-300/35 dark:text-teal-300 dark:hover:bg-teal-300/10" data-wl-id={`authoring.map-node-swap.${node.id}.${direction.q}.${direction.r}`} disabled={swapping !== null} key={direction.label} onClick={() => void swap(direction)} title={`Swap with ${neighbor.title} ${direction.label}`} type="button"><ArrowRight className="size-4" style={{ transform: `rotate(${direction.rotation}deg)` }} /></button>; })}</div>{error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300" role="status">The adjacent tiles could not be swapped. Refresh the map and try again.</p> : null}</div>;
+}
+
 function MapLayoutHistoryDialog({ map, onClose, onRestored }: { map: EditableMap['editable_map']['map']; onClose: () => void; onRestored: () => void }) {
     const [history, setHistory] = useState<MapLayoutVersionPage | null>(null);
     const [preview, setPreview] = useState<MapLayoutPreviewPage | null>(null);
@@ -3363,6 +3405,7 @@ function MapDetails({
                         <div className="rounded-lg border border-slate-200 dark:border-white/10" key={node.id}>
                             <button className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => onSelectNode(node.id)} type="button"><span className="block font-medium">{node.title}</span><span className="text-xs text-slate-500 dark:text-slate-400">{node.activity_review_count} activities awaiting review</span></button>
                             <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"><span className="text-slate-500 dark:text-slate-400">Hex ({node.position.q}, {node.position.r})</span><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-position.${node.id}`} onClick={() => setPlacementNode(node)} type="button">Place tile</button></div>
+                            <MapNodeSwapControls node={node} nodes={map.nodes} onSwapped={onUpdated} />
                         </div>
                     ))}
                 </div>

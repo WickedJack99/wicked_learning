@@ -831,12 +831,14 @@ author form is rejected when another author has saved newer details, so a
 later save cannot silently overwrite that change.
 
 Node placement edits also keep a bounded, paginated layout history. Authors can
-restore an earlier arrangement of the existing nodes without changing their
-content. The history view marks entries unavailable after nodes have been added
-or removed, and authors can preview a saved arrangement's bounded, paginated
-node positions spatially, including each visible node's current position and
-whether restoring it would move that node, before restoring it, so the history cannot be
-mistaken for a complete map backup.
+move a tile directly or swap it with an occupied adjacent hex tile in one of the
+source's six directions; each real change retains the outgoing arrangement.
+Authors can restore an earlier arrangement of the existing nodes without
+changing their content. The history view marks entries unavailable after nodes
+have been added or removed, and authors can preview a saved arrangement's
+bounded, paginated node positions spatially, including each visible node's
+current position and whether restoring it would move that node, before
+restoring it, so the history cannot be mistaken for a complete map backup.
 
 Authors can also inspect a bounded private history for an individual MapAsset's
 learner-facing configuration and restore an earlier version without losing the

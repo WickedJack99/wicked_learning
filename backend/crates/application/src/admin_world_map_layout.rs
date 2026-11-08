@@ -10,6 +10,15 @@ pub struct HexPosition {
     pub r: i32,
 }
 
+impl HexPosition {
+    pub const fn is_neighbor_direction(self) -> bool {
+        matches!(
+            (self.q, self.r),
+            (1, 0) | (1, -1) | (0, -1) | (-1, 0) | (-1, 1) | (0, 1)
+        )
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MapLayoutVersion {
     pub id: Uuid,
@@ -65,8 +74,8 @@ mod tests {
     use wicked_learning_domain::identity_access::AuthorizedPrincipal;
 
     use super::{
-        AdminWorldMapLayoutError, AdminWorldMapLayoutHistoryQuery, AdminWorldMapLayoutRepository,
-        HexPosition, MapLayoutPreviewPage, MapLayoutVersionPage,
+        AdminWorldMapLayoutCommand, AdminWorldMapLayoutError, AdminWorldMapLayoutHistoryQuery,
+        AdminWorldMapLayoutRepository, HexPosition, MapLayoutPreviewPage, MapLayoutVersionPage,
     };
 
     struct RecordingRepository(Arc<AtomicBool>);
@@ -81,6 +90,15 @@ mod tests {
         {
             self.0.store(true, Ordering::SeqCst);
             async { Ok(None) }
+        }
+        fn swap_node_position(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: HexPosition,
+        ) -> impl Future<Output = Result<bool, AdminWorldMapLayoutError>> + Send {
+            self.0.store(true, Ordering::SeqCst);
+            async { Ok(false) }
         }
         fn list_versions(
             &self,
@@ -143,6 +161,33 @@ mod tests {
         assert!(invalid.is_none());
         assert!(!called.load(Ordering::SeqCst));
     }
+
+    #[tokio::test]
+    async fn swap_requires_the_map_update_scope_and_one_source_hex_direction() {
+        let called = Arc::new(AtomicBool::new(false));
+        let repository = RecordingRepository(called.clone());
+        let reader = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_maps:r:all".to_owned()],
+        };
+        let rejected = AdminWorldMapLayoutCommand::new(&repository)
+            .swap_node_position(&reader, Uuid::new_v4(), HexPosition { q: 1, r: 0 })
+            .await
+            .expect("authorization check");
+        assert!(!rejected);
+        let author = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_maps:ru:all".to_owned()],
+        };
+        let invalid = AdminWorldMapLayoutCommand::new(&repository)
+            .swap_node_position(&author, Uuid::new_v4(), HexPosition { q: 1, r: 1 })
+            .await
+            .expect("direction check");
+        assert!(!invalid);
+        assert!(!called.load(Ordering::SeqCst));
+    }
 }
 
 pub trait AdminWorldMapLayoutRepository {
@@ -152,6 +197,12 @@ pub trait AdminWorldMapLayoutRepository {
         node_id: Uuid,
         position: HexPosition,
     ) -> impl Future<Output = Result<Option<HexPosition>, AdminWorldMapLayoutError>> + Send;
+    fn swap_node_position(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        direction: HexPosition,
+    ) -> impl Future<Output = Result<bool, AdminWorldMapLayoutError>> + Send;
     fn list_versions(
         &self,
         principal: &AuthorizedPrincipal,
@@ -195,6 +246,19 @@ impl<'repository, Repository: AdminWorldMapLayoutRepository>
         }
         self.repository
             .update_node_position(principal, node_id, position)
+            .await
+    }
+    pub async fn swap_node_position(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        direction: HexPosition,
+    ) -> Result<bool, AdminWorldMapLayoutError> {
+        if !principal.has_permission("world_maps", "ru") || !direction.is_neighbor_direction() {
+            return Ok(false);
+        }
+        self.repository
+            .swap_node_position(principal, node_id, direction)
             .await
     }
     pub async fn restore(

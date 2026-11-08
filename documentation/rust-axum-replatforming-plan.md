@@ -1441,7 +1441,12 @@ rejects occupied coordinates. Bounded history lists and previews saved/current
 tile positions; restore validates unchanged node membership and unique saved
 coordinates, snapshots the outgoing layout, then restores atomically. Browser
 proof creates disposable tiles, moves one twice, previews and restores a saved
-layout, then removes the disposable map.
+layout, then removes the disposable map. Adjacent tiles can also be swapped in
+one of the source hex grid's six directions: the writer requires an occupied
+neighbor, locks both map nodes, snapshots the outgoing layout and completes the
+exchange through the same collision-free temporary coordinate range. Its browser
+proof creates a disposable pair, swaps it, verifies the saved history entry and
+removes the map.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

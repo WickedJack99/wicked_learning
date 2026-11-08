@@ -29,6 +29,18 @@ impl Port for PostgresAdminWorldMapLayoutRepository<'_> {
                 .map_err(|_| AdminWorldMapLayoutError::Unavailable)
         }
     }
+    fn swap_node_position(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        direction: HexPosition,
+    ) -> impl std::future::Future<Output = Result<bool, AdminWorldMapLayoutError>> + Send {
+        async move {
+            swap(self.pool, principal, node_id, direction)
+                .await
+                .map_err(|_| AdminWorldMapLayoutError::Unavailable)
+        }
+    }
     fn list_versions(
         &self,
         principal: &AuthorizedPrincipal,
@@ -177,6 +189,87 @@ async fn update(
     .await?;
     tx.commit().await?;
     Ok(Some(pos))
+}
+
+async fn swap(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    node_id: Uuid,
+    direction: HexPosition,
+) -> Result<bool, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    let Some(principal_id) = principal_id(&mut transaction, principal).await? else {
+        return Ok(false);
+    };
+    let map_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT map_id FROM learning_nodes WHERE id=$1 FOR UPDATE")
+            .bind(node_id)
+            .fetch_optional(&mut *transaction)
+            .await?;
+    let Some(map_id) = map_id else {
+        return Ok(false);
+    };
+    if !allowed(&mut transaction, principal, principal_id, map_id).await? {
+        return Ok(false);
+    }
+    let nodes = nodes(&mut transaction, map_id, true).await?;
+    let Some(source) = nodes.iter().find(|node| node.id == node_id) else {
+        return Ok(false);
+    };
+    let Some(target_q) = source.q.checked_add(direction.q) else {
+        return Ok(false);
+    };
+    let Some(target_r) = source.r.checked_add(direction.r) else {
+        return Ok(false);
+    };
+    let Some(target) = nodes
+        .iter()
+        .find(|node| node.q == target_q && node.r == target_r)
+    else {
+        return Ok(false);
+    };
+    snapshot(&mut transaction, map_id, principal_id, &nodes).await?;
+    let temporary = temporary_coordinate(&nodes)?;
+    sqlx::query("UPDATE learning_nodes SET position_q=$2, position_r=$3 WHERE id=$1")
+        .bind(source.id)
+        .bind(temporary)
+        .bind(temporary)
+        .execute(&mut *transaction)
+        .await?;
+    sqlx::query(
+        "UPDATE learning_nodes SET position_q=$2, position_r=$3, updated_at=NOW() WHERE id=$1",
+    )
+    .bind(target.id)
+    .bind(source.q)
+    .bind(source.r)
+    .execute(&mut *transaction)
+    .await?;
+    sqlx::query(
+        "UPDATE learning_nodes SET position_q=$2, position_r=$3, updated_at=NOW() WHERE id=$1",
+    )
+    .bind(source.id)
+    .bind(target.q)
+    .bind(target.r)
+    .execute(&mut *transaction)
+    .await?;
+    transaction.commit().await?;
+    Ok(true)
+}
+
+fn temporary_coordinate(nodes: &[Node]) -> Result<i32, sqlx::Error> {
+    let largest_coordinate = nodes.iter().fold(0_i64, |largest, node| {
+        largest
+            .max(i64::from(node.q).abs())
+            .max(i64::from(node.r).abs())
+    });
+    let temporary = largest_coordinate
+        .checked_add(1_000)
+        .filter(|coordinate| *coordinate <= i64::from(i32::MAX))
+        .ok_or(sqlx::Error::Protocol(
+            "node coordinates leave no temporary swap range".into(),
+        ))?;
+    i32::try_from(temporary)
+        .map_err(|_| sqlx::Error::Protocol("temporary coordinate overflow".into()))
 }
 async fn list(
     pool: &PgPool,

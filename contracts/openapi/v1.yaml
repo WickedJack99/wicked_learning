@@ -1666,6 +1666,28 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The node is unavailable through source map-editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/swap:
+    patch:
+      operationId: swapAdminWorldBuilderNodePosition
+      summary: Swap one source map tile with an adjacent hex-grid neighbor.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminMapLayoutDirection' }
+      responses:
+        '204': { description: The adjacent tile positions were swapped and the outgoing layout was snapshotted. }
+        '400': { description: The direction is not one of the six adjacent hex directions. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The node or requested neighbor is unavailable through source map-editor scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/graph-position:
     patch:
       operationId: updateAdminWorldBuilderActivityGraphPosition
@@ -10986,6 +11008,14 @@ components:
       properties:
         q: { type: integer }
         r: { type: integer }
+    AdminMapLayoutDirection:
+      type: object
+      additionalProperties: false
+      required: [q, r]
+      properties:
+        q: { type: integer, enum: [-1, 0, 1] }
+        r: { type: integer, enum: [-1, 0, 1] }
+      description: One of (1,0), (1,-1), (0,-1), (-1,0), (-1,1), or (0,1).
     AdminMapLayoutVersion:
       type: object
       additionalProperties: false

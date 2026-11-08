@@ -1267,6 +1267,23 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderNodePosition"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/swap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Swap one source map tile with an adjacent hex-grid neighbor. */
+        patch: operations["swapAdminWorldBuilderNodePosition"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/graph-position": {
         parameters: {
             query?: never;
@@ -7813,6 +7830,13 @@ export interface components {
             q: number;
             r: number;
         };
+        /** @description One of (1,0), (1,-1), (0,-1), (-1,0), (-1,1), or (0,1). */
+        AdminMapLayoutDirection: {
+            /** @enum {integer} */
+            q: -1 | 0 | 1;
+            /** @enum {integer} */
+            r: -1 | 0 | 1;
+        };
         AdminMapLayoutVersion: {
             /** Format: uuid */
             id: string;
@@ -13139,6 +13163,68 @@ export interface operations {
                 content?: never;
             };
             /** @description The node is unavailable through source map-editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    swapAdminWorldBuilderNodePosition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminMapLayoutDirection"];
+            };
+        };
+        responses: {
+            /** @description The adjacent tile positions were swapped and the outgoing layout was snapshotted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The direction is not one of the six adjacent hex directions. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node or requested neighbor is unavailable through source map-editor scope. */
             404: {
                 headers: {
                     [name: string]: unknown;
