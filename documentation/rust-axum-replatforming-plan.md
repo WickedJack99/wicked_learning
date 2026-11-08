@@ -1560,9 +1560,12 @@ serializes an AI template, credential, answer history or mutation command.
 Dialogue assignment precedence is activity, node, map, then world, with the
 platform configuration providing the fallback identity/message.
 an inaccessible map or unplayable activity returns no companion. This slice
-resolves reusable assignments against the platform configuration only. Persisted
-per-scope visual/AI overrides, the provider-turn command, post-attempt context
-and the source-adapted launcher remain later slices.
+resolves reusable assignments against the platform configuration only. For an
+active activity it also reads the matching server-owned route run and route
+start, and independently exposes completed-activity eligibility for bounded
+post-attempt assistance; neither value comes from a browser parameter.
+Persisted per-scope visual/AI overrides, the provider-turn command and the
+source-adapted launcher remain later slices.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

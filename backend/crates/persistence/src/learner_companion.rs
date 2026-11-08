@@ -137,6 +137,7 @@ async fn load(
     }
 
     let (dialogue, source_scope) = assigned_dialogue(pool, scope.as_ref()).await?;
+    let context = context(pool, principal, request.surface, scope.as_ref()).await?;
     Ok(Some(LearnerCompanion {
         avatar_color: settings.avatar_color,
         avatar_position_x: settings.avatar_position_x,
@@ -149,7 +150,7 @@ async fn load(
             mode: settings.mode,
             source_scope,
         },
-        context: context(request.surface, scope.as_ref()),
+        context,
         dialogue,
         display_name: settings.display_name,
         message: settings.welcome_message,
@@ -223,9 +224,21 @@ async fn assigned_dialogue(
     Ok((None, "platform".to_owned()))
 }
 
-fn context(surface: LearnerCompanionSurface, scope: Option<&ScopeRow>) -> LearnerCompanionContext {
+#[derive(FromRow)]
+struct ActivityContextStateRow {
+    play_run_id: Uuid,
+    route_start_id: Uuid,
+    route_start_label: String,
+}
+
+async fn context(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    surface: LearnerCompanionSurface,
+    scope: Option<&ScopeRow>,
+) -> Result<LearnerCompanionContext, LearnerCompanionError> {
     match surface {
-        LearnerCompanionSurface::Desk => LearnerCompanionContext {
+        LearnerCompanionSurface::Desk => Ok(LearnerCompanionContext {
             actions: vec![
                 action(
                     "topics",
@@ -249,10 +262,10 @@ fn context(surface: LearnerCompanionSurface, scope: Option<&ScopeRow>) -> Learne
             surface: surface.as_str().to_owned(),
             topic: None,
             world: None,
-        },
+        }),
         LearnerCompanionSurface::World => {
             let scope = scope.expect("a visible world request has scope");
-            LearnerCompanionContext {
+            Ok(LearnerCompanionContext {
                 actions: vec![
                     action(
                         "learning-desk",
@@ -279,11 +292,14 @@ fn context(surface: LearnerCompanionSurface, scope: Option<&ScopeRow>) -> Learne
                     .zip(scope.topic_title.as_deref())
                     .map(|(id, title)| reference(id, title)),
                 world: Some(reference(scope.world_id, &scope.world_title)),
-            }
+            })
         }
         LearnerCompanionSurface::Activity => {
             let scope = scope.expect("a visible activity request has scope");
-            LearnerCompanionContext {
+            let activity_id = scope.activity_id.expect("activity scope activity id");
+            let active_run = active_run(pool, principal, activity_id).await?;
+            let post_attempt_available = completed_activity(pool, principal, activity_id).await?;
+            Ok(LearnerCompanionContext {
                 actions: vec![
                     action(
                         "current-map",
@@ -314,18 +330,50 @@ fn context(surface: LearnerCompanionSurface, scope: Option<&ScopeRow>) -> Learne
                     .node_id
                     .zip(scope.node_title.as_deref())
                     .map(|(id, title)| reference(id, title)),
-                play_run_id: None,
-                post_attempt_available: false,
-                route: None,
+                play_run_id: active_run.as_ref().map(|run| run.play_run_id.to_string()),
+                post_attempt_available,
+                route: active_run
+                    .as_ref()
+                    .map(|run| reference(run.route_start_id, &run.route_start_label)),
                 surface: surface.as_str().to_owned(),
                 topic: scope
                     .topic_id
                     .zip(scope.topic_title.as_deref())
                     .map(|(id, title)| reference(id, title)),
                 world: Some(reference(scope.world_id, &scope.world_title)),
-            }
+            })
         }
     }
+}
+
+async fn active_run(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    activity_id: Uuid,
+) -> Result<Option<ActivityContextStateRow>, LearnerCompanionError> {
+    sqlx::query_as::<_, ActivityContextStateRow>(
+        "SELECT progress.current_play_run_id AS play_run_id, starts.id AS route_start_id, COALESCE(NULLIF(BTRIM(starts.label), ''), 'Current route') AS route_start_label FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id WHERE principals.identity_subject_id = $1 AND progress.current_activity_id = $2 AND progress.current_play_run_id IS NOT NULL AND progress.status = 'in_progress' ORDER BY progress.updated_at DESC LIMIT 1",
+    )
+    .bind(principal.subject_id)
+    .bind(activity_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(unavailable)
+}
+
+async fn completed_activity(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    activity_id: Uuid,
+) -> Result<bool, LearnerCompanionError> {
+    sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS (SELECT 1 FROM learner_activity_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id WHERE principals.identity_subject_id = $1 AND progress.activity_id = $2 AND progress.status = 'completed')",
+    )
+    .bind(principal.subject_id)
+    .bind(activity_id)
+    .fetch_one(pool)
+    .await
+    .map_err(unavailable)
 }
 
 fn action(key: &str, label: &str, href: &str, reason: &str) -> LearnerCompanionAction {

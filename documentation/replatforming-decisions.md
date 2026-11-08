@@ -4613,14 +4613,16 @@ serialization, and emits only fixed source navigation actions and safe
 references. It returns no content when the companion is disabled or the scope
 is inaccessible. AI mode is reduced to an enabled indicator; template identity,
 credentials, learner answers and mutation capability remain server-side.
+For an activity context, the resolver independently reads the caller's current
+in-progress route run (including its authored start) and any completed progress
+for that activity. The browser cannot supply, select or override either value.
 
 **Why:** This creates a stable, access-filtered seam for lifting the existing
 launcher and dialogue UI while preventing it from becoming an authorization or
 AI-policy engine.
 
-**Limits:** Per-scope override persistence, post-attempt/run context, provider
-turns, conversation state and the frontend launcher are deliberately separate
-slices.
+**Limits:** Per-scope override persistence, provider turns, conversation state
+and the frontend launcher are deliberately separate slices.
 
 ## Phase 1 gate
 

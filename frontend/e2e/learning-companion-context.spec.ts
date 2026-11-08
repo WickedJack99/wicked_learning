@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('a learner receives the highest matching authored companion dialogue context', async ({ page }) => {
+test('a learner receives bounded authored, active-run, and completed companion context', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
     test.skip(!email || !password, 'requires the disposable local administrator');
@@ -64,6 +64,80 @@ test('a learner receives the highest matching authored companion dialogue contex
         } finally {
             await page.request.delete(
                 `/api/v1/admin/learning-companion/dialogues/${dialogue.id}`,
+                { headers },
+            );
+        }
+
+        const activityContextDialogue = await page.request.post(
+            '/api/v1/admin/learning-companion/dialogues',
+            { data: { name: `Activity context dialogue ${Date.now()}` }, headers },
+        );
+        expect(activityContextDialogue.status()).toBe(201);
+        const activityContextDialogueId = (await activityContextDialogue.json()) as { id: string };
+
+        try {
+            const assignments = await page.request.get(
+                `/api/v1/admin/learning-companion/dialogues/${activityContextDialogueId.id}/assignments?search=find-your-place`,
+            );
+            expect(assignments.status()).toBe(200);
+            const assignmentPage = (await assignments.json()) as {
+                items: Array<{ label: string; scope_id: string; scope_type: string }>;
+            };
+            const activity = assignmentPage.items.find((item) => item.scope_type === 'activity');
+            expect(activity).toBeDefined();
+
+            const world = await page.request.get('/api/v1/learner/world');
+            expect(world.status()).toBe(200);
+            const worldDocument = (await world.json()) as {
+                start_routes: Array<{ activity_slug: string; start_id: string }>;
+            };
+            const start = worldDocument.start_routes.find(
+                (candidate) => candidate.activity_slug === 'find-your-place',
+            );
+            expect(start).toBeDefined();
+
+            const reset = await page.request.post(
+                `/api/v1/learner/activity-starts/${start!.start_id}/reset`,
+                { headers },
+            );
+            expect(reset.status()).toBe(200);
+            const started = await page.request.post(
+                `/api/v1/learner/activity-starts/${start!.start_id}/start`,
+                { headers },
+            );
+            expect(started.status()).toBe(200);
+            const run = (await started.json()) as { play_run_id: string };
+            const playback = await page.request.get(`/api/v1/learner/play-runs/${run.play_run_id}`);
+            expect(playback.status()).toBe(200);
+            const playbackDocument = (await playback.json()) as { activity: { slug: string } };
+
+            const activeCompanion = await page.request.get(
+                `/api/v1/learner/companion?surface=activity&activity_id=${activity!.scope_id}`,
+            );
+            expect(activeCompanion.status()).toBe(200);
+            await expect(activeCompanion.json()).resolves.toMatchObject({
+                context: {
+                    play_run_id: run.play_run_id,
+                    post_attempt_available: false,
+                    route: { id: start!.start_id },
+                },
+            });
+
+            const completed = await page.request.post(
+                `/api/v1/learner/play-runs/${run.play_run_id}/activities/${playbackDocument.activity.slug}/complete`,
+                { headers, data: {} },
+            );
+            expect(completed.status()).toBe(200);
+            const completedCompanion = await page.request.get(
+                `/api/v1/learner/companion?surface=activity&activity_id=${activity!.scope_id}`,
+            );
+            expect(completedCompanion.status()).toBe(200);
+            await expect(completedCompanion.json()).resolves.toMatchObject({
+                context: { post_attempt_available: true },
+            });
+        } finally {
+            await page.request.delete(
+                `/api/v1/admin/learning-companion/dialogues/${activityContextDialogueId.id}`,
                 { headers },
             );
         }
