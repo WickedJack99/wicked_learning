@@ -995,6 +995,15 @@ reusing only the same bounded prompt, note and journal-topic fields: Rust
 persists the distinct `review` type, so learner playback retains its separate
 earlier-note, confidence and revisit semantics rather than treating it as a
 Reflection.
+Source Markdown page-graph authoring is now available through `POST
+/api/v1/admin/world-builder/nodes/{node_id}/markdown-activities` and `PATCH
+/api/v1/admin/world-builder/activities/{activity_id}/markdown`. The lifted
+editor retains the source Start/page/End graph, page positions, bounded
+Markdown text, dark/light page colors and preview. Its complete graph save uses
+the same scoped CSRF and optimistic-concurrency boundary, preserves unrelated
+configuration and records embedded managed reusable-media URLs as activity
+references, so selected images cannot be deleted while an authored page uses
+them.
 Item-grant creation and editing are now available through `POST
 /api/v1/admin/world-builder/nodes/{node_id}/item-grant-activities` and `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/item-grant`. They retain
@@ -1072,7 +1081,7 @@ including learner guidance, optional light/dark images and button colors,
 ordering and a separate delete confirmation. Selecting an authored edge opens
 the source transition editor, preserving its label/outcome-only edit rule and
 direct connection deletion. It now adapts the source
-Open Practice, Reflection, Review / revisit, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
+Open Practice, Reflection, Review / revisit, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
 forms through their complete typed Rust commands. Shared Task preserves its source task/repeat/validation/cycle choices, anonymous contribution boundary, project brief and optional anonymous peer-review invitation under the same scoped, CSRF-protected, optimistic-concurrency writer; Item Grant resolves selected catalog UUIDs
 only at the scoped server command and retains its quantities, probability and
 scene configuration, while Tool Grant does the same for its optional tool and

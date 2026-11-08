@@ -3,6 +3,7 @@ import {
     Controls,
     Handle,
     MarkerType,
+    MiniMap,
     Position,
     ReactFlow,
     ReactFlowProvider,
@@ -73,6 +74,7 @@ type SupportedActivityType =
     | 'open_practice'
     | 'reflection'
     | 'review'
+    | 'markdown'
     | 'item_grant'
     | 'tool_grant'
     | 'item_obstacle'
@@ -111,6 +113,23 @@ type ObstacleForm = {
     x: string;
     y: string;
 };
+type MarkdownPageDraft = {
+    body: string;
+    id: string;
+    position: { x: number; y: number };
+    title: string;
+    visual: {
+        borderColorDark: string;
+        borderColorLight: string;
+        headingColorDark: string;
+        headingColorLight: string;
+        pageColorDark: string;
+        pageColorLight: string;
+        textColorDark: string;
+        textColorLight: string;
+    };
+};
+type MarkdownTransitionDraft = { from: string; id: string; to: string };
 type ActivityAuthorForm = {
     backgroundDark: string;
     backgroundLight: string;
@@ -150,6 +169,12 @@ type ActivityAuthorForm = {
     itemObstacleSoundTransitionEnabled: boolean;
     itemObstacleSoundTransitionId: string;
     items: Array<{ itemId: string; quantity: string }>;
+    markdownGraphLayout: {
+        end?: { x: number; y: number };
+        start?: { x: number; y: number };
+    };
+    markdownPages: MarkdownPageDraft[];
+    markdownTransitions: MarkdownTransitionDraft[];
     nextStep: string;
     note: string;
     obstacle: ObstacleForm;
@@ -2671,6 +2696,14 @@ function ActivityGraph({
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'markdown' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Markdown
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
                             onClick={() => setEditor({ type: 'item_grant' })}
                             type="button"
                         >
@@ -3673,6 +3706,8 @@ function ActivityAuthorDialog({
               ? 'Reflection'
               : type === 'review'
                 ? 'Review / revisit'
+              : type === 'markdown'
+                ? 'Markdown'
               : type === 'item_grant'
                 ? 'Item grant'
                 : type === 'tool_grant'
@@ -3804,8 +3839,33 @@ function ActivityAuthorDialog({
                 topic_id: optionalValue(form.messageTopicId),
                 topic_title: form.messageTopicTitle,
             } as components['schemas']['CreateAdminMessageActivityRequest'];
+            const markdown = {
+                ...common,
+                markdown_graph_layout: form.markdownGraphLayout,
+                markdown_pages: form.markdownPages.map((page) => ({
+                    body: page.body,
+                    id: page.id,
+                    position: page.position,
+                    title: page.title,
+                    visual: {
+                        border_color_dark: page.visual.borderColorDark,
+                        border_color_light: page.visual.borderColorLight,
+                        heading_color_dark: page.visual.headingColorDark,
+                        heading_color_light: page.visual.headingColorLight,
+                        page_color_dark: page.visual.pageColorDark,
+                        page_color_light: page.visual.pageColorLight,
+                        text_color_dark: page.visual.textColorDark,
+                        text_color_light: page.visual.textColorLight,
+                    },
+                })),
+                markdown_transitions: form.markdownTransitions,
+            } as components['schemas']['CreateAdminMarkdownActivityRequest'];
 
-            if (type === 'question' && activity) {
+            if (type === 'markdown' && activity) {
+                ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/markdown', { body: { ...markdown, introduction: optionalValue(form.introduction), slug: optionalValue(form.slug), updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
+            } else if (type === 'markdown') {
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/markdown-activities', { body: markdown, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+            } else if (type === 'question' && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/question', { body: { ...question, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'question') {
                 ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/question-activities', { body: question, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
@@ -4168,6 +4228,8 @@ function ActivityAuthorDialog({
                                 value={form.note}
                             />
                         </>
+                    ) : type === 'markdown' ? (
+                        <MarkdownActivityFields form={form} onChange={setForm} />
                     ) : type === 'item_grant' ? (
                         <ItemGrantFields
                             form={form}
@@ -4240,6 +4302,165 @@ function QuestionFields({ form, onChange }: { form: ActivityAuthorForm; onChange
         <label className="flex items-center gap-3 text-sm font-medium md:col-span-2"><input checked={form.questionAllowMultiple} onChange={(event) => update('questionAllowMultiple', event.target.checked)} type="checkbox" />Allow selecting more than one answer</label>
         <div className="grid gap-4 md:col-span-2"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Answers</p><p className="text-sm text-slate-500 dark:text-slate-400">Mark correct answers and optionally connect an outcome key to a matching graph edge.</p></div><button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-white/20" disabled={form.questionOptions.length >= 12} onClick={() => onChange((current) => ({ ...current, questionOptions: [...current.questionOptions, emptyQuestionOption(String.fromCharCode(65 + current.questionOptions.length))] }))} type="button">Add answer</button></div>{form.questionOptions.map((option, index) => <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5" key={`question-option-${index}`}><div className="flex items-center justify-between"><p className="text-sm font-semibold">Answer {option.label || index + 1}</p><button className="text-sm text-red-700 disabled:opacity-50 dark:text-red-300" disabled={form.questionOptions.length <= 2} onClick={() => onChange((current) => ({ ...current, questionOptions: current.questionOptions.filter((_, optionIndex) => optionIndex !== index) }))} type="button">Remove</button></div><ActivityTextField label="Label" onChange={(value) => updateOption(index, (current) => ({ ...current, label: value }))} value={option.label} /><ActivityTextField className="md:col-span-2" label="Answer text" onChange={(value) => updateOption(index, (current) => ({ ...current, body: value }))} textarea value={option.body} /><ActivityTextField label="Outcome key (optional)" onChange={(value) => updateOption(index, (current) => ({ ...current, outcomeKey: value }))} value={option.outcomeKey} /><ActivityTextField label="Answer feedback (optional)" onChange={(value) => updateOption(index, (current) => ({ ...current, feedback: value }))} value={option.feedback} /><label className="flex items-center gap-3 text-sm font-medium"><input checked={option.isCorrect} onChange={(event) => updateOption(index, (current) => ({ ...current, isCorrect: event.target.checked }))} type="checkbox" />Correct answer</label></div>)}</div>
     </>;
+}
+
+function MarkdownActivityFields({
+    form,
+    onChange,
+}: {
+    form: ActivityAuthorForm;
+    onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
+}) {
+    const [selectedPageId, setSelectedPageId] = useState<string | null>(
+        form.markdownPages[0]?.id ?? null,
+    );
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const selectedPage = form.markdownPages.find(
+        (page) => page.id === selectedPageId,
+    );
+    const pages = form.markdownPages;
+    const nodes = [
+        {
+            data: { label: 'Start' },
+            id: 'start',
+            position: form.markdownGraphLayout.start ?? { x: -160, y: 80 },
+            sourcePosition: Position.Right,
+            type: 'input',
+        },
+        ...pages.map((page) => ({
+            data: { label: page.title },
+            id: page.id,
+            position: page.position,
+            sourcePosition: Position.Right,
+            targetPosition: Position.Left,
+        })),
+        {
+            data: { label: 'End' },
+            id: 'end',
+            position: form.markdownGraphLayout.end ?? { x: 520, y: 80 },
+            targetPosition: Position.Left,
+            type: 'output',
+        },
+    ];
+    const edges = form.markdownTransitions.map((transition) => ({
+        id: transition.id,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        source: transition.from,
+        target: transition.to,
+    }));
+    const updatePage = (
+        pageId: string,
+        update: (page: MarkdownPageDraft) => MarkdownPageDraft,
+    ) => onChange((current) => ({
+        ...current,
+        markdownPages: current.markdownPages.map((page) =>
+            page.id === pageId ? update(page) : page,
+        ),
+    }));
+    const addPage = () => {
+        const nextNumber = form.markdownPages.length + 1;
+        const id = `page-${Date.now()}`;
+        const page = defaultMarkdownPage();
+        page.body = `# Page ${nextNumber}\n\nAdd markdown content here.`;
+        page.id = id;
+        page.position = { x: 140 + nextNumber * 260, y: 80 + (nextNumber % 2) * 160 };
+        page.title = `Page ${nextNumber}`;
+        onChange((current) => ({
+            ...current,
+            markdownPages: [...current.markdownPages, page],
+        }));
+        setSelectedPageId(id);
+    };
+    const connectPages = (connection: Connection) => {
+        if (!connection.source || !connection.target) return;
+        onChange((current) => ({
+            ...current,
+            markdownTransitions: [
+                ...current.markdownTransitions.filter((edge) => edge.from !== connection.source),
+                { from: connection.source, id: `markdown-edge-${Date.now()}`, to: connection.target },
+            ],
+        }));
+    };
+    const deletePage = (pageId: string) => {
+        onChange((current) => ({
+            ...current,
+            markdownPages: current.markdownPages.filter((page) => page.id !== pageId),
+            markdownTransitions: current.markdownTransitions.filter((edge) => edge.from !== pageId && edge.to !== pageId),
+        }));
+        setSelectedPageId(null);
+    };
+    const appendMedia = (url: string) => {
+        if (!selectedPage) return;
+        updatePage(selectedPage.id, (page) => ({
+            ...page,
+            body: `${page.body.trimEnd()}\n\n![Media](${url})\n`,
+        }));
+        setIsPickerOpen(false);
+    };
+
+    return <section className="grid gap-4 md:col-span-2">
+        <div>
+            <p className="text-sm font-semibold">Markdown page graph</p>
+            <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Connect Start to a page, chain pages, then connect the final page to End.</p>
+        </div>
+        <div className="h-80 overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
+            <ReactFlow
+                edges={edges}
+                fitView
+                fitViewOptions={{ padding: 0.28 }}
+                nodes={nodes}
+                onConnect={connectPages}
+                onEdgeClick={(_, edge) => onChange((current) => ({ ...current, markdownTransitions: current.markdownTransitions.filter((transition) => transition.id !== edge.id) }))}
+                onNodeClick={(_, node) => setSelectedPageId(pages.some((page) => page.id === node.id) ? node.id : null)}
+                onNodeDragStop={(_, node) => {
+                    const position = { x: Math.round(node.position.x), y: Math.round(node.position.y) };
+                    if (node.id === 'start' || node.id === 'end') {
+                        onChange((current) => ({ ...current, markdownGraphLayout: { ...current.markdownGraphLayout, [node.id]: position } }));
+                    } else {
+                        updatePage(node.id, (page) => ({ ...page, position }));
+                    }
+                }}
+            >
+                <Background gap={24} />
+                <Controls />
+                <MiniMap pannable zoomable />
+            </ReactFlow>
+        </div>
+        <div className="flex justify-end">
+            <button className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium dark:border-white/20" disabled={pages.length >= 30} onClick={addPage} type="button"><Plus className="size-4" />Add page</button>
+        </div>
+        {selectedPage ? <section className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between gap-3">
+                <ActivityTextField label="Selected page" onChange={(title) => updatePage(selectedPage.id, (page) => ({ ...page, title }))} value={selectedPage.title} />
+                <button className="mt-6 rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-300/10" disabled={pages.length <= 1} onClick={() => deletePage(selectedPage.id)} type="button">Delete</button>
+            </div>
+            <div className="grid gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2"><label className="text-sm font-medium" htmlFor="markdown-page-body">Markdown</label><button className="rounded-md border border-slate-300 px-2 py-1 text-sm font-medium dark:border-white/20" onClick={() => setIsPickerOpen(true)} type="button">Insert existing image</button></div>
+                <textarea aria-label="Markdown" className="min-h-56 resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-950 dark:border-white/10 dark:bg-slate-950 dark:text-white" id="markdown-page-body" onChange={(event) => updatePage(selectedPage.id, (page) => ({ ...page, body: event.target.value }))} value={selectedPage.body} />
+            </div>
+            <MarkdownPagePreview page={selectedPage} />
+            <div className="grid gap-3 md:grid-cols-2">
+                <MarkdownColorField label="Dark page" onChange={(pageColorDark) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, pageColorDark } }))} value={selectedPage.visual.pageColorDark} />
+                <MarkdownColorField label="Dark border" onChange={(borderColorDark) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, borderColorDark } }))} value={selectedPage.visual.borderColorDark} />
+                <MarkdownColorField label="Dark text" onChange={(textColorDark) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, textColorDark } }))} value={selectedPage.visual.textColorDark} />
+                <MarkdownColorField label="Dark headings" onChange={(headingColorDark) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, headingColorDark } }))} value={selectedPage.visual.headingColorDark} />
+                <MarkdownColorField label="Light page" onChange={(pageColorLight) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, pageColorLight } }))} value={selectedPage.visual.pageColorLight} />
+                <MarkdownColorField label="Light border" onChange={(borderColorLight) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, borderColorLight } }))} value={selectedPage.visual.borderColorLight} />
+                <MarkdownColorField label="Light text" onChange={(textColorLight) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, textColorLight } }))} value={selectedPage.visual.textColorLight} />
+                <MarkdownColorField label="Light headings" onChange={(headingColorLight) => updatePage(selectedPage.id, (page) => ({ ...page, visual: { ...page.visual, headingColorLight } }))} value={selectedPage.visual.headingColorLight} />
+            </div>
+        </section> : null}
+        {isPickerOpen ? <MediaPicker onClose={() => setIsPickerOpen(false)} onSelect={(asset) => appendMedia(asset.url)} /> : null}
+    </section>;
+}
+
+function MarkdownPagePreview({ page }: { page: MarkdownPageDraft }) {
+    const body = page.body.split('\n').filter((line) => line.trim() !== '').slice(0, 3).join(' ').replace(/^#+\s*/, '');
+    return <div className="grid gap-2"><div><p className="text-sm font-semibold">Page preview</p><p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Uses the current appearance mode.</p></div><div className="rounded-xl border p-5 shadow-sm dark:hidden" style={{ backgroundColor: page.visual.pageColorLight, borderColor: page.visual.borderColorLight, color: page.visual.textColorLight }}><h3 className="mb-3 text-xl font-semibold" style={{ color: page.visual.headingColorLight }}>{page.title}</h3><p className="text-sm leading-6">{body || 'Markdown content preview appears here.'}</p></div><div className="hidden rounded-xl border p-5 shadow-sm dark:block" style={{ backgroundColor: page.visual.pageColorDark, borderColor: page.visual.borderColorDark, color: page.visual.textColorDark }}><h3 className="mb-3 text-xl font-semibold" style={{ color: page.visual.headingColorDark }}>{page.title}</h3><p className="text-sm leading-6">{body || 'Markdown content preview appears here.'}</p></div></div>;
+}
+
+function MarkdownColorField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
+    return <label className="grid gap-2 text-sm font-medium">{label}<input className="h-10 w-full rounded-lg border border-slate-200 bg-white px-1 dark:border-white/10 dark:bg-slate-950/40" onChange={(event) => onChange(event.target.value)} type="color" value={value} /></label>;
 }
 
 function emptyQuestionOption(label: string): ActivityAuthorForm['questionOptions'][number] {
@@ -5511,6 +5732,9 @@ function activityAuthorForm(
             sounds,
         ),
         items: itemGrantItems(config, items),
+        markdownGraphLayout: markdownGraphLayout(config),
+        markdownPages: markdownPages(config),
+        markdownTransitions: markdownTransitions(config),
         nextStep:
             configString(config, 'nextStep') ||
             'Choose a useful next step, then continue when you are ready.',
@@ -5670,6 +5894,94 @@ function configNumber(
     return typeof value === 'number' && Number.isFinite(value)
         ? value
         : fallback;
+}
+
+function defaultMarkdownPage(): MarkdownPageDraft {
+    return {
+        body: '# First page\n\nWrite markdown content here. Use `![Alt text](/path/to/image.svg)` to insert images.',
+        id: 'page-1',
+        position: { x: 140, y: 80 },
+        title: 'First page',
+        visual: {
+            borderColorDark: '#2dd4bf',
+            borderColorLight: '#0891b2',
+            headingColorDark: '#67e8f9',
+            headingColorLight: '#0e7490',
+            pageColorDark: '#0f172a',
+            pageColorLight: '#ffffff',
+            textColorDark: '#f8fafc',
+            textColorLight: '#0f172a',
+        },
+    };
+}
+
+function markdownPages(config: Record<string, unknown>): MarkdownPageDraft[] {
+    if (!Array.isArray(config.markdownPages)) {
+        return [defaultMarkdownPage()];
+    }
+    const pages = config.markdownPages.flatMap((value, index) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return [];
+        }
+        const page = value as Record<string, unknown>;
+        const position = page.position && typeof page.position === 'object' && !Array.isArray(page.position)
+            ? page.position as Record<string, unknown>
+            : {};
+        const visual = page.visual && typeof page.visual === 'object' && !Array.isArray(page.visual)
+            ? page.visual as Record<string, unknown>
+            : {};
+        const defaults = defaultMarkdownPage();
+        return [{
+            body: configString(page, 'body'),
+            id: configString(page, 'id') || `page-${index + 1}`,
+            position: { x: configNumber(position, 'x', 140 + index * 260), y: configNumber(position, 'y', 80) },
+            title: configString(page, 'title') || `Page ${index + 1}`,
+            visual: {
+                borderColorDark: configStringOr(visual, 'borderColorDark', defaults.visual.borderColorDark),
+                borderColorLight: configStringOr(visual, 'borderColorLight', defaults.visual.borderColorLight),
+                headingColorDark: configStringOr(visual, 'headingColorDark', defaults.visual.headingColorDark),
+                headingColorLight: configStringOr(visual, 'headingColorLight', defaults.visual.headingColorLight),
+                pageColorDark: configStringOr(visual, 'pageColorDark', defaults.visual.pageColorDark),
+                pageColorLight: configStringOr(visual, 'pageColorLight', defaults.visual.pageColorLight),
+                textColorDark: configStringOr(visual, 'textColorDark', defaults.visual.textColorDark),
+                textColorLight: configStringOr(visual, 'textColorLight', defaults.visual.textColorLight),
+            },
+        }];
+    });
+    return pages.length > 0 ? pages.slice(0, 30) : [defaultMarkdownPage()];
+}
+
+function markdownTransitions(config: Record<string, unknown>): MarkdownTransitionDraft[] {
+    if (!Array.isArray(config.markdownTransitions)) {
+        return [
+            { from: 'start', id: 'start-page-1', to: 'page-1' },
+            { from: 'page-1', id: 'page-1-end', to: 'end' },
+        ];
+    }
+    return config.markdownTransitions.flatMap((value, index) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return [];
+        }
+        const transition = value as Record<string, unknown>;
+        const from = configString(transition, 'from');
+        const to = configString(transition, 'to');
+        return from && to ? [{ from, id: configString(transition, 'id') || `markdown-edge-${index + 1}`, to }] : [];
+    }).slice(0, 60);
+}
+
+function markdownGraphLayout(config: Record<string, unknown>): ActivityAuthorForm['markdownGraphLayout'] {
+    const value = config.markdownGraphLayout;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+    const layout = value as Record<string, unknown>;
+    const position = (key: 'start' | 'end') => {
+        const value = layout[key];
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+        const item = value as Record<string, unknown>;
+        return { x: configNumber(item, 'x', key === 'start' ? -160 : 520), y: configNumber(item, 'y', 80) };
+    };
+    return { end: position('end'), start: position('start') };
 }
 
 function questionOptions(config: Record<string, unknown>): ActivityAuthorForm['questionOptions'] {
@@ -6190,6 +6502,7 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'open_practice' ||
         type === 'reflection' ||
         type === 'review' ||
+        type === 'markdown' ||
         type === 'item_grant' ||
         type === 'tool_grant' ||
         type === 'item_obstacle' ||

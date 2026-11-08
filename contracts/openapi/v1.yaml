@@ -1808,6 +1808,40 @@ paths:
         '404': { description: The activity is unavailable to the caller. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/markdown-activities:
+    post:
+      operationId: createAdminWorldBuilderMarkdownActivity
+      summary: Create a source Markdown page graph activity on an editable node.
+      description: >-
+        Creates a bounded source-shaped Markdown page graph on the selected
+        node's deterministic primary Rust route and records reusable-media
+        references embedded in authored page Markdown.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminMarkdownActivityRequest' } } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminMarkdownActivityResponse' } } } }
+        '400': { description: The source Markdown graph or requested slug is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/markdown:
+    patch:
+      operationId: updateAdminWorldBuilderMarkdownActivity
+      summary: Update a source Markdown page graph activity.
+      description: >-
+        Replaces the complete source-shaped Markdown graph after checking the
+        previously-read timestamp, so a stale editor cannot overwrite a newer graph.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminMarkdownActivityRequest' } } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminMarkdownActivityResponse' } } } }
+        '400': { description: The source Markdown graph or update timestamp is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The Markdown activity is unavailable to the caller. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/message-activities:
     post:
       operationId: createAdminWorldBuilderMessageActivity
@@ -9431,6 +9465,88 @@ components:
     UpdateAdminReviewActivityRequest:
       $ref: '#/components/schemas/UpdateAdminReflectionActivityRequest'
     UpdateAdminReviewActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
+    MarkdownActivityPosition:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x: { type: number }
+        y: { type: number }
+    MarkdownActivityPageVisual:
+      type: object
+      additionalProperties: false
+      required: [page_color_dark, page_color_light, border_color_dark, border_color_light, heading_color_dark, heading_color_light, text_color_dark, text_color_light]
+      properties:
+        page_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        page_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        border_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        border_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        heading_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        heading_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        text_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        text_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+    MarkdownActivityPage:
+      type: object
+      additionalProperties: false
+      required: [id, title, body, position, visual]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 100 }
+        title: { type: string, minLength: 1, maxLength: 160 }
+        body: { type: string, maxLength: 20000 }
+        position: { $ref: '#/components/schemas/MarkdownActivityPosition' }
+        visual: { $ref: '#/components/schemas/MarkdownActivityPageVisual' }
+    MarkdownActivityTransition:
+      type: object
+      additionalProperties: false
+      required: [id, from, to]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 140 }
+        from: { type: string, minLength: 1, maxLength: 100 }
+        to: { type: string, minLength: 1, maxLength: 100 }
+    MarkdownActivityGraphLayout:
+      type: object
+      additionalProperties: false
+      properties:
+        start: { $ref: '#/components/schemas/MarkdownActivityPosition' }
+        end: { $ref: '#/components/schemas/MarkdownActivityPosition' }
+    MarkdownActivityForm:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, markdown_pages, markdown_transitions, markdown_graph_layout]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        markdown_pages: { type: array, maxItems: 30, items: { $ref: '#/components/schemas/MarkdownActivityPage' } }
+        markdown_transitions: { type: array, maxItems: 60, items: { $ref: '#/components/schemas/MarkdownActivityTransition' } }
+        markdown_graph_layout: { $ref: '#/components/schemas/MarkdownActivityGraphLayout' }
+    CreateAdminMarkdownActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, markdown_pages, markdown_transitions, markdown_graph_layout]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        markdown_pages: { type: array, maxItems: 30, items: { $ref: '#/components/schemas/MarkdownActivityPage' } }
+        markdown_transitions: { type: array, maxItems: 60, items: { $ref: '#/components/schemas/MarkdownActivityTransition' } }
+        markdown_graph_layout: { $ref: '#/components/schemas/MarkdownActivityGraphLayout' }
+    CreateAdminMarkdownActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminMarkdownActivityRequest:
+      allOf:
+        - $ref: '#/components/schemas/MarkdownActivityForm'
+        - type: object
+          required: [updated_at]
+          properties: { updated_at: { type: string, format: date-time } }
+    UpdateAdminMarkdownActivityResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

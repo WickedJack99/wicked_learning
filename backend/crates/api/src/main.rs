@@ -30,6 +30,7 @@ mod admin_world_map_create;
 mod admin_world_map_delete;
 mod admin_world_map_details;
 mod admin_world_map_editing_groups;
+mod admin_world_markdown;
 mod admin_world_message;
 mod admin_world_node;
 mod admin_world_node_layout;
@@ -712,6 +713,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/review",
             patch(admin_world_review::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/markdown-activities",
+            post(admin_world_markdown::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/markdown",
+            patch(admin_world_markdown::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/question-activities",

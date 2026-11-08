@@ -1380,6 +1380,46 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderReviewActivity"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/markdown-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a source Markdown page graph activity on an editable node.
+         * @description Creates a bounded source-shaped Markdown page graph on the selected node's deterministic primary Rust route and records reusable-media references embedded in authored page Markdown.
+         */
+        post: operations["createAdminWorldBuilderMarkdownActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/markdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a source Markdown page graph activity.
+         * @description Replaces the complete source-shaped Markdown graph after checking the previously-read timestamp, so a stale editor cannot overwrite a newer graph.
+         */
+        patch: operations["updateAdminWorldBuilderMarkdownActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/message-activities": {
         parameters: {
             query?: never;
@@ -6466,6 +6506,66 @@ export interface components {
         };
         UpdateAdminReviewActivityRequest: components["schemas"]["UpdateAdminReflectionActivityRequest"];
         UpdateAdminReviewActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        MarkdownActivityPosition: {
+            x: number;
+            y: number;
+        };
+        MarkdownActivityPageVisual: {
+            page_color_dark: string;
+            page_color_light: string;
+            border_color_dark: string;
+            border_color_light: string;
+            heading_color_dark: string;
+            heading_color_light: string;
+            text_color_dark: string;
+            text_color_light: string;
+        };
+        MarkdownActivityPage: {
+            id: string;
+            title: string;
+            body: string;
+            position: components["schemas"]["MarkdownActivityPosition"];
+            visual: components["schemas"]["MarkdownActivityPageVisual"];
+        };
+        MarkdownActivityTransition: {
+            id: string;
+            from: string;
+            to: string;
+        };
+        MarkdownActivityGraphLayout: {
+            start?: components["schemas"]["MarkdownActivityPosition"];
+            end?: components["schemas"]["MarkdownActivityPosition"];
+        };
+        MarkdownActivityForm: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            markdown_pages: components["schemas"]["MarkdownActivityPage"][];
+            markdown_transitions: components["schemas"]["MarkdownActivityTransition"][];
+            markdown_graph_layout: components["schemas"]["MarkdownActivityGraphLayout"];
+        };
+        CreateAdminMarkdownActivityRequest: {
+            title: string;
+            slug?: string | null;
+            introduction?: string | null;
+            markdown_pages: components["schemas"]["MarkdownActivityPage"][];
+            markdown_transitions: components["schemas"]["MarkdownActivityTransition"][];
+            markdown_graph_layout: components["schemas"]["MarkdownActivityGraphLayout"];
+        };
+        CreateAdminMarkdownActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        UpdateAdminMarkdownActivityRequest: components["schemas"]["MarkdownActivityForm"] & {
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminMarkdownActivityResponse: {
             /** Format: uuid */
             activity_id: string;
             /** Format: date-time */
@@ -12255,6 +12355,141 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderMarkdownActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminMarkdownActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminMarkdownActivityResponse"];
+                };
+            };
+            /** @description The source Markdown graph or requested slug is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMarkdownActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminMarkdownActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminMarkdownActivityResponse"];
+                };
+            };
+            /** @description The source Markdown graph or update timestamp is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Markdown activity is unavailable to the caller. */
             404: {
                 headers: {
                     [name: string]: unknown;
