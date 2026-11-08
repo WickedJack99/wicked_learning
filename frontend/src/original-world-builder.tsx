@@ -4089,6 +4089,9 @@ function ItemGrantFields({
     items: EditableItem[];
     onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
 }) {
+    const [mediaTarget, setMediaTarget] = useState<
+        'backgroundDark' | 'backgroundLight' | null
+    >(null);
     const updateRow = (
         index: number,
         field: 'itemId' | 'quantity',
@@ -4211,6 +4214,7 @@ function ItemGrantFields({
                                 backgroundDark: value,
                             }))
                         }
+                        onSelectExisting={() => setMediaTarget('backgroundDark')}
                         value={form.backgroundDark}
                     />
                     <ActivityTextField
@@ -4221,6 +4225,7 @@ function ItemGrantFields({
                                 backgroundLight: value,
                             }))
                         }
+                        onSelectExisting={() => setMediaTarget('backgroundLight')}
                         value={form.backgroundLight}
                     />
                 </div>
@@ -4238,6 +4243,18 @@ function ItemGrantFields({
                     Mirror background horizontally
                 </label>
             </section>
+            {mediaTarget ? (
+                <MediaPicker
+                    onClose={() => setMediaTarget(null)}
+                    onSelect={(media) => {
+                        onChange((current) => ({
+                            ...current,
+                            [mediaTarget]: media.url,
+                        }));
+                        setMediaTarget(null);
+                    }}
+                />
+            ) : null}
         </>
     );
 }

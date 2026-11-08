@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_item_grant::{
     AdminWorldItemGrantError, AdminWorldItemGrantRepository as Port, ItemGrantActivityForm,
@@ -10,6 +10,10 @@ use wicked_learning_application::admin_world_item_grant::{
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
 use crate::admin_world_activity_history::record_activity_version;
+
+const MEDIA_ASSET_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
+const MEDIA_REFERENCE_KIND: &str = "activity";
+const ITEM_GRANT_MEDIA_FIELDS: [&str; 2] = ["backgroundDark", "backgroundLight"];
 
 pub struct PostgresAdminWorldItemGrantRepository<'pool> {
     pool: &'pool PgPool,
@@ -132,6 +136,7 @@ async fn create_item_grant(
     .fetch_one(&mut *transaction)
     .await?;
     let id = Uuid::new_v4();
+    let activity_config = item_grant_config(form, &item_slugs);
     sqlx::query(
         "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'item_grant', $7, $8, 'needs_review')",
     )
@@ -141,10 +146,11 @@ async fn create_item_grant(
     .bind(&form.title)
     .bind(form.introduction.clone().unwrap_or_default())
     .bind(position)
-    .bind(item_grant_config(form, &item_slugs))
+    .bind(&activity_config)
     .bind(&form.introduction)
     .execute(&mut *transaction)
     .await?;
+    synchronize_media_references(&mut transaction, id, &activity_config).await?;
     transaction.commit().await?;
     Ok(Some(id))
 }
@@ -183,6 +189,7 @@ async fn update_item_grant(
     {
         config_object.insert(key.clone(), value.clone());
     }
+    synchronize_media_references(&mut transaction, activity_id, &config).await?;
     let unchanged = current.slug == slug
         && current.title == form.title
         && current.introduction == form.introduction
@@ -259,6 +266,51 @@ fn item_grant_config(form: &ItemGrantActivityForm, item_slugs: &[String]) -> Val
         })).collect::<Vec<_>>(),
         "probabilityPercent": form.probability_percent,
     })
+}
+
+fn media_references(config: &Value) -> Vec<(Uuid, &'static str)> {
+    let Some(config) = config.as_object() else {
+        return vec![];
+    };
+
+    ITEM_GRANT_MEDIA_FIELDS
+        .iter()
+        .filter_map(|field_key| {
+            let asset_id = config
+                .get(*field_key)?
+                .as_str()?
+                .strip_prefix(MEDIA_ASSET_CONTENT_PREFIX)?
+                .strip_suffix("/content")?;
+            Uuid::parse_str(asset_id)
+                .ok()
+                .map(|asset_id| (asset_id, *field_key))
+        })
+        .collect()
+}
+
+async fn synchronize_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    activity_id: Uuid,
+    config: &Value,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id = $2",
+    )
+    .bind(MEDIA_REFERENCE_KIND)
+    .bind(activity_id)
+    .execute(&mut **transaction)
+    .await?;
+
+    for (asset_id, field_key) in media_references(config) {
+        sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT id, $2, $3, $4 FROM reusable_media_assets WHERE id = $1 ON CONFLICT DO NOTHING")
+            .bind(asset_id)
+            .bind(MEDIA_REFERENCE_KIND)
+            .bind(activity_id)
+            .bind(field_key)
+            .execute(&mut **transaction)
+            .await?;
+    }
+    Ok(())
 }
 
 async fn unique_slug(
@@ -395,7 +447,7 @@ mod tests {
         ItemGrantActivityForm, ItemGrantItem,
     };
 
-    use super::item_grant_config;
+    use super::{item_grant_config, media_references};
 
     #[test]
     fn stores_only_server_resolved_item_slugs_for_playback() {
@@ -423,6 +475,22 @@ mod tests {
                 "items": [{"itemId": "field-notes", "quantity": 3}],
                 "probabilityPercent": 72.5,
             }),
+        );
+    }
+
+    #[test]
+    fn finds_only_exact_reusable_visual_urls_in_grant_background_fields() {
+        let dark = Uuid::new_v4();
+        let light = Uuid::new_v4();
+        let config = json!({
+            "backgroundDark": format!("/api/v1/admin/media-assets/{dark}/content"),
+            "backgroundLight": format!("/api/v1/admin/media-assets/{light}/content"),
+            "items": [{"itemId": format!("/api/v1/admin/media-assets/{dark}/content")}],
+        });
+
+        assert_eq!(
+            media_references(&config),
+            vec![(dark, "backgroundDark"), (light, "backgroundLight")]
         );
     }
 }

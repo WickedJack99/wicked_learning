@@ -1270,7 +1270,7 @@ export interface paths {
         put?: never;
         /**
          * Create an Item grant activity on an editable World Builder node.
-         * @description Creates the source Item grant defaults on the selected node's deterministic primary Rust route. Catalog UUIDs are resolved only after the caller has passed the selected node's authoring scope and are stored as server-owned playback slugs.
+         * @description Creates the source Item grant defaults on the selected node's deterministic primary Rust route. Catalog UUIDs are resolved only after the caller has passed the selected node's authoring scope and are stored as server-owned playback slugs. The writer atomically records managed reusable visual references from the grant background fields.
          */
         post: operations["createAdminWorldBuilderItemGrantActivity"];
         delete?: never;
@@ -1294,7 +1294,7 @@ export interface paths {
         head?: never;
         /**
          * Update an Item grant activity on an editable World Builder graph.
-         * @description Updates the complete source Item grant form after resolving every catalog UUID through the scoped server catalog. The caller supplies the previously-read timestamp; a concurrent change receives a conflict instead of being overwritten.
+         * @description Updates the complete source Item grant form after resolving every catalog UUID through the scoped server catalog, synchronizes managed reusable visual references from the grant background fields, and uses the previously-read timestamp so a concurrent change receives a conflict instead of being overwritten.
          */
         patch: operations["updateAdminWorldBuilderItemGrantActivity"];
         trace?: never;

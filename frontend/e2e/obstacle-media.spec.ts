@@ -236,6 +236,81 @@ test('a local author selects reusable activity visuals and map cleanup removes t
         })
         .toBe(2);
 
+    const itemGrantTitle = `Disposable Item grant ${Date.now()}`;
+    await page.getByRole('button', { name: 'Item grant', exact: true }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Add Item grant' }),
+    ).toBeVisible();
+    const createItemGrantForm = page.getByRole('dialog', {
+        name: 'Add Item grant',
+    });
+    await createItemGrantForm.getByLabel('Title').fill(itemGrantTitle);
+    const createdItemGrantResponse = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response
+                .url()
+                .includes(`/api/v1/admin/world-builder/nodes/${nodeId}/item-grant-activities`),
+    );
+    await createItemGrantForm
+        .getByRole('button', { name: 'Create activity' })
+        .click();
+    expect((await createdItemGrantResponse).status()).toBe(201);
+
+    const nodeWithItemGrantResponse = await page.request.get(
+        `/api/v1/admin/world-builder/nodes/${nodeId}`,
+    );
+    expect(nodeWithItemGrantResponse.ok()).toBeTruthy();
+    const nodeWithItemGrant = (await nodeWithItemGrantResponse.json()) as {
+        activity_graph: { activities: Array<{ id: string; title: string }> };
+    };
+    const itemGrant = nodeWithItemGrant.activity_graph.activities.find(
+        (candidate) => candidate.title === itemGrantTitle,
+    );
+    if (!itemGrant) throw new Error('the disposable Item grant activity is missing');
+
+    await page.locator(`[data-id="${itemGrant.id}"]`).click();
+    await expect(
+        page.getByRole('heading', { name: 'Edit Item grant' }),
+    ).toBeVisible();
+    const itemGrantForm = page.getByRole('dialog', {
+        name: 'Edit Item grant',
+    });
+    await itemGrantForm
+        .getByRole('button', { name: 'Select existing' })
+        .first()
+        .click();
+    await expect(
+        page.getByRole('heading', { name: 'Select existing visual' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: mediaName }).click();
+    await expect(itemGrantForm.getByLabel('Dark background')).toHaveValue(
+        media.asset.url,
+    );
+    const savedItemGrantVisual = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            response
+                .url()
+                .includes(
+                    `/api/v1/admin/world-builder/activities/${itemGrant.id}/item-grant`,
+                ),
+    );
+    await itemGrantForm.getByRole('button', { name: 'Save activity' }).click();
+    expect((await savedItemGrantVisual).status()).toBe(200);
+    await expect
+        .poll(async () => {
+            const response = await page.request.get(
+                `/api/v1/admin/media-assets?page=1&per_page=12&q=${encodeURIComponent(mediaName)}`,
+            );
+            const assets = (await response.json()) as {
+                items: Array<{ id: string; reference_count: number }>;
+            };
+            return assets.items.find((asset) => asset.id === media.asset.id)
+                ?.reference_count;
+        })
+        .toBe(3);
+
     await page.goto(
         `/settings?panel=admin-world-builder&map=${map.id}`,
     );
