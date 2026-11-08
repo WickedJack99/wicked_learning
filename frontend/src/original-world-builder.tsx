@@ -72,6 +72,7 @@ type ActivityFlowNode = ActivityNode | SpecialNode;
 type SupportedActivityType =
     | 'open_practice'
     | 'reflection'
+    | 'review'
     | 'item_grant'
     | 'tool_grant'
     | 'item_obstacle'
@@ -2662,6 +2663,14 @@ function ActivityGraph({
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'review' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Review / revisit
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
                             onClick={() => setEditor({ type: 'item_grant' })}
                             type="button"
                         >
@@ -3662,6 +3671,8 @@ function ActivityAuthorDialog({
             ? 'Open practice'
             : type === 'reflection'
               ? 'Reflection'
+              : type === 'review'
+                ? 'Review / revisit'
               : type === 'item_grant'
                 ? 'Item grant'
                 : type === 'tool_grant'
@@ -3843,6 +3854,41 @@ function ActivityAuthorDialog({
                         },
                     ));
                 }
+            } else if (type === 'review' && activity) {
+                ({ response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/review',
+                    {
+                        body: {
+                            ...common,
+                            note: optionalValue(form.note),
+                            prompt: optionalValue(form.prompt),
+                            subtopic: optionalValue(form.subtopic),
+                            topic: optionalValue(form.topic),
+                            updated_at: activity.updated_at,
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { activity_id: activity.id },
+                        },
+                    },
+                ));
+            } else if (type === 'review') {
+                ({ response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/review-activities',
+                    {
+                        body: {
+                            ...common,
+                            note: optionalValue(form.note),
+                            prompt: optionalValue(form.prompt),
+                            subtopic: optionalValue(form.subtopic),
+                            topic: optionalValue(form.topic),
+                        },
+                        params: {
+                            header: { 'X-CSRF-Token': token },
+                            path: { node_id: nodeId },
+                        },
+                    },
+                ));
             } else if (type === 'reflection' && activity) {
                 ({ response } = await apiClient.PATCH(
                     '/admin/world-builder/activities/{activity_id}/reflection',
@@ -4090,7 +4136,7 @@ function ActivityAuthorDialog({
                             textarea
                             value={form.nextStep}
                         />
-                    ) : type === 'reflection' ? (
+                    ) : type === 'reflection' || type === 'review' ? (
                         <>
                             <ActivityTextField
                                 className="md:col-span-2"
@@ -6143,6 +6189,7 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
     return (
         type === 'open_practice' ||
         type === 'reflection' ||
+        type === 'review' ||
         type === 'item_grant' ||
         type === 'tool_grant' ||
         type === 'item_obstacle' ||

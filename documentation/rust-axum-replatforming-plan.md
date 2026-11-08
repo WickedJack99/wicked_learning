@@ -989,7 +989,12 @@ Reflection creation and editing are now available through `POST
 the source prompt, optional note and topic fields with their original bounds,
 stored defaults and optimistic-concurrency protection. The narrow command
 preserves unrelated activity configuration but deliberately does not claim the
-distinct Review/revisit behavior or any shared generic activity editor.
+distinct Review/revisit behavior or any shared generic activity editor. The
+source Review / revisit form now has its own create/edit route pair while
+reusing only the same bounded prompt, note and journal-topic fields: Rust
+persists the distinct `review` type, so learner playback retains its separate
+earlier-note, confidence and revisit semantics rather than treating it as a
+Reflection.
 Item-grant creation and editing are now available through `POST
 /api/v1/admin/world-builder/nodes/{node_id}/item-grant-activities` and `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/item-grant`. They retain
@@ -1067,7 +1072,7 @@ including learner guidance, optional light/dark images and button colors,
 ordering and a separate delete confirmation. Selecting an authored edge opens
 the source transition editor, preserving its label/outcome-only edit rule and
 direct connection deletion. It now adapts the source
-Open Practice, Reflection, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
+Open Practice, Reflection, Review / revisit, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
 forms through their complete typed Rust commands. Shared Task preserves its source task/repeat/validation/cycle choices, anonymous contribution boundary, project brief and optional anonymous peer-review invitation under the same scoped, CSRF-protected, optimistic-concurrency writer; Item Grant resolves selected catalog UUIDs
 only at the scoped server command and retains its quantities, probability and
 scene configuration, while Tool Grant does the same for its optional tool and

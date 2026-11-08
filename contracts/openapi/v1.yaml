@@ -1781,6 +1781,33 @@ paths:
         '404': { description: The activity is unknown, not Reflection, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/review-activities:
+    post:
+      operationId: createAdminWorldBuilderReviewActivity
+      summary: Create a source Review / revisit activity on an editable node.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminReviewActivityRequest' } } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminReviewActivityResponse' } } } }
+        '400': { description: The source Review fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/review:
+    patch:
+      operationId: updateAdminWorldBuilderReviewActivity
+      summary: Update a source Review / revisit activity.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminReviewActivityRequest' } } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminReviewActivityResponse' } } } }
+        '400': { description: The source Review fields or update timestamp are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unavailable to the caller. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/message-activities:
     post:
       operationId: createAdminWorldBuilderMessageActivity
@@ -9394,6 +9421,20 @@ components:
       properties:
         activity_id: { type: string, format: uuid }
         updated_at: { type: string, format: date-time }
+    CreateAdminReviewActivityRequest:
+      $ref: '#/components/schemas/CreateAdminReflectionActivityRequest'
+    CreateAdminReviewActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminReviewActivityRequest:
+      $ref: '#/components/schemas/UpdateAdminReflectionActivityRequest'
+    UpdateAdminReviewActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
     CreateAdminSharedTaskActivityRequest:
       $ref: '#/components/schemas/SharedTaskActivityForm'
     CreateAdminSharedTaskActivityResponse:

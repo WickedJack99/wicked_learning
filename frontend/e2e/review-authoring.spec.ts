@@ -1,0 +1,48 @@
+import { expect, test } from '@playwright/test';
+
+test('a local world author can save source review activity fields', async ({ page }) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email!);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+    const graph = await page.request.get('/api/v1/admin/world-builder');
+    expect(graph.ok()).toBeTruthy();
+    const body = (await graph.json()) as { maps: Array<{ id: string; nodes: Array<{ id: string }> }> };
+    const map = body.maps.find((candidate) => candidate.nodes.length > 0);
+    expect(map).toBeDefined();
+    if (!map) throw new Error('the local World Builder graph has no readable node');
+
+    await page.goto(`/settings?panel=admin-world-builder&map=${map.id}&node=${map.nodes[0].id}`);
+    await page.getByRole('button', { name: 'Review / revisit', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Add Review / revisit' })).toBeVisible();
+    const title = `Review authoring ${Date.now()}`;
+    await page.getByLabel('Title').fill(title);
+    await page.getByRole('textbox', { name: 'Question', exact: true }).fill('What feels clearer after revisiting this idea?');
+    const [created] = await Promise.all([
+        page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/review-activities')),
+        page.getByRole('button', { name: 'Create activity' }).click(),
+    ]);
+    expect(created.status()).toBe(201);
+    await page.getByText(title, { exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Review / revisit' })).toBeVisible();
+    await page.getByLabel('Supporting note').fill('Notice any useful new connection.');
+    const [updated] = await Promise.all([
+        page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().includes('/review')),
+        page.getByRole('button', { name: 'Save activity' }).click(),
+    ]);
+    expect(updated.ok()).toBeTruthy();
+    const node = await page.request.get(`/api/v1/admin/world-builder/nodes/${map.nodes[0].id}`);
+    expect(node.ok()).toBeTruthy();
+    const document = (await node.json()) as { activity_graph: { activities: Array<{ activity_type: string; config: { note?: string }; title: string }> } };
+    const saved = document.activity_graph.activities.find((activity) => activity.title === title);
+    expect(saved?.activity_type).toBe('review');
+    expect(saved?.config.note).toBe('Notice any useful new connection.');
+    await page.getByRole('button', { name: `Delete ${title}` }).click();
+    await page.getByRole('dialog', { name: 'Delete activity?' }).getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+});

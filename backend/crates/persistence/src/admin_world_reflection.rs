@@ -3,7 +3,7 @@ use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_reflection::{
     AdminWorldReflectionError, AdminWorldReflectionRepository as Port, ReflectionActivityForm,
-    UpdatedReflectionActivity, generated_slug,
+    ReflectionActivityType, UpdatedReflectionActivity, generated_slug,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -28,9 +28,15 @@ impl Port for PostgresAdminWorldReflectionRepository<'_> {
     ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send
     {
         async move {
-            create_reflection(self.pool, principal, node_id, form)
-                .await
-                .map_err(map_mutation_error)
+            create_activity(
+                self.pool,
+                principal,
+                node_id,
+                form,
+                ReflectionActivityType::Reflection,
+            )
+            .await
+            .map_err(map_mutation_error)
         }
     }
 
@@ -44,9 +50,59 @@ impl Port for PostgresAdminWorldReflectionRepository<'_> {
         Output = Result<Option<UpdatedReflectionActivity>, AdminWorldReflectionError>,
     > + Send {
         async move {
-            update_reflection(self.pool, principal, activity_id, form, expected_updated_at)
-                .await
-                .map_err(map_mutation_error)
+            update_activity(
+                self.pool,
+                principal,
+                activity_id,
+                form,
+                expected_updated_at,
+                ReflectionActivityType::Reflection,
+            )
+            .await
+            .map_err(map_mutation_error)
+        }
+    }
+
+    fn create_review(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        form: &ReflectionActivityForm,
+    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send
+    {
+        async move {
+            create_activity(
+                self.pool,
+                principal,
+                node_id,
+                form,
+                ReflectionActivityType::Review,
+            )
+            .await
+            .map_err(map_mutation_error)
+        }
+    }
+
+    fn update_review(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        form: &ReflectionActivityForm,
+        expected_updated_at: &str,
+    ) -> impl std::future::Future<
+        Output = Result<Option<UpdatedReflectionActivity>, AdminWorldReflectionError>,
+    > + Send {
+        async move {
+            update_activity(
+                self.pool,
+                principal,
+                activity_id,
+                form,
+                expected_updated_at,
+                ReflectionActivityType::Review,
+            )
+            .await
+            .map_err(map_mutation_error)
         }
     }
 }
@@ -93,11 +149,12 @@ fn map_mutation_error(error: ReflectionMutationError) -> AdminWorldReflectionErr
     }
 }
 
-async fn create_reflection(
+async fn create_activity(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &ReflectionActivityForm,
+    activity_type: ReflectionActivityType,
 ) -> Result<Option<Uuid>, ReflectionMutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_editable_node(&mut transaction, principal, node_id).await? else {
@@ -124,7 +181,7 @@ async fn create_reflection(
     .await?;
     let id = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'reflection', $7, $8, 'needs_review')",
+        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, 'needs_review')",
     )
     .bind(id)
     .bind(route_id)
@@ -132,6 +189,7 @@ async fn create_reflection(
     .bind(&form.title)
     .bind(form.introduction.clone().unwrap_or_default())
     .bind(position)
+    .bind(activity_type.as_str())
     .bind(reflection_config(form))
     .bind(&form.introduction)
     .execute(&mut *transaction)
@@ -140,15 +198,17 @@ async fn create_reflection(
     Ok(Some(id))
 }
 
-async fn update_reflection(
+async fn update_activity(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
     activity_id: Uuid,
     form: &ReflectionActivityForm,
     expected_updated_at: &str,
+    activity_type: ReflectionActivityType,
 ) -> Result<Option<UpdatedReflectionActivity>, ReflectionMutationError> {
     let mut transaction = pool.begin().await?;
-    let Some(current) = lock_editable_reflection(&mut transaction, principal, activity_id).await?
+    let Some(current) =
+        lock_editable_activity(&mut transaction, principal, activity_id, activity_type).await?
     else {
         return Ok(None);
     };
@@ -244,18 +304,20 @@ async fn unique_slug(
     }
 }
 
-async fn lock_editable_reflection(
+async fn lock_editable_activity(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     principal: &AuthorizedPrincipal,
     activity_id: Uuid,
+    activity_type: ReflectionActivityType,
 ) -> Result<Option<ScopedReflectionActivity>, sqlx::Error> {
     let Some(principal_id) = application_principal_id(transaction, principal).await? else {
         return Ok(None);
     };
     let Some(activity) = sqlx::query_as::<_, ScopedReflectionActivity>(
-        "SELECT routes.map_asset_id, nodes.map_id, maps.created_by_principal_id AS map_creator_id, activities.slug, activities.title, activities.introduction, activities.activity_config AS config, to_char(activities.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE activities.id = $1 AND activities.activity_type = 'reflection' FOR UPDATE OF activities, nodes",
+        "SELECT routes.map_asset_id, nodes.map_id, maps.created_by_principal_id AS map_creator_id, activities.slug, activities.title, activities.introduction, activities.activity_config AS config, to_char(activities.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE activities.id = $1 AND activities.activity_type = $2 FOR UPDATE OF activities, nodes",
     )
     .bind(activity_id)
+    .bind(activity_type.as_str())
     .fetch_optional(&mut **transaction)
     .await?
     else {

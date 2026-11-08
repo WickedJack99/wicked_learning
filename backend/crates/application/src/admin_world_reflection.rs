@@ -91,6 +91,21 @@ pub enum AdminWorldReflectionError {
     Unavailable,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReflectionActivityType {
+    Reflection,
+    Review,
+}
+
+impl ReflectionActivityType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Reflection => "reflection",
+            Self::Review => "review",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UpdatedReflectionActivity {
     pub activity_id: Uuid,
@@ -106,6 +121,21 @@ pub trait AdminWorldReflectionRepository {
     ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send;
 
     fn update_reflection(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        form: &ReflectionActivityForm,
+        expected_updated_at: &str,
+    ) -> impl Future<Output = Result<Option<UpdatedReflectionActivity>, AdminWorldReflectionError>> + Send;
+
+    fn create_review(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        form: &ReflectionActivityForm,
+    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send;
+
+    fn update_review(
         &self,
         principal: &AuthorizedPrincipal,
         activity_id: Uuid,
@@ -159,6 +189,49 @@ where
     }
 }
 
+/// Writes the source Review/revisit form while retaining its distinct activity
+/// type and learner playback behavior.
+pub struct AdminWorldReviewCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository: AdminWorldReflectionRepository>
+    AdminWorldReviewCommand<'repository, Repository>
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn create(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        form: &ReflectionActivityForm,
+    ) -> Result<Option<Uuid>, AdminWorldReflectionError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+        self.repository
+            .create_review(principal, node_id, form)
+            .await
+    }
+
+    pub async fn update(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        form: &ReflectionActivityForm,
+        expected_updated_at: &str,
+    ) -> Result<Option<UpdatedReflectionActivity>, AdminWorldReflectionError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+        self.repository
+            .update_review(principal, activity_id, form, expected_updated_at)
+            .await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -174,8 +247,8 @@ mod tests {
 
     use super::{
         AdminWorldReflectionCommand, AdminWorldReflectionError, AdminWorldReflectionRepository,
-        DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm, UpdatedReflectionActivity,
-        generated_slug,
+        AdminWorldReviewCommand, DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm,
+        UpdatedReflectionActivity, generated_slug,
     };
 
     struct RecordingRepository {
@@ -194,6 +267,29 @@ mod tests {
         }
 
         fn update_reflection(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _activity_id: Uuid,
+            _form: &ReflectionActivityForm,
+            _expected_updated_at: &str,
+        ) -> impl Future<
+            Output = Result<Option<UpdatedReflectionActivity>, AdminWorldReflectionError>,
+        > + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn create_review(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _node_id: Uuid,
+            _form: &ReflectionActivityForm,
+        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn update_review(
             &self,
             _principal: &AuthorizedPrincipal,
             _activity_id: Uuid,
@@ -273,6 +369,25 @@ mod tests {
                 &form(),
                 "2026-11-07T17:00:00.000000Z",
             )
+            .await
+            .expect("authorization check succeeds");
+        assert_eq!(result, None);
+        assert!(!repository.called.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn keeps_review_authoring_distinct_from_reflection_writes() {
+        let repository = RecordingRepository {
+            called: Arc::new(AtomicBool::new(false)),
+        };
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec![],
+        };
+
+        let result = AdminWorldReviewCommand::new(&repository)
+            .create(&principal, Uuid::new_v4(), &form())
             .await
             .expect("authorization check succeeds");
         assert_eq!(result, None);
