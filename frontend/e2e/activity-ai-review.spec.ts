@@ -86,6 +86,19 @@ test('a local author can open the guarded source-derived activity review dialog'
         },
     );
     expect(sourcesResponse.status()).toBe(200);
+    const sources = await sourcesResponse.json() as { updated_at: string };
+    const evidenceContextResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activityId}/evidence-context`,
+        {
+            data: {
+                evidence_objective: 'Notice the next useful choice.',
+                evidence_concepts: ['Agency'],
+                updated_at: sources.updated_at,
+            },
+            headers: { 'X-CSRF-Token': token },
+        },
+    );
+    expect(evidenceContextResponse.status()).toBe(200);
 
     await page.reload();
     const card = page.locator('[data-id]').filter({ hasText: `Review target ${suffix}` });
@@ -95,6 +108,11 @@ test('a local author can open the guarded source-derived activity review dialog'
     await expect(sourcesDialog).toBeVisible();
     await expect(sourcesDialog.getByDisplayValue('Source-reference test')).toBeVisible();
     await sourcesDialog.getByRole('button', { name: 'Close source references' }).click();
+    await card.getByRole('button', { name: 'Learner orientation' }).click();
+    const evidenceDialog = page.locator('[data-wl-id="authoring.activity-evidence-context"]');
+    await expect(evidenceDialog).toBeVisible();
+    await expect(evidenceDialog.getByDisplayValue('Notice the next useful choice.')).toBeVisible();
+    await evidenceDialog.getByRole('button', { name: 'Close learner orientation' }).click();
     await card.getByRole('button', { name: 'Review activity' }).click();
     const dialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
     await expect(dialog).toBeVisible();
