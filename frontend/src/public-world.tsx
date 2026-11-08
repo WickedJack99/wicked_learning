@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import {
@@ -32,6 +32,7 @@ import { OriginalJournalOverlay } from './original-journal';
 import { OriginalGroupControl } from './original-group-control';
 import { OriginalToolBelt } from './original-tool-belt';
 import { resolveOriginalWorldTheme } from './original-world-theme';
+import { useLearnerSoundPreferences } from './learner-sound-preferences';
 
 type PublicMap = components['schemas']['PublicMap'];
 type PublicMapAsset = components['schemas']['PublicMapAsset'];
@@ -362,9 +363,9 @@ function PublicWorldSurface({
     );
 
     const useToolOnNode = useCallback(
-        async (node: PublicNode): Promise<void> => {
+        async (node: PublicNode): Promise<boolean> => {
             if (!isAuthenticated || !selectedMap || !selectedTool) {
-                return;
+                return false;
             }
 
             setSelectedTool(null);
@@ -386,10 +387,12 @@ function PublicWorldSurface({
                 if (response.ok && data && (data.discovered || data.is_unlocked)) {
                     onRefresh();
                 }
+                return response.ok && data?.is_unlocked === true;
             } catch {
                 // Matching the source control, a failed attempt leaves the
                 // World visible and lets the learner choose another tool.
             }
+            return false;
         },
         [isAuthenticated, onRefresh, selectedMap, selectedTool],
     );
@@ -420,7 +423,7 @@ function PublicWorldSurface({
                     map={selectedMap}
                     onClearFocus={() => selectNode(null)}
                     onSelectNode={selectNode}
-                    onUseToolOnNode={(node) => void useToolOnNode(node)}
+                    onUseToolOnNode={useToolOnNode}
                     selectedTool={selectedTool}
                     selectedNode={selectedNode}
                     theme={selectedMapTheme!}
@@ -697,7 +700,7 @@ function PublicMapSurface({
     map: PublicMap;
     onClearFocus: () => void;
     onSelectNode: (node: PublicNode) => void;
-    onUseToolOnNode: (node: PublicNode) => void;
+    onUseToolOnNode: (node: PublicNode) => Promise<boolean>;
     selectedTool: components['schemas']['LearnerTool'] | null;
     selectedNode: PublicNode | null;
     theme: Record<string, unknown>;
@@ -712,6 +715,29 @@ function PublicMapSurface({
         x: number;
         y: number;
     } | null>(null);
+    const soundPreferences = useLearnerSoundPreferences();
+    const interactionAudio = useRef<HTMLAudioElement | null>(null);
+    const playInteractionSound = useCallback(
+        (visualConfig: Record<string, unknown>, trigger: MapAssetSoundTrigger) => {
+            const sound = mapAssetInteractionSound(visualConfig, trigger);
+            if (!sound || soundPreferences.muted) return;
+            interactionAudio.current?.pause();
+            const audio = new Audio(sound.url);
+            audio.volume = Math.max(
+                0,
+                Math.min(100, soundPreferences.effects_volume),
+            ) / 100;
+            interactionAudio.current = audio;
+            void audio.play().catch(() => undefined);
+        },
+        [soundPreferences.effects_volume, soundPreferences.muted],
+    );
+    useEffect(
+        () => () => {
+            interactionAudio.current?.pause();
+        },
+        [],
+    );
     const nodesByAssetSlug = useMemo(
         () =>
             new Map(
@@ -980,6 +1006,7 @@ function PublicMapSurface({
                             key={asset.slug}
                             onClick={(event) => {
                                 event.stopPropagation();
+                                playInteractionSound(asset.visual_config, 'click');
                                 if (canToggle) {
                                     setToggledAssetSlugs((current) =>
                                         current.includes(asset.slug)
@@ -994,7 +1021,16 @@ function PublicMapSurface({
                                         (node.state === 'locked' ||
                                             node.state === 'hidden')
                                     ) {
-                                        onUseToolOnNode(node);
+                                        void onUseToolOnNode(node).then(
+                                            (unlocked) => {
+                                                if (unlocked) {
+                                                    playInteractionSound(
+                                                        asset.visual_config,
+                                                        'unlock',
+                                                    );
+                                                }
+                                            },
+                                        );
                                     } else if (
                                         node.state !== 'locked' &&
                                         node.state !== 'hidden'
@@ -1009,6 +1045,18 @@ function PublicMapSurface({
                                 )
                             }
                             onFocus={() => setFocusedAssetSlug(asset.slug)}
+                            onPointerEnter={() =>
+                                playInteractionSound(
+                                    asset.visual_config,
+                                    'mouseEnter',
+                                )
+                            }
+                            onPointerLeave={() =>
+                                playInteractionSound(
+                                    asset.visual_config,
+                                    'mouseLeave',
+                                )
+                            }
                             onPointerDown={(event) => event.stopPropagation()}
                             style={style}
                             type="button"
@@ -1597,6 +1645,18 @@ function objectConfig(
     return value && typeof value === 'object' && !Array.isArray(value)
         ? (value as Record<string, unknown>)
         : {};
+}
+
+type MapAssetSoundTrigger = 'mouseEnter' | 'click' | 'mouseLeave' | 'unlock';
+
+function mapAssetInteractionSound(
+    visualConfig: Record<string, unknown>,
+    trigger: MapAssetSoundTrigger,
+): { url: string } | null {
+    const sounds = objectConfig(visualConfig, 'sounds');
+    const sound = objectConfig(sounds, trigger);
+    const url = stringConfig(sound, 'url');
+    return sound.enabled === true && url ? { url } : null;
 }
 
 function numberConfig(

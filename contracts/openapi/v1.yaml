@@ -9999,7 +9999,7 @@ components:
     AdminEditableMap:
       type: object
       additionalProperties: false
-      required: [can_delete_world_maps, can_manage_map_access, editable_map, access_groups, items, learning_groups, role_options, topic_options, tools]
+      required: [can_delete_world_maps, can_manage_map_access, editable_map, access_groups, items, learning_groups, role_options, sounds, topic_options, tools]
       properties:
         can_delete_world_maps: { type: boolean }
         can_manage_map_access: { type: boolean }
@@ -10019,6 +10019,10 @@ components:
         role_options:
           type: array
           items: { $ref: '#/components/schemas/AdminRoleOption' }
+        sounds:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/AdminEditableSound' }
         topic_options:
           type: array
           maxItems: 10000

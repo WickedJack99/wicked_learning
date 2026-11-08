@@ -115,11 +115,12 @@ async fn create(
     .bind(map_id)
     .fetch_one(&mut *tx)
     .await?;
+    let visual_config = normalized_visual_config(&mut tx, &form.visual_config).await?;
 
     sqlx::query("INSERT INTO learning_map_assets (id, map_id, slug, title, description, image_url, text, position_x, position_y, position_z, interaction_mode, published_at, width, opacity, locked, visual_config, interaction_config, sound_config) VALUES ($1, $2, $3, $4, '', $5, $6, $7, $8, $9, $10, NULL, $11, $12, $13, $14, $15, $16)")
-        .bind(asset_id).bind(map_id).bind(asset_slug).bind(title).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(&form.interaction_mode).bind(form.width).bind(form.opacity).bind(form.locked).bind(Json(&form.visual_config)).bind(Json(&form.interaction_config)).bind(Json(&form.sound_config)).execute(&mut *tx).await?;
+        .bind(asset_id).bind(map_id).bind(asset_slug).bind(title).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(&form.interaction_mode).bind(form.width).bind(form.opacity).bind(form.locked).bind(Json(&visual_config)).bind(Json(&form.interaction_config)).bind(Json(&form.sound_config)).execute(&mut *tx).await?;
     sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at) VALUES ($1, $2, $3, $4, $5, '', $6, 0, 'available', $7, NULL)")
-        .bind(node_id).bind(map_id).bind(asset_id).bind(node_slug).bind(title).bind(position_q).bind(Json(&form.visual_config)).execute(&mut *tx).await?;
+        .bind(node_id).bind(map_id).bind(asset_id).bind(node_slug).bind(title).bind(position_q).bind(Json(&visual_config)).execute(&mut *tx).await?;
     sqlx::query("INSERT INTO learning_routes (id, map_asset_id, slug, title, description, position, published_at) VALUES ($1, $2, $3, $4, '', 0, NULL)")
         .bind(route_id).bind(asset_id).bind(route_slug).bind(title).execute(&mut *tx).await?;
     synchronize_media_references(&mut tx, asset_id, form).await?;
@@ -157,11 +158,59 @@ async fn update(
     {
         return Ok(false);
     }
+    let visual_config = normalized_visual_config(&mut tx, &form.visual_config).await?;
     sqlx::query("UPDATE learning_map_assets SET image_url = $2, text = $3, position_x = $4, position_y = $5, position_z = $6, width = $7, opacity = $8, locked = $9, interaction_mode = $10, interaction_config = $11, visual_config = $12, sound_config = $13, updated_at = NOW() WHERE id = $1")
-        .bind(asset_id).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(form.width).bind(form.opacity).bind(form.locked).bind(&form.interaction_mode).bind(Json(&form.interaction_config)).bind(Json(&form.visual_config)).bind(Json(&form.sound_config)).execute(&mut *tx).await?;
+        .bind(asset_id).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(form.width).bind(form.opacity).bind(form.locked).bind(&form.interaction_mode).bind(Json(&form.interaction_config)).bind(Json(&visual_config)).bind(Json(&form.sound_config)).execute(&mut *tx).await?;
     synchronize_media_references(&mut tx, asset_id, form).await?;
     tx.commit().await?;
     Ok(true)
+}
+
+async fn normalized_visual_config(
+    tx: &mut Transaction<'_, Postgres>,
+    visual_config: &Value,
+) -> Result<Value, sqlx::Error> {
+    let mut normalized = visual_config.clone();
+    let Some(sounds) = normalized
+        .as_object_mut()
+        .and_then(|config| config.get_mut("sounds"))
+        .and_then(Value::as_object_mut)
+    else {
+        return Ok(normalized);
+    };
+
+    for trigger in ["mouseEnter", "click", "mouseLeave", "unlock"] {
+        let Some(sound) = sounds.get(trigger).and_then(Value::as_object) else {
+            continue;
+        };
+        let enabled = sound
+            .get("enabled")
+            .and_then(Value::as_bool)
+            .expect("sound config was validated by the application form");
+        let sound_id = sound.get("soundId").and_then(Value::as_str);
+        if enabled && sound_id.is_none() {
+            return Err(sqlx::Error::Protocol(
+                "an enabled MapAsset interaction sound needs a selected reusable sound".to_owned(),
+            ));
+        }
+        let Some(sound_id) = sound_id else {
+            continue;
+        };
+        let sound_id =
+            Uuid::parse_str(sound_id).expect("sound ID was validated by the application form");
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM learning_sounds WHERE id = $1 AND published_at IS NOT NULL)",
+        )
+        .bind(sound_id)
+        .fetch_one(&mut **tx)
+        .await?;
+        if !exists {
+            return Err(sqlx::Error::Protocol(
+                "MapAsset interaction sound is unavailable".to_owned(),
+            ));
+        }
+    }
+    Ok(normalized)
 }
 
 async fn delete(

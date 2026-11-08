@@ -1147,6 +1147,7 @@ function MapAssetSurface({
                         setEditorOpen(false);
                         onUpdated();
                     }}
+                    sounds={document.sounds}
                 />
             ) : null}
         </div>
@@ -1160,6 +1161,7 @@ function MapAssetEditorDialog({
     onDeleted,
     onOpenNode,
     onSaved,
+    sounds,
 }: {
     asset: EditableMapAsset;
     mapId: string;
@@ -1167,6 +1169,7 @@ function MapAssetEditorDialog({
     onDeleted: () => void;
     onOpenNode: (nodeId: string) => void;
     onSaved: () => void;
+    sounds: EditableSound[];
 }) {
     const [form, setForm] = useState<MapAssetRequest>(() =>
         mapAssetForm(asset),
@@ -1195,6 +1198,27 @@ function MapAssetEditorDialog({
                     [state]: {
                         ...toggleState(current.interaction_config, state),
                         [key]: value,
+                    },
+                },
+            },
+        }));
+    };
+    const updateSound = (
+        trigger: MapAssetSoundTrigger,
+        change: Partial<MapAssetInteractionSound>,
+    ) => {
+        setForm((current) => ({
+            ...current,
+            visual_config: {
+                ...(current.visual_config ?? {}),
+                sounds: {
+                    ...objectValue(current.visual_config, 'sounds'),
+                    [trigger]: {
+                        ...mapAssetInteractionSound(
+                            current.visual_config ?? {},
+                            trigger,
+                        ),
+                        ...change,
                     },
                 },
             },
@@ -1433,6 +1457,108 @@ function MapAssetEditorDialog({
                                         ) || 'center'
                                     }
                                 />
+                            </div>
+                        </fieldset>
+                        <fieldset className="border-t border-slate-200 pt-5 dark:border-white/10">
+                            <legend className="font-semibold">
+                                MapAsset sounds
+                            </legend>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                Optional effects for pointer, selection, and
+                                confirmed unlock interactions. Sounds come from
+                                the managed reusable library.
+                            </p>
+                            <div className="mt-3 grid gap-3">
+                                {mapAssetSoundTriggers.map(
+                                    ({ description, key, label }) => {
+                                        const configured =
+                                            mapAssetInteractionSound(
+                                                form.visual_config ?? {},
+                                                key,
+                                            );
+                                        const selected = sounds.find(
+                                            (sound) =>
+                                                sound.id === configured.soundId,
+                                        );
+                                        return (
+                                            <div
+                                                className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end dark:border-white/10"
+                                                key={key}
+                                            >
+                                                <div>
+                                                    <label className="flex items-start gap-2 text-sm font-medium">
+                                                        <input
+                                                            aria-label={`Enable ${label} sound`}
+                                                            checked={
+                                                                configured.enabled
+                                                            }
+                                                            className="mt-1 accent-teal-700"
+                                                            onChange={(event) =>
+                                                                updateSound(
+                                                                    key,
+                                                                    {
+                                                                        enabled:
+                                                                            event
+                                                                                .currentTarget
+                                                                                .checked,
+                                                                    },
+                                                                )
+                                                            }
+                                                            type="checkbox"
+                                                        />
+                                                        <span>
+                                                            {label}
+                                                            <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">
+                                                                {description}
+                                                            </span>
+                                                        </span>
+                                                    </label>
+                                                    <select
+                                                        aria-label={`${label} sound`}
+                                                        className="mt-3 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+                                                        onChange={(event) =>
+                                                            updateSound(key, {
+                                                                soundId:
+                                                                    event
+                                                                        .currentTarget
+                                                                        .value ||
+                                                                    null,
+                                                            })
+                                                        }
+                                                        value={
+                                                            configured.soundId ??
+                                                            ''
+                                                        }
+                                                    >
+                                                        <option value="">
+                                                            Select reusable sound
+                                                        </option>
+                                                        {sounds.map((sound) => (
+                                                            <option
+                                                                key={sound.id}
+                                                                value={sound.id}
+                                                            >
+                                                                {sound.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <button
+                                                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10"
+                                                    disabled={!selected}
+                                                    onClick={() => {
+                                                        if (selected) {
+                                                            previewMapAssetSound(selected);
+                                                        }
+                                                    }}
+                                                    type="button"
+                                                >
+                                                    Preview
+                                                </button>
+                                            </div>
+                                        );
+                                    },
+                                )}
                             </div>
                         </fieldset>
                         <fieldset className="border-t border-slate-200 pt-5 dark:border-white/10">
@@ -1837,6 +1963,54 @@ function defaultMapAssetRequest(): MapAssetRequest {
         width: 14,
     };
 }
+
+type MapAssetSoundTrigger = 'mouseEnter' | 'click' | 'mouseLeave' | 'unlock';
+type MapAssetInteractionSound = { enabled: boolean; soundId: string | null };
+
+const mapAssetSoundTriggers: Array<{
+    key: MapAssetSoundTrigger;
+    label: string;
+    description: string;
+}> = [
+    {
+        key: 'mouseEnter',
+        label: 'Mouse enter',
+        description: 'Played when the pointer enters this MapAsset.',
+    },
+    {
+        key: 'click',
+        label: 'Click',
+        description: 'Played when learners click or tap this MapAsset.',
+    },
+    {
+        key: 'mouseLeave',
+        label: 'Mouse leave',
+        description: 'Played when the pointer leaves this MapAsset.',
+    },
+    {
+        key: 'unlock',
+        label: 'Unlock',
+        description: 'Played after the server confirms this MapAsset was unlocked.',
+    },
+];
+
+function mapAssetInteractionSound(
+    visualConfig: Record<string, unknown>,
+    trigger: MapAssetSoundTrigger,
+): MapAssetInteractionSound {
+    const config = objectValue(objectValue(visualConfig, 'sounds'), trigger);
+    return {
+        enabled: config.enabled === true,
+        soundId: typeof config.soundId === 'string' ? config.soundId : null,
+    };
+}
+
+function previewMapAssetSound(sound: EditableSound): void {
+    const audio = new Audio(sound.url);
+    audio.volume = Math.max(0, Math.min(100, sound.volume)) / 100;
+    void audio.play().catch(() => undefined);
+}
+
 function mapAssetForm(asset: EditableMapAsset): MapAssetRequest {
     return {
         image_url: asset.image_url,

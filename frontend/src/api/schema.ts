@@ -7050,6 +7050,7 @@ export interface components {
             items: components["schemas"]["AdminEditableItem"][];
             learning_groups: components["schemas"]["AdminEditableLearningGroup"][];
             role_options: components["schemas"]["AdminRoleOption"][];
+            sounds: components["schemas"]["AdminEditableSound"][];
             topic_options: components["schemas"]["AdminTopicOption"][];
             tools: components["schemas"]["AdminEditableTool"][];
         };

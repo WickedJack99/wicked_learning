@@ -8,8 +8,9 @@ use wicked_learning_domain::{
     identity_access::{AuthorizedPrincipal, permission_scope_allows},
     world_content::{
         AdminEditableItem, AdminEditableLearningGroup, AdminEditableMap, AdminEditableMapAsset,
-        AdminEditableMapDocument, AdminEditableMapSummary, AdminEditableTool, AdminMapAccessGroup,
-        AdminNodePosition, AdminNodeSummary, AdminRoleOption, AdminTopicOption, AdminWorldSummary,
+        AdminEditableMapDocument, AdminEditableMapSummary, AdminEditableSound, AdminEditableTool,
+        AdminMapAccessGroup, AdminNodePosition, AdminNodeSummary, AdminRoleOption,
+        AdminTopicOption, AdminWorldSummary,
     },
 };
 
@@ -142,6 +143,18 @@ struct ToolRow {
     updated_at: String,
 }
 
+#[derive(FromRow)]
+struct SoundRow {
+    id: Uuid,
+    icon: Option<String>,
+    loop_enabled: bool,
+    name: String,
+    play_seconds: Option<f64>,
+    slug: String,
+    url: String,
+    volume: i16,
+}
+
 async fn load_editable_map(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -213,6 +226,7 @@ async fn load_editable_map(
     let learning_groups = load_manageable_learning_groups(pool, principal_id, principal).await?;
     let topic_options = load_topic_options(pool).await?;
     let items = load_items(pool).await?;
+    let sounds = load_sounds(pool).await?;
     let tools = load_tools(pool).await?;
 
     Ok(Some(AdminEditableMap {
@@ -248,6 +262,7 @@ async fn load_editable_map(
         items,
         learning_groups,
         role_options,
+        sounds,
         topic_options,
         tools,
     }))
@@ -336,6 +351,27 @@ async fn load_assets(
             interaction_config: asset.interaction_config,
             visual_config: asset.visual_config,
             sound_config: asset.sound_config,
+        })
+        .collect())
+}
+
+async fn load_sounds(pool: &PgPool) -> Result<Vec<AdminEditableSound>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, SoundRow>(
+        "SELECT id, icon, loop AS loop_enabled, name, play_seconds::double precision AS play_seconds, slug, url, volume FROM learning_sounds WHERE published_at IS NOT NULL ORDER BY name ASC, id ASC",
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|sound| AdminEditableSound {
+            id: sound.id,
+            icon: sound.icon,
+            loop_enabled: sound.loop_enabled,
+            name: sound.name,
+            play_seconds: sound.play_seconds,
+            slug: sound.slug,
+            url: sound.url,
+            volume: sound.volume,
         })
         .collect())
 }

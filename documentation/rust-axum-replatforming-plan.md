@@ -477,6 +477,18 @@ those remain reusable-sound metadata that the bounded learner projection owns.
 Sound upload and library management are now provided by the managed reusable
 sound-media lifecycle slice above.
 
+### MapAsset interaction-sound slice — 8 November 2026
+
+The source MapAsset editor's four interaction effects now travel from the
+World Builder to the learner map: pointer enter, click/tap, pointer leave and
+confirmed tool unlock. Authors select a managed reusable sound by UUID, never a
+browser URL. Rust validates the fixed trigger vocabulary, checks each selected
+published sound only after it has authorized the map writer, and projects only
+resolved public sound URLs to a visible learner map. The lifted editor retains
+the source controls and preview; learner playback honours the private mute and
+effects-volume preferences. The unlock effect waits for the server-confirmed
+unlock result rather than treating a tool click as success.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

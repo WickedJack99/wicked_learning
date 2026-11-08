@@ -973,6 +973,11 @@ Replacing or deleting a sound releases an unreferenced managed audio asset and
 its stored bytes, while the existing bundled `/sounds/...` entries continue to
 work without a migration. The reusable visual endpoints remain image-only, so
 visual-library access does not grant an alternate path to sound uploads.
+MapAsset authors can choose a reusable sound for the source-defined pointer
+enter, click/tap, pointer leave and server-confirmed unlock events. The stored
+authoring configuration contains only a sound UUID; Rust resolves a published
+sound URL for a visible learner map, and playback respects the learner's mute
+and effects-volume preferences.
 Admins with sound-library access can also manage source-shaped dialogue typing
 sets at `/settings?panel=admin-assets&asset=dialogue-sounds`: create a complete
 WAV set, replace all letters or one letter, add tags, and choose the default

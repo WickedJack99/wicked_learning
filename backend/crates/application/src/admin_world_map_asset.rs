@@ -60,6 +60,9 @@ impl WorldMapAssetForm {
         if interaction_mode == "toggle" && !valid_toggle_states(&interaction_config) {
             return None;
         }
+        if !valid_interaction_sounds(&visual_config) {
+            return None;
+        }
 
         Some(Self {
             image_url,
@@ -76,6 +79,47 @@ impl WorldMapAssetForm {
             sound_config,
         })
     }
+}
+
+/// The source MapAsset editor has exactly four optional interaction effects.
+/// Their selected UUID is an authoring reference, never a browser-provided
+/// media URL. Persistence resolves it only after the map writer is authorized.
+fn valid_interaction_sounds(config: &Value) -> bool {
+    let Some(config) = config.as_object() else {
+        return false;
+    };
+    let Some(sounds) = config.get("sounds") else {
+        return true;
+    };
+    let Some(sounds) = sounds.as_object() else {
+        return false;
+    };
+    if sounds.keys().any(|key| {
+        !matches!(
+            key.as_str(),
+            "mouseEnter" | "click" | "mouseLeave" | "unlock"
+        )
+    }) {
+        return false;
+    }
+    sounds.values().all(|sound| {
+        let Some(sound) = sound.as_object() else {
+            return false;
+        };
+        if sound
+            .keys()
+            .any(|key| !matches!(key.as_str(), "enabled" | "soundId"))
+            || !sound.get("enabled").is_some_and(Value::is_boolean)
+        {
+            return false;
+        }
+        sound.get("soundId").is_none_or(|value| {
+            value.is_null()
+                || value
+                    .as_str()
+                    .is_some_and(|value| Uuid::parse_str(value).is_ok())
+        })
+    })
 }
 
 fn bounded_optional(value: Option<&str>, maximum: usize) -> Option<Option<String>> {
@@ -322,5 +366,39 @@ mod tests {
         .expect("valid source-shaped form");
 
         assert_eq!(form.visual_config, visual_config);
+    }
+
+    #[test]
+    fn accepts_only_the_source_interaction_sound_vocabulary() {
+        assert!(WorldMapAssetForm::parse(
+            None,
+            None,
+            50.0,
+            50.0,
+            0,
+            14.0,
+            1.0,
+            false,
+            "focusable",
+            json!({}),
+            json!({"sounds":{"click":{"enabled":true,"soundId":"00000000-0000-4000-8000-000000000001"}}}),
+            json!({}),
+        )
+        .is_some());
+        assert!(WorldMapAssetForm::parse(
+            None,
+            None,
+            50.0,
+            50.0,
+            0,
+            14.0,
+            1.0,
+            false,
+            "focusable",
+            json!({}),
+            json!({"sounds":{"surprise":{"enabled":true,"soundId":"00000000-0000-4000-8000-000000000001"}}}),
+            json!({}),
+        )
+        .is_none());
     }
 }

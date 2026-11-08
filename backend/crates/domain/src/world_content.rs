@@ -138,6 +138,7 @@ pub struct AdminEditableMap {
     pub items: Vec<AdminEditableItem>,
     pub learning_groups: Vec<AdminEditableLearningGroup>,
     pub role_options: Vec<AdminRoleOption>,
+    pub sounds: Vec<AdminEditableSound>,
     pub topic_options: Vec<AdminTopicOption>,
     pub tools: Vec<AdminEditableTool>,
 }

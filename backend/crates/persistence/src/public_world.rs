@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::public_world::{
@@ -132,6 +132,23 @@ pub async fn load_first_visible(
         .fetch_all(pool)
         .await?
     };
+    let sound_ids = assets
+        .iter()
+        .flat_map(|asset| interaction_sound_ids(&asset.visual_config))
+        .collect::<HashSet<_>>();
+    let sound_urls = if sound_ids.is_empty() {
+        HashMap::new()
+    } else {
+        sqlx::query_as::<_, SoundUrlRow>(
+            "SELECT id, url FROM learning_sounds WHERE id = ANY($1) AND published_at IS NOT NULL",
+        )
+        .bind(sound_ids.into_iter().collect::<Vec<_>>())
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(|sound| (sound.id, sound.url))
+        .collect()
+    };
     let nodes = if map_ids.is_empty() {
         Vec::new()
     } else {
@@ -156,7 +173,7 @@ pub async fn load_first_visible(
                 width: asset.width,
                 opacity: asset.opacity,
                 locked: asset.locked,
-                visual_config: learner_media_config(asset.visual_config),
+                visual_config: learner_map_asset_visual_config(asset.visual_config, &sound_urls),
                 interaction_config: learner_media_config(asset.interaction_config),
                 sound_config: learner_media_config(asset.sound_config),
                 interaction_mode: asset.interaction_mode,
@@ -201,4 +218,79 @@ pub async fn load_first_visible(
                 .collect(),
         },
     }))
+}
+
+#[derive(FromRow)]
+struct SoundUrlRow {
+    id: Uuid,
+    url: String,
+}
+
+fn interaction_sound_ids(config: &Value) -> Vec<Uuid> {
+    config
+        .get("sounds")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flat_map(|sounds| sounds.values())
+        .filter_map(|sound| sound.get("soundId").and_then(Value::as_str))
+        .filter_map(|sound_id| Uuid::parse_str(sound_id).ok())
+        .collect()
+}
+
+fn learner_map_asset_visual_config(config: Value, sound_urls: &HashMap<Uuid, String>) -> Value {
+    let mut config = learner_media_config(config);
+    let Some(sounds) = config
+        .as_object_mut()
+        .and_then(|config| config.get_mut("sounds"))
+        .and_then(Value::as_object_mut)
+    else {
+        return config;
+    };
+    for trigger in ["mouseEnter", "click", "mouseLeave", "unlock"] {
+        let Some(sound) = sounds.get(trigger).and_then(Value::as_object) else {
+            continue;
+        };
+        let enabled = sound.get("enabled").and_then(Value::as_bool) == Some(true);
+        let url = sound
+            .get("soundId")
+            .and_then(Value::as_str)
+            .and_then(|sound_id| Uuid::parse_str(sound_id).ok())
+            .and_then(|sound_id| sound_urls.get(&sound_id))
+            .cloned();
+        sounds.insert(
+            trigger.to_owned(),
+            json!({ "enabled": enabled, "url": url }),
+        );
+    }
+    config
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use serde_json::json;
+    use uuid::Uuid;
+
+    use super::learner_map_asset_visual_config;
+
+    #[test]
+    fn projects_only_resolved_published_interaction_sound_urls() {
+        let sound_id = Uuid::new_v4();
+        let config = learner_map_asset_visual_config(
+            json!({
+                "sounds": {
+                    "click": { "enabled": true, "soundId": sound_id },
+                    "unlock": { "enabled": true, "soundId": Uuid::new_v4() }
+                }
+            }),
+            &HashMap::from([(sound_id, "/api/v1/public/sounds/current/content".to_owned())]),
+        );
+
+        assert_eq!(
+            config.pointer("/sounds/click/url"),
+            Some(&json!("/api/v1/public/sounds/current/content")),
+        );
+        assert_eq!(config.pointer("/sounds/unlock/url"), Some(&json!(null)));
+    }
 }
