@@ -924,6 +924,13 @@ It remaps copied internal references while retaining an outbound portal target,
 resets copied activity review state, and leaves learner data, authoring history,
 review runs and editor assignments behind.
 
+The selected Rust World Builder map dialog also offers a source-shaped JSON
+export. It downloads the scoped map's current authored graph, MapAssets,
+message topics, portal targets and referenced media URLs without embedding
+media bytes. Learner records, authoring history, review runs and editor-group
+assignments are not exported. This is the JSON-manifest step only; transfer
+packages, import and preflight remain separate workflows.
+
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
 author's existing editable world graph. Copies preserve reusable content and

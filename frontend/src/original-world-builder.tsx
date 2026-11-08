@@ -2320,6 +2320,12 @@ function MapDetails({
                 <Copy className="mr-1 inline size-4" />
                 Duplicate map
             </button>
+            <a
+                className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-center text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                href={`/api/v1/admin/world-builder/maps/${map.id}/export`}
+            >
+                Export map
+            </a>
             {document.can_manage_map_access ? (
                 <button
                     className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"

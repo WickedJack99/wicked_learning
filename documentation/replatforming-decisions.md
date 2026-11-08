@@ -4073,6 +4073,41 @@ geometry. Deeper export/import package parity, companion assignments and
 Laravel-only question/translation transfer remain separate source inventory
 work; this decision does not claim their target records exist.
 
+## ADR-101: Map JSON export is a scoped, read-only authored-graph projection
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** Authors need a portable inspection and future-transfer manifest
+for an authored map. Selecting a map without its graph dependencies would make
+the document misleading, while exporting learner state, historical snapshots,
+review evidence or editing-group assignments would disclose private or
+governance data. A generic database dump would bypass the source map-editor
+authority model and couple a public artifact to internal schema details.
+
+**Decision:** `GET /api/v1/admin/world-builder/maps/{map_id}/export` requires
+`world_maps.ru` plus the selected map's existing all/own/assigned/direct-editor
+scope. It returns a `wicked-learning-map` version-1 JSON attachment with the
+Rust-owned authored facts needed to describe that map: map presentation and
+access data, MapAssets, compatibility nodes, activity starts, routes and
+activities, activity/dialogue graphs, asset message topics, outbound portal
+targets and recursively collected media URL references. The endpoint performs
+no write and deliberately does not select learner records, versions, review
+runs or editor assignments. Target question configuration is included from the
+activity configuration owned by the Rust activity model; Laravel-only
+translation or companion records are not fabricated where target storage does
+not exist.
+
+**Why:** A source-shaped, bounded projection gives authors a useful portable
+manifest while preserving established authorization and avoiding accidental
+transfer of learner or governance state. It is a stable contract boundary for
+later package/import work rather than a database export.
+
+**Evidence and limits:** OpenAPI generation, focused Rust authorization tests,
+the frontend production build and a credential-gated local browser download
+prove the current manifest path. It does not upload media bytes, import a map,
+validate an imported graph or claim complete Laravel package parity; those are
+separate transfer slices with their own integrity evidence.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -506,6 +506,21 @@ source-style dialog makes that boundary visible, and its local browser proof
 creates a disposable map/MapAsset, duplicates it, confirms fresh map/asset/node
 identities with preserved geometry, then deletes both maps.
 
+### World Builder map JSON-export slice — 8 November 2026
+
+The selected-map dialog now exposes the source-shaped `Export map` download.
+`GET /api/v1/admin/world-builder/maps/{map_id}/export` applies the same
+`world_maps.ru` and all/own/assigned/direct-editor scope as the existing map
+writers, then returns a JSON attachment rather than changing data. The manifest
+records the Rust-owned map graph: presentation/access configuration, MapAssets,
+compatibility nodes, starts, routes and activities, activity and dialogue
+transitions, asset message topics, outgoing portal targets, and recursively
+listed media URLs. It explicitly excludes learner records, history versions,
+review runs and editor assignments. A credential-gated local browser proof
+creates an isolated map and MapAsset, downloads and validates that attachment,
+then deletes the disposable map. Package media and import/preflight parity are
+still separate transfer slices.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

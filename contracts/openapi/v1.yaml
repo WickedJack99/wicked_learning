@@ -933,6 +933,25 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The source map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/export:
+    get:
+      operationId: exportAdminWorldBuilderMap
+      summary: Download a source-shaped authored map manifest.
+      description: Requires the selected map's source edit scope. The manifest contains authored map graph and media references only; learner records, authoring history, review runs and editor assignments are excluded.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: A JSON attachment named from the map slug.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { description: Authentication is required. }
+        '404': { description: The map is unknown or unavailable through the source editor scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/details:
     patch:
       operationId: updateAdminWorldBuilderMapDetails

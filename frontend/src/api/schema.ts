@@ -715,6 +715,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a source-shaped authored map manifest.
+         * @description Requires the selected map's source edit scope. The manifest contains authored map graph and media references only; learner records, authoring history, review runs and editor assignments are excluded.
+         */
+        get: operations["exportAdminWorldBuilderMap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/details": {
         parameters: {
             query?: never;
@@ -10857,6 +10877,51 @@ export interface operations {
                 content?: never;
             };
             /** @description The source map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    exportAdminWorldBuilderMap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A JSON attachment named from the map slug. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source editor scope. */
             404: {
                 headers: {
                     [name: string]: unknown;
