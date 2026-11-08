@@ -3566,6 +3566,26 @@ export interface paths {
         patch: operations["hideOrganizationMessage"];
         trace?: never;
     };
+    "/admin/learning-support/signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read scoped learner evidence signals for support conversations.
+         * @description Returns only learners visible through the caller's `learner_support_signals` all/group/self scope. It excludes journal text, private reflections, confidence and ranking data.
+         */
+        get: operations["getAdminLearningSupportSignals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/learning-groups": {
         parameters: {
             query?: never;
@@ -5850,6 +5870,53 @@ export interface components {
             id: string;
             question: string;
             reflection: string;
+        };
+        AdminSupportSignals: {
+            activity_overview_30_days: components["schemas"]["AdminSupportActivityBucket"][];
+            learners: components["schemas"]["AdminSupportLearner"][];
+            month_key: string;
+        };
+        AdminSupportActivityBucket: {
+            active_learners: number;
+            contribution_recorded: number;
+            /** Format: date */
+            date: string;
+            evidence_events: number;
+        };
+        AdminSupportLearner: {
+            /** Format: email */
+            email: string;
+            groups: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                study_topic?: string | null;
+            }[];
+            /** Format: date-time */
+            last_activity_at?: string | null;
+            manual_unlocks: {
+                /** Format: date-time */
+                granted_at: string;
+                map_title: string;
+                /** Format: uuid */
+                node_id: string;
+                node_title: string;
+            }[];
+            name: string;
+            /** Format: uuid */
+            subject_id: string;
+            support_notes: {
+                text: string;
+                tone: string;
+            }[];
+            topics: {
+                evidence_types: string[];
+                monthly_contribution: number;
+                name: string;
+                slug: string;
+                total_contribution: number;
+            }[];
+            username?: string | null;
         };
         LearnerCompetenceMap: {
             check_ins: components["schemas"]["LearnerCompetenceCheckIn"][];
@@ -22038,6 +22105,54 @@ export interface operations {
                 content?: never;
             };
             /** @description The visible message is unavailable to the current administrator. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application or identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminLearningSupportSignals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Source-shaped collective and individual support evidence. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSupportSignals"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Support signals are unavailable to this principal. */
             404: {
                 headers: {
                     [name: string]: unknown;

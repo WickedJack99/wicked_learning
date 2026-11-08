@@ -498,6 +498,14 @@ automated quality judgment or ranking.
 Each entry links to its map/node context so support staff can orient themselves
 without opening learner writing.
 
+The separate source-adapted Support Signals view provides a collective recent
+activity overview and an individual learner evidence view only within the
+staff member's all, shared-group, or self scope. It shows grouped qualitative
+topic evidence, support prompts, group context, and active manual node
+overrides; it excludes journal text, private reflections, confidence values,
+and rankings. Peer-message support remains in its dedicated moderation
+workspace because its resolution controls are a separate workflow.
+
 ### Journal, Competence And Collaboration
 
 The learner journal is a private Markdown workspace with custom pages,

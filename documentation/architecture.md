@@ -557,6 +557,13 @@ permission-protected endpoint. The database applies a per-message
 `ROW_NUMBER()` range before response models are hydrated, keeping both SQL
 query count and returned response rows bounded by the requested page size.
 
+Support Signals is a separate cross-database read projection. The application
+database first resolves all/group/self learner visibility from memberships and
+aggregates evidence, groups and active manual overrides; only then does the
+identity database provide authorized learners' display names and email
+addresses. The projection does not query or serialize journal text,
+reflections, confidence, or a learner ranking.
+
 The Learning Desk loads at most 12 recent visible private support responses for
 the current learner, eager-loading their topic and place navigation context in
 that bounded query. Map visibility is checked before serialization, and the

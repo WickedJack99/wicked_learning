@@ -16,6 +16,7 @@ mod admin_activity_templates;
 mod admin_ai_settings;
 mod admin_dialogue_typing_sound_set;
 mod admin_learning_group;
+mod admin_learning_support_signals;
 mod admin_learning_taxonomy;
 mod admin_media_assets;
 mod admin_public_content;
@@ -599,6 +600,10 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/admin/platform-feedback/{feedback_id}/review", patch(platform_feedback_review::mark_reviewed))
         .route("/api/v1/learner/feedback-prompt-preference", get(feedback_prompt_preference::show).patch(feedback_prompt_preference::update))
         .route("/api/v1/admin/learning-groups", get(admin_learning_group::index).post(admin_learning_group::create))
+        .route(
+            "/api/v1/admin/learning-support/signals",
+            get(admin_learning_support_signals::index),
+        )
         .route("/api/v1/admin/users", get(admin_user::index))
         .route(
             "/api/v1/admin/users/{subject_id}/access",

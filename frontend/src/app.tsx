@@ -73,6 +73,10 @@ const OriginalLearningSupportModerationPage = lazy(async () => {
 
     return { default: module.OriginalLearningSupportModerationPage };
 });
+const OriginalLearningSupportSignalsPage = lazy(async () => {
+    const module = await import('./original-learning-support-signals');
+    return { default: module.OriginalLearningSupportSignalsPage };
+});
 
 const OriginalPlatformFeedbackReviewPage = lazy(async () => {
     const module = await import('./original-platform-feedback-review');
@@ -791,6 +795,10 @@ export function App() {
             )
         ) {
             return <Navigate replace to="/home" />;
+        }
+
+        if (new URLSearchParams(location.search).get('support') === 'support-signals') {
+            return <Suspense fallback={null}><OriginalLearningSupportSignalsPage appearance={appearance} /></Suspense>;
         }
 
         return (

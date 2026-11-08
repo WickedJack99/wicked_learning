@@ -4325,6 +4325,21 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The visible message is unavailable to the current administrator. }
         '503': { description: The application or identity database is unavailable. }
+  /admin/learning-support/signals:
+    get:
+      operationId: getAdminLearningSupportSignals
+      summary: Read scoped learner evidence signals for support conversations.
+      description: Returns only learners visible through the caller's `learner_support_signals` all/group/self scope. It excludes journal text, private reflections, confidence and ranking data.
+      responses:
+        '200':
+          description: Source-shaped collective and individual support evidence.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSupportSignals' }
+        '401': { description: Authentication is required. }
+        '403': { description: The current identity has no application principal. }
+        '404': { description: Support signals are unavailable to this principal. }
+        '503': { description: The application or identity database is unavailable. }
   /admin/learning-groups:
     get:
       operationId: getAdminLearningGroups
@@ -7945,6 +7960,34 @@ components:
         id: { type: string, format: uuid }
         question: { type: string, maxLength: 2000 }
         reflection: { type: string, maxLength: 10000 }
+    AdminSupportSignals:
+      type: object
+      required: [activity_overview_30_days, learners, month_key]
+      properties:
+        activity_overview_30_days: { type: array, items: { $ref: '#/components/schemas/AdminSupportActivityBucket' } }
+        learners: { type: array, items: { $ref: '#/components/schemas/AdminSupportLearner' } }
+        month_key: { type: string, pattern: '^\\d{4}-\\d{2}$' }
+    AdminSupportActivityBucket:
+      type: object
+      required: [active_learners, contribution_recorded, date, evidence_events]
+      properties:
+        active_learners: { type: integer, minimum: 0 }
+        contribution_recorded: { type: number }
+        date: { type: string, format: date }
+        evidence_events: { type: integer, minimum: 0 }
+    AdminSupportLearner:
+      type: object
+      required: [email, groups, manual_unlocks, name, subject_id, support_notes, topics]
+      properties:
+        email: { type: string, format: email }
+        groups: { type: array, items: { type: object, required: [id, name], properties: { id: { type: string, format: uuid }, name: { type: string }, study_topic: { type: [string, 'null'] } } } }
+        last_activity_at: { type: [string, 'null'], format: date-time }
+        manual_unlocks: { type: array, items: { type: object, required: [granted_at, map_title, node_id, node_title], properties: { granted_at: { type: string, format: date-time }, map_title: { type: string }, node_id: { type: string, format: uuid }, node_title: { type: string } } } }
+        name: { type: string }
+        subject_id: { type: string, format: uuid }
+        support_notes: { type: array, items: { type: object, required: [text, tone], properties: { text: { type: string }, tone: { type: string } } } }
+        topics: { type: array, items: { type: object, required: [evidence_types, monthly_contribution, name, slug, total_contribution], properties: { evidence_types: { type: array, items: { type: string } }, monthly_contribution: { type: number }, name: { type: string }, slug: { type: string }, total_contribution: { type: number } } } }
+        username: { type: [string, 'null'] }
     LearnerCompetenceMap:
       type: object
       additionalProperties: false
