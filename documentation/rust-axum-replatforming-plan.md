@@ -978,6 +978,10 @@ rubric cues, and explain/transfer-only optional independent-check guidance.
 The explicit save records history and resets review state; it neither invokes
 an AI provider nor turns guidance, response comparison, or observable cues
 into a learner grade.
+Authors can also save the source's optional bounded Choice context for the
+existing learner conclusion directions. It explains a possible next step but
+does not add a recommendation, change the choices, or imply a required route;
+its explicit save likewise records history and resets review state.
 The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
 the original editor's independently persisted, rounded `start`/`end` graph

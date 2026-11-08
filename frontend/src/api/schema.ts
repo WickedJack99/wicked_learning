@@ -939,6 +939,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderActivityFeedbackGuidance"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/completion-choice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save optional context for a learner's post-activity choice.
+         * @description Saves a tutor-authored explanation for the existing optional continuation choices. It records a pre-change version and resets review state.
+         */
+        patch: operations["updateAdminWorldBuilderActivityCompletionChoice"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/source-references": {
         parameters: {
             query?: never;
@@ -7795,6 +7815,17 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        UpdateAdminActivityCompletionChoiceRequest: {
+            prompt: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminActivityCompletionChoiceResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         UpdateAdminActivitySourceReferencesRequest: {
             source_references: components["schemas"]["AdminActivitySourceReferenceInput"][];
             /** Format: date-time */
@@ -11246,6 +11277,77 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity changed while the author was editing feedback guidance. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderActivityCompletionChoice: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivityCompletionChoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description The completion-choice context was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminActivityCompletionChoiceResponse"];
+                };
+            };
+            /** @description The complete choice-context form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed while the author was editing choice context. */
             409: {
                 headers: {
                     [name: string]: unknown;

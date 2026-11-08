@@ -117,6 +117,18 @@ test('a local author can open the guarded source-derived activity review dialog'
         },
     );
     expect(feedbackGuidanceResponse.status()).toBe(200);
+    const feedbackGuidance = await feedbackGuidanceResponse.json() as { updated_at: string };
+    const completionChoiceResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activityId}/completion-choice`,
+        {
+            data: {
+                prompt: 'Choose the kind of continuation that supports your next step.',
+                updated_at: feedbackGuidance.updated_at,
+            },
+            headers: { 'X-CSRF-Token': token },
+        },
+    );
+    expect(completionChoiceResponse.status()).toBe(200);
 
     await page.reload();
     const card = page.locator('[data-id]').filter({ hasText: `Review target ${suffix}` });
@@ -136,6 +148,11 @@ test('a local author can open the guarded source-derived activity review dialog'
     await expect(feedbackDialog).toBeVisible();
     await expect(feedbackDialog.getByDisplayValue('Make the learner’s reasoning visible.')).toBeVisible();
     await feedbackDialog.getByRole('button', { name: 'Close feedback guidance' }).click();
+    await card.getByRole('button', { name: 'Choice context' }).click();
+    const choiceDialog = page.locator('[data-wl-id="authoring.activity-completion-choice"]');
+    await expect(choiceDialog).toBeVisible();
+    await expect(choiceDialog.getByDisplayValue('Choose the kind of continuation that supports your next step.')).toBeVisible();
+    await choiceDialog.getByRole('button', { name: 'Close choice context' }).click();
     await card.getByRole('button', { name: 'Review activity' }).click();
     const dialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
     await expect(dialog).toBeVisible();

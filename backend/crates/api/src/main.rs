@@ -6,6 +6,7 @@ mod account_password_confirmation;
 mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
+mod admin_activity_completion_choice;
 mod admin_activity_evidence_context;
 mod admin_activity_feedback_guidance;
 mod admin_activity_learning_design;
@@ -696,6 +697,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/feedback-guidance",
             patch(admin_activity_feedback_guidance::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/completion-choice",
+            patch(admin_activity_completion_choice::update),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/source-references",

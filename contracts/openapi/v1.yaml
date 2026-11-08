@@ -1278,6 +1278,36 @@ paths:
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '409': { description: The activity changed while the author was editing feedback guidance. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/completion-choice:
+    patch:
+      operationId: updateAdminWorldBuilderActivityCompletionChoice
+      summary: Save optional context for a learner's post-activity choice.
+      description: >-
+        Saves a tutor-authored explanation for the existing optional continuation
+        choices. It records a pre-change version and resets review state.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityCompletionChoiceRequest' }
+      responses:
+        '200':
+          description: The completion-choice context was saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminActivityCompletionChoiceResponse' }
+        '400': { description: The complete choice-context form is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '409': { description: The activity changed while the author was editing choice context. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/source-references:
     patch:
       operationId: updateAdminWorldBuilderActivitySourceReferences
@@ -10967,6 +10997,20 @@ components:
         independent_check_feedback: { type: [string, 'null'] }
         updated_at: { type: string, format: date-time }
     UpdateAdminActivityFeedbackGuidanceResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivityCompletionChoiceRequest:
+      type: object
+      additionalProperties: false
+      required: [prompt, updated_at]
+      properties:
+        prompt: { type: [string, 'null'], maxLength: 600 }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivityCompletionChoiceResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]
