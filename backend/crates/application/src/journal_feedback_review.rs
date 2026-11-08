@@ -1,16 +1,20 @@
 use std::future::Future;
 
 use uuid::Uuid;
-use wicked_learning_domain::identity_access::{ApplicationCapability, AuthorizedPrincipal};
+use wicked_learning_domain::{
+    identity_access::{ApplicationCapability, AuthorizedPrincipal},
+    learner_state::{LearnerJournalTheme, LearnerJournalThemeMode},
+};
 
 pub const MAX_FEEDBACK_CHARACTERS: usize = 20_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct JournalFeedbackReviewError;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct JournalFeedbackPolicy {
     pub allow_review_requests: bool,
+    pub theme: LearnerJournalTheme,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -75,7 +79,7 @@ pub trait JournalFeedbackReviewRepository {
     ) -> impl Future<Output = Result<JournalFeedbackPolicy, JournalFeedbackReviewError>> + Send;
     fn update_policy(
         &self,
-        allow_review_requests: bool,
+        policy: JournalFeedbackPolicy,
     ) -> impl Future<Output = Result<JournalFeedbackPolicy, JournalFeedbackReviewError>> + Send;
     fn list(
         &self,
@@ -128,16 +132,80 @@ impl<'repository, Repository: JournalFeedbackReviewRepository>
     pub async fn execute(
         &self,
         principal: &AuthorizedPrincipal,
-        allow_review_requests: bool,
+        policy: JournalFeedbackPolicy,
     ) -> Result<Option<JournalFeedbackPolicy>, JournalFeedbackReviewError> {
-        if !principal.has_capability(ApplicationCapability::ManageJournalFeedbackPolicy) {
+        if !principal.has_capability(ApplicationCapability::ManageJournalFeedbackPolicy)
+            || !valid_journal_theme(&policy.theme)
+        {
             return Ok(None);
         }
-        self.repository
-            .update_policy(allow_review_requests)
-            .await
-            .map(Some)
+        self.repository.update_policy(policy).await.map(Some)
     }
+}
+
+/// The source accepts a complete, normalized Journal theme from its settings
+/// form. Keep its bounds at the application boundary so alternate HTTP routes
+/// cannot persist unbounded presentation JSON.
+pub fn valid_journal_theme(theme: &LearnerJournalTheme) -> bool {
+    valid_journal_theme_mode(&theme.dark) && valid_journal_theme_mode(&theme.light)
+}
+
+fn valid_journal_theme_mode(theme: &LearnerJournalThemeMode) -> bool {
+    let colors = [
+        &theme.accent,
+        &theme.accent_text,
+        &theme.background_overlay,
+        &theme.body_text,
+        &theme.button_background,
+        &theme.button_border,
+        &theme.button_text,
+        &theme.content_background,
+        &theme.header_background,
+        &theme.heading_text,
+        &theme.input_background,
+        &theme.muted_text,
+        &theme.panel_background,
+        &theme.panel_border,
+        &theme.selected_background,
+        &theme.selected_border,
+        &theme.selected_text,
+        &theme.sidebar_background,
+    ];
+    let opacities = [
+        theme.accent_opacity,
+        theme.accent_text_opacity,
+        theme.background_overlay_opacity,
+        theme.body_text_opacity,
+        theme.button_background_opacity,
+        theme.button_border_opacity,
+        theme.button_text_opacity,
+        theme.content_background_opacity,
+        theme.header_background_opacity,
+        theme.heading_text_opacity,
+        theme.input_background_opacity,
+        theme.muted_text_opacity,
+        theme.panel_background_opacity,
+        theme.panel_border_opacity,
+        theme.selected_background_opacity,
+        theme.selected_border_opacity,
+        theme.selected_text_opacity,
+        theme.sidebar_background_opacity,
+    ];
+
+    theme.background_image.chars().count() <= 2_048
+        && (0..=100).contains(&theme.background_position_x)
+        && (0..=100).contains(&theme.background_position_y)
+        && (25..=300).contains(&theme.background_zoom)
+        && theme.background_assets.len() <= 12
+        && colors.iter().all(|value| value.chars().count() <= 64)
+        && opacities.iter().all(|value| (0..=100).contains(value))
+        && theme.background_assets.iter().all(|asset| {
+            asset.id.chars().count() <= 64
+                && asset.image.chars().count() <= 2_048
+                && (0..=100).contains(&asset.position_x)
+                && (0..=100).contains(&asset.position_y)
+                && (25..=300).contains(&asset.zoom)
+        })
 }
 
 impl<'repository, Repository: JournalFeedbackReviewRepository>
@@ -200,7 +268,7 @@ mod tests {
         }
         fn update_policy(
             &self,
-            _: bool,
+            _: JournalFeedbackPolicy,
         ) -> impl Future<Output = Result<JournalFeedbackPolicy, JournalFeedbackReviewError>> + Send
         {
             async { panic!("unauthorized policy writes must not reach the repository") }
@@ -248,6 +316,54 @@ mod tests {
         assert!(
             RespondToJournalFeedback::new(&repository)
                 .execute(&principal, Uuid::new_v4(), "helpful reply")
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn journal_theme_validation_preserves_source_configuration_bounds() {
+        let mut theme = wicked_learning_domain::learner_state::default_learner_journal_theme();
+        assert!(valid_journal_theme(&theme));
+
+        theme.dark.background_zoom = 301;
+        assert!(!valid_journal_theme(&theme));
+    }
+
+    #[tokio::test]
+    async fn invalid_journal_theme_does_not_reach_an_authorized_repository() {
+        let repository = Repository;
+        let mut theme = wicked_learning_domain::learner_state::default_learner_journal_theme();
+        theme.light.background_assets = vec![
+            wicked_learning_domain::learner_state::LearnerJournalBackgroundAsset {
+                id: "asset".to_owned(),
+                image: String::new(),
+                position_x: 50,
+                position_y: 50,
+                zoom: 100,
+            };
+            13
+        ];
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec![
+                ApplicationCapability::ManageJournalFeedbackPolicy
+                    .key()
+                    .to_owned(),
+            ],
+        };
+
+        assert!(
+            UpdateJournalFeedbackPolicy::new(&repository)
+                .execute(
+                    &principal,
+                    JournalFeedbackPolicy {
+                        allow_review_requests: true,
+                        theme,
+                    },
+                )
                 .await
                 .unwrap()
                 .is_none()

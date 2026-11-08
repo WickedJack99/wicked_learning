@@ -271,7 +271,7 @@ paths:
   /admin/journal-feedback/policy:
     get:
       operationId: getAdminJournalFeedbackPolicy
-      summary: Read the source-defined global opt-in policy for private journal review requests.
+      summary: Read the source-defined Journal review policy and learner presentation configuration.
       responses:
         '200':
           description: The current journal-review policy.
@@ -281,7 +281,7 @@ paths:
         '503': { description: The application database is unavailable. }
     patch:
       operationId: updateAdminJournalFeedbackPolicy
-      summary: Enable or disable future learner requests for one-time private journal review.
+      summary: Save Journal review consent and its light/dark learner presentation configuration.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -293,6 +293,7 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/AdminJournalFeedbackPolicy' } } }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
+        '400': { description: The complete Journal theme is invalid or exceeds its source-derived bounds. }
         '404': { description: Journal policy management is unavailable to this principal. }
         '503': { description: The application database is unavailable. }
   /admin/journal-feedback:
@@ -8409,15 +8410,17 @@ components:
     AdminJournalFeedbackPolicy:
       type: object
       additionalProperties: false
-      required: [allow_review_requests]
+      required: [allow_review_requests, theme]
       properties:
         allow_review_requests: { type: boolean }
+        theme: { $ref: '#/components/schemas/LearnerJournalTheme' }
     UpdateAdminJournalFeedbackPolicyRequest:
       type: object
       additionalProperties: false
-      required: [allow_review_requests]
+      required: [allow_review_requests, theme]
       properties:
         allow_review_requests: { type: boolean }
+        theme: { $ref: '#/components/schemas/LearnerJournalTheme' }
     RespondToAdminJournalFeedbackRequest:
       type: object
       additionalProperties: false

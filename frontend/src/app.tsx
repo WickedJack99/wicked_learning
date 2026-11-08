@@ -82,6 +82,12 @@ const OriginalJournalFeedbackReviewPage = lazy(async () => {
     return { default: module.OriginalJournalFeedbackReviewPage };
 });
 
+const OriginalJournalSettingsPage = lazy(async () => {
+    const module = await import('./original-journal-settings');
+
+    return { default: module.OriginalJournalSettingsPage };
+});
+
 const OriginalGroupManagementPage = lazy(async () => {
     const module = await import('./original-group-management');
 
@@ -613,6 +619,25 @@ export function App() {
                         )}
                         canView={canViewJournalFeedback}
                     />
+                </Suspense>
+            );
+        }
+
+        if (
+            supportPanel &&
+            new URLSearchParams(location.search).get('support') === 'journal'
+        ) {
+            if (
+                !currentUser.capabilities.includes(
+                    'journal_feedback_policy_manage',
+                )
+            ) {
+                return <Navigate replace to="/home" />;
+            }
+
+            return (
+                <Suspense fallback={null}>
+                    <OriginalJournalSettingsPage appearance={appearance} />
                 </Suspense>
             );
         }

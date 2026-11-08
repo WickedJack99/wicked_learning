@@ -258,14 +258,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read the source-defined global opt-in policy for private journal review requests. */
+        /** Read the source-defined Journal review policy and learner presentation configuration. */
         get: operations["getAdminJournalFeedbackPolicy"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Enable or disable future learner requests for one-time private journal review. */
+        /** Save Journal review consent and its light/dark learner presentation configuration. */
         patch: operations["updateAdminJournalFeedbackPolicy"];
         trace?: never;
     };
@@ -5709,9 +5709,11 @@ export interface components {
         };
         AdminJournalFeedbackPolicy: {
             allow_review_requests: boolean;
+            theme: components["schemas"]["LearnerJournalTheme"];
         };
         UpdateAdminJournalFeedbackPolicyRequest: {
             allow_review_requests: boolean;
+            theme: components["schemas"]["LearnerJournalTheme"];
         };
         RespondToAdminJournalFeedbackRequest: {
             feedback: string;
@@ -7651,6 +7653,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AdminJournalFeedbackPolicy"];
                 };
+            };
+            /** @description The complete Journal theme is invalid or exceeds its source-derived bounds. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Authentication is required. */
             401: {

@@ -1,3 +1,4 @@
+use crate::learner_media::learner_media_url;
 use serde_json::Value;
 use sqlx::{FromRow, PgPool, types::Json};
 use uuid::Uuid;
@@ -237,8 +238,18 @@ async fn load_page(
             total,
         },
         revisit_invitations,
-        theme: journal_settings.1,
+        theme: learner_theme(journal_settings.1),
     }))
+}
+
+fn learner_theme(mut theme: LearnerJournalTheme) -> LearnerJournalTheme {
+    for mode in [&mut theme.dark, &mut theme.light] {
+        mode.background_image = learner_media_url(&mode.background_image);
+        for asset in &mut mode.background_assets {
+            asset.image = learner_media_url(&asset.image);
+        }
+    }
+    theme
 }
 
 async fn load_feedback_domains(
@@ -346,7 +357,7 @@ fn revisit_reason(status: &str) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{escape_like, revisit_reason};
+    use super::{escape_like, learner_theme, revisit_reason};
 
     #[test]
     fn private_journal_search_escapes_database_wildcards() {
@@ -357,5 +368,31 @@ mod tests {
     fn source_revisit_statuses_keep_their_journal_reason() {
         assert_eq!(revisit_reason("pending"), "pause");
         assert_eq!(revisit_reason("snoozed"), "later");
+    }
+
+    #[test]
+    fn journal_theme_projects_reusable_visuals_to_learner_urls() {
+        let media = uuid::Uuid::new_v4();
+        let mut theme = wicked_learning_domain::learner_state::default_learner_journal_theme();
+        theme.dark.background_image = format!("/api/v1/admin/media-assets/{media}/content");
+        theme.light.background_assets.push(
+            wicked_learning_domain::learner_state::LearnerJournalBackgroundAsset {
+                id: "ornament".to_owned(),
+                image: format!("/api/v1/admin/media-assets/{media}/content"),
+                position_x: 50,
+                position_y: 50,
+                zoom: 100,
+            },
+        );
+
+        let projected = learner_theme(theme);
+        assert_eq!(
+            projected.dark.background_image,
+            format!("/api/v1/learner/media-assets/{media}/content")
+        );
+        assert_eq!(
+            projected.light.background_assets[0].image,
+            format!("/api/v1/learner/media-assets/{media}/content")
+        );
     }
 }

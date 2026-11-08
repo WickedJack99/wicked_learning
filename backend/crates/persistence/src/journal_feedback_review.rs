@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgPool, Postgres, Transaction, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::journal_feedback_review::{
     AdminJournalFeedbackDomain, AdminJournalFeedbackIdentity, AdminJournalFeedbackItem,
@@ -8,9 +8,16 @@ use wicked_learning_application::journal_feedback_review::{
     JournalFeedbackPolicy, JournalFeedbackReviewError, JournalFeedbackReviewRepository as Port,
     RespondJournalFeedbackResult,
 };
-use wicked_learning_domain::identity_access::AuthorizedPrincipal;
+use wicked_learning_domain::{
+    identity_access::AuthorizedPrincipal,
+    learner_state::{LearnerJournalTheme, default_learner_journal_theme},
+};
 
 const PAGE_SIZE: i64 = 6;
+const JOURNAL_PRESENTATION_MEDIA_OWNER_KIND: &str = "journal_presentation";
+const JOURNAL_PRESENTATION_MEDIA_OWNER_ID: Uuid =
+    Uuid::from_u128(0x7ec22d8d_a2b8_4ae7_9fed_a3d7c0776df5);
+const ADMIN_MEDIA_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
 
 pub struct PostgresJournalFeedbackReviewRepository<'pool> {
     application_pool: &'pool PgPool,
@@ -63,11 +70,11 @@ impl Port for PostgresJournalFeedbackReviewRepository<'_> {
     }
     fn update_policy(
         &self,
-        allow_review_requests: bool,
+        policy: JournalFeedbackPolicy,
     ) -> impl std::future::Future<Output = Result<JournalFeedbackPolicy, JournalFeedbackReviewError>>
     + Send {
         async move {
-            update_policy(self.application_pool, allow_review_requests)
+            update_policy(self.application_pool, policy)
                 .await
                 .map_err(log_error("could not update journal feedback policy"))
         }
@@ -108,23 +115,91 @@ fn log_error(message: &'static str) -> impl FnOnce(sqlx::Error) -> JournalFeedba
 }
 
 async fn policy(pool: &PgPool) -> Result<JournalFeedbackPolicy, sqlx::Error> {
-    let allow_review_requests = sqlx::query_scalar("SELECT allow_review_requests FROM application_journal_feedback_policy WHERE singleton = TRUE")
-        .fetch_optional(pool).await?.unwrap_or(false);
+    let policy = sqlx::query_as::<_, PolicyRow>(
+        "SELECT allow_review_requests, theme FROM application_journal_feedback_policy WHERE singleton = TRUE",
+    )
+    .fetch_optional(pool)
+    .await?;
     Ok(JournalFeedbackPolicy {
-        allow_review_requests,
+        allow_review_requests: policy
+            .as_ref()
+            .is_some_and(|policy| policy.allow_review_requests),
+        theme: policy
+            .and_then(|policy| policy.theme.map(|theme| theme.0))
+            .unwrap_or_else(default_learner_journal_theme),
     })
 }
 
 async fn update_policy(
     pool: &PgPool,
-    allow_review_requests: bool,
+    policy: JournalFeedbackPolicy,
 ) -> Result<JournalFeedbackPolicy, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
     let allow_review_requests = sqlx::query_scalar(
-        "INSERT INTO application_journal_feedback_policy (singleton, allow_review_requests, updated_at) VALUES (TRUE, $1, NOW()) ON CONFLICT (singleton) DO UPDATE SET allow_review_requests = EXCLUDED.allow_review_requests, updated_at = NOW() RETURNING allow_review_requests",
-    ).bind(allow_review_requests).fetch_one(pool).await?;
+        "INSERT INTO application_journal_feedback_policy (singleton, allow_review_requests, theme, updated_at) VALUES (TRUE, $1, $2, NOW()) ON CONFLICT (singleton) DO UPDATE SET allow_review_requests = EXCLUDED.allow_review_requests, theme = EXCLUDED.theme, updated_at = NOW() RETURNING allow_review_requests",
+    )
+    .bind(policy.allow_review_requests)
+    .bind(Json(&policy.theme))
+    .fetch_one(&mut *transaction)
+    .await?;
+    sync_presentation_media_references(&mut transaction, &policy.theme).await?;
+    transaction.commit().await?;
     Ok(JournalFeedbackPolicy {
         allow_review_requests,
+        theme: policy.theme,
     })
+}
+
+#[derive(FromRow)]
+struct PolicyRow {
+    allow_review_requests: bool,
+    theme: Option<Json<LearnerJournalTheme>>,
+}
+
+async fn sync_presentation_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    theme: &LearnerJournalTheme,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "DELETE FROM reusable_media_asset_references WHERE owner_kind = $1 AND owner_id = $2",
+    )
+    .bind(JOURNAL_PRESENTATION_MEDIA_OWNER_KIND)
+    .bind(JOURNAL_PRESENTATION_MEDIA_OWNER_ID)
+    .execute(&mut **transaction)
+    .await?;
+
+    for (mode_name, mode) in [("dark", &theme.dark), ("light", &theme.light)] {
+        let mut references = vec![("background_image".to_owned(), &mode.background_image)];
+        references.extend(
+            mode.background_assets
+                .iter()
+                .enumerate()
+                .map(|(index, asset)| (format!("background_assets.{index}.image"), &asset.image)),
+        );
+        for (field_key, value) in references {
+            let Some(asset_id) = reusable_media_asset_id(value) else {
+                continue;
+            };
+            sqlx::query(
+                "INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) VALUES ($1, $2, $3, $4)",
+            )
+            .bind(asset_id)
+            .bind(JOURNAL_PRESENTATION_MEDIA_OWNER_KIND)
+            .bind(JOURNAL_PRESENTATION_MEDIA_OWNER_ID)
+            .bind(format!("{mode_name}.{field_key}"))
+            .execute(&mut **transaction)
+            .await?;
+        }
+    }
+    Ok(())
+}
+
+fn reusable_media_asset_id(value: &str) -> Option<Uuid> {
+    let path = value.strip_prefix(ADMIN_MEDIA_CONTENT_PREFIX)?;
+    let (id, suffix) = path.split_once('/')?;
+    (suffix == "content")
+        .then(|| Uuid::parse_str(id).ok())
+        .flatten()
 }
 
 async fn list(
@@ -251,4 +326,24 @@ async fn respond(
     } else {
         RespondJournalFeedbackResult::NotFound
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reusable_media_asset_id;
+    use uuid::Uuid;
+
+    #[test]
+    fn journal_presentation_references_only_canonical_reusable_media_content_urls() {
+        let asset = Uuid::new_v4();
+        assert_eq!(
+            reusable_media_asset_id(&format!("/api/v1/admin/media-assets/{asset}/content")),
+            Some(asset)
+        );
+        assert_eq!(
+            reusable_media_asset_id(&format!("/api/v1/admin/media-assets/{asset}/thumbnail")),
+            None
+        );
+        assert_eq!(reusable_media_asset_id("/images/journal.png"), None);
+    }
 }

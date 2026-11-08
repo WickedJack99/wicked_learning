@@ -8,6 +8,7 @@ import type { OriginalAppearance } from './original-appearance';
 
 type ReviewPage = components['schemas']['AdminJournalFeedbackPage'];
 type ReviewItem = components['schemas']['AdminJournalFeedbackItem'];
+type JournalTheme = components['schemas']['LearnerJournalTheme'];
 
 /** Source-adapted from Settings/AdminPanel's FeedbackRequestsSection and the
  * journal Policy section. This is intentionally separate from platform
@@ -30,6 +31,7 @@ export function OriginalJournalFeedbackReviewPage({
     );
     const [page, setPage] = useState<ReviewPage | null>(null);
     const [policyEnabled, setPolicyEnabled] = useState<boolean | null>(null);
+    const [policyTheme, setPolicyTheme] = useState<JournalTheme | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [feedbackById, setFeedbackById] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
@@ -78,7 +80,10 @@ export function OriginalJournalFeedbackReviewPage({
         if (!canManagePolicy) return;
         let active = true;
         void apiClient.GET('/admin/journal-feedback/policy').then(({ data, response }) => {
-            if (active && response.ok && data) setPolicyEnabled(data.allow_review_requests);
+            if (active && response.ok && data) {
+                setPolicyEnabled(data.allow_review_requests);
+                setPolicyTheme(data.theme);
+            }
         });
         return () => { active = false; };
     }, [canManagePolicy]);
@@ -90,7 +95,7 @@ export function OriginalJournalFeedbackReviewPage({
     const currentFeedback = selected ? (feedbackById[selected.id] ?? '') : '';
 
     async function savePolicy(enabled: boolean): Promise<void> {
-        if (saving || !canManagePolicy) return;
+        if (saving || !canManagePolicy || !policyTheme) return;
         const previous = policyEnabled;
         setPolicyEnabled(enabled);
         setSaving(true);
@@ -99,10 +104,11 @@ export function OriginalJournalFeedbackReviewPage({
             const token = await getCsrfToken();
             const { data, response } = await apiClient.PATCH(
                 '/admin/journal-feedback/policy',
-                { body: { allow_review_requests: enabled }, params: { header: { 'X-CSRF-Token': token } } },
+                { body: { allow_review_requests: enabled, theme: policyTheme }, params: { header: { 'X-CSRF-Token': token } } },
             );
             if (!response.ok || !data) throw new Error('policy unavailable');
             setPolicyEnabled(data.allow_review_requests);
+            setPolicyTheme(data.theme);
         } catch {
             setPolicyEnabled(previous);
             setError('The journal review policy could not be saved yet.');
@@ -156,7 +162,7 @@ export function OriginalJournalFeedbackReviewPage({
                         <header className="shrink-0 border-b border-[var(--settings-border-color)] px-4 py-4 sm:px-5">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div className="flex items-start gap-3"><Inbox className="mt-1 size-5 shrink-0 text-[var(--settings-accent)]" /><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Journal feedback</p><h2 className="mt-2 text-2xl font-semibold">Feedback requests</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">Learners have deliberately shared these journal pages for one-time informational feedback.</p></div></div>
-                                {canManagePolicy ? <label className="flex items-center gap-3 rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm"><ShieldCheck className="size-4 text-[var(--settings-accent)]" /><span>Allow review requests</span><input aria-label="Allow journal review requests" checked={policyEnabled ?? false} disabled={saving || policyEnabled === null} onChange={(event) => void savePolicy(event.target.checked)} type="checkbox" /></label> : null}
+                                {canManagePolicy ? <div className="flex flex-wrap items-center gap-2"><Link className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium hover:bg-[var(--settings-active-background)]" to="/settings?panel=admin-learning-support&support=journal">Journal settings</Link><label className="flex items-center gap-3 rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm"><ShieldCheck className="size-4 text-[var(--settings-accent)]" /><span>Allow review requests</span><input aria-label="Allow journal review requests" checked={policyEnabled ?? false} disabled={saving || policyEnabled === null} onChange={(event) => void savePolicy(event.target.checked)} type="checkbox" /></label></div> : null}
                             </div>
                         </header>
                         {error ? <p className="m-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p> : null}

@@ -9,8 +9,9 @@ use uuid::Uuid;
 use wicked_learning_application::journal_feedback_review::{
     AdminJournalFeedbackItem, AdminJournalFeedbackPage, JournalFeedbackPolicy,
     JournalFeedbackPolicyQuery, JournalFeedbackReviewQuery, RespondJournalFeedbackResult,
-    RespondToJournalFeedback, UpdateJournalFeedbackPolicy,
+    RespondToJournalFeedback, UpdateJournalFeedbackPolicy, valid_journal_theme,
 };
+use wicked_learning_domain::learner_state::LearnerJournalTheme;
 use wicked_learning_persistence::journal_feedback_review::PostgresJournalFeedbackReviewRepository;
 
 use crate::{
@@ -26,6 +27,7 @@ pub struct PageQuery {
 #[derive(Deserialize)]
 pub struct UpdatePolicyBody {
     allow_review_requests: bool,
+    theme: LearnerJournalTheme,
 }
 
 #[derive(Deserialize)]
@@ -36,6 +38,7 @@ pub struct RespondBody {
 #[derive(Serialize)]
 pub struct PolicyResponse {
     allow_review_requests: bool,
+    theme: LearnerJournalTheme,
 }
 
 #[derive(Serialize)]
@@ -113,6 +116,9 @@ pub async fn update_policy(
     auth_session: AuthSession<IdentityBackend>,
     Json(body): Json<UpdatePolicyBody>,
 ) -> Result<Json<PolicyResponse>, ApiError> {
+    if !valid_journal_theme(&body.theme) {
+        return Err(ApiError::invalid_request());
+    }
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresJournalFeedbackReviewRepository::new(
@@ -120,7 +126,13 @@ pub async fn update_policy(
         &state.identity_database,
     );
     UpdateJournalFeedbackPolicy::new(&repository)
-        .execute(&principal, body.allow_review_requests)
+        .execute(
+            &principal,
+            JournalFeedbackPolicy {
+                allow_review_requests: body.allow_review_requests,
+                theme: body.theme,
+            },
+        )
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(policy_response)
@@ -178,6 +190,7 @@ pub async fn respond(
 fn policy_response(policy: JournalFeedbackPolicy) -> PolicyResponse {
     PolicyResponse {
         allow_review_requests: policy.allow_review_requests,
+        theme: policy.theme,
     }
 }
 
