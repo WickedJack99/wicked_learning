@@ -373,6 +373,15 @@ map duplicate/delete operations preserve or remove those references with the
 map. Learner media serving admits those references only when the map and its
 World are published and the map is visible to the requester's roles.
 
+Hex-grid placement is a separate scoped map writer. Moving a tile creates a
+`learning_map_layout_versions` row only when its integer `(q, r)` changes; the
+snapshot contains node IDs and coordinates only. Its bounded list and preview
+reuse the exact `world_maps.ru` all/own/assigned/direct-editor scope and mark a
+snapshot non-restorable after node membership changes. Restore locks all nodes,
+validates complete unique positions, snapshots the outgoing layout, moves nodes
+through a temporary coordinate range, then applies the selected layout. It does
+not change node content, MapAssets, access or learner state.
+
 `LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
 Its bounded query supplies active names to the activity graph and all records
 to the permission-controlled Concept Library editor. Saving the catalog

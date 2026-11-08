@@ -4383,6 +4383,32 @@ tests, OpenAPI generation, full Rust suite, frontend build and a local browser
 save/read/cleanup proof cover this slice. It does not migrate map-layout editing,
 visual-history restore or non-map activity forms.
 
+## ADR-111: Map layout history is a reversible hex-grid-only mutation
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** Source map tile placement is a distinct authoring concern. An
+editor needs to reverse an arrangement without restoring MapAssets, node
+content, access rules or learner state, and a restore must never violate the
+map's unique hex-coordinate constraint.
+
+**Decision:** The successor records `learning_map_layout_versions` before each
+real scoped tile move and before a successful restore. List, preview and restore
+reuse `world_maps.ru` all/own/assigned/direct-editor authorization for the same
+map. A restore accepts only a complete, current-membership snapshot with unique
+positions; it locks nodes, snapshots the outgoing layout, passes them through a
+collision-free temporary range and writes the selected positions atomically.
+The lifted side-panel controls expose integer tile placement, bounded history,
+preview and restore confirmation.
+
+**Why:** This retains the Laravel rollback boundary while preserving relational
+integrity and keeping placement deliberately separate from other map history.
+
+**Evidence and limits:** Migration, generated OpenAPI types, application scope
+and bounds test, focused Rust checks, frontend build and a credential-gated
+browser move/preview/restore/cleanup proof cover the slice. It does not add a
+map backup or restore node content, MapAssets, access, media or learner data.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -1434,6 +1434,15 @@ activity forms, grouped reference presentation and orphan reconciliation remain
 explicit completion work. Other activity-card types deliberately remain
 read-only in this surface.
 
+The source hex-grid tile-placement writer and layout-history dialog are now
+available beside the existing MapAssets list. Tile placement accepts integer
+`q`/`r` coordinates under the map-editor scope, snapshots only real moves, and
+rejects occupied coordinates. Bounded history lists and previews saved/current
+tile positions; restore validates unchanged node membership and unique saved
+coordinates, snapshots the outgoing layout, then restores atomically. Browser
+proof creates disposable tiles, moves one twice, previews and restores a saved
+layout, then removes the disposable map.
+
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
 Rust/frontend flow.

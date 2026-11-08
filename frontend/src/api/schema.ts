@@ -935,6 +935,57 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapVisuals"];
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/layout-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List bounded source map hex-grid layout history. */
+        get: operations["listAdminWorldBuilderMapLayoutVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/maps/{map_id}/layout-versions/{version_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview bounded saved source map hex-grid coordinates. */
+        get: operations["previewAdminWorldBuilderMapLayoutVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/maps/{map_id}/layout-versions/{version_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore one source map hex-grid layout snapshot. */
+        post: operations["restoreAdminWorldBuilderMapLayoutVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/versions": {
         parameters: {
             query?: never;
@@ -1197,6 +1248,23 @@ export interface paths {
          * @description This source-derived authoring command requires World Activities update authority, its scoped editable map, and a same-origin CSRF token. It changes editor layout only; learner starts and activity playback remain unchanged.
          */
         patch: operations["updateAdminWorldBuilderNodeActivityGraphLayout"];
+        trace?: never;
+    };
+    "/admin/world-builder/nodes/{node_id}/position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save one source map hex-grid node position. */
+        patch: operations["updateAdminWorldBuilderNodePosition"];
         trace?: never;
     };
     "/admin/world-builder/activities/{activity_id}/graph-position": {
@@ -7741,6 +7809,43 @@ export interface components {
             x: number;
             y: number;
         };
+        AdminMapLayoutPosition: {
+            q: number;
+            r: number;
+        };
+        AdminMapLayoutVersion: {
+            /** Format: uuid */
+            id: string;
+            node_count: number;
+            restorable: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AdminMapLayoutVersionPage: {
+            items: components["schemas"]["AdminMapLayoutVersion"][];
+            page: number;
+            per_page: number;
+            total: number;
+            last_page: number;
+        };
+        AdminMapLayoutPreviewItem: {
+            /** Format: uuid */
+            node_id: string;
+            position: components["schemas"]["AdminMapLayoutPosition"];
+            current_position: components["schemas"]["AdminMapLayoutPosition"] | null;
+            title: string;
+        };
+        AdminMapLayoutPreviewPage: {
+            /** Format: uuid */
+            version_id: string;
+            /** Format: date-time */
+            created_at: string;
+            items: components["schemas"]["AdminMapLayoutPreviewItem"][];
+            page: number;
+            per_page: number;
+            total: number;
+            last_page: number;
+        };
         AdminActivityGraphLayoutResponse: {
             graph_layout: {
                 [key: string]: unknown;
@@ -12040,6 +12145,151 @@ export interface operations {
             };
         };
     };
+    listAdminWorldBuilderMapLayoutVersions: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Source layout snapshots, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMapLayoutVersionPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unavailable through source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    previewAdminWorldBuilderMapLayoutVersion: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                map_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved and current positions for the requested snapshot page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMapLayoutPreviewPage"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map or version is unavailable through source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restoreAdminWorldBuilderMapLayoutVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The saved layout was restored and the outgoing layout was snapshotted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map/version is unavailable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listAdminWorldBuilderMapDetailVersions: {
         parameters: {
             query?: {
@@ -12837,6 +13087,70 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    updateAdminWorldBuilderNodePosition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminMapLayoutPosition"];
+            };
+        };
+        responses: {
+            /** @description The persisted integer hex-grid coordinate. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMapLayoutPosition"];
+                };
+            };
+            /** @description The coordinate is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable through source map-editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

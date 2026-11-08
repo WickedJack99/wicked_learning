@@ -49,6 +49,7 @@ mod admin_world_map_editing_groups;
 mod admin_world_map_export;
 mod admin_world_map_export_preflight;
 mod admin_world_map_import;
+mod admin_world_map_layout;
 mod admin_world_map_visuals;
 mod admin_world_markdown;
 mod admin_world_message;
@@ -715,6 +716,18 @@ fn router(state: AppState) -> Router {
             patch(admin_world_map_visuals::update),
         )
         .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/layout-versions",
+            get(admin_world_map_layout::versions),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/layout-versions/{version_id}/preview",
+            get(admin_world_map_layout::preview),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/layout-versions/{version_id}/restore",
+            post(admin_world_map_layout::restore),
+        )
+        .route(
             "/api/v1/admin/world-builder/maps/{map_id}/versions",
             get(admin_world_map_details::versions),
         )
@@ -767,6 +780,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout",
             patch(admin_world_node_layout::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/position",
+            patch(admin_world_map_layout::update_node),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/graph-position",

@@ -1204,6 +1204,62 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/layout-versions:
+    get:
+      operationId: listAdminWorldBuilderMapLayoutVersions
+      summary: List bounded source map hex-grid layout history.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 24, default: 6 }
+      responses:
+        '200':
+          description: Source layout snapshots, newest first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminMapLayoutVersionPage' }
+        '401': { description: Authentication is required. }
+        '404': { description: The map is unavailable through source editor scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/layout-versions/{version_id}/preview:
+    get:
+      operationId: previewAdminWorldBuilderMapLayoutVersion
+      summary: Preview bounded saved source map hex-grid coordinates.
+      parameters:
+        - { name: map_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: version_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 24, default: 6 } }
+      responses:
+        '200':
+          description: Saved and current positions for the requested snapshot page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminMapLayoutPreviewPage' }
+        '401': { description: Authentication is required. }
+        '404': { description: The map or version is unavailable through source editor scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/layout-versions/{version_id}/restore:
+    post:
+      operationId: restoreAdminWorldBuilderMapLayoutVersion
+      summary: Restore one source map hex-grid layout snapshot.
+      parameters:
+        - { name: map_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: version_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The saved layout was restored and the outgoing layout was snapshotted. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map/version is unavailable, changed node membership, or invalid snapshot. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/versions:
     get:
       operationId: listAdminWorldBuilderMapDetailVersions
@@ -1584,6 +1640,32 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /admin/world-builder/nodes/{node_id}/position:
+    patch:
+      operationId: updateAdminWorldBuilderNodePosition
+      summary: Save one source map hex-grid node position.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminMapLayoutPosition' }
+      responses:
+        '200':
+          description: The persisted integer hex-grid coordinate.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminMapLayoutPosition' }
+        '400': { description: The coordinate is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The node is unavailable through source map-editor scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/graph-position:
     patch:
       operationId: updateAdminWorldBuilderActivityGraphPosition
@@ -10897,6 +10979,62 @@ components:
       properties:
         x: { type: number }
         y: { type: number }
+    AdminMapLayoutPosition:
+      type: object
+      additionalProperties: false
+      required: [q, r]
+      properties:
+        q: { type: integer }
+        r: { type: integer }
+    AdminMapLayoutVersion:
+      type: object
+      additionalProperties: false
+      required: [id, node_count, restorable, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        node_count: { type: integer, minimum: 0 }
+        restorable: { type: boolean }
+        created_at: { type: string, format: date-time }
+    AdminMapLayoutVersionPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, per_page, total, last_page]
+      properties:
+        items:
+          type: array
+          maxItems: 24
+          items: { $ref: '#/components/schemas/AdminMapLayoutVersion' }
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
+    AdminMapLayoutPreviewItem:
+      type: object
+      additionalProperties: false
+      required: [node_id, position, current_position, title]
+      properties:
+        node_id: { type: string, format: uuid }
+        position: { $ref: '#/components/schemas/AdminMapLayoutPosition' }
+        current_position:
+          anyOf:
+            - $ref: '#/components/schemas/AdminMapLayoutPosition'
+            - type: 'null'
+        title: { type: string }
+    AdminMapLayoutPreviewPage:
+      type: object
+      additionalProperties: false
+      required: [version_id, created_at, items, page, per_page, total, last_page]
+      properties:
+        version_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        items:
+          type: array
+          maxItems: 24
+          items: { $ref: '#/components/schemas/AdminMapLayoutPreviewItem' }
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
     AdminActivityGraphLayoutResponse:
       type: object
       additionalProperties: false

@@ -79,6 +79,10 @@ type MapDetailsVersionPage =
     components['schemas']['AdminMapDetailsVersionPage'];
 type MapAssetVersionPage =
     components['schemas']['AdminMapAssetVersionPage'];
+type MapLayoutVersionPage =
+    components['schemas']['AdminMapLayoutVersionPage'];
+type MapLayoutPreviewPage =
+    components['schemas']['AdminMapLayoutPreviewPage'];
 type MapVisualMode = 'dark' | 'light';
 type MapVisualAssetForm = {
     id: string;
@@ -3153,6 +3157,85 @@ function SelectField({
     );
 }
 
+function MapNodePlacementDialog({
+    node,
+    onClose,
+    onSaved,
+}: {
+    node: components['schemas']['AdminNodeSummary'];
+    onClose: () => void;
+    onSaved: () => void;
+}) {
+    const [q, setQ] = useState(String(node.position.q));
+    const [r, setR] = useState(String(node.position.r));
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const save = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const position = { q: Number(q), r: Number(r) };
+        if (!Number.isInteger(position.q) || !Number.isInteger(position.r)) {
+            setError('Use whole-number hex-grid coordinates.');
+            return;
+        }
+        setSaving(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/nodes/{node_id}/position',
+                { body: position, params: { header: { 'X-CSRF-Token': token }, path: { node_id: node.id } } },
+            );
+            if (!response.ok) {
+                setError(response.status === 404
+                    ? 'That hex tile is already occupied or is no longer available.'
+                    : 'The tile position could not be saved. Try again.');
+                return;
+            }
+            onSaved();
+        } catch {
+            setError('The tile position could not be saved. Check your connection and try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+    return <div aria-labelledby="map-node-placement-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" role="dialog"><form className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-semibold" id="map-node-placement-title">Place map tile</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set <span className="font-medium">{node.title}</span> on the source hex grid. Saving preserves the outgoing layout in history.</p></div><button aria-label="Close tile placement" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{error}</p> : null}<div className="mt-5 grid grid-cols-2 gap-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label></div><div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10"><button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : 'Save placement'}</button></div></form></div>;
+}
+
+function MapLayoutHistoryDialog({ map, onClose, onRestored }: { map: EditableMap['editable_map']['map']; onClose: () => void; onRestored: () => void }) {
+    const [history, setHistory] = useState<MapLayoutVersionPage | null>(null);
+    const [preview, setPreview] = useState<MapLayoutPreviewPage | null>(null);
+    const [error, setError] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [restoring, setRestoring] = useState<string | null>(null);
+    const load = useCallback(async (page = 1) => {
+        setLoading(true); setError(false);
+        try {
+            const { data, response } = await apiClient.GET('/admin/world-builder/maps/{map_id}/layout-versions', { params: { path: { map_id: map.id }, query: { page, per_page: 6 } } });
+            if (!response.ok || !data) throw new Error('history unavailable');
+            setHistory(data);
+        } catch { setError(true); } finally { setLoading(false); }
+    }, [map.id]);
+    useEffect(() => { void load(); }, [load]);
+    const showPreview = async (id: string) => {
+        try {
+            const { data, response } = await apiClient.GET('/admin/world-builder/maps/{map_id}/layout-versions/{version_id}/preview', { params: { path: { map_id: map.id, version_id: id }, query: { page: 1, per_page: 24 } } });
+            if (!response.ok || !data) throw new Error('preview unavailable');
+            setPreview(data);
+        } catch { setError(true); }
+    };
+    const restore = async (id: string) => {
+        if (!window.confirm('Restore this tile layout? The current layout will be preserved in history.')) return;
+        setRestoring(id); setError(false);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.POST('/admin/world-builder/maps/{map_id}/layout-versions/{version_id}/restore', { params: { header: { 'X-CSRF-Token': token }, path: { map_id: map.id, version_id: id } } });
+            if (!response.ok) throw new Error('restore unavailable');
+            onRestored(); await load(history?.page ?? 1);
+        } catch { setError(true); } finally { setRestoring(null); }
+    };
+    return <div aria-labelledby="map-layout-history-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.map-layout-history.dialog" role="dialog"><section className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-semibold" id="map-layout-history-title">Tile layout history</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Review source hex-grid positions before restoring them. Restoring first preserves the current layout.</p></div><button aria-label="Close tile layout history" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={restoring !== null} onClick={onClose} type="button"><X className="size-5" /></button></div>{loading ? <p className="mt-4" role="status">Loading tile layout history…</p> : error ? <p className="mt-4 text-sm text-red-700 dark:text-red-300" role="status">Tile layout history could not be loaded. Try again.</p> : history?.items.length ? <div className="mt-4 grid gap-2">{history.items.map((version) => <div className="rounded-md border border-slate-200 p-3 dark:border-white/10" key={version.id}><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="text-sm font-medium">{version.node_count} tile{version.node_count === 1 ? '' : 's'}</p><time className="text-xs text-slate-500 dark:text-slate-400">{formatWorldDetailsVersionDate(version.created_at)}</time></div><p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{version.restorable ? 'Ready to restore.' : 'Not restorable because tile membership changed.'}</p><div className="mt-2 flex gap-2"><button className="rounded-md px-2 py-1 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-400/10" onClick={() => void showPreview(version.id)} type="button">Preview positions</button><button className="rounded-md px-2 py-1 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:text-teal-200 dark:hover:bg-teal-400/10" disabled={!version.restorable || restoring !== null} onClick={() => void restore(version.id)} type="button">{restoring === version.id ? 'Restoring…' : 'Restore layout'}</button></div></div>)}</div> : <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">No earlier tile layouts yet. Moving a tile will create one.</p>}{history && history.last_page > 1 ? <div className="mt-4 flex items-center justify-between"><button className="rounded-md border border-slate-300 px-3 py-2 text-sm disabled:opacity-60 dark:border-white/20" disabled={loading || history.page <= 1} onClick={() => void load(history.page - 1)} type="button">Previous</button><span className="text-xs text-slate-500">Page {history.page} of {history.last_page}</span><button className="rounded-md border border-slate-300 px-3 py-2 text-sm disabled:opacity-60 dark:border-white/20" disabled={loading || history.page >= history.last_page} onClick={() => void load(history.page + 1)} type="button">Next</button></div> : null}{preview ? <section className="mt-5 border-t border-slate-200 pt-4 dark:border-white/10"><div className="flex items-center justify-between"><h3 className="font-semibold">Saved positions</h3><button className="text-sm text-teal-700 hover:underline dark:text-teal-300" onClick={() => setPreview(null)} type="button">Close preview</button></div><div className="mt-3 grid gap-2">{preview.items.map((item) => <p className="rounded border border-slate-200 px-3 py-2 text-sm dark:border-white/10" key={item.node_id}><span className="font-medium">{item.title}</span>: saved ({item.position.q}, {item.position.r}){item.current_position ? ` · current (${item.current_position.q}, ${item.current_position.r})` : ' · Removed node'}</p>)}</div></section> : null}<div className="mt-6 flex justify-end"><button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10" disabled={restoring !== null} onClick={onClose} type="button">Close</button></div></section></div>;
+}
+
 function MapDetails({
     document,
     onDuplicate,
@@ -3169,6 +3252,8 @@ function MapDetails({
     const { map } = document.editable_map;
     const [editOpen, setEditOpen] = useState(false);
     const [visualsOpen, setVisualsOpen] = useState(false);
+    const [layoutHistoryOpen, setLayoutHistoryOpen] = useState(false);
+    const [placementNode, setPlacementNode] = useState<components['schemas']['AdminNodeSummary'] | null>(null);
     const [accessOpen, setAccessOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -3234,6 +3319,14 @@ function MapDetails({
                 Configure map visuals
             </button>
             <button
+                className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                data-wl-id="authoring.map-layout-history.open"
+                onClick={() => setLayoutHistoryOpen(true)}
+                type="button"
+            >
+                Tile layout history
+            </button>
+            <button
                 className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
                 onClick={onDuplicate}
                 type="button"
@@ -3267,20 +3360,10 @@ function MapDetails({
                 <h3 className="text-sm font-semibold">MapAssets</h3>
                 <div className="mt-3 grid gap-2">
                     {map.nodes.map((node) => (
-                        <button
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-left text-sm hover:border-teal-500 dark:border-white/10"
-                            key={node.id}
-                            onClick={() => onSelectNode(node.id)}
-                            type="button"
-                        >
-                            <span className="block font-medium">
-                                {node.title}
-                            </span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                                {node.activity_review_count} activities awaiting
-                                review
-                            </span>
-                        </button>
+                        <div className="rounded-lg border border-slate-200 dark:border-white/10" key={node.id}>
+                            <button className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => onSelectNode(node.id)} type="button"><span className="block font-medium">{node.title}</span><span className="text-xs text-slate-500 dark:text-slate-400">{node.activity_review_count} activities awaiting review</span></button>
+                            <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"><span className="text-slate-500 dark:text-slate-400">Hex ({node.position.q}, {node.position.r})</span><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-position.${node.id}`} onClick={() => setPlacementNode(node)} type="button">Place tile</button></div>
+                        </div>
                     ))}
                 </div>
             </section>
@@ -3378,6 +3461,8 @@ function MapDetails({
                     }}
                 />
             ) : null}
+            {layoutHistoryOpen ? <MapLayoutHistoryDialog map={map} onClose={() => setLayoutHistoryOpen(false)} onRestored={onUpdated} /> : null}
+            {placementNode ? <MapNodePlacementDialog node={placementNode} onClose={() => setPlacementNode(null)} onSaved={() => { setPlacementNode(null); onUpdated(); }} /> : null}
             {accessOpen ? (
                 <EditMapAccessDialog
                     document={document}
