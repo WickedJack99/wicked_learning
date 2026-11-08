@@ -74,7 +74,8 @@ type SupportedActivityType =
     | 'item_grant'
     | 'tool_grant'
     | 'item_obstacle'
-    | 'obstacle';
+    | 'obstacle'
+    | 'shared_task';
 type ObstacleForm = {
     allowedToolIds: string[];
     backgroundDark: string;
@@ -148,6 +149,20 @@ type ActivityAuthorForm = {
     note: string;
     obstacle: ObstacleForm;
     prompt: string;
+    sharedTaskCycleMode: string;
+    sharedTaskInputLabel: string;
+    sharedTaskInstructions: string;
+    sharedTaskKind: string;
+    sharedTaskMinimumLength: string;
+    sharedTaskPeerReviewEnabled: boolean;
+    sharedTaskPeerReviewPrompt: string;
+    sharedTaskProjectDeliverable: string;
+    sharedTaskProjectGoal: string;
+    sharedTaskProjectSteps: string;
+    sharedTaskRepeatPolicy: string;
+    sharedTaskShowContributions: boolean;
+    sharedTaskThreshold: string;
+    sharedTaskValidationMode: string;
     slug: string;
     subtopic: string;
     title: string;
@@ -2642,6 +2657,14 @@ function ActivityGraph({
                             <Plus className="size-3.5" />
                             Obstacle
                         </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'shared_task' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Shared task
+                        </button>
                     </div>
                 </div>
                 {connectionError ? (
@@ -3597,7 +3620,9 @@ function ActivityAuthorDialog({
                   ? 'Tool grant'
                   : type === 'item_obstacle'
                     ? 'Item obstacle'
-                    : 'Obstacle';
+                    : type === 'obstacle'
+                      ? 'Obstacle'
+                      : 'Shared task';
 
     const updateField = (field: keyof ActivityAuthorForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -3658,7 +3683,36 @@ function ActivityAuthorDialog({
             };
             let response: Response;
 
-            if (type === 'open_practice') {
+            const sharedTask: components['schemas']['CreateAdminSharedTaskActivityRequest'] = {
+                ...common,
+                cycle_mode: form.sharedTaskCycleMode as 'none' | 'question_response_question',
+                input_label: form.sharedTaskInputLabel,
+                instructions: form.sharedTaskInstructions,
+                minimum_length: Number(form.sharedTaskMinimumLength),
+                peer_review_enabled: form.sharedTaskPeerReviewEnabled,
+                peer_review_prompt: form.sharedTaskPeerReviewPrompt,
+                project_deliverable: form.sharedTaskProjectDeliverable,
+                project_goal: form.sharedTaskProjectGoal,
+                project_steps: form.sharedTaskProjectSteps.split(/\r?\n/).map((step) => step.trim()).filter(Boolean),
+                prompt: form.prompt,
+                repeat_policy: form.sharedTaskRepeatPolicy as 'once_per_user' | 'unlimited',
+                show_contributions: form.sharedTaskShowContributions,
+                task_kind: form.sharedTaskKind as 'text' | 'question' | 'reflection',
+                threshold: Number(form.sharedTaskThreshold),
+                validation_mode: form.sharedTaskValidationMode as 'minimum_length' | 'none',
+            };
+
+            if (type === 'shared_task' && activity) {
+                ({ response } = await apiClient.PATCH(
+                    '/admin/world-builder/activities/{activity_id}/shared-task',
+                    { body: { ...sharedTask, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } },
+                ));
+            } else if (type === 'shared_task') {
+                ({ response } = await apiClient.POST(
+                    '/admin/world-builder/nodes/{node_id}/shared-task-activities',
+                    { body: sharedTask, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } },
+                ));
+            } else if (type === 'open_practice') {
                 if (activity) {
                     ({ response } = await apiClient.PATCH(
                         '/admin/world-builder/activities/{activity_id}/open-practice',
@@ -3989,6 +4043,8 @@ function ActivityAuthorDialog({
                             }
                             tools={tools}
                         />
+                    ) : type === 'shared_task' ? (
+                        <SharedTaskFields form={form} onChange={setForm} />
                     ) : (
                         <ToolGrantFields
                             form={form}
@@ -4021,6 +4077,25 @@ function ActivityAuthorDialog({
             </form>
         </div>
     );
+}
+
+function SharedTaskFields({ form, onChange }: { form: ActivityAuthorForm; onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>> }) {
+    const update = (field: keyof ActivityAuthorForm, value: string | boolean) => onChange((current) => ({ ...current, [field]: value }));
+    return <>
+        <label className="grid gap-2 text-sm font-medium">Task kind<select value={form.sharedTaskKind} onChange={(event) => update('sharedTaskKind', event.target.value)}><option value="text">Text</option><option value="question">Question</option><option value="reflection">Reflection</option></select></label>
+        <label className="grid gap-2 text-sm font-medium">Repeat policy<select value={form.sharedTaskRepeatPolicy} onChange={(event) => update('sharedTaskRepeatPolicy', event.target.value)}><option value="once_per_user">Once per user</option><option value="unlimited">Unlimited</option></select></label>
+        <ActivityTextField label="Threshold" onChange={(value) => update('sharedTaskThreshold', value)} value={form.sharedTaskThreshold} />
+        <ActivityTextField label="Minimum text length" onChange={(value) => update('sharedTaskMinimumLength', value)} value={form.sharedTaskMinimumLength} />
+        <label className="grid gap-2 text-sm font-medium md:col-span-2">Prompt<textarea className="min-h-28 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-white/10 dark:bg-slate-950/40" onChange={(event) => update('prompt', event.target.value)} value={form.prompt} /></label>
+        <ActivityTextField label="Input label" onChange={(value) => update('sharedTaskInputLabel', value)} value={form.sharedTaskInputLabel} />
+        <ActivityTextField label="Instructions" onChange={(value) => update('sharedTaskInstructions', value)} value={form.sharedTaskInstructions} />
+        <ActivityTextField label="Shared goal" onChange={(value) => update('sharedTaskProjectGoal', value)} value={form.sharedTaskProjectGoal} />
+        <ActivityTextField label="Useful outcome" onChange={(value) => update('sharedTaskProjectDeliverable', value)} value={form.sharedTaskProjectDeliverable} />
+        <ActivityTextField className="md:col-span-2" label="Suggested steps (one per line, up to 6)" onChange={(value) => update('sharedTaskProjectSteps', value)} textarea value={form.sharedTaskProjectSteps} />
+        <label className="flex items-center gap-3 text-sm font-medium md:col-span-2"><input checked={form.sharedTaskShowContributions} onChange={(event) => update('sharedTaskShowContributions', event.target.checked)} type="checkbox" />Allow anonymous contributions to be shown</label>
+        <label className="flex items-center gap-3 text-sm font-medium md:col-span-2"><input checked={form.sharedTaskPeerReviewEnabled} onChange={(event) => update('sharedTaskPeerReviewEnabled', event.target.checked)} type="checkbox" />Invite one anonymous peer review</label>
+        {form.sharedTaskPeerReviewEnabled ? <ActivityTextField className="md:col-span-2" label="Review invitation" onChange={(value) => update('sharedTaskPeerReviewPrompt', value)} value={form.sharedTaskPeerReviewPrompt} /> : null}
+    </>;
 }
 
 function ActivityTextField({
@@ -5239,6 +5314,20 @@ function activityAuthorForm(
         prompt: activity
             ? configString(config, 'prompt')
             : 'What feels clearer now?',
+        sharedTaskCycleMode: configStringOr(config, 'cycleMode', 'none'),
+        sharedTaskInputLabel: configStringOr(config, 'inputLabel', 'Your contribution'),
+        sharedTaskInstructions: configString(config, 'instructions'),
+        sharedTaskKind: configStringOr(config, 'taskKind', 'text'),
+        sharedTaskMinimumLength: String(configNumber(config, 'minimumLength', 20)),
+        sharedTaskPeerReviewEnabled: configBoolean(config, 'peerReviewEnabled'),
+        sharedTaskPeerReviewPrompt: configStringOr(config, 'peerReviewPrompt', 'What does this contribution help you notice, question, or extend?'),
+        sharedTaskProjectDeliverable: configString(config, 'projectDeliverable'),
+        sharedTaskProjectGoal: configString(config, 'projectGoal'),
+        sharedTaskProjectSteps: Array.isArray(config.projectSteps) ? config.projectSteps.filter((step): step is string => typeof step === 'string').join('\n') : '',
+        sharedTaskRepeatPolicy: configStringOr(config, 'repeatPolicy', 'once_per_user'),
+        sharedTaskShowContributions: configBoolean(config, 'showContributions'),
+        sharedTaskThreshold: String(configNumber(config, 'threshold', 3)),
+        sharedTaskValidationMode: configStringOr(config, 'validationMode', 'minimum_length'),
         slug: activity?.slug ?? '',
         subtopic: configString(config, 'subtopic'),
         title: activity?.title ?? '',
@@ -5856,7 +5945,8 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'item_grant' ||
         type === 'tool_grant' ||
         type === 'item_obstacle' ||
-        type === 'obstacle'
+        type === 'obstacle' ||
+        type === 'shared_task'
     );
 }
 

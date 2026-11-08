@@ -1067,8 +1067,8 @@ including learner guidance, optional light/dark images and button colors,
 ordering and a separate delete confirmation. Selecting an authored edge opens
 the source transition editor, preserving its label/outcome-only edit rule and
 direct connection deletion. It now adapts the source
-Open Practice, Reflection, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
-forms through their complete typed Rust commands; Item Grant resolves selected catalog UUIDs
+Open Practice, Reflection, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle create/edit
+forms through their complete typed Rust commands. Shared Task preserves its source task/repeat/validation/cycle choices, anonymous contribution boundary, project brief and optional anonymous peer-review invitation under the same scoped, CSRF-protected, optimistic-concurrency writer; Item Grant resolves selected catalog UUIDs
 only at the scoped server command and retains its quantities, probability and
 scene configuration, while Tool Grant does the same for its optional tool and
 retains the source bubble, motion, placement and scene fields. Each form

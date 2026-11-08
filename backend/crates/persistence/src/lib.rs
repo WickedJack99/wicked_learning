@@ -32,6 +32,7 @@ pub mod admin_world_node_transition;
 pub mod admin_world_obstacle;
 pub mod admin_world_open_practice;
 pub mod admin_world_reflection;
+pub mod admin_world_shared_task;
 pub mod admin_world_tool_grant;
 pub mod current_user;
 pub mod feedback_prompt_preference;

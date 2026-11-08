@@ -37,6 +37,7 @@ mod admin_world_node_transition;
 mod admin_world_obstacle;
 mod admin_world_open_practice;
 mod admin_world_reflection;
+mod admin_world_shared_task;
 mod admin_world_tool_grant;
 mod bootstrap;
 mod config;
@@ -700,6 +701,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/reflection",
             patch(admin_world_reflection::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/shared-task-activities",
+            post(admin_world_shared_task::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/shared-task",
+            patch(admin_world_shared_task::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/item-obstacle-activities",

@@ -1346,6 +1346,40 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderReflectionActivity"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/shared-task-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a Shared task activity on an editable World Builder node. */
+        post: operations["createAdminWorldBuilderSharedTaskActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/shared-task": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a Shared task activity on an editable World Builder graph. */
+        patch: operations["updateAdminWorldBuilderSharedTaskActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/item-grant-activities": {
         parameters: {
             query?: never;
@@ -6322,6 +6356,45 @@ export interface components {
             activity_id: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        CreateAdminSharedTaskActivityRequest: components["schemas"]["SharedTaskActivityForm"];
+        CreateAdminSharedTaskActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        UpdateAdminSharedTaskActivityRequest: components["schemas"]["SharedTaskActivityForm"] & {
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminSharedTaskActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SharedTaskActivityForm: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            /** @enum {string} */
+            task_kind: "text" | "question" | "reflection";
+            show_contributions: boolean;
+            prompt: string;
+            instructions: string;
+            input_label: string;
+            project_goal: string;
+            project_deliverable: string;
+            project_steps: string[];
+            peer_review_enabled: boolean;
+            peer_review_prompt: string;
+            threshold: number;
+            minimum_length: number;
+            /** @enum {string} */
+            repeat_policy: "once_per_user" | "unlimited";
+            /** @enum {string} */
+            validation_mode: "minimum_length" | "none";
+            /** @enum {string} */
+            cycle_mode: "none" | "question_response_question";
         };
         AdminItemGrantItemRequest: {
             /** Format: uuid */
@@ -11834,6 +11907,141 @@ export interface operations {
                 };
             };
             /** @description The Reflection fields or update timestamp are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderSharedTaskActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminSharedTaskActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminSharedTaskActivityResponse"];
+                };
+            };
+            /** @description The source Shared task fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderSharedTaskActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminSharedTaskActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminSharedTaskActivityResponse"];
+                };
+            };
+            /** @description The source Shared task fields or update timestamp are invalid. */
             400: {
                 headers: {
                     [name: string]: unknown;

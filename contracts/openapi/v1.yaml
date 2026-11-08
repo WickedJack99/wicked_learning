@@ -1781,6 +1781,33 @@ paths:
         '404': { description: The activity is unknown, not Reflection, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/shared-task-activities:
+    post:
+      operationId: createAdminWorldBuilderSharedTaskActivity
+      summary: Create a Shared task activity on an editable World Builder node.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminSharedTaskActivityRequest' } } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminSharedTaskActivityResponse' } } } }
+        '400': { description: The source Shared task fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unknown, outside the caller's authoring scope, or has no route. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/shared-task:
+    patch:
+      operationId: updateAdminWorldBuilderSharedTaskActivity
+      summary: Update a Shared task activity on an editable World Builder graph.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminSharedTaskActivityRequest' } } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminSharedTaskActivityResponse' } } } }
+        '400': { description: The source Shared task fields or update timestamp are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown, not Shared task, or outside the caller's authoring scope. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/item-grant-activities:
     post:
       operationId: createAdminWorldBuilderItemGrantActivity
@@ -9313,6 +9340,47 @@ components:
       properties:
         activity_id: { type: string, format: uuid }
         updated_at: { type: string, format: date-time }
+    CreateAdminSharedTaskActivityRequest:
+      $ref: '#/components/schemas/SharedTaskActivityForm'
+    CreateAdminSharedTaskActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminSharedTaskActivityRequest:
+      allOf:
+        - $ref: '#/components/schemas/SharedTaskActivityForm'
+        - type: object
+          required: [updated_at]
+          properties: { updated_at: { type: string, format: date-time } }
+    UpdateAdminSharedTaskActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
+    SharedTaskActivityForm:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, task_kind, show_contributions, prompt, instructions, input_label, project_goal, project_deliverable, project_steps, peer_review_enabled, peer_review_prompt, threshold, minimum_length, repeat_policy, validation_mode, cycle_mode]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        task_kind: { type: string, enum: [text, question, reflection] }
+        show_contributions: { type: boolean }
+        prompt: { type: string, minLength: 1, maxLength: 4000 }
+        instructions: { type: string, maxLength: 4000 }
+        input_label: { type: string, minLength: 1, maxLength: 160 }
+        project_goal: { type: string, maxLength: 1000 }
+        project_deliverable: { type: string, maxLength: 1000 }
+        project_steps: { type: array, maxItems: 6, items: { type: string, minLength: 1, maxLength: 240 } }
+        peer_review_enabled: { type: boolean }
+        peer_review_prompt: { type: string, minLength: 1, maxLength: 1000 }
+        threshold: { type: integer, minimum: 1, maximum: 1000 }
+        minimum_length: { type: integer, minimum: 0, maximum: 10000 }
+        repeat_policy: { type: string, enum: [once_per_user, unlimited] }
+        validation_mode: { type: string, enum: [minimum_length, none] }
+        cycle_mode: { type: string, enum: [none, question_response_question] }
     AdminItemGrantItemRequest:
       type: object
       additionalProperties: false
