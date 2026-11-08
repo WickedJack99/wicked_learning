@@ -1781,6 +1781,33 @@ paths:
         '404': { description: The activity is unknown, not Reflection, or outside the caller's authoring scope. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/message-activities:
+    post:
+      operationId: createAdminWorldBuilderMessageActivity
+      summary: Create a source Message prompt or Message wall activity on an editable node.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminMessageActivityRequest' } } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminMessageActivityResponse' } } } }
+        '400': { description: The source message fields or topic binding are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/message:
+    patch:
+      operationId: updateAdminWorldBuilderMessageActivity
+      summary: Update a source Message prompt or Message wall activity.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminMessageActivityRequest' } } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminMessageActivityResponse' } } } }
+        '400': { description: The source message fields or update timestamp are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unavailable to the caller. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/shared-task-activities:
     post:
       operationId: createAdminWorldBuilderSharedTaskActivity
@@ -9358,6 +9385,50 @@ components:
       additionalProperties: false
       required: [activity_id, updated_at]
       properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
+    CreateAdminMessageActivityRequest:
+      $ref: '#/components/schemas/MessageActivityForm'
+    CreateAdminMessageActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminMessageActivityRequest:
+      allOf:
+        - $ref: '#/components/schemas/MessageActivityForm'
+        - type: object
+          required: [updated_at]
+          properties: { updated_at: { type: string, format: date-time } }
+    UpdateAdminMessageActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
+    MessageActivityForm:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, activity_type, topic_id, topic_title, audience, allow_responses, response_prompt, prompt, input_label, surface_color_dark, surface_color_light, card_color_dark, card_color_light, card_border_color_dark, card_border_color_light, text_color_dark, text_color_light, accent_color_dark, accent_color_light]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        activity_type: { type: string, enum: [message_prompt, message_wall] }
+        topic_id: { type: [string, 'null'], format: uuid }
+        topic_title: { type: string, maxLength: 120 }
+        audience: { type: string, enum: [peers, support] }
+        allow_responses: { type: boolean }
+        response_prompt: { type: string, maxLength: 280 }
+        prompt: { type: string, minLength: 1, maxLength: 1000 }
+        input_label: { type: string, minLength: 1, maxLength: 120 }
+        surface_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        surface_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        card_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        card_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        card_border_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        card_border_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        text_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        text_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        accent_color_dark: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        accent_color_light: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
     SharedTaskActivityForm:
       type: object
       additionalProperties: false

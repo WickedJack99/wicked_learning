@@ -1346,6 +1346,40 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderReflectionActivity"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/message-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a source Message prompt or Message wall activity on an editable node. */
+        post: operations["createAdminWorldBuilderMessageActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a source Message prompt or Message wall activity. */
+        patch: operations["updateAdminWorldBuilderMessageActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/shared-task-activities": {
         parameters: {
             query?: never;
@@ -6371,6 +6405,47 @@ export interface components {
             activity_id: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        CreateAdminMessageActivityRequest: components["schemas"]["MessageActivityForm"];
+        CreateAdminMessageActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        UpdateAdminMessageActivityRequest: components["schemas"]["MessageActivityForm"] & {
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminMessageActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        MessageActivityForm: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            /** @enum {string} */
+            activity_type: "message_prompt" | "message_wall";
+            /** Format: uuid */
+            topic_id: string | null;
+            topic_title: string;
+            /** @enum {string} */
+            audience: "peers" | "support";
+            allow_responses: boolean;
+            response_prompt: string;
+            prompt: string;
+            input_label: string;
+            surface_color_dark: string;
+            surface_color_light: string;
+            card_color_dark: string;
+            card_color_light: string;
+            card_border_color_dark: string;
+            card_border_color_light: string;
+            text_color_dark: string;
+            text_color_light: string;
+            accent_color_dark: string;
+            accent_color_light: string;
         };
         SharedTaskActivityForm: {
             title: string;
@@ -11928,6 +12003,141 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderMessageActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminMessageActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminMessageActivityResponse"];
+                };
+            };
+            /** @description The source message fields or topic binding are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMessageActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminMessageActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminMessageActivityResponse"];
+                };
+            };
+            /** @description The source message fields or update timestamp are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unavailable to the caller. */
             404: {
                 headers: {
                     [name: string]: unknown;

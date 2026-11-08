@@ -30,6 +30,7 @@ mod admin_world_map_create;
 mod admin_world_map_delete;
 mod admin_world_map_details;
 mod admin_world_map_editing_groups;
+mod admin_world_message;
 mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
@@ -702,6 +703,8 @@ fn router(state: AppState) -> Router {
             "/api/v1/admin/world-builder/activities/{activity_id}/reflection",
             patch(admin_world_reflection::update),
         )
+        .route("/api/v1/admin/world-builder/nodes/{node_id}/message-activities", post(admin_world_message::create))
+        .route("/api/v1/admin/world-builder/activities/{activity_id}/message", patch(admin_world_message::update))
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/shared-task-activities",
             post(admin_world_shared_task::create),

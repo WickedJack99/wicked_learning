@@ -1075,7 +1075,12 @@ retains the source bubble, motion, placement and scene fields. Each form
 refetches after a successful write. Item Obstacle carries its normal/completed
 scene fields, positioned catalog-item slots, replay/lock behavior and the
 three catalog-sound events through the typed scoped command. The World Builder
-also adapts its source Create world node dialog through `POST
+also adapts source Message prompt and Message wall creation and editing. The
+writer resolves a map-scoped existing or new topic, preserves the source
+peer/support and response-type boundaries, rejects a prompt/wall type switch,
+and stores all ten authored dark/light message-surface colors with the source
+live preview under the same scoped CSRF and optimistic-concurrency boundary.
+Its source Create world node dialog is also available through `POST
 /api/v1/admin/world-builder/maps`: title, optional slug and description retain
 their source bounds; Rust resolves the current authoring World, assigns the
 creating principal, generates collision-safe omitted slugs and returns a draft

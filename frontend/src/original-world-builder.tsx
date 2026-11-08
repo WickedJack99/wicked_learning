@@ -50,6 +50,7 @@ type EditableTool = components['schemas']['AdminEditableTool'];
 type ActivityTransition = components['schemas']['AdminActivityTransition'];
 type ActivityConnector = components['schemas']['AdminActivityConnector'];
 type ActivityStartRoute = components['schemas']['AdminActivityStartRoute'];
+type MessageTopic = components['schemas']['AdminMessageTopicOption'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -75,7 +76,9 @@ type SupportedActivityType =
     | 'tool_grant'
     | 'item_obstacle'
     | 'obstacle'
-    | 'shared_task';
+    | 'shared_task'
+    | 'message_prompt'
+    | 'message_wall';
 type ObstacleForm = {
     allowedToolIds: string[];
     backgroundDark: string;
@@ -149,6 +152,23 @@ type ActivityAuthorForm = {
     note: string;
     obstacle: ObstacleForm;
     prompt: string;
+    messageActivityType: 'message_prompt' | 'message_wall';
+    messageAllowResponses: boolean;
+    messageAudience: 'peers' | 'support';
+    messageAccentColorDark: string;
+    messageAccentColorLight: string;
+    messageCardBorderColorDark: string;
+    messageCardBorderColorLight: string;
+    messageCardColorDark: string;
+    messageCardColorLight: string;
+    messageInputLabel: string;
+    messageResponsePrompt: string;
+    messageSurfaceColorDark: string;
+    messageSurfaceColorLight: string;
+    messageTextColorDark: string;
+    messageTextColorLight: string;
+    messageTopicId: string;
+    messageTopicTitle: string;
     sharedTaskCycleMode: string;
     sharedTaskInputLabel: string;
     sharedTaskInstructions: string;
@@ -2665,6 +2685,8 @@ function ActivityGraph({
                             <Plus className="size-3.5" />
                             Shared task
                         </button>
+                        <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => setEditor({ type: 'message_prompt' })} type="button"><Plus className="size-3.5" />Message prompt</button>
+                        <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => setEditor({ type: 'message_wall' })} type="button"><Plus className="size-3.5" />Message wall</button>
                     </div>
                 </div>
                 {connectionError ? (
@@ -2718,6 +2740,7 @@ function ActivityGraph({
                     activity={editor.activity}
                     items={document.items}
                     sounds={document.sounds}
+                    messageTopics={document.activity_graph.message_topics}
                     tools={document.tools}
                     nodeId={graph.node.id}
                     onClose={() => setEditor(null)}
@@ -3578,6 +3601,7 @@ function ActivityAuthorDialog({
     activity,
     items,
     nodeId,
+    messageTopics,
     onClose,
     onSaved,
     sounds,
@@ -3588,6 +3612,7 @@ function ActivityAuthorDialog({
     activity?: Activity;
     items: EditableItem[];
     nodeId: string;
+    messageTopics: MessageTopic[];
     onClose: () => void;
     onSaved: () => void;
     sounds: EditableSound[];
@@ -3622,7 +3647,11 @@ function ActivityAuthorDialog({
                     ? 'Item obstacle'
                     : type === 'obstacle'
                       ? 'Obstacle'
-                      : 'Shared task';
+                      : type === 'shared_task'
+                        ? 'Shared task'
+                        : type === 'message_prompt'
+                          ? 'Message prompt'
+                          : 'Message wall';
 
     const updateField = (field: keyof ActivityAuthorForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -3701,8 +3730,33 @@ function ActivityAuthorDialog({
                 threshold: Number(form.sharedTaskThreshold),
                 validation_mode: form.sharedTaskValidationMode as 'minimum_length' | 'none',
             };
+            const message = {
+                ...common,
+                activity_type: type as 'message_prompt' | 'message_wall',
+                allow_responses: type === 'message_wall' && form.messageAllowResponses,
+                audience: type === 'message_wall' ? 'peers' : form.messageAudience,
+                input_label: form.messageInputLabel,
+                prompt: form.prompt,
+                response_prompt: form.messageResponsePrompt,
+                surface_color_dark: form.messageSurfaceColorDark,
+                surface_color_light: form.messageSurfaceColorLight,
+                card_color_dark: form.messageCardColorDark,
+                card_color_light: form.messageCardColorLight,
+                card_border_color_dark: form.messageCardBorderColorDark,
+                card_border_color_light: form.messageCardBorderColorLight,
+                text_color_dark: form.messageTextColorDark,
+                text_color_light: form.messageTextColorLight,
+                accent_color_dark: form.messageAccentColorDark,
+                accent_color_light: form.messageAccentColorLight,
+                topic_id: optionalValue(form.messageTopicId),
+                topic_title: form.messageTopicTitle,
+            } as components['schemas']['CreateAdminMessageActivityRequest'];
 
-            if (type === 'shared_task' && activity) {
+            if ((type === 'message_prompt' || type === 'message_wall') && activity) {
+                ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/message', { body: { ...message, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
+            } else if (type === 'message_prompt' || type === 'message_wall') {
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/message-activities', { body: message, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+            } else if (type === 'shared_task' && activity) {
                 ({ response } = await apiClient.PATCH(
                     '/admin/world-builder/activities/{activity_id}/shared-task',
                     { body: { ...sharedTask, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } },
@@ -4045,6 +4099,8 @@ function ActivityAuthorDialog({
                         />
                     ) : type === 'shared_task' ? (
                         <SharedTaskFields form={form} onChange={setForm} />
+                    ) : type === 'message_prompt' || type === 'message_wall' ? (
+                        <MessageActivityFields form={form} onChange={setForm} topics={messageTopics} type={type} />
                     ) : (
                         <ToolGrantFields
                             form={form}
@@ -4077,6 +4133,41 @@ function ActivityAuthorDialog({
             </form>
         </div>
     );
+}
+
+function MessageActivityFields({ form, onChange, topics, type }: { form: ActivityAuthorForm; onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>; topics: MessageTopic[]; type: 'message_prompt' | 'message_wall' }) {
+    const update = (field: keyof ActivityAuthorForm, value: string | boolean) => onChange((current) => ({ ...current, [field]: value }));
+    return <>
+        <label className="grid gap-2 text-sm font-medium md:col-span-2">Message topic<select value={form.messageTopicId || '__new'} onChange={(event) => onChange((current) => ({ ...current, messageTopicId: event.target.value === '__new' ? '' : event.target.value, messageTopicTitle: event.target.value === '__new' ? current.messageTopicTitle : '' }))}><option value="__new">Create new topic</option>{topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select></label>
+        {!form.messageTopicId ? <ActivityTextField className="md:col-span-2" label="New topic name" onChange={(value) => update('messageTopicTitle', value)} value={form.messageTopicTitle} /> : null}
+        {type === 'message_prompt' ? <label className="grid gap-2 text-sm font-medium">Who should receive this?<select value={form.messageAudience} onChange={(event) => update('messageAudience', event.target.value as 'peers' | 'support')}><option value="peers">Share with peers</option><option value="support">Ask learning support</option></select></label> : <label className="flex items-center gap-3 text-sm font-medium"><input checked={form.messageAllowResponses} onChange={(event) => update('messageAllowResponses', event.target.checked)} type="checkbox" />Invite optional peer responses</label>}
+        {type === 'message_prompt' ? <><ActivityTextField className="md:col-span-2" label="Prompt" onChange={(value) => update('prompt', value)} textarea value={form.prompt} /><ActivityTextField label="Input label" onChange={(value) => update('messageInputLabel', value)} value={form.messageInputLabel} /></> : <p className="text-sm leading-6 text-slate-500 dark:text-slate-400 md:col-span-2">Closing the wall completes this activity and follows its configured output connector.</p>}
+        {type === 'message_wall' && form.messageAllowResponses ? <ActivityTextField className="md:col-span-2" label="Response guidance" onChange={(value) => update('messageResponsePrompt', value)} textarea value={form.messageResponsePrompt} /> : null}
+        <div className="grid gap-4 md:col-span-2">
+            <div className="relative min-h-52 overflow-hidden rounded-lg border p-5" style={{ backgroundColor: form.messageSurfaceColorDark, borderColor: form.messageCardBorderColorDark }}>
+                <p className="text-xs font-semibold tracking-[0.16em] uppercase" style={{ color: form.messageAccentColorDark }}>Live preview</p>
+                <div className="absolute left-[12%] top-[28%] w-44 -rotate-3 rounded-lg border p-3 text-sm shadow-lg" style={{ backgroundColor: form.messageCardColorDark, borderColor: form.messageCardBorderColorDark, color: form.messageTextColorDark }}>A small clue can make the next step easier.</div>
+                <div className="absolute left-[55%] top-[16%] w-44 rotate-2 rounded-lg border p-3 text-sm shadow-lg" style={{ backgroundColor: form.messageCardColorDark, borderColor: form.messageCardBorderColorDark, color: form.messageTextColorDark }}>Take your time and look at the details.</div>
+                <div className="absolute left-[35%] top-[58%] w-44 -rotate-1 rounded-lg border p-3 text-sm shadow-lg" style={{ backgroundColor: form.messageCardColorDark, borderColor: form.messageCardBorderColorDark, color: form.messageTextColorDark }}>You are allowed to try another path.</div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+                <MessageColorField label="Surface - dark" onChange={(value) => update('messageSurfaceColorDark', value)} value={form.messageSurfaceColorDark} />
+                <MessageColorField label="Surface - light" onChange={(value) => update('messageSurfaceColorLight', value)} value={form.messageSurfaceColorLight} />
+                <MessageColorField label="Card - dark" onChange={(value) => update('messageCardColorDark', value)} value={form.messageCardColorDark} />
+                <MessageColorField label="Card - light" onChange={(value) => update('messageCardColorLight', value)} value={form.messageCardColorLight} />
+                <MessageColorField label="Card border - dark" onChange={(value) => update('messageCardBorderColorDark', value)} value={form.messageCardBorderColorDark} />
+                <MessageColorField label="Card border - light" onChange={(value) => update('messageCardBorderColorLight', value)} value={form.messageCardBorderColorLight} />
+                <MessageColorField label="Text - dark" onChange={(value) => update('messageTextColorDark', value)} value={form.messageTextColorDark} />
+                <MessageColorField label="Text - light" onChange={(value) => update('messageTextColorLight', value)} value={form.messageTextColorLight} />
+                <MessageColorField label="Accent - dark" onChange={(value) => update('messageAccentColorDark', value)} value={form.messageAccentColorDark} />
+                <MessageColorField label="Accent - light" onChange={(value) => update('messageAccentColorLight', value)} value={form.messageAccentColorLight} />
+            </div>
+        </div>
+    </>;
+}
+
+function MessageColorField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
+    return <label className="grid gap-2 text-sm font-medium">{label}<span className="flex gap-2"><input aria-label={`${label} picker`} className="h-10 w-12 rounded-lg border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-slate-950/40" onChange={(event) => onChange(event.target.value)} type="color" value={value} /><input aria-label={label} className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/10 dark:bg-slate-950/40 dark:text-white" maxLength={7} onChange={(event) => onChange(event.target.value)} value={value} /></span></label>;
 }
 
 function SharedTaskFields({ form, onChange }: { form: ActivityAuthorForm; onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>> }) {
@@ -5227,6 +5318,9 @@ function activityAuthorForm(
     sounds: EditableSound[] = [],
 ): ActivityAuthorForm {
     const config = activity?.config ?? {};
+    const messageUi = config.messageUi && typeof config.messageUi === 'object' && !Array.isArray(config.messageUi)
+        ? config.messageUi as Record<string, unknown>
+        : {};
     return {
         backgroundDark: configString(config, 'backgroundDark'),
         backgroundLight: configString(config, 'backgroundLight'),
@@ -5312,8 +5406,27 @@ function activityAuthorForm(
         note: configString(config, 'note'),
         obstacle: obstacleForm(config, tools),
         prompt: activity
-            ? configString(config, 'prompt')
-            : 'What feels clearer now?',
+            ? configString(config, type === 'message_prompt' || type === 'message_wall' ? 'messagePrompt' : 'prompt')
+            : type === 'message_prompt' || type === 'message_wall'
+              ? 'Leave a helpful note or an encouraging thought for the next learner.'
+              : 'What feels clearer now?',
+        messageActivityType: type === 'message_wall' ? 'message_wall' : 'message_prompt',
+        messageAllowResponses: configBoolean(config, 'messageAllowResponses'),
+        messageAudience: configString(config, 'messageAudience') === 'support' ? 'support' : 'peers',
+        messageAccentColorDark: configStringOr(messageUi, 'accentColorDark', '#5eead4'),
+        messageAccentColorLight: configStringOr(messageUi, 'accentColorLight', '#0f766e'),
+        messageCardBorderColorDark: configStringOr(messageUi, 'cardBorderColorDark', '#2dd4bf'),
+        messageCardBorderColorLight: configStringOr(messageUi, 'cardBorderColorLight', '#0f766e'),
+        messageCardColorDark: configStringOr(messageUi, 'cardColorDark', '#13262d'),
+        messageCardColorLight: configStringOr(messageUi, 'cardColorLight', '#ffffff'),
+        messageInputLabel: configStringOr(config, 'messageInputLabel', 'Your message'),
+        messageResponsePrompt: configString(config, 'messageResponsePrompt'),
+        messageSurfaceColorDark: configStringOr(messageUi, 'surfaceColorDark', '#071018'),
+        messageSurfaceColorLight: configStringOr(messageUi, 'surfaceColorLight', '#e6f5f2'),
+        messageTextColorDark: configStringOr(messageUi, 'textColorDark', '#f1f5f9'),
+        messageTextColorLight: configStringOr(messageUi, 'textColorLight', '#0f172a'),
+        messageTopicId: configString(config, 'messageTopicId'),
+        messageTopicTitle: '',
         sharedTaskCycleMode: configStringOr(config, 'cycleMode', 'none'),
         sharedTaskInputLabel: configStringOr(config, 'inputLabel', 'Your contribution'),
         sharedTaskInstructions: configString(config, 'instructions'),
@@ -5946,7 +6059,7 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'tool_grant' ||
         type === 'item_obstacle' ||
         type === 'obstacle' ||
-        type === 'shared_task'
+        type === 'shared_task' || type === 'message_prompt' || type === 'message_wall'
     );
 }
 
