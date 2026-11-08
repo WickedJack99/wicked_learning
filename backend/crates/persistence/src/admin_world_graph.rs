@@ -15,6 +15,8 @@ use wicked_learning_domain::{
     },
 };
 
+use crate::admin_world_unlock_diagnostics::load_unlock_diagnostics;
+
 /// PostgreSQL projection of the source World Builder overview. It deliberately
 /// does not reuse the learner World repository: authoring reads drafts and are
 /// scoped by edit authority rather than learner visibility.
@@ -134,13 +136,21 @@ async fn load_editable_graph(
     let maps = load_scoped_maps(pool, world.id, principal).await?;
     let map_ids = maps.iter().map(|map| map.id).collect::<Vec<_>>();
     let nodes = load_nodes(pool, &map_ids).await?;
+    let unlock_diagnostics =
+        load_unlock_diagnostics(pool, &nodes.iter().map(|node| node.id).collect::<Vec<_>>())
+            .await?;
     let review_counts = load_review_counts(pool, &map_ids).await?;
     let mut nodes_by_map = HashMap::<Uuid, Vec<AdminNodeSummary>>::new();
     for node in nodes {
-        nodes_by_map
-            .entry(node.map_id)
-            .or_default()
-            .push(node.into_summary());
+        let node_id = node.id;
+        nodes_by_map.entry(node.map_id).or_default().push(
+            node.into_summary(
+                unlock_diagnostics
+                    .get(&node_id)
+                    .cloned()
+                    .unwrap_or_default(),
+            ),
+        );
     }
 
     let mut map_summaries = Vec::with_capacity(maps.len());
@@ -285,7 +295,7 @@ async fn load_portal_links(
 }
 
 impl NodeRow {
-    fn into_summary(self) -> AdminNodeSummary {
+    fn into_summary(self, unlock_diagnostics: Vec<AdminUnlockDiagnostic>) -> AdminNodeSummary {
         AdminNodeSummary {
             id: self.id,
             slug: self.slug,
@@ -298,7 +308,7 @@ impl NodeRow {
             },
             state: self.state,
             visual_config: self.visual_config,
-            unlock_diagnostics: vec![],
+            unlock_diagnostics,
         }
     }
 }

@@ -3700,9 +3700,10 @@ would violate source scope. Building a bespoke partial editor before its
 remaining contracts would violate the original-UI requirement. These are
 rejected.
 
-**Limits and follow-up:** The greenfield schema currently has no migrated AI
-review-status model or full node-reachability diagnostic model, so their
-source-shaped overview counts/diagnostics are deliberately zero/empty. The
+**Limits and follow-up:** Review-status counts and full node-reachability
+diagnostics now come from dedicated authoring projections. The latter evaluates
+only source-authored independent opening paths (including NPC answers) and is
+never used as a learner-availability decision. The
 selected-map configuration endpoint separately requires source `world_maps`
 update authority and returns authored map assets, map presentation, current
 delete eligibility, access groups, manageable learning groups, role/topic

@@ -1127,7 +1127,9 @@ scope and direct editing-group membership. It returns draft map/node fields,
 portal candidates and portal links as a separate authoring projection; it does
 not reuse learner visibility reads. Review-queue counts and full unlock-path
 diagnostics remain zero/empty until their source data models and authoring
-workflows are migrated. The selected-map configuration projection is now also
+workflows are migrated. Overview and selected-map projections now calculate the
+source unlock-path diagnostics for locked tiles; they stay author-only and are
+backed by the same authored data rather than a browser calculation. The selected-map configuration projection is now also
 available at `GET /api/v1/admin/world-builder/maps/{map_id}`. It deliberately
 requires the stricter source `world_maps` update permission and evaluates
 delete eligibility independently. Its source-shaped support reads now include
@@ -1169,7 +1171,6 @@ to the write route, and no change happens until the tutor explicitly saves the
 form. That save records pre-change history and returns the activity to
 `needs_review`; it does not change learner data or non-metadata activity
 fields. Unlock diagnostics also remain
-unavailable.
 Every editable activity card also has the source-shaped Learner orientation
 form for the common evidence objective and up-to-eight de-duplicated concepts.
 It saves only that author-controlled context, records a pre-change version and
@@ -1511,6 +1512,18 @@ author may edit, alongside learners already visible through the support scope.
 Opening or closing an override still independently rechecks both authorities;
 it does not change discovery or tool-use records or expose a general learner
 lookup.
+
+### World Builder unlock-reachability diagnostics slice — 8 November 2026
+
+The authoring graph and selected-map projections now calculate the Laravel
+opening-path diagnostic for every returned locked tile. It traces completed-tile
+requirements through nested AND/OR rules and treats valid tool, item, role,
+schedule, hidden-tool-discovery, and NPC-answer events as independent opening
+paths. An openable OR alternative suppresses a warning. The source-adapted tile
+dialog renders the existing warning and its Learning Support fallback copy; a
+disposable browser test creates an unreachable prerequisite and proves the
+warning is visible. The calculation is server-side, uses only authoring reads,
+and does not change learner availability.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

@@ -14,6 +14,8 @@ use wicked_learning_domain::{
     },
 };
 
+use crate::admin_world_unlock_diagnostics::load_unlock_diagnostics;
+
 /// PostgreSQL read model for one map's original configuration workspace. The
 /// caller's edit policy is evaluated before the rich authored configuration is
 /// returned; learner visibility never participates in this query.
@@ -304,6 +306,8 @@ async fn load_nodes(pool: &PgPool, map_id: Uuid) -> Result<Vec<AdminNodeSummary>
     .bind(map_id)
     .fetch_all(pool)
     .await?;
+    let unlock_diagnostics =
+        load_unlock_diagnostics(pool, &rows.iter().map(|node| node.id).collect::<Vec<_>>()).await?;
     Ok(rows
         .into_iter()
         .map(|node| AdminNodeSummary {
@@ -318,7 +322,10 @@ async fn load_nodes(pool: &PgPool, map_id: Uuid) -> Result<Vec<AdminNodeSummary>
             },
             state: node.state,
             visual_config: node.visual_config,
-            unlock_diagnostics: vec![],
+            unlock_diagnostics: unlock_diagnostics
+                .get(&node.id)
+                .cloned()
+                .unwrap_or_default(),
         })
         .collect())
 }

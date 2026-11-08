@@ -872,6 +872,14 @@ canonicalize schedules before learner delivery; sound UUIDs are likewise
 verified as published and are rewritten to learner-safe URLs only in the public
 projection.
 
+For locked tiles, the same dialog also shows the source opening-path warning
+when a completed-tile prerequisite cannot open independently. The author-only
+server projection follows nested AND/OR branches and recognises configured
+tools, items, roles, schedules, hidden-tool discovery, and answer-event
+openings; it does not let the browser infer reachability. An independently
+openable OR branch suppresses the warning, while Learning Support remains an
+explicit fallback rather than an authored path.
+
 The Rust backend for a selected node's source `Lock for all users` action now
 resets only learner-specific tool unlocks. It deliberately preserves discovery
 and explicit support overrides, so resetting a tool-derived condition cannot
