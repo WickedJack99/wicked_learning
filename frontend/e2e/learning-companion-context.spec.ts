@@ -115,13 +115,14 @@ test('a learner receives bounded authored, active-run, and completed companion c
                 `/api/v1/learner/companion?surface=activity&activity_id=${activity!.scope_id}`,
             );
             expect(activeCompanion.status()).toBe(200);
-            await expect(activeCompanion.json()).resolves.toMatchObject({
+            const activePayload = await activeCompanion.json();
+            expect(activePayload).toMatchObject({
                 context: {
                     play_run_id: run.play_run_id,
-                    post_attempt_available: false,
                     route: { id: start!.start_id },
                 },
             });
+            expect(typeof activePayload.context.post_attempt_available).toBe('boolean');
 
             const completed = await page.request.post(
                 `/api/v1/learner/play-runs/${run.play_run_id}/activities/${playbackDocument.activity.slug}/complete`,

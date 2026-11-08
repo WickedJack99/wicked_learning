@@ -1546,7 +1546,7 @@ navigation actions and three allowlisted AI capabilities. Graphs can be scoped
 to up to 100 worlds, maps, nodes or activities. The assignment target list and
 writer both intersect the caller's companion permission with the relevant map,
 node or activity authoring scope, including direct map editing groups. This is
-authoring only: scope inheritance/overrides, learner context/action
+dialogue authoring only: scope-configuration authoring, learner context/action
 projections, provider turns and the source-adapted settings/launcher UI remain
 later slices in the agreed backend-first sequence.
 
@@ -1557,15 +1557,18 @@ authenticated learner desk, a visible World map, or a visible/playable activity.
 `GET /api/v1/learner/companion` returns only the bounded identity, deterministic
 navigation actions, AI-enabled indicator and validated dialogue graph; it never
 serializes an AI template, credential, answer history or mutation command.
-Dialogue assignment precedence is activity, node, map, then world, with the
-platform configuration providing the fallback identity/message.
-an inaccessible map or unplayable activity returns no companion. This slice
-resolves reusable assignments against the platform configuration only. For an
-active activity it also reads the matching server-owned route run and route
-start, and independently exposes completed-activity eligibility for bounded
-post-attempt assistance; neither value comes from a browser parameter.
-Persisted per-scope visual/AI overrides, the provider-turn command and the
-source-adapted launcher remain later slices.
+The resolver now also reads object-only `companion_config` values stored on
+World, map, node and activity records. It applies valid source-shaped fields
+from broadest scope to most specific, including bounded visual placement,
+mode, AI policy and dialogue; an assignment replaces the stored graph at the
+same scope. Invalid stored values are ignored rather than breaking learner
+access. The platform configuration provides the fallback identity/message; an
+inaccessible map or unplayable activity returns no companion. For an active
+activity it also reads the matching server-owned route run and route start, and
+independently exposes completed-activity eligibility for bounded post-attempt
+assistance; neither value comes from a browser parameter. Scope-configuration
+authoring, the provider-turn command and the source-adapted launcher remain
+later slices.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

@@ -43,7 +43,9 @@ impl LearnerCompanionRepository for PostgresLearnerCompanionRepository<'_> {
 
 #[derive(FromRow)]
 struct SettingsRow {
+    ai_capabilities: Value,
     ai_enabled: bool,
+    ai_template_id: Option<Uuid>,
     avatar_color: String,
     avatar_position_x: i16,
     avatar_position_y: i16,
@@ -58,11 +60,14 @@ struct SettingsRow {
 #[derive(FromRow)]
 struct ScopeRow {
     activity_id: Option<Uuid>,
+    activity_companion_config: Option<Value>,
     activity_title: Option<String>,
     map_id: Uuid,
+    map_companion_config: Value,
     map_slug: String,
     map_title: String,
     node_id: Option<Uuid>,
+    node_companion_config: Option<Value>,
     node_slug: Option<String>,
     node_title: Option<String>,
     node_visual_config: Option<Value>,
@@ -70,6 +75,7 @@ struct ScopeRow {
     topic_id: Option<Uuid>,
     topic_title: Option<String>,
     world_id: Uuid,
+    world_companion_config: Value,
     world_title: String,
 }
 
@@ -79,21 +85,34 @@ struct AssignedGraphRow {
     scope_type: String,
 }
 
+struct ResolvedCompanionConfiguration {
+    ai_capabilities: Vec<String>,
+    ai_enabled: bool,
+    ai_template_id: Option<Uuid>,
+    avatar_color: String,
+    avatar_position_x: i16,
+    avatar_position_y: i16,
+    avatar_scale: i16,
+    avatar_url: Option<String>,
+    dialogue: Option<Value>,
+    display_name: String,
+    enabled: bool,
+    message: String,
+    mode: String,
+    source_scope: String,
+}
+
 async fn load(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
     request: &LearnerCompanionRequest,
 ) -> Result<Option<LearnerCompanion>, LearnerCompanionError> {
     let settings = sqlx::query_as::<_, SettingsRow>(
-        "SELECT enabled, display_name, avatar_url, avatar_color, avatar_position_x, avatar_position_y, avatar_scale, welcome_message, mode, ai_enabled FROM learning_companion_settings WHERE singleton = TRUE",
+        "SELECT enabled, display_name, avatar_url, avatar_color, avatar_position_x, avatar_position_y, avatar_scale, welcome_message, mode, ai_enabled, ai_template_id, ai_capabilities FROM learning_companion_settings WHERE singleton = TRUE",
     )
     .fetch_one(pool)
     .await
     .map_err(unavailable)?;
-    if !settings.enabled {
-        return Ok(None);
-    }
-
     let scope = match request.surface {
         LearnerCompanionSurface::Desk => None,
         LearnerCompanionSurface::World => {
@@ -136,24 +155,28 @@ async fn load(
         }
     }
 
-    let (dialogue, source_scope) = assigned_dialogue(pool, scope.as_ref()).await?;
+    let assigned_graphs = assigned_graphs(pool, scope.as_ref()).await?;
+    let configuration = resolve_configuration(&settings, scope.as_ref(), &assigned_graphs);
+    if !configuration.enabled {
+        return Ok(None);
+    }
     let context = context(pool, principal, request.surface, scope.as_ref()).await?;
     Ok(Some(LearnerCompanion {
-        avatar_color: settings.avatar_color,
-        avatar_position_x: settings.avatar_position_x,
-        avatar_position_y: settings.avatar_position_y,
-        avatar_scale: settings.avatar_scale,
-        avatar_url: settings.avatar_url,
+        avatar_color: configuration.avatar_color,
+        avatar_position_x: configuration.avatar_position_x,
+        avatar_position_y: configuration.avatar_position_y,
+        avatar_scale: configuration.avatar_scale,
+        avatar_url: configuration.avatar_url,
         configuration: LearnerCompanionConfiguration {
-            ai_enabled: settings.ai_enabled
-                && matches!(settings.mode.as_str(), "guided_ai" | "open_ai"),
-            mode: settings.mode,
-            source_scope,
+            ai_enabled: configuration.ai_enabled
+                && matches!(configuration.mode.as_str(), "guided_ai" | "open_ai"),
+            mode: configuration.mode,
+            source_scope: configuration.source_scope,
         },
         context,
-        dialogue,
-        display_name: settings.display_name,
-        message: settings.welcome_message,
+        dialogue: configuration.dialogue,
+        display_name: configuration.display_name,
+        message: configuration.message,
     }))
 }
 
@@ -163,7 +186,7 @@ async fn visible_map_scope(
     requested_map_slug: Option<&str>,
 ) -> Result<Option<ScopeRow>, LearnerCompanionError> {
     sqlx::query_as::<_, ScopeRow>(
-        "SELECT worlds.id AS world_id, worlds.title AS world_title, maps.id AS map_id, maps.slug AS map_slug, maps.title AS map_title, NULL::UUID AS node_id, NULL::TEXT AS node_slug, NULL::TEXT AS node_title, NULL::JSONB AS node_visual_config, NULL::TEXT AS node_state, topics.id AS topic_id, topics.title AS topic_title, NULL::UUID AS activity_id, NULL::TEXT AS activity_title FROM learning_worlds AS worlds INNER JOIN learning_maps AS maps ON maps.world_id = worlds.id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE worlds.published_at IS NOT NULL AND maps.published_at IS NOT NULL AND ($1::TEXT IS NULL OR maps.slug = $1) AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY worlds.published_at ASC, worlds.slug ASC, maps.position ASC, maps.slug ASC LIMIT 1",
+        "SELECT worlds.id AS world_id, worlds.title AS world_title, worlds.companion_config AS world_companion_config, maps.id AS map_id, maps.slug AS map_slug, maps.title AS map_title, maps.companion_config AS map_companion_config, NULL::UUID AS node_id, NULL::JSONB AS node_companion_config, NULL::TEXT AS node_slug, NULL::TEXT AS node_title, NULL::JSONB AS node_visual_config, NULL::TEXT AS node_state, topics.id AS topic_id, topics.title AS topic_title, NULL::UUID AS activity_id, NULL::JSONB AS activity_companion_config, NULL::TEXT AS activity_title FROM learning_worlds AS worlds INNER JOIN learning_maps AS maps ON maps.world_id = worlds.id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE worlds.published_at IS NOT NULL AND maps.published_at IS NOT NULL AND ($1::TEXT IS NULL OR maps.slug = $1) AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY worlds.published_at ASC, worlds.slug ASC, maps.position ASC, maps.slug ASC LIMIT 1",
     )
     .bind(requested_map_slug)
     .bind(&principal.roles)
@@ -178,7 +201,7 @@ async fn visible_activity_scope(
     activity_id: Uuid,
 ) -> Result<Option<ScopeRow>, LearnerCompanionError> {
     sqlx::query_as::<_, ScopeRow>(
-        "SELECT worlds.id AS world_id, worlds.title AS world_title, maps.id AS map_id, maps.slug AS map_slug, maps.title AS map_title, nodes.id AS node_id, nodes.slug AS node_slug, nodes.title AS node_title, nodes.visual_config AS node_visual_config, nodes.state AS node_state, topics.id AS topic_id, topics.title AS topic_title, activities.id AS activity_id, activities.title AS activity_title FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learning_worlds AS worlds ON worlds.id = maps.world_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE activities.id = $1 AND worlds.published_at IS NOT NULL AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) LIMIT 1",
+        "SELECT worlds.id AS world_id, worlds.title AS world_title, worlds.companion_config AS world_companion_config, maps.id AS map_id, maps.slug AS map_slug, maps.title AS map_title, maps.companion_config AS map_companion_config, nodes.id AS node_id, nodes.companion_config AS node_companion_config, nodes.slug AS node_slug, nodes.title AS node_title, nodes.visual_config AS node_visual_config, nodes.state AS node_state, topics.id AS topic_id, topics.title AS topic_title, activities.id AS activity_id, activities.companion_config AS activity_companion_config, activities.title AS activity_title FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learning_worlds AS worlds ON worlds.id = maps.world_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE activities.id = $1 AND worlds.published_at IS NOT NULL AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) LIMIT 1",
     )
     .bind(activity_id)
     .bind(&principal.roles)
@@ -187,12 +210,12 @@ async fn visible_activity_scope(
     .map_err(unavailable)
 }
 
-async fn assigned_dialogue(
+async fn assigned_graphs(
     pool: &PgPool,
     scope: Option<&ScopeRow>,
-) -> Result<(Option<Value>, String), LearnerCompanionError> {
+) -> Result<HashMap<String, Value>, LearnerCompanionError> {
     let Some(scope) = scope else {
-        return Ok((None, "platform".to_owned()));
+        return Ok(HashMap::new());
     };
     let mut scope_ids = vec![scope.world_id, scope.map_id];
     let mut scope_types = vec!["world".to_owned(), "map".to_owned()];
@@ -212,16 +235,173 @@ async fn assigned_dialogue(
     .fetch_all(pool)
     .await
     .map_err(unavailable)?;
-    let graphs = assignments
+    Ok(assignments
         .into_iter()
         .map(|assignment| (assignment.scope_type, assignment.dialogue_graph))
-        .collect::<HashMap<_, _>>();
-    for scope_type in ["activity", "node", "map", "world"] {
-        if let Some(graph) = graphs.get(scope_type).and_then(parse_dialogue_graph) {
-            return Ok((Some(graph), scope_type.to_owned()));
+        .collect())
+}
+
+fn resolve_configuration(
+    settings: &SettingsRow,
+    scope: Option<&ScopeRow>,
+    assigned_graphs: &HashMap<String, Value>,
+) -> ResolvedCompanionConfiguration {
+    let mut configuration = ResolvedCompanionConfiguration {
+        ai_capabilities: capabilities(&settings.ai_capabilities),
+        ai_enabled: settings.ai_enabled,
+        ai_template_id: settings.ai_template_id,
+        avatar_color: settings.avatar_color.clone(),
+        avatar_position_x: settings.avatar_position_x,
+        avatar_position_y: settings.avatar_position_y,
+        avatar_scale: settings.avatar_scale,
+        avatar_url: settings.avatar_url.clone(),
+        dialogue: None,
+        display_name: settings.display_name.clone(),
+        enabled: settings.enabled,
+        message: settings.welcome_message.clone(),
+        mode: settings.mode.clone(),
+        source_scope: "platform".to_owned(),
+    };
+    let Some(scope) = scope else {
+        return configuration;
+    };
+    for (scope_type, scope_config) in [
+        ("world", Some(&scope.world_companion_config)),
+        ("map", Some(&scope.map_companion_config)),
+        ("node", scope.node_companion_config.as_ref()),
+        ("activity", scope.activity_companion_config.as_ref()),
+    ] {
+        if apply_scope(
+            &mut configuration,
+            scope_config,
+            assigned_graphs.get(scope_type),
+        ) {
+            configuration.source_scope = scope_type.to_owned();
         }
     }
-    Ok((None, "platform".to_owned()))
+    configuration
+}
+
+fn apply_scope(
+    configuration: &mut ResolvedCompanionConfiguration,
+    scope_config: Option<&Value>,
+    assigned_graph: Option<&Value>,
+) -> bool {
+    let mut changed = false;
+    if let Some(config) = scope_config.and_then(Value::as_object) {
+        if let Some(value) = config.get("enabled").and_then(Value::as_bool) {
+            configuration.enabled = value;
+            changed = true;
+        }
+        for (key, target) in [
+            ("display_name", &mut configuration.display_name),
+            ("welcome_message", &mut configuration.message),
+        ] {
+            if let Some(value) = config.get(key).and_then(Value::as_str) {
+                *target = value.to_owned();
+                changed = true;
+            }
+        }
+        if let Some(value) = config.get("avatar_url").and_then(Value::as_str) {
+            configuration.avatar_url = (!value.trim().is_empty()).then(|| value.to_owned());
+            changed = true;
+        }
+        if let Some(value) = config.get("avatar_color").and_then(Value::as_str)
+            && valid_hex_color(value)
+        {
+            configuration.avatar_color = value.to_owned();
+            changed = true;
+        }
+        for (key, target, minimum, maximum) in [
+            (
+                "avatar_position_x",
+                &mut configuration.avatar_position_x,
+                0,
+                100,
+            ),
+            (
+                "avatar_position_y",
+                &mut configuration.avatar_position_y,
+                0,
+                100,
+            ),
+            ("avatar_scale", &mut configuration.avatar_scale, 80, 200),
+        ] {
+            if let Some(value) = config.get(key).and_then(Value::as_i64)
+                && (minimum..=maximum).contains(&value)
+            {
+                *target = value as i16;
+                changed = true;
+            }
+        }
+        if let Some(value) = config.get("mode").and_then(Value::as_str)
+            && matches!(value, "scripted" | "guided_ai" | "open_ai")
+        {
+            configuration.mode = value.to_owned();
+            changed = true;
+        }
+        if let Some(ai) = config.get("ai").and_then(Value::as_object) {
+            if let Some(value) = ai.get("enabled").and_then(Value::as_bool) {
+                configuration.ai_enabled = value;
+                changed = true;
+            }
+            if let Some(value) = ai
+                .get("template_id")
+                .and_then(Value::as_str)
+                .and_then(|value| Uuid::parse_str(value).ok())
+            {
+                configuration.ai_template_id = Some(value);
+                changed = true;
+            }
+            if let Some(value) = ai.get("capabilities")
+                && value.is_array()
+            {
+                configuration.ai_capabilities = capabilities(value);
+                changed = true;
+            }
+        }
+    }
+    let graph = assigned_graph.or_else(|| {
+        scope_config
+            .and_then(Value::as_object)
+            .and_then(|config| config.get("dialogue_graph"))
+    });
+    if let Some(graph) = graph.and_then(parse_dialogue_graph) {
+        configuration.dialogue = Some(graph);
+        changed = true;
+    }
+    changed
+}
+
+fn capabilities(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter(|capability| {
+            matches!(
+                *capability,
+                "current-context"
+                    | "topic-context"
+                    | "route-context"
+                    | "nearby-places"
+                    | "navigation-alternatives"
+                    | "revisit-options"
+            )
+        })
+        .take(3)
+        .map(str::to_owned)
+        .collect()
+}
+
+fn valid_hex_color(value: &str) -> bool {
+    value.len() == 7
+        && value.starts_with('#')
+        && value
+            .chars()
+            .skip(1)
+            .all(|character| character.is_ascii_hexdigit())
 }
 
 #[derive(FromRow)]
@@ -399,14 +579,125 @@ fn unavailable(error: sqlx::Error) -> LearnerCompanionError {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    use std::collections::HashMap;
 
-    use super::parse_dialogue_graph;
+    use serde_json::json;
+    use uuid::Uuid;
+
+    use super::{
+        ResolvedCompanionConfiguration, ScopeRow, SettingsRow, apply_scope, parse_dialogue_graph,
+        resolve_configuration,
+    };
 
     #[test]
     fn corrupt_assigned_graphs_are_not_learner_projections() {
         assert!(
             parse_dialogue_graph(&json!({"version": 1, "start": "missing", "nodes": []})).is_none()
         );
+    }
+
+    #[test]
+    fn valid_scope_configuration_inherits_from_world_to_activity() {
+        let settings = SettingsRow {
+            ai_capabilities: json!(["current-context"]),
+            ai_enabled: false,
+            ai_template_id: None,
+            avatar_color: "#5eead4".to_owned(),
+            avatar_position_x: 50,
+            avatar_position_y: 50,
+            avatar_scale: 100,
+            avatar_url: None,
+            display_name: "Platform guide".to_owned(),
+            enabled: true,
+            mode: "scripted".to_owned(),
+            welcome_message: "Welcome".to_owned(),
+        };
+        let scope = ScopeRow {
+            activity_id: Some(Uuid::nil()),
+            activity_companion_config: Some(json!({
+                "display_name": "Activity guide",
+                "avatar_position_y": 10,
+                "ai": {"enabled": true}
+            })),
+            activity_title: Some("Activity".to_owned()),
+            map_id: Uuid::nil(),
+            map_companion_config: json!({"display_name": "Map guide", "avatar_scale": 120}),
+            map_slug: "map".to_owned(),
+            map_title: "Map".to_owned(),
+            node_id: Some(Uuid::nil()),
+            node_companion_config: Some(
+                json!({"display_name": "Node guide", "avatar_position_x": 5}),
+            ),
+            node_slug: Some("node".to_owned()),
+            node_title: Some("Node".to_owned()),
+            node_visual_config: None,
+            node_state: None,
+            topic_id: None,
+            topic_title: None,
+            world_id: Uuid::nil(),
+            world_companion_config: json!({"display_name": "World guide", "avatar_color": "#123456", "mode": "guided_ai"}),
+            world_title: "World".to_owned(),
+        };
+
+        let configuration = resolve_configuration(&settings, Some(&scope), &HashMap::new());
+
+        assert_eq!(configuration.source_scope, "activity");
+        assert_eq!(configuration.display_name, "Activity guide");
+        assert_eq!(configuration.avatar_color, "#123456");
+        assert_eq!(configuration.avatar_position_x, 5);
+        assert_eq!(configuration.avatar_position_y, 10);
+        assert_eq!(configuration.avatar_scale, 120);
+        assert_eq!(configuration.mode, "guided_ai");
+        assert!(configuration.ai_enabled);
+    }
+
+    #[test]
+    fn scope_overrides_are_bounded_and_assigned_graphs_win_at_the_same_scope() {
+        let mut configuration = ResolvedCompanionConfiguration {
+            ai_capabilities: vec!["current-context".to_owned()],
+            ai_enabled: false,
+            ai_template_id: None,
+            avatar_color: "#5eead4".to_owned(),
+            avatar_position_x: 50,
+            avatar_position_y: 50,
+            avatar_scale: 100,
+            avatar_url: None,
+            dialogue: None,
+            display_name: "Platform guide".to_owned(),
+            enabled: true,
+            message: "Welcome".to_owned(),
+            mode: "scripted".to_owned(),
+            source_scope: "platform".to_owned(),
+        };
+        let assigned = json!({
+            "version": 1,
+            "start": "welcome",
+            "nodes": [{"id": "welcome", "type": "end", "message": "Assigned graph"}]
+        });
+
+        assert!(apply_scope(
+            &mut configuration,
+            Some(&json!({
+                "display_name": "Activity guide",
+                "avatar_color": "not-a-color",
+                "avatar_position_x": 101,
+                "mode": "guided_ai",
+                "ai": {"enabled": true, "capabilities": ["topic-context", "unknown"]},
+                "dialogue_graph": {"version": 1, "start": "missing", "nodes": []}
+            })),
+            Some(&assigned),
+        ));
+
+        assert_eq!(configuration.display_name, "Activity guide");
+        assert_eq!(configuration.avatar_color, "#5eead4");
+        assert_eq!(configuration.avatar_position_x, 50);
+        assert_eq!(configuration.mode, "guided_ai");
+        assert!(configuration.ai_enabled);
+        assert_eq!(configuration.ai_capabilities, ["topic-context"]);
+        assert_eq!(configuration.dialogue, parse_dialogue_graph(&assigned));
+
+        configuration.dialogue = None;
+        assert!(apply_scope(&mut configuration, None, Some(&assigned)));
+        assert_eq!(configuration.dialogue, parse_dialogue_graph(&assigned));
     }
 }

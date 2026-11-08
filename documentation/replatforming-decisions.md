@@ -4613,6 +4613,12 @@ serialization, and emits only fixed source navigation actions and safe
 references. It returns no content when the companion is disabled or the scope
 is inaccessible. AI mode is reduced to an enabled indicator; template identity,
 credentials, learner answers and mutation capability remain server-side.
+Object-only companion configuration is persisted on Rust-owned world, map,
+node and activity rows and applied from broadest to most-specific scope. Only
+source-valid booleans, strings, hex colors, bounded placement values, modes,
+UUID template references, and up to three allowlisted AI capabilities take
+effect; invalid stored values fail safe. A reusable assignment replaces a
+stored dialogue graph at the same scope.
 For an activity context, the resolver independently reads the caller's current
 in-progress route run (including its authored start) and any completed progress
 for that activity. The browser cannot supply, select or override either value.
@@ -4621,7 +4627,7 @@ for that activity. The browser cannot supply, select or override either value.
 launcher and dialogue UI while preventing it from becoming an authorization or
 AI-policy engine.
 
-**Limits:** Per-scope override persistence, provider turns, conversation state
+**Limits:** Scope-configuration authoring, provider turns, conversation state
 and the frontend launcher are deliberately separate slices.
 
 ## Phase 1 gate
