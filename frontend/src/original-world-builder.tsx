@@ -4270,6 +4270,15 @@ function ItemObstacleFields({
     onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
     sounds: EditableSound[];
 }) {
+    type ItemObstacleImageField =
+        | 'itemObstacleBackgroundDark'
+        | 'itemObstacleBackgroundLight'
+        | 'itemObstacleMetBackgroundDark'
+        | 'itemObstacleMetBackgroundLight'
+        | 'itemObstacleOverlayDark'
+        | 'itemObstacleOverlayLight';
+    const [mediaTarget, setMediaTarget] =
+        useState<ItemObstacleImageField | null>(null);
     const update = (field: keyof ActivityAuthorForm, value: string | boolean) =>
         onChange((current) => ({ ...current, [field]: value }));
     const updateSlot = (
@@ -4417,6 +4426,9 @@ function ItemObstacleFields({
                             onChange={(value) =>
                                 update(field as keyof ActivityAuthorForm, value)
                             }
+                            onSelectExisting={() =>
+                                setMediaTarget(field as ItemObstacleImageField)
+                            }
                             value={String(
                                 form[field as keyof ActivityAuthorForm],
                             )}
@@ -4487,6 +4499,15 @@ function ItemObstacleFields({
                     </label>
                 ))}
             </section>
+            {mediaTarget ? (
+                <MediaPicker
+                    onClose={() => setMediaTarget(null)}
+                    onSelect={(media) => {
+                        update(mediaTarget, media.url);
+                        setMediaTarget(null);
+                    }}
+                />
+            ) : null}
             <section className="grid gap-3 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
                 <h3 className="text-sm font-medium">Item obstacle sounds</h3>
                 {[

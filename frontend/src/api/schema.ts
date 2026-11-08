@@ -1350,7 +1350,7 @@ export interface paths {
         put?: never;
         /**
          * Create an Item obstacle activity on an editable World Builder node.
-         * @description The scoped writer resolves configured item and sound catalog UUIDs only after authorizing the selected node, then stores playback-safe item slugs and sound UUIDs.
+         * @description The scoped writer resolves configured item and sound catalog UUIDs only after authorizing the selected node, then stores playback-safe item slugs and sound UUIDs and atomically records managed reusable visual references from the obstacle scene fields.
          */
         post: operations["createAdminWorldBuilderItemObstacleActivity"];
         delete?: never;
@@ -1374,7 +1374,7 @@ export interface paths {
         head?: never;
         /**
          * Update an Item obstacle activity on an editable World Builder graph.
-         * @description A complete source-shaped edit resolves every catalog UUID after scope authorization and returns a conflict instead of overwriting a newer activity.
+         * @description A complete source-shaped edit resolves every catalog UUID after scope authorization, synchronizes managed reusable visual references from the obstacle scene fields, and returns a conflict instead of overwriting a newer activity.
          */
         patch: operations["updateAdminWorldBuilderItemObstacleActivity"];
         trace?: never;

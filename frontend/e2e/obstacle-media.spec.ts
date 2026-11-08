@@ -311,6 +311,85 @@ test('a local author selects reusable activity visuals and map cleanup removes t
         })
         .toBe(3);
 
+    await page.getByRole('button', { name: 'Item obstacle', exact: true }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Add Item obstacle' }),
+    ).toBeVisible();
+    const createItemObstacleForm = page.getByRole('dialog', {
+        name: 'Add Item obstacle',
+    });
+    const itemObstacleTitle = `Disposable Item obstacle ${Date.now()}`;
+    await createItemObstacleForm.getByLabel('Title').fill(itemObstacleTitle);
+    const createdItemObstacleResponse = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response
+                .url()
+                .includes(`/api/v1/admin/world-builder/nodes/${nodeId}/item-obstacle-activities`),
+    );
+    await createItemObstacleForm
+        .getByRole('button', { name: 'Create activity' })
+        .click();
+    expect((await createdItemObstacleResponse).status()).toBe(201);
+
+    const nodeWithItemObstacleResponse = await page.request.get(
+        `/api/v1/admin/world-builder/nodes/${nodeId}`,
+    );
+    expect(nodeWithItemObstacleResponse.ok()).toBeTruthy();
+    const nodeWithItemObstacle = (await nodeWithItemObstacleResponse.json()) as {
+        activity_graph: { activities: Array<{ id: string; title: string }> };
+    };
+    const itemObstacle = nodeWithItemObstacle.activity_graph.activities.find(
+        (candidate) => candidate.title === itemObstacleTitle,
+    );
+    if (!itemObstacle) {
+        throw new Error('the disposable Item obstacle activity is missing');
+    }
+
+    await page.locator(`[data-id="${itemObstacle.id}"]`).click();
+    await expect(
+        page.getByRole('heading', { name: 'Edit Item obstacle' }),
+    ).toBeVisible();
+    const itemObstacleForm = page.getByRole('dialog', {
+        name: 'Edit Item obstacle',
+    });
+    await itemObstacleForm
+        .getByRole('button', { name: 'Select existing' })
+        .first()
+        .click();
+    await expect(
+        page.getByRole('heading', { name: 'Select existing visual' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: mediaName }).click();
+    await expect(itemObstacleForm.getByLabel('Dark background')).toHaveValue(
+        media.asset.url,
+    );
+    const savedItemObstacleVisual = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            response
+                .url()
+                .includes(
+                    `/api/v1/admin/world-builder/activities/${itemObstacle.id}/item-obstacle`,
+                ),
+    );
+    await itemObstacleForm
+        .getByRole('button', { name: 'Save activity' })
+        .click();
+    expect((await savedItemObstacleVisual).status()).toBe(200);
+    await expect
+        .poll(async () => {
+            const response = await page.request.get(
+                `/api/v1/admin/media-assets?page=1&per_page=12&q=${encodeURIComponent(mediaName)}`,
+            );
+            const assets = (await response.json()) as {
+                items: Array<{ id: string; reference_count: number }>;
+            };
+            return assets.items.find((asset) => asset.id === media.asset.id)
+                ?.reference_count;
+        })
+        .toBe(4);
+
     await page.goto(
         `/settings?panel=admin-world-builder&map=${map.id}`,
     );
