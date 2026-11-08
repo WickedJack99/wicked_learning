@@ -919,6 +919,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderActivityEvidenceContext"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/feedback-guidance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save explanatory, non-grading feedback guidance for one editable activity.
+         * @description Saves only explicit tutor-authored guidance, records a pre-change version, and resets review state. It never invokes or applies an AI provider.
+         */
+        patch: operations["updateAdminWorldBuilderActivityFeedbackGuidance"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/source-references": {
         parameters: {
             query?: never;
@@ -7758,6 +7778,23 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        UpdateAdminActivityFeedbackGuidanceRequest: {
+            purpose: string | null;
+            evidence: string | null;
+            response_feedback: string | null;
+            next_action: string | null;
+            rubric: string[];
+            independent_check_prompt: string | null;
+            independent_check_feedback: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminActivityFeedbackGuidanceResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         UpdateAdminActivitySourceReferencesRequest: {
             source_references: components["schemas"]["AdminActivitySourceReferenceInput"][];
             /** Format: date-time */
@@ -11138,6 +11175,77 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity changed while the author was editing evidence context. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderActivityFeedbackGuidance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivityFeedbackGuidanceRequest"];
+            };
+        };
+        responses: {
+            /** @description The activity feedback guidance was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminActivityFeedbackGuidanceResponse"];
+                };
+            };
+            /** @description The complete feedback-guidance form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed while the author was editing feedback guidance. */
             409: {
                 headers: {
                     [name: string]: unknown;

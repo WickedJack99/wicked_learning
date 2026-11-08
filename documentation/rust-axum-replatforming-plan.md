@@ -972,6 +972,12 @@ form for the common evidence objective and up-to-eight de-duplicated concepts.
 It saves only that author-controlled context, records a pre-change version and
 resets review state; Rust's existing learner playback and evidence projections
 then consume their already-bounded forms without exposing a grading claim.
+The same common authoring surface now includes source-shaped Feedback guidance:
+purpose, observable evidence, response comparison, next action, up to three
+rubric cues, and explain/transfer-only optional independent-check guidance.
+The explicit save records history and resets review state; it neither invokes
+an AI provider nor turns guidance, response comparison, or observable cues
+into a learner grade.
 The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
 the original editor's independently persisted, rounded `start`/`end` graph

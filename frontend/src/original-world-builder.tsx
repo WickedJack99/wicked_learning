@@ -34,6 +34,7 @@ import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
 import { OriginalActivityAiReviewDialog } from './original-activity-ai-review';
 import { OriginalActivityEvidenceContextDialog } from './original-activity-evidence-context';
+import { OriginalActivityFeedbackGuidanceDialog } from './original-activity-feedback-guidance';
 import {
     OriginalActivityLearningDesignDialog,
     type LearningDesignSuggestions,
@@ -74,6 +75,7 @@ type ActivityNodeData = {
     canReview: boolean;
     onDelete: (activity: Activity) => void;
     onEvidenceContext: (activity: Activity) => void;
+    onFeedbackGuidance: (activity: Activity) => void;
     onHistory: (activity: Activity) => void;
     onReview: (activity: Activity) => void;
     onSourceReferences: (activity: Activity) => void;
@@ -2589,6 +2591,7 @@ function ActivityGraph({
     const graph = document.activity_graph;
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
     const [evidenceContextActivity, setEvidenceContextActivity] = useState<Activity | null>(null);
+    const [feedbackGuidanceActivity, setFeedbackGuidanceActivity] = useState<Activity | null>(null);
     const [historyActivity, setHistoryActivity] = useState<Activity | null>(
         null,
     );
@@ -2626,6 +2629,7 @@ function ActivityGraph({
                     canReview: graph.can_manage_ai_review,
                     onDelete: setPendingDelete,
                     onEvidenceContext: setEvidenceContextActivity,
+                    onFeedbackGuidance: setFeedbackGuidanceActivity,
                     onHistory: setHistoryActivity,
                     onReview: setReviewActivity,
                     onSourceReferences: setSourceReferencesActivity,
@@ -3233,6 +3237,7 @@ function ActivityGraph({
                 />
             ) : null}
             {evidenceContextActivity ? <OriginalActivityEvidenceContextDialog activity={evidenceContextActivity} conceptOptions={graph.evidence_concept_options} onClose={() => setEvidenceContextActivity(null)} onSaved={() => { setEvidenceContextActivity(null); onReload(); }} /> : null}
+            {feedbackGuidanceActivity ? <OriginalActivityFeedbackGuidanceDialog activity={feedbackGuidanceActivity} onClose={() => setFeedbackGuidanceActivity(null)} onSaved={() => { setFeedbackGuidanceActivity(null); onReload(); }} /> : null}
             {sourceReferencesActivity ? (
                 <OriginalActivitySourceReferencesDialog
                     activity={sourceReferencesActivity}
@@ -3351,6 +3356,7 @@ function ActivityGraphCard({
                 Activity history
             </button>
             <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-evidence-context.open" onClick={(event) => { event.stopPropagation(); data.onEvidenceContext(activity); }} type="button">Learner orientation</button>
+            <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-feedback-guidance.open" onClick={(event) => { event.stopPropagation(); data.onFeedbackGuidance(activity); }} type="button">Feedback guidance</button>
             <button
                 className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
                 data-wl-id="authoring.activity-source-references.open"

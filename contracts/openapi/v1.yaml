@@ -1248,6 +1248,36 @@ paths:
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '409': { description: The activity changed while the author was editing evidence context. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/feedback-guidance:
+    patch:
+      operationId: updateAdminWorldBuilderActivityFeedbackGuidance
+      summary: Save explanatory, non-grading feedback guidance for one editable activity.
+      description: >-
+        Saves only explicit tutor-authored guidance, records a pre-change version,
+        and resets review state. It never invokes or applies an AI provider.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityFeedbackGuidanceRequest' }
+      responses:
+        '200':
+          description: The activity feedback guidance was saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminActivityFeedbackGuidanceResponse' }
+        '400': { description: The complete feedback-guidance form is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '409': { description: The activity changed while the author was editing feedback guidance. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/source-references:
     patch:
       operationId: updateAdminWorldBuilderActivitySourceReferences
@@ -10914,6 +10944,29 @@ components:
           items: { type: string, maxLength: 120 }
         updated_at: { type: string, format: date-time }
     UpdateAdminActivityEvidenceContextResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivityFeedbackGuidanceRequest:
+      type: object
+      additionalProperties: false
+      required: [purpose, evidence, response_feedback, next_action, rubric, independent_check_prompt, independent_check_feedback, updated_at]
+      properties:
+        purpose: { type: [string, 'null'] }
+        evidence: { type: [string, 'null'] }
+        response_feedback: { type: [string, 'null'] }
+        next_action: { type: [string, 'null'] }
+        rubric:
+          type: array
+          maxItems: 3
+          items: { type: string, maxLength: 300 }
+        independent_check_prompt: { type: [string, 'null'] }
+        independent_check_feedback: { type: [string, 'null'] }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivityFeedbackGuidanceResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

@@ -99,6 +99,24 @@ test('a local author can open the guarded source-derived activity review dialog'
         },
     );
     expect(evidenceContextResponse.status()).toBe(200);
+    const evidenceContext = await evidenceContextResponse.json() as { updated_at: string };
+    const feedbackGuidanceResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activityId}/feedback-guidance`,
+        {
+            data: {
+                purpose: 'Make the learner’s reasoning visible.',
+                evidence: 'Names a reason connected to an observation.',
+                response_feedback: null,
+                next_action: 'Try the idea with a changed example.',
+                rubric: ['Names an observation'],
+                independent_check_prompt: null,
+                independent_check_feedback: null,
+                updated_at: evidenceContext.updated_at,
+            },
+            headers: { 'X-CSRF-Token': token },
+        },
+    );
+    expect(feedbackGuidanceResponse.status()).toBe(200);
 
     await page.reload();
     const card = page.locator('[data-id]').filter({ hasText: `Review target ${suffix}` });
@@ -113,6 +131,11 @@ test('a local author can open the guarded source-derived activity review dialog'
     await expect(evidenceDialog).toBeVisible();
     await expect(evidenceDialog.getByDisplayValue('Notice the next useful choice.')).toBeVisible();
     await evidenceDialog.getByRole('button', { name: 'Close learner orientation' }).click();
+    await card.getByRole('button', { name: 'Feedback guidance' }).click();
+    const feedbackDialog = page.locator('[data-wl-id="authoring.activity-feedback-guidance"]');
+    await expect(feedbackDialog).toBeVisible();
+    await expect(feedbackDialog.getByDisplayValue('Make the learner’s reasoning visible.')).toBeVisible();
+    await feedbackDialog.getByRole('button', { name: 'Close feedback guidance' }).click();
     await card.getByRole('button', { name: 'Review activity' }).click();
     const dialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
     await expect(dialog).toBeVisible();
