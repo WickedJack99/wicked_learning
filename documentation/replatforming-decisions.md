@@ -4203,6 +4203,36 @@ disposable map appears in the World bundle. The JSON bundle names media
 references only; it neither transfers media bytes nor implements the source's
 ZIP world package/import workflow.
 
+## ADR-105: JSON world import restores portals only after every map exists
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** Importing each embedded map independently either loses links to a
+later map or resolves them through an old source slug after a destination
+collision changes that slug. A partial import would also leave a broken author
+workspace.
+
+**Decision:** The standalone `world-exports/preflight` and
+`world-exports/import` endpoints accept only `wicked-learning-world` version-1
+JSON bundles of at most twelve valid map manifests. The writer validates the
+current workspace inside a single database transaction, creates every fresh
+destination map while postponing portal rows, then resolves both portal
+endpoints against the completed destination maps. Target map slugs use the
+source-to-destination mapping when the target is included, and retain the
+source target for an existing workspace map otherwise. Any unavailable topic,
+media reference, portal endpoint or invalid workspace rolls the whole import
+back. The source-adapted World Builder dialog requires preflight success before
+submitting the CSRF-protected write.
+
+**Why:** Deferring links makes collision-safe world copies faithful to the
+source importer while the transaction prevents a partially authored World.
+
+**Evidence and limits:** Application validation tests cover malformed and
+duplicate-map bundles; persistence/API tests and the generated OpenAPI contract
+cover the new boundary; the frontend production build covers the lifted dialog.
+This is JSON only. ZIP packages and transfer of uploaded media bytes remain a
+separate media-lifecycle migration slice.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

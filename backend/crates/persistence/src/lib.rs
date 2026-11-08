@@ -27,6 +27,7 @@ pub mod admin_world_activity_history;
 pub mod admin_world_activity_position;
 pub mod admin_world_export;
 pub mod admin_world_graph;
+pub mod admin_world_import;
 pub mod admin_world_item_grant;
 pub mod admin_world_item_obstacle;
 pub mod admin_world_map;

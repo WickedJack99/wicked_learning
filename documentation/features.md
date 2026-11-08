@@ -885,12 +885,13 @@ references are explicit: bundled `/images` paths remain reusable, uploaded
 `/storage` paths must exist on the destination public disk, and undeclared or
 external media references are rejected before content is created. Media bytes,
 learner state, revision history, permissions and editor groups remain outside
-the world import contract. Authors can also transfer the world as a portable
-package, which carries the referenced uploaded media and keeps the same fresh-
-map, transactional import behavior. JSON world bundles remain reference-only
-for media. Both import dialogs preflight their selected bundle through the same
-server-side validator and keep the import action unavailable until the bundle
-is structurally ready; the import endpoint validates again before mutation.
+the world import contract. The current standalone successor supports the JSON
+bundle only; Laravel's portable ZIP world package and media-byte transfer remain
+a later media-lifecycle slice. JSON world bundles remain reference-only for
+media. Both standalone import dialogs preflight their selected JSON bundle
+through a server-side validator and keep the import action unavailable until the
+bundle is structurally ready; the import endpoint validates again before
+mutation.
 Authors can also export one MapAsset as a standalone JSON bundle or portable
 package. The package includes explicitly referenced uploaded media and
 remaps it to fresh media-library paths on import; bundled `/images` references

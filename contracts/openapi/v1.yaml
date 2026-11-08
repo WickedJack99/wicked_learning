@@ -966,6 +966,63 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current World is unavailable. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/world-exports/preflight:
+    post:
+      operationId: preflightAdminWorldBuilderWorldExport
+      summary: Check a world export bundle without creating content.
+      description: Requires the source world-map update permission. The check is read-only and validates the bounded JSON world-bundle structure before import.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [manifest]
+              properties:
+                manifest:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: A bounded structural readiness report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWorldImportPreflightResult' }
+        '400': { description: The manifest upload is missing or exceeds the local safety limit. }
+        '401': { description: Authentication is required. }
+        '404': { description: The current principal cannot create or import World Builder maps. }
+        '503': { description: The identity or application service is unavailable. }
+  /admin/world-builder/world-exports/import:
+    post:
+      operationId: importAdminWorldBuilderWorldExport
+      summary: Import a validated authored world bundle as fresh drafts.
+      description: Requires the source world-map update permission. The destination World must match the manifest workspace; all destination maps are created and populated in one transaction before portal links are restored through source-to-destination slugs. The upload cannot set access restrictions or transfer learner, review, history or editor-assignment records.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [manifest]
+              properties:
+                manifest:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: The imported maps were created and can be opened in the World Builder.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportAdminWorldResponse' }
+        '400': { description: The world bundle, workspace references, portal targets or managed media references are invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The current principal cannot create World Builder maps. }
+        '503': { description: The identity or application database is unavailable. }
   /admin/world-builder/map-exports/preflight:
     post:
       operationId: preflightAdminWorldBuilderMapExport
@@ -9959,6 +10016,17 @@ components:
             mapAssets: { type: integer, minimum: 0 }
             portalTargets: { type: integer, minimum: 0 }
             mediaReferences: { type: integer, minimum: 0 }
+    AdminWorldImportPreflightResult:
+      type: object
+      additionalProperties: false
+      required: [valid, summary, errors, maps]
+      properties:
+        valid: { type: boolean }
+        summary: { type: string }
+        errors:
+          type: array
+          items: { type: string }
+        maps: { type: integer, minimum: 0, maximum: 12 }
     CreateAdminWorldMapRequest:
       type: object
       additionalProperties: false
@@ -9992,6 +10060,15 @@ components:
       required: [map_id]
       properties:
         map_id: { type: string, format: uuid }
+    ImportAdminWorldResponse:
+      type: object
+      additionalProperties: false
+      required: [map_ids]
+      properties:
+        map_ids:
+          type: array
+          maxItems: 12
+          items: { type: string, format: uuid }
     UpdateAdminWorldMapDetailsRequest:
       type: object
       additionalProperties: false

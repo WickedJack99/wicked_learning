@@ -323,17 +323,17 @@ manifest with explicitly referenced uploaded media. It does not expand access
 to maps outside the author's scope or include learner state, history,
 permissions or media bytes in the JSON form.
 
-The matching world import accepts only a validated bundle for the current
-workspace and caps it at twelve single-map manifests. It creates all destination
-maps first, then populates their child records, and restores portal links last so
-links between included maps can use a source-to-destination slug map. The whole
-operation is transactional and creates fresh authored maps. Its media reference
-list is checked by the same import boundary: bundled `/images` paths remain
-portable references, while `/storage` paths must resolve on the destination
-public disk for JSON imports. Portable packages materialize those referenced
-files under fresh destination paths before the transactional import. Media
-bytes do not cross in JSON, and learner state, history, permissions and editor
-groups are deliberately excluded from both forms.
+The matching standalone world import accepts a structurally validated JSON
+bundle for the current workspace and caps it at twelve single-map manifests. It
+creates all destination maps first, then populates their child records, and
+restores portal links last so links between included maps use a
+source-to-destination slug map. The whole operation is transactional and
+creates fresh authored maps. Its media reference list follows the existing map
+import boundary: bundled `/images` paths remain reusable references and managed
+media URLs must resolve in the destination database. Media bytes do not cross
+in JSON, and learner state, history, permissions and editor groups are
+deliberately excluded. Laravel's ZIP world packages remain an explicitly
+unimplemented migration slice; the standalone dialog accepts JSON only.
 
 Same-workspace map duplication is a separate transactional authoring action from
 portable import. It remaps internal node, activity, MapAsset message-topic,

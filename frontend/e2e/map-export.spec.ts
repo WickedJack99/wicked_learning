@@ -1,6 +1,16 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
+
+type WorldMapManifest = {
+    map: { slug: string; title: string };
+    nodes: Array<{
+        slug: string;
+        activities: Array<Record<string, unknown>>;
+    }>;
+    portalTargets: Array<Record<string, string>>;
+    references: { mediaUrls: string[] };
+};
 
 test('a local author exports, validates, and imports a source-shaped map manifest', async ({ page }) => {
     test.setTimeout(60_000);
@@ -24,7 +34,10 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     const graphResponse = await page.request.get('/api/v1/admin/world-builder');
     const graph = (await graphResponse.json()) as { maps: Array<{ id: string; title: string }> };
     const map = graph.maps.find((candidate) => candidate.title === title);
-    if (!map) throw new Error('the disposable export map was not created');
+
+    if (!map) {
+        throw new Error('the disposable export map was not created');
+    }
 
     const created = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes(`/api/v1/admin/world-builder/maps/${map.id}/assets`));
     await page.getByRole('button', { name: 'Add MapAsset' }).click();
@@ -37,7 +50,11 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     expect((await response).headers()['content-type']).toContain('application/json');
     expect(manifest.suggestedFilename()).toContain('wicked-learning-map.json');
     const filePath = await manifest.path();
-    if (!filePath) throw new Error('the export download has no file');
+
+    if (!filePath) {
+        throw new Error('the export download has no file');
+    }
+
     const payload = JSON.parse(await readFile(filePath, 'utf8')) as { format: string; formatVersion: number; map: { title: string }; mapAssets: unknown[]; nodes: unknown[]; references: { mediaUrls: string[] } };
     expect(payload).toMatchObject({ format: 'wicked-learning-map', formatVersion: 1, map: { title } });
     expect(payload.mapAssets).toHaveLength(1);
@@ -51,7 +68,11 @@ test('a local author exports, validates, and imports a source-shaped map manifes
         'wicked-learning-world.json',
     );
     const worldFilePath = await worldManifest.path();
-    if (!worldFilePath) throw new Error('the World export download has no file');
+
+    if (!worldFilePath) {
+        throw new Error('the World export download has no file');
+    }
+
     const worldPayload = JSON.parse(await readFile(worldFilePath, 'utf8')) as {
         format: string;
         formatVersion: number;
@@ -75,9 +96,11 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     const preflight = page.waitForResponse((candidate) => candidate.url().includes('/api/v1/admin/world-builder/map-exports/preflight'));
     await page.getByRole('button', { name: 'Check manifest' }).click();
     const preflightResponse = await preflight;
+
     if (preflightResponse.status() !== 200) {
         throw new Error(await preflightResponse.text());
     }
+
     await expect(page.getByRole('status')).toContainText(
         'The map export is structurally ready for transfer.',
     );
@@ -116,6 +139,82 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     expect((await imported).status()).toBe(201);
     await expect(page.getByRole('heading', { name: importedTitle })).toBeVisible();
 
+    const importedWorldDownload = page.waitForEvent('download');
+    await page.getByRole('link', { name: 'Export world' }).click();
+    const importedWorld = await importedWorldDownload;
+    const importedWorldFilePath = await importedWorld.path();
+
+    if (!importedWorldFilePath) {
+        throw new Error('the imported World export download has no file');
+    }
+
+    const importedWorldPayload = JSON.parse(
+        await readFile(importedWorldFilePath, 'utf8'),
+    ) as {
+        maps: WorldMapManifest[];
+        references: { mediaUrls: string[] };
+    };
+    const importedMapPayload = importedWorldPayload.maps.filter(
+        (candidate) => candidate.map.title === importedTitle,
+    );
+
+    if (importedMapPayload.length !== 1) {
+        throw new Error('the imported map was not uniquely present in the World export');
+    }
+
+    const portalNonce = Date.now();
+    const sourceTitle = `World source ${portalNonce}`;
+    const targetTitle = `World target ${portalNonce}`;
+    const sourceMap = structuredClone(importedMapPayload[0]);
+    const targetMap = structuredClone(importedMapPayload[0]);
+    const sourceNode = sourceMap.nodes[0];
+    const targetNode = targetMap.nodes[0];
+
+    if (!sourceNode || !targetNode) {
+        throw new Error('the disposable World map has no importable node');
+    }
+
+    sourceMap.map = { slug: `world-source-${portalNonce}`, title: sourceTitle };
+    targetMap.map = { slug: `world-target-${portalNonce}`, title: targetTitle };
+    sourceNode.activities = [
+        {
+            slug: 'portal-source',
+            title: 'Portal source',
+            type: 'markdown',
+            transitions: [],
+            dialogueNodes: [],
+            dialogueTransitions: [],
+        },
+    ];
+    targetNode.activities = [
+        {
+            slug: 'portal-target',
+            title: 'Portal target',
+            type: 'markdown',
+            transitions: [],
+            dialogueNodes: [],
+            dialogueTransitions: [],
+        },
+    ];
+    sourceMap.portalTargets = [
+        {
+            sourceNodeSlug: sourceNode.slug,
+            sourceActivitySlug: 'portal-source',
+            targetMapSlug: targetMap.map.slug,
+            targetNodeSlug: targetNode.slug,
+            targetActivitySlug: 'portal-target',
+        },
+    ];
+    targetMap.portalTargets = [];
+    importedWorldPayload.maps = [sourceMap, targetMap];
+    importedWorldPayload.references.mediaUrls = importedWorldPayload.maps.flatMap(
+        (candidate) => candidate.references.mediaUrls,
+    );
+    await writeFile(
+        importedWorldFilePath,
+        `${JSON.stringify(importedWorldPayload, null, 2)}\n`,
+    );
+
     const deletedImport = page.waitForResponse(
         (candidate) =>
             candidate.request().method() === 'DELETE' &&
@@ -126,4 +225,79 @@ test('a local author exports, validates, and imports a source-shaped map manifes
     await page.getByRole('button', { name: 'Delete map' }).click();
     await page.getByRole('button', { name: 'Delete world map' }).click();
     expect((await deletedImport).status()).toBe(204);
+
+    await page.getByRole('button', { name: 'Import world', exact: true }).click();
+    const worldImportDialog = page.locator(
+        '[data-wl-id="authoring.world-builder.world-import.dialog"]',
+    );
+    await worldImportDialog
+        .getByLabel('JSON world export')
+        .setInputFiles(importedWorldFilePath);
+    const worldPreflight = page.waitForResponse((candidate) =>
+        candidate.url().includes('/api/v1/admin/world-builder/world-exports/preflight'),
+    );
+    await worldImportDialog.getByRole('button', { name: 'Check export' }).click();
+    expect((await worldPreflight).status()).toBe(200);
+    await expect(worldImportDialog.getByRole('status')).toContainText(
+        'The world bundle is structurally valid and ready to import.',
+    );
+    const worldImported = page.waitForResponse((candidate) =>
+        candidate.url().includes('/api/v1/admin/world-builder/world-exports/import'),
+    );
+    await worldImportDialog
+        .getByRole('button', { name: 'Import world', exact: true })
+        .click();
+    expect((await worldImported).status()).toBe(201);
+    await expect(page.getByRole('heading', { name: sourceTitle })).toBeVisible();
+
+    const importedGraphResponse = await page.request.get(
+        '/api/v1/admin/world-builder',
+    );
+    const importedGraph = (await importedGraphResponse.json()) as {
+        maps: Array<{ id: string; title: string }>;
+        portal_links: Array<{ source_map_id: string; target_map_id: string }>;
+    };
+    const sourceMapSummary = importedGraph.maps.find(
+        (candidate) => candidate.title === sourceTitle,
+    );
+    const targetMapSummary = importedGraph.maps.find(
+        (candidate) => candidate.title === targetTitle,
+    );
+
+    if (!sourceMapSummary || !targetMapSummary) {
+        throw new Error('the World import did not create both portal maps');
+    }
+
+    expect(importedGraph.portal_links).toContainEqual(
+        expect.objectContaining({
+            source_map_id: sourceMapSummary.id,
+            target_map_id: targetMapSummary.id,
+        }),
+    );
+
+    const deletedWorldImport = page.waitForResponse(
+        (candidate) =>
+            candidate.request().method() === 'DELETE' &&
+            /\/api\/v1\/admin\/world-builder\/maps\/[0-9a-f-]+$/.test(
+                candidate.url(),
+            ),
+    );
+    await page.getByRole('button', { name: 'Delete map' }).click();
+    await page.getByRole('button', { name: 'Delete world map' }).click();
+    expect((await deletedWorldImport).status()).toBe(204);
+
+    await page.goto(
+        `/settings?panel=admin-world-builder&map=${targetMapSummary.id}`,
+    );
+    await expect(page.getByRole('heading', { name: targetTitle })).toBeVisible();
+    const deletedPortalTarget = page.waitForResponse(
+        (candidate) =>
+            candidate.request().method() === 'DELETE' &&
+            /\/api\/v1\/admin\/world-builder\/maps\/[0-9a-f-]+$/.test(
+                candidate.url(),
+            ),
+    );
+    await page.getByRole('button', { name: 'Delete map' }).click();
+    await page.getByRole('button', { name: 'Delete world map' }).click();
+    expect((await deletedPortalTarget).status()).toBe(204);
 });

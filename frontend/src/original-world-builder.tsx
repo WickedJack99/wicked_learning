@@ -71,6 +71,8 @@ type MessageTopic = components['schemas']['AdminMessageTopicOption'];
 type PortalCandidate = components['schemas']['AdminActivityPortalCandidate'];
 type ReviewQueue = components['schemas']['AdminWorldReviewQueuePage'];
 type MapExportPreflight = components['schemas']['AdminWorldMapExportPreflightResult'];
+type WorldImportPreflight =
+    components['schemas']['AdminWorldImportPreflightResult'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -355,6 +357,7 @@ function WorldBuilderContent() {
     const [error, setError] = useState<string | null>(null);
     const [createMapOpen, setCreateMapOpen] = useState(false);
     const [importMapOpen, setImportMapOpen] = useState(false);
+    const [importWorldOpen, setImportWorldOpen] = useState(false);
     const [duplicateMapOpen, setDuplicateMapOpen] = useState(false);
     const [sourceCatalogOpen, setSourceCatalogOpen] = useState(false);
     const [reviewQueueOpen, setReviewQueueOpen] = useState(false);
@@ -564,6 +567,15 @@ function WorldBuilderContent() {
                         <FileJson className="mr-1 inline size-4" />
                         Import map
                     </button>
+                    <button
+                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
+                        data-wl-id="authoring.world-builder.world-import.open"
+                        onClick={() => setImportWorldOpen(true)}
+                        type="button"
+                    >
+                        <FileJson className="mr-1 inline size-4" />
+                        Import world
+                    </button>
                     <a
                         className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
                         data-wl-id="authoring.world-builder.world-export"
@@ -671,6 +683,18 @@ function WorldBuilderContent() {
                         setImportMapOpen(false);
                         void loadWorld();
                         selectMap(mapId);
+                    }}
+                />
+            ) : null}
+            {importWorldOpen ? (
+                <WorldImportDialog
+                    onClose={() => setImportWorldOpen(false)}
+                    onCreated={(mapIds) => {
+                        setImportWorldOpen(false);
+                        void loadWorld();
+                        if (mapIds[0]) {
+                            selectMap(mapIds[0]);
+                        }
                     }}
                 />
             ) : null}
@@ -2733,6 +2757,140 @@ function MapImportDialog({
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
                     <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">Cancel</button>
                     <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || !title.trim() || checking || importing} type="submit"><FileJson className="size-4" />{importing ? 'Importing…' : 'Import map'}</button>
+                </div>
+            </form>
+        </div>
+    );
+}
+
+function WorldImportDialog({
+    onClose,
+    onCreated,
+}: {
+    onClose: () => void;
+    onCreated: (mapIds: string[]) => void;
+}) {
+    const [file, setFile] = useState<File | null>(null);
+    const [result, setResult] = useState<WorldImportPreflight | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [checking, setChecking] = useState(false);
+    const [importing, setImporting] = useState(false);
+
+    const check = async () => {
+        if (!file) {
+            setError('Choose a JSON world export first.');
+            return;
+        }
+        setChecking(true);
+        setError(null);
+        setResult(null);
+        const body = new FormData();
+        body.append('manifest', file);
+        try {
+            const response = await fetch(
+                '/api/v1/admin/world-builder/world-exports/preflight',
+                { body, credentials: 'same-origin', method: 'POST' },
+            );
+            const payload = (await response.json()) as WorldImportPreflight;
+            if (!response.ok) {
+                throw new Error('The world bundle could not be checked.');
+            }
+            setResult(payload);
+        } catch (reason) {
+            setError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'The world bundle could not be checked.',
+            );
+        } finally {
+            setChecking(false);
+        }
+    };
+
+    const importWorld = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!file || !result?.valid) {
+            setError('Check a valid world export before importing.');
+            return;
+        }
+        setImporting(true);
+        setError(null);
+        const body = new FormData();
+        body.append('manifest', file);
+        try {
+            const token = await getCsrfToken();
+            const response = await fetch(
+                '/api/v1/admin/world-builder/world-exports/import',
+                {
+                    body,
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': token },
+                    method: 'POST',
+                },
+            );
+            const payload = (await response.json()) as { map_ids?: string[] };
+            if (!response.ok || !payload.map_ids?.length) {
+                throw new Error(
+                    response.status === 400
+                        ? 'This world export cannot be imported into the current workspace. Check its workspace, portal targets, and managed media references.'
+                        : 'The world could not be imported. Refresh the World Builder and try again.',
+                );
+            }
+            onCreated(payload.map_ids);
+        } catch (reason) {
+            setError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'The world could not be imported.',
+            );
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="world-import-title"
+            aria-modal="true"
+            className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/55 p-4"
+            data-wl-id="authoring.world-builder.world-import.dialog"
+            role="dialog"
+        >
+            <form
+                className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                onSubmit={(event) => void importWorld(event)}
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
+                            World Builder
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold" id="world-import-title">
+                            Import authored world
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Create fresh maps from a validated JSON world export. Links between included maps are remapped after every map is populated; learner records, history, access restrictions and editor assignments stay outside the transfer.
+                        </p>
+                    </div>
+                    <button aria-label="Close world import" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button"><X className="size-5" /></button>
+                </div>
+                <label className="mt-5 block text-sm font-medium">
+                    JSON world export
+                    <input accept=".json,application/json,text/plain" className="mt-2 block w-full text-sm" disabled={checking || importing} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(null); setResult(null); }} type="file" />
+                </label>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{file?.name ?? 'No file selected.'}</p>
+                <button className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10" disabled={!file || checking || importing} onClick={() => void check()} type="button"><CircleCheck className="size-4" />{checking ? 'Checking…' : 'Check export'}</button>
+                {result ? (
+                    <section className="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10" role="status">
+                        <p className="font-medium">{result.summary}</p>
+                        <p className="mt-2 text-slate-600 dark:text-slate-300">{result.maps} {result.maps === 1 ? 'map' : 'maps'} ready for transfer.</p>
+                        {result.errors.map((message) => <p className="mt-2 text-red-700 dark:text-red-300" key={message}>{message}</p>)}
+                    </section>
+                ) : null}
+                {error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">Cancel</button>
+                    <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || checking || importing} type="submit"><FileJson className="size-4" />{importing ? 'Importing…' : 'Import world'}</button>
                 </div>
             </form>
         </div>

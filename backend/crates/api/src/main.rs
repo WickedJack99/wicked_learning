@@ -32,6 +32,7 @@ mod admin_world_activity_history;
 mod admin_world_activity_position;
 mod admin_world_export;
 mod admin_world_graph;
+mod admin_world_import;
 mod admin_world_item_grant;
 mod admin_world_item_obstacle;
 mod admin_world_map;
@@ -650,6 +651,16 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/world/export",
             get(admin_world_export::export),
+        )
+        .route(
+            "/api/v1/admin/world-builder/world-exports/preflight",
+            post(admin_world_import::preflight)
+                .layer(DefaultBodyLimit::max(admin_world_import::MAX_WORLD_MANIFEST_BYTES)),
+        )
+        .route(
+            "/api/v1/admin/world-builder/world-exports/import",
+            post(admin_world_import::import)
+                .layer(DefaultBodyLimit::max(admin_world_import::MAX_WORLD_MANIFEST_BYTES)),
         )
         .route(
             "/api/v1/admin/world-builder/review-queue",

@@ -565,6 +565,21 @@ the world bundle contains that map before continuing the existing import and
 cleanup proof. World packages with media bytes remain a distinct dependency and
 media-lifecycle slice.
 
+### World Builder world JSON-import slice — 8 November 2026
+
+`POST /api/v1/admin/world-builder/world-exports/preflight` checks a bounded
+JSON world bundle before the source-adapted `Import world` dialog enables its
+CSRF-protected import. `POST /api/v1/admin/world-builder/world-exports/import`
+revalidates the bundle, requires its workspace slug to match the current World,
+and opens one transaction. It creates every destination map with a fresh,
+collision-safe slug and populated authored graph before resolving portal links,
+using the complete source-to-destination slug mapping for included maps. The
+transaction either writes every map and portal or rolls back. Destination
+access remains the server default; learner state, review/history records,
+permissions and editor assignments are excluded. The implemented transfer is
+JSON-reference-only: ZIP archives and media-byte copying are still an explicit
+media-lifecycle slice.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
