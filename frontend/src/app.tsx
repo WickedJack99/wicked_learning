@@ -161,6 +161,11 @@ const OriginalMediaLibraryPage = lazy(async () => {
 
     return { default: module.OriginalMediaLibraryPage };
 });
+const OriginalSoundLibraryPage = lazy(async () => {
+    const module = await import('./original-sound-library');
+
+    return { default: module.OriginalSoundLibraryPage };
+});
 
 const OriginalAccessLinkRedeemPage = lazy(async () => {
     const module = await import('./original-access-links');
@@ -554,6 +559,9 @@ export function App() {
 
         if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'cursors') {
             return <Suspense fallback={null}><OriginalCursorSettingsPage appearance={appearance} /></Suspense>;
+        }
+        if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'sounds') {
+            return <Suspense fallback={null}><OriginalSoundLibraryPage /></Suspense>;
         }
         if (new URLSearchParams(location.search).get('panel') === 'admin-assets') {
             return <Suspense fallback={null}><OriginalMediaLibraryPage /></Suspense>;

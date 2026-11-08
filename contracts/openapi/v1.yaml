@@ -1648,6 +1648,101 @@ paths:
         '401': { description: The browser has no authenticated session. }
         '404': { description: The asset is unavailable to this identity. }
         '503': { description: The application database is unavailable. }
+  /admin/sounds:
+    get:
+      operationId: getAdminSounds
+      summary: List source-shaped reusable sounds visible to an authorized administrator.
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 120 } }
+      responses:
+        '200': { description: The matching reusable sounds., content: { application/json: { schema: { $ref: '#/components/schemas/AdminSoundListResponse' } } } }
+        '400': { description: The search is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot read reusable sounds. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminSound
+      summary: Create a published reusable sound from a managed audio upload.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminSoundRequest' } } } }
+      responses:
+        '201': { description: The created reusable sound., content: { application/json: { schema: { $ref: '#/components/schemas/AdminSoundResponse' } } } }
+        '400': { description: The sound form or managed audio reference is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage reusable sounds. }
+        '409': { description: The supplied or generated slug already exists. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/sounds/{sound_id}:
+    patch:
+      operationId: updateAdminSound
+      summary: Update source-shaped reusable sound metadata and optionally replace its managed audio.
+      parameters: [ { name: sound_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminSoundRequest' } } } }
+      responses:
+        '200': { description: The saved reusable sound., content: { application/json: { schema: { $ref: '#/components/schemas/AdminSoundResponse' } } } }
+        '400': { description: The sound form or managed audio reference is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The sound is unavailable or cannot be managed by this identity. }
+        '409': { description: The supplied or generated slug already exists. }
+        '503': { description: The media store or application database is unavailable. }
+    delete:
+      operationId: deleteAdminSound
+      summary: Delete a reusable sound, releasing its final normalized managed-audio reference and stored bytes.
+      parameters: [ { name: sound_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The reusable sound was removed. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The sound is unavailable or cannot be deleted by this identity. }
+        '503': { description: The application database is unavailable. }
+  /admin/sounds/media:
+    post:
+      operationId: uploadAdminSoundMedia
+      summary: Store one source-accepted reusable audio upload before it is attached to a sound.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } }
+      responses:
+        '201': { description: The managed audio upload and its authorized preview URL., content: { application/json: { schema: { $ref: '#/components/schemas/AdminSoundMediaUploadResponse' } } } }
+        '400': { description: Exactly one accepted audio file is required. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage reusable sounds. }
+        '413': { description: The upload exceeds twenty MiB. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/sounds/media/{asset_id}/content:
+    get:
+      operationId: getAdminSoundMediaContent
+      summary: Preview managed reusable audio after sound-library authorization.
+      parameters: [ { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: The authorized audio bytes with private cache headers. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The audio asset is unavailable to this identity. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/sounds/media/{asset_id}:
+    delete:
+      operationId: deleteAdminSoundMedia
+      summary: Remove an unreferenced managed sound upload before or after it is attached to a sound.
+      parameters: [ { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The unreferenced audio upload and its stored bytes were removed. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The audio asset is referenced, unavailable, or cannot be deleted by this identity. }
+        '503': { description: The media store or application database is unavailable. }
+  /public/sounds/{sound_id}/content:
+    get:
+      operationId: getPublicSoundContent
+      summary: Serve managed audio only while its published reusable sound retains the normalized reference.
+      parameters: [ { name: sound_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: The published audio bytes with short public cache headers. }
+        '404': { description: The sound is unpublished, has no managed audio, or is no longer referenced. }
+        '503': { description: The media store or application database is unavailable. }
   /public/media-assets/{asset_id}/content:
     get:
       operationId: getPublicPresentationMediaAssetContent
@@ -11308,6 +11403,50 @@ components:
         volume: { type: number, minimum: 0, maximum: 100 }
         play_seconds: { type: [number, 'null'], minimum: 0 }
         loop_enabled: { type: boolean }
+    AdminSound:
+      type: object
+      additionalProperties: false
+      required: [id, icon, loop_enabled, name, play_seconds, slug, url, volume]
+      properties:
+        id: { type: string, format: uuid }
+        icon: { type: string, enum: [ambience, music, sfx, ui, voice] }
+        loop_enabled: { type: boolean }
+        name: { type: string, maxLength: 120 }
+        play_seconds: { type: [number, 'null'], minimum: 0.1, maximum: 86400 }
+        slug: { type: string, maxLength: 140 }
+        url: { type: string }
+        volume: { type: integer, minimum: 0, maximum: 100 }
+    AdminSoundRequest:
+      type: object
+      additionalProperties: false
+      required: [icon, loop_enabled, name, play_seconds, slug, volume]
+      properties:
+        audio_asset_id: { type: [string, 'null'], format: uuid }
+        icon: { type: string, enum: [ambience, music, sfx, ui, voice] }
+        loop_enabled: { type: boolean }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        play_seconds: { type: [number, 'null'], minimum: 0.1, maximum: 86400 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        volume: { type: integer, minimum: 0, maximum: 100 }
+    AdminSoundResponse:
+      type: object
+      additionalProperties: false
+      required: [sound]
+      properties:
+        sound: { $ref: '#/components/schemas/AdminSound' }
+    AdminSoundListResponse:
+      type: object
+      additionalProperties: false
+      required: [sounds]
+      properties:
+        sounds: { type: array, items: { $ref: '#/components/schemas/AdminSound' } }
+    AdminSoundMediaUploadResponse:
+      type: object
+      additionalProperties: false
+      required: [asset_id, url]
+      properties:
+        asset_id: { type: string, format: uuid }
+        url: { type: string }
     AdminMediaAssetReferenceGroup:
       type: object
       required: [count, label]

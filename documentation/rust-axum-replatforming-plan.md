@@ -426,8 +426,10 @@ The original account-menu sound controls now save the learner's private mute,
 effects-volume and ambience-volume choices through Rust. Dialogue typing audio
 uses the saved effects setting. Published source-configured activity ambience
 now also uses the saved ambience setting through the bounded playback-sound
-projection described below. Reusable sound uploads, authoring and item-obstacle
-effects remain separate media work; they must not be approximated with
+projection described below. Reusable sound uploads and authoring were separate
+media work at this point; the managed successor is recorded in the later
+reusable sound-media lifecycle slice. Item-obstacle effects still use only
+server-resolved published sound identifiers and must never accept
 browser-selected URLs.
 
 ### Published activity ambience slice — 6 November 2026
@@ -440,9 +442,27 @@ immediately reacts to the learner's saved mute and ambience-volume settings.
 The fresh Portal demonstration content supplies a local `quiet-pulse` example
 solely to prove the complete authored-config-to-browser path.
 
-The broader media boundary has deliberately not moved: there is no sound
-upload, sound-library/editor UI, arbitrary URL playback, protected audio,
-object storage, or base-obstacle effect playback in this slice.
+This slice did not itself introduce sound uploads or arbitrary browser URLs;
+the later reusable sound-media lifecycle slice adds managed upload, the
+source-adapted library, protected author preview and published-sound delivery.
+Base-obstacle effect playback remains separate work.
+
+### Reusable sound-media lifecycle slice — 8 November 2026
+
+The source `settings/assets/sounds.tsx` now has a Rust/React successor at
+`/settings?panel=admin-assets&asset=sounds`. `sounds.ro` lists/searches the
+source-shaped sound metadata; `sounds.ru` may store one 20 MiB-or-smaller
+AAC/FLAC/M4A/MP3/OGG/WAV/WebM upload and create or update a sound; and
+`sounds.rud` deletes it. The upload is a managed reusable-media asset rather
+than a browser-supplied URL. A transaction records the `learning_sound` audio
+reference, preserves static bundled sound URLs, reclaims detached managed media
+on replacement/deletion, and gives authors a `sounds.ro`-guarded preview path.
+Anonymous delivery is limited to a managed asset that is still referenced by a
+published sound. The generic visual-library endpoints remain image-only, so
+their permission cannot bypass sound authorization. The typed OpenAPI contract,
+focused Rust tests, generated client, and credential-gated local browser proof
+cover upload, create, public delivery and deletion; the latter uses disposable
+development data.
 
 ### Activity scene-ambience authoring slice — 8 November 2026
 
@@ -454,7 +474,8 @@ state, checks the scoped activity and optimistic timestamp before resolving the
 sound, records the pre-change activity version, and resets the activity review
 state. It deliberately does not accept a browser URL, volume, loop or duration:
 those remain reusable-sound metadata that the bounded learner projection owns.
-Sound upload and library management remain separate media work.
+Sound upload and library management are now provided by the managed reusable
+sound-media lifecycle slice above.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
@@ -485,8 +506,9 @@ the original public visual assets needed by these scenes. The source dialogue
 typing-audio behaviour is also restored through a bounded sound-set contract:
 an enabled node chooses an authored set or its default, and the player uses the
 matching letter WAV while revealing text. The initial set uses only existing
-bundled public assets. General sound media, upload/authoring and learner sound
-preferences remain separate work and are not implied by this slice.
+bundled public assets. The later managed reusable sound-media slice supplies
+general upload/authoring; this typing-set behavior does not imply that dialogue
+sets have a managed-audio migration of their own.
 
 The World Builder now also owns the matching source-adapted NPC dialogue graph
 editor. It creates a dedicated dialogue activity and default end node, preserves
@@ -686,7 +708,7 @@ private or identifier-based links will resolve in a deployed cutover.
 | `/learning/groups/*` | Floating World control and `/settings?panel=admin-access&access=groups` | Available | The source-derived member group-chat control and bounded platform-administrator group workspace are implemented through typed Rust contracts. |
 | `/settings?panel=admin-access&access=links`, `/access-links/{token}` | Same paths | Available | Administrators with the separate access-link capability can create, enable/disable and inspect bounded hashed tool/item grant, registration and temporary-login links. Registration links expose only roles the issuer may assign and create the selected application-role set through the documented compensating identity/application workflow; locally created links from before this contract retain the historical learner fallback. Temporary login creates and signs in a fresh temporary learner with a server-generated unknown verifier. Resource links remain redeemable only by a signed-in learner. Usage, expiry and replay policy are enforced server-side. |
 | `/admin/topics` | Same path | Available | The source-adapted Topic Structure workspace preserves its area/topic disclosure, forms, insertion/reordering controls and responsive layout. Typed Rust requests replace only the original Inertia transport; `content_topics` read/create/update authorization and source-shaped validation remain server-owned. |
-| `/settings?panel=admin-assets` | Same path | Partially available | The source-adapted reusable Visual Library provides bounded search/tag filtering, upload, metadata, replacement, private preview/download and unreferenced deletion through `assets` and `media_paths` permission checks. Its source-adapted Cursor images section retains the five source role definitions, optional add/delete/reassignment, image upload/selection, hotspot/size/fallback controls and click-point preview. Saving through `presentation.ru` synchronizes cursor media references transactionally; the anonymous presentation projection rewrites only those active references to the public media route. Reusable activity-template snapshots now register managed media URLs as normalized active and immutable-revision references, so a replacement keeps a stable asset identity and deletion cannot strand a saved template or restore point. The World Builder MapAsset surface and route-visual editor can select a reusable visual; each maintains normalized references through direct owner, route and map-cascade deletion. Learner delivery is authorized only for active, published, role-visible MapAsset and route-start references. Other authoring forms still need equivalent selection writers before generic learner delivery can be declared complete. |
+| `/settings?panel=admin-assets` | Same path | Partially available | The source-adapted reusable Visual Library provides bounded search/tag filtering, upload, metadata, replacement, private preview/download and unreferenced deletion through `assets` and `media_paths` permission checks. Its companion source-adapted Sound Library at `asset=sounds` preserves searchable sound selection, icon/volume/duration/loop metadata, managed upload, play/pause/stop preview and sound deletion through the separate `sounds` permissions. Audio has opaque storage, normalized reference integrity, author-only preview and anonymous delivery only while a published saved sound still references it; replacing/deleting its final reference reclaims the audio record and bytes. Its source-adapted Cursor images section retains the five source role definitions, optional add/delete/reassignment, image upload/selection, hotspot/size/fallback controls and click-point preview. Saving through `presentation.ru` synchronizes cursor media references transactionally; the anonymous presentation projection rewrites only those active references to the public media route. Reusable activity-template snapshots now register managed media URLs as normalized active and immutable-revision references, so a replacement keeps a stable asset identity and deletion cannot strand a saved template or restore point. The World Builder MapAsset surface and route-visual editor can select a reusable visual; each maintains normalized references through direct owner, route and map-cascade deletion. Learner delivery is authorized only for active, published, role-visible MapAsset and route-start references. Other authoring forms still need equivalent selection writers before generic learner delivery can be declared complete. |
 | `/settings?panel=admin-presentation-localization&presentation=public` | Same path | Partially available | The source-adapted Public presentation workspace preserves its settings shell, branding control, dark/light authentication and public background controls, welcome-page copy/actions, the three fixed About/Imprint/Data protection markdown editors, upstream and up-to-twelve ordered modified-source links, image upload and reusable-visual selection. Rust authorizes each reader/writer through the source `presentation` permission; saved reusable references protect selected visuals from deletion and an anonymous image is served only while the public presentation references it. Cursor images are available from the source Assets & World Objects section, and the `presentation=palette` workspace preserves the seven public palette fields with dark/light color/opacity controls and public/login previews. |
 | Remaining authoring/settings/admin routes | — | Not available | These belong to later authoring and administration slices with their own authorization tests. |
 | `/protected-media/*`                                                      | —                             | Not available       | The access-link preview, redemption and temporary-login contracts are available at their source paths as recorded above. Generic protected map/media serving remains deliberately deferred until the complete authoring media lifecycle—upload, selection, reference integrity, replacement, preview, authorization and deletion—has a Rust successor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |

@@ -124,7 +124,7 @@ pub async fn index(
         return Err(ApiError::invalid_request());
     }
     let total: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM reusable_media_assets WHERE ($1::text IS NULL OR coalesce(display_name, '') ILIKE '%' || $1 || '%' OR coalesce(category, '') ILIKE '%' || $1 || '%' OR array_to_string(tags, ' ') ILIKE '%' || $1 || '%') AND ($2::text IS NULL OR $2 = ANY(tags))",
+        "SELECT COUNT(*) FROM reusable_media_assets WHERE content_type LIKE 'image/%' AND ($1::text IS NULL OR coalesce(display_name, '') ILIKE '%' || $1 || '%' OR coalesce(category, '') ILIKE '%' || $1 || '%' OR array_to_string(tags, ' ') ILIKE '%' || $1 || '%') AND ($2::text IS NULL OR $2 = ANY(tags))",
     )
     .bind(search.as_deref())
     .bind(tag.as_deref())
@@ -133,7 +133,7 @@ pub async fn index(
     .map_err(|_| ApiError::service_unavailable())?;
     let offset = (page - 1) * per_page;
     let rows = sqlx::query_as::<_, AssetRow>(
-        "SELECT assets.id, assets.object_key, assets.content_type, assets.display_name, assets.category, assets.tags, assets.has_transparency, assets.is_animated, to_char(assets.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, (SELECT COUNT(*) FROM reusable_media_asset_references AS media_references WHERE media_references.asset_id = assets.id)::bigint AS reference_count FROM reusable_media_assets AS assets WHERE ($1::text IS NULL OR coalesce(assets.display_name, '') ILIKE '%' || $1 || '%' OR coalesce(assets.category, '') ILIKE '%' || $1 || '%' OR array_to_string(assets.tags, ' ') ILIKE '%' || $1 || '%') AND ($2::text IS NULL OR $2 = ANY(assets.tags)) ORDER BY assets.updated_at DESC, assets.id DESC LIMIT $3 OFFSET $4",
+        "SELECT assets.id, assets.object_key, assets.content_type, assets.display_name, assets.category, assets.tags, assets.has_transparency, assets.is_animated, to_char(assets.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, (SELECT COUNT(*) FROM reusable_media_asset_references AS media_references WHERE media_references.asset_id = assets.id)::bigint AS reference_count FROM reusable_media_assets AS assets WHERE assets.content_type LIKE 'image/%' AND ($1::text IS NULL OR coalesce(assets.display_name, '') ILIKE '%' || $1 || '%' OR coalesce(assets.category, '') ILIKE '%' || $1 || '%' OR array_to_string(assets.tags, ' ') ILIKE '%' || $1 || '%') AND ($2::text IS NULL OR $2 = ANY(assets.tags)) ORDER BY assets.updated_at DESC, assets.id DESC LIMIT $3 OFFSET $4",
     )
     .bind(search.as_deref())
     .bind(tag.as_deref())
@@ -217,7 +217,7 @@ pub async fn update_metadata(
     }
     let metadata = validated_metadata(request)?;
     let row = sqlx::query_as::<_, AssetRow>(
-        "UPDATE reusable_media_assets SET display_name = $2, category = $3, tags = $4, has_transparency = $5, is_animated = $6, updated_at = NOW() WHERE id = $1 RETURNING id, object_key, content_type, display_name, category, tags, has_transparency, is_animated, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, (SELECT COUNT(*) FROM reusable_media_asset_references WHERE asset_id = reusable_media_assets.id)::bigint AS reference_count",
+        "UPDATE reusable_media_assets SET display_name = $2, category = $3, tags = $4, has_transparency = $5, is_animated = $6, updated_at = NOW() WHERE id = $1 AND content_type LIKE 'image/%' RETURNING id, object_key, content_type, display_name, category, tags, has_transparency, is_animated, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, (SELECT COUNT(*) FROM reusable_media_asset_references WHERE asset_id = reusable_media_assets.id)::bigint AS reference_count",
     ).bind(asset_id).bind(metadata.0).bind(metadata.1).bind(metadata.2).bind(metadata.3).bind(metadata.4).fetch_optional(&state.application_database).await.map_err(|_| ApiError::service_unavailable())?.ok_or_else(ApiError::not_found)?;
     Ok(Json(AssetResponse {
         asset: asset(
@@ -250,7 +250,7 @@ pub async fn replace(
         .await
         .map_err(|_| ApiError::service_unavailable())?;
     let previous = sqlx::query_as::<_, StoredAsset>(
-        "SELECT object_key, content_type FROM reusable_media_assets WHERE id = $1 FOR UPDATE",
+        "SELECT object_key, content_type FROM reusable_media_assets WHERE id = $1 AND content_type LIKE 'image/%' FOR UPDATE",
     )
     .bind(asset_id)
     .fetch_optional(&state.application_database)
@@ -260,7 +260,7 @@ pub async fn replace(
         let _ = state.media_store.delete(&new_key).await;
         return Err(ApiError::not_found());
     };
-    let row = sqlx::query_as::<_, AssetRow>("UPDATE reusable_media_assets SET object_key = $2, content_type = $3, byte_size = $4, updated_at = NOW() WHERE id = $1 RETURNING id, object_key, content_type, display_name, category, tags, has_transparency, is_animated, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, (SELECT COUNT(*) FROM reusable_media_asset_references WHERE asset_id = reusable_media_assets.id)::bigint AS reference_count").bind(asset_id).bind(new_key.stored_value()).bind(content_type).bind(byte_size).fetch_one(&state.application_database).await;
+    let row = sqlx::query_as::<_, AssetRow>("UPDATE reusable_media_assets SET object_key = $2, content_type = $3, byte_size = $4, updated_at = NOW() WHERE id = $1 AND content_type LIKE 'image/%' RETURNING id, object_key, content_type, display_name, category, tags, has_transparency, is_animated, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, (SELECT COUNT(*) FROM reusable_media_asset_references WHERE asset_id = reusable_media_assets.id)::bigint AS reference_count").bind(asset_id).bind(new_key.stored_value()).bind(content_type).bind(byte_size).fetch_one(&state.application_database).await;
     match row {
         Ok(row) => {
             if let Some(old) = MediaObjectKey::from_stored_value(&previous.object_key) {
@@ -293,7 +293,7 @@ pub async fn delete(
     if !principal.has_permission("assets", "rud") {
         return Err(ApiError::not_found());
     }
-    let previous = sqlx::query_scalar::<_, String>("DELETE FROM reusable_media_assets WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM reusable_media_asset_references WHERE asset_id = $1) RETURNING object_key").bind(asset_id).fetch_optional(&state.application_database).await.map_err(|_| ApiError::service_unavailable())?.ok_or_else(ApiError::not_found)?;
+    let previous = sqlx::query_scalar::<_, String>("DELETE FROM reusable_media_assets WHERE id = $1 AND content_type LIKE 'image/%' AND NOT EXISTS (SELECT 1 FROM reusable_media_asset_references WHERE asset_id = $1) RETURNING object_key").bind(asset_id).fetch_optional(&state.application_database).await.map_err(|_| ApiError::service_unavailable())?.ok_or_else(ApiError::not_found)?;
     if let Some(key) = MediaObjectKey::from_stored_value(&previous) {
         let _ = state.media_store.delete(&key).await;
     }
@@ -311,7 +311,7 @@ pub async fn content(
         return Err(ApiError::not_found());
     }
     let stored = sqlx::query_as::<_, StoredAsset>(
-        "SELECT object_key, content_type FROM reusable_media_assets WHERE id = $1",
+        "SELECT object_key, content_type FROM reusable_media_assets WHERE id = $1 AND content_type LIKE 'image/%'",
     )
     .bind(asset_id)
     .fetch_optional(&state.application_database)

@@ -717,6 +717,18 @@ pub struct AdminEditableSound {
 }
 
 #[derive(Clone, Debug, Serialize)]
+pub struct AdminSound {
+    pub id: Uuid,
+    pub icon: String,
+    pub loop_enabled: bool,
+    pub name: String,
+    pub play_seconds: Option<f64>,
+    pub slug: String,
+    pub url: String,
+    pub volume: i16,
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct PublicWorld {
     pub slug: String,
     pub title: String,

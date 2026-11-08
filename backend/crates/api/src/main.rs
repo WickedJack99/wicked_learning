@@ -21,6 +21,7 @@ mod admin_public_content;
 mod admin_public_presentation;
 mod admin_registration_tokens;
 mod admin_role;
+mod admin_sound;
 mod admin_source_records;
 mod admin_topics;
 mod admin_user;
@@ -56,6 +57,7 @@ mod admin_world_shared_task;
 mod admin_world_tool_grant;
 mod ai_credential_crypto;
 mod ai_provider;
+mod audio_upload;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -740,6 +742,12 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/admin/media-assets/{asset_id}", patch(admin_media_assets::update_metadata).delete(admin_media_assets::delete))
         .route("/api/v1/admin/media-assets/{asset_id}/replace", post(admin_media_assets::replace).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
         .route("/api/v1/admin/media-assets/{asset_id}/content", get(admin_media_assets::content))
+        .route("/api/v1/admin/sounds", get(admin_sound::index).post(admin_sound::create))
+        .route("/api/v1/admin/sounds/media", post(admin_sound::upload_media).layer(DefaultBodyLimit::max(admin_sound::AUDIO_MULTIPART_BODY_LIMIT)))
+        .route("/api/v1/admin/sounds/media/{asset_id}/content", get(admin_sound::admin_content))
+        .route("/api/v1/admin/sounds/media/{asset_id}", axum::routing::delete(admin_sound::delete_media))
+        .route("/api/v1/admin/sounds/{sound_id}", patch(admin_sound::update).delete(admin_sound::delete))
+        .route("/api/v1/public/sounds/{sound_id}/content", get(admin_sound::public_content))
         .route("/api/v1/learner/media-assets/{asset_id}/content", get(learner_media_assets::content))
         .route("/api/v1/public/media-assets/{asset_id}/content", get(public_media_assets::content))
         .route("/api/v1/admin/public-presentation", get(admin_public_presentation::show).patch(admin_public_presentation::update))
