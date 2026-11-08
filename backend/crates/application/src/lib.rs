@@ -12,6 +12,7 @@ pub mod admin_activity_learning_design;
 pub mod admin_activity_source_references;
 pub mod admin_activity_templates;
 pub mod admin_ai_settings;
+pub mod admin_dialogue_typing_sound_set;
 pub mod admin_learning_group;
 pub mod admin_learning_taxonomy;
 pub mod admin_public_content;

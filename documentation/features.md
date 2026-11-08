@@ -973,10 +973,17 @@ Replacing or deleting a sound releases an unreferenced managed audio asset and
 its stored bytes, while the existing bundled `/sounds/...` entries continue to
 work without a migration. The reusable visual endpoints remain image-only, so
 visual-library access does not grant an alternate path to sound uploads.
-Admins with sound-library access can also create complete WAV sound sets for
-dialogue typing, replace a set or an individual letter, add tags, and choose
-the default set. Set creation requires one file for each letter from `a.wav`
-through `z.wav`.
+Admins with sound-library access can also manage source-shaped dialogue typing
+sets at `/settings?panel=admin-assets&asset=dialogue-sounds`: create a complete
+WAV set, replace all letters or one letter, add tags, and choose the default
+set. Set creation and full replacement require exactly one file for each letter
+from `a.wav` through `z.wav`. Each new WAV is staged as managed media, then the
+server atomically attaches all twenty-six normalized references; failed staged
+uploads can be cancelled only by their uploader. Legacy bundled typing URLs
+remain valid until an author replaces that letter. New learner delivery is
+authenticated and succeeds only while the normalized media reference remains
+and the learner is actively playing the dialogue that resolves that configured
+or default set.
 
 The reusable visual library shows where each image is currently referenced
 before an author replaces or deletes it. Replacing an image updates those

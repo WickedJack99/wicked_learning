@@ -14,6 +14,7 @@ mod admin_activity_learning_design;
 mod admin_activity_source_references;
 mod admin_activity_templates;
 mod admin_ai_settings;
+mod admin_dialogue_typing_sound_set;
 mod admin_learning_group;
 mod admin_learning_taxonomy;
 mod admin_media_assets;
@@ -748,6 +749,13 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/admin/sounds/media/{asset_id}", axum::routing::delete(admin_sound::delete_media))
         .route("/api/v1/admin/sounds/{sound_id}", patch(admin_sound::update).delete(admin_sound::delete))
         .route("/api/v1/public/sounds/{sound_id}/content", get(admin_sound::public_content))
+        .route("/api/v1/admin/dialogue-typing-sound-sets", get(admin_dialogue_typing_sound_set::index).post(admin_dialogue_typing_sound_set::create))
+        .route("/api/v1/admin/dialogue-typing-sound-sets/media", post(admin_dialogue_typing_sound_set::upload_media).layer(DefaultBodyLimit::max(admin_dialogue_typing_sound_set::AUDIO_MULTIPART_BODY_LIMIT)))
+        .route("/api/v1/admin/dialogue-typing-sound-sets/media/{asset_id}", delete(admin_dialogue_typing_sound_set::discard_media))
+        .route("/api/v1/admin/dialogue-typing-sound-sets/{set_id}/sounds", patch(admin_dialogue_typing_sound_set::replace_all))
+        .route("/api/v1/admin/dialogue-typing-sound-sets/{set_id}/sounds/{letter}", patch(admin_dialogue_typing_sound_set::replace_letter))
+        .route("/api/v1/admin/dialogue-typing-sound-sets/{set_id}", patch(admin_dialogue_typing_sound_set::update))
+        .route("/api/v1/learner/dialogue-typing-sounds/{sound_id}/content", get(admin_dialogue_typing_sound_set::learner_content))
         .route("/api/v1/learner/media-assets/{asset_id}/content", get(learner_media_assets::content))
         .route("/api/v1/public/media-assets/{asset_id}/content", get(public_media_assets::content))
         .route("/api/v1/admin/public-presentation", get(admin_public_presentation::show).patch(admin_public_presentation::update))

@@ -728,6 +728,20 @@ pub struct AdminSound {
     pub volume: i16,
 }
 
+/// The source's author-only summary for a complete A–Z dialogue typing
+/// sound set. The individual media objects stay out of this list projection;
+/// playback receives them only for the configured dialogue activity.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminDialogueTypingSoundSet {
+    pub id: Uuid,
+    pub is_default: bool,
+    pub letters: Vec<String>,
+    pub name: String,
+    pub slug: String,
+    pub sound_count: i64,
+    pub tags: Vec<String>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct PublicWorld {
     pub slug: String,

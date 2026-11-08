@@ -166,6 +166,11 @@ const OriginalSoundLibraryPage = lazy(async () => {
 
     return { default: module.OriginalSoundLibraryPage };
 });
+const OriginalDialogueTypingSoundSetsPage = lazy(async () => {
+    const module = await import('./original-dialogue-typing-sound-sets');
+
+    return { default: module.OriginalDialogueTypingSoundSetsPage };
+});
 
 const OriginalAccessLinkRedeemPage = lazy(async () => {
     const module = await import('./original-access-links');
@@ -562,6 +567,9 @@ export function App() {
         }
         if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'sounds') {
             return <Suspense fallback={null}><OriginalSoundLibraryPage /></Suspense>;
+        }
+        if (new URLSearchParams(location.search).get('panel') === 'admin-assets' && new URLSearchParams(location.search).get('asset') === 'dialogue-sounds') {
+            return <Suspense fallback={null}><OriginalDialogueTypingSoundSetsPage /></Suspense>;
         }
         if (new URLSearchParams(location.search).get('panel') === 'admin-assets') {
             return <Suspense fallback={null}><OriginalMediaLibraryPage /></Suspense>;

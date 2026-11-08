@@ -506,9 +506,11 @@ the original public visual assets needed by these scenes. The source dialogue
 typing-audio behaviour is also restored through a bounded sound-set contract:
 an enabled node chooses an authored set or its default, and the player uses the
 matching letter WAV while revealing text. The initial set uses only existing
-bundled public assets. The later managed reusable sound-media slice supplies
-general upload/authoring; this typing-set behavior does not imply that dialogue
-sets have a managed-audio migration of their own.
+bundled public assets. The later dialogue typing-sound-set media slice preserves
+the source A–Z set editor with managed WAV staging, complete-set and
+single-letter replacement, source tags/default behavior, normalized media
+references and authenticated learner delivery. Bundled URLs deliberately remain
+valid until an author replaces the corresponding letter.
 
 The World Builder now also owns the matching source-adapted NPC dialogue graph
 editor. It creates a dedicated dialogue activity and default end node, preserves

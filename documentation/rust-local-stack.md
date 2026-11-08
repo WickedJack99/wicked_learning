@@ -104,18 +104,29 @@ read from the file so it is not exposed in a shell command or an environment
 variable.
 
 ```bash
-BOOTSTRAP_ADMIN_EMAIL='admin@example.test' \
-BOOTSTRAP_ADMIN_PASSWORD_FILE='/absolute/path/to/admin-password' \
-docker compose --env-file .env.rust -f compose.rust.yaml run --rm backend bootstrap-admin
+docker compose --env-file .env.rust -f compose.rust.yaml run --rm --user 0:0 \
+  --volume /absolute/path/to/admin-password:/run/secrets/bootstrap-admin-password:ro \
+  --env BOOTSTRAP_ADMIN_EMAIL='admin@example.test' \
+  --env BOOTSTRAP_ADMIN_PASSWORD_FILE='/run/secrets/bootstrap-admin-password' \
+  backend bootstrap-admin
 ```
 
 The command validates and normalizes the email, creates a verified Rust-owned
 identity with an Argon2id password verifier, creates the separate application
 principal, and grants that principal the `platform_administrator` role. It is
 safe to re-run to repair the application-principal/role mapping; it never
-replaces the password of an existing identity. The command has not been run by
-this proof-of-concept setup, so no administrator account has been guessed or
-created automatically.
+replaces the password of an existing identity.
+
+### Persistent disposable browser-test administrator
+
+The local Compose development/test stack has a disposable administrator for
+credentialed browser evidence: `e2e-admin@wicked-learning.local`. Its password
+is deliberately not committed or repeated in documentation; it is stored mode
+`0600` at `/home/student/.config/wicked-learning/e2e-admin-password`. Future
+Codex sessions may read that local file only to supply `E2E_LOGIN_PASSWORD`
+while running tests, alongside `E2E_LOGIN_EMAIL=e2e-admin@wicked-learning.local`.
+This account belongs only to the local Compose databases and must never be used
+against production or copied to a shared deployment.
 
 ## Local invitation registration
 

@@ -1743,6 +1743,105 @@ paths:
         '200': { description: The published audio bytes with short public cache headers. }
         '404': { description: The sound is unpublished, has no managed audio, or is no longer referenced. }
         '503': { description: The media store or application database is unavailable. }
+  /admin/dialogue-typing-sound-sets:
+    get:
+      operationId: getAdminDialogueTypingSoundSets
+      summary: List source-shaped A–Z dialogue typing sound sets.
+      responses:
+        '200': { description: The available dialogue typing sound sets., content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundSetListResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot read dialogue typing sound sets. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminDialogueTypingSoundSet
+      summary: Create a complete source-shaped A–Z WAV dialogue typing sound set from managed uploads.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundSetRequest' } } } }
+      responses:
+        '201': { description: The created sound set., content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundSetResponse' } } } }
+        '400': { description: The metadata, alphabet, or managed WAV assignments are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage dialogue typing sound sets. }
+        '409': { description: The supplied slug already exists. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/dialogue-typing-sound-sets/media:
+    post:
+      operationId: uploadAdminDialogueTypingSoundMedia
+      summary: Stage one WAV file for a dialogue typing sound set.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } }
+      responses:
+        '201': { description: The managed WAV upload and its authorized preview URL., content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundMediaUploadResponse' } } } }
+        '400': { description: Exactly one WAV file is required. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage dialogue typing sound sets. }
+        '413': { description: The upload exceeds twenty MiB. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/dialogue-typing-sound-sets/media/{asset_id}:
+    delete:
+      operationId: discardAdminDialogueTypingSoundMedia
+      summary: Cancel the caller's own unattached staged WAV upload.
+      parameters: [ { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The caller's unattached WAV upload and its stored bytes were removed. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The upload is attached, unavailable, or was staged by another identity. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/dialogue-typing-sound-sets/{set_id}:
+    patch:
+      operationId: updateAdminDialogueTypingSoundSet
+      summary: Update source-shaped dialogue typing set metadata.
+      parameters: [ { name: set_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundSetMetadataRequest' } } } }
+      responses:
+        '200': { description: The saved sound set., content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundSetResponse' } } } }
+        '400': { description: The metadata is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The set is unavailable or cannot be managed by this identity. }
+        '409': { description: The supplied slug already exists. }
+        '503': { description: The application database is unavailable. }
+  /admin/dialogue-typing-sound-sets/{set_id}/sounds:
+    patch:
+      operationId: replaceAdminDialogueTypingSoundSetSounds
+      summary: Replace every A–Z WAV assignment for an existing dialogue typing set.
+      parameters: [ { name: set_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: array, minItems: 26, maxItems: 26, items: { $ref: '#/components/schemas/AdminDialogueTypingSoundAssignment' } } } } }
+      responses:
+        '200': { description: The updated sound set., content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundSetResponse' } } } }
+        '400': { description: Exactly one managed WAV assignment per letter is required. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The set is unavailable or cannot be managed by this identity. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/dialogue-typing-sound-sets/{set_id}/sounds/{letter}:
+    patch:
+      operationId: replaceAdminDialogueTypingSound
+      summary: Replace one letter WAV in a dialogue typing set.
+      parameters: [ { name: set_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: letter, in: path, required: true, schema: { type: string, pattern: '^[a-z]$' } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundAssignment' } } } }
+      responses:
+        '200': { description: The updated sound set., content: { application/json: { schema: { $ref: '#/components/schemas/AdminDialogueTypingSoundSetResponse' } } } }
+        '400': { description: The letter or managed WAV assignment is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The set is unavailable or cannot be managed by this identity. }
+        '503': { description: The media store or application database is unavailable. }
+  /learner/dialogue-typing-sounds/{sound_id}/content:
+    get:
+      operationId: getLearnerDialogueTypingSoundContent
+      summary: Serve a managed dialogue typing WAV only to an authenticated learner actively playing the dialogue that resolves its set.
+      parameters: [ { name: sound_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: The authorized WAV bytes with private cache headers. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The typing sound has no managed WAV/reference or is not part of the learner's active dialogue. }
+        '503': { description: The media store or application database is unavailable. }
   /public/media-assets/{asset_id}/content:
     get:
       operationId: getPublicPresentationMediaAssetContent
@@ -11441,6 +11540,58 @@ components:
       properties:
         sounds: { type: array, items: { $ref: '#/components/schemas/AdminSound' } }
     AdminSoundMediaUploadResponse:
+      type: object
+      additionalProperties: false
+      required: [asset_id, url]
+      properties:
+        asset_id: { type: string, format: uuid }
+        url: { type: string }
+    AdminDialogueTypingSoundSet:
+      type: object
+      additionalProperties: false
+      required: [id, is_default, letters, name, slug, sound_count, tags]
+      properties:
+        id: { type: string, format: uuid }
+        is_default: { type: boolean }
+        letters: { type: array, maxItems: 26, items: { type: string, pattern: '^[a-z]$' } }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, minLength: 1, maxLength: 120, pattern: '^[A-Za-z0-9_-]+$' }
+        sound_count: { type: integer, minimum: 0, maximum: 26 }
+        tags: { type: array, maxItems: 12, items: { type: string, minLength: 1, maxLength: 40 } }
+    AdminDialogueTypingSoundAssignment:
+      type: object
+      additionalProperties: false
+      required: [asset_id, letter]
+      properties:
+        asset_id: { type: string, format: uuid }
+        letter: { type: string, pattern: '^[a-z]$' }
+    AdminDialogueTypingSoundSetMetadataRequest:
+      type: object
+      additionalProperties: false
+      required: [is_default, name, slug, tags]
+      properties:
+        is_default: { type: boolean }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, minLength: 1, maxLength: 120, pattern: '^[A-Za-z0-9_-]+$' }
+        tags: { type: array, maxItems: 12, items: { type: string, minLength: 1, maxLength: 40 } }
+    AdminDialogueTypingSoundSetRequest:
+      allOf:
+        - $ref: '#/components/schemas/AdminDialogueTypingSoundSetMetadataRequest'
+        - type: object
+          required: [sounds]
+          properties:
+            sounds: { type: array, minItems: 26, maxItems: 26, items: { $ref: '#/components/schemas/AdminDialogueTypingSoundAssignment' } }
+    AdminDialogueTypingSoundSetResponse:
+      type: object
+      additionalProperties: false
+      required: [set]
+      properties: { set: { $ref: '#/components/schemas/AdminDialogueTypingSoundSet' } }
+    AdminDialogueTypingSoundSetListResponse:
+      type: object
+      additionalProperties: false
+      required: [sets]
+      properties: { sets: { type: array, items: { $ref: '#/components/schemas/AdminDialogueTypingSoundSet' } } }
+    AdminDialogueTypingSoundMediaUploadResponse:
       type: object
       additionalProperties: false
       required: [asset_id, url]
