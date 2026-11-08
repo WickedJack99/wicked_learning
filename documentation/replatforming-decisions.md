@@ -4048,24 +4048,25 @@ source command with its own manageable-group scope. This slice does not change
 the existing learner-world visibility reader, create a new role type or alter
 map content.
 
-## ADR-099: MapAsset interaction sounds are a fixed server-resolved projection
+## ADR-099: MapAsset and node interaction sounds are a fixed server-resolved projection
 
 **Status:** Accepted — 8 November 2026
 
-**Problem:** The source MapAsset configuration offers exactly four sound
-triggers: pointer enter, click/tap, pointer leave and a tool-unlock result.
+**Problem:** The source MapAsset and node configurations offer exactly four
+sound triggers: pointer enter, click/tap, pointer leave and a tool-unlock result.
 Letting an author submit a sound URL would make the browser the media authority;
 playing the unlock sound when a tool is clicked would falsely report a failed
 unlock as success.
 
 **Decision:** The source-shaped `visual_config.sounds` accepts only these four
 keys, each with an enabled flag and an optional reusable-sound UUID. The scoped
-MapAsset transaction authorizes the map first, then resolves every submitted
-UUID against a published `learning_sounds` record. A learner-map projection
-substitutes only a resolved published URL and does not expose the stored UUID.
-The lifted React editor selects and previews managed sounds, while the learner
-map uses its existing private mute/effects-volume preferences. The unlock
-effect plays only after the existing use-tool command reports an unlocked node.
+MapAsset or node transaction authorizes the map first, then resolves every
+submitted UUID against a published `learning_sounds` record. A learner-map
+projection substitutes only a resolved published URL and does not expose the
+stored UUID. The lifted React editors select and preview managed sounds, while
+the learner map uses its existing private mute/effects-volume preferences. The
+unlock effect plays only after the existing use-tool command reports an unlocked
+node.
 
 **Why:** This keeps the original interaction vocabulary and feedback timing,
 prevents arbitrary browser media, and does not turn map interaction into a

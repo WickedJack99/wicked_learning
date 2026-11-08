@@ -199,15 +199,25 @@ fn valid_rule(value: Option<&Value>, depth: usize) -> bool {
 fn valid_sounds(value: Option<&Value>) -> bool {
     value.is_none_or(|value| {
         value.as_object().is_some_and(|sounds| {
-            ["mouseEnter", "click", "mouseLeave", "unlock"]
-                .into_iter()
-                .all(|key| {
-                    sounds.get(key).is_none_or(|sound| {
-                        sound.as_object().is_some_and(|sound| {
-                            optional_bool(sound, "enabled") && optional_string(sound, "url", 2_048)
+            !sounds.keys().any(|key| {
+                !matches!(
+                    key.as_str(),
+                    "mouseEnter" | "click" | "mouseLeave" | "unlock"
+                )
+            }) && sounds.values().all(|sound| {
+                sound.as_object().is_some_and(|sound| {
+                    !sound
+                        .keys()
+                        .any(|key| !matches!(key.as_str(), "enabled" | "soundId"))
+                        && sound.get("enabled").is_some_and(Value::is_boolean)
+                        && sound.get("soundId").is_none_or(|value| {
+                            value.is_null()
+                                || value
+                                    .as_str()
+                                    .is_some_and(|value| Uuid::parse_str(value).is_ok())
                         })
-                    })
                 })
+            })
         })
     })
 }
@@ -472,5 +482,36 @@ mod tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn accepts_only_managed_source_node_interaction_sounds() {
+        assert!(WorldNodeForm::parse(
+            "A tile",
+            None,
+            None,
+            HexPosition { q: 0, r: 0 },
+            "available",
+            json!({"sounds":{"click":{"enabled":true,"soundId":"00000000-0000-4000-8000-000000000001"}}}),
+        )
+        .is_some());
+        assert!(WorldNodeForm::parse(
+            "A tile",
+            None,
+            None,
+            HexPosition { q: 0, r: 0 },
+            "available",
+            json!({"sounds":{"surprise":{"enabled":true,"soundId":"00000000-0000-4000-8000-000000000001"}}}),
+        )
+        .is_none());
+        assert!(WorldNodeForm::parse(
+            "A tile",
+            None,
+            None,
+            HexPosition { q: 0, r: 0 },
+            "available",
+            json!({"sounds":{"click":{"enabled":true,"url":"https://untrusted.example/sound.mp3"}}}),
+        )
+        .is_none());
     }
 }

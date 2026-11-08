@@ -390,8 +390,45 @@ async fn normalize_form(
     )
     .await?;
     normalize_rule_catalog_references(transaction, &mut normalized.visual_config).await?;
+    normalize_interaction_sounds(transaction, &normalized.visual_config).await?;
     validate_unlock_configuration(transaction, &normalized, current_node_id).await?;
     Ok(normalized)
+}
+
+/// Reusable interaction sounds are catalog records, not browser-provided URLs.
+/// The application form has already constrained the shape; this transaction
+/// verifies that any selected sound remains published before the node is saved.
+async fn normalize_interaction_sounds(
+    transaction: &mut Transaction<'_, Postgres>,
+    config: &Value,
+) -> Result<(), WriteFailure> {
+    let Some(sounds) = object_at(config, &["sounds"]) else {
+        return Ok(());
+    };
+    for trigger in ["mouseEnter", "click", "mouseLeave", "unlock"] {
+        let Some(sound) = object_in(sounds, trigger) else {
+            continue;
+        };
+        let enabled = enabled(sound.get("enabled"));
+        let sound_id = string_in(sound, "soundId");
+        if enabled && sound_id.is_none() {
+            return Err(WriteFailure::Invalid);
+        }
+        let Some(sound_id) = sound_id else {
+            continue;
+        };
+        let sound_id = Uuid::parse_str(&sound_id).map_err(|_| WriteFailure::Invalid)?;
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM learning_sounds WHERE id = $1 AND published_at IS NOT NULL)",
+        )
+        .bind(sound_id)
+        .fetch_one(&mut **transaction)
+        .await?;
+        if !exists {
+            return Err(WriteFailure::Invalid);
+        }
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy)]

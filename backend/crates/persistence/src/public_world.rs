@@ -132,9 +132,18 @@ pub async fn load_first_visible(
         .fetch_all(pool)
         .await?
     };
+    let nodes = if map_ids.is_empty() {
+        Vec::new()
+    } else {
+        sqlx::query_as::<_, NodeRow>(
+            "SELECT nodes.id, nodes.map_id, assets.slug AS asset_slug, nodes.slug, nodes.title, nodes.description, nodes.position_q AS q, nodes.position_r AS r, nodes.state, nodes.visual_config FROM learning_nodes AS nodes LEFT JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id WHERE nodes.map_id = ANY($1) AND nodes.published_at IS NOT NULL ORDER BY nodes.map_id ASC, nodes.position_q ASC, nodes.position_r ASC, nodes.slug ASC",
+        ).bind(&map_ids).fetch_all(pool).await?
+    };
     let sound_ids = assets
         .iter()
-        .flat_map(|asset| interaction_sound_ids(&asset.visual_config))
+        .map(|asset| &asset.visual_config)
+        .chain(nodes.iter().map(|node| &node.visual_config))
+        .flat_map(|config| interaction_sound_ids(config))
         .collect::<HashSet<_>>();
     let sound_urls = if sound_ids.is_empty() {
         HashMap::new()
@@ -148,13 +157,6 @@ pub async fn load_first_visible(
         .into_iter()
         .map(|sound| (sound.id, sound.url))
         .collect()
-    };
-    let nodes = if map_ids.is_empty() {
-        Vec::new()
-    } else {
-        sqlx::query_as::<_, NodeRow>(
-            "SELECT nodes.id, nodes.map_id, assets.slug AS asset_slug, nodes.slug, nodes.title, nodes.description, nodes.position_q AS q, nodes.position_r AS r, nodes.state, nodes.visual_config FROM learning_nodes AS nodes LEFT JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id WHERE nodes.map_id = ANY($1) AND nodes.published_at IS NOT NULL ORDER BY nodes.map_id ASC, nodes.position_q ASC, nodes.position_r ASC, nodes.slug ASC",
-        ).bind(&map_ids).fetch_all(pool).await?
     };
     let mut assets_by_map: HashMap<Uuid, Vec<PublicMapAsset>> = HashMap::new();
     for asset in assets {
@@ -193,7 +195,7 @@ pub async fn load_first_visible(
                 q: node.q,
                 r: node.r,
                 state: node.state,
-                visual_config: learner_node_visual_config(node.visual_config),
+                visual_config: learner_node_visual_config(node.visual_config, &sound_urls),
             });
     }
     Ok(Some(LoadedWorld {
@@ -265,8 +267,8 @@ fn learner_map_asset_visual_config(config: Value, sound_urls: &HashMap<Uuid, Str
     config
 }
 
-fn learner_node_visual_config(config: Value) -> Value {
-    learner_media_config(config)
+fn learner_node_visual_config(config: Value, sound_urls: &HashMap<Uuid, String>) -> Value {
+    learner_map_asset_visual_config(config, sound_urls)
 }
 
 #[cfg(test)]
@@ -302,10 +304,13 @@ mod tests {
     fn projects_managed_node_theme_images_to_the_learner_media_route() {
         let media = Uuid::new_v4();
 
-        let config = learner_node_visual_config(json!({
-            "dark": { "imageUrl": format!("/api/v1/admin/media-assets/{media}/content") },
-            "light": { "imageUrl": "/images/nodes/bundled.svg" }
-        }));
+        let config = learner_node_visual_config(
+            json!({
+                "dark": { "imageUrl": format!("/api/v1/admin/media-assets/{media}/content") },
+                "light": { "imageUrl": "/images/nodes/bundled.svg" }
+            }),
+            &HashMap::new(),
+        );
 
         assert_eq!(
             config.pointer("/dark/imageUrl"),
@@ -317,5 +322,25 @@ mod tests {
             config.pointer("/light/imageUrl"),
             Some(&json!("/images/nodes/bundled.svg")),
         );
+    }
+
+    #[test]
+    fn projects_node_interaction_sounds_only_when_published() {
+        let sound_id = Uuid::new_v4();
+        let config = learner_node_visual_config(
+            json!({
+                "sounds": {
+                    "mouseEnter": { "enabled": true, "soundId": sound_id },
+                    "click": { "enabled": true, "soundId": Uuid::new_v4() }
+                }
+            }),
+            &HashMap::from([(sound_id, "/api/v1/public/sounds/current/content".to_owned())]),
+        );
+
+        assert_eq!(
+            config.pointer("/sounds/mouseEnter/url"),
+            Some(&json!("/api/v1/public/sounds/current/content")),
+        );
+        assert_eq!(config.pointer("/sounds/click/url"), Some(&json!(null)));
     }
 }

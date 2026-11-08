@@ -3237,6 +3237,7 @@ function OriginalWorldNodeDialog({
     onClose,
     onSaved,
     roleOptions,
+    sounds,
     tools,
 }: {
     items: EditableItem[];
@@ -3246,6 +3247,7 @@ function OriginalWorldNodeDialog({
     onClose: () => void;
     onSaved: () => void;
     roleOptions: RoleOption[];
+    sounds: EditableSound[];
     tools: EditableTool[];
 }) {
     const isEditing = node !== null;
@@ -3340,7 +3342,7 @@ function OriginalWorldNodeDialog({
         }
     };
 
-    return <div aria-labelledby="world-node-dialog-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.node.dialog" role="dialog"><form className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Map tile</p><h2 className="mt-1 text-xl font-semibold" id="world-node-dialog-title">{isEditing ? 'Edit map tile' : 'Add map tile'}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set the source tile identity, state and hex position. Edit its visual presentation and availability below; sounds remain intact while their source controls are lifted.</p></div><button aria-label="Close map tile dialog" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}<div className="mt-5 grid gap-4"><ActivityTextField label="Title" onChange={setTitle} value={title} /><ActivityTextField label="Slug" onChange={setSlug} value={slug} /><ActivityTextField label="Description" onChange={setDescription} textarea value={description} /><div className="grid gap-4 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label><label className="grid gap-1 text-sm font-medium">State<select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setState(event.target.value as typeof state)} value={state}>{[['active', 'Active'], ['available', 'Available'], ['completed', 'Completed'], ['hidden', 'Hidden'], ['hinted', 'Hinted'], ['locked', 'Locked'], ['recommended', 'Recommended']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div><NodeVisualPresentationFields config={visualConfig} onChange={setVisualConfig} /><NodeAvailabilityFields config={visualConfig} currentNodeId={node?.id ?? null} items={items} nodes={nodes} onChange={setVisualConfig} onStateChange={setState} roleOptions={roleOptions} tools={tools} />{node ? <section className="mt-5 rounded-lg border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-300/25 dark:bg-amber-300/10"><h3 className="text-sm font-semibold text-amber-950 dark:text-amber-50">Learner-specific unlocks</h3><p className="mt-1 text-sm leading-6 text-amber-900 dark:text-amber-100">Lock this tile again for every learner by removing only saved tool-derived unlocks. Discovery and support overrides remain unchanged.</p><button className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15" disabled={saving} onClick={() => void resetToolUnlocks()} type="button"><LockKeyhole className="size-4" />Lock for all users</button></section> : null}<div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">{node ? <button className="mr-auto inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-60 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10" disabled={saving} onClick={() => void deleteNode()} type="button"><Trash2 className="size-4" />Delete map tile</button> : null}<button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : isEditing ? 'Save map tile' : 'Add map tile'}</button></div></form></div>;
+    return <div aria-labelledby="world-node-dialog-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.node.dialog" role="dialog"><form className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Map tile</p><h2 className="mt-1 text-xl font-semibold" id="world-node-dialog-title">{isEditing ? 'Edit map tile' : 'Add map tile'}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set the source tile identity, state and hex position. Edit its visual presentation, availability, and managed interaction sounds below.</p></div><button aria-label="Close map tile dialog" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}<div className="mt-5 grid gap-4"><ActivityTextField label="Title" onChange={setTitle} value={title} /><ActivityTextField label="Slug" onChange={setSlug} value={slug} /><ActivityTextField label="Description" onChange={setDescription} textarea value={description} /><div className="grid gap-4 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label><label className="grid gap-1 text-sm font-medium">State<select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setState(event.target.value as typeof state)} value={state}>{[['active', 'Active'], ['available', 'Available'], ['completed', 'Completed'], ['hidden', 'Hidden'], ['hinted', 'Hinted'], ['locked', 'Locked'], ['recommended', 'Recommended']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div><NodeVisualPresentationFields config={visualConfig} onChange={setVisualConfig} /><NodeAvailabilityFields config={visualConfig} currentNodeId={node?.id ?? null} items={items} nodes={nodes} onChange={setVisualConfig} onStateChange={setState} roleOptions={roleOptions} tools={tools} /><NodeSoundFields config={visualConfig} onChange={setVisualConfig} sounds={sounds} />{node ? <section className="mt-5 rounded-lg border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-300/25 dark:bg-amber-300/10"><h3 className="text-sm font-semibold text-amber-950 dark:text-amber-50">Learner-specific unlocks</h3><p className="mt-1 text-sm leading-6 text-amber-900 dark:text-amber-100">Lock this tile again for every learner by removing only saved tool-derived unlocks. Discovery and support overrides remain unchanged.</p><button className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15" disabled={saving} onClick={() => void resetToolUnlocks()} type="button"><LockKeyhole className="size-4" />Lock for all users</button></section> : null}<div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">{node ? <button className="mr-auto inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-60 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10" disabled={saving} onClick={() => void deleteNode()} type="button"><Trash2 className="size-4" />Delete map tile</button> : null}<button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : isEditing ? 'Save map tile' : 'Add map tile'}</button></div></form></div>;
 }
 
 function NodeVisualPresentationFields({
@@ -3602,6 +3604,58 @@ function NodeAvailabilityFields({
                     </div>
                 </div>
             </fieldset>
+        </section>
+    );
+}
+
+function NodeSoundFields({
+    config,
+    onChange,
+    sounds,
+}: {
+    config: Record<string, unknown>;
+    onChange: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+    sounds: EditableSound[];
+}) {
+    const updateSound = (
+        trigger: MapAssetSoundTrigger,
+        change: Partial<MapAssetInteractionSound>,
+    ) => onChange((current) => ({
+        ...current,
+        sounds: {
+            ...objectValue(current, 'sounds'),
+            [trigger]: {
+                ...mapAssetInteractionSound(current, trigger),
+                ...change,
+            },
+        },
+    }));
+
+    return (
+        <section className="mt-5 border-t border-slate-200 pt-5 dark:border-white/10" data-wl-id="authoring.world-builder.node.sounds">
+            <h3 className="text-lg font-semibold">Interaction sounds</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Select managed reusable sounds for the source tile’s four interaction moments. Learners receive only published sound URLs.</p>
+            <div className="mt-4 grid gap-3">
+                {mapAssetSoundTriggers.map(({ description, key, label }) => {
+                    const configured = mapAssetInteractionSound(config, key);
+                    const selected = sounds.find((sound) => sound.id === configured.soundId);
+                    return (
+                        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end dark:border-white/10" key={key}>
+                            <div>
+                                <label className="flex items-start gap-2 text-sm font-medium">
+                                    <input aria-label={`Enable ${label} sound`} checked={configured.enabled} className="mt-1 accent-teal-700" onChange={(event) => updateSound(key, { enabled: event.currentTarget.checked })} type="checkbox" />
+                                    <span>{label}<span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{description.replace('this MapAsset', 'this map tile')}</span></span>
+                                </label>
+                                <select aria-label={`${label} sound`} className="mt-3 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-white/20" onChange={(event) => updateSound(key, { soundId: event.currentTarget.value || null })} value={configured.soundId ?? ''}>
+                                    <option value="">Select reusable sound</option>
+                                    {sounds.map((sound) => <option key={sound.id} value={sound.id}>{sound.name}</option>)}
+                                </select>
+                            </div>
+                            <button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10" disabled={!selected} onClick={() => selected && previewMapAssetSound(selected)} type="button">Preview</button>
+                        </div>
+                    );
+                })}
+            </div>
         </section>
     );
 }
@@ -3984,7 +4038,7 @@ function MapDetails({
             ) : null}
             {layoutHistoryOpen ? <MapLayoutHistoryDialog map={map} onClose={() => setLayoutHistoryOpen(false)} onRestored={onUpdated} /> : null}
             {placementNode ? <MapNodePlacementDialog node={placementNode} onClose={() => setPlacementNode(null)} onSaved={() => { setPlacementNode(null); onUpdated(); }} /> : null}
-            {nodeDialog ? <OriginalWorldNodeDialog items={document.items} key={nodeDialog === 'create' ? 'create' : nodeDialog.id} mapId={map.id} node={nodeDialog === 'create' ? null : nodeDialog} nodes={map.nodes} onClose={() => setNodeDialog(null)} onSaved={() => { setNodeDialog(null); onUpdated(); }} roleOptions={document.role_options} tools={document.tools} /> : null}
+            {nodeDialog ? <OriginalWorldNodeDialog items={document.items} key={nodeDialog === 'create' ? 'create' : nodeDialog.id} mapId={map.id} node={nodeDialog === 'create' ? null : nodeDialog} nodes={map.nodes} onClose={() => setNodeDialog(null)} onSaved={() => { setNodeDialog(null); onUpdated(); }} roleOptions={document.role_options} sounds={document.sounds} tools={document.tools} /> : null}
             {accessOpen ? (
                 <EditMapAccessDialog
                     document={document}

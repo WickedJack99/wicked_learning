@@ -1006,7 +1006,7 @@ function PublicMapSurface({
                             key={asset.slug}
                             onClick={(event) => {
                                 event.stopPropagation();
-                                playInteractionSound(asset.visual_config, 'click');
+                                playInteractionSound(node?.visual_config ?? asset.visual_config, 'click');
                                 if (canToggle) {
                                     setToggledAssetSlugs((current) =>
                                         current.includes(asset.slug)
@@ -1025,7 +1025,7 @@ function PublicMapSurface({
                                             (unlocked) => {
                                                 if (unlocked) {
                                                     playInteractionSound(
-                                                        asset.visual_config,
+                                                        node?.visual_config ?? asset.visual_config,
                                                         'unlock',
                                                     );
                                                 }
@@ -1047,13 +1047,13 @@ function PublicMapSurface({
                             onFocus={() => setFocusedAssetSlug(asset.slug)}
                             onPointerEnter={() =>
                                 playInteractionSound(
-                                    asset.visual_config,
+                                    node?.visual_config ?? asset.visual_config,
                                     'mouseEnter',
                                 )
                             }
                             onPointerLeave={() =>
                                 playInteractionSound(
-                                    asset.visual_config,
+                                    node?.visual_config ?? asset.visual_config,
                                     'mouseLeave',
                                 )
                             }

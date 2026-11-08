@@ -41,11 +41,14 @@ test('a local author creates, edits, and deletes a source-shaped map tile', asyn
     const mapDocument = (await map.json()) as {
         editable_map: { map: { nodes: Array<{ id: string; title: string; slug: string; description: string; position: { q: number; r: number }; state: string }> } };
         tools: Array<{ slug: string; title: string }>;
+        sounds: Array<{ id: string; name: string }>;
     };
     const node = mapDocument.editable_map.map.nodes.find((candidate) => candidate.title === 'Disposable dialogue tile');
     if (!node) throw new Error('the disposable tile is missing');
     const tool = mapDocument.tools[0];
     if (!tool) throw new Error('the local authoring catalogue has no tool');
+    const sound = mapDocument.sounds[0];
+    if (!sound) throw new Error('the local authoring catalogue has no reusable sound');
     const csrf = await page.request.get('/api/v1/security/csrf');
     expect(csrf.ok()).toBeTruthy();
     const { token } = (await csrf.json()) as { token: string };
@@ -69,13 +72,16 @@ test('a local author creates, edits, and deletes a source-shaped map tile', asyn
     await page.getByLabel('Unlock not before').fill('2030-01-02T03:04');
     await page.getByLabel('Hide until revealed with a tool').check();
     await page.getByLabel('Reveal tool').selectOption(tool.slug);
-    await page.getByLabel('Unlock not before').scrollIntoViewIfNeeded();
+    await page.getByLabel('Enable Click sound').check();
+    await page.getByLabel('Click sound', { exact: true }).selectOption(sound.id);
+    const clickSound = page.getByLabel('Click sound', { exact: true });
+    await clickSound.scrollIntoViewIfNeeded();
     const dialogBox = await page.getByRole('dialog', { name: 'Edit map tile' }).boundingBox();
-    const scheduleBox = await page.getByLabel('Unlock not before').boundingBox();
+    const clickSoundBox = await clickSound.boundingBox();
     expect(dialogBox?.x).toBeGreaterThanOrEqual(0);
     expect(dialogBox && dialogBox.x + dialogBox.width).toBeLessThanOrEqual(390);
-    expect(scheduleBox?.x).toBeGreaterThanOrEqual(0);
-    expect(scheduleBox && scheduleBox.x + scheduleBox.width).toBeLessThanOrEqual(390);
+    expect(clickSoundBox?.x).toBeGreaterThanOrEqual(0);
+    expect(clickSoundBox && clickSoundBox.x + clickSoundBox.width).toBeLessThanOrEqual(390);
     const saved = page.waitForResponse((response) => response.request().method() === 'PATCH' && /\/api\/v1\/admin\/world-builder\/nodes\/[0-9a-f-]+$/.test(response.url()));
     await page.getByRole('button', { name: 'Save map tile' }).click();
     expect((await saved).status()).toBe(204);
@@ -87,6 +93,7 @@ test('a local author creates, edits, and deletes a source-shaped map tile', asyn
     expect(savedMapDocument).toContain('#123456');
     expect(savedMapDocument).toContain('2030-01-02T03:04:00Z');
     expect(savedMapDocument).toContain(tool.slug);
+    expect(savedMapDocument).toContain(sound.id);
 
     await page.getByRole('button', { name: 'Edit tile' }).last().click();
     page.once('dialog', (dialog) => dialog.accept());

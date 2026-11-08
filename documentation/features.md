@@ -864,17 +864,20 @@ state. Its presentation section edits the learner-facing label and hover text,
 visibility flags, dark/light theme colors, image placement and opacity, and can
 select a reusable visual for either theme. Its source-shaped availability
 section configures hidden tool discovery, completed-tile, role, item and tool
-prerequisites, AND/OR grouping, and UTC unlock/lock scheduling. The server
+prerequisites, AND/OR grouping, and UTC unlock/lock scheduling. Its interaction
+section selects and previews managed reusable sounds for the source pointer
+enter, click/tap, pointer leave and confirmed unlock triggers. The server
 continues to resolve selected catalog UUIDs, validate prerequisites and
-canonicalize schedules before learner delivery. It preserves sounds while their
-source controls are still being lifted.
+canonicalize schedules before learner delivery; sound UUIDs are likewise
+verified as published and are rewritten to learner-safe URLs only in the public
+projection.
 
 The Rust backend for a selected node's source `Lock for all users` action now
 resets only learner-specific tool unlocks. It deliberately preserves discovery
 and explicit support overrides, so resetting a tool-derived condition cannot
 silently erase other learner-state causes. The lifted map-tile dialog exposes
-that confirmation alongside the complete source availability controls; only
-the source sound controls are still being lifted.
+that confirmation alongside the complete source availability and interaction
+sound controls.
 
 The corresponding support-issued manual override is now also available to the
 backend for one locked node and one learner already visible through the
