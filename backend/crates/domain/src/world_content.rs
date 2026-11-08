@@ -440,6 +440,16 @@ pub struct AdminActivityTemplateDetails {
     /// Raw authoring configuration is available only after the same
     /// private-or-organization membership decision as the template preview.
     pub snapshot: Value,
+    pub media_references: Vec<AdminActivityTemplateMediaReference>,
+}
+
+/// A managed visual retained by an activity-template snapshot. The content URL
+/// remains subject to the reusable-media authorization check.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateMediaReference {
+    pub asset_id: Uuid,
+    pub url: String,
+    pub available: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -470,6 +480,7 @@ pub struct AdminActivityTemplateRevisionDetails {
     #[serde(flatten)]
     pub revision: AdminActivityTemplateRevision,
     pub snapshot: Value,
+    pub media_references: Vec<AdminActivityTemplateMediaReference>,
 }
 
 #[derive(Clone, Debug, Serialize)]

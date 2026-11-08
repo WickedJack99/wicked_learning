@@ -6560,6 +6560,13 @@ export interface components {
             snapshot: {
                 [key: string]: unknown;
             };
+            media_references: components["schemas"]["AdminActivityTemplateMediaReference"][];
+        };
+        AdminActivityTemplateMediaReference: {
+            /** Format: uuid */
+            asset_id: string;
+            url: string;
+            available: boolean;
         };
         AdminActivityTemplateResponse: {
             template: components["schemas"]["AdminActivityTemplateSummary"];
@@ -6591,6 +6598,7 @@ export interface components {
             snapshot: {
                 [key: string]: unknown;
             };
+            media_references: components["schemas"]["AdminActivityTemplateMediaReference"][];
         };
         AdminActivityTemplateRevisionDetailsResponse: {
             revision: components["schemas"]["AdminActivityTemplateRevisionDetails"];

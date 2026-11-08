@@ -9527,8 +9527,18 @@ components:
         - $ref: '#/components/schemas/AdminActivityTemplateSummary'
         - type: object
           additionalProperties: false
-          required: [snapshot]
-          properties: { snapshot: { type: object, additionalProperties: true } }
+          required: [snapshot, media_references]
+          properties:
+            snapshot: { type: object, additionalProperties: true }
+            media_references: { type: array, maxItems: 24, items: { $ref: '#/components/schemas/AdminActivityTemplateMediaReference' } }
+    AdminActivityTemplateMediaReference:
+      type: object
+      additionalProperties: false
+      required: [asset_id, url, available]
+      properties:
+        asset_id: { type: string, format: uuid }
+        url: { type: string }
+        available: { type: boolean }
     AdminActivityTemplateResponse:
       type: object
       additionalProperties: false
@@ -9570,8 +9580,10 @@ components:
         - $ref: '#/components/schemas/AdminActivityTemplateRevision'
         - type: object
           additionalProperties: false
-          required: [snapshot]
-          properties: { snapshot: { type: object, additionalProperties: true } }
+          required: [snapshot, media_references]
+          properties:
+            snapshot: { type: object, additionalProperties: true }
+            media_references: { type: array, maxItems: 24, items: { $ref: '#/components/schemas/AdminActivityTemplateMediaReference' } }
     AdminActivityTemplateRevisionDetailsResponse:
       type: object
       additionalProperties: false

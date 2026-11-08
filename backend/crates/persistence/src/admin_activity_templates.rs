@@ -8,7 +8,8 @@ use wicked_learning_application::admin_activity_templates::{
 use wicked_learning_domain::{
     identity_access::{AuthorizedPrincipal, permission_scope_allows},
     world_content::{
-        AdminActivityTemplateDetails, AdminActivityTemplateOrganization, AdminActivityTemplatePage,
+        AdminActivityTemplateDetails, AdminActivityTemplateMediaReference,
+        AdminActivityTemplateOrganization, AdminActivityTemplatePage,
         AdminActivityTemplatePagination, AdminActivityTemplateRevision,
         AdminActivityTemplateRevisionDetails, AdminActivityTemplateRevisionPage,
         AdminActivityTemplateRevisionPagination, AdminActivityTemplateSummary,
@@ -196,6 +197,10 @@ struct ScopedActivity {
     config: Value,
 }
 const TEMPLATE_SELECT: &str = "templates.id, templates.created_by_principal_id, templates.organization_id, organizations.name AS organization_name, templates.name, templates.activity_type, templates.snapshot, to_char(templates.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at";
+const ACTIVE_TEMPLATE_REFERENCE_KIND: &str = "activity_template";
+const TEMPLATE_REVISION_REFERENCE_KIND: &str = "activity_template_revision";
+const MEDIA_ASSET_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
+const MAX_MEDIA_REFERENCES: usize = 24;
 
 fn summary(row: TemplateRow, principal_id: Uuid) -> AdminActivityTemplateSummary {
     AdminActivityTemplateSummary {
@@ -330,13 +335,104 @@ async fn scoped_activity(
 fn activity_snapshot(activity: &ScopedActivity) -> Value {
     json!({ "companionConfig": {}, "config": activity.config, "introduction": activity.introduction, "question": if activity.activity_type == "question" { activity.config.clone() } else { Value::Null }, "title": activity.title, "type": activity.activity_type })
 }
+fn managed_media_references(snapshot: &Value) -> Vec<(Uuid, String)> {
+    fn visit(value: &Value, path: String, references: &mut Vec<(Uuid, String)>, depth: usize) {
+        if references.len() == MAX_MEDIA_REFERENCES || depth > 16 {
+            return;
+        }
+        match value {
+            Value::Object(values) => {
+                for (key, value) in values {
+                    let next_path = if path.is_empty() {
+                        key.to_owned()
+                    } else {
+                        format!("{path}.{key}")
+                    };
+                    visit(value, next_path, references, depth + 1);
+                    if references.len() == MAX_MEDIA_REFERENCES {
+                        return;
+                    }
+                }
+            }
+            Value::Array(values) => {
+                for (index, value) in values.iter().enumerate() {
+                    visit(value, format!("{path}[{index}]"), references, depth + 1);
+                    if references.len() == MAX_MEDIA_REFERENCES {
+                        return;
+                    }
+                }
+            }
+            Value::String(url) => {
+                let Some(asset_path) = url.strip_prefix(MEDIA_ASSET_CONTENT_PREFIX) else {
+                    return;
+                };
+                let Some((asset_id, suffix)) = asset_path.split_once('/') else {
+                    return;
+                };
+                if suffix == "content" && asset_path.len() == asset_id.len() + "/content".len() {
+                    if let Ok(asset_id) = Uuid::parse_str(asset_id) {
+                        if !path.is_empty() && path.len() <= 160 {
+                            references.push((asset_id, path));
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut references = Vec::new();
+    visit(snapshot, String::new(), &mut references, 0);
+    references
+}
+async fn synchronize_media_references(
+    tx: &mut Transaction<'_, Postgres>,
+    owner_kind: &str,
+    owner_id: Uuid,
+    snapshot: &Value,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM reusable_media_asset_references WHERE owner_kind=$1 AND owner_id=$2")
+        .bind(owner_kind)
+        .bind(owner_id)
+        .execute(&mut **tx)
+        .await?;
+    for (asset_id, field_key) in managed_media_references(snapshot) {
+        sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT id, $2, $3, $4 FROM reusable_media_assets WHERE id=$1 ON CONFLICT DO NOTHING").bind(asset_id).bind(owner_kind).bind(owner_id).bind(field_key).execute(&mut **tx).await?;
+    }
+    Ok(())
+}
+async fn media_references(
+    tx: &mut Transaction<'_, Postgres>,
+    owner_kind: &str,
+    owner_id: Uuid,
+) -> Result<Vec<AdminActivityTemplateMediaReference>, sqlx::Error> {
+    let rows: Vec<(Uuid, String, bool)> = sqlx::query_as("SELECT assets.id AS asset_id, '/api/v1/admin/media-assets/' || assets.id::text || '/content' AS url, TRUE AS available FROM reusable_media_asset_references AS asset_references INNER JOIN reusable_media_assets AS assets ON assets.id = asset_references.asset_id WHERE asset_references.owner_kind=$1 AND asset_references.owner_id=$2 ORDER BY asset_references.field_key ASC").bind(owner_kind).bind(owner_id).fetch_all(&mut **tx).await?;
+    Ok(rows
+        .into_iter()
+        .map(
+            |(asset_id, url, available)| AdminActivityTemplateMediaReference {
+                asset_id,
+                url,
+                available,
+            },
+        )
+        .collect())
+}
 async fn record(
     tx: &mut Transaction<'_, Postgres>,
     template: &TemplateRow,
     principal_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    sqlx::query("INSERT INTO learning_activity_template_revisions (id, template_id, created_by_principal_id, name, activity_type, snapshot) VALUES ($1, $2, $3, $4, $5, $6)").bind(Uuid::new_v4()).bind(template.id).bind(principal_id).bind(&template.name).bind(&template.activity_type).bind(&template.snapshot).execute(&mut **tx).await?;
-    Ok(())
+) -> Result<Uuid, sqlx::Error> {
+    let revision_id = Uuid::new_v4();
+    sqlx::query("INSERT INTO learning_activity_template_revisions (id, template_id, created_by_principal_id, name, activity_type, snapshot) VALUES ($1, $2, $3, $4, $5, $6)").bind(revision_id).bind(template.id).bind(principal_id).bind(&template.name).bind(&template.activity_type).bind(&template.snapshot).execute(&mut **tx).await?;
+    synchronize_media_references(
+        tx,
+        TEMPLATE_REVISION_REFERENCE_KIND,
+        revision_id,
+        &template.snapshot,
+    )
+    .await?;
+    Ok(revision_id)
 }
 async fn create_from_activity(
     pool: &PgPool,
@@ -364,6 +460,8 @@ async fn create_from_activity(
         snapshot,
         updated_at: String::new(),
     };
+    synchronize_media_references(&mut tx, ACTIVE_TEMPLATE_REFERENCE_KIND, id, &row.snapshot)
+        .await?;
     record(&mut tx, &row, principal_id).await?;
     let Some(row) = visible(&mut tx, id, principal_id, false).await? else {
         return Ok(None);
@@ -380,12 +478,16 @@ async fn details(
     let Some(principal_id) = principal_id(&mut tx, principal).await? else {
         return Ok(None);
     };
-    let result = visible(&mut tx, template_id, principal_id, false)
-        .await?
-        .map(|row| AdminActivityTemplateDetails {
+    let result = if let Some(row) = visible(&mut tx, template_id, principal_id, false).await? {
+        Some(AdminActivityTemplateDetails {
+            media_references: media_references(&mut tx, ACTIVE_TEMPLATE_REFERENCE_KIND, row.id)
+                .await?,
             snapshot: row.snapshot.clone(),
             summary: summary(row, principal_id),
-        });
+        })
+    } else {
+        None
+    };
     tx.commit().await?;
     Ok(result)
 }
@@ -443,6 +545,13 @@ async fn update_from_activity(
     template.snapshot = activity_snapshot(&activity);
     template.activity_type = activity.activity_type;
     sqlx::query("UPDATE learning_activity_templates SET activity_type=$2, snapshot=$3, updated_at=NOW() WHERE id=$1").bind(template_id).bind(&template.activity_type).bind(&template.snapshot).execute(&mut *tx).await?;
+    synchronize_media_references(
+        &mut tx,
+        ACTIVE_TEMPLATE_REFERENCE_KIND,
+        template_id,
+        &template.snapshot,
+    )
+    .await?;
     let Some(template) = visible(&mut tx, template_id, principal_id, false).await? else {
         return Ok(None);
     };
@@ -555,22 +664,29 @@ async fn revision_details(
         return Ok(None);
     }
     let row=sqlx::query_as::<_,RevisionRow>("SELECT id,name,activity_type,snapshot,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at FROM learning_activity_template_revisions WHERE id=$1 AND template_id=$2").bind(revision_id).bind(template_id).fetch_optional(&mut *tx).await?;
+    let result = if let Some(row) = row {
+        Some(AdminActivityTemplateRevisionDetails {
+            media_references: media_references(&mut tx, TEMPLATE_REVISION_REFERENCE_KIND, row.id)
+                .await?,
+            snapshot: row.snapshot.clone(),
+            revision: AdminActivityTemplateRevision {
+                id: row.id,
+                created_at: row.created_at,
+                name: row.name,
+                title: row
+                    .snapshot
+                    .get("title")
+                    .and_then(Value::as_str)
+                    .unwrap_or("Untitled activity")
+                    .to_owned(),
+                activity_type: row.activity_type,
+            },
+        })
+    } else {
+        None
+    };
     tx.commit().await?;
-    Ok(row.map(|row| AdminActivityTemplateRevisionDetails {
-        snapshot: row.snapshot.clone(),
-        revision: AdminActivityTemplateRevision {
-            id: row.id,
-            created_at: row.created_at,
-            name: row.name,
-            title: row
-                .snapshot
-                .get("title")
-                .and_then(Value::as_str)
-                .unwrap_or("Untitled activity")
-                .to_owned(),
-            activity_type: row.activity_type,
-        },
-    }))
+    Ok(result)
 }
 async fn restore(
     pool: &PgPool,
@@ -593,6 +709,13 @@ async fn restore(
     template.activity_type = revision.activity_type;
     template.snapshot = revision.snapshot;
     sqlx::query("UPDATE learning_activity_templates SET activity_type=$2,snapshot=$3,updated_at=NOW() WHERE id=$1").bind(template_id).bind(&template.activity_type).bind(&template.snapshot).execute(&mut *tx).await?;
+    synchronize_media_references(
+        &mut tx,
+        ACTIVE_TEMPLATE_REFERENCE_KIND,
+        template_id,
+        &template.snapshot,
+    )
+    .await?;
     let Some(template) = visible(&mut tx, template_id, principal_id, false).await? else {
         return Ok(None);
     };
@@ -611,10 +734,34 @@ async fn delete(
     if owner(&mut tx, template_id, principal_id).await?.is_none() {
         return Ok(false);
     }
+    sqlx::query("DELETE FROM reusable_media_asset_references WHERE owner_kind=$1 AND owner_id=$2")
+        .bind(ACTIVE_TEMPLATE_REFERENCE_KIND)
+        .bind(template_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("DELETE FROM reusable_media_asset_references WHERE owner_kind=$1 AND owner_id IN (SELECT id FROM learning_activity_template_revisions WHERE template_id=$2)").bind(TEMPLATE_REVISION_REFERENCE_KIND).bind(template_id).execute(&mut *tx).await?;
     sqlx::query("DELETE FROM learning_activity_templates WHERE id=$1")
         .bind(template_id)
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn finds_only_managed_media_content_urls_in_a_template_snapshot() {
+        let asset_id = Uuid::parse_str("c7f7a904-7774-45d0-8b74-a7cceae78d3f").unwrap();
+        let snapshot = json!({
+            "config": {"background": format!("/api/v1/admin/media-assets/{asset_id}/content"), "staticImage": "/images/source-art.png", "badAsset": "/api/v1/admin/media-assets/not-a-uuid/content"},
+            "companionConfig": [{"image": format!("/api/v1/admin/media-assets/{asset_id}/content?download=1")}]
+        });
+        assert_eq!(
+            managed_media_references(&snapshot),
+            vec![(asset_id, "config.background".to_owned())]
+        );
+    }
 }

@@ -5,7 +5,10 @@ test('a local author can save, revise, restore and copy a reusable activity temp
 }) => {
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable local administrator');
+    test.skip(
+        !email || !password,
+        'requires the disposable local administrator',
+    );
 
     await page.goto('/login');
     await page.getByLabel('Email address').fill(email!);
@@ -30,7 +33,11 @@ test('a local author can save, revise, restore and copy a reusable activity temp
     expect(nodeResponse.ok()).toBeTruthy();
     const node = (await nodeResponse.json()) as {
         activity_graph: {
-            activities: Array<{ activity_type: string; id: string; title: string }>;
+            activities: Array<{
+                activity_type: string;
+                id: string;
+                title: string;
+            }>;
         };
     };
     const activity = node.activity_graph.activities.find(
@@ -38,7 +45,9 @@ test('a local author can save, revise, restore and copy a reusable activity temp
     );
     expect(activity).toBeDefined();
     if (!activity) {
-        throw new Error('the disposable World Builder has no Open practice activity');
+        throw new Error(
+            'the disposable World Builder has no Open practice activity',
+        );
     }
 
     await page.goto(
@@ -59,15 +68,34 @@ test('a local author can save, revise, restore and copy a reusable activity temp
     const created = page.waitForResponse(
         (response) =>
             response.request().method() === 'POST' &&
-            response.url().includes(
-                `/api/v1/admin/world-builder/activities/${activity.id}/templates`,
-            ),
+            response
+                .url()
+                .includes(
+                    `/api/v1/admin/world-builder/activities/${activity.id}/templates`,
+                ),
     );
-    await dialog.getByRole('button', { name: 'Save reusable template' }).click();
-    expect((await created).status()).toBe(201);
-    await expect(dialog.getByText(templateName, { exact: true }).first()).toBeVisible();
+    await dialog
+        .getByRole('button', { name: 'Save reusable template' })
+        .click();
+    const createdResponse = await created;
+    expect(createdResponse.status()).toBe(201);
+    const createdTemplate = (await createdResponse.json()) as {
+        template: { id: string };
+    };
+    const detailsResponse = await page.request.get(
+        `/api/v1/admin/activity-templates/${createdTemplate.template.id}`,
+    );
+    expect(detailsResponse.ok()).toBeTruthy();
+    expect((await detailsResponse.json()).template.media_references).toEqual(
+        [],
+    );
+    await expect(
+        dialog.getByText(templateName, { exact: true }).first(),
+    ).toBeVisible();
 
-    await dialog.getByRole('button', { name: 'Close activity template library' }).click();
+    await dialog
+        .getByRole('button', { name: 'Close activity template library' })
+        .click();
     await activityCard
         .getByRole('button', {
             name: `Update a saved template from ${activity.title}`,
@@ -103,7 +131,9 @@ test('a local author can save, revise, restore and copy a reusable activity temp
     await expect(
         page.getByRole('heading', { name: 'Copy Open practice template' }),
     ).toBeVisible();
-    await expect(page.getByLabel('Title')).toHaveValue(`${activity.title} (copy)`);
+    await expect(page.getByLabel('Title')).toHaveValue(
+        `${activity.title} (copy)`,
+    );
     await page.getByRole('button', { name: 'Close activity form' }).click();
 
     await page.getByRole('button', { name: 'Activity templates' }).click();
