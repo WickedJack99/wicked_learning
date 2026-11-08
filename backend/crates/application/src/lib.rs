@@ -4,6 +4,7 @@ pub mod access_link;
 pub mod account_deletion;
 pub mod account_profile;
 pub mod admin_activity_ai_review;
+pub mod admin_activity_evidence_context;
 pub mod admin_activity_learning_design;
 pub mod admin_activity_source_references;
 pub mod admin_activity_templates;

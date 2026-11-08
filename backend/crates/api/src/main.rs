@@ -6,6 +6,7 @@ mod account_password_confirmation;
 mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
+mod admin_activity_evidence_context;
 mod admin_activity_learning_design;
 mod admin_activity_source_references;
 mod admin_activity_templates;
@@ -686,6 +687,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/learning-design",
             patch(admin_activity_learning_design::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/evidence-context",
+            patch(admin_activity_evidence_context::update),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/source-references",

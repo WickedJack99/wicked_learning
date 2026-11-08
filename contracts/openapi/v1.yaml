@@ -1220,6 +1220,34 @@ paths:
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '409': { description: The activity changed while the author was reviewing the draft. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/evidence-context:
+    patch:
+      operationId: updateAdminWorldBuilderActivityEvidenceContext
+      summary: Save learner orientation context for one editable activity.
+      description: Saves the source-bounded evidence objective and concepts as explicit authoring metadata, with a pre-change version and review-state reset.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityEvidenceContextRequest' }
+      responses:
+        '200':
+          description: The learner orientation context was saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminActivityEvidenceContextResponse' }
+        '400': { description: The complete evidence-context form is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '409': { description: The activity changed while the author was editing evidence context. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/source-references:
     patch:
       operationId: updateAdminWorldBuilderActivitySourceReferences
@@ -10868,6 +10896,24 @@ components:
         topic: { type: string, minLength: 1, maxLength: 120 }
         weight: { type: number, exclusiveMinimum: 0, maximum: 1000 }
     UpdateAdminActivityLearningDesignResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivityEvidenceContextRequest:
+      type: object
+      additionalProperties: false
+      required: [evidence_objective, evidence_concepts, updated_at]
+      properties:
+        evidence_objective: { type: [string, 'null'], maxLength: 600 }
+        evidence_concepts:
+          type: array
+          maxItems: 8
+          items: { type: string, maxLength: 120 }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivityEvidenceContextResponse:
       type: object
       additionalProperties: false
       required: [activity_id, updated_at]

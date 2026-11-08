@@ -899,6 +899,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderActivityLearningDesign"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/evidence-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save learner orientation context for one editable activity.
+         * @description Saves the source-bounded evidence objective and concepts as explicit authoring metadata, with a pre-change version and review-state reset.
+         */
+        patch: operations["updateAdminWorldBuilderActivityEvidenceContext"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/source-references": {
         parameters: {
             query?: never;
@@ -7726,6 +7746,18 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        UpdateAdminActivityEvidenceContextRequest: {
+            evidence_objective: string | null;
+            evidence_concepts: string[];
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminActivityEvidenceContextResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         UpdateAdminActivitySourceReferencesRequest: {
             source_references: components["schemas"]["AdminActivitySourceReferenceInput"][];
             /** Format: date-time */
@@ -11035,6 +11067,77 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity changed while the author was reviewing the draft. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderActivityEvidenceContext: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivityEvidenceContextRequest"];
+            };
+        };
+        responses: {
+            /** @description The learner orientation context was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminActivityEvidenceContextResponse"];
+                };
+            };
+            /** @description The complete evidence-context form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed while the author was editing evidence context. */
             409: {
                 headers: {
                     [name: string]: unknown;

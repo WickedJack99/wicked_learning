@@ -967,6 +967,11 @@ form. That save records pre-change history and returns the activity to
 `needs_review`; it does not change learner data or non-metadata activity
 fields. Unlock diagnostics also remain
 unavailable.
+Every editable activity card also has the source-shaped Learner orientation
+form for the common evidence objective and up-to-eight de-duplicated concepts.
+It saves only that author-controlled context, records a pre-change version and
+resets review state; Rust's existing learner playback and evidence projections
+then consume their already-bounded forms without exposing a grading claim.
 The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves
 the original editor's independently persisted, rounded `start`/`end` graph
