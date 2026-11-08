@@ -13,11 +13,13 @@ import type { Connection, Edge, Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
     ArrowLeft,
+    BookmarkPlus,
     CircleAlert,
     CircleCheck,
     GitBranch,
     Map as MapIcon,
     Plus,
+    RefreshCw,
     Route,
     Trash2,
     X,
@@ -28,6 +30,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
+import { OriginalActivityTemplatesDialog } from './original-activity-templates';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
@@ -51,6 +54,8 @@ type ActivityNodeData = {
     activity: Activity;
     onDelete: (activity: Activity) => void;
     onHistory: (activity: Activity) => void;
+    onSaveTemplate: (activity: Activity) => void;
+    onUpdateTemplate: (activity: Activity) => void;
 };
 
 type WorldMapNode = Node<WorldMapNodeData, 'map'>;
@@ -1128,6 +1133,10 @@ function ActivityGraph({
     const graph = document.activity_graph;
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
     const [historyActivity, setHistoryActivity] = useState<Activity | null>(null);
+    const [templateDialog, setTemplateDialog] = useState<{
+        activity?: Activity;
+        mode: 'library' | 'save' | 'update';
+    } | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [pendingStartRouteDeletion, setPendingStartRouteDeletion] =
@@ -1151,6 +1160,10 @@ function ActivityGraph({
                     activity,
                     onDelete: setPendingDelete,
                     onHistory: setHistoryActivity,
+                    onSaveTemplate: (candidate) =>
+                        setTemplateDialog({ activity: candidate, mode: 'save' }),
+                    onUpdateTemplate: (candidate) =>
+                        setTemplateDialog({ activity: candidate, mode: 'update' }),
                 },
                 position: {
                     x: activity.position.x ?? (index % 3) * 310,
@@ -1214,6 +1227,7 @@ function ActivityGraph({
     );
     const [editor, setEditor] = useState<{
         activity?: Activity;
+        template?: { snapshot: { [key: string]: unknown }; title: string };
         type: SupportedActivityType;
     } | null>(null);
     const [selectedTransition, setSelectedTransition] =
@@ -1446,6 +1460,15 @@ function ActivityGraph({
                         </span>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            data-wl-id="authoring.activity-templates.open"
+                            onClick={() => setTemplateDialog({ mode: 'library' })}
+                            type="button"
+                        >
+                            <BookmarkPlus className="size-3.5" />
+                            Activity templates
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
                             onClick={() => setEditor({ type: 'open_practice' })}
                             type="button"
                         >
@@ -1552,6 +1575,7 @@ function ActivityGraph({
                         setEditor(null);
                         onReload();
                     }}
+                    template={editor.template}
                     type={editor.type}
                 />
             ) : null}
@@ -1624,6 +1648,26 @@ function ActivityGraph({
                     onRestored={() => {
                         setHistoryActivity(null);
                         onReload();
+                    }}
+                />
+            ) : null}
+            {templateDialog ? (
+                <OriginalActivityTemplatesDialog
+                    activity={templateDialog.activity}
+                    mode={templateDialog.mode}
+                    onClose={() => setTemplateDialog(null)}
+                    onUseTemplate={(template) => {
+                        if (!isSupportedActivityType(template.activity_type)) {
+                            setConnectionError(
+                                'This template uses an activity type that is not yet available in the Rust editor.',
+                            );
+                            return;
+                        }
+                        setTemplateDialog(null);
+                        setEditor({
+                            template,
+                            type: template.activity_type,
+                        });
                     }}
                 />
             ) : null}
@@ -1712,6 +1756,36 @@ function ActivityGraphCard({
             >
                 Activity history
             </button>
+            {activity.activity_type !== 'npc_dialogue' ? (
+                <div className="mt-1 flex flex-wrap gap-1">
+                <button
+                    aria-label={`Save ${activity.title} as a reusable template`}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        data.onSaveTemplate(activity);
+                    }}
+                    title="Save reusable template"
+                    type="button"
+                >
+                    <BookmarkPlus className="size-3" />
+                    Save template
+                </button>
+                <button
+                    aria-label={`Update a saved template from ${activity.title}`}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        data.onUpdateTemplate(activity);
+                    }}
+                    title="Update saved template"
+                    type="button"
+                >
+                    <RefreshCw className="size-3" />
+                    Update template
+                </button>
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -2332,6 +2406,7 @@ function ActivityAuthorDialog({
     onClose,
     onSaved,
     sounds,
+    template,
     type,
     tools,
 }: {
@@ -2341,11 +2416,14 @@ function ActivityAuthorDialog({
     onClose: () => void;
     onSaved: () => void;
     sounds: EditableSound[];
+    template?: { snapshot: { [key: string]: unknown }; title: string };
     type: SupportedActivityType;
     tools: EditableTool[];
 }) {
     const [form, setForm] = useState(() =>
-        activityAuthorForm(type, activity, items, tools, sounds),
+        template
+            ? activityAuthorFormFromTemplate(type, template, items, tools, sounds)
+            : activityAuthorForm(type, activity, items, tools, sounds),
     );
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -2651,7 +2729,9 @@ function ActivityAuthorDialog({
                         >
                             {isEditing
                                 ? `Edit ${typeLabel}`
-                                : `Add ${typeLabel}`}
+                                : template
+                                  ? `Copy ${typeLabel} template`
+                                  : `Add ${typeLabel}`}
                         </h2>
                     </div>
                     <button
@@ -3775,9 +3855,50 @@ function ToolGrantColorField({
     );
 }
 
+type ActivityFormSource = Pick<
+    Activity,
+    'config' | 'introduction' | 'slug' | 'title'
+>;
+
+function activityAuthorFormFromTemplate(
+    type: SupportedActivityType,
+    template: { snapshot: { [key: string]: unknown }; title: string },
+    items: EditableItem[],
+    tools: EditableTool[],
+    sounds: EditableSound[],
+): ActivityAuthorForm {
+    const snapshot = template.snapshot;
+    const config =
+        snapshot.config && typeof snapshot.config === 'object' && !Array.isArray(snapshot.config)
+            ? snapshot.config as Record<string, unknown>
+            : {};
+    const title = typeof snapshot.title === 'string' && snapshot.title.trim()
+        ? snapshot.title
+        : template.title;
+    return {
+        ...activityAuthorForm(
+            type,
+            {
+                config,
+                introduction:
+                    typeof snapshot.introduction === 'string'
+                        ? snapshot.introduction
+                        : null,
+                slug: '',
+                title,
+            },
+            items,
+            tools,
+            sounds,
+        ),
+        slug: '',
+        title: `${title} (copy)`,
+    };
+}
+
 function activityAuthorForm(
     type: SupportedActivityType,
-    activity?: Activity,
+    activity?: ActivityFormSource,
     items: EditableItem[] = [],
     tools: EditableTool[] = [],
     sounds: EditableSound[] = [],

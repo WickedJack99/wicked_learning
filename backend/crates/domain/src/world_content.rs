@@ -399,6 +399,79 @@ pub struct AdminSourceRecordVersion {
     pub source_record: AdminSourceRecord,
 }
 
+/// A reusable authoring snapshot. Templates are private to their author unless
+/// explicitly shared with an organization the author belongs to.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplatePage {
+    pub items: Vec<AdminActivityTemplateSummary>,
+    pub pagination: AdminActivityTemplatePagination,
+    pub share_targets: Vec<AdminActivityTemplateOrganization>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplatePagination {
+    pub page: i64,
+    pub per_page: i64,
+    pub total: i64,
+    pub last_page: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateOrganization {
+    pub id: Uuid,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateSummary {
+    pub can_manage: bool,
+    pub id: Uuid,
+    pub name: String,
+    pub organization: Option<AdminActivityTemplateOrganization>,
+    pub title: String,
+    pub activity_type: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateDetails {
+    #[serde(flatten)]
+    pub summary: AdminActivityTemplateSummary,
+    /// Raw authoring configuration is available only after the same
+    /// private-or-organization membership decision as the template preview.
+    pub snapshot: Value,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateRevisionPage {
+    pub items: Vec<AdminActivityTemplateRevision>,
+    pub pagination: AdminActivityTemplateRevisionPagination,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateRevisionPagination {
+    pub page: i64,
+    pub per_page: i64,
+    pub total: i64,
+    pub last_page: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateRevision {
+    pub id: Uuid,
+    pub created_at: String,
+    pub name: String,
+    pub title: String,
+    pub activity_type: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminActivityTemplateRevisionDetails {
+    #[serde(flatten)]
+    pub revision: AdminActivityTemplateRevision,
+    pub snapshot: Value,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminEditableActivity {
     pub id: Uuid,

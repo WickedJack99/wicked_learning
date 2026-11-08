@@ -1086,10 +1086,21 @@ selected map's source Map Details form is also available through `PATCH
 /api/v1/admin/world-builder/maps/{map_id}/details`: title, nullable description
 and learning topic, and MapAsset locking save together through the map editor
 scope with an `updated_at` conflict boundary; the browser refetches the map and
-graph only after success. Other activity-card types and map/configuration forms
-deliberately remain read-only in this surface. Histories, templates and media
-workflows remain absent until their source workflows can be adapted end-to-end
-rather than replaced with a reduced editor.
+graph only after success. The source-shaped reusable Activity Template Library
+is now available beside that graph: eligible cards save private named snapshots,
+update a creator-owned template while preserving the outgoing snapshot in
+bounded revision history, and open the same existing typed activity form as an
+editable `title (copy)` draft. The library lists only owned or organization-
+shared templates, loads full snapshots only for preview, permits one membership-
+validated organization share target, keeps shared templates read-only for
+members, and retains creator-only rename, restore and deletion behavior.
+The API is backed by separate template/version tables and preserves the
+source's initial-revision and restore-current-first semantics. Its browser
+proof covers save, update, history restore, editable-copy handoff and delete on
+the disposable Rust stack. Reusable-media availability and replacement stay in
+the dedicated media-lifecycle slice rather than being replaced by an invented
+template-media control. Other activity-card types and map/configuration forms
+deliberately remain read-only in this surface.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

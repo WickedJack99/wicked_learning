@@ -816,6 +816,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/activity-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List private and organization-shared reusable activity templates. */
+        get: operations["getAdminActivityTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save an editable activity as a private reusable template. */
+        post: operations["createAdminActivityTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/activity-templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview one visible template. */
+        get: operations["getAdminActivityTemplate"];
+        put?: never;
+        post?: never;
+        /** Delete a creator-owned template and its history. */
+        delete: operations["deleteAdminActivityTemplate"];
+        options?: never;
+        head?: never;
+        /** Rename a creator-owned template. */
+        patch: operations["renameAdminActivityTemplate"];
+        trace?: never;
+    };
+    "/admin/activity-templates/{template_id}/from-activity/{activity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace a creator-owned template snapshot from an editable activity. */
+        patch: operations["updateAdminActivityTemplateFromActivity"];
+        trace?: never;
+    };
+    "/admin/activity-templates/{template_id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Share a creator-owned template with one organization membership. */
+        patch: operations["shareAdminActivityTemplate"];
+        trace?: never;
+    };
+    "/admin/activity-templates/{template_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List bounded immutable template history. */
+        get: operations["getAdminActivityTemplateRevisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/activity-templates/{template_id}/revisions/{revision_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect one visible template revision. */
+        get: operations["getAdminActivityTemplateRevision"];
+        put?: never;
+        /** Restore a creator-owned template revision while retaining the current snapshot. */
+        post: operations["restoreAdminActivityTemplateRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/source-records": {
         parameters: {
             query?: never;
@@ -6337,6 +6459,72 @@ export interface components {
             title: string;
             url: string;
         };
+        AdminActivityTemplateOrganization: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        AdminActivityTemplateSummary: {
+            can_manage: boolean;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            organization: components["schemas"]["AdminActivityTemplateOrganization"] | null;
+            title: string;
+            activity_type: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AdminActivityTemplatePagination: {
+            page: number;
+            per_page: number;
+            total: number;
+            last_page: number;
+        };
+        AdminActivityTemplatePage: {
+            items: components["schemas"]["AdminActivityTemplateSummary"][];
+            pagination: components["schemas"]["AdminActivityTemplatePagination"];
+            share_targets: components["schemas"]["AdminActivityTemplateOrganization"][];
+        };
+        AdminActivityTemplateDetails: components["schemas"]["AdminActivityTemplateSummary"] & {
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        AdminActivityTemplateResponse: {
+            template: components["schemas"]["AdminActivityTemplateSummary"];
+        };
+        AdminActivityTemplateDetailsResponse: {
+            template: components["schemas"]["AdminActivityTemplateDetails"];
+        };
+        AdminActivityTemplateNameRequest: {
+            name: string;
+        };
+        AdminActivityTemplateShareRequest: {
+            /** Format: uuid */
+            organization_id?: string | null;
+        };
+        AdminActivityTemplateRevision: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            created_at: string;
+            name: string;
+            title: string;
+            activity_type: string;
+        };
+        AdminActivityTemplateRevisionPage: {
+            items: components["schemas"]["AdminActivityTemplateRevision"][];
+            pagination: components["schemas"]["AdminActivityTemplatePagination"];
+        };
+        AdminActivityTemplateRevisionDetails: components["schemas"]["AdminActivityTemplateRevision"] & {
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        AdminActivityTemplateRevisionDetailsResponse: {
+            revision: components["schemas"]["AdminActivityTemplateRevisionDetails"];
+        };
         AdminSourceRecordRequest: {
             title: string;
             /** Format: uri */
@@ -9207,6 +9395,549 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity version is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminActivityTemplates: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded template page visible to this author */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplatePage"];
+                };
+            };
+            /** @description The page or search is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot author activities. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminActivityTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminActivityTemplateNameRequest"];
+            };
+        };
+        responses: {
+            /** @description The new private template */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateResponse"];
+                };
+            };
+            /** @description The name is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unavailable to this author. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminActivityTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The source-shaped template snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateDetailsResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is unavailable to this author. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminActivityTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The template was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is unavailable or read-only. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    renameAdminActivityTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminActivityTemplateNameRequest"];
+            };
+        };
+        responses: {
+            /** @description The renamed template. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateResponse"];
+                };
+            };
+            /** @description The name is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is unavailable or read-only. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminActivityTemplateFromActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The updated template */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template or activity is unavailable to this author. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shareAdminActivityTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminActivityTemplateShareRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated sharing state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateResponse"];
+                };
+            };
+            /** @description The organization identity is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template or organization membership is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminActivityTemplateRevisions: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The revision page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateRevisionPage"];
+                };
+            };
+            /** @description The page is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminActivityTemplateRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The revision snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateRevisionDetailsResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The revision is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restoreAdminActivityTemplateRevision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The restored template */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminActivityTemplateResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The revision is unavailable or read-only. */
             404: {
                 headers: {
                     [name: string]: unknown;

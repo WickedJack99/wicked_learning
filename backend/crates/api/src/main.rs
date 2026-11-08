@@ -6,6 +6,7 @@ mod account_password_confirmation;
 mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
+mod admin_activity_templates;
 mod admin_learning_group;
 mod admin_learning_taxonomy;
 mod admin_registration_tokens;
@@ -644,6 +645,13 @@ fn router(state: AppState) -> Router {
             "/api/v1/admin/source-records/{source_id}/versions/{version_id}",
             post(admin_source_records::restore),
         )
+        .route("/api/v1/admin/activity-templates", get(admin_activity_templates::index))
+        .route("/api/v1/admin/world-builder/activities/{activity_id}/templates", post(admin_activity_templates::create))
+        .route("/api/v1/admin/activity-templates/{template_id}", get(admin_activity_templates::show).patch(admin_activity_templates::rename).delete(admin_activity_templates::delete))
+        .route("/api/v1/admin/activity-templates/{template_id}/from-activity/{activity_id}", patch(admin_activity_templates::update_from_activity))
+        .route("/api/v1/admin/activity-templates/{template_id}/sharing", patch(admin_activity_templates::share))
+        .route("/api/v1/admin/activity-templates/{template_id}/revisions", get(admin_activity_templates::revisions))
+        .route("/api/v1/admin/activity-templates/{template_id}/revisions/{revision_id}", get(admin_activity_templates::revision).post(admin_activity_templates::restore))
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}",
             delete(admin_world_activity_delete::delete),
@@ -1732,6 +1740,32 @@ mod tests {
             .expect("World Builder obstacle update response");
 
         assert_eq!(obstacle_update_response.status(), 401);
+
+        let template_list_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/admin/activity-templates?page=1&per_page=8")
+                    .body(Body::empty())
+                    .expect("a valid reusable-template list request"),
+            )
+            .await
+            .expect("reusable-template list response");
+
+        assert_eq!(template_list_response.status(), 401);
+
+        let template_create_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/templates")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"name":"Reusable practice"}"#))
+                    .expect("a valid reusable-template create request"),
+            )
+            .await
+            .expect("reusable-template create response");
+
+        assert_eq!(template_create_response.status(), 401);
 
         let transition_response = router(state)
             .oneshot(

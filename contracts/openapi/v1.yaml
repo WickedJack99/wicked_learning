@@ -1117,6 +1117,86 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The activity version is unknown or outside the caller's authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/activity-templates:
+    get:
+      operationId: getAdminActivityTemplates
+      summary: List private and organization-shared reusable activity templates.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 24, default: 8 } }
+        - { name: search, in: query, schema: { type: string, maxLength: 120 } }
+      responses:
+        '200': { description: A bounded template page visible to this author, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplatePage' } } } }
+        '400': { description: The page or search is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot author activities. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/templates:
+    post:
+      operationId: createAdminActivityTemplate
+      summary: Save an editable activity as a private reusable template.
+      parameters:
+        - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/CsrfTokenHeader' }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateNameRequest' } } } }
+      responses:
+        '201': { description: The new private template, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateResponse' } } } }
+        '400': { description: The name is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unavailable to this author. }
+        '503': { description: The application database is unavailable. }
+  /admin/activity-templates/{template_id}:
+    get:
+      operationId: getAdminActivityTemplate
+      summary: Preview one visible template.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: The source-shaped template snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateDetailsResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The template is unavailable to this author. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: renameAdminActivityTemplate
+      summary: Rename a creator-owned template.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateNameRequest' } } } }
+      responses: { '200': { description: The renamed template., content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateResponse' } } } }, '400': { description: The name is invalid. }, '401': { description: The browser has no authenticated session. }, '403': { description: The same-origin CSRF check failed. }, '404': { description: The template is unavailable or read-only. }, '503': { description: The application database is unavailable. } }
+    delete:
+      operationId: deleteAdminActivityTemplate
+      summary: Delete a creator-owned template and its history.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses: { '204': { description: The template was deleted. }, '401': { description: The browser has no authenticated session. }, '403': { description: The same-origin CSRF check failed. }, '404': { description: The template is unavailable or read-only. }, '503': { description: The application database is unavailable. } }
+  /admin/activity-templates/{template_id}/from-activity/{activity_id}:
+    patch:
+      operationId: updateAdminActivityTemplateFromActivity
+      summary: Replace a creator-owned template snapshot from an editable activity.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses: { '200': { description: The updated template, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateResponse' } } } }, '401': { description: The browser has no authenticated session. }, '403': { description: The same-origin CSRF check failed. }, '404': { description: The template or activity is unavailable to this author. }, '503': { description: The application database is unavailable. } }
+  /admin/activity-templates/{template_id}/sharing:
+    patch:
+      operationId: shareAdminActivityTemplate
+      summary: Share a creator-owned template with one organization membership.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateShareRequest' } } } }
+      responses: { '200': { description: The updated sharing state, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateResponse' } } } }, '400': { description: The organization identity is invalid. }, '401': { description: The browser has no authenticated session. }, '403': { description: The same-origin CSRF check failed. }, '404': { description: The template or organization membership is unavailable. }, '503': { description: The application database is unavailable. } }
+  /admin/activity-templates/{template_id}/revisions:
+    get:
+      operationId: getAdminActivityTemplateRevisions
+      summary: List bounded immutable template history.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: page, in: query, schema: { type: integer, minimum: 1 } }, { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 24, default: 6 } } ]
+      responses: { '200': { description: The revision page, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateRevisionPage' } } } }, '400': { description: The page is invalid. }, '401': { description: The browser has no authenticated session. }, '404': { description: The template is unavailable. }, '503': { description: The application database is unavailable. } }
+  /admin/activity-templates/{template_id}/revisions/{revision_id}:
+    get:
+      operationId: getAdminActivityTemplateRevision
+      summary: Inspect one visible template revision.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: revision_id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { '200': { description: The revision snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateRevisionDetailsResponse' } } } }, '401': { description: The browser has no authenticated session. }, '404': { description: The revision is unavailable. }, '503': { description: The application database is unavailable. } }
+    post:
+      operationId: restoreAdminActivityTemplateRevision
+      summary: Restore a creator-owned template revision while retaining the current snapshot.
+      parameters: [ { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }, { name: revision_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses: { '200': { description: The restored template, content: { application/json: { schema: { $ref: '#/components/schemas/AdminActivityTemplateResponse' } } } }, '401': { description: The browser has no authenticated session. }, '403': { description: The same-origin CSRF check failed. }, '404': { description: The revision is unavailable or read-only. }, '503': { description: The application database is unavailable. } }
   /admin/source-records:
     get:
       operationId: getAdminSourceRecords
@@ -5304,7 +5384,7 @@ components:
           items:
             $ref: '#/components/schemas/PublicWelcomeButton'
         eyebrow: { type: string, maxLength: 120 }
-        title: { type: string, maxLength: 160 }
+        title: { type: string, maxLength: 240 }
     PublicWelcomeButton:
       type: object
       additionalProperties: false
@@ -9325,6 +9405,97 @@ components:
         rights: { type: [string, 'null'] }
         title: { type: string }
         url: { type: string }
+    AdminActivityTemplateOrganization:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 120 }
+    AdminActivityTemplateSummary:
+      type: object
+      additionalProperties: false
+      required: [can_manage, id, name, organization, title, activity_type, updated_at]
+      properties:
+        can_manage: { type: boolean }
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 120 }
+        organization: { oneOf: [ { $ref: '#/components/schemas/AdminActivityTemplateOrganization' }, { type: 'null' } ] }
+        title: { type: string, maxLength: 240 }
+        activity_type: { type: string, maxLength: 80 }
+        updated_at: { type: string, format: date-time }
+    AdminActivityTemplatePagination:
+      type: object
+      additionalProperties: false
+      required: [page, per_page, total, last_page]
+      properties:
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
+    AdminActivityTemplatePage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination, share_targets]
+      properties:
+        items: { type: array, maxItems: 24, items: { $ref: '#/components/schemas/AdminActivityTemplateSummary' } }
+        pagination: { $ref: '#/components/schemas/AdminActivityTemplatePagination' }
+        share_targets: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/AdminActivityTemplateOrganization' } }
+    AdminActivityTemplateDetails:
+      allOf:
+        - $ref: '#/components/schemas/AdminActivityTemplateSummary'
+        - type: object
+          additionalProperties: false
+          required: [snapshot]
+          properties: { snapshot: { type: object, additionalProperties: true } }
+    AdminActivityTemplateResponse:
+      type: object
+      additionalProperties: false
+      required: [template]
+      properties: { template: { $ref: '#/components/schemas/AdminActivityTemplateSummary' } }
+    AdminActivityTemplateDetailsResponse:
+      type: object
+      additionalProperties: false
+      required: [template]
+      properties: { template: { $ref: '#/components/schemas/AdminActivityTemplateDetails' } }
+    AdminActivityTemplateNameRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties: { name: { type: string, minLength: 1, maxLength: 120 } }
+    AdminActivityTemplateShareRequest:
+      type: object
+      additionalProperties: false
+      properties: { organization_id: { type: [string, 'null'], format: uuid } }
+    AdminActivityTemplateRevision:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, name, title, activity_type]
+      properties:
+        id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        name: { type: string, maxLength: 120 }
+        title: { type: string, maxLength: 240 }
+        activity_type: { type: string, maxLength: 80 }
+    AdminActivityTemplateRevisionPage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items: { type: array, maxItems: 24, items: { $ref: '#/components/schemas/AdminActivityTemplateRevision' } }
+        pagination: { $ref: '#/components/schemas/AdminActivityTemplatePagination' }
+    AdminActivityTemplateRevisionDetails:
+      allOf:
+        - $ref: '#/components/schemas/AdminActivityTemplateRevision'
+        - type: object
+          additionalProperties: false
+          required: [snapshot]
+          properties: { snapshot: { type: object, additionalProperties: true } }
+    AdminActivityTemplateRevisionDetailsResponse:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties: { revision: { $ref: '#/components/schemas/AdminActivityTemplateRevisionDetails' } }
     AdminSourceRecordRequest:
       type: object
       additionalProperties: false
