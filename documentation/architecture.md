@@ -378,6 +378,11 @@ Hex-grid placement is a separate scoped map writer. Moving a tile creates a
 snapshot contains node IDs and coordinates only. A swap accepts only one of the
 six source neighbor vectors and an occupied adjacent tile, then uses the same
 locked, collision-safe temporary coordinate transition and outgoing snapshot.
+Insertion is a distinct source workflow: it requires an occupied neighbour,
+locks every node in the map, shifts the contiguous directional chain in reverse
+order, and creates its linked MapAsset/node/draft-route pair in the vacated
+gap. It deliberately does not snapshot a layout, because the membership change
+makes existing snapshots non-restorable by definition.
 Its bounded list and preview reuse the exact `world_maps.ru`
 all/own/assigned/direct-editor scope and mark a snapshot non-restorable after
 node membership changes. Restore locks all nodes, validates complete unique

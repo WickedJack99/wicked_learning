@@ -4,6 +4,8 @@ use serde_json::Value;
 use uuid::Uuid;
 use wicked_learning_domain::identity_access::AuthorizedPrincipal;
 
+use crate::admin_world_map_layout::HexPosition;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorldMapAssetForm {
     pub image_url: Option<String>,
@@ -208,6 +210,14 @@ pub trait AdminWorldMapAssetRepository {
         form: &WorldMapAssetForm,
     ) -> impl Future<Output = Result<Option<CreatedWorldMapAsset>, AdminWorldMapAssetError>> + Send;
 
+    fn insert_map_asset(
+        &self,
+        principal: &AuthorizedPrincipal,
+        origin_node_id: Uuid,
+        direction: HexPosition,
+        form: &WorldMapAssetForm,
+    ) -> impl Future<Output = Result<Option<CreatedWorldMapAsset>, AdminWorldMapAssetError>> + Send;
+
     fn update_map_asset(
         &self,
         principal: &AuthorizedPrincipal,
@@ -324,6 +334,24 @@ where
             .await
     }
 
+    /// Inserts a source MapAsset tile between an existing tile and an occupied
+    /// neighbour. Persistence locks and shifts the complete directional chain
+    /// before it creates the new linked node and route.
+    pub async fn insert(
+        &self,
+        principal: &AuthorizedPrincipal,
+        origin_node_id: Uuid,
+        direction: HexPosition,
+        form: &WorldMapAssetForm,
+    ) -> Result<Option<CreatedWorldMapAsset>, AdminWorldMapAssetError> {
+        if !principal.has_permission("world_maps", "ru") || !direction.is_neighbor_direction() {
+            return Ok(None);
+        }
+        self.repository
+            .insert_map_asset(principal, origin_node_id, direction, form)
+            .await
+    }
+
     pub async fn update(
         &self,
         principal: &AuthorizedPrincipal,
@@ -365,10 +393,11 @@ mod tests {
     use wicked_learning_domain::identity_access::AuthorizedPrincipal;
 
     use super::{
-        AdminWorldMapAssetError, AdminWorldMapAssetHistoryQuery, AdminWorldMapAssetRepository,
-        CreatedWorldMapAsset, MapAssetVersionPage, RestoreWorldMapAssetVersionCommand,
-        RestoredWorldMapAsset, WorldMapAssetForm,
+        AdminWorldMapAssetCommand, AdminWorldMapAssetError, AdminWorldMapAssetHistoryQuery,
+        AdminWorldMapAssetRepository, CreatedWorldMapAsset, MapAssetVersionPage,
+        RestoreWorldMapAssetVersionCommand, RestoredWorldMapAsset, WorldMapAssetForm,
     };
+    use crate::admin_world_map_layout::HexPosition;
 
     struct RecordingRepository {
         called: Arc<AtomicBool>,
@@ -379,6 +408,18 @@ mod tests {
             &self,
             _: &AuthorizedPrincipal,
             _: Uuid,
+            _: &WorldMapAssetForm,
+        ) -> impl Future<Output = Result<Option<CreatedWorldMapAsset>, AdminWorldMapAssetError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn insert_map_asset(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: HexPosition,
             _: &WorldMapAssetForm,
         ) -> impl Future<Output = Result<Option<CreatedWorldMapAsset>, AdminWorldMapAssetError>> + Send
         {
@@ -427,6 +468,50 @@ mod tests {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
+    }
+
+    #[tokio::test]
+    async fn insertion_rejects_read_scope_and_non_neighbor_directions_before_repository_access() {
+        let called = Arc::new(AtomicBool::new(false));
+        let repository = RecordingRepository {
+            called: called.clone(),
+        };
+        let form = WorldMapAssetForm::parse(
+            None,
+            Some("Inserted tile"),
+            50.0,
+            50.0,
+            0,
+            14.0,
+            1.0,
+            false,
+            "focusable",
+            json!({}),
+            json!({}),
+            json!({}),
+        )
+        .expect("valid source MapAsset form");
+        let reader = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_maps:r:all".to_owned()],
+        };
+        let denied = AdminWorldMapAssetCommand::new(&repository)
+            .insert(&reader, Uuid::new_v4(), HexPosition { q: 1, r: 0 }, &form)
+            .await
+            .expect("authorization check");
+        assert!(denied.is_none());
+        let author = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_maps:ru:all".to_owned()],
+        };
+        let invalid = AdminWorldMapAssetCommand::new(&repository)
+            .insert(&author, Uuid::new_v4(), HexPosition { q: 1, r: 1 }, &form)
+            .await
+            .expect("direction check");
+        assert!(invalid.is_none());
+        assert!(!called.load(Ordering::SeqCst));
     }
 
     fn valid_form(mode: &str) -> Option<WorldMapAssetForm> {

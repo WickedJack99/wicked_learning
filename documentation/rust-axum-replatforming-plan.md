@@ -1446,7 +1446,13 @@ one of the source hex grid's six directions: the writer requires an occupied
 neighbor, locks both map nodes, snapshots the outgoing layout and completes the
 exchange through the same collision-free temporary coordinate range. Its browser
 proof creates a disposable pair, swaps it, verifies the saved history entry and
-removes the map.
+removes the map. The adjacent-edge insert command is also available through the
+existing MapAsset authoring surface. It requires an occupied neighbor, locks the
+whole map, shifts the contiguous source hex chain in reverse order and creates
+a new MapAsset, linked tile and draft route atomically in the gap. Insertion
+does not create a layout revision because it changes membership; its browser
+proof verifies the origin, inserted tile and shifted neighbor coordinates, then
+removes the disposable map.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

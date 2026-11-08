@@ -4395,22 +4395,25 @@ map's unique hex-coordinate constraint.
 **Decision:** The successor records `learning_map_layout_versions` before each
 real scoped tile move, adjacent swap and successful restore. An adjacent swap
 accepts only one of the source's six neighbor vectors and an occupied target.
-List, preview and restore reuse `world_maps.ru`
-all/own/assigned/direct-editor authorization for the same map. A restore or
-swap locks the affected map nodes, snapshots the outgoing layout, passes them
-through a collision-free temporary range and writes the selected positions
-atomically. The lifted side-panel controls expose integer tile placement,
-available-neighbor swap controls, bounded history, preview and restore
-confirmation.
+Adjacent insertion instead requires an occupied target, locks the map's tiles,
+shifts the contiguous directional chain in reverse order, and creates a linked
+MapAsset/tile/draft-route pair in the gap without a layout revision: it changes
+membership, so existing snapshots must become non-restorable. List, preview
+and restore reuse `world_maps.ru` all/own/assigned/direct-editor authorization
+for the same map. A restore or swap locks the affected map nodes, snapshots the
+outgoing layout, passes them through a collision-free temporary range and
+writes the selected positions atomically. The lifted side-panel controls expose
+integer tile placement, available-neighbor swap and insert controls, bounded
+history, preview and restore confirmation.
 
 **Why:** This retains the Laravel rollback boundary while preserving relational
 integrity and keeping placement deliberately separate from other map history.
 
 **Evidence and limits:** Migration, generated OpenAPI types, application scope
 and bounds tests, focused Rust checks, frontend build and credential-gated
-browser move/preview/restore and adjacent-swap/cleanup proofs cover the slice.
-It does not add a map backup or restore node content, MapAssets, access, media
-or learner data.
+browser move/preview/restore, adjacent-swap/cleanup and adjacent-insertion
+chain/cleanup proofs cover the slice. It does not add a map backup or restore
+node content, MapAssets, access, media or learner data.
 
 ## Phase 1 gate
 

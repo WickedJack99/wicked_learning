@@ -11,6 +11,7 @@ use wicked_learning_application::admin_world_map_asset::{
     AdminWorldMapAssetCommand, AdminWorldMapAssetHistoryQuery, MapAssetVersionPage,
     RestoreWorldMapAssetVersionCommand, WorldMapAssetForm,
 };
+use wicked_learning_application::admin_world_map_layout::HexPosition;
 use wicked_learning_persistence::admin_world_map_asset::PostgresAdminWorldMapAssetRepository;
 
 use crate::{
@@ -42,6 +43,18 @@ pub struct MapAssetRequest {
 pub struct CreateMapAssetResponse {
     pub asset_id: Uuid,
     pub node_id: Uuid,
+}
+
+#[derive(Deserialize)]
+pub struct InsertMapAssetRequest {
+    direction: InsertDirectionRequest,
+    asset: MapAssetRequest,
+}
+
+#[derive(Deserialize)]
+pub struct InsertDirectionRequest {
+    q: i32,
+    r: i32,
 }
 
 #[derive(Deserialize)]
@@ -143,6 +156,42 @@ pub async fn create(
     let repository = PostgresAdminWorldMapAssetRepository::new(&state.application_database);
     let created = AdminWorldMapAssetCommand::new(&repository)
         .create(&principal, map_id, &form)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    Ok((
+        StatusCode::CREATED,
+        Json(CreateMapAssetResponse {
+            asset_id: created.asset_id,
+            node_id: created.node_id,
+        }),
+    ))
+}
+
+/// Inserts a new source MapAsset tile between an existing tile and an occupied
+/// neighbour, shifting that complete directional chain atomically.
+pub async fn insert(
+    State(state): State<AppState>,
+    Path(node_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<InsertMapAssetRequest>,
+) -> Result<(StatusCode, Json<CreateMapAssetResponse>), ApiError> {
+    let node_id = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let direction = HexPosition {
+        q: request.direction.q,
+        r: request.direction.r,
+    };
+    if !direction.is_neighbor_direction() {
+        return Err(ApiError::invalid_request());
+    }
+    let form = form(request.asset)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresAdminWorldMapAssetRepository::new(&state.application_database);
+    let created = AdminWorldMapAssetCommand::new(&repository)
+        .insert(&principal, node_id, direction, &form)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .ok_or_else(ApiError::not_found)?;

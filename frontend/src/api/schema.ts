@@ -1284,6 +1284,26 @@ export interface paths {
         patch: operations["swapAdminWorldBuilderNodePosition"];
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/insert-map-asset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Insert a source MapAsset tile between adjacent hex-grid neighbors.
+         * @description Requires the source world-map update permission and scoped map-editor policy. The occupied directional chain is shifted atomically before the new MapAsset, linked node, and draft route are created.
+         */
+        post: operations["insertAdminWorldBuilderMapAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/graph-position": {
         parameters: {
             query?: never;
@@ -7551,6 +7571,10 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        InsertAdminWorldMapAssetRequest: {
+            direction: components["schemas"]["AdminMapLayoutDirection"];
+            asset: components["schemas"]["UpsertAdminWorldMapAssetRequest"];
+        };
         CreateAdminWorldMapAssetResponse: {
             /** Format: uuid */
             asset_id: string;
@@ -13225,6 +13249,70 @@ export interface operations {
                 content?: never;
             };
             /** @description The node or requested neighbor is unavailable through source map-editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    insertAdminWorldBuilderMapAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InsertAdminWorldMapAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description The MapAsset was inserted and the affected tile chain was shifted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminWorldMapAssetResponse"];
+                };
+            };
+            /** @description The direction is not one of the six adjacent hex directions or the MapAsset form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node */
             404: {
                 headers: {
                     [name: string]: unknown;

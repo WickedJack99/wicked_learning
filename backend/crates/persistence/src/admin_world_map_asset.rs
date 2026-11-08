@@ -5,6 +5,7 @@ use wicked_learning_application::admin_world_map_asset::{
     AdminWorldMapAssetError, AdminWorldMapAssetRepository as Port, CreatedWorldMapAsset,
     MapAssetVersion, MapAssetVersionPage, RestoredWorldMapAsset, WorldMapAssetForm,
 };
+use wicked_learning_application::admin_world_map_layout::HexPosition;
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
 const MEDIA_ASSET_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
@@ -32,6 +33,22 @@ impl Port for PostgresAdminWorldMapAssetRepository<'_> {
     > + Send {
         async move {
             create(self.pool, principal, map_id, form)
+                .await
+                .map_err(unavailable)
+        }
+    }
+
+    fn insert_map_asset(
+        &self,
+        principal: &AuthorizedPrincipal,
+        origin_node_id: Uuid,
+        direction: HexPosition,
+        form: &WorldMapAssetForm,
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedWorldMapAsset>, AdminWorldMapAssetError>,
+    > + Send {
+        async move {
+            insert(self.pool, principal, origin_node_id, direction, form)
                 .await
                 .map_err(unavailable)
         }
@@ -111,6 +128,13 @@ struct ScopedAsset {
 }
 
 #[derive(FromRow)]
+struct PositionedNode {
+    id: Uuid,
+    q: i32,
+    r: i32,
+}
+
+#[derive(FromRow)]
 struct AssetSnapshot {
     map_id: Uuid,
     creator_id: Option<Uuid>,
@@ -169,30 +193,119 @@ async fn create(
         return Ok(None);
     }
 
-    let title = form.text.as_deref().unwrap_or("MapAsset");
-    let asset_id = Uuid::new_v4();
-    let node_id = Uuid::new_v4();
-    let route_id = Uuid::new_v4();
-    let asset_slug = unique_slug(&mut tx, map_id, "map-asset", "learning_map_assets").await?;
-    let node_slug = unique_slug(&mut tx, map_id, "map-asset", "learning_nodes").await?;
-    let route_slug = "map-asset";
     let position_q: i32 = sqlx::query_scalar(
         "SELECT COALESCE(MAX(position_q), -1) + 1 FROM learning_nodes WHERE map_id = $1 AND position_r = 0",
     )
     .bind(map_id)
     .fetch_one(&mut *tx)
     .await?;
-    let visual_config = normalized_visual_config(&mut tx, &form.visual_config).await?;
-
-    sqlx::query("INSERT INTO learning_map_assets (id, map_id, slug, title, description, image_url, text, position_x, position_y, position_z, interaction_mode, published_at, width, opacity, locked, visual_config, interaction_config, sound_config) VALUES ($1, $2, $3, $4, '', $5, $6, $7, $8, $9, $10, NULL, $11, $12, $13, $14, $15, $16)")
-        .bind(asset_id).bind(map_id).bind(asset_slug).bind(title).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(&form.interaction_mode).bind(form.width).bind(form.opacity).bind(form.locked).bind(Json(&visual_config)).bind(Json(&form.interaction_config)).bind(Json(&form.sound_config)).execute(&mut *tx).await?;
-    sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at) VALUES ($1, $2, $3, $4, $5, '', $6, 0, 'available', $7, NULL)")
-        .bind(node_id).bind(map_id).bind(asset_id).bind(node_slug).bind(title).bind(position_q).bind(Json(&visual_config)).execute(&mut *tx).await?;
-    sqlx::query("INSERT INTO learning_routes (id, map_asset_id, slug, title, description, position, published_at) VALUES ($1, $2, $3, $4, '', 0, NULL)")
-        .bind(route_id).bind(asset_id).bind(route_slug).bind(title).execute(&mut *tx).await?;
-    synchronize_media_references(&mut tx, asset_id, form).await?;
+    let created = create_at(&mut tx, map_id, form, position_q, 0).await?;
     tx.commit().await?;
-    Ok(Some(CreatedWorldMapAsset { asset_id, node_id }))
+    Ok(Some(created))
+}
+
+/// Mirrors Laravel's `insertAtNeighbor`: only an occupied neighbouring cell
+/// may be split, and every tile in that direction moves one cell away before
+/// the new node/MapAsset pair occupies the gap.
+async fn insert(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    origin_node_id: Uuid,
+    direction: HexPosition,
+    form: &WorldMapAssetForm,
+) -> Result<Option<CreatedWorldMapAsset>, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let Some(principal_id) = principal_id(&mut tx, principal).await? else {
+        return Ok(None);
+    };
+    let origin: Option<(Uuid, i32, i32)> = sqlx::query_as(
+        "SELECT map_id, position_q, position_r FROM learning_nodes WHERE id = $1 FOR UPDATE",
+    )
+    .bind(origin_node_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    let Some((map_id, origin_q, origin_r)) = origin else {
+        return Ok(None);
+    };
+    let Some(map) = sqlx::query_as::<_, ScopedMap>(
+        "SELECT created_by_principal_id AS creator_id FROM learning_maps WHERE id = $1 FOR UPDATE",
+    )
+    .bind(map_id)
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        return Ok(None);
+    };
+    if !editable(&mut tx, principal, principal_id, map_id, map.creator_id).await? {
+        return Ok(None);
+    }
+    let nodes = sqlx::query_as::<_, PositionedNode>(
+        "SELECT id, position_q AS q, position_r AS r FROM learning_nodes WHERE map_id = $1 FOR UPDATE",
+    )
+    .bind(map_id)
+    .fetch_all(&mut *tx)
+    .await?;
+    let insert_q = origin_q
+        .checked_add(direction.q)
+        .ok_or_else(|| sqlx::Error::Protocol("hex insertion coordinate overflow".into()))?;
+    let insert_r = origin_r
+        .checked_add(direction.r)
+        .ok_or_else(|| sqlx::Error::Protocol("hex insertion coordinate overflow".into()))?;
+    let mut chain = Vec::new();
+    let mut q = insert_q;
+    let mut r = insert_r;
+    loop {
+        let Some(node) = nodes.iter().find(|node| node.q == q && node.r == r) else {
+            break;
+        };
+        chain.push(node);
+        q = q
+            .checked_add(direction.q)
+            .ok_or_else(|| sqlx::Error::Protocol("hex insertion coordinate overflow".into()))?;
+        r = r
+            .checked_add(direction.r)
+            .ok_or_else(|| sqlx::Error::Protocol("hex insertion coordinate overflow".into()))?;
+    }
+    if chain.is_empty() {
+        return Ok(None);
+    }
+    for node in chain.into_iter().rev() {
+        sqlx::query(
+            "UPDATE learning_nodes SET position_q = $2, position_r = $3, updated_at = NOW() WHERE id = $1",
+        )
+        .bind(node.id)
+        .bind(node.q.checked_add(direction.q).ok_or_else(|| sqlx::Error::Protocol("hex insertion coordinate overflow".into()))?)
+        .bind(node.r.checked_add(direction.r).ok_or_else(|| sqlx::Error::Protocol("hex insertion coordinate overflow".into()))?)
+        .execute(&mut *tx)
+        .await?;
+    }
+    let created = create_at(&mut tx, map_id, form, insert_q, insert_r).await?;
+    tx.commit().await?;
+    Ok(Some(created))
+}
+
+async fn create_at(
+    tx: &mut Transaction<'_, Postgres>,
+    map_id: Uuid,
+    form: &WorldMapAssetForm,
+    position_q: i32,
+    position_r: i32,
+) -> Result<CreatedWorldMapAsset, sqlx::Error> {
+    let title = form.text.as_deref().unwrap_or("MapAsset");
+    let asset_id = Uuid::new_v4();
+    let node_id = Uuid::new_v4();
+    let route_id = Uuid::new_v4();
+    let asset_slug = unique_slug(tx, map_id, "map-asset", "learning_map_assets").await?;
+    let node_slug = unique_slug(tx, map_id, "map-asset", "learning_nodes").await?;
+    let visual_config = normalized_visual_config(tx, &form.visual_config).await?;
+    sqlx::query("INSERT INTO learning_map_assets (id, map_id, slug, title, description, image_url, text, position_x, position_y, position_z, interaction_mode, published_at, width, opacity, locked, visual_config, interaction_config, sound_config) VALUES ($1, $2, $3, $4, '', $5, $6, $7, $8, $9, $10, NULL, $11, $12, $13, $14, $15, $16)")
+        .bind(asset_id).bind(map_id).bind(asset_slug).bind(title).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(&form.interaction_mode).bind(form.width).bind(form.opacity).bind(form.locked).bind(Json(&visual_config)).bind(Json(&form.interaction_config)).bind(Json(&form.sound_config)).execute(&mut **tx).await?;
+    sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at) VALUES ($1, $2, $3, $4, $5, '', $6, $7, 'available', $8, NULL)")
+        .bind(node_id).bind(map_id).bind(asset_id).bind(node_slug).bind(title).bind(position_q).bind(position_r).bind(Json(&visual_config)).execute(&mut **tx).await?;
+    sqlx::query("INSERT INTO learning_routes (id, map_asset_id, slug, title, description, position, published_at) VALUES ($1, $2, $3, $4, '', 0, NULL)")
+        .bind(route_id).bind(asset_id).bind("map-asset").bind(title).execute(&mut **tx).await?;
+    synchronize_media_references(tx, asset_id, form).await?;
+    Ok(CreatedWorldMapAsset { asset_id, node_id })
 }
 
 async fn update(

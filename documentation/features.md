@@ -833,6 +833,11 @@ later save cannot silently overwrite that change.
 Node placement edits also keep a bounded, paginated layout history. Authors can
 move a tile directly or swap it with an occupied adjacent hex tile in one of the
 source's six directions; each real change retains the outgoing arrangement.
+Where two adjacent tiles already occupy an edge, authors can also insert a new
+MapAsset tile between them. The complete occupied chain in that direction moves
+one hex away atomically, leaving the new tile in the gap. Because insertion
+changes tile membership rather than moving an existing arrangement, it does not
+claim to be a reversible layout-history edit.
 Authors can restore an earlier arrangement of the existing nodes without
 changing their content. The history view marks entries unavailable after nodes
 have been added or removed, and authors can preview a saved arrangement's

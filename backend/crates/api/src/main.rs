@@ -790,6 +790,10 @@ fn router(state: AppState) -> Router {
             patch(admin_world_map_layout::swap_node),
         )
         .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/insert-map-asset",
+            post(admin_world_map_asset::insert),
+        )
+        .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/graph-position",
             patch(admin_world_activity_position::update),
         )

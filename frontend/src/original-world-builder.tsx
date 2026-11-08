@@ -3243,6 +3243,38 @@ function MapNodeSwapControls({
     return <div className="border-t border-slate-200 px-3 py-2 dark:border-white/10"><p className="text-xs text-slate-500 dark:text-slate-400">Swap with neighboring hex tile</p><div className="mt-1 flex flex-wrap gap-1">{neighbors.map((direction) => { const neighbor = nodes.find((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r)!; return <button aria-label={`Swap ${node.title} with ${neighbor.title} ${direction.label}`} className="grid size-7 place-items-center rounded-full border border-teal-700/35 text-teal-700 hover:bg-teal-50 disabled:opacity-50 dark:border-teal-300/35 dark:text-teal-300 dark:hover:bg-teal-300/10" data-wl-id={`authoring.map-node-swap.${node.id}.${direction.q}.${direction.r}`} disabled={swapping !== null} key={direction.label} onClick={() => void swap(direction)} title={`Swap with ${neighbor.title} ${direction.label}`} type="button"><ArrowRight className="size-4" style={{ transform: `rotate(${direction.rotation}deg)` }} /></button>; })}</div>{error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300" role="status">The adjacent tiles could not be swapped. Refresh the map and try again.</p> : null}</div>;
 }
 
+function MapNodeInsertControls({
+    node,
+    nodes,
+    onInserted,
+}: {
+    node: components['schemas']['AdminNodeSummary'];
+    nodes: components['schemas']['AdminNodeSummary'][];
+    onInserted: () => void;
+}) {
+    const [inserting, setInserting] = useState<string | null>(null);
+    const [error, setError] = useState(false);
+    const insert = async (direction: (typeof hexDirections)[number]) => {
+        const neighbor = nodes.find((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r);
+        if (!neighbor) return;
+        setInserting(direction.label);
+        setError(false);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/insert-map-asset', { body: { direction: { q: direction.q, r: direction.r }, asset: defaultMapAssetRequest() }, params: { header: { 'X-CSRF-Token': token }, path: { node_id: node.id } } });
+            if (!response.ok) throw new Error('insertion unavailable');
+            onInserted();
+        } catch {
+            setError(true);
+        } finally {
+            setInserting(null);
+        }
+    };
+    const directions = hexDirections.filter((direction) => nodes.some((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r) && node.id < nodes.find((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r)!.id);
+    if (directions.length === 0) return null;
+    return <div className="border-t border-slate-200 px-3 py-2 dark:border-white/10"><p className="text-xs text-slate-500 dark:text-slate-400">Insert a MapAsset between adjacent hex tiles</p><div className="mt-1 flex flex-wrap gap-1">{directions.map((direction) => { const neighbor = nodes.find((candidate) => candidate.position.q === node.position.q + direction.q && candidate.position.r === node.position.r + direction.r)!; return <button aria-label={`Insert MapAsset between ${node.title} and ${neighbor.title}`} className="grid size-7 place-items-center rounded-full border border-teal-700/35 text-teal-700 hover:bg-teal-50 disabled:opacity-50 dark:border-teal-300/35 dark:text-teal-300 dark:hover:bg-teal-300/10" data-wl-id={`authoring.map-node-insert.${node.id}.${direction.q}.${direction.r}`} disabled={inserting !== null} key={direction.label} onClick={() => void insert(direction)} title={`Insert between ${node.title} and ${neighbor.title}`} type="button"><Plus className="size-4" /></button>; })}</div>{error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300" role="status">The MapAsset could not be inserted. Refresh the map and try again.</p> : null}</div>;
+}
+
 function MapLayoutHistoryDialog({ map, onClose, onRestored }: { map: EditableMap['editable_map']['map']; onClose: () => void; onRestored: () => void }) {
     const [history, setHistory] = useState<MapLayoutVersionPage | null>(null);
     const [preview, setPreview] = useState<MapLayoutPreviewPage | null>(null);
@@ -3406,6 +3438,7 @@ function MapDetails({
                             <button className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => onSelectNode(node.id)} type="button"><span className="block font-medium">{node.title}</span><span className="text-xs text-slate-500 dark:text-slate-400">{node.activity_review_count} activities awaiting review</span></button>
                             <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"><span className="text-slate-500 dark:text-slate-400">Hex ({node.position.q}, {node.position.r})</span><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-position.${node.id}`} onClick={() => setPlacementNode(node)} type="button">Place tile</button></div>
                             <MapNodeSwapControls node={node} nodes={map.nodes} onSwapped={onUpdated} />
+                            <MapNodeInsertControls node={node} nodes={map.nodes} onInserted={onUpdated} />
                         </div>
                     ))}
                 </div>

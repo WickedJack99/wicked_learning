@@ -1688,6 +1688,33 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The node or requested neighbor is unavailable through source map-editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/insert-map-asset:
+    post:
+      operationId: insertAdminWorldBuilderMapAsset
+      summary: Insert a source MapAsset tile between adjacent hex-grid neighbors.
+      description: Requires the source world-map update permission and scoped map-editor policy. The occupied directional chain is shifted atomically before the new MapAsset, linked node, and draft route are created.
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsertAdminWorldMapAssetRequest' }
+      responses:
+        '201':
+          description: The MapAsset was inserted and the affected tile chain was shifted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateAdminWorldMapAssetResponse' }
+        '400': { description: The direction is not one of the six adjacent hex directions or the MapAsset form is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The node, requested neighbor, or scoped map editor access is unavailable. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/graph-position:
     patch:
       operationId: updateAdminWorldBuilderActivityGraphPosition
@@ -10642,6 +10669,13 @@ components:
         interaction_config: { type: object, additionalProperties: true }
         visual_config: { type: object, additionalProperties: true }
         sound_config: { type: object, additionalProperties: true }
+    InsertAdminWorldMapAssetRequest:
+      type: object
+      additionalProperties: false
+      required: [direction, asset]
+      properties:
+        direction: { $ref: '#/components/schemas/AdminMapLayoutDirection' }
+        asset: { $ref: '#/components/schemas/UpsertAdminWorldMapAssetRequest' }
     CreateAdminWorldMapAssetResponse:
       type: object
       additionalProperties: false
