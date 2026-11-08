@@ -178,6 +178,14 @@ impl ApiError {
         }
     }
 
+    pub fn ai_review_rejected() -> Self {
+        Self {
+            code: "ai_review_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The activity review could not be completed safely.",
+        }
+    }
+
     pub fn too_many_requests() -> Self {
         Self {
             code: "rate_limited",

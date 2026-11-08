@@ -20,6 +20,8 @@ pub struct EncryptedAiCredential {
 pub enum AiCredentialCipherError {
     #[error("could not encrypt the provider credential")]
     Encryption,
+    #[error("could not decrypt the provider credential")]
+    Decryption,
 }
 
 impl AiCredentialCipher {
@@ -39,6 +41,18 @@ impl AiCredentialCipher {
             nonce: nonce.into(),
         })
     }
+
+    pub fn decrypt(
+        &self,
+        ciphertext: &[u8],
+        nonce: &[u8],
+    ) -> Result<Vec<u8>, AiCredentialCipherError> {
+        let cipher = Aes256Gcm::new_from_slice(&self.key)
+            .expect("a 32-byte key is always valid for AES-256-GCM");
+        cipher
+            .decrypt(aes_gcm::Nonce::from_slice(nonce), ciphertext)
+            .map_err(|_| AiCredentialCipherError::Decryption)
+    }
 }
 
 #[cfg(test)]
@@ -52,5 +66,11 @@ mod tests {
         let second = cipher.encrypt(b"not-serialized-key").expect("encrypt");
         assert_ne!(first.nonce, second.nonce);
         assert_ne!(first.ciphertext, b"not-serialized-key");
+        assert_eq!(
+            cipher
+                .decrypt(&first.ciphertext, &first.nonce)
+                .expect("decrypt"),
+            b"not-serialized-key"
+        );
     }
 }

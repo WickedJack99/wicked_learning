@@ -859,6 +859,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderActivityGraphPosition"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/ai-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request one guarded, non-grading AI review for an editable activity.
+         * @description The backend sends only the source-bounded activity context to a configured review helper, validates its versioned structured output, and records an immutable review run. It never applies model suggestions to activity content.
+         */
+        post: operations["createAdminWorldBuilderActivityAiReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/versions": {
         parameters: {
             query?: never;
@@ -7634,6 +7654,21 @@ export interface components {
             name: string;
             provider_label: string | null;
         };
+        ReviewAdminActivityAiRequest: {
+            /** Format: uuid */
+            template_id: string;
+        };
+        ReviewAdminActivityAiResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** @enum {string} */
+            ai_review_status: "reviewed";
+            /** Format: date-time */
+            ai_reviewed_at: string;
+            ai_review: {
+                [key: string]: unknown;
+            };
+        };
         AdminActivityPortalCandidate: {
             /** Format: uuid */
             id: string;
@@ -10788,6 +10823,70 @@ export interface operations {
             };
             /** @description The activity is unknown or outside the caller's authoring scope. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderActivityAiReview: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewAdminActivityAiRequest"];
+            };
+        };
+        responses: {
+            /** @description The validated review record now attached to the activity. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAdminActivityAiResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The caller lacks AI update permission or the same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity or enabled review helper is unavailable in the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The provider response failed the strict activity-review contract. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

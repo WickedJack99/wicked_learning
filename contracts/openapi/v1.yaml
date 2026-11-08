@@ -1159,6 +1159,36 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/ai-review:
+    post:
+      operationId: createAdminWorldBuilderActivityAiReview
+      summary: Request one guarded, non-grading AI review for an editable activity.
+      description: >-
+        The backend sends only the source-bounded activity context to a configured
+        review helper, validates its versioned structured output, and records an
+        immutable review run. It never applies model suggestions to activity content.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReviewAdminActivityAiRequest' }
+      responses:
+        '200':
+          description: The validated review record now attached to the activity.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewAdminActivityAiResponse' }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The caller lacks AI update permission or the same-origin CSRF check failed. }
+        '404': { description: The activity or enabled review helper is unavailable in the caller's authoring scope. }
+        '422': { description: The provider response failed the strict activity-review contract. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/versions:
     get:
       operationId: getAdminWorldBuilderActivityVersions
@@ -10740,6 +10770,21 @@ components:
         model: { type: [string, 'null'] }
         name: { type: string }
         provider_label: { type: [string, 'null'] }
+    ReviewAdminActivityAiRequest:
+      type: object
+      additionalProperties: false
+      required: [template_id]
+      properties:
+        template_id: { type: string, format: uuid }
+    ReviewAdminActivityAiResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, ai_review_status, ai_reviewed_at, ai_review]
+      properties:
+        activity_id: { type: string, format: uuid }
+        ai_review_status: { type: string, enum: [reviewed] }
+        ai_reviewed_at: { type: string, format: date-time }
+        ai_review: { type: object, additionalProperties: true }
     AdminActivityPortalCandidate:
       type: object
       additionalProperties: false

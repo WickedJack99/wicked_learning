@@ -3,6 +3,7 @@
 pub mod access_link;
 pub mod account_deletion;
 pub mod account_profile;
+pub mod admin_activity_ai_review;
 pub mod admin_activity_templates;
 pub mod admin_ai_settings;
 pub mod admin_learning_group;

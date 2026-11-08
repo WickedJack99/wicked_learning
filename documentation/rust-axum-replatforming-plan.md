@@ -951,10 +951,17 @@ credentials and reusable agent templates are now available at
 templates and Guardrails sections use typed Rust contracts and the source
 `ai.ro`/`ai.ru`/`ai.rud` permission levels. Provider key plaintext is encrypted
 with purpose-separated server-side material and is never read back into the
-browser; deleting a provider detaches its templates. This is configuration
-only: it does not invoke a model provider, expose an enabled review helper, or
-write review results. Guarded execution and source-metadata suggestion
-application remain separate AI slices; unlock diagnostics also remain
+browser; deleting a provider detaches its templates. An author with both the
+source-scoped `world_activities` and `ai.ru` grants can now choose an enabled
+`activity_review` helper from the selected-node editor and request `POST
+/api/v1/admin/world-builder/activities/{activity_id}/ai-review`. The backend
+alone decrypts its provider key, submits only the source-bounded activity
+context and the strict versioned review schema, validates every model field
+before writing the activity's review record and immutable run, and never sends
+learner data. The source-derived dialog makes clear that the result is an
+authoring aid rather than a learner grade. It displays suggestions but cannot
+apply proposed metadata or alter activity content; source-metadata suggestion
+application remains a separate AI slice. Unlock diagnostics also remain
 unavailable.
 The first graph mutation is now available at `PATCH
 /api/v1/admin/world-builder/nodes/{node_id}/activity-graph-layout`: it preserves

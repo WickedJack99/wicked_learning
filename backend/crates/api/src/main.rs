@@ -18,6 +18,7 @@ mod admin_role;
 mod admin_source_records;
 mod admin_topics;
 mod admin_user;
+mod admin_world_activity_ai_review;
 mod admin_world_activity_delete;
 mod admin_world_activity_history;
 mod admin_world_activity_position;
@@ -48,6 +49,7 @@ mod admin_world_review_queue;
 mod admin_world_shared_task;
 mod admin_world_tool_grant;
 mod ai_credential_crypto;
+mod ai_provider;
 mod bootstrap;
 mod config;
 mod csrf;
@@ -674,6 +676,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/graph-position",
             patch(admin_world_activity_position::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/ai-review",
+            post(admin_world_activity_ai_review::create),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/versions",
@@ -1723,6 +1729,20 @@ mod tests {
             .expect("World Builder activity-position response");
 
         assert_eq!(position_response.status(), 401);
+
+        let ai_review_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/ai-review")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"template_id":"00000000-0000-4000-8000-000000000008"}"#))
+                    .expect("a valid World Builder AI-review request"),
+            )
+            .await
+            .expect("World Builder AI-review response");
+
+        assert_eq!(ai_review_response.status(), 401);
 
         let delete_response = router(state.clone())
             .oneshot(

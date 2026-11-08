@@ -22,6 +22,7 @@ import {
     Plus,
     RefreshCw,
     Route,
+    Sparkles,
     Trash2,
     X,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
+import { OriginalActivityAiReviewDialog } from './original-activity-ai-review';
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
 import { OriginalNpcDialogueEditor } from './original-npc-dialogue-editor';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
@@ -63,8 +65,10 @@ type WorldMapNodeData = {
 
 type ActivityNodeData = {
     activity: Activity;
+    canReview: boolean;
     onDelete: (activity: Activity) => void;
     onHistory: (activity: Activity) => void;
+    onReview: (activity: Activity) => void;
     onSaveTemplate: (activity: Activity) => void;
     onUpdateTemplate: (activity: Activity) => void;
 };
@@ -2579,6 +2583,7 @@ function ActivityGraph({
     const [historyActivity, setHistoryActivity] = useState<Activity | null>(
         null,
     );
+    const [reviewActivity, setReviewActivity] = useState<Activity | null>(null);
     const [templateDialog, setTemplateDialog] = useState<{
         activity?: Activity;
         mode: 'library' | 'save' | 'update';
@@ -2604,8 +2609,10 @@ function ActivityGraph({
                 type: 'activity',
                 data: {
                     activity,
+                    canReview: graph.can_manage_ai_review,
                     onDelete: setPendingDelete,
                     onHistory: setHistoryActivity,
+                    onReview: setReviewActivity,
                     onSaveTemplate: (candidate) =>
                         setTemplateDialog({
                             activity: candidate,
@@ -3185,6 +3192,14 @@ function ActivityGraph({
                     }}
                 />
             ) : null}
+            {reviewActivity ? (
+                <OriginalActivityAiReviewDialog
+                    activity={reviewActivity}
+                    onClose={() => setReviewActivity(null)}
+                    onReviewed={onReload}
+                    templates={graph.ai_review_templates}
+                />
+            ) : null}
             {templateDialog ? (
                 <OriginalActivityTemplatesDialog
                     activity={templateDialog.activity}
@@ -3290,6 +3305,19 @@ function ActivityGraphCard({
             >
                 Activity history
             </button>
+            {data.canReview && data.activity.ai_review_status === 'needs_review' ? (
+                <button
+                    className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-800 hover:bg-violet-50 dark:text-violet-200 dark:hover:bg-violet-300/10"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        data.onReview(activity);
+                    }}
+                    type="button"
+                >
+                    <Sparkles className="size-3" />
+                    Review activity
+                </button>
+            ) : null}
             {activity.activity_type !== 'npc_dialogue' ? (
                 <div className="mt-1 flex flex-wrap gap-1">
                     <button

@@ -10,11 +10,11 @@ use wicked_learning_domain::{
         AdminActivityConnector, AdminActivityConnectors, AdminActivityGraph, AdminActivityGraphMap,
         AdminActivityGraphNode, AdminActivityGraphPosition, AdminActivityGraphWorld,
         AdminActivityPortalCandidate, AdminActivityPortalLink, AdminActivityPortalTargetActivity,
-        AdminActivityPortalTargetNode, AdminActivityReviewHistoryEntry, AdminActivityStartRoute,
-        AdminActivityTransition, AdminActivityTypeDefinition, AdminEditableActivity,
-        AdminEditableItem, AdminEditableNode, AdminEditableSound, AdminEditableTool,
-        AdminMessageTopicOption, AdminPortalMode, AdminSourceRecord, AdminSourceRecordPage,
-        AdminSourceRecordPagination,
+        AdminActivityPortalTargetNode, AdminActivityReviewHistoryEntry,
+        AdminActivityReviewTemplate, AdminActivityStartRoute, AdminActivityTransition,
+        AdminActivityTypeDefinition, AdminEditableActivity, AdminEditableItem, AdminEditableNode,
+        AdminEditableSound, AdminEditableTool, AdminMessageTopicOption, AdminPortalMode,
+        AdminSourceRecord, AdminSourceRecordPage, AdminSourceRecordPagination,
     },
 };
 
@@ -91,6 +91,14 @@ struct ReviewHistoryRow {
     summary: Option<String>,
     provider: String,
     model: Option<String>,
+}
+
+#[derive(FromRow)]
+struct ReviewTemplateRow {
+    id: Uuid,
+    model: Option<String>,
+    name: String,
+    provider_label: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -298,7 +306,11 @@ async fn load_editable_node(
             },
             activity_types: activity_type_definitions(),
             can_manage_ai_review: principal.has_permission("ai", "ru"),
-            ai_review_templates: vec![],
+            ai_review_templates: if principal.has_permission("ai", "ru") {
+                load_review_templates(pool).await?
+            } else {
+                vec![]
+            },
             competence_topic_options: query_names(pool, "SELECT name FROM competence_topic_definitions WHERE is_active ORDER BY name ASC").await?,
             evidence_concept_options: query_names(pool, "SELECT name FROM learning_concepts WHERE is_active ORDER BY name ASC, id ASC LIMIT 200").await?,
             portal_candidates,
@@ -311,6 +323,25 @@ async fn load_editable_node(
         sounds: load_sounds(pool).await?,
         tools: load_tools(pool).await?,
     }))
+}
+
+async fn load_review_templates(
+    pool: &PgPool,
+) -> Result<Vec<AdminActivityReviewTemplate>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, ReviewTemplateRow>(
+        "SELECT templates.id, templates.model, templates.name, providers.label AS provider_label FROM ai_agent_templates AS templates LEFT JOIN ai_provider_credentials AS providers ON providers.id = templates.ai_provider_credential_id WHERE templates.purpose = 'activity_review' AND templates.enabled ORDER BY templates.name ASC, templates.id ASC",
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| AdminActivityReviewTemplate {
+            id: row.id,
+            model: row.model,
+            name: row.name,
+            provider_label: row.provider_label,
+        })
+        .collect())
 }
 
 async fn load_npc_end_connectors(
