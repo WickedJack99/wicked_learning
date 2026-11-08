@@ -64,6 +64,7 @@ approval at that phase boundary.
 - Use the Git CLI for repository operations. Do not depend on the optional GitHub CLI or another Git-specific tool.
 - Treat `main` as the canonical branch and push completed requested changes to `main` unless the user explicitly names another branch.
 - Before committing or pushing, inspect the current branch and configured remote/tracking branch. Do not assume the remote is named `origin` or that an older branch such as `master` is active.
+- For a completed Rust/Axum replatforming slice, commit the verified changes and push them to the active replatform branch (currently `replatform-discovery`) before handing off. This standing replatform instruction overrides the default `main` destination; do not wait for a separate push request.
 
 ## Performance and scalability
 
