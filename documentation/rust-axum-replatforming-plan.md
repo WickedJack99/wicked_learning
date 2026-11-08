@@ -444,6 +444,18 @@ The broader media boundary has deliberately not moved: there is no sound
 upload, sound-library/editor UI, arbitrary URL playback, protected audio,
 object storage, or base-obstacle effect playback in this slice.
 
+### Activity scene-ambience authoring slice — 8 November 2026
+
+The source `ActivityAmbientSoundFields` and reusable-sound picker now have a
+Rust/React successor in the World Builder. An author can enable, select,
+preview, pause, stop or clear one reusable sound for any editable activity.
+The typed command accepts only the selected sound UUID and explicit enabled
+state, checks the scoped activity and optimistic timestamp before resolving the
+sound, records the pre-change activity version, and resets the activity review
+state. It deliberately does not accept a browser URL, volume, loop or duration:
+those remain reusable-sound metadata that the bounded learner projection owns.
+Sound upload and library management remain separate media work.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

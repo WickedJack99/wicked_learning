@@ -6,6 +6,7 @@ mod account_password_confirmation;
 mod account_profile;
 mod account_profile_image;
 mod account_two_factor;
+mod admin_activity_ambient_sound;
 mod admin_activity_completion_choice;
 mod admin_activity_evidence_context;
 mod admin_activity_feedback_guidance;
@@ -701,6 +702,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/completion-choice",
             patch(admin_activity_completion_choice::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/ambient-sound",
+            patch(admin_activity_ambient_sound::update),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/source-references",
@@ -1796,6 +1801,20 @@ mod tests {
             .expect("World Builder source-references response");
 
         assert_eq!(source_references_response.status(), 401);
+
+        let ambient_sound_response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000007/ambient-sound")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"enabled":false,"sound_id":null,"updated_at":"2026-11-08T09:00:00.000000Z"}"#))
+                    .expect("a valid World Builder ambient-sound request"),
+            )
+            .await
+            .expect("World Builder ambient-sound response");
+
+        assert_eq!(ambient_sound_response.status(), 401);
 
         let delete_response = router(state.clone())
             .oneshot(

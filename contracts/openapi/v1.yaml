@@ -1308,6 +1308,38 @@ paths:
         '404': { description: The activity is unknown or outside the caller's authoring scope. }
         '409': { description: The activity changed while the author was editing choice context. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/ambient-sound:
+    patch:
+      operationId: updateAdminWorldBuilderActivityAmbientSound
+      summary: Save one reusable scene ambience selection for an editable activity.
+      description: >-
+        Saves only a selected reusable sound UUID and its explicit enabled state.
+        The server verifies that the sound exists after authorizing the activity,
+        records a pre-change version, and resets the activity review state. It
+        never accepts a browser-provided audio URL or playback metadata.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminActivityAmbientSoundRequest' }
+      responses:
+        '200':
+          description: The activity scene ambience was saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminActivityAmbientSoundResponse' }
+        '400': { description: The complete scene-ambience form or selected reusable sound is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The activity is unknown or outside the caller's authoring scope. }
+        '409': { description: The activity changed while the author was editing scene ambience. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/source-references:
     patch:
       operationId: updateAdminWorldBuilderActivitySourceReferences
@@ -11017,6 +11049,21 @@ components:
       properties:
         activity_id: { type: string, format: uuid }
         updated_at: { type: string, format: date-time }
+    UpdateAdminActivityAmbientSoundRequest:
+      type: object
+      additionalProperties: false
+      required: [enabled, sound_id, updated_at]
+      properties:
+        enabled: { type: boolean }
+        sound_id: { type: [string, 'null'], format: uuid }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminActivityAmbientSoundResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
     UpdateAdminActivitySourceReferencesRequest:
       type: object
       additionalProperties: false
@@ -11255,6 +11302,12 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
+        slug: { type: string }
+        icon: { type: [string, 'null'] }
+        url: { type: string }
+        volume: { type: number, minimum: 0, maximum: 100 }
+        play_seconds: { type: [number, 'null'], minimum: 0 }
+        loop_enabled: { type: boolean }
     AdminMediaAssetReferenceGroup:
       type: object
       required: [count, label]

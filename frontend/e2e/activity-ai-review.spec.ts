@@ -48,6 +48,7 @@ test('a local author can open the guarded source-derived activity review dialog'
     expect(nodeResponse.ok()).toBeTruthy();
     const node = await nodeResponse.json() as {
         activity_graph: { activities: Array<{ id: string; updated_at: string }> };
+        sounds: Array<{ id: string; name: string }>;
     };
     const activity = node.activity_graph.activities.find((candidate) => candidate.id === activityId);
     if (!activity) throw new Error('the newly created activity was not returned by the node graph');
@@ -129,6 +130,21 @@ test('a local author can open the guarded source-derived activity review dialog'
         },
     );
     expect(completionChoiceResponse.status()).toBe(200);
+    const completionChoice = await completionChoiceResponse.json() as { updated_at: string };
+    const sound = node.sounds[0];
+    if (!sound) throw new Error('the local World Builder needs one reusable sound');
+    const ambientSoundResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activityId}/ambient-sound`,
+        {
+            data: {
+                enabled: true,
+                sound_id: sound.id,
+                updated_at: completionChoice.updated_at,
+            },
+            headers: { 'X-CSRF-Token': token },
+        },
+    );
+    expect(ambientSoundResponse.status()).toBe(200);
 
     await page.reload();
     const card = page.locator('[data-id]').filter({ hasText: `Review target ${suffix}` });
@@ -153,6 +169,12 @@ test('a local author can open the guarded source-derived activity review dialog'
     await expect(choiceDialog).toBeVisible();
     await expect(choiceDialog.getByDisplayValue('Choose the kind of continuation that supports your next step.')).toBeVisible();
     await choiceDialog.getByRole('button', { name: 'Close choice context' }).click();
+    await card.getByRole('button', { name: 'Scene ambience' }).click();
+    const ambienceDialog = page.locator('[data-wl-id="authoring.activity-ambient-sound"]');
+    await expect(ambienceDialog).toBeVisible();
+    await expect(ambienceDialog.getByText(sound.name, { exact: true })).toBeVisible();
+    await expect(ambienceDialog.getByLabel('Enable scene ambience')).toBeChecked();
+    await ambienceDialog.getByRole('button', { name: 'Close scene ambience' }).click();
     await card.getByRole('button', { name: 'Review activity' }).click();
     const dialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
     await expect(dialog).toBeVisible();

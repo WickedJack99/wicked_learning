@@ -959,6 +959,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderActivityCompletionChoice"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/ambient-sound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save one reusable scene ambience selection for an editable activity.
+         * @description Saves only a selected reusable sound UUID and its explicit enabled state. The server verifies that the sound exists after authorizing the activity, records a pre-change version, and resets the activity review state. It never accepts a browser-provided audio URL or playback metadata.
+         */
+        patch: operations["updateAdminWorldBuilderActivityAmbientSound"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/source-references": {
         parameters: {
             query?: never;
@@ -7826,6 +7846,19 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        UpdateAdminActivityAmbientSoundRequest: {
+            enabled: boolean;
+            /** Format: uuid */
+            sound_id: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminActivityAmbientSoundResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         UpdateAdminActivitySourceReferencesRequest: {
             source_references: components["schemas"]["AdminActivitySourceReferenceInput"][];
             /** Format: date-time */
@@ -7996,6 +8029,12 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+            slug: string;
+            icon: string | null;
+            url: string;
+            volume: number;
+            play_seconds: number | null;
+            loop_enabled: boolean;
         };
         AdminMediaAssetReferenceGroup: {
             count: number;
@@ -11348,6 +11387,77 @@ export interface operations {
                 content?: never;
             };
             /** @description The activity changed while the author was editing choice context. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderActivityAmbientSound: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminActivityAmbientSoundRequest"];
+            };
+        };
+        responses: {
+            /** @description The activity scene ambience was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminActivityAmbientSoundResponse"];
+                };
+            };
+            /** @description The complete scene-ambience form or selected reusable sound is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity is unknown or outside the caller's authoring scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed while the author was editing scene ambience. */
             409: {
                 headers: {
                     [name: string]: unknown;

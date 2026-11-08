@@ -35,6 +35,7 @@ import { OriginalActivityHistoryDialog } from './original-activity-history';
 import { OriginalActivityAiReviewDialog } from './original-activity-ai-review';
 import { OriginalActivityEvidenceContextDialog } from './original-activity-evidence-context';
 import { OriginalActivityCompletionChoiceDialog } from './original-activity-completion-choice';
+import { OriginalActivityAmbientSoundDialog } from './original-activity-ambient-sound-authoring';
 import { OriginalActivityFeedbackGuidanceDialog } from './original-activity-feedback-guidance';
 import {
     OriginalActivityLearningDesignDialog,
@@ -73,6 +74,7 @@ type WorldMapNodeData = {
 
 type ActivityNodeData = {
     activity: Activity;
+    onAmbientSound: (activity: Activity) => void;
     canReview: boolean;
     onDelete: (activity: Activity) => void;
     onEvidenceContext: (activity: Activity) => void;
@@ -2594,6 +2596,7 @@ function ActivityGraph({
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
     const [evidenceContextActivity, setEvidenceContextActivity] = useState<Activity | null>(null);
     const [completionChoiceActivity, setCompletionChoiceActivity] = useState<Activity | null>(null);
+    const [ambientSoundActivity, setAmbientSoundActivity] = useState<Activity | null>(null);
     const [feedbackGuidanceActivity, setFeedbackGuidanceActivity] = useState<Activity | null>(null);
     const [historyActivity, setHistoryActivity] = useState<Activity | null>(
         null,
@@ -2629,6 +2632,7 @@ function ActivityGraph({
                 type: 'activity',
                 data: {
                     activity,
+                    onAmbientSound: setAmbientSoundActivity,
                     canReview: graph.can_manage_ai_review,
                     onDelete: setPendingDelete,
                     onEvidenceContext: setEvidenceContextActivity,
@@ -3242,6 +3246,7 @@ function ActivityGraph({
             ) : null}
             {evidenceContextActivity ? <OriginalActivityEvidenceContextDialog activity={evidenceContextActivity} conceptOptions={graph.evidence_concept_options} onClose={() => setEvidenceContextActivity(null)} onSaved={() => { setEvidenceContextActivity(null); onReload(); }} /> : null}
             {completionChoiceActivity ? <OriginalActivityCompletionChoiceDialog activity={completionChoiceActivity} onClose={() => setCompletionChoiceActivity(null)} onSaved={() => { setCompletionChoiceActivity(null); onReload(); }} /> : null}
+            {ambientSoundActivity ? <OriginalActivityAmbientSoundDialog activity={ambientSoundActivity} onClose={() => setAmbientSoundActivity(null)} onSaved={() => { setAmbientSoundActivity(null); onReload(); }} sounds={document.sounds} /> : null}
             {feedbackGuidanceActivity ? <OriginalActivityFeedbackGuidanceDialog activity={feedbackGuidanceActivity} onClose={() => setFeedbackGuidanceActivity(null)} onSaved={() => { setFeedbackGuidanceActivity(null); onReload(); }} /> : null}
             {sourceReferencesActivity ? (
                 <OriginalActivitySourceReferencesDialog
@@ -3362,6 +3367,7 @@ function ActivityGraphCard({
             </button>
             <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-evidence-context.open" onClick={(event) => { event.stopPropagation(); data.onEvidenceContext(activity); }} type="button">Learner orientation</button>
             <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-completion-choice.open" onClick={(event) => { event.stopPropagation(); data.onCompletionChoice(activity); }} type="button">Choice context</button>
+            <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-ambient-sound.open" onClick={(event) => { event.stopPropagation(); data.onAmbientSound(activity); }} type="button">Scene ambience</button>
             <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-feedback-guidance.open" onClick={(event) => { event.stopPropagation(); data.onFeedbackGuidance(activity); }} type="button">Feedback guidance</button>
             <button
                 className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"

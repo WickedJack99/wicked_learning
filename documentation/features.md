@@ -787,6 +787,9 @@ The World Builder provides:
 - source-adapted reusable visual selection for MapAsset surfaces, route visuals,
   and Obstacle, Tool Grant, Item Grant and Item Obstacle activity scenes; saved
   references protect selected media until the authored owner is removed or changed
+- source-adapted Scene ambience controls on every activity: authors can enable,
+  select, preview or clear one reusable sound; the activity stores only that
+  sound reference and retains the sound's server-owned playback metadata
 - a live MapAsset preview using the learner renderer
 - light/dark map palettes and previewable controls
 - activity, NPC dialogue and Markdown graph editors, plus Portal Entry/Exit
