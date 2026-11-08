@@ -1505,12 +1505,12 @@ manual overrides. The lifted source-styled dialog exposes the `Lock for all
 users` confirmation alongside metadata, tile-presentation, availability and
 interaction-sound edits.
 
-The separate manual override command now sets or revokes a support-issued
-override only for a locked node in the actor's editable-map scope and a learner
-within that actor's `learner_support_signals.ro` all/group/self visibility
-scope. It is backend-only until the full scoped support-signals reader and the
-source-adapted control are lifted; a caller-supplied opaque learner subject is
-only a lookup input and never grants visibility by itself.
+The Learning Support panel now lifts the source manual override control. Its
+scoped read contract projects only locked nodes on maps the current support
+author may edit, alongside learners already visible through the support scope.
+Opening or closing an override still independently rechecks both authorities;
+it does not change discovery or tool-use records or expose a general learner
+lookup.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active

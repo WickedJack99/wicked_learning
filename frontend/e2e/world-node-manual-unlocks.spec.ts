@@ -11,9 +11,6 @@ test('a local support-author can set and revoke a manual node override', async (
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/world$/);
 
-    const currentUser = await page.request.get('/api/v1/me');
-    expect(currentUser.ok()).toBeTruthy();
-    const { subject_id: learnerSubjectId } = (await currentUser.json()) as { subject_id: string };
     const csrf = await page.request.get('/api/v1/security/csrf');
     expect(csrf.ok()).toBeTruthy();
     const { token } = (await csrf.json()) as { token: string };
@@ -38,11 +35,16 @@ test('a local support-author can set and revoke a manual node override', async (
     expect(node.status()).toBe(201);
     const { node_id: nodeId } = (await node.json()) as { node_id: string };
 
-    expect((await page.request.post(`/api/v1/admin/world-builder/nodes/${nodeId}/manual-unlocks`, { data: { learner_subject_id: learnerSubjectId, enabled: true }, headers })).status()).toBe(204);
-    const signals = await page.request.get('/api/v1/admin/learning-support/signals');
-    expect(signals.ok()).toBeTruthy();
-    expect(JSON.stringify(await signals.json())).toContain('Manual unlock target');
-    expect((await page.request.post(`/api/v1/admin/world-builder/nodes/${nodeId}/manual-unlocks`, { data: { learner_subject_id: learnerSubjectId, enabled: false }, headers })).status()).toBe(204);
+    await page.goto('/settings?panel=admin-learning-support&support=support-signals');
+    await expect(page.getByRole('heading', { name: 'Learning Support' })).toBeVisible();
+    await page.getByLabel('Node').selectOption(nodeId);
+    const opened = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes(`/nodes/${nodeId}/manual-unlocks`));
+    await page.getByRole('button', { name: 'Open for learner' }).click();
+    expect((await opened).status()).toBe(204);
+    await expect(page.getByRole('button', { name: 'Close access' }).last()).toBeVisible();
+    const closed = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes(`/nodes/${nodeId}/manual-unlocks`));
+    await page.getByRole('button', { name: 'Close access' }).last().click();
+    expect((await closed).status()).toBe(204);
 
     expect(
         (await page.request.delete(`/api/v1/admin/world-builder/maps/${mapId}`, { headers })).status(),

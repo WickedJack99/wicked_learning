@@ -7962,10 +7962,12 @@ components:
         reflection: { type: string, maxLength: 10000 }
     AdminSupportSignals:
       type: object
-      required: [activity_overview_30_days, learners, month_key]
+      required: [activity_overview_30_days, can_grant_manual_unlocks, learners, manual_unlock_targets, month_key]
       properties:
         activity_overview_30_days: { type: array, items: { $ref: '#/components/schemas/AdminSupportActivityBucket' } }
+        can_grant_manual_unlocks: { type: boolean, description: Whether the current support reader also has source map-edit authority for manual locked-node overrides. }
         learners: { type: array, items: { $ref: '#/components/schemas/AdminSupportLearner' } }
+        manual_unlock_targets: { type: array, description: Locked nodes on maps that the current support reader may edit; no other nodes are projected., items: { type: object, required: [id, nodes, title], properties: { id: { type: string, format: uuid }, title: { type: string }, nodes: { type: array, items: { type: object, required: [id, title], properties: { id: { type: string, format: uuid }, title: { type: string } } } } } } }
         month_key: { type: string, pattern: '^\\d{4}-\\d{2}$' }
     AdminSupportActivityBucket:
       type: object

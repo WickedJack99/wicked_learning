@@ -5873,7 +5873,20 @@ export interface components {
         };
         AdminSupportSignals: {
             activity_overview_30_days: components["schemas"]["AdminSupportActivityBucket"][];
+            /** @description Whether the current support reader also has source map-edit authority for manual locked-node overrides. */
+            can_grant_manual_unlocks: boolean;
             learners: components["schemas"]["AdminSupportLearner"][];
+            /** @description Locked nodes on maps that the current support reader may edit; no other nodes are projected. */
+            manual_unlock_targets: {
+                /** Format: uuid */
+                id: string;
+                title: string;
+                nodes: {
+                    /** Format: uuid */
+                    id: string;
+                    title: string;
+                }[];
+            }[];
             month_key: string;
         };
         AdminSupportActivityBucket: {

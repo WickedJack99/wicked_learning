@@ -879,14 +879,12 @@ silently erase other learner-state causes. The lifted map-tile dialog exposes
 that confirmation alongside the complete source availability and interaction
 sound controls.
 
-The corresponding support-issued manual override is now also available to the
-backend for one locked node and one learner already visible through the
-author's scoped support-signals authority. It requires both that learner scope
-and the normal editable-map authority, and can be revoked without changing
-discovery or tool-use records. The standalone World Builder control and learner
-picker remain deferred until the complete scoped support-signals read flow is
-migrated; this endpoint does not make arbitrary learner lookup available to an
-author.
+The Learning Support panel now also lifts the source `Open a locked node`
+control. It lists only locked nodes on maps the current support author may edit,
+opens one for the selected learner, and lets the author revoke only an active
+override. The scoped reader never turns the learner list into a general lookup,
+and the write endpoint independently rechecks both learner-support and
+map-editor authority without changing discovery or tool-use records.
 
 Authors can also inspect a bounded private history for an individual MapAsset's
 learner-facing configuration and restore an earlier version without losing the

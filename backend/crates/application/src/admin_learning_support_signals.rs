@@ -27,6 +27,19 @@ pub struct AdminSupportManualUnlock {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct AdminSupportManualUnlockTarget {
+    pub id: String,
+    pub nodes: Vec<AdminSupportManualUnlockTargetNode>,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct AdminSupportManualUnlockTargetNode {
+    pub id: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct AdminSupportNote {
     pub text: String,
     pub tone: String,
@@ -57,7 +70,9 @@ pub struct AdminSupportLearner {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct AdminSupportSignals {
     pub activity_overview_30_days: Vec<AdminSupportActivityBucket>,
+    pub can_grant_manual_unlocks: bool,
     pub learners: Vec<AdminSupportLearner>,
+    pub manual_unlock_targets: Vec<AdminSupportManualUnlockTarget>,
     pub month_key: String,
 }
 
@@ -121,7 +136,9 @@ mod tests {
             async {
                 Ok(AdminSupportSignals {
                     activity_overview_30_days: vec![],
+                    can_grant_manual_unlocks: false,
                     learners: vec![],
+                    manual_unlock_targets: vec![],
                     month_key: "2026-11".to_owned(),
                 })
             }

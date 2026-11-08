@@ -4533,8 +4533,10 @@ It requires the normal `world_maps.ru` all/own/assigned/direct-editor check for
 the node's map and `learner_support_signals.ro` visibility for the learner:
 all, shared group or self. Unknown scope values deny access. Enabling upserts
 an active `learner_node_manual_unlocks` row; revocation marks only that row
-revoked. The endpoint remains backend-only until the scoped support-signals
-reader and source-adapted editor control are migrated.
+revoked. The scoped support-signals reader projects only locked nodes on maps
+the current support author can edit, and the lifted source control selects from
+that bounded projection. The write endpoint remains the final authority and
+rechecks both scopes.
 
 **Why:** This preserves the source support boundary, keeps explicit
 interventions distinct from discovery and tool use, and avoids exposing a

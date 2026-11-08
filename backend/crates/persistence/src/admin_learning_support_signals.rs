@@ -4,7 +4,8 @@ use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::admin_learning_support_signals::{
     AdminSupportActivityBucket, AdminSupportGroup, AdminSupportLearner, AdminSupportManualUnlock,
-    AdminSupportNote, AdminSupportSignals, AdminSupportSignalsError, AdminSupportSignalsRepository,
+    AdminSupportManualUnlockTarget, AdminSupportManualUnlockTargetNode, AdminSupportNote,
+    AdminSupportSignals, AdminSupportSignalsError, AdminSupportSignalsRepository,
     AdminSupportTopic,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
@@ -78,6 +79,14 @@ struct BucketRow {
     evidence_events: i64,
 }
 
+#[derive(FromRow)]
+struct ManualUnlockTargetRow {
+    map_id: Uuid,
+    map_title: String,
+    node_id: Uuid,
+    node_title: String,
+}
+
 impl AdminSupportSignalsRepository for PostgresAdminSupportSignalsRepository<'_> {
     fn load(
         &self,
@@ -140,6 +149,12 @@ async fn load(
     let topics = load_topics(application_pool, &principal_ids).await?;
     let last_activity = load_last_activity(application_pool, &principal_ids).await?;
     let manual_unlocks = load_manual_unlocks(application_pool, &principal_ids).await?;
+    let can_grant_manual_unlocks = principal.has_permission("world_maps", "ru");
+    let manual_unlock_targets = if can_grant_manual_unlocks {
+        load_manual_unlock_targets(application_pool, principal, actor_principal_id).await?
+    } else {
+        vec![]
+    };
     let activity_overview_30_days =
         load_activity_overview(application_pool, &principal_ids).await?;
     let month_key = sqlx::query_scalar::<_, String>("SELECT to_char(CURRENT_DATE, 'YYYY-MM')")
@@ -176,7 +191,9 @@ async fn load(
 
     Ok(AdminSupportSignals {
         activity_overview_30_days,
+        can_grant_manual_unlocks,
         learners,
+        manual_unlock_targets,
         month_key,
     })
 }
@@ -184,11 +201,62 @@ async fn load(
 async fn empty_signals(pool: &PgPool) -> Result<AdminSupportSignals, sqlx::Error> {
     Ok(AdminSupportSignals {
         activity_overview_30_days: load_activity_overview(pool, &[]).await?,
+        can_grant_manual_unlocks: false,
         learners: vec![],
+        manual_unlock_targets: vec![],
         month_key: sqlx::query_scalar::<_, String>("SELECT to_char(CURRENT_DATE, 'YYYY-MM')")
             .fetch_one(pool)
             .await?,
     })
+}
+
+/// Mirrors the map-authority predicate used by the manual-unlock writer, so a
+/// support reader receives only nodes that the subsequent command can edit.
+async fn load_manual_unlock_targets(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    actor_principal_id: Uuid,
+) -> Result<Vec<AdminSupportManualUnlockTarget>, sqlx::Error> {
+    let Some(scope) = principal.permission_scope("world_maps", "ru") else {
+        return Ok(vec![]);
+    };
+    let rows = if scope == "all" {
+        sqlx::query_as::<_, ManualUnlockTargetRow>(
+            "SELECT maps.id AS map_id, maps.title AS map_title, nodes.id AS node_id, nodes.title AS node_title FROM learning_maps AS maps INNER JOIN learning_nodes AS nodes ON nodes.map_id = maps.id WHERE nodes.state = 'locked' ORDER BY maps.title, maps.id, nodes.title, nodes.id",
+        )
+        .fetch_all(pool)
+        .await?
+    } else {
+        let can_edit_own = permission_scope_allows(scope, "own");
+        sqlx::query_as::<_, ManualUnlockTargetRow>(
+            "SELECT maps.id AS map_id, maps.title AS map_title, nodes.id AS node_id, nodes.title AS node_title FROM learning_maps AS maps INNER JOIN learning_nodes AS nodes ON nodes.map_id = maps.id WHERE nodes.state = 'locked' AND (($1 AND maps.created_by_principal_id = $2) OR EXISTS (SELECT 1 FROM learning_map_editing_groups AS editing_groups INNER JOIN learning_group_memberships AS memberships ON memberships.group_id = editing_groups.group_id WHERE editing_groups.map_id = maps.id AND memberships.principal_id = $2)) ORDER BY maps.title, maps.id, nodes.title, nodes.id",
+        )
+        .bind(can_edit_own)
+        .bind(actor_principal_id)
+        .fetch_all(pool)
+        .await?
+    };
+    Ok(rows.into_iter().fold(Vec::new(), |mut targets, row| {
+        if targets
+            .last()
+            .is_none_or(|target: &AdminSupportManualUnlockTarget| {
+                target.id != row.map_id.to_string()
+            })
+        {
+            targets.push(AdminSupportManualUnlockTarget {
+                id: row.map_id.to_string(),
+                nodes: vec![],
+                title: row.map_title,
+            });
+        }
+        targets.last_mut().expect("a target was added").nodes.push(
+            AdminSupportManualUnlockTargetNode {
+                id: row.node_id.to_string(),
+                title: row.node_title,
+            },
+        );
+        targets
+    }))
 }
 
 async fn visible_learners(
