@@ -967,6 +967,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/media-assets/{asset_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve a reusable visual only through a published MapAsset visible to the learner. */
+        get: operations["getLearnerMediaAssetContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/templates": {
         parameters: {
             query?: never;
@@ -10265,6 +10282,47 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerMediaAssetContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image bytes with restrictive content and short private cache headers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A signed-in identity has no active application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The asset is not actively referenced by a visible published MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The media store or application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

@@ -1301,6 +1301,17 @@ paths:
         '401': { description: The browser has no authenticated session. }
         '404': { description: The asset is unavailable to this identity. }
         '503': { description: The application database is unavailable. }
+  /learner/media-assets/{asset_id}/content:
+    get:
+      operationId: getLearnerMediaAssetContent
+      summary: Serve a reusable visual only through a published MapAsset visible to the learner.
+      parameters:
+        - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The image bytes with restrictive content and short private cache headers. }
+        '403': { description: A signed-in identity has no active application principal. }
+        '404': { description: The asset is not actively referenced by a visible published MapAsset. }
+        '503': { description: The media store or application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/templates:
     post:
       operationId: createAdminActivityTemplate

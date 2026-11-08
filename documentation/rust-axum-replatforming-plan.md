@@ -1120,9 +1120,13 @@ source geometry and interaction controls, learner-rendered preview, activity
 handoff and scoped deletion. Selecting an existing reusable visual stores its
 private stable content path in the authored MapAsset and synchronizes the
 normalized `map_asset` reference transactionally; direct MapAsset and map
-cascade deletion both remove those links. Wiring the selection/reference writer
-into activity forms, grouped reference presentation, orphan reconciliation and
-generic learner-facing media delivery remain explicit completion work. Other
+cascade deletion both remove those links. Learner/public MapAsset projections
+rewrite only managed reusable-media paths to a Rust-owned endpoint, which serves
+bytes only while an active reference belongs to a published MapAsset on a
+role-visible map; source-shaped restrictive headers and the short private cache
+lifetime are preserved. Wiring the selection/reference writer into activity
+forms, grouped reference presentation and orphan reconciliation remain explicit
+completion work. Other
 activity-card types and map/configuration forms deliberately remain read-only
 in this surface.
 
