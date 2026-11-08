@@ -25,6 +25,7 @@ pub mod admin_user;
 pub mod admin_world_activity_delete;
 pub mod admin_world_activity_history;
 pub mod admin_world_activity_position;
+pub mod admin_world_details;
 pub mod admin_world_export;
 pub mod admin_world_graph;
 pub mod admin_world_import;

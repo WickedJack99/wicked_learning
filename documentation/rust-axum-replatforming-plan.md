@@ -598,6 +598,22 @@ moves a colliding node position right, and remaps only declared node and
 message-topic references. It does not copy media bytes or implement the Laravel
 ZIP package variant; JSON references must resolve in the destination workspace.
 
+### World Builder World-details history slice — 8 November 2026
+
+The World Builder header now lifts the source `Edit world details` dialog only
+after the corresponding Rust write contract is present. `PATCH
+/api/v1/admin/world-builder/world/details` requires the distinct global
+`world_map_access.ru` grant, locks the current World, rejects a stale
+`updated_at` value, stores the pre-change title/description as an immutable
+revision, and then changes only those two fields. `GET
+/api/v1/admin/world-builder/world/versions` provides the bounded newest-first
+history page; its CSRF-protected restore endpoint first snapshots the current
+details and then restores the selected same-World revision. The source-adapted
+dialog retains the unchanged canonical slug, pagination, confirmation and
+restoration wording. Its local browser proof writes disposable details,
+observes the prior immutable version, restores it, and leaves the visible World
+details unchanged.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

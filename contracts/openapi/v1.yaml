@@ -966,6 +966,72 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current World is unavailable. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/world/details:
+    patch:
+      operationId: updateAdminWorldBuilderWorldDetails
+      summary: Update current source World title and description.
+      description: Requires the distinct global world-map-access update permission. The complete form rejects a stale World timestamp and records the former title/description as an immutable version before changing it.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminWorldDetailsRequest' }
+      responses:
+        '200':
+          description: The current World details were saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminWorldDetailsResponse' }
+        '400': { description: The complete World detail form or timestamp is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The current World or global authoring permission is unavailable. }
+        '409': { description: The World changed after this browser copy was loaded. }
+        '503': { description: The identity or application database is unavailable. }
+  /admin/world-builder/world/versions:
+    get:
+      operationId: listAdminWorldBuilderWorldDetailVersions
+      summary: List immutable current-World detail versions.
+      description: Requires the distinct global world-map-access update permission.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 24, default: 6 }
+      responses:
+        '200':
+          description: A bounded newest-first page of World detail versions.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWorldDetailsVersionPage' }
+        '401': { description: Authentication is required. }
+        '404': { description: The current World or global authoring permission is unavailable. }
+        '503': { description: The identity or application database is unavailable. }
+  /admin/world-builder/world/versions/{version_id}:
+    post:
+      operationId: restoreAdminWorldBuilderWorldDetailVersion
+      summary: Restore one current-World detail version.
+      description: Requires the distinct global world-map-access update permission. The current details are first recorded as a fresh immutable version.
+      parameters:
+        - name: version_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The selected World detail version was restored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateAdminWorldDetailsResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The version, current World or global authoring permission is unavailable. }
+        '503': { description: The identity or application database is unavailable. }
   /admin/world-builder/world-exports/preflight:
     post:
       operationId: preflightAdminWorldBuilderWorldExport
@@ -10078,6 +10144,45 @@ components:
         title: { type: string }
         description: { type: string }
         updated_at: { type: string, format: date-time }
+    UpdateAdminWorldDetailsRequest:
+      type: object
+      additionalProperties: false
+      required: [title, description, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: string, nullable: true }
+        updated_at: { type: string, format: date-time }
+    UpdateAdminWorldDetailsResponse:
+      type: object
+      additionalProperties: false
+      required: [id, title, description, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        updated_at: { type: string, format: date-time }
+    AdminWorldDetailsVersion:
+      type: object
+      additionalProperties: false
+      required: [id, title, description, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        created_at: { type: string, format: date-time }
+    AdminWorldDetailsVersionPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, per_page, total, last_page]
+      properties:
+        items:
+          type: array
+          maxItems: 24
+          items: { $ref: '#/components/schemas/AdminWorldDetailsVersion' }
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
     AdminWorldMapExportPreflightResult:
       type: object
       additionalProperties: false

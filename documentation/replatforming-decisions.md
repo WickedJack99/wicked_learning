@@ -4260,6 +4260,37 @@ single-place transfer from silently widening map or cross-map authority.
 workspace. The Laravel ZIP/package and file-copy form stays unavailable until
 the media lifecycle has equivalent integrity, rollback and operational proof.
 
+## ADR-107: World details are a distinct global authoring write with reversible history
+
+**Status:** Accepted — 8 November 2026
+
+**Problem:** The World Builder overview can be read by several authoring
+permissions and individual map writes use the narrower map-editor scope. That
+must not make a World title/description change available to every reader or
+map contributor, nor allow a stale author form to erase a newer global edit.
+
+**Decision:** The standalone successor exposes World details through its own
+contract. Its update, version-list and restore paths require the source's
+distinct global `world_map_access.ru` authority. An update locks the one
+current authoring World, compares the browser's serialized `updated_at` value,
+records the prior title and description with the acting application principal,
+and writes the replacement. A restore can select only a revision of that same
+World, records the current details first, then writes the selected revision.
+The header dialog is lifted only once these API paths, migration, generated
+contract and browser proof exist; it retains the source's slug warning,
+history, paging and restore confirmation rather than inventing a new editor.
+
+**Why:** This preserves the source authorization boundary and makes concurrent
+global authoring changes explicit, while each restore remains reversible and
+does not touch canonical slugs, maps, learner state or unrelated World
+configuration.
+
+**Evidence and limits:** Application/API authorization and form tests, local
+migration application, generated OpenAPI types, standalone build, and the
+credential-gated browser edit/version/restore proof cover this slice. It does
+not add multi-World browser routing, alter public World presentation, or grant
+map-scoped contributors global World-detail authority.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

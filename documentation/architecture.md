@@ -331,6 +331,16 @@ in JSON, and learner state, history, permissions and editor groups are
 deliberately excluded. Laravel's ZIP world packages remain an explicitly
 unimplemented migration slice; the standalone dialog accepts JSON only.
 
+World title and description are a separate global authoring mutation from map
+editing. Rust resolves the same single current World as the World Builder graph,
+requires `world_map_access.ru`, locks its row and uses the serialized
+`updated_at` value for optimistic concurrency. Before an update it records the
+former fields in `learning_world_versions`, associated with the acting
+application principal; restoring a same-World version records the current
+fields first. These bounded newest-first pages are exposed through dedicated
+World-detail endpoints, so map-level editor scope never grants authority to
+rename or describe the World.
+
 Same-workspace map duplication is a separate transactional authoring action from
 portable import. It remaps internal node, activity, MapAsset message-topic,
 question, dialogue-node, route and companion-assignment references while keeping

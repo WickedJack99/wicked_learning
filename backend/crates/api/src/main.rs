@@ -30,6 +30,7 @@ mod admin_world_activity_ai_review;
 mod admin_world_activity_delete;
 mod admin_world_activity_history;
 mod admin_world_activity_position;
+mod admin_world_details;
 mod admin_world_export;
 mod admin_world_graph;
 mod admin_world_import;
@@ -653,6 +654,18 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/world/export",
             get(admin_world_export::export),
+        )
+        .route(
+            "/api/v1/admin/world-builder/world/details",
+            patch(admin_world_details::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/world/versions",
+            get(admin_world_details::versions),
+        )
+        .route(
+            "/api/v1/admin/world-builder/world/versions/{version_id}",
+            post(admin_world_details::restore),
         )
         .route(
             "/api/v1/admin/world-builder/world-exports/preflight",

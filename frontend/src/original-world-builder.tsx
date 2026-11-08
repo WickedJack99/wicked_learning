@@ -73,6 +73,8 @@ type ReviewQueue = components['schemas']['AdminWorldReviewQueuePage'];
 type MapExportPreflight = components['schemas']['AdminWorldMapExportPreflightResult'];
 type WorldImportPreflight =
     components['schemas']['AdminWorldImportPreflightResult'];
+type WorldDetailsVersionPage =
+    components['schemas']['AdminWorldDetailsVersionPage'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -358,6 +360,7 @@ function WorldBuilderContent() {
     const [createMapOpen, setCreateMapOpen] = useState(false);
     const [importMapOpen, setImportMapOpen] = useState(false);
     const [importWorldOpen, setImportWorldOpen] = useState(false);
+    const [worldDetailsOpen, setWorldDetailsOpen] = useState(false);
     const [duplicateMapOpen, setDuplicateMapOpen] = useState(false);
     const [sourceCatalogOpen, setSourceCatalogOpen] = useState(false);
     const [reviewQueueOpen, setReviewQueueOpen] = useState(false);
@@ -549,6 +552,14 @@ function WorldBuilderContent() {
                         Source catalog
                     </button>
                     <button
+                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
+                        data-wl-id="authoring.world-builder.world-details.open"
+                        onClick={() => setWorldDetailsOpen(true)}
+                        type="button"
+                    >
+                        Edit world details
+                    </button>
+                    <button
                         className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100 dark:hover:bg-amber-300/20"
                         onClick={() => {
                             setReviewQueuePage(1);
@@ -698,6 +709,13 @@ function WorldBuilderContent() {
                     }}
                 />
             ) : null}
+            {worldDetailsOpen ? (
+                <EditWorldDetailsDialog
+                    onClose={() => setWorldDetailsOpen(false)}
+                    onUpdated={() => void loadWorld()}
+                    world={worldGraph.world}
+                />
+            ) : null}
             {duplicateMapOpen && editableMap ? (
                 <DuplicateMapDialog
                     map={editableMap.editable_map.map}
@@ -728,6 +746,322 @@ function WorldBuilderContent() {
             ) : null}
         </main>
     );
+}
+
+function EditWorldDetailsDialog({
+    onClose,
+    onUpdated,
+    world,
+}: {
+    onClose: () => void;
+    onUpdated: () => void;
+    world: WorldGraph['world'];
+}) {
+    const [title, setTitle] = useState(world.title);
+    const [description, setDescription] = useState(world.description);
+    const [updatedAt, setUpdatedAt] = useState(world.updated_at);
+    const [history, setHistory] = useState<WorldDetailsVersionPage | null>(
+        null,
+    );
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [historyError, setHistoryError] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [restoringVersionId, setRestoringVersionId] = useState<string | null>(
+        null,
+    );
+
+    const loadHistory = useCallback(async (page = 1) => {
+        setHistoryLoading(true);
+        setHistoryError(false);
+        try {
+            const { data, response } = await apiClient.GET(
+                '/admin/world-builder/world/versions',
+                { params: { query: { page, per_page: 1 } } },
+            );
+            if (!response.ok || !data) {
+                throw new Error('The world history could not be loaded.');
+            }
+            setHistory(data);
+        } catch {
+            setHistoryError(true);
+        } finally {
+            setHistoryLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadHistory();
+    }, [loadHistory]);
+
+    const save = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!title.trim()) {
+            setError('Add a world title before saving.');
+            return;
+        }
+        setSaving(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/world/details',
+                {
+                    body: {
+                        description: optionalValue(description),
+                        title,
+                        updated_at: updatedAt,
+                    },
+                    params: { header: { 'X-CSRF-Token': token } },
+                },
+            );
+            if (!response.ok) {
+                setError(
+                    response.status === 400
+                        ? 'Use a world title within the shown limits.'
+                        : response.status === 409
+                          ? 'These world details changed in another session. Close this dialog, reload the World Builder, then apply your changes again.'
+                          : 'The world details could not be saved. Refresh the World Builder and try again.',
+                );
+                return;
+            }
+            onUpdated();
+            onClose();
+        } catch {
+            setError(
+                'The world details could not be saved. Check your connection and try again.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const restore = async (
+        version: components['schemas']['AdminWorldDetailsVersion'],
+    ) => {
+        if (
+            !window.confirm(
+                'Restore this world detail version? The current details will be preserved in history.',
+            )
+        ) {
+            return;
+        }
+        setRestoringVersionId(version.id);
+        setHistoryError(false);
+        try {
+            const token = await getCsrfToken();
+            const { data, response } = await apiClient.POST(
+                '/admin/world-builder/world/versions/{version_id}',
+                {
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { version_id: version.id },
+                    },
+                },
+            );
+            if (!response.ok || !data) {
+                throw new Error('The world version could not be restored.');
+            }
+            setTitle(data.title);
+            setDescription(data.description);
+            setUpdatedAt(data.updated_at);
+            await loadHistory(history?.page ?? 1);
+            onUpdated();
+        } catch {
+            setHistoryError(true);
+        } finally {
+            setRestoringVersionId(null);
+        }
+    };
+
+    return (
+        <div
+            aria-labelledby="edit-world-details-title"
+            aria-modal="true"
+            className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/55 p-4"
+            data-wl-id="authoring.world-builder.world-details.dialog"
+            role="dialog"
+        >
+            <form
+                className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                onSubmit={(event) => void save(event)}
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
+                            World Builder
+                        </p>
+                        <h2
+                            className="mt-1 text-xl font-semibold"
+                            id="edit-world-details-title"
+                        >
+                            Edit world details
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Update the author-facing title and description. The
+                            canonical world slug stays unchanged.
+                        </p>
+                    </div>
+                    <button
+                        aria-label="Close world details"
+                        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                        disabled={saving || restoringVersionId !== null}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+                {error ? (
+                    <p
+                        className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100"
+                        role="alert"
+                    >
+                        {error}
+                    </p>
+                ) : null}
+                <div className="mt-5 grid gap-4">
+                    <label className="grid gap-1 text-sm font-medium">
+                        Title
+                        <input
+                            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/15 dark:bg-slate-900 dark:text-white"
+                            maxLength={255}
+                            onChange={(event) => setTitle(event.target.value)}
+                            value={title}
+                        />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium">
+                        Description
+                        <textarea
+                            className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/15 dark:bg-slate-900 dark:text-white"
+                            onChange={(event) =>
+                                setDescription(event.target.value)
+                            }
+                            value={description}
+                        />
+                    </label>
+                </div>
+                <section className="mt-6 grid gap-3 border-t border-slate-200 pt-5 dark:border-white/10">
+                    <div>
+                        <h3 className="text-sm font-semibold">
+                            Previous versions
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            Restoring creates a new version of the current
+                            details.
+                        </p>
+                    </div>
+                    {historyLoading ? (
+                        <p aria-live="polite" role="status">
+                            Loading world history…
+                        </p>
+                    ) : historyError ? (
+                        <p
+                            className="text-sm text-red-700 dark:text-red-300"
+                            role="status"
+                        >
+                            World history could not be loaded. Try again.
+                        </p>
+                    ) : history && history.items.length > 0 ? (
+                        <div className="grid gap-2">
+                            {history.items.map((version) => (
+                                <div
+                                    className="grid gap-2 rounded-md border border-slate-200 p-3 dark:border-white/10"
+                                    key={version.id}
+                                >
+                                    <div className="flex items-baseline justify-between gap-3">
+                                        <p className="text-sm font-medium">
+                                            {version.title}
+                                        </p>
+                                        <time className="text-xs text-slate-500 dark:text-slate-400">
+                                            {formatWorldDetailsVersionDate(
+                                                version.created_at,
+                                            )}
+                                        </time>
+                                    </div>
+                                    <p className="line-clamp-1 text-xs text-slate-600 dark:text-slate-300">
+                                        {version.description ||
+                                            'No description'}
+                                    </p>
+                                    <button
+                                        className="inline-flex justify-self-end rounded-md px-2 py-1 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                                        disabled={
+                                            restoringVersionId !== null || saving
+                                        }
+                                        onClick={() => void restore(version)}
+                                        type="button"
+                                    >
+                                        <RefreshCw className="mr-1 size-4" />
+                                        {restoringVersionId === version.id
+                                            ? 'Restoring…'
+                                            : 'Restore this version'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                            No earlier world details yet. The first update will
+                            create one.
+                        </p>
+                    )}
+                    {history && history.last_page > 1 ? (
+                        <div className="flex items-center justify-between gap-3">
+                            <button
+                                className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
+                                disabled={historyLoading || history.page <= 1}
+                                onClick={() => void loadHistory(history.page - 1)}
+                                type="button"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                Page {history.page} of {history.last_page}
+                            </span>
+                            <button
+                                className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
+                                disabled={
+                                    historyLoading ||
+                                    history.page >= history.last_page
+                                }
+                                onClick={() => void loadHistory(history.page + 1)}
+                                type="button"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    ) : null}
+                </section>
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
+                        disabled={saving || restoringVersionId !== null}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                        disabled={saving || restoringVersionId !== null}
+                        type="submit"
+                    >
+                        {saving ? 'Saving…' : 'Save details'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}
+
+function formatWorldDetailsVersionDate(value: string): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+          }).format(date);
 }
 
 function WorldBuilderReviewQueueDialog({
