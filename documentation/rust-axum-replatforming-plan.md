@@ -927,7 +927,8 @@ the original editor's independently persisted, rounded `start`/`end` graph
 positions under the same scoped activity-authoring and CSRF boundary, without
 changing learner starts, activities or playback. Subsequent source-shaped
 activity, route-start and transition commands have their own bounded contracts;
-source-catalog workflows remain unavailable.
+source-catalog writes were deferred until their separate reuse and revision
+contract was available.
 Ordinary activity-card dragging is now also available at `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/graph-position`. It
 preserves the source UI's finite-number validation and integer rounding, locks
@@ -968,6 +969,18 @@ the selected activity and its outbound transitions, then resets review state;
 the migrated activity-content, transition and graph-position commands record
 their own pre-change snapshots, while unsupported source workflows remain
 outside this claim.
+The reusable source catalog is now available at `GET`/`POST
+/api/v1/admin/source-records`, with scoped `PATCH`/`DELETE` and bounded
+revision/restore endpoints beneath each record. It source-adapts Laravel's
+metadata bounds, exact-metadata create-or-reuse behavior, title/URL/publisher/
+anchor/excerpt/concept search and filtering, and immutable pre-change history.
+Editing or restoring always preserves the current source as a new version;
+deleting a catalog record removes only that reusable entry and its history,
+never copied source metadata already held by activities or learner evidence.
+The original source-catalog controls are available within the Rust World
+Builder workspace as a temporary source-derived access point; reconnecting its
+“use this source” control to each remaining activity editor stays a distinct
+activity-form migration slice.
 Reflection creation and editing are now available through `POST
 /api/v1/admin/world-builder/nodes/{node_id}/reflection-activities` and `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/reflection`. They retain

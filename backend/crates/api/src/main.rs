@@ -10,6 +10,7 @@ mod admin_learning_group;
 mod admin_learning_taxonomy;
 mod admin_registration_tokens;
 mod admin_role;
+mod admin_source_records;
 mod admin_topics;
 mod admin_user;
 mod admin_world_activity_delete;
@@ -626,6 +627,22 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/versions/{version_id}",
             get(admin_world_activity_history::show).post(admin_world_activity_history::restore),
+        )
+        .route(
+            "/api/v1/admin/source-records",
+            get(admin_source_records::index).post(admin_source_records::create),
+        )
+        .route(
+            "/api/v1/admin/source-records/{source_id}",
+            patch(admin_source_records::update).delete(admin_source_records::delete),
+        )
+        .route(
+            "/api/v1/admin/source-records/{source_id}/versions",
+            get(admin_source_records::versions),
+        )
+        .route(
+            "/api/v1/admin/source-records/{source_id}/versions/{version_id}",
+            post(admin_source_records::restore),
         )
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}",

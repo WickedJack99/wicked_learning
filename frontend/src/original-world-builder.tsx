@@ -28,6 +28,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
+import { OriginalSourceCatalogDialog } from './original-source-catalog';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -203,6 +204,7 @@ function WorldBuilderContent() {
     const [portal, setPortal] = useState<PortalLink | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [createMapOpen, setCreateMapOpen] = useState(false);
+    const [sourceCatalogOpen, setSourceCatalogOpen] = useState(false);
 
     const selectMap = useCallback(
         (mapId: string) => {
@@ -339,14 +341,17 @@ function WorldBuilderContent() {
                 <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
                     {worldGraph.world.description}
                 </p>
-                <button
-                    className="shrink-0 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
-                    onClick={() => setCreateMapOpen(true)}
-                    type="button"
-                >
-                    <Plus className="mr-1 inline size-4" />
-                    Create map
-                </button>
+                <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                    <button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10" data-wl-id="authoring.source-catalog.open" onClick={() => setSourceCatalogOpen(true)} type="button">Source catalog</button>
+                    <button
+                        className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                        onClick={() => setCreateMapOpen(true)}
+                        type="button"
+                    >
+                        <Plus className="mr-1 inline size-4" />
+                        Create map
+                    </button>
+                </div>
             </header>
             {error ? (
                 <p className="mx-auto mb-3 max-w-[1600px] rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
@@ -417,6 +422,7 @@ function WorldBuilderContent() {
                     }}
                 />
             ) : null}
+            {sourceCatalogOpen ? <OriginalSourceCatalogDialog onClose={() => setSourceCatalogOpen(false)} /> : null}
         </main>
     );
 }

@@ -375,6 +375,30 @@ pub struct AdminSourceRecord {
     pub url: String,
 }
 
+/// Immutable pre-change state for the reusable source catalog. Source records
+/// are intentionally global authoring facts rather than World Builder graph
+/// state, but keep the source editor's bounded revision workflow.
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminSourceRecordVersionPage {
+    pub items: Vec<AdminSourceRecordVersion>,
+    pub pagination: AdminSourceRecordVersionPagination,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminSourceRecordVersionPagination {
+    pub page: i64,
+    pub per_page: i64,
+    pub total: i64,
+    pub last_page: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminSourceRecordVersion {
+    pub id: Uuid,
+    pub created_at: String,
+    pub source_record: AdminSourceRecord,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminEditableActivity {
     pub id: Uuid,

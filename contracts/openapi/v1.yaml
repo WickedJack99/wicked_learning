@@ -1117,6 +1117,144 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The activity version is unknown or outside the caller's authoring scope. }
         '503': { description: The application database is unavailable. }
+  /admin/source-records:
+    get:
+      operationId: getAdminSourceRecords
+      summary: List the reusable source-record catalog.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 24, default: 12 }
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 160 }
+        - name: concept
+          in: query
+          schema: { type: string, maxLength: 120 }
+      responses:
+        '200':
+          description: A bounded, source-compatible catalog page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSourceRecordPage' }
+        '400': { description: The requested page or filter is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity has no source-catalog authoring permission. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminSourceRecord
+      summary: Add or reuse a source record in the reusable authoring catalog.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminSourceRecordRequest' }
+      responses:
+        '201':
+          description: The newly created or matching reusable source record.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSourceRecordResponse' }
+        '400': { description: The source metadata is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity has no source-catalog authoring permission. }
+        '503': { description: The application database is unavailable. }
+  /admin/source-records/{source_id}:
+    patch:
+      operationId: updateAdminSourceRecord
+      summary: Update one reusable source record and preserve its prior state.
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminSourceRecordRequest' }
+      responses:
+        '200':
+          description: The saved source record.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSourceRecordResponse' }
+        '400': { description: The source metadata is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The source record is unknown or unavailable to this author. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteAdminSourceRecord
+      summary: Delete one reusable source record without changing copied activity references.
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The source record and its revision history were removed. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The source record is unknown or unavailable to this author. }
+        '503': { description: The application database is unavailable. }
+  /admin/source-records/{source_id}/versions:
+    get:
+      operationId: getAdminSourceRecordVersions
+      summary: Read bounded reusable-source history.
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 24, default: 8 }
+      responses:
+        '200':
+          description: A bounded immutable source history page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSourceRecordVersionPage' }
+        '400': { description: The requested history page is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The source record is unknown or unavailable to this author. }
+        '503': { description: The application database is unavailable. }
+  /admin/source-records/{source_id}/versions/{version_id}:
+    post:
+      operationId: restoreAdminSourceRecordVersion
+      summary: Restore one reusable source version.
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: version_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The restored source record; its prior state remains in history.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSourceRecordResponse' }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The source version is unknown or unavailable to this author. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}:
     delete:
       operationId: deleteAdminWorldBuilderActivity
@@ -9187,6 +9325,55 @@ components:
         rights: { type: [string, 'null'] }
         title: { type: string }
         url: { type: string }
+    AdminSourceRecordRequest:
+      type: object
+      additionalProperties: false
+      required: [title, url]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        url: { type: string, minLength: 1, maxLength: 2048, format: uri }
+        publisher: { type: [string, 'null'], maxLength: 160 }
+        published_at: { type: [string, 'null'], format: date }
+        rights: { type: [string, 'null'], maxLength: 240 }
+        anchor: { type: [string, 'null'], maxLength: 240 }
+        excerpt: { type: [string, 'null'], maxLength: 800 }
+        concepts:
+          type: array
+          maxItems: 8
+          items: { type: string, maxLength: 120 }
+    AdminSourceRecordResponse:
+      type: object
+      additionalProperties: false
+      required: [source_record]
+      properties:
+        source_record: { $ref: '#/components/schemas/AdminSourceRecord' }
+    AdminSourceRecordVersionPage:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          maxItems: 24
+          items: { $ref: '#/components/schemas/AdminSourceRecordVersion' }
+        pagination: { $ref: '#/components/schemas/AdminSourceRecordVersionPagination' }
+    AdminSourceRecordVersionPagination:
+      type: object
+      additionalProperties: false
+      required: [page, per_page, total, last_page]
+      properties:
+        page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 24 }
+        total: { type: integer, minimum: 0 }
+        last_page: { type: integer, minimum: 1 }
+    AdminSourceRecordVersion:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, source_record]
+      properties:
+        id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        source_record: { $ref: '#/components/schemas/AdminSourceRecord' }
     AdminSourceRecordPagination:
       type: object
       additionalProperties: false
