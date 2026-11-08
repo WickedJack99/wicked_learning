@@ -1485,16 +1485,20 @@ author-selected tool/item UUIDs to verified learner-safe slugs, validates node
 and role references, canonicalizes source `datetime-local` schedules to UTC
 RFC 3339, and rejects empty, self-referential, or mandatory cyclic locked-node
 unlock requirements. The typed contract and disposable browser proof cover the
-lifecycle; lifting the existing Laravel node-dialog UI remains a subsequent
-frontend adaptation step rather than an excuse to reintroduce a smaller
-MapAsset-only editor.
+lifecycle. The standalone World Builder now lifts the source tile dialog's
+identity, description, state, hex-position and destructive lifecycle controls.
+It sends the complete stored visual configuration back unchanged during those
+metadata edits, so the remaining source visual/opening-rule controls can be
+lifted without a smaller MapAsset-only editor or accidental loss of media
+references.
 
 The node's source `Lock for all users` backend action is also now available
 through a scoped typed command. It removes only existing learner tool-unlock
 rows for the selected editable node, never learner discovery or support-issued
-manual overrides. The source-adapted node-dialog control remains deferred with
-the other World Builder editing controls until the remaining authoring backend
-contracts are complete.
+manual overrides. The node-dialog's remaining visual, opening-rule, sound and
+media-selection controls stay deferred until their complete source controls are
+lifted; the Rust writer already preserves them during the currently available
+metadata edits.
 
 The separate manual override command now sets or revokes a support-issued
 override only for a locked node in the actor's editable-map scope and a learner

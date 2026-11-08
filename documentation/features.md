@@ -858,11 +858,17 @@ bounded, paginated node positions spatially, including each visible node's
 current position and whether restoring it would move that node, before
 restoring it, so the history cannot be mistaken for a complete map backup.
 
+The standalone World Builder now lifts the source map-tile dialog for creating,
+editing and deleting a tile's title, slug, description, hex position and
+state. It preserves the entire stored visual configuration on those edits, so
+existing opening rules, visual media and sounds are not lost while their full
+source controls are still being lifted.
+
 The Rust backend for a selected node's source `Lock for all users` action now
 resets only learner-specific tool unlocks. It deliberately preserves discovery
 and explicit support overrides, so resetting a tool-derived condition cannot
 silently erase other learner-state causes. Its editor control remains deferred
-with the agreed backend-first World Builder migration.
+until the complete source visual/opening-rule dialog is available.
 
 The corresponding support-issued manual override is now also available to the
 backend for one locked node and one learner already visible through the

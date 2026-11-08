@@ -3219,6 +3219,98 @@ function MapNodePlacementDialog({
     return <div aria-labelledby="map-node-placement-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" role="dialog"><form className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-semibold" id="map-node-placement-title">Place map tile</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set <span className="font-medium">{node.title}</span> on the source hex grid. Saving preserves the outgoing layout in history.</p></div><button aria-label="Close tile placement" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{error}</p> : null}<div className="mt-5 grid grid-cols-2 gap-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label></div><div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10"><button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : 'Save placement'}</button></div></form></div>;
 }
 
+/**
+ * Lifted from the source map-node dialog. Metadata edits intentionally retain
+ * the complete authored visual configuration until its source controls are
+ * lifted too, so a title or state change cannot discard opening rules, sound,
+ * appearance, or managed-media references.
+ */
+function OriginalWorldNodeDialog({
+    mapId,
+    node,
+    onClose,
+    onSaved,
+}: {
+    mapId: string;
+    node: components['schemas']['AdminNodeSummary'] | null;
+    onClose: () => void;
+    onSaved: () => void;
+}) {
+    const isEditing = node !== null;
+    const [title, setTitle] = useState(node?.title ?? '');
+    const [slug, setSlug] = useState(node?.slug ?? '');
+    const [description, setDescription] = useState(node?.description ?? '');
+    const [q, setQ] = useState(String(node?.position.q ?? 0));
+    const [r, setR] = useState(String(node?.position.r ?? 0));
+    const [state, setState] = useState(node?.state ?? 'available');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const request = (): components['schemas']['UpsertAdminWorldNodeRequest'] | null => {
+        const positionQ = Number(q);
+        const positionR = Number(r);
+        if (!title.trim() || !Number.isInteger(positionQ) || !Number.isInteger(positionR)) {
+            setError('Enter a title and whole-number hex-grid coordinates.');
+            return null;
+        }
+        return {
+            title: title.trim(),
+            slug: slug.trim() || null,
+            description: description.trim() || null,
+            position_q: positionQ,
+            position_r: positionR,
+            state,
+            visual_config: node?.visual_config ?? {},
+        };
+    };
+
+    const save = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const body = request();
+        if (!body) return;
+        setSaving(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const result = node
+                ? await apiClient.PATCH('/admin/world-builder/nodes/{node_id}', { body, params: { header: { 'X-CSRF-Token': token }, path: { node_id: node.id } } })
+                : await apiClient.POST('/admin/world-builder/maps/{map_id}/nodes', { body, params: { header: { 'X-CSRF-Token': token }, path: { map_id: mapId } } });
+            if (!result.response.ok) {
+                setError(result.response.status === 404
+                    ? 'That tile position is occupied or the map is no longer editable.'
+                    : 'The map tile could not be saved. Check the fields and try again.');
+                return;
+            }
+            onSaved();
+        } catch {
+            setError('The map tile could not be saved. Check your connection and try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const deleteNode = async () => {
+        if (!node || !window.confirm(`Delete "${node.title}" and its MapAsset graph? This cannot be undone.`)) return;
+        setSaving(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.DELETE('/admin/world-builder/nodes/{node_id}', { params: { header: { 'X-CSRF-Token': token }, path: { node_id: node.id } } });
+            if (!response.ok) {
+                setError('The map tile could not be deleted. Refresh the map and try again.');
+                return;
+            }
+            onSaved();
+        } catch {
+            setError('The map tile could not be deleted. Check your connection and try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return <div aria-labelledby="world-node-dialog-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.node.dialog" role="dialog"><form className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Map tile</p><h2 className="mt-1 text-xl font-semibold" id="world-node-dialog-title">{isEditing ? 'Edit map tile' : 'Add map tile'}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set the source tile identity, state and hex position. Existing appearance and opening rules stay intact while their complete source controls are lifted.</p></div><button aria-label="Close map tile dialog" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}<div className="mt-5 grid gap-4"><ActivityTextField label="Title" onChange={setTitle} value={title} /><ActivityTextField label="Slug" onChange={setSlug} value={slug} /><ActivityTextField label="Description" onChange={setDescription} textarea value={description} /><div className="grid gap-4 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label><label className="grid gap-1 text-sm font-medium">State<select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setState(event.target.value as typeof state)} value={state}>{[['active', 'Active'], ['available', 'Available'], ['completed', 'Completed'], ['hidden', 'Hidden'], ['hinted', 'Hinted'], ['locked', 'Locked'], ['recommended', 'Recommended']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div><div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">{node ? <button className="mr-auto inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-60 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10" disabled={saving} onClick={() => void deleteNode()} type="button"><Trash2 className="size-4" />Delete map tile</button> : null}<button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : isEditing ? 'Save map tile' : 'Add map tile'}</button></div></form></div>;
+}
+
 const hexDirections = [
     { q: 1, r: 0, label: 'east', rotation: 0 },
     { q: 1, r: -1, label: 'north-east', rotation: -60 },
@@ -3345,6 +3437,7 @@ function MapDetails({
     const [visualsOpen, setVisualsOpen] = useState(false);
     const [layoutHistoryOpen, setLayoutHistoryOpen] = useState(false);
     const [placementNode, setPlacementNode] = useState<components['schemas']['AdminNodeSummary'] | null>(null);
+    const [nodeDialog, setNodeDialog] = useState<components['schemas']['AdminNodeSummary'] | 'create' | null>(null);
     const [accessOpen, setAccessOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -3418,6 +3511,15 @@ function MapDetails({
                 Tile layout history
             </button>
             <button
+                className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                data-wl-id="authoring.map-node-create.open"
+                onClick={() => setNodeDialog('create')}
+                type="button"
+            >
+                <Plus className="mr-1 inline size-4" />
+                Add map tile
+            </button>
+            <button
                 className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
                 onClick={onDuplicate}
                 type="button"
@@ -3460,7 +3562,7 @@ function MapDetails({
                     {map.nodes.map((node) => (
                         <div className="rounded-lg border border-slate-200 dark:border-white/10" key={node.id}>
                             <button className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => onSelectNode(node.id)} type="button"><span className="block font-medium">{node.title}</span><span className="text-xs text-slate-500 dark:text-slate-400">{node.activity_review_count} activities awaiting review</span></button>
-                            <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"><span className="text-slate-500 dark:text-slate-400">Hex ({node.position.q}, {node.position.r})</span><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-position.${node.id}`} onClick={() => setPlacementNode(node)} type="button">Place tile</button></div>
+                            <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"><span className="text-slate-500 dark:text-slate-400">Hex ({node.position.q}, {node.position.r})</span><span className="flex items-center gap-3"><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-edit.${node.id}`} onClick={() => setNodeDialog(node)} type="button">Edit tile</button><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-position.${node.id}`} onClick={() => setPlacementNode(node)} type="button">Place tile</button></span></div>
                             <MapNodeSwapControls node={node} nodes={map.nodes} onSwapped={onUpdated} />
                             <MapNodeInsertControls node={node} nodes={map.nodes} onInserted={onUpdated} />
                         </div>
@@ -3563,6 +3665,7 @@ function MapDetails({
             ) : null}
             {layoutHistoryOpen ? <MapLayoutHistoryDialog map={map} onClose={() => setLayoutHistoryOpen(false)} onRestored={onUpdated} /> : null}
             {placementNode ? <MapNodePlacementDialog node={placementNode} onClose={() => setPlacementNode(null)} onSaved={() => { setPlacementNode(null); onUpdated(); }} /> : null}
+            {nodeDialog ? <OriginalWorldNodeDialog key={nodeDialog === 'create' ? 'create' : nodeDialog.id} mapId={map.id} node={nodeDialog === 'create' ? null : nodeDialog} onClose={() => setNodeDialog(null)} onSaved={() => { setNodeDialog(null); onUpdated(); }} /> : null}
             {accessOpen ? (
                 <EditMapAccessDialog
                     document={document}
