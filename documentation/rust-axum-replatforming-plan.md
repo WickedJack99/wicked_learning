@@ -1489,18 +1489,21 @@ lifecycle. The standalone World Builder now lifts the source tile dialog's
 identity, description, state, hex-position and destructive lifecycle controls.
 Its presentation section writes source-compatible label/hover text, visibility,
 dark/light colors, image placement and opacity, and selects reusable visuals
-through the established media picker. The existing writer synchronizes those
-references transactionally while preserving untouched visual configuration, so
-the remaining opening-rule and sound controls can be lifted without a smaller
-MapAsset-only editor or accidental loss of media references.
+through the established media picker. Its availability section writes the
+source discovery, prerequisite, AND/OR grouping and UTC schedule controls,
+using the existing server-authoritative catalog resolution, cycle validation
+and schedule canonicalization. The existing writer synchronizes media
+references transactionally while preserving sound configuration, so source
+sound controls can be lifted without a smaller MapAsset-only editor or
+accidental loss of media references.
 
 The node's source `Lock for all users` backend action is also now available
 through a scoped typed command. It removes only existing learner tool-unlock
 rows for the selected editable node, never learner discovery or support-issued
-manual overrides. The node-dialog's remaining opening-rule and sound controls
-stay deferred until their complete source controls are lifted; the lifted
-source-styled dialog already exposes the `Lock for all users` confirmation
-alongside metadata and tile-presentation edits.
+manual overrides. The node-dialog's remaining source sound controls stay
+deferred until their complete controls are lifted; the lifted source-styled
+dialog already exposes the `Lock for all users` confirmation alongside
+metadata, tile-presentation and availability edits.
 
 The separate manual override command now sets or revokes a support-issued
 override only for a locked node in the actor's editable-map scope and a learner

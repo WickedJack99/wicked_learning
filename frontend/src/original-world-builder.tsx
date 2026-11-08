@@ -58,6 +58,9 @@ type MapSummary = components['schemas']['AdminMapSummary'];
 type PortalLink = components['schemas']['AdminPortalLink'];
 type EditableMap = components['schemas']['AdminEditableMap'];
 type EditableNode = components['schemas']['AdminEditableNode'];
+type NodeSummary = components['schemas']['AdminNodeSummary'];
+type NodeState = NodeSummary['state'];
+type RoleOption = components['schemas']['AdminRoleOption'];
 type Activity = components['schemas']['AdminEditableActivity'];
 type EditableItem = components['schemas']['AdminEditableItem'];
 type EditableSound = components['schemas']['AdminEditableSound'];
@@ -3227,15 +3230,23 @@ function MapNodePlacementDialog({
  * appearance, or managed-media references.
  */
 function OriginalWorldNodeDialog({
+    items,
     mapId,
     node,
+    nodes,
     onClose,
     onSaved,
+    roleOptions,
+    tools,
 }: {
+    items: EditableItem[];
     mapId: string;
-    node: components['schemas']['AdminNodeSummary'] | null;
+    node: NodeSummary | null;
+    nodes: NodeSummary[];
     onClose: () => void;
     onSaved: () => void;
+    roleOptions: RoleOption[];
+    tools: EditableTool[];
 }) {
     const isEditing = node !== null;
     const [title, setTitle] = useState(node?.title ?? '');
@@ -3329,7 +3340,7 @@ function OriginalWorldNodeDialog({
         }
     };
 
-    return <div aria-labelledby="world-node-dialog-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.node.dialog" role="dialog"><form className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Map tile</p><h2 className="mt-1 text-xl font-semibold" id="world-node-dialog-title">{isEditing ? 'Edit map tile' : 'Add map tile'}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set the source tile identity, state and hex position. Edit its visual presentation below; opening rules and sounds remain intact while their source controls are lifted.</p></div><button aria-label="Close map tile dialog" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}<div className="mt-5 grid gap-4"><ActivityTextField label="Title" onChange={setTitle} value={title} /><ActivityTextField label="Slug" onChange={setSlug} value={slug} /><ActivityTextField label="Description" onChange={setDescription} textarea value={description} /><div className="grid gap-4 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label><label className="grid gap-1 text-sm font-medium">State<select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setState(event.target.value as typeof state)} value={state}>{[['active', 'Active'], ['available', 'Available'], ['completed', 'Completed'], ['hidden', 'Hidden'], ['hinted', 'Hinted'], ['locked', 'Locked'], ['recommended', 'Recommended']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div><NodeVisualPresentationFields config={visualConfig} onChange={setVisualConfig} />{node ? <section className="mt-5 rounded-lg border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-300/25 dark:bg-amber-300/10"><h3 className="text-sm font-semibold text-amber-950 dark:text-amber-50">Learner-specific unlocks</h3><p className="mt-1 text-sm leading-6 text-amber-900 dark:text-amber-100">Lock this tile again for every learner by removing only saved tool-derived unlocks. Discovery and support overrides remain unchanged.</p><button className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15" disabled={saving} onClick={() => void resetToolUnlocks()} type="button"><LockKeyhole className="size-4" />Lock for all users</button></section> : null}<div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">{node ? <button className="mr-auto inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-60 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10" disabled={saving} onClick={() => void deleteNode()} type="button"><Trash2 className="size-4" />Delete map tile</button> : null}<button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : isEditing ? 'Save map tile' : 'Add map tile'}</button></div></form></div>;
+    return <div aria-labelledby="world-node-dialog-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4" data-wl-id="authoring.world-builder.node.dialog" role="dialog"><form className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Map tile</p><h2 className="mt-1 text-xl font-semibold" id="world-node-dialog-title">{isEditing ? 'Edit map tile' : 'Add map tile'}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Set the source tile identity, state and hex position. Edit its visual presentation and availability below; sounds remain intact while their source controls are lifted.</p></div><button aria-label="Close map tile dialog" className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button"><X className="size-5" /></button></div>{error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}<div className="mt-5 grid gap-4"><ActivityTextField label="Title" onChange={setTitle} value={title} /><ActivityTextField label="Slug" onChange={setSlug} value={slug} /><ActivityTextField label="Description" onChange={setDescription} textarea value={description} /><div className="grid gap-4 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Grid q<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setQ(event.target.value)} value={q} /></label><label className="grid gap-1 text-sm font-medium">Grid r<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" inputMode="numeric" onChange={(event) => setR(event.target.value)} value={r} /></label><label className="grid gap-1 text-sm font-medium">State<select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setState(event.target.value as typeof state)} value={state}>{[['active', 'Active'], ['available', 'Available'], ['completed', 'Completed'], ['hidden', 'Hidden'], ['hinted', 'Hinted'], ['locked', 'Locked'], ['recommended', 'Recommended']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div><NodeVisualPresentationFields config={visualConfig} onChange={setVisualConfig} /><NodeAvailabilityFields config={visualConfig} currentNodeId={node?.id ?? null} items={items} nodes={nodes} onChange={setVisualConfig} onStateChange={setState} roleOptions={roleOptions} tools={tools} />{node ? <section className="mt-5 rounded-lg border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-300/25 dark:bg-amber-300/10"><h3 className="text-sm font-semibold text-amber-950 dark:text-amber-50">Learner-specific unlocks</h3><p className="mt-1 text-sm leading-6 text-amber-900 dark:text-amber-100">Lock this tile again for every learner by removing only saved tool-derived unlocks. Discovery and support overrides remain unchanged.</p><button className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15" disabled={saving} onClick={() => void resetToolUnlocks()} type="button"><LockKeyhole className="size-4" />Lock for all users</button></section> : null}<div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">{node ? <button className="mr-auto inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-60 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10" disabled={saving} onClick={() => void deleteNode()} type="button"><Trash2 className="size-4" />Delete map tile</button> : null}<button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : isEditing ? 'Save map tile' : 'Add map tile'}</button></div></form></div>;
 }
 
 function NodeVisualPresentationFields({
@@ -3430,6 +3441,193 @@ function nodeVisualObject(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object' && !Array.isArray(value)
         ? value as Record<string, unknown>
         : {};
+}
+
+function NodeAvailabilityFields({
+    config,
+    currentNodeId,
+    items,
+    nodes,
+    onChange,
+    onStateChange,
+    roleOptions,
+    tools,
+}: {
+    config: Record<string, unknown>;
+    currentNodeId: string | null;
+    items: EditableItem[];
+    nodes: NodeSummary[];
+    onChange: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+    onStateChange: React.Dispatch<React.SetStateAction<NodeState>>;
+    roleOptions: RoleOption[];
+    tools: EditableTool[];
+}) {
+    const reveal = nodeVisualObject(config.reveal);
+    const unlock = nodeVisualObject(config.unlock);
+    const schedule = nodeVisualObject(config.schedule);
+    const revealEnabled = reveal.enabled === true;
+    const unlockEnabled = unlock.enabled === true;
+    const requiredNodeIds = Array.isArray(unlock.requiredNodeIds)
+        ? unlock.requiredNodeIds.filter((value): value is string => typeof value === 'string')
+        : [];
+    const operator = (value: unknown): 'and' | 'or' => value === 'or' ? 'or' : 'and';
+    const updateReveal = (enabled: boolean) => {
+        onStateChange((current) => enabled ? 'hidden' : current === 'hidden' ? 'available' : current);
+        onChange((current) => ({
+            ...current,
+            hideEmptySpace: enabled ? true : current.hideEmptySpace,
+            reveal: { ...nodeVisualObject(current.reveal), enabled },
+        }));
+    };
+    const updateRevealTool = (toolId: string) => onChange((current) => ({
+        ...current,
+        reveal: { ...nodeVisualObject(current.reveal), toolId },
+    }));
+    const updateUnlock = (changes: Record<string, unknown>) => {
+        onChange((current) => {
+            const next = { ...nodeVisualObject(current.unlock), ...changes };
+            const withoutRules = { ...next };
+            delete withoutRules.rules;
+            const rules = nodeUnlockRules(withoutRules, nodeVisualObject(current.schedule));
+            return {
+                ...current,
+                unlock: rules ? { ...withoutRules, rules } : withoutRules,
+            };
+        });
+    };
+    const updateSchedule = (key: 'lockAt' | 'unlockAt', value: string) => {
+        onChange((current) => {
+            const nextSchedule = { ...nodeVisualObject(current.schedule), [key]: value };
+            const currentUnlock = nodeVisualObject(current.unlock);
+            const withoutRules = { ...currentUnlock };
+            delete withoutRules.rules;
+            const rules = nodeUnlockRules(withoutRules, nextSchedule);
+            return {
+                ...current,
+                schedule: nextSchedule,
+                unlock: rules ? { ...withoutRules, rules } : withoutRules,
+            };
+        });
+    };
+    const updateUnlockEnabled = (enabled: boolean) => {
+        onStateChange((current) => enabled ? 'locked' : current === 'locked' ? 'available' : current);
+        updateUnlock({ enabled });
+    };
+    const item = nodeVisualObject(unlock.item);
+    const tool = nodeVisualObject(unlock.tool);
+
+    return (
+        <section className="mt-5 border-t border-slate-200 pt-5 dark:border-white/10" data-wl-id="authoring.world-builder.node.availability">
+            <div>
+                <h3 className="text-lg font-semibold">Availability &amp; rules</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Keep learner-facing availability server-owned while configuring discovery, prerequisites and optional schedule boundaries.</p>
+            </div>
+            <fieldset className="mt-4 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                <legend className="px-1 font-semibold">Discovery</legend>
+                <label className="flex items-start gap-3 text-sm font-medium">
+                    <input checked={revealEnabled} className="mt-1" onChange={(event) => updateReveal(event.currentTarget.checked)} type="checkbox" />
+                    <span>Hide until revealed with a tool<span className="mt-1 block text-xs font-normal leading-5 text-slate-500">Learners must equip the chosen tool and use it at this hidden tile position.</span></span>
+                </label>
+                <label className="mt-4 grid gap-1 text-sm font-medium">Reveal tool
+                    <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!revealEnabled} onChange={(event) => updateRevealTool(event.currentTarget.value)} value={typeof reveal.toolId === 'string' ? reveal.toolId : ''}>
+                        <option value="">Select a tool</option>
+                        {tools.map((candidate) => <option key={candidate.id} value={candidate.slug}>{candidate.title}</option>)}
+                    </select>
+                </label>
+            </fieldset>
+            <fieldset className="mt-4 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                <legend className="px-1 font-semibold">Unlocking</legend>
+                <label className="flex items-start gap-3 text-sm font-medium">
+                    <input checked={unlockEnabled} className="mt-1" onChange={(event) => updateUnlockEnabled(event.currentTarget.checked)} type="checkbox" />
+                    <span>Use unlock rules for this tile<span className="mt-1 block text-xs font-normal leading-5 text-slate-500">Learners cannot open it until the configured rule evaluates to true.</span></span>
+                </label>
+                <div className="mt-4 grid gap-4 rounded-lg bg-slate-50 p-4 dark:bg-white/5">
+                    <label className="grid gap-1 text-sm font-medium">Combine node and tool rules with
+                        <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!unlockEnabled} onChange={(event) => updateUnlock({ topOperator: operator(event.currentTarget.value) })} value={operator(unlock.topOperator)}>
+                            <option value="and">AND — all groups must pass</option>
+                            <option value="or">OR — any group can pass</option>
+                        </select>
+                    </label>
+                    <div className="grid gap-2">
+                        <label className="grid gap-1 text-sm font-medium">Completed-node rule
+                            <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!unlockEnabled} onChange={(event) => updateUnlock({ nodeOperator: operator(event.currentTarget.value) })} value={operator(unlock.nodeOperator)}>
+                                <option value="and">All selected tiles completed</option>
+                                <option value="or">Any selected tile completed</option>
+                            </select>
+                        </label>
+                        <select aria-label="Add completed-node condition" className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!unlockEnabled} onChange={(event) => { if (event.currentTarget.value) updateUnlock({ requiredNodeIds: requiredNodeIds.includes(event.currentTarget.value) ? requiredNodeIds : [...requiredNodeIds, event.currentTarget.value] }); }} value="">
+                            <option value="">Add completed-node condition</option>
+                            {nodes.filter((candidate) => candidate.id !== currentNodeId).map((candidate) => <option disabled={requiredNodeIds.includes(candidate.id)} key={candidate.id} value={candidate.id}>{candidate.title}</option>)}
+                        </select>
+                        <div className="flex flex-wrap gap-2">
+                            {requiredNodeIds.length === 0 ? <span className="text-xs text-slate-500">No completed-node conditions yet.</span> : null}
+                            {requiredNodeIds.map((nodeId) => <button className="rounded-full border border-teal-700/30 bg-teal-50 px-3 py-1 text-xs text-teal-800 hover:bg-teal-100 disabled:opacity-60 dark:border-teal-300/30 dark:bg-teal-300/10 dark:text-teal-200 dark:hover:bg-teal-300/20" disabled={!unlockEnabled} key={nodeId} onClick={() => updateUnlock({ requiredNodeIds: requiredNodeIds.filter((candidate) => candidate !== nodeId) })} type="button">{nodes.find((candidate) => candidate.id === nodeId)?.title ?? 'Unavailable tile'} ×</button>)}
+                        </div>
+                    </div>
+                    <label className="grid gap-1 text-sm font-medium">Learner role condition
+                        <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!unlockEnabled} onChange={(event) => updateUnlock({ roleSlug: event.currentTarget.value })} value={typeof unlock.roleSlug === 'string' ? unlock.roleSlug : ''}>
+                            <option value="">No role condition</option>
+                            {roleOptions.map((role) => <option key={role.slug} value={role.slug}>{role.name}</option>)}
+                        </select>
+                    </label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label className="flex items-start gap-3 text-sm font-medium"><input checked={item.enabled === true} disabled={!unlockEnabled} onChange={(event) => updateUnlock({ item: { ...item, enabled: event.currentTarget.checked } })} type="checkbox" /><span>Require item possession<span className="mt-1 block text-xs font-normal text-slate-500">Entering does not consume it.</span></span></label>
+                            <label className="mt-3 grid gap-1 text-sm font-medium">Unlock item
+                                <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!unlockEnabled || item.enabled !== true} onChange={(event) => updateUnlock({ item: { ...item, itemId: event.currentTarget.value } })} value={typeof item.itemId === 'string' ? item.itemId : ''}>
+                                    <option value="">Select an item</option>
+                                    {items.map((candidate) => <option key={candidate.id} value={candidate.slug}>{candidate.title}</option>)}
+                                </select>
+                            </label>
+                        </div>
+                        <div>
+                            <label className="flex items-start gap-3 text-sm font-medium"><input checked={tool.enabled === true} disabled={!unlockEnabled} onChange={(event) => updateUnlock({ tool: { ...tool, enabled: event.currentTarget.checked } })} type="checkbox" /><span>Require tool use<span className="mt-1 block text-xs font-normal text-slate-500">Learners use the chosen tool on this locked tile.</span></span></label>
+                            <label className="mt-3 grid gap-1 text-sm font-medium">Unlock tool
+                                <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!unlockEnabled || tool.enabled !== true} onChange={(event) => updateUnlock({ tool: { ...tool, toolId: event.currentTarget.value } })} value={typeof tool.toolId === 'string' ? tool.toolId : ''}>
+                                    <option value="">Select a tool</option>
+                                    {tools.map((candidate) => <option key={candidate.id} value={candidate.slug}>{candidate.title}</option>)}
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <label className="grid gap-1 text-sm font-medium">Unlock not before
+                            <input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 disabled:opacity-60 dark:border-white/20" disabled={!unlockEnabled} onChange={(event) => updateSchedule('unlockAt', event.currentTarget.value)} type="datetime-local" value={nodeDateTimeInputValue(schedule.unlockAt)} />
+                            <span className="text-xs font-normal leading-5 text-slate-500">Optional condition; the rule passes at or after this UTC time.</span>
+                        </label>
+                        <label className="grid gap-1 text-sm font-medium">Lock after
+                            <input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => updateSchedule('lockAt', event.currentTarget.value)} type="datetime-local" value={nodeDateTimeInputValue(schedule.lockAt)} />
+                            <span className="text-xs font-normal leading-5 text-slate-500">Optional hard lock at this UTC time.</span>
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+        </section>
+    );
+}
+
+function nodeDateTimeInputValue(value: unknown): string {
+    if (typeof value !== 'string') return '';
+    const match = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+    return match?.[1] ?? '';
+}
+
+function nodeUnlockRules(unlock: Record<string, unknown>, schedule: Record<string, unknown>): Record<string, unknown> | undefined {
+    const rules: Record<string, unknown>[] = [];
+    const requiredNodeIds = Array.isArray(unlock.requiredNodeIds)
+        ? unlock.requiredNodeIds.filter((value): value is string => typeof value === 'string' && value.length > 0)
+        : [];
+    if (requiredNodeIds.length > 0) {
+        rules.push({ operator: unlock.nodeOperator === 'or' ? 'or' : 'and', rules: requiredNodeIds.map((nodeId) => ({ nodeId, type: 'node_completed' })), type: 'group' });
+    }
+    const tool = nodeVisualObject(unlock.tool);
+    if (tool.enabled === true && typeof tool.toolId === 'string' && tool.toolId) rules.push({ type: 'tool_used' });
+    const item = nodeVisualObject(unlock.item);
+    if (item.enabled === true && typeof item.itemId === 'string' && item.itemId) rules.push({ itemId: item.itemId, type: 'item_owned' });
+    if (typeof unlock.roleSlug === 'string' && unlock.roleSlug) rules.push({ roleSlug: unlock.roleSlug, type: 'role_has' });
+    if (typeof schedule.unlockAt === 'string' && schedule.unlockAt) rules.push({ type: 'time_after' });
+    if (unlock.enabled !== true || rules.length === 0) return undefined;
+    return rules.length === 1 ? rules[0] : { operator: unlock.topOperator === 'or' ? 'or' : 'and', rules, type: 'group' };
 }
 
 const hexDirections = [
@@ -3786,7 +3984,7 @@ function MapDetails({
             ) : null}
             {layoutHistoryOpen ? <MapLayoutHistoryDialog map={map} onClose={() => setLayoutHistoryOpen(false)} onRestored={onUpdated} /> : null}
             {placementNode ? <MapNodePlacementDialog node={placementNode} onClose={() => setPlacementNode(null)} onSaved={() => { setPlacementNode(null); onUpdated(); }} /> : null}
-            {nodeDialog ? <OriginalWorldNodeDialog key={nodeDialog === 'create' ? 'create' : nodeDialog.id} mapId={map.id} node={nodeDialog === 'create' ? null : nodeDialog} onClose={() => setNodeDialog(null)} onSaved={() => { setNodeDialog(null); onUpdated(); }} /> : null}
+            {nodeDialog ? <OriginalWorldNodeDialog items={document.items} key={nodeDialog === 'create' ? 'create' : nodeDialog.id} mapId={map.id} node={nodeDialog === 'create' ? null : nodeDialog} nodes={map.nodes} onClose={() => setNodeDialog(null)} onSaved={() => { setNodeDialog(null); onUpdated(); }} roleOptions={document.role_options} tools={document.tools} /> : null}
             {accessOpen ? (
                 <EditMapAccessDialog
                     document={document}

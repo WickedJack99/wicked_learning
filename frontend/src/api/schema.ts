@@ -7845,7 +7845,7 @@ export interface components {
             /** @enum {string} */
             state: "active" | "available" | "completed" | "hidden" | "hinted" | "locked" | "recommended";
             /**
-             * @description Source node visual configuration. Catalog references may use a current tool or item UUID (or its stable slug); the server rejects unavailable references and persists the learner-safe slug. Node prerequisite IDs remain UUIDs. Managed `/api/v1/admin/media-assets/{uuid}/content` theme URLs must identify a reusable visual in the current workspace; they are registered atomically and learner payloads rewrite them to the protected learner-media route. `datetime-local` schedule values are interpreted as UTC and canonicalized to RFC 3339 before persistence.
+             * @description Source node presentation and availability configuration. Catalog references may use a current tool or item UUID (or its stable slug); the server rejects unavailable references and persists the learner-safe slug. Node prerequisite IDs remain UUIDs. Discovery, completed-node, role, item, tool-use and schedule rules are evaluated server-side. Managed `/api/v1/admin/media-assets/{uuid}/content` theme URLs must identify a reusable visual in the current workspace; they are registered atomically and learner payloads rewrite them to the protected learner-media route. `datetime-local` schedule values are interpreted as UTC and canonicalized to RFC 3339 before persistence.
              * @default {}
              */
             visual_config: {

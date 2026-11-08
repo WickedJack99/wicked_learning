@@ -862,16 +862,19 @@ The standalone World Builder now lifts the source map-tile dialog for creating,
 editing and deleting a tile's title, slug, description, hex position and
 state. Its presentation section edits the learner-facing label and hover text,
 visibility flags, dark/light theme colors, image placement and opacity, and can
-select a reusable visual for either theme. It preserves the rest of the stored
-visual configuration, so opening rules and sounds are not lost while their
+select a reusable visual for either theme. Its source-shaped availability
+section configures hidden tool discovery, completed-tile, role, item and tool
+prerequisites, AND/OR grouping, and UTC unlock/lock scheduling. The server
+continues to resolve selected catalog UUIDs, validate prerequisites and
+canonicalize schedules before learner delivery. It preserves sounds while their
 source controls are still being lifted.
 
 The Rust backend for a selected node's source `Lock for all users` action now
 resets only learner-specific tool unlocks. It deliberately preserves discovery
 and explicit support overrides, so resetting a tool-derived condition cannot
 silently erase other learner-state causes. The lifted map-tile dialog exposes
-that confirmation while the remaining source opening-rule and sound controls
-are still being lifted.
+that confirmation alongside the complete source availability controls; only
+the source sound controls are still being lifted.
 
 The corresponding support-issued manual override is now also available to the
 backend for one locked node and one learner already visible through the
