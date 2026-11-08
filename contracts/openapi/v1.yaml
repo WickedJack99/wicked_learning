@@ -1825,6 +1825,39 @@ paths:
         '403': { description: The same-origin CSRF check failed. }
         '404': { description: The node is unavailable to the caller. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/nodes/{node_id}/portal-activities:
+    post:
+      operationId: createAdminWorldBuilderPortalActivity
+      summary: Create a source Portal activity on an editable node.
+      description: >-
+        Creates a source-shaped entry or exit Portal. Entry portals may select
+        an exit Portal in the same World; the server owns the resulting travel link.
+      parameters: [ { name: node_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminPortalActivityRequest' } } } }
+      responses:
+        '201': { description: The created activity identifier., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAdminPortalActivityResponse' } } } }
+        '400': { description: The source Portal fields or selected exit Portal are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The node is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/portal:
+    patch:
+      operationId: updateAdminWorldBuilderPortalActivity
+      summary: Update a source Portal activity.
+      description: >-
+        Replaces the complete source-shaped Portal form after checking the
+        previously-read timestamp, including its server-authorized travel target.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminPortalActivityRequest' } } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminPortalActivityResponse' } } } }
+        '400': { description: The source Portal fields, selected exit Portal, or update timestamp are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The Portal activity is unavailable to the caller. }
+        '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/markdown:
     patch:
       operationId: updateAdminWorldBuilderMarkdownActivity
@@ -9476,6 +9509,71 @@ components:
       properties:
         x: { type: number }
         y: { type: number }
+    PortalActivityAsset:
+      type: object
+      additionalProperties: false
+      required: [id, image_dark, image_light, label, layer, mirrored, opacity, width, x, y]
+      properties:
+        id: { type: string, maxLength: 120 }
+        image_dark: { type: string, maxLength: 2048 }
+        image_light: { type: string, maxLength: 2048 }
+        label: { type: string, maxLength: 120 }
+        layer: { type: string, enum: [behind-background, above-background, above-foreground, front] }
+        mirrored: { type: boolean }
+        opacity: { type: number, minimum: 0, maximum: 100 }
+        width: { type: number, minimum: 1, maximum: 160 }
+        x: { type: number, minimum: 0, maximum: 100 }
+        y: { type: number, minimum: 0, maximum: 100 }
+    PortalActivityForm:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, portal_mode, portal_background_dark, portal_background_light, portal_background_mirrored, portal_assets, portal_duration_seconds, portal_foreground_dark, portal_foreground_light, portal_foreground_mirrored, portal_foreground_width, portal_foreground_x, portal_foreground_y, portal_show_on_arrival, portal_swirl_enabled, portal_bubble_text, portal_bubble_typing_speed, portal_bubble_color_dark, portal_bubble_color_light, portal_bubble_border_color_dark, portal_bubble_border_color_light, portal_bubble_text_color_dark, portal_bubble_text_color_light, portal_wait_for_enter, target_portal_activity_id]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        portal_mode: { type: string, enum: [input, output] }
+        portal_background_dark: { type: string, maxLength: 2048 }
+        portal_background_light: { type: string, maxLength: 2048 }
+        portal_background_mirrored: { type: boolean }
+        portal_assets: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/PortalActivityAsset' } }
+        portal_duration_seconds: { type: number, minimum: 0.5, maximum: 60 }
+        portal_foreground_dark: { type: string, maxLength: 2048 }
+        portal_foreground_light: { type: string, maxLength: 2048 }
+        portal_foreground_mirrored: { type: boolean }
+        portal_foreground_width: { type: number, minimum: 1, maximum: 100 }
+        portal_foreground_x: { type: number, minimum: 0, maximum: 100 }
+        portal_foreground_y: { type: number, minimum: 0, maximum: 100 }
+        portal_show_on_arrival: { type: boolean }
+        portal_swirl_enabled: { type: boolean }
+        portal_bubble_text: { type: string, maxLength: 2000 }
+        portal_bubble_typing_speed: { type: number, minimum: 1, maximum: 500 }
+        portal_bubble_color_dark: { type: string, maxLength: 64 }
+        portal_bubble_color_light: { type: string, maxLength: 64 }
+        portal_bubble_border_color_dark: { type: string, maxLength: 64 }
+        portal_bubble_border_color_light: { type: string, maxLength: 64 }
+        portal_bubble_text_color_dark: { type: string, maxLength: 64 }
+        portal_bubble_text_color_light: { type: string, maxLength: 64 }
+        portal_wait_for_enter: { type: boolean }
+        target_portal_activity_id: { type: [string, 'null'], format: uuid }
+    CreateAdminPortalActivityRequest:
+      $ref: '#/components/schemas/PortalActivityForm'
+    CreateAdminPortalActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id]
+      properties: { activity_id: { type: string, format: uuid } }
+    UpdateAdminPortalActivityRequest:
+      allOf:
+        - $ref: '#/components/schemas/PortalActivityForm'
+        - type: object
+          required: [updated_at]
+          properties: { updated_at: { type: string, format: date-time } }
+    UpdateAdminPortalActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [activity_id, updated_at]
+      properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
     MarkdownActivityPageVisual:
       type: object
       additionalProperties: false

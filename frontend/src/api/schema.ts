@@ -1400,6 +1400,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/nodes/{node_id}/portal-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a source Portal activity on an editable node.
+         * @description Creates a source-shaped entry or exit Portal. Entry portals may select an exit Portal in the same World; the server owns the resulting travel link.
+         */
+        post: operations["createAdminWorldBuilderPortalActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/activities/{activity_id}/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a source Portal activity.
+         * @description Replaces the complete source-shaped Portal form after checking the previously-read timestamp, including its server-authorized travel target.
+         */
+        patch: operations["updateAdminWorldBuilderPortalActivity"];
+        trace?: never;
+    };
     "/admin/world-builder/activities/{activity_id}/markdown": {
         parameters: {
             query?: never;
@@ -6514,6 +6554,65 @@ export interface components {
         MarkdownActivityPosition: {
             x: number;
             y: number;
+        };
+        PortalActivityAsset: {
+            id: string;
+            image_dark: string;
+            image_light: string;
+            label: string;
+            /** @enum {string} */
+            layer: "behind-background" | "above-background" | "above-foreground" | "front";
+            mirrored: boolean;
+            opacity: number;
+            width: number;
+            x: number;
+            y: number;
+        };
+        PortalActivityForm: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            /** @enum {string} */
+            portal_mode: "input" | "output";
+            portal_background_dark: string;
+            portal_background_light: string;
+            portal_background_mirrored: boolean;
+            portal_assets: components["schemas"]["PortalActivityAsset"][];
+            portal_duration_seconds: number;
+            portal_foreground_dark: string;
+            portal_foreground_light: string;
+            portal_foreground_mirrored: boolean;
+            portal_foreground_width: number;
+            portal_foreground_x: number;
+            portal_foreground_y: number;
+            portal_show_on_arrival: boolean;
+            portal_swirl_enabled: boolean;
+            portal_bubble_text: string;
+            portal_bubble_typing_speed: number;
+            portal_bubble_color_dark: string;
+            portal_bubble_color_light: string;
+            portal_bubble_border_color_dark: string;
+            portal_bubble_border_color_light: string;
+            portal_bubble_text_color_dark: string;
+            portal_bubble_text_color_light: string;
+            portal_wait_for_enter: boolean;
+            /** Format: uuid */
+            target_portal_activity_id: string | null;
+        };
+        CreateAdminPortalActivityRequest: components["schemas"]["PortalActivityForm"];
+        CreateAdminPortalActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+        };
+        UpdateAdminPortalActivityRequest: components["schemas"]["PortalActivityForm"] & {
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateAdminPortalActivityResponse: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            updated_at: string;
         };
         MarkdownActivityPageVisual: {
             page_color_dark: string;
@@ -12427,6 +12526,141 @@ export interface operations {
             };
             /** @description The node is unavailable to the caller. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderPortalActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminPortalActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created activity identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminPortalActivityResponse"];
+                };
+            };
+            /** @description The source Portal fields or selected exit Portal are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderPortalActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminPortalActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminPortalActivityResponse"];
+                };
+            };
+            /** @description The source Portal fields */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Portal activity is unavailable to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The activity changed after the caller loaded it. Reload before saving again. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

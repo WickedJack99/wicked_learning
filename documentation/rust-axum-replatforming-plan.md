@@ -410,9 +410,15 @@ navigates to that arrival scene; completing the input portal records the target
 activity and returns to World without resetting or advancing an unrelated
 destination route. A retry returns the same active arrival token safely.
 
-This is the learner playback/travel boundary only. Portal authoring and a
-general map-link editor remain separate work; the fresh local content exists
-solely to exercise the source-shaped vertical slice.
+The Portal writer now also preserves the source Entry/Exit direction, optional
+same-World Exit target, dark/light backgrounds and swirl, up to twenty layered
+visuals, arrival behavior, typing bubble and presentation colors. Its typed
+Rust command scopes node/activity mutations to `world_activities.ru`, checks
+the stale timestamp, writes the server-owned Portal link only for an Entry
+Portal with a valid Exit target, records activity history, and keeps every
+selected or uploaded reusable visual referenced. The lifted World Builder form
+uses the existing reusable-visual picker/upload path and learner Portal scene
+for its preview. General map-link editing remains a separate work item.
 
 ### Learner sound-preference slice — 6 November 2026
 

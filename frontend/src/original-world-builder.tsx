@@ -25,7 +25,7 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
@@ -33,6 +33,7 @@ import type { components } from './api/schema';
 import { OriginalActivityHistoryDialog } from './original-activity-history';
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
+import { PortalScene } from './original-portal-activity';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
@@ -52,6 +53,7 @@ type ActivityTransition = components['schemas']['AdminActivityTransition'];
 type ActivityConnector = components['schemas']['AdminActivityConnector'];
 type ActivityStartRoute = components['schemas']['AdminActivityStartRoute'];
 type MessageTopic = components['schemas']['AdminMessageTopicOption'];
+type PortalCandidate = components['schemas']['AdminActivityPortalCandidate'];
 
 type WorldMapNodeData = {
     map: MapSummary;
@@ -75,6 +77,7 @@ type SupportedActivityType =
     | 'reflection'
     | 'review'
     | 'markdown'
+    | 'portal'
     | 'item_grant'
     | 'tool_grant'
     | 'item_obstacle'
@@ -130,6 +133,18 @@ type MarkdownPageDraft = {
     };
 };
 type MarkdownTransitionDraft = { from: string; id: string; to: string };
+type PortalAssetDraft = {
+    id: string;
+    imageDark: string;
+    imageLight: string;
+    label: string;
+    layer: 'behind-background' | 'above-background' | 'above-foreground' | 'front';
+    mirrored: boolean;
+    opacity: string;
+    width: string;
+    x: string;
+    y: string;
+};
 type ActivityAuthorForm = {
     backgroundDark: string;
     backgroundLight: string;
@@ -175,6 +190,30 @@ type ActivityAuthorForm = {
     };
     markdownPages: MarkdownPageDraft[];
     markdownTransitions: MarkdownTransitionDraft[];
+    portalAssets: PortalAssetDraft[];
+    portalBackgroundDark: string;
+    portalBackgroundLight: string;
+    portalBackgroundMirrored: boolean;
+    portalBubbleBorderColorDark: string;
+    portalBubbleBorderColorLight: string;
+    portalBubbleColorDark: string;
+    portalBubbleColorLight: string;
+    portalBubbleText: string;
+    portalBubbleTextColorDark: string;
+    portalBubbleTextColorLight: string;
+    portalBubbleTypingSpeed: string;
+    portalDurationSeconds: string;
+    portalForegroundDark: string;
+    portalForegroundLight: string;
+    portalForegroundMirrored: boolean;
+    portalForegroundWidth: string;
+    portalForegroundX: string;
+    portalForegroundY: string;
+    portalMode: 'input' | 'output';
+    portalShowOnArrival: boolean;
+    portalSwirlEnabled: boolean;
+    portalTargetId: string;
+    portalWaitForEnter: boolean;
     nextStep: string;
     note: string;
     obstacle: ObstacleForm;
@@ -1461,6 +1500,8 @@ function MediaPicker({
 }) {
     const [page, setPage] = useState<MediaAssetPage | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const upload = useRef<HTMLInputElement>(null);
     useEffect(() => {
         let current = true;
         void apiClient
@@ -1488,6 +1529,30 @@ function MediaPicker({
             current = false;
         };
     }, []);
+    const uploadImage = async (file: File | null) => {
+        if (!file) return;
+        setUploading(true);
+        setError(null);
+        try {
+            const token = await getCsrfToken();
+            const form = new FormData();
+            form.append('file', file);
+            const response = await fetch('/api/v1/admin/media-assets', {
+                body: form,
+                credentials: 'same-origin',
+                headers: { 'X-CSRF-Token': token },
+                method: 'POST',
+            });
+            if (!response.ok) throw new Error('upload failed');
+            const data = await response.json() as { asset: MediaAsset };
+            onSelect(data.asset);
+        } catch {
+            setError('This image could not be stored. Use a GIF, JPEG, PNG, WebP, or SVG under 5 MiB.');
+        } finally {
+            setUploading(false);
+            if (upload.current) upload.current.value = '';
+        }
+    };
     return (
         <div
             aria-label="Select existing visual"
@@ -1515,6 +1580,11 @@ function MediaPicker({
                     >
                         <X className="size-5" />
                     </button>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <input accept="image/gif,image/jpeg,image/png,image/webp,image/svg+xml" className="sr-only" onChange={(event) => void uploadImage(event.currentTarget.files?.[0] ?? null)} ref={upload} type="file" />
+                    <button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10" disabled={uploading} onClick={() => upload.current?.click()} type="button">{uploading ? 'Uploading…' : 'Upload image'}</button>
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Or select a reusable visual below.</p>
                 </div>
                 {error ? (
                     <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">
@@ -2704,6 +2774,14 @@ function ActivityGraph({
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'portal' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            Portal
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
                             onClick={() => setEditor({ type: 'item_grant' })}
                             type="button"
                         >
@@ -2806,6 +2884,7 @@ function ActivityGraph({
                     items={document.items}
                     sounds={document.sounds}
                     messageTopics={document.activity_graph.message_topics}
+                    portalCandidates={document.activity_graph.portal_candidates}
                     tools={document.tools}
                     nodeId={graph.node.id}
                     onClose={() => setEditor(null)}
@@ -3667,6 +3746,7 @@ function ActivityAuthorDialog({
     items,
     nodeId,
     messageTopics,
+    portalCandidates,
     onClose,
     onSaved,
     sounds,
@@ -3678,6 +3758,7 @@ function ActivityAuthorDialog({
     items: EditableItem[];
     nodeId: string;
     messageTopics: MessageTopic[];
+    portalCandidates: PortalCandidate[];
     onClose: () => void;
     onSaved: () => void;
     sounds: EditableSound[];
@@ -3685,8 +3766,8 @@ function ActivityAuthorDialog({
     type: SupportedActivityType;
     tools: EditableTool[];
 }) {
-    const [form, setForm] = useState(() =>
-        template
+    const [form, setForm] = useState(() => {
+        const initial = template
             ? activityAuthorFormFromTemplate(
                   type,
                   template,
@@ -3694,8 +3775,10 @@ function ActivityAuthorDialog({
                   tools,
                   sounds,
               )
-            : activityAuthorForm(type, activity, items, tools, sounds),
-    );
+            : activityAuthorForm(type, activity, items, tools, sounds);
+        const target = activity?.portal_link?.target_activity?.id;
+        return target ? { ...initial, portalTargetId: target } : initial;
+    });
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const isEditing = activity !== undefined;
@@ -3708,6 +3791,8 @@ function ActivityAuthorDialog({
                 ? 'Review / revisit'
               : type === 'markdown'
                 ? 'Markdown'
+              : type === 'portal'
+                ? 'Portal'
               : type === 'item_grant'
                 ? 'Item grant'
                 : type === 'tool_grant'
@@ -3860,11 +3945,53 @@ function ActivityAuthorDialog({
                 })),
                 markdown_transitions: form.markdownTransitions,
             } as components['schemas']['CreateAdminMarkdownActivityRequest'];
+            const portal = {
+                ...common,
+                portal_assets: form.portalAssets.map((asset) => ({
+                    id: asset.id,
+                    image_dark: asset.imageDark,
+                    image_light: asset.imageLight,
+                    label: asset.label,
+                    layer: asset.layer,
+                    mirrored: asset.mirrored,
+                    opacity: Number(asset.opacity),
+                    width: Number(asset.width),
+                    x: Number(asset.x),
+                    y: Number(asset.y),
+                })),
+                portal_background_dark: form.portalBackgroundDark,
+                portal_background_light: form.portalBackgroundLight,
+                portal_background_mirrored: form.portalBackgroundMirrored,
+                portal_bubble_border_color_dark: form.portalBubbleBorderColorDark,
+                portal_bubble_border_color_light: form.portalBubbleBorderColorLight,
+                portal_bubble_color_dark: form.portalBubbleColorDark,
+                portal_bubble_color_light: form.portalBubbleColorLight,
+                portal_bubble_text: form.portalBubbleText,
+                portal_bubble_text_color_dark: form.portalBubbleTextColorDark,
+                portal_bubble_text_color_light: form.portalBubbleTextColorLight,
+                portal_bubble_typing_speed: Number(form.portalBubbleTypingSpeed),
+                portal_duration_seconds: Number(form.portalDurationSeconds),
+                portal_foreground_dark: form.portalForegroundDark,
+                portal_foreground_light: form.portalForegroundLight,
+                portal_foreground_mirrored: form.portalForegroundMirrored,
+                portal_foreground_width: Number(form.portalForegroundWidth),
+                portal_foreground_x: Number(form.portalForegroundX),
+                portal_foreground_y: Number(form.portalForegroundY),
+                portal_mode: form.portalMode,
+                portal_show_on_arrival: form.portalShowOnArrival,
+                portal_swirl_enabled: form.portalSwirlEnabled,
+                portal_wait_for_enter: form.portalWaitForEnter,
+                target_portal_activity_id: form.portalMode === 'output' ? optionalValue(form.portalTargetId) : null,
+            } as components['schemas']['CreateAdminPortalActivityRequest'];
 
             if (type === 'markdown' && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/markdown', { body: { ...markdown, introduction: optionalValue(form.introduction), slug: optionalValue(form.slug), updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'markdown') {
                 ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/markdown-activities', { body: markdown, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+            } else if (type === 'portal' && activity) {
+                ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/portal', { body: { ...portal, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
+            } else if (type === 'portal') {
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/portal-activities', { body: portal, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
             } else if (type === 'question' && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/question', { body: { ...question, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'question') {
@@ -4230,6 +4357,12 @@ function ActivityAuthorDialog({
                         </>
                     ) : type === 'markdown' ? (
                         <MarkdownActivityFields form={form} onChange={setForm} />
+                    ) : type === 'portal' ? (
+                        <PortalActivityFields
+                            candidates={portalCandidates}
+                            form={form}
+                            onChange={setForm}
+                        />
                     ) : type === 'item_grant' ? (
                         <ItemGrantFields
                             form={form}
@@ -4461,6 +4594,107 @@ function MarkdownPagePreview({ page }: { page: MarkdownPageDraft }) {
 
 function MarkdownColorField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
     return <label className="grid gap-2 text-sm font-medium">{label}<input className="h-10 w-full rounded-lg border border-slate-200 bg-white px-1 dark:border-white/10 dark:bg-slate-950/40" onChange={(event) => onChange(event.target.value)} type="color" value={value} /></label>;
+}
+
+function PortalActivityFields({
+    candidates,
+    form,
+    onChange,
+}: {
+    candidates: PortalCandidate[];
+    form: ActivityAuthorForm;
+    onChange: React.Dispatch<React.SetStateAction<ActivityAuthorForm>>;
+}) {
+    type PortalMediaTarget =
+        | 'portalBackgroundDark'
+        | 'portalBackgroundLight'
+        | 'portalForegroundDark'
+        | 'portalForegroundLight'
+        | `asset:${string}:imageDark`
+        | `asset:${string}:imageLight`;
+    const [mediaTarget, setMediaTarget] = useState<PortalMediaTarget | null>(null);
+    const update = (field: keyof ActivityAuthorForm, value: string | boolean) =>
+        onChange((current) => ({ ...current, [field]: value }));
+    const updateAsset = (assetId: string, changes: Partial<PortalAssetDraft>) =>
+        onChange((current) => ({
+            ...current,
+            portalAssets: current.portalAssets.map((asset) => asset.id === assetId ? { ...asset, ...changes } : asset),
+        }));
+    const selectMedia = (asset: MediaAsset) => {
+        if (!mediaTarget) return;
+        if (mediaTarget.startsWith('asset:')) {
+            const [, id, field] = mediaTarget.split(':');
+            updateAsset(id, { [field]: asset.url } as Partial<PortalAssetDraft>);
+        } else {
+            update(mediaTarget as keyof ActivityAuthorForm, asset.url);
+        }
+        setMediaTarget(null);
+    };
+    const previewAssets = form.portalAssets
+        .map((asset) => ({
+            id: asset.id,
+            image: asset.imageDark || asset.imageLight,
+            layer: asset.layer,
+            mirrored: asset.mirrored,
+            opacity: Number(asset.opacity),
+            width: Number(asset.width),
+            x: Number(asset.x),
+            y: Number(asset.y),
+        }))
+        .filter((asset) => asset.image);
+    const bubbleStyle = {
+        backgroundColor: form.portalBubbleColorLight,
+        borderColor: form.portalBubbleBorderColorLight,
+        color: form.portalBubbleTextColorLight,
+    };
+    return <section className="grid gap-5 border-t border-slate-200 pt-4 md:col-span-2 dark:border-white/10">
+        <div>
+            <h3 className="text-sm font-semibold">Portal route</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Choose whether this portal starts travel or receives a traveller.</p>
+        </div>
+        <label className="grid gap-2 text-sm font-medium">
+            Portal direction
+            <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950/40" onChange={(event) => onChange((current) => ({ ...current, portalMode: event.target.value as 'input' | 'output', portalTargetId: event.target.value === 'input' ? '' : current.portalTargetId }))} value={form.portalMode}>
+                <option value="input">Exit portal</option>
+                <option value="output">Entry portal</option>
+            </select>
+        </label>
+        {form.portalMode === 'input' ? <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"><input checked={form.portalShowOnArrival} className="mt-1" onChange={(event) => update('portalShowOnArrival', event.target.checked)} type="checkbox" /><span><span className="block font-medium">Show this exit portal when arriving</span><span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">Disable this when the arrival should complete silently and continue to the next connected activity.</span></span></label> : <label className="grid gap-2 rounded-lg border border-slate-200 p-3 text-sm font-medium dark:border-white/10">Travel target<select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950/40" onChange={(event) => update('portalTargetId', event.target.value)} value={form.portalTargetId}><option value="">No target yet</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.map_title} / {candidate.node_title} / {candidate.title}</option>)}</select><span className="text-xs font-normal leading-5 text-slate-500 dark:text-slate-400">Entry portals end this activity path and move learners to the selected exit portal.</span></label>}
+        <div className="border-t border-slate-200 pt-4 dark:border-white/10"><h3 className="text-sm font-semibold">Portal visuals</h3><p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Theme-specific portal images, timing and motion.</p></div>
+        <div className="grid gap-4 md:grid-cols-2">
+            {([
+                ['portalBackgroundDark', 'Dark background image'],
+                ['portalBackgroundLight', 'Light background image'],
+                ['portalForegroundDark', 'Dark swirl image'],
+                ['portalForegroundLight', 'Light swirl image'],
+            ] as Array<[Extract<PortalMediaTarget, string>, string]>).map(([field, label]) => <ActivityTextField key={field} label={label} onChange={(value) => update(field as keyof ActivityAuthorForm, value)} onSelectExisting={() => setMediaTarget(field)} value={String(form[field as keyof ActivityAuthorForm])} />)}
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+            <ToolGrantNumberField label="Portal duration" max={60} min={0.5} onChange={(value) => update('portalDurationSeconds', value)} suffix="seconds" value={form.portalDurationSeconds} />
+            <ToolGrantNumberField label="Swirl X" max={100} min={0} onChange={(value) => update('portalForegroundX', value)} suffix="%" value={form.portalForegroundX} />
+            <ToolGrantNumberField label="Swirl Y" max={100} min={0} onChange={(value) => update('portalForegroundY', value)} suffix="%" value={form.portalForegroundY} />
+            <ToolGrantNumberField label="Swirl width" max={100} min={1} onChange={(value) => update('portalForegroundWidth', value)} suffix="%" value={form.portalForegroundWidth} />
+            <ToolGrantNumberField label="Typing speed" max={500} min={1} onChange={(value) => update('portalBubbleTypingSpeed', value)} suffix="ms" value={form.portalBubbleTypingSpeed} />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+            <label className="flex items-center gap-3 text-sm font-medium"><input checked={form.portalBackgroundMirrored} onChange={(event) => update('portalBackgroundMirrored', event.target.checked)} type="checkbox" />Mirror background horizontally</label>
+            <label className="flex items-center gap-3 text-sm font-medium"><input checked={form.portalForegroundMirrored} onChange={(event) => update('portalForegroundMirrored', event.target.checked)} type="checkbox" />Mirror swirl horizontally</label>
+            <label className="flex items-center gap-3 text-sm font-medium"><input checked={form.portalSwirlEnabled} onChange={(event) => update('portalSwirlEnabled', event.target.checked)} type="checkbox" />Rotate swirl image</label>
+            <label className="flex items-center gap-3 text-sm font-medium"><input checked={form.portalWaitForEnter} onChange={(event) => update('portalWaitForEnter', event.target.checked)} type="checkbox" />Wait for Enter before traversing</label>
+        </div>
+        <ActivityTextField className="md:col-span-2" label="Bubble text" onChange={(value) => update('portalBubbleText', value)} textarea value={form.portalBubbleText} />
+        <div className="grid gap-4 md:grid-cols-2">
+            <ToolGrantColorField label="Dark bubble color" onChange={(value) => update('portalBubbleColorDark', value)} value={form.portalBubbleColorDark} />
+            <ToolGrantColorField label="Light bubble color" onChange={(value) => update('portalBubbleColorLight', value)} value={form.portalBubbleColorLight} />
+            <ToolGrantColorField label="Dark bubble border" onChange={(value) => update('portalBubbleBorderColorDark', value)} value={form.portalBubbleBorderColorDark} />
+            <ToolGrantColorField label="Light bubble border" onChange={(value) => update('portalBubbleBorderColorLight', value)} value={form.portalBubbleBorderColorLight} />
+            <ToolGrantColorField label="Dark bubble text" onChange={(value) => update('portalBubbleTextColorDark', value)} value={form.portalBubbleTextColorDark} />
+            <ToolGrantColorField label="Light bubble text" onChange={(value) => update('portalBubbleTextColorLight', value)} value={form.portalBubbleTextColorLight} />
+        </div>
+        <div className="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-white/10"><div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">Additional scene assets</h3><p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Layer extra images into the portal scene.</p></div><button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-white/20" disabled={form.portalAssets.length >= 20} onClick={() => onChange((current) => ({ ...current, portalAssets: [...current.portalAssets, { id: `portal-asset-${Date.now()}`, imageDark: '', imageLight: '', label: `Asset ${current.portalAssets.length + 1}`, layer: 'above-background', mirrored: false, opacity: '100', width: '28', x: '50', y: '50' }] }))} type="button">Add asset</button></div>{form.portalAssets.length === 0 ? <p className="rounded-md border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-white/10">No extra portal assets yet.</p> : form.portalAssets.map((asset) => <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10" key={asset.id}><div className="flex items-center justify-between gap-3"><ActivityTextField label="Asset label" onChange={(label) => updateAsset(asset.id, { label })} value={asset.label} /><button className="text-sm font-medium text-red-700 dark:text-red-300" onClick={() => onChange((current) => ({ ...current, portalAssets: current.portalAssets.filter((candidate) => candidate.id !== asset.id) }))} type="button">Remove</button></div><div className="grid gap-4 md:grid-cols-2"><ActivityTextField label="Dark mode image" onChange={(imageDark) => updateAsset(asset.id, { imageDark })} onSelectExisting={() => setMediaTarget(`asset:${asset.id}:imageDark`)} value={asset.imageDark} /><ActivityTextField label="Light mode image" onChange={(imageLight) => updateAsset(asset.id, { imageLight })} onSelectExisting={() => setMediaTarget(`asset:${asset.id}:imageLight`)} value={asset.imageLight} /></div><div className="grid gap-4 md:grid-cols-5"><label className="grid gap-2 text-sm font-medium md:col-span-2">Layer<select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950/40" onChange={(event) => updateAsset(asset.id, { layer: event.target.value as PortalAssetDraft['layer'] })} value={asset.layer}><option value="behind-background">Behind background</option><option value="above-background">Above background</option><option value="above-foreground">Above swirl</option><option value="front">Front</option></select></label><ToolGrantNumberField label="X" max={100} min={0} onChange={(x) => updateAsset(asset.id, { x })} suffix="%" value={asset.x} /><ToolGrantNumberField label="Y" max={100} min={0} onChange={(y) => updateAsset(asset.id, { y })} suffix="%" value={asset.y} /><ToolGrantNumberField label="Width" max={160} min={1} onChange={(width) => updateAsset(asset.id, { width })} suffix="%" value={asset.width} /></div><div className="grid gap-4 md:grid-cols-2"><ToolGrantNumberField label="Opacity" max={100} min={0} onChange={(opacity) => updateAsset(asset.id, { opacity })} suffix="%" value={asset.opacity} /><label className="flex items-center gap-3 text-sm font-medium"><input checked={asset.mirrored} onChange={(event) => updateAsset(asset.id, { mirrored: event.target.checked })} type="checkbox" />Mirror asset horizontally</label></div></div>)}</div>
+        <div className="grid gap-2"><h3 className="text-sm font-semibold">Preview</h3><p className="text-sm leading-6 text-slate-500 dark:text-slate-400">Uses the current appearance mode and falls back to the other image when needed.</p><PortalScene assets={previewAssets} backgroundImage={form.portalBackgroundLight || form.portalBackgroundDark} backgroundMirrored={form.portalBackgroundMirrored} className="min-h-64" foregroundImage={form.portalForegroundLight || form.portalForegroundDark} foregroundMirrored={form.portalForegroundMirrored} foregroundWidth={Number(form.portalForegroundWidth)} foregroundX={Number(form.portalForegroundX)} foregroundY={Number(form.portalForegroundY)} swirlEnabled={form.portalSwirlEnabled}><div className="relative z-30 mt-auto w-full bg-white/72 p-4 backdrop-blur dark:bg-slate-950/72">{form.portalBubbleText ? <div className="rounded-lg border p-3 text-sm leading-6" style={bubbleStyle}>{form.portalBubbleText}</div> : <p className="text-sm text-slate-600 dark:text-slate-300">Portal bubble preview.</p>}</div></PortalScene></div>
+        {mediaTarget ? <MediaPicker onClose={() => setMediaTarget(null)} onSelect={selectMedia} /> : null}
+    </section>;
 }
 
 function emptyQuestionOption(label: string): ActivityAuthorForm['questionOptions'][number] {
@@ -5735,6 +5969,30 @@ function activityAuthorForm(
         markdownGraphLayout: markdownGraphLayout(config),
         markdownPages: markdownPages(config),
         markdownTransitions: markdownTransitions(config),
+        portalAssets: portalAssets(config),
+        portalBackgroundDark: configString(config, 'portalBackgroundDark'),
+        portalBackgroundLight: configString(config, 'portalBackgroundLight'),
+        portalBackgroundMirrored: configBoolean(config, 'portalBackgroundMirrored'),
+        portalBubbleBorderColorDark: configStringOr(config, 'portalBubbleBorderColorDark', '#2dd4bf'),
+        portalBubbleBorderColorLight: configStringOr(config, 'portalBubbleBorderColorLight', '#0891b2'),
+        portalBubbleColorDark: configStringOr(config, 'portalBubbleColorDark', '#0f172a'),
+        portalBubbleColorLight: configStringOr(config, 'portalBubbleColorLight', '#ffffff'),
+        portalBubbleText: configString(config, 'portalBubbleText'),
+        portalBubbleTextColorDark: configStringOr(config, 'portalBubbleTextColorDark', '#f8fafc'),
+        portalBubbleTextColorLight: configStringOr(config, 'portalBubbleTextColorLight', '#0f172a'),
+        portalBubbleTypingSpeed: String(configNumber(config, 'portalBubbleTypingSpeed', 24)),
+        portalDurationSeconds: String(configNumber(config, 'portalDurationSeconds', 1.5)),
+        portalForegroundDark: configString(config, 'portalForegroundDark'),
+        portalForegroundLight: configString(config, 'portalForegroundLight'),
+        portalForegroundMirrored: configBoolean(config, 'portalForegroundMirrored'),
+        portalForegroundWidth: String(configNumber(config, 'portalForegroundWidth', 28)),
+        portalForegroundX: String(configNumber(config, 'portalForegroundX', 50)),
+        portalForegroundY: String(configNumber(config, 'portalForegroundY', 50)),
+        portalMode: configString(config, 'portalMode') === 'input' ? 'input' : 'output',
+        portalShowOnArrival: configBoolean(config, 'portalShowOnArrival', true),
+        portalSwirlEnabled: configBoolean(config, 'portalSwirlEnabled', true),
+        portalTargetId: '',
+        portalWaitForEnter: configBoolean(config, 'portalWaitForEnter'),
         nextStep:
             configString(config, 'nextStep') ||
             'Choose a useful next step, then continue when you are ready.',
@@ -5982,6 +6240,29 @@ function markdownGraphLayout(config: Record<string, unknown>): ActivityAuthorFor
         return { x: configNumber(item, 'x', key === 'start' ? -160 : 520), y: configNumber(item, 'y', 80) };
     };
     return { end: position('end'), start: position('start') };
+}
+
+function portalAssets(config: Record<string, unknown>): PortalAssetDraft[] {
+    if (!Array.isArray(config.portalAssets)) return [];
+    return config.portalAssets.flatMap((value, index) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+        const asset = value as Record<string, unknown>;
+        const layer = configString(asset, 'layer');
+        return [{
+            id: configString(asset, 'id') || `portal-asset-${index + 1}`,
+            imageDark: configString(asset, 'imageDark'),
+            imageLight: configString(asset, 'imageLight'),
+            label: configString(asset, 'label') || `Asset ${index + 1}`,
+            layer: ['behind-background', 'above-background', 'above-foreground', 'front'].includes(layer)
+                ? layer as PortalAssetDraft['layer']
+                : 'above-background',
+            mirrored: configBoolean(asset, 'mirrored'),
+            opacity: String(configNumber(asset, 'opacity', 100)),
+            width: String(configNumber(asset, 'width', 28)),
+            x: String(configNumber(asset, 'x', 50)),
+            y: String(configNumber(asset, 'y', 50)),
+        }];
+    }).slice(0, 20);
 }
 
 function questionOptions(config: Record<string, unknown>): ActivityAuthorForm['questionOptions'] {
@@ -6503,6 +6784,7 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'reflection' ||
         type === 'review' ||
         type === 'markdown' ||
+        type === 'portal' ||
         type === 'item_grant' ||
         type === 'tool_grant' ||
         type === 'item_obstacle' ||

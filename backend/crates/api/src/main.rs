@@ -38,6 +38,7 @@ mod admin_world_node_starts;
 mod admin_world_node_transition;
 mod admin_world_obstacle;
 mod admin_world_open_practice;
+mod admin_world_portal;
 mod admin_world_question;
 mod admin_world_reflection;
 mod admin_world_review;
@@ -721,6 +722,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/activities/{activity_id}/markdown",
             patch(admin_world_markdown::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/nodes/{node_id}/portal-activities",
+            post(admin_world_portal::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/portal",
+            patch(admin_world_portal::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/question-activities",

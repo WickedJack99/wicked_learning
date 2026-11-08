@@ -789,7 +789,9 @@ The World Builder provides:
   references protect selected media until the authored owner is removed or changed
 - a live MapAsset preview using the learner renderer
 - light/dark map palettes and previewable controls
-- activity, NPC dialogue and Markdown graph editors
+- activity, NPC dialogue and Markdown graph editors, plus Portal Entry/Exit
+  direction, same-world Exit targeting, layered dark/light Portal visuals,
+  arrival behavior and learner-scene preview
 
 Question activities can now be authored in the activity editor, including the
 prompt, answer choices, correctness, feedback, explanations and optional

@@ -33,6 +33,7 @@ pub mod admin_world_node_starts;
 pub mod admin_world_node_transition;
 pub mod admin_world_obstacle;
 pub mod admin_world_open_practice;
+pub mod admin_world_portal;
 pub mod admin_world_question;
 pub mod admin_world_reflection;
 pub mod admin_world_shared_task;
