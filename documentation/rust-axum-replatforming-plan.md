@@ -356,6 +356,14 @@ source rule that hidden material is withheld from learner readers while a
 hidden request still consumes its single contribution. Deleting a request
 deletes its replies, matching the source's ownership semantics.
 
+The adjacent source Support Signals collective and individual views are now
+available at `support=support-signals`. Their separate typed read contract
+resolves all/group/self visibility in the application database before it joins
+only visible learners' identity labels, and returns evidence aggregates, group
+context and active manual node overrides. It deliberately excludes journal
+text, private reflections, confidence and rankings; peer-message resolution
+remains in the dedicated moderation workspace above.
+
 ### Peer message prompt and wall slice — 6 November 2026
 
 The learner-facing peer path now lifts the original `MessagePromptActivity`
