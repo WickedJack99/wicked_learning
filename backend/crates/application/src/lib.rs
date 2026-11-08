@@ -21,6 +21,7 @@ pub mod admin_world_map_access;
 pub mod admin_world_map_create;
 pub mod admin_world_map_delete;
 pub mod admin_world_map_details;
+pub mod admin_world_map_editing_groups;
 pub mod admin_world_node;
 pub mod admin_world_node_layout;
 pub mod admin_world_node_starts;

@@ -934,6 +934,29 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source map-access scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/editing-groups:
+    patch:
+      operationId: updateAdminWorldBuilderMapEditingGroups
+      summary: Replace the source map editor groups for one scoped World Builder map.
+      description: Requires the distinct source map-access update permission and its all, own or assigned map scope. Each selected group must also be manageable through the caller's source group-management scope. It changes authoring assignments only; learner visibility remains a separate command.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminWorldMapEditingGroupsRequest' }
+      responses:
+        '204': { description: The map editor groups were replaced. }
+        '400': { description: The selected group is unavailable or outside the caller's group-management scope. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map is unknown or unavailable through the source map-access scope. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}:
     get:
       operationId: getAdminWorldBuilderNode
@@ -8596,6 +8619,14 @@ components:
           minItems: 1
           maxItems: 100
           items: { type: string, minLength: 1, maxLength: 80 }
+    UpdateAdminWorldMapEditingGroupsRequest:
+      type: object
+      additionalProperties: false
+      required: [group_ids]
+      properties:
+        group_ids:
+          type: array
+          items: { type: string, format: uuid }
     AdminMapSummary:
       type: object
       additionalProperties: false

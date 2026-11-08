@@ -347,7 +347,14 @@ function WorldBuilderContent() {
                     {worldGraph.world.description}
                 </p>
                 <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                    <button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10" data-wl-id="authoring.source-catalog.open" onClick={() => setSourceCatalogOpen(true)} type="button">Source catalog</button>
+                    <button
+                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
+                        data-wl-id="authoring.source-catalog.open"
+                        onClick={() => setSourceCatalogOpen(true)}
+                        type="button"
+                    >
+                        Source catalog
+                    </button>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
                         onClick={() => setCreateMapOpen(true)}
@@ -427,7 +434,11 @@ function WorldBuilderContent() {
                     }}
                 />
             ) : null}
-            {sourceCatalogOpen ? <OriginalSourceCatalogDialog onClose={() => setSourceCatalogOpen(false)} /> : null}
+            {sourceCatalogOpen ? (
+                <OriginalSourceCatalogDialog
+                    onClose={() => setSourceCatalogOpen(false)}
+                />
+            ) : null}
         </main>
     );
 }
@@ -476,26 +487,71 @@ function CreateMapDialog({
             }
             onCreated(data.map_id);
         } catch {
-            setError('The map could not be created. Check your connection and try again.');
+            setError(
+                'The map could not be created. Check your connection and try again.',
+            );
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <div aria-labelledby="create-map-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4" role="dialog">
-            <form className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}>
-                <h2 className="text-xl font-semibold" id="create-map-title">Create world node</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Add a standalone map to this world graph. You can connect portal tiles later.</p>
-                {error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{error}</p> : null}
+        <div
+            aria-labelledby="create-map-title"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            role="dialog"
+        >
+            <form
+                className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                onSubmit={(event) => void save(event)}
+            >
+                <h2 className="text-xl font-semibold" id="create-map-title">
+                    Create world node
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    Add a standalone map to this world graph. You can connect
+                    portal tiles later.
+                </p>
+                {error ? (
+                    <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        {error}
+                    </p>
+                ) : null}
                 <div className="mt-5 grid gap-4">
-                    <ActivityTextField label="Title" onChange={setTitle} value={title} />
-                    <ActivityTextField label="Slug" onChange={setSlug} value={slug} />
-                    <ActivityTextField label="Description" onChange={setDescription} textarea value={description} />
+                    <ActivityTextField
+                        label="Title"
+                        onChange={setTitle}
+                        value={title}
+                    />
+                    <ActivityTextField
+                        label="Slug"
+                        onChange={setSlug}
+                        value={slug}
+                    />
+                    <ActivityTextField
+                        label="Description"
+                        onChange={setDescription}
+                        textarea
+                        value={description}
+                    />
                 </div>
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-                    <button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button>
-                    <button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Creating…' : 'Create'}</button>
+                    <button
+                        className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+                        disabled={saving}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950"
+                        disabled={saving}
+                        type="submit"
+                    >
+                        {saving ? 'Creating…' : 'Create'}
+                    </button>
                 </div>
             </form>
         </div>
@@ -639,7 +695,9 @@ function MapDetails({
             }
             onDeleted();
         } catch {
-            setDeleteError('The map could not be deleted. Check your connection and try again.');
+            setDeleteError(
+                'The map could not be deleted. Check your connection and try again.',
+            );
         } finally {
             setDeleting(false);
         }
@@ -701,7 +759,8 @@ function MapDetails({
                         Delete map
                     </h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Remove this map and all of its authored tiles and learning state.
+                        Remove this map and all of its authored tiles and
+                        learning state.
                     </p>
                     <button
                         className="mt-3 inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10"
@@ -721,16 +780,23 @@ function MapDetails({
                     role="dialog"
                 >
                     <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950">
-                        <h2 className="text-xl font-semibold" id="delete-map-title">
+                        <h2
+                            className="text-xl font-semibold"
+                            id="delete-map-title"
+                        >
                             Delete world map?
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            This removes the map, its tiles, activities, portal links and learner progress for those tiles. This cannot be undone.
+                            This removes the map, its tiles, activities, portal
+                            links and learner progress for those tiles. This
+                            cannot be undone.
                         </p>
                         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-950 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-100">
                             <span className="font-semibold">{map.title}</span>
                             <span className="mt-1 block text-red-800 dark:text-red-200/80">
-                                {map.node_count} tile{map.node_count === 1 ? '' : 's'} will be deleted with this map.
+                                {map.node_count} tile
+                                {map.node_count === 1 ? '' : 's'} will be
+                                deleted with this map.
                             </span>
                         </div>
                         {deleteError ? (
@@ -795,6 +861,9 @@ function EditMapAccessDialog({
 }) {
     const { map } = document.editable_map;
     const [accessRoles, setAccessRoles] = useState(map.access_roles);
+    const [editingGroupIds, setEditingGroupIds] = useState(
+        map.editing_group_ids,
+    );
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
@@ -838,7 +907,42 @@ function EditMapAccessDialog({
             }
             onUpdated();
         } catch {
-            setError('Map access could not be saved. Check your connection and try again.');
+            setError(
+                'Map access could not be saved. Check your connection and try again.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const saveEditingGroups = async () => {
+        setError(null);
+        setSaving(true);
+        try {
+            const token = await getCsrfToken();
+            const { response } = await apiClient.PATCH(
+                '/admin/world-builder/maps/{map_id}/editing-groups',
+                {
+                    body: { group_ids: editingGroupIds },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { map_id: map.id },
+                    },
+                },
+            );
+            if (!response.ok) {
+                setError(
+                    response.status === 400
+                        ? 'Choose only groups you can manage.'
+                        : 'Map editor groups could not be saved. Refresh the World Builder and try again.',
+                );
+                return;
+            }
+            onUpdated();
+        } catch {
+            setError(
+                'Map editor groups could not be saved. Check your connection and try again.',
+            );
         } finally {
             setSaving(false);
         }
@@ -852,14 +956,18 @@ function EditMapAccessDialog({
             role="dialog"
         >
             <form
-                className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                className="max-h-[calc(100svh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
                 onSubmit={(event) => void save(event)}
             >
-                <h2 className="text-xl font-semibold" id="edit-map-access-title">
+                <h2
+                    className="text-xl font-semibold"
+                    id="edit-map-access-title"
+                >
                     Access permissions
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Choose which groups may visit this map and the tiles inside it. Configuration remains restricted to authorized admins.
+                    Choose which groups may visit this map and the tiles inside
+                    it. Configuration remains restricted to authorized admins.
                 </p>
                 {error ? (
                     <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
@@ -882,7 +990,9 @@ function EditMapAccessDialog({
                                 type="checkbox"
                             />
                             <span>
-                                <span className="block font-medium">{group.label}</span>
+                                <span className="block font-medium">
+                                    {group.label}
+                                </span>
                                 {group.description ? (
                                     <span className="mt-1 block text-slate-600 dark:text-slate-300">
                                         {group.description}
@@ -892,6 +1002,63 @@ function EditMapAccessDialog({
                         </label>
                     ))}
                 </fieldset>
+                <section className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
+                    <h3 className="text-sm font-semibold">Group editors</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Selected groups can configure this map and its tiles,
+                        but cannot delete the map.
+                    </p>
+                    <fieldset className="mt-4 grid gap-3">
+                        <legend className="sr-only">Map editor groups</legend>
+                        {document.learning_groups.map((group) => (
+                            <label
+                                className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
+                                key={group.id}
+                            >
+                                <input
+                                    checked={editingGroupIds.includes(group.id)}
+                                    className="mt-0.5 size-4 accent-teal-700"
+                                    onChange={(event) =>
+                                        setEditingGroupIds((current) =>
+                                            event.target.checked
+                                                ? current.includes(group.id)
+                                                    ? current
+                                                    : [...current, group.id]
+                                                : current.filter(
+                                                      (id) => id !== group.id,
+                                                  ),
+                                        )
+                                    }
+                                    type="checkbox"
+                                />
+                                <span>
+                                    <span className="block font-medium">
+                                        {group.name}
+                                    </span>
+                                    {group.description ? (
+                                        <span className="mt-1 block text-slate-600 dark:text-slate-300">
+                                            {group.description}
+                                        </span>
+                                    ) : null}
+                                </span>
+                            </label>
+                        ))}
+                        {document.learning_groups.length === 0 ? (
+                            <p className="rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-500 dark:border-white/20">
+                                Create or manage a group in Settings before
+                                assigning map editors.
+                            </p>
+                        ) : null}
+                    </fieldset>
+                    <button
+                        className="mt-4 rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                        disabled={saving}
+                        onClick={() => void saveEditingGroups()}
+                        type="button"
+                    >
+                        {saving ? 'Saving…' : 'Save editor groups'}
+                    </button>
+                </section>
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
                     <button
                         className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
@@ -971,7 +1138,9 @@ function EditMapDetailsDialog({
             }
             onUpdated();
         } catch {
-            setError('The map details could not be saved. Check your connection and try again.');
+            setError(
+                'The map details could not be saved. Check your connection and try again.',
+            );
         } finally {
             setSaving(false);
         }
@@ -988,11 +1157,15 @@ function EditMapDetailsDialog({
                 className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950"
                 onSubmit={(event) => void save(event)}
             >
-                <h2 className="text-xl font-semibold" id="edit-map-details-title">
+                <h2
+                    className="text-xl font-semibold"
+                    id="edit-map-details-title"
+                >
                     Edit map details
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Name this map, connect it to a learning topic, and decide whether its MapAsset surface is locked for editing.
+                    Name this map, connect it to a learning topic, and decide
+                    whether its MapAsset surface is locked for editing.
                 </p>
                 {error ? (
                     <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
@@ -1030,13 +1203,18 @@ function EditMapDetailsDialog({
                         <input
                             checked={mapAssetsLocked}
                             className="mt-0.5 size-4 accent-teal-700"
-                            onChange={(event) => setMapAssetsLocked(event.target.checked)}
+                            onChange={(event) =>
+                                setMapAssetsLocked(event.target.checked)
+                            }
                             type="checkbox"
                         />
                         <span>
-                            <span className="block font-medium">Lock MapAsset surface</span>
+                            <span className="block font-medium">
+                                Lock MapAsset surface
+                            </span>
                             <span className="mt-1 block text-slate-600 dark:text-slate-300">
-                                Keep the map surface locked while you work on its activity tiles.
+                                Keep the map surface locked while you work on
+                                its activity tiles.
                             </span>
                         </span>
                     </label>
@@ -1132,7 +1310,9 @@ function ActivityGraph({
 }) {
     const graph = document.activity_graph;
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
-    const [historyActivity, setHistoryActivity] = useState<Activity | null>(null);
+    const [historyActivity, setHistoryActivity] = useState<Activity | null>(
+        null,
+    );
     const [templateDialog, setTemplateDialog] = useState<{
         activity?: Activity;
         mode: 'library' | 'save' | 'update';
@@ -1161,9 +1341,15 @@ function ActivityGraph({
                     onDelete: setPendingDelete,
                     onHistory: setHistoryActivity,
                     onSaveTemplate: (candidate) =>
-                        setTemplateDialog({ activity: candidate, mode: 'save' }),
+                        setTemplateDialog({
+                            activity: candidate,
+                            mode: 'save',
+                        }),
                     onUpdateTemplate: (candidate) =>
-                        setTemplateDialog({ activity: candidate, mode: 'update' }),
+                        setTemplateDialog({
+                            activity: candidate,
+                            mode: 'update',
+                        }),
                 },
                 position: {
                     x: activity.position.x ?? (index % 3) * 310,
@@ -1461,7 +1647,9 @@ function ActivityGraph({
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
                             data-wl-id="authoring.activity-templates.open"
-                            onClick={() => setTemplateDialog({ mode: 'library' })}
+                            onClick={() =>
+                                setTemplateDialog({ mode: 'library' })
+                            }
                             type="button"
                         >
                             <BookmarkPlus className="size-3.5" />
@@ -1758,32 +1946,32 @@ function ActivityGraphCard({
             </button>
             {activity.activity_type !== 'npc_dialogue' ? (
                 <div className="mt-1 flex flex-wrap gap-1">
-                <button
-                    aria-label={`Save ${activity.title} as a reusable template`}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        data.onSaveTemplate(activity);
-                    }}
-                    title="Save reusable template"
-                    type="button"
-                >
-                    <BookmarkPlus className="size-3" />
-                    Save template
-                </button>
-                <button
-                    aria-label={`Update a saved template from ${activity.title}`}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        data.onUpdateTemplate(activity);
-                    }}
-                    title="Update saved template"
-                    type="button"
-                >
-                    <RefreshCw className="size-3" />
-                    Update template
-                </button>
+                    <button
+                        aria-label={`Save ${activity.title} as a reusable template`}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onSaveTemplate(activity);
+                        }}
+                        title="Save reusable template"
+                        type="button"
+                    >
+                        <BookmarkPlus className="size-3" />
+                        Save template
+                    </button>
+                    <button
+                        aria-label={`Update a saved template from ${activity.title}`}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onUpdateTemplate(activity);
+                        }}
+                        title="Update saved template"
+                        type="button"
+                    >
+                        <RefreshCw className="size-3" />
+                        Update template
+                    </button>
                 </div>
             ) : null}
         </div>
@@ -2422,7 +2610,13 @@ function ActivityAuthorDialog({
 }) {
     const [form, setForm] = useState(() =>
         template
-            ? activityAuthorFormFromTemplate(type, template, items, tools, sounds)
+            ? activityAuthorFormFromTemplate(
+                  type,
+                  template,
+                  items,
+                  tools,
+                  sounds,
+              )
             : activityAuthorForm(type, activity, items, tools, sounds),
     );
     const [error, setError] = useState<string | null>(null);
@@ -3869,12 +4063,15 @@ function activityAuthorFormFromTemplate(
 ): ActivityAuthorForm {
     const snapshot = template.snapshot;
     const config =
-        snapshot.config && typeof snapshot.config === 'object' && !Array.isArray(snapshot.config)
-            ? snapshot.config as Record<string, unknown>
+        snapshot.config &&
+        typeof snapshot.config === 'object' &&
+        !Array.isArray(snapshot.config)
+            ? (snapshot.config as Record<string, unknown>)
             : {};
-    const title = typeof snapshot.title === 'string' && snapshot.title.trim()
-        ? snapshot.title
-        : template.title;
+    const title =
+        typeof snapshot.title === 'string' && snapshot.title.trim()
+            ? snapshot.title
+            : template.title;
     return {
         ...activityAuthorForm(
             type,

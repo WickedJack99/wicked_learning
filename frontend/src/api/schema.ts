@@ -715,6 +715,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapAccess"];
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/editing-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace the source map editor groups for one scoped World Builder map.
+         * @description Requires the distinct source map-access update permission and its all, own or assigned map scope. Each selected group must also be manageable through the caller's source group-management scope. It changes authoring assignments only; learner visibility remains a separate command.
+         */
+        patch: operations["updateAdminWorldBuilderMapEditingGroups"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}": {
         parameters: {
             query?: never;
@@ -5800,6 +5820,9 @@ export interface components {
         UpdateAdminWorldMapAccessRequest: {
             access_roles: string[];
         };
+        UpdateAdminWorldMapEditingGroupsRequest: {
+            group_ids: string[];
+        };
         AdminMapSummary: {
             /** Format: uuid */
             id: string;
@@ -9135,6 +9158,68 @@ export interface operations {
                 content?: never;
             };
             /** @description The source access form contains no groups or an unknown role. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source map-access scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMapEditingGroups: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminWorldMapEditingGroupsRequest"];
+            };
+        };
+        responses: {
+            /** @description The map editor groups were replaced. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The selected group is unavailable or outside the caller's group-management scope. */
             400: {
                 headers: {
                     [name: string]: unknown;

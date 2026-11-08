@@ -26,6 +26,7 @@ mod admin_world_map_access;
 mod admin_world_map_create;
 mod admin_world_map_delete;
 mod admin_world_map_details;
+mod admin_world_map_editing_groups;
 mod admin_world_node;
 mod admin_world_node_layout;
 mod admin_world_node_starts;
@@ -609,6 +610,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/access",
             patch(admin_world_map_access::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/editing-groups",
+            patch(admin_world_map_editing_groups::update),
         )
         .route(
             "/api/v1/admin/world-builder/nodes/{node_id}",

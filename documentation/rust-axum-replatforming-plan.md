@@ -1087,7 +1087,11 @@ selected map's source Map Details form is also available through `PATCH
 /api/v1/admin/world-builder/maps/{map_id}/details`: title, nullable description
 and learning topic, and MapAsset locking save together through the map editor
 scope with an `updated_at` conflict boundary; the browser refetches the map and
-graph only after success. The source-shaped reusable Activity Template Library
+graph only after success. The same source-derived Access dialog now keeps map
+viewer roles and group-editor assignments as separate commands: the latter
+accepts an empty replacement or only learning groups manageable by the caller,
+under the distinct map-access scope, and never changes learner visibility. The
+source-shaped reusable Activity Template Library
 is now available beside that graph: eligible cards save private named snapshots,
 update a creator-owned template while preserving the outgoing snapshot in
 bounded revision history, and open the same existing typed activity form as an
