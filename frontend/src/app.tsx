@@ -88,6 +88,12 @@ const OriginalJournalSettingsPage = lazy(async () => {
     return { default: module.OriginalJournalSettingsPage };
 });
 
+const OriginalPublicPresentationPage = lazy(async () => {
+    const module = await import('./original-public-presentation');
+
+    return { default: module.OriginalPublicPresentationPage };
+});
+
 const OriginalGroupManagementPage = lazy(async () => {
     const module = await import('./original-group-management');
 
@@ -513,6 +519,14 @@ export function App() {
 
         if (new URLSearchParams(location.search).get('panel') === 'admin-assets') {
             return <Suspense fallback={null}><OriginalMediaLibraryPage /></Suspense>;
+        }
+
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-presentation-localization' &&
+            new URLSearchParams(location.search).get('presentation') === 'public'
+        ) {
+            return <Suspense fallback={null}><OriginalPublicPresentationPage appearance={appearance} /></Suspense>;
         }
 
         if (usersPanel) {

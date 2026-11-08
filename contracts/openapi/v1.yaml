@@ -1251,6 +1251,40 @@ paths:
         '413': { description: The upload exceeds five MiB. }
         '422': { description: The uploaded bytes are not an accepted image format. }
         '503': { description: Media storage or the application database is unavailable. }
+  /admin/public-presentation:
+    get:
+      operationId: getAdminPublicPresentation
+      summary: Read the authorized source-adapted public-presentation workspace.
+      responses:
+        '200':
+          description: The editable deployment-owned public presentation model.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPresentation'
+        '404': { description: The identity cannot read public presentation settings. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateAdminPublicPresentation
+      summary: Save the authorized public-presentation workspace.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicPresentation'
+      responses:
+        '200':
+          description: The saved editable presentation model.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPresentation'
+        '400': { description: The presentation payload exceeds its source-compatible bounds. }
+        '404': { description: The identity cannot update public presentation settings. }
+        '503': { description: The application database is unavailable. }
   /admin/media-assets/{asset_id}:
     patch:
       operationId: updateAdminMediaAssetMetadata
@@ -1301,6 +1335,16 @@ paths:
         '200': { description: The image bytes with restrictive content and cache headers. }
         '401': { description: The browser has no authenticated session. }
         '404': { description: The asset is unavailable to this identity. }
+        '503': { description: The application database is unavailable. }
+  /public/media-assets/{asset_id}/content:
+    get:
+      operationId: getPublicPresentationMediaAssetContent
+      summary: Serve a reusable visual only while the public presentation references it.
+      parameters:
+        - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The public presentation image bytes with restrictive content headers. }
+        '404': { description: The asset is not currently referenced by the public presentation. }
         '503': { description: The application database is unavailable. }
   /learner/media-assets/{asset_id}/content:
     get:
@@ -5568,7 +5612,7 @@ components:
           items:
             $ref: '#/components/schemas/PublicWelcomeButton'
         eyebrow: { type: string, maxLength: 120 }
-        title: { type: string, maxLength: 240 }
+        title: { type: string, maxLength: 160 }
     PublicWelcomeButton:
       type: object
       additionalProperties: false
@@ -5597,19 +5641,19 @@ components:
       additionalProperties: false
       required: [accent_text, accent_text_opacity, body_text, body_text_opacity, control_border, control_border_opacity, control_text, control_text_opacity, heading_text, heading_text_opacity, muted_text, muted_text_opacity, welcome_overlay, welcome_overlay_opacity]
       properties:
-        accent_text: { type: string, maxLength: 128 }
+        accent_text: { type: string, maxLength: 64 }
         accent_text_opacity: { type: integer, minimum: 0, maximum: 100 }
-        body_text: { type: string, maxLength: 128 }
+        body_text: { type: string, maxLength: 64 }
         body_text_opacity: { type: integer, minimum: 0, maximum: 100 }
-        control_border: { type: string, maxLength: 128 }
+        control_border: { type: string, maxLength: 64 }
         control_border_opacity: { type: integer, minimum: 0, maximum: 100 }
-        control_text: { type: string, maxLength: 128 }
+        control_text: { type: string, maxLength: 64 }
         control_text_opacity: { type: integer, minimum: 0, maximum: 100 }
-        heading_text: { type: string, maxLength: 128 }
+        heading_text: { type: string, maxLength: 64 }
         heading_text_opacity: { type: integer, minimum: 0, maximum: 100 }
-        muted_text: { type: string, maxLength: 128 }
+        muted_text: { type: string, maxLength: 64 }
         muted_text_opacity: { type: integer, minimum: 0, maximum: 100 }
-        welcome_overlay: { type: string, maxLength: 128 }
+        welcome_overlay: { type: string, maxLength: 64 }
         welcome_overlay_opacity: { type: integer, minimum: 0, maximum: 100 }
     PublicSourceLink:
       type: object

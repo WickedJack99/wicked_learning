@@ -915,6 +915,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/public-presentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authorized source-adapted public-presentation workspace. */
+        get: operations["getAdminPublicPresentation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save the authorized public-presentation workspace. */
+        patch: operations["updateAdminPublicPresentation"];
+        trace?: never;
+    };
     "/admin/media-assets/{asset_id}": {
         parameters: {
             query?: never;
@@ -959,6 +977,23 @@ export interface paths {
         };
         /** Preview or download authorized private reusable visual bytes. */
         get: operations["getAdminMediaAssetContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/media-assets/{asset_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve a reusable visual only while the public presentation references it. */
+        get: operations["getPublicPresentationMediaAssetContent"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10067,6 +10102,88 @@ export interface operations {
             };
         };
     };
+    getAdminPublicPresentation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The editable deployment-owned public presentation model. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPresentation"];
+                };
+            };
+            /** @description The identity cannot read public presentation settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminPublicPresentation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicPresentation"];
+            };
+        };
+        responses: {
+            /** @description The saved editable presentation model. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPresentation"];
+                };
+            };
+            /** @description The presentation payload exceeds its source-compatible bounds. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot update public presentation settings. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     deleteAdminMediaAsset: {
         parameters: {
             query?: never;
@@ -10284,6 +10401,40 @@ export interface operations {
                 content?: never;
             };
             /** @description The asset is unavailable to this identity. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getPublicPresentationMediaAssetContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The public presentation image bytes with restrictive content headers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The asset is not currently referenced by the public presentation. */
             404: {
                 headers: {
                     [name: string]: unknown;

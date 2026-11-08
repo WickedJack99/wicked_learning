@@ -1,8 +1,12 @@
 use sqlx::{FromRow, PgPool, types::Json};
+use uuid::Uuid;
 use wicked_learning_application::public_presentation::{
     PublicPresentationReadError, PublicPresentationRepository as PublicPresentationRepositoryPort,
 };
 use wicked_learning_domain::platform_presentation::PublicPresentation;
+
+const MEDIA_ASSET_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
+const MEDIA_ASSET_CONTENT_SUFFIX: &str = "/content";
 
 pub struct PostgresPublicPresentationRepository<'pool> {
     pool: &'pool PgPool,
@@ -26,7 +30,7 @@ impl PublicPresentationRepositoryPort for PostgresPublicPresentationRepository<'
             .fetch_optional(self.pool)
             .await
             .map_err(|_| PublicPresentationReadError)?
-            .map(|row| row.value.0)
+            .map(|row| public_presentation(row.value.0))
             .ok_or(PublicPresentationReadError)
         }
     }
@@ -35,4 +39,38 @@ impl PublicPresentationRepositoryPort for PostgresPublicPresentationRepository<'
 #[derive(FromRow)]
 struct PublicPresentationRow {
     value: Json<PublicPresentation>,
+}
+
+fn public_presentation(mut presentation: PublicPresentation) -> PublicPresentation {
+    public_media_url(&mut presentation.branding.logo);
+    for themes in [
+        &mut presentation.auth.login,
+        &mut presentation.auth.register,
+        &mut presentation.auth.welcome,
+    ] {
+        public_optional_media_url(&mut themes.dark.background_image);
+        public_optional_media_url(&mut themes.light.background_image);
+    }
+    for page in &mut presentation.welcome.pages {
+        public_optional_media_url(&mut page.backgrounds.dark);
+        public_optional_media_url(&mut page.backgrounds.light);
+    }
+    presentation
+}
+
+fn public_optional_media_url(value: &mut Option<String>) {
+    if let Some(value) = value {
+        public_media_url(value);
+    }
+}
+
+fn public_media_url(value: &mut String) {
+    let Some(asset_id) = value
+        .strip_prefix(MEDIA_ASSET_CONTENT_PREFIX)
+        .and_then(|value| value.strip_suffix(MEDIA_ASSET_CONTENT_SUFFIX))
+        .and_then(|value| Uuid::parse_str(value).ok())
+    else {
+        return;
+    };
+    *value = format!("/api/v1/public/media-assets/{asset_id}/content");
 }

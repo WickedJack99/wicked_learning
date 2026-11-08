@@ -584,6 +584,12 @@ translation hook. Administrator-managed platform languages remain in the
 `platform_languages` table and are cached after loading; authored or
 access-controlled learning content must not be copied into the global catalog.
 
+The public-presentation editor stores canonical reusable-media references in
+the application database. Its anonymous read projection rewrites only those
+saved library URLs to the public-media route, whose query independently checks
+that the reference remains active; all other reusable visuals keep their
+existing protected delivery rules.
+
 ## Implementation Boundaries
 
 Controllers and React pages should remain thin. Preferred backend ownership:

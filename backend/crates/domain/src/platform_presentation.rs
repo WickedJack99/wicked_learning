@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// This is deliberately a resolved read model, not the administration setting
 /// payload. The browser receives no editor metadata, actor identity or other
 /// settings that are unrelated to the public shell.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicPresentation {
     pub branding: PublicBranding,
     pub auth: PublicPresentationAuth,
@@ -14,25 +14,25 @@ pub struct PublicPresentation {
     pub public_palette: PublicPaletteModes,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicBranding {
     pub logo: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicPresentationAuth {
     pub login: PublicAppearanceThemes,
     pub register: PublicAppearanceThemes,
     pub welcome: PublicAppearanceThemes,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicAppearanceThemes {
     pub dark: PublicAuthTheme,
     pub light: PublicAuthTheme,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicAuthTheme {
     pub background_color: String,
     pub background_image: Option<String>,
@@ -43,12 +43,12 @@ pub struct PublicAuthTheme {
     pub panel_background: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicWelcome {
     pub pages: Vec<PublicWelcomePage>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicWelcomePage {
     pub backgrounds: PublicAppearanceImages,
     pub body: String,
@@ -57,25 +57,25 @@ pub struct PublicWelcomePage {
     pub title: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicWelcomeButton {
     pub target: String,
     pub text: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicAppearanceImages {
     pub dark: Option<String>,
     pub light: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicPaletteModes {
     pub dark: PublicPalette,
     pub light: PublicPalette,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PublicPalette {
     pub accent_text: String,
     pub accent_text_opacity: u8,
