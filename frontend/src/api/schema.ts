@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5487,6 +5487,26 @@ export interface components {
             item_grant_background_mirrored?: boolean | null;
             item_grant_items?: components["schemas"]["ContentApiItemGrantItem"][] | null;
             item_grant_probability_percent?: number | null;
+            tool_grant_background_dark?: string | null;
+            tool_grant_background_light?: string | null;
+            tool_grant_background_mirrored?: boolean | null;
+            tool_grant_bubble_border_color_dark?: string | null;
+            tool_grant_bubble_border_color_light?: string | null;
+            tool_grant_bubble_color_dark?: string | null;
+            tool_grant_bubble_color_light?: string | null;
+            tool_grant_bubble_opacity_dark?: number | null;
+            tool_grant_bubble_opacity_light?: number | null;
+            tool_grant_fade_duration_seconds?: number | null;
+            /** @enum {string|null} */
+            tool_grant_slide_direction?: "left" | "right" | "top" | "bottom" | "none" | null;
+            tool_grant_slide_duration_seconds?: number | null;
+            tool_grant_text?: string | null;
+            /** Format: uuid */
+            tool_grant_tool_id?: string | null;
+            tool_grant_tool_mirrored?: boolean | null;
+            tool_grant_tool_x?: number | null;
+            tool_grant_tool_y?: number | null;
+            tool_grant_typing_speed?: number | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -10387,7 +10407,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, or Item Grant activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, or Tool Grant activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

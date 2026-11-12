@@ -37,6 +37,10 @@ use wicked_learning_application::{
         AdminWorldSharedTaskCommand, AdminWorldSharedTaskError, CreatedSharedTaskActivity,
         SharedTaskActivityForm,
     },
+    admin_world_tool_grant::{
+        AdminWorldToolGrantCommand, AdminWorldToolGrantError, CreatedToolGrantActivity,
+        ToolGrantActivityForm,
+    },
     content_api_activity::{
         ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
     },
@@ -55,6 +59,7 @@ use wicked_learning_persistence::{
     admin_world_shared_task::{
         PostgresAdminWorldSharedTaskRepository, config as shared_task_config,
     },
+    admin_world_tool_grant::PostgresAdminWorldToolGrantRepository,
     content_api_activity::PostgresContentApiActivityRepository,
 };
 
@@ -155,6 +160,24 @@ pub struct CreateActivityRequest {
     item_grant_background_mirrored: Option<bool>,
     item_grant_items: Option<Vec<ContentApiItemGrantItemRequest>>,
     item_grant_probability_percent: Option<f64>,
+    tool_grant_background_dark: Option<String>,
+    tool_grant_background_light: Option<String>,
+    tool_grant_background_mirrored: Option<bool>,
+    tool_grant_bubble_border_color_dark: Option<String>,
+    tool_grant_bubble_border_color_light: Option<String>,
+    tool_grant_bubble_color_dark: Option<String>,
+    tool_grant_bubble_color_light: Option<String>,
+    tool_grant_bubble_opacity_dark: Option<f64>,
+    tool_grant_bubble_opacity_light: Option<f64>,
+    tool_grant_fade_duration_seconds: Option<f64>,
+    tool_grant_slide_direction: Option<String>,
+    tool_grant_slide_duration_seconds: Option<f64>,
+    tool_grant_text: Option<String>,
+    tool_grant_tool_id: Option<String>,
+    tool_grant_tool_mirrored: Option<bool>,
+    tool_grant_tool_x: Option<f64>,
+    tool_grant_tool_y: Option<f64>,
+    tool_grant_typing_speed: Option<f64>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
 }
@@ -454,6 +477,16 @@ pub async fn create_activity(
                 .map_err(map_item_grant_error)?
                 .map(|created| serialize_created_item_grant(map_asset_id, created, &form))
         }
+        "tool_grant" => {
+            let form = content_api_tool_grant_form(&request)?;
+            let repository =
+                PostgresAdminWorldToolGrantRepository::new(&state.application_database);
+            AdminWorldToolGrantCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_tool_grant_error)?
+                .map(|created| serialize_created_tool_grant(map_asset_id, created, &form))
+        }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
     .ok_or_else(ApiError::not_found)?;
@@ -528,6 +561,7 @@ fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
             | "question"
             | "shared_task"
             | "item_grant"
+            | "tool_grant"
     )
 }
 
@@ -576,6 +610,14 @@ fn map_item_grant_error(error: AdminWorldItemGrantError) -> ApiError {
         AdminWorldItemGrantError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldItemGrantError::Conflict => ApiError::conflict(),
         AdminWorldItemGrantError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_tool_grant_error(error: AdminWorldToolGrantError) -> ApiError {
+    match error {
+        AdminWorldToolGrantError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldToolGrantError::Conflict => ApiError::conflict(),
+        AdminWorldToolGrantError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -713,6 +755,41 @@ fn content_api_item_grant_form(
         request.item_grant_background_mirrored.unwrap_or(false),
         items,
         request.item_grant_probability_percent.unwrap_or(100.0),
+    )
+    .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
+    .ok_or_else(ApiError::invalid_request)
+}
+
+fn content_api_tool_grant_form(
+    request: &CreateActivityRequest,
+) -> Result<ToolGrantActivityForm, ApiError> {
+    let tool_id = request
+        .tool_grant_tool_id
+        .as_deref()
+        .map(|value| Uuid::parse_str(value).map_err(|_| ApiError::invalid_request()))
+        .transpose()?;
+    ToolGrantActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request.tool_grant_background_dark.as_deref(),
+        request.tool_grant_background_light.as_deref(),
+        request.tool_grant_background_mirrored.unwrap_or(false),
+        request.tool_grant_bubble_border_color_dark.as_deref(),
+        request.tool_grant_bubble_border_color_light.as_deref(),
+        request.tool_grant_bubble_color_dark.as_deref(),
+        request.tool_grant_bubble_color_light.as_deref(),
+        request.tool_grant_bubble_opacity_dark.unwrap_or(92.0),
+        request.tool_grant_bubble_opacity_light.unwrap_or(94.0),
+        request.tool_grant_fade_duration_seconds.unwrap_or(0.4),
+        request.tool_grant_slide_direction.as_deref(),
+        request.tool_grant_slide_duration_seconds.unwrap_or(0.6),
+        request.tool_grant_text.as_deref(),
+        tool_id,
+        request.tool_grant_tool_mirrored.unwrap_or(false),
+        request.tool_grant_tool_x.unwrap_or(50.0),
+        request.tool_grant_tool_y.unwrap_or(50.0),
+        request.tool_grant_typing_speed.unwrap_or(24.0),
     )
     .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
     .ok_or_else(ApiError::invalid_request)
@@ -930,6 +1007,19 @@ fn serialize_created_item_grant(
     })
 }
 
+fn serialize_created_tool_grant(
+    map_asset_id: Uuid,
+    created: CreatedToolGrantActivity,
+    form: &ToolGrantActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id, "mapAssetId": map_asset_id, "slug": created.slug,
+        "type": "tool_grant", "title": form.title, "introduction": form.introduction,
+        "config": created.config,
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -997,6 +1087,13 @@ fn document() -> Value {
                 "description": "A server-authorized probability-based grant of catalog items.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "tool_grant",
+                "label": "Tool Grant",
+                "description": "A server-authorized grant of an optional catalog tool with authored scene presentation.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
         "contentPlan": {
@@ -1014,7 +1111,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, or Item Grant Activity through its matching scoped World Builder command.", json!({ "type": "item_grant", "title": "Collect inspection tags", "slug": "collect-inspection-tags", "introduction": "Collect the configured tools for the next step.", "item_grant_items": [{ "item_id": "opaque-catalog-item-id", "quantity": 1 }], "item_grant_probability_percent": 100, "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "item_grant", "title": "Collect inspection tags" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, or Tool Grant Activity through its matching scoped World Builder command.", json!({ "type": "tool_grant", "title": "Receive the circuit probe", "tool_grant_tool_id": "opaque-catalog-tool-id", "tool_grant_text": "Use this probe to inspect the circuit.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "tool_grant", "title": "Receive the circuit probe" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -1057,11 +1154,12 @@ mod tests {
     };
 
     use super::{
-        content_api_item_grant_form, content_api_shared_task_form, document,
-        is_supported_content_api_activity_type, require_content_permission, serialize_activity,
-        serialize_created_item_grant, serialize_created_map_asset, serialize_created_markdown,
-        serialize_created_open_practice, serialize_created_question,
-        serialize_created_reflective_activity, serialize_created_shared_task, serialize_map_assets,
+        content_api_item_grant_form, content_api_shared_task_form, content_api_tool_grant_form,
+        document, is_supported_content_api_activity_type, require_content_permission,
+        serialize_activity, serialize_created_item_grant, serialize_created_map_asset,
+        serialize_created_markdown, serialize_created_open_practice, serialize_created_question,
+        serialize_created_reflective_activity, serialize_created_shared_task,
+        serialize_created_tool_grant, serialize_map_assets,
     };
 
     #[test]
@@ -1083,6 +1181,7 @@ mod tests {
         assert_eq!(document["activityTypes"][4]["key"], "question");
         assert_eq!(document["activityTypes"][5]["key"], "shared_task");
         assert_eq!(document["activityTypes"][6]["key"], "item_grant");
+        assert_eq!(document["activityTypes"][7]["key"], "tool_grant");
     }
 
     #[test]
@@ -1105,6 +1204,7 @@ mod tests {
         assert!(is_supported_content_api_activity_type("question"));
         assert!(is_supported_content_api_activity_type("shared_task"));
         assert!(is_supported_content_api_activity_type("item_grant"));
+        assert!(is_supported_content_api_activity_type("tool_grant"));
         assert!(!is_supported_content_api_activity_type("portal"));
     }
 
@@ -1494,5 +1594,31 @@ mod tests {
         }))
         .expect("request itself can be deserialized");
         assert!(content_api_item_grant_form(&invalid).is_err());
+    }
+
+    #[test]
+    fn tool_grant_create_defaults_and_resolved_configuration_are_preserved() {
+        let request = serde_json::from_value(json!({
+            "type": "tool_grant",
+            "title": "Receive the circuit probe",
+        }))
+        .expect("valid partial Tool Grant Content API request");
+        let Ok(form) = content_api_tool_grant_form(&request) else {
+            panic!("source defaults are valid");
+        };
+        assert_eq!(form.slide_direction, "left");
+        assert_eq!(form.typing_speed, 24.0);
+
+        let created = serialize_created_tool_grant(
+            Uuid::new_v4(),
+            wicked_learning_application::admin_world_tool_grant::CreatedToolGrantActivity {
+                activity_id: Uuid::new_v4(),
+                config: json!({ "toolId": "circuit-probe", "typingSpeed": 24.0 }),
+                slug: "receive-the-circuit-probe".to_owned(),
+            },
+            &form.with_graph_position(Some(120), None),
+        );
+        assert_eq!(created["config"]["toolId"], "circuit-probe");
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
     }
 }

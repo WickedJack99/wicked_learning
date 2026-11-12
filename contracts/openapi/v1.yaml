@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, or Item Grant activity.
+          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, or Tool Grant activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }
@@ -7063,6 +7063,24 @@ components:
           type: [array, 'null']
           items: { $ref: '#/components/schemas/ContentApiItemGrantItem' }
         item_grant_probability_percent: { type: [number, 'null'], minimum: 0.01, maximum: 100 }
+        tool_grant_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        tool_grant_background_light: { type: [string, 'null'], maxLength: 2048 }
+        tool_grant_background_mirrored: { type: [boolean, 'null'] }
+        tool_grant_bubble_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        tool_grant_bubble_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        tool_grant_bubble_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        tool_grant_bubble_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        tool_grant_bubble_opacity_dark: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        tool_grant_bubble_opacity_light: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        tool_grant_fade_duration_seconds: { type: [number, 'null'], minimum: 0, maximum: 30 }
+        tool_grant_slide_direction: { type: [string, 'null'], enum: [left, right, top, bottom, none, null] }
+        tool_grant_slide_duration_seconds: { type: [number, 'null'], minimum: 0, maximum: 30 }
+        tool_grant_text: { type: [string, 'null'], maxLength: 2000 }
+        tool_grant_tool_id: { type: [string, 'null'], format: uuid }
+        tool_grant_tool_mirrored: { type: [boolean, 'null'] }
+        tool_grant_tool_x: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        tool_grant_tool_y: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        tool_grant_typing_speed: { type: [number, 'null'], minimum: 1, maximum: 250 }
         graph_position_x: { type: [integer, 'null'] }
         graph_position_y: { type: [integer, 'null'] }
     ContentApiQuestionOption:

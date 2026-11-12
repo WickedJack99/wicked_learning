@@ -5,6 +5,8 @@ use wicked_learning_domain::identity_access::AuthorizedPrincipal;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ToolGrantActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -85,6 +87,8 @@ impl ToolGrantActivityForm {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction: introduction.map(str::to_owned),
@@ -107,6 +111,12 @@ impl ToolGrantActivityForm {
             tool_y,
             typing_speed,
         })
+    }
+
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -135,6 +145,12 @@ pub struct UpdatedToolGrantActivity {
     pub activity_id: Uuid,
     pub updated_at: String,
 }
+#[derive(Clone, Debug, PartialEq)]
+pub struct CreatedToolGrantActivity {
+    pub activity_id: Uuid,
+    pub config: serde_json::Value,
+    pub slug: String,
+}
 
 pub trait AdminWorldToolGrantRepository {
     fn create_tool_grant(
@@ -142,7 +158,7 @@ pub trait AdminWorldToolGrantRepository {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ToolGrantActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldToolGrantError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedToolGrantActivity>, AdminWorldToolGrantError>> + Send;
     fn update_tool_grant(
         &self,
         principal: &AuthorizedPrincipal,
@@ -167,7 +183,7 @@ where
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ToolGrantActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldToolGrantError> {
+    ) -> Result<Option<CreatedToolGrantActivity>, AdminWorldToolGrantError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -206,7 +222,7 @@ mod tests {
 
     use super::{
         AdminWorldToolGrantCommand, AdminWorldToolGrantError, AdminWorldToolGrantRepository,
-        ToolGrantActivityForm, UpdatedToolGrantActivity,
+        CreatedToolGrantActivity, ToolGrantActivityForm, UpdatedToolGrantActivity,
     };
 
     struct RecordingRepository {
@@ -219,7 +235,9 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &ToolGrantActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldToolGrantError>> + Send {
+        ) -> impl Future<
+            Output = Result<Option<CreatedToolGrantActivity>, AdminWorldToolGrantError>,
+        > + Send {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
