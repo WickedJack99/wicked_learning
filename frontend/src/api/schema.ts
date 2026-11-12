@@ -100,8 +100,8 @@ export interface paths {
         get: operations["getContentApiMapAssetActivities"];
         put?: never;
         /**
-         * Create a Reflection, Review, or Open Practice activity for an editable MapAsset.
-         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, and Open Practice are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
+         * Create a Reflection, Review, Open Practice, or Markdown activity for an editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, Open Practice, and Markdown are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
          */
         post: operations["createContentApiActivity"];
         delete?: never;
@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice";
+            type: "reflection" | "review" | "open_practice" | "markdown";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5454,6 +5454,9 @@ export interface components {
             reflection_topic?: string | null;
             reflection_subtopic?: string | null;
             open_practice_next_step?: string | null;
+            markdown_pages?: components["schemas"]["MarkdownActivityPage"][] | null;
+            markdown_transitions?: components["schemas"]["MarkdownActivityTransition"][] | null;
+            markdown_graph_layout?: components["schemas"]["MarkdownActivityGraphLayout"] | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -10338,7 +10341,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, or Open Practice activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, or Markdown activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

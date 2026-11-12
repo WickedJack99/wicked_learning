@@ -14,6 +14,9 @@ use wicked_learning_application::{
     admin_world_map::AdminWorldMapQuery,
     admin_world_map_asset::{AdminWorldMapAssetCommand, WorldMapAssetForm},
     admin_world_map_create::{AdminWorldMapCreateCommand, CreateWorldMapForm},
+    admin_world_markdown::{
+        AdminWorldMarkdownCommand, AdminWorldMarkdownError, CreatedMarkdownActivity,
+    },
     admin_world_open_practice::{
         AdminWorldOpenPracticeCommand, AdminWorldOpenPracticeError, CreatedOpenPracticeActivity,
         OpenPracticeActivityForm,
@@ -32,13 +35,21 @@ use wicked_learning_persistence::{
     admin_world_map::PostgresAdminWorldMapRepository,
     admin_world_map_asset::PostgresAdminWorldMapAssetRepository,
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
+    admin_world_markdown::{PostgresAdminWorldMarkdownRepository, markdown_config},
     admin_world_open_practice::PostgresAdminWorldOpenPracticeRepository,
     admin_world_reflection::PostgresAdminWorldReflectionRepository,
     content_api_activity::PostgresContentApiActivityRepository,
 };
 
 use crate::{
-    AppState, csrf, error::ApiError, identity::IdentityBackend,
+    AppState,
+    admin_world_markdown::{
+        MarkdownGraphLayoutRequest, MarkdownPageRequest, MarkdownTransitionRequest,
+        form as markdown_form,
+    },
+    csrf,
+    error::ApiError,
+    identity::IdentityBackend,
     learner_route_run::authenticated_principal,
 };
 
@@ -98,6 +109,9 @@ pub struct CreateActivityRequest {
     reflection_topic: Option<String>,
     reflection_subtopic: Option<String>,
     open_practice_next_step: Option<String>,
+    markdown_pages: Option<Vec<MarkdownPageRequest>>,
+    markdown_transitions: Option<Vec<MarkdownTransitionRequest>>,
+    markdown_graph_layout: Option<MarkdownGraphLayoutRequest>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
 }
@@ -233,7 +247,7 @@ pub async fn create_activity(
     headers: HeaderMap,
     csrf_token: axum_csrf::CsrfToken,
     auth_session: AuthSession<IdentityBackend>,
-    Json(request): Json<CreateActivityRequest>,
+    Json(mut request): Json<CreateActivityRequest>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
     let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
     if !is_supported_content_api_activity_type(&request.activity_type) {
@@ -322,6 +336,34 @@ pub async fn create_activity(
                 .map_err(map_open_practice_error)?
                 .map(|created| serialize_created_open_practice(map_asset_id, created, &form))
         }
+        "markdown" => {
+            let form = markdown_form(
+                &request.title,
+                request.slug.as_deref(),
+                request.introduction.as_deref(),
+                request
+                    .markdown_pages
+                    .take()
+                    .ok_or_else(ApiError::invalid_request)?,
+                request
+                    .markdown_transitions
+                    .take()
+                    .ok_or_else(ApiError::invalid_request)?,
+                request
+                    .markdown_graph_layout
+                    .take()
+                    .ok_or_else(ApiError::invalid_request)?,
+            )
+            .map(|form| {
+                form.with_graph_position(request.graph_position_x, request.graph_position_y)
+            })?;
+            let repository = PostgresAdminWorldMarkdownRepository::new(&state.application_database);
+            AdminWorldMarkdownCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_markdown_error)?
+                .map(|created| serialize_created_markdown(map_asset_id, created, &form))
+        }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
     .ok_or_else(ApiError::not_found)?;
@@ -387,7 +429,10 @@ fn empty_object() -> Value {
 }
 
 fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
-    matches!(activity_type, "reflection" | "review" | "open_practice")
+    matches!(
+        activity_type,
+        "reflection" | "review" | "open_practice" | "markdown"
+    )
 }
 
 fn map_reflection_error(error: AdminWorldReflectionError) -> ApiError {
@@ -403,6 +448,14 @@ fn map_open_practice_error(error: AdminWorldOpenPracticeError) -> ApiError {
         AdminWorldOpenPracticeError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldOpenPracticeError::Conflict => ApiError::conflict(),
         AdminWorldOpenPracticeError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_markdown_error(error: AdminWorldMarkdownError) -> ApiError {
+    match error {
+        AdminWorldMarkdownError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldMarkdownError::Conflict => ApiError::conflict(),
+        AdminWorldMarkdownError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -550,6 +603,23 @@ fn serialize_created_open_practice(
     })
 }
 
+fn serialize_created_markdown(
+    map_asset_id: Uuid,
+    created: CreatedMarkdownActivity,
+    form: &wicked_learning_application::admin_world_markdown::MarkdownActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id,
+        "mapAssetId": map_asset_id,
+        "slug": created.slug,
+        "type": "markdown",
+        "title": form.title,
+        "introduction": form.introduction,
+        "config": markdown_config(form),
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -589,6 +659,13 @@ fn document() -> Value {
                 "description": "A quiet pause where the learner chooses and carries out their own next step.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "markdown",
+                "label": "Markdown",
+                "description": "A connected set of readable Markdown pages with theme-specific page colors.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
         "contentPlan": {
@@ -606,7 +683,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, or Open Practice Activity through its matching scoped World Builder command.", json!({ "type": "open_practice", "title": "Choose the next repair step", "slug": "choose-next-repair-step", "introduction": "Apply the energy-flow idea in your own work.", "open_practice_next_step": "Choose one nearby component to inspect and explain why it matters.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "open_practice", "title": "Choose the next repair step" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, or Markdown Activity through its matching scoped World Builder command.", json!({ "type": "markdown", "title": "Read the alternator briefing", "slug": "alternator-briefing", "introduction": "Trace the energy conversion before inspecting the component.", "markdown_pages": [{ "id": "briefing", "title": "Alternator", "body": "# Alternator\n\nFollow the energy flow.", "position": { "x": 140, "y": 80 }, "visual": { "page_color_dark": "#0f172a", "page_color_light": "#ffffff", "border_color_dark": "#2dd4bf", "border_color_light": "#0891b2", "heading_color_dark": "#67e8f9", "heading_color_light": "#0e7490", "text_color_dark": "#f8fafc", "text_color_light": "#0f172a" } }], "markdown_transitions": [{ "id": "start-briefing", "from": "start", "to": "briefing" }, { "id": "briefing-end", "from": "briefing", "to": "end" }], "markdown_graph_layout": {}, "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "markdown", "title": "Read the alternator briefing" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -650,8 +727,9 @@ mod tests {
 
     use super::{
         document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_created_map_asset, serialize_created_open_practice,
-        serialize_created_reflective_activity, serialize_map_assets,
+        serialize_activity, serialize_created_map_asset, serialize_created_markdown,
+        serialize_created_open_practice, serialize_created_reflective_activity,
+        serialize_map_assets,
     };
 
     #[test]
@@ -669,6 +747,7 @@ mod tests {
         assert_eq!(operations[6]["id"], "activities.store");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
+        assert_eq!(document["activityTypes"][3]["key"], "markdown");
     }
 
     #[test]
@@ -687,7 +766,8 @@ mod tests {
         assert!(is_supported_content_api_activity_type("reflection"));
         assert!(is_supported_content_api_activity_type("review"));
         assert!(is_supported_content_api_activity_type("open_practice"));
-        assert!(!is_supported_content_api_activity_type("markdown"));
+        assert!(is_supported_content_api_activity_type("markdown"));
+        assert!(!is_supported_content_api_activity_type("question"));
     }
 
     #[test]
@@ -837,5 +917,56 @@ mod tests {
             "Inspect one nearby component and explain why it matters."
         );
         assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+    }
+
+    #[test]
+    fn markdown_creates_keep_the_source_page_graph_shape() {
+        use wicked_learning_application::admin_world_markdown::{
+            MarkdownActivityForm, MarkdownGraphLayout, MarkdownPageForm, MarkdownPageVisual,
+            MarkdownPosition, MarkdownTransitionForm,
+        };
+
+        let map_asset_id = Uuid::new_v4();
+        let activity_id = Uuid::new_v4();
+        let visual = MarkdownPageVisual::parse(
+            "#0f172a", "#ffffff", "#2dd4bf", "#0891b2", "#67e8f9", "#0e7490", "#f8fafc", "#0f172a",
+        )
+        .expect("valid source colors");
+        let page = MarkdownPageForm::parse(
+            "briefing",
+            "Alternator",
+            "# Alternator",
+            MarkdownPosition::parse(140.0, 80.0).expect("finite position"),
+            visual,
+        )
+        .expect("valid page");
+        let form = MarkdownActivityForm::parse(
+            "Read the alternator briefing",
+            None,
+            Some("Trace the energy conversion."),
+            vec![page],
+            vec![
+                MarkdownTransitionForm::parse("start-briefing", "start", "briefing")
+                    .expect("valid transition"),
+                MarkdownTransitionForm::parse("briefing-end", "briefing", "end")
+                    .expect("valid transition"),
+            ],
+            MarkdownGraphLayout::default(),
+        )
+        .expect("valid markdown activity")
+        .with_graph_position(Some(120), Some(80));
+        let created = serialize_created_markdown(
+            map_asset_id,
+            wicked_learning_application::admin_world_markdown::CreatedMarkdownActivity {
+                activity_id,
+                slug: "read-the-alternator-briefing-2".to_owned(),
+            },
+            &form,
+        );
+
+        assert_eq!(created["type"], "markdown");
+        assert_eq!(created["slug"], "read-the-alternator-briefing-2");
+        assert_eq!(created["config"]["markdownPages"][0]["id"], "briefing");
+        assert_eq!(created["position"], json!({ "x": 120, "y": 80 }));
     }
 }

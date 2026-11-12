@@ -118,7 +118,7 @@ fn position(request: MarkdownPositionRequest) -> Result<MarkdownPosition, ApiErr
     MarkdownPosition::parse(request.x, request.y).ok_or_else(ApiError::invalid_request)
 }
 
-fn form(
+pub(crate) fn form(
     title: &str,
     slug: Option<&str>,
     introduction: Option<&str>,
@@ -185,14 +185,16 @@ pub async fn create(
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresAdminWorldMarkdownRepository::new(&state.application_database);
-    let activity_id = AdminWorldMarkdownCommand::new(&repository)
+    let created = AdminWorldMarkdownCommand::new(&repository)
         .create(&principal, node_id, &form)
         .await
         .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok((
         StatusCode::CREATED,
-        Json(CreateMarkdownActivityResponse { activity_id }),
+        Json(CreateMarkdownActivityResponse {
+            activity_id: created.activity_id,
+        }),
     ))
 }
 

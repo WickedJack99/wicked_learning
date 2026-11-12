@@ -137,6 +137,8 @@ pub struct MarkdownGraphLayout {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MarkdownActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -179,6 +181,8 @@ impl MarkdownActivityForm {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction,
@@ -186,6 +190,15 @@ impl MarkdownActivityForm {
             transitions,
             graph_layout,
         })
+    }
+
+    /// The source Content API may place a newly created graph card directly.
+    /// The World Builder's create route leaves both coordinates absent and
+    /// continues to use its separate graph-position command.
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -214,13 +227,19 @@ pub struct UpdatedMarkdownActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CreatedMarkdownActivity {
+    pub activity_id: Uuid,
+    pub slug: String,
+}
+
 pub trait AdminWorldMarkdownRepository {
     fn create_markdown(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &MarkdownActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldMarkdownError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedMarkdownActivity>, AdminWorldMarkdownError>> + Send;
 
     fn update_markdown(
         &self,
@@ -247,7 +266,7 @@ impl<'repository, Repository: AdminWorldMarkdownRepository>
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &MarkdownActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldMarkdownError> {
+    ) -> Result<Option<CreatedMarkdownActivity>, AdminWorldMarkdownError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -287,8 +306,8 @@ mod tests {
 
     use super::{
         AdminWorldMarkdownCommand, AdminWorldMarkdownError, AdminWorldMarkdownRepository,
-        MarkdownActivityForm, MarkdownGraphLayout, MarkdownPageForm, MarkdownPageVisual,
-        MarkdownPosition, MarkdownTransitionForm, UpdatedMarkdownActivity,
+        CreatedMarkdownActivity, MarkdownActivityForm, MarkdownGraphLayout, MarkdownPageForm,
+        MarkdownPageVisual, MarkdownPosition, MarkdownTransitionForm, UpdatedMarkdownActivity,
     };
 
     struct RecordingRepository {
@@ -301,7 +320,8 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &MarkdownActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldMarkdownError>> + Send {
+        ) -> impl Future<Output = Result<Option<CreatedMarkdownActivity>, AdminWorldMarkdownError>> + Send
+        {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
@@ -364,6 +384,14 @@ mod tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn content_api_can_retain_optional_graph_coordinates_on_create() {
+        let form = form().with_graph_position(Some(120), None);
+
+        assert_eq!(form.graph_position_x, Some(120));
+        assert_eq!(form.graph_position_y, None);
     }
 
     #[tokio::test]

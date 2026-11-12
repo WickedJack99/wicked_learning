@@ -3,8 +3,9 @@ use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_markdown::{
-        AdminWorldMarkdownError, AdminWorldMarkdownRepository as Port, MarkdownActivityForm,
-        MarkdownGraphLayout, MarkdownPageForm, MarkdownPosition, UpdatedMarkdownActivity,
+        AdminWorldMarkdownError, AdminWorldMarkdownRepository as Port, CreatedMarkdownActivity,
+        MarkdownActivityForm, MarkdownGraphLayout, MarkdownPageForm, MarkdownPosition,
+        UpdatedMarkdownActivity,
     },
     admin_world_reflection::generated_slug,
 };
@@ -32,8 +33,9 @@ impl Port for PostgresAdminWorldMarkdownRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &MarkdownActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldMarkdownError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedMarkdownActivity>, AdminWorldMarkdownError>,
+    > + Send {
         async move {
             create(self.pool, principal, node_id, form)
                 .await
@@ -105,7 +107,7 @@ async fn create(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &MarkdownActivityForm,
-) -> Result<Option<Uuid>, MutationError> {
+) -> Result<Option<CreatedMarkdownActivity>, MutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_editable_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -132,21 +134,26 @@ async fn create(
     let id = Uuid::new_v4();
     let activity_config = markdown_config(form);
     sqlx::query(
-        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'markdown', $7, $8, 'needs_review')",
+        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'markdown', $7, $8, $9, $10, 'needs_review')",
     )
     .bind(id)
     .bind(route_id)
-    .bind(slug)
+    .bind(&slug)
     .bind(&form.title)
     .bind(form.introduction.clone().unwrap_or_default())
     .bind(position)
     .bind(&activity_config)
     .bind(&form.introduction)
+    .bind(form.graph_position_x.map(f64::from))
+    .bind(form.graph_position_y.map(f64::from))
     .execute(&mut *transaction)
     .await?;
     synchronize_media_references(&mut transaction, id, &activity_config).await?;
     transaction.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedMarkdownActivity {
+        activity_id: id,
+        slug,
+    }))
 }
 
 async fn update(
@@ -210,7 +217,7 @@ async fn update(
     }))
 }
 
-fn markdown_config(form: &MarkdownActivityForm) -> Value {
+pub fn markdown_config(form: &MarkdownActivityForm) -> Value {
     json!({
         "markdownGraphLayout": graph_layout(&form.graph_layout),
         "markdownPages": form.pages.iter().map(page_json).collect::<Vec<_>>(),

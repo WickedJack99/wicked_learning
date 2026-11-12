@@ -148,8 +148,8 @@ paths:
         '503': { description: The application database is unavailable. }
     post:
       operationId: createContentApiActivity
-      summary: Create a Reflection, Review, or Open Practice activity for an editable MapAsset.
-      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, and Open Practice are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
+      summary: Create a Reflection, Review, Open Practice, or Markdown activity for an editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, Open Practice, and Markdown are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, or Open Practice activity.
+          description: The created source-shaped Reflection, Review, Open Practice, or Markdown activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }
@@ -7016,6 +7016,18 @@ components:
         reflection_topic: { type: [string, 'null'], maxLength: 160 }
         reflection_subtopic: { type: [string, 'null'], maxLength: 160 }
         open_practice_next_step: { type: [string, 'null'], maxLength: 4000 }
+        markdown_pages:
+          type: [array, 'null']
+          maxItems: 30
+          items: { $ref: '#/components/schemas/MarkdownActivityPage' }
+        markdown_transitions:
+          type: [array, 'null']
+          maxItems: 60
+          items: { $ref: '#/components/schemas/MarkdownActivityTransition' }
+        markdown_graph_layout:
+          anyOf:
+            - $ref: '#/components/schemas/MarkdownActivityGraphLayout'
+            - type: 'null'
         graph_position_x: { type: [integer, 'null'] }
         graph_position_y: { type: [integer, 'null'] }
     CreateRegistrationTokenRequest:
