@@ -507,6 +507,13 @@ responses and have no navigation or content-mutation authority; the panel shows
 that disclosure beside the transient response. AI must not receive direct
 authority to navigate, mutate content or emit arbitrary URLs.
 
+The standalone administration page is a separate typed client for the
+platform setting, reusable dialogue and assignment endpoints. It adapts the
+source settings workspace for bounded identity/policy editing, graph editing
+and authored-target assignment, while Rust remains the sole validator of graph
+grammar, AI policy, template purpose and target ownership. It deliberately
+does not expose scoped `companion_config` authoring or a browser provider path.
+
 ## AI And Content API
 
 AI configuration uses:

@@ -4565,10 +4565,10 @@ never invokes a provider, creates a dialogue graph or reads learner data.
 without conflating authoring setup with an AI turn or granting navigation and
 content-mutation authority to a companion.
 
-**Limits:** Scope inheritance, reusable dialogue graphs and assignments,
-learner-context projections and source-adapted administration UI remain
-separate migration slices. Learner launcher placement is defined by ADR-122;
-guarded provider turns are defined by ADR-121.
+**Limits:** Scope inheritance and learner-context projections remain separate
+migration slices. The source-adapted administration client is defined by
+ADR-123; learner launcher placement is defined by ADR-122; guarded provider
+turns are defined by ADR-121.
 
 ## ADR-117: Reusable Learning Companion dialogues are bounded graphs with server-checked content scopes
 
@@ -4595,7 +4595,8 @@ the API boundary, so later learner resolution can select a known-safe graph
 without reproducing authorization in the browser.
 
 **Limits:** This decision does not add settings inheritance, learner context,
-conversation state, provider calls or a browser authoring/launcher surface.
+conversation state or provider calls. The bounded browser authoring client is
+defined by ADR-123; the learner launcher is defined by ADR-122.
 
 ## ADR-118: Learner companion context is an access-filtered, deterministic read model
 
@@ -4765,6 +4766,32 @@ capabilities, evidence attribution and provider access.
 **Limits:** This does not add conversation persistence, a settings or scoped
 configuration editor, streaming, browser-created routes, or a general-purpose
 AI assistant.
+
+## ADR-123: Learning Companion administration remains a bounded typed client
+
+**Status:** Accepted — 12 November 2026
+
+**Problem:** Authors need the source-shaped platform settings and dialogue
+workspace in the standalone frontend. Recreating graph validation, template
+policy or assignment authorization in React would create a competing authority
+and let a browser expand the Companion's reach.
+
+**Decision:** The standalone settings page adapts the source administration
+layout for platform identity and bounded AI policy, reusable dialogue listing,
+graph editing and assignment selection. It calls only the existing typed
+platform-setting, dialogue and assignment endpoints with the existing CSRF
+protection. Rust remains responsible for every persisted graph constraint,
+template-purpose check, capability limit and authored-target permission check.
+The graph canvas is an authoring view of the serialized graph; it has no
+provider, learner-context, arbitrary navigation or content-mutation path.
+
+**Why:** This preserves the existing authoring workflow and visual model while
+keeping all Companion authority at the Rust boundary already established by
+ADRs 116 and 117.
+
+**Limits:** This does not add scope-configuration authoring, conversation
+persistence, browser-side policy validation, streaming or a general-purpose AI
+assistant. The learner launcher remains defined by ADR-122.
 
 ## Phase 1 gate
 

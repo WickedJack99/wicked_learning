@@ -149,6 +149,12 @@ const OriginalAiSettingsPage = lazy(async () => {
     return { default: module.OriginalAiSettingsPage };
 });
 
+const OriginalLearningCompanionSettingsPage = lazy(async () => {
+    const module = await import('./original-learning-companion-settings');
+
+    return { default: module.OriginalLearningCompanionSettingsPage };
+});
+
 const OriginalTopicAdministrationPage = lazy(async () => {
     const module = await import('./original-topic-administration');
 
@@ -626,6 +632,19 @@ export function App() {
             return (
                 <Suspense fallback={null}>
                     <OriginalAiSettingsPage appearance={appearance} />
+                </Suspense>
+            );
+        }
+
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+            'admin-learning-companion'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalLearningCompanionSettingsPage
+                        appearance={appearance}
+                    />
                 </Suspense>
             );
         }

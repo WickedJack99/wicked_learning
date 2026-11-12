@@ -1546,10 +1546,9 @@ navigation actions and three allowlisted AI capabilities. Graphs can be scoped
 to up to 100 worlds, maps, nodes or activities. The assignment target list and
 writer both intersect the caller's companion permission with the relevant map,
 node or activity authoring scope, including direct map editing groups. This is
-dialogue authoring only: scope-configuration authoring, learner context/action
-projections and the source-adapted settings UI remain later slices in the
-agreed backend-first sequence. Guarded provider turns and the learner launcher
-are defined below.
+dialogue authoring only: scope-configuration authoring and learner context/action
+projections remain later slices in the agreed backend-first sequence. The
+source-adapted platform settings and dialogue workspace are defined below.
 
 ### Learning Companion learner context backend slice — 8 November 2026
 
@@ -1637,6 +1636,20 @@ recorded assistance from independent evidence. The activity playback projection
 now includes its already-authorized activity UUID solely so this client can
 request the companion context for that same run. A disposable authenticated
 browser check opens the launcher during an active activity run.
+
+### Learning Companion administration frontend slice — 12 November 2026
+
+The standalone React settings shell now lifts the source-shaped Learning
+Companion administration workspace. Companion-role authors can update the
+bounded platform identity and AI policy, list, search, create, edit and delete
+reusable dialogue graphs, inspect their flow in the source-adapted graph
+canvas, and assign each graph only to the Rust-filtered authored targets. The
+browser remains a typed client of the existing CSRF-protected API: Rust
+validates all graph grammar, capability limits, template purpose and target
+ownership; the UI cannot invoke a provider, alter learner context, or author
+scope configuration. A disposable authenticated browser check updates the
+platform setting, saves a graph, assigns a target and deletes the graph at
+desktop and narrow viewport sizes.
 
 ### 7. Complete the replacement deliberately
 
