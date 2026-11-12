@@ -100,10 +100,10 @@ export interface paths {
         get: operations["getContentApiMapAssetActivities"];
         put?: never;
         /**
-         * Create a Reflection activity for an editable MapAsset.
-         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection is the first supported Content API Activity type; other types are rejected until their exact scoped adapters exist.
+         * Create a Reflection or Review activity for an editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection and Review are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
          */
-        post: operations["createContentApiReflectionActivity"];
+        post: operations["createContentApiActivity"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5443,9 +5443,9 @@ export interface components {
         ContentApiActivityResponse: {
             data: components["schemas"]["ContentApiActivity"];
         };
-        CreateContentApiReflectionActivityRequest: {
+        CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection";
+            type: "reflection" | "review";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -10319,7 +10319,7 @@ export interface operations {
             };
         };
     };
-    createContentApiReflectionActivity: {
+    createContentApiActivity: {
         parameters: {
             query?: never;
             header: {
@@ -10333,11 +10333,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateContentApiReflectionActivityRequest"];
+                "application/json": components["schemas"]["CreateContentApiActivityRequest"];
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection activity. */
+            /** @description The created source-shaped Reflection or Review activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

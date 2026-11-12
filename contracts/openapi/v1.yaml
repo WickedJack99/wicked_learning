@@ -147,23 +147,23 @@ paths:
         '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
         '503': { description: The application database is unavailable. }
     post:
-      operationId: createContentApiReflectionActivity
-      summary: Create a Reflection activity for an editable MapAsset.
-      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection is the first supported Content API Activity type; other types are rejected until their exact scoped adapters exist.
+      operationId: createContentApiActivity
+      summary: Create a Reflection or Review activity for an editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection and Review are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateContentApiReflectionActivityRequest' }
+            schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection activity.
+          description: The created source-shaped Reflection or Review activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
-        '400': { description: The requested type, reflection fields, or graph position is invalid. }
+        '400': { description: The requested type, reflective fields, or graph position is invalid. }
         '401': { description: No authenticated administration session. }
         '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
         '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
@@ -7002,12 +7002,12 @@ components:
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/ContentApiActivity' }
-    CreateContentApiReflectionActivityRequest:
+    CreateContentApiActivityRequest:
       type: object
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection] }
+        type: { type: string, enum: [reflection, review] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }

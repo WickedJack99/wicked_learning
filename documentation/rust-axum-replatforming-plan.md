@@ -1664,10 +1664,11 @@ scope and obtains activity counts in one aggregate query; its write reuses the
 atomic MapAsset, compatibility-node, and draft-route command, carrying the
 source API's explicit node title and description. Content API permission never
 widens map scope or lets a request nominate a World. MapAsset Activity listing
-uses the distinct scoped World Activity policy; Reflection is the only Activity
-type currently creatable through the API, preserving its existing typed command
-and optional graph coordinates. Other Activity types remain absent from the
-advertised contract until their exact scoped adapters are implemented.
+uses the distinct scoped World Activity policy; Reflection and Review are the
+only Activity types currently creatable through the API, preserving their
+existing typed commands and optional graph coordinates. Other Activity types
+remain absent from the advertised contract until their exact scoped adapters
+are implemented.
 
 ### 7. Complete the replacement deliberately
 

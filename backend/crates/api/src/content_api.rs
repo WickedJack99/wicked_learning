@@ -15,8 +15,8 @@ use wicked_learning_application::{
     admin_world_map_asset::{AdminWorldMapAssetCommand, WorldMapAssetForm},
     admin_world_map_create::{AdminWorldMapCreateCommand, CreateWorldMapForm},
     admin_world_reflection::{
-        AdminWorldReflectionCommand, AdminWorldReflectionError, CreatedReflectionActivity,
-        DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm,
+        AdminWorldReflectionCommand, AdminWorldReflectionError, AdminWorldReviewCommand,
+        CreatedReflectionActivity, DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm,
     },
     content_api_activity::{
         ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
@@ -218,9 +218,9 @@ pub async fn activities(
     })))
 }
 
-/// Creates the first intentionally bounded Content API activity type. The
-/// Reflection command owns the write transaction and repeats scoped activity
-/// authorization; this adapter only translates the source request shape.
+/// Creates the bounded Content API activity types whose dedicated World
+/// Builder commands own the write transaction and repeat scoped activity
+/// authorization. This adapter only translates the source request shape.
 pub async fn create_activity(
     State(state): State<AppState>,
     Path(map_asset_id): Path<String>,
@@ -230,7 +230,7 @@ pub async fn create_activity(
     Json(request): Json<CreateActivityRequest>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
     let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
-    if request.activity_type != "reflection" {
+    if !is_supported_content_api_activity_type(&request.activity_type) {
         return Err(ApiError::invalid_request());
     }
     let form = ReflectionActivityForm::parse(
@@ -259,16 +259,31 @@ pub async fn create_activity(
         .ok_or_else(ApiError::not_found)?;
     let reflection_repository =
         PostgresAdminWorldReflectionRepository::new(&state.application_database);
-    let created = AdminWorldReflectionCommand::new(&reflection_repository)
-        .create(&principal, node_id, &form)
-        .await
-        .map_err(map_reflection_error)?
-        .ok_or_else(ApiError::not_found)?;
+    let created = match request.activity_type.as_str() {
+        "reflection" => {
+            AdminWorldReflectionCommand::new(&reflection_repository)
+                .create(&principal, node_id, &form)
+                .await
+        }
+        "review" => {
+            AdminWorldReviewCommand::new(&reflection_repository)
+                .create(&principal, node_id, &form)
+                .await
+        }
+        _ => unreachable!("activity type is checked before creating an activity"),
+    }
+    .map_err(map_reflection_error)?
+    .ok_or_else(ApiError::not_found)?;
 
     Ok((
         StatusCode::CREATED,
         Json(json!({
-            "data": serialize_created_reflection(map_asset_id, created, &form),
+            "data": serialize_created_reflective_activity(
+                map_asset_id,
+                created,
+                &form,
+                &request.activity_type,
+            ),
         })),
     ))
 }
@@ -323,6 +338,10 @@ fn require_content_permission(
 
 fn empty_object() -> Value {
     Value::Object(Default::default())
+}
+
+fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
+    matches!(activity_type, "reflection" | "review")
 }
 
 fn map_reflection_error(error: AdminWorldReflectionError) -> ApiError {
@@ -437,16 +456,17 @@ fn serialize_activity(map_asset_id: Uuid, activity: &ContentApiActivity) -> Valu
     })
 }
 
-fn serialize_created_reflection(
+fn serialize_created_reflective_activity(
     map_asset_id: Uuid,
     created: CreatedReflectionActivity,
     form: &ReflectionActivityForm,
+    activity_type: &str,
 ) -> Value {
     json!({
         "id": created.activity_id,
         "mapAssetId": map_asset_id,
         "slug": created.slug,
-        "type": "reflection",
+        "type": activity_type,
         "title": form.title,
         "introduction": form.introduction,
         "config": {
@@ -484,6 +504,13 @@ fn document() -> Value {
                 "description": "A learner-owned pause for useful notes or synthesis.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "review",
+                "label": "Review / revisit",
+                "description": "A learner-owned return to earlier ideas with optional private comparison.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
         "contentPlan": {
@@ -501,7 +528,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a Reflection Activity", "Creates the first supported Content API Activity through the scoped Reflection command.", json!({ "type": "reflection", "title": "Explain the energy conversion", "slug": "explain-energy-conversion", "introduction": "Connect the visible parts to the flow of energy.", "reflection_prompt": "How does energy change form inside this component?", "reflection_note": "Name the input and output forms of energy.", "reflection_topic": "Vehicle electrics", "reflection_subtopic": "Alternator", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection or Review Activity through its matching scoped World Builder command.", json!({ "type": "review", "title": "Revisit the energy conversion", "slug": "revisit-energy-conversion", "introduction": "Compare this explanation with an earlier observation.", "reflection_prompt": "What now feels clearer about the energy conversion?", "reflection_note": "Notice what changed in your explanation.", "reflection_topic": "Vehicle electrics", "reflection_subtopic": "Alternator", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "review", "title": "Revisit the energy conversion" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -544,8 +571,9 @@ mod tests {
     };
 
     use super::{
-        document, require_content_permission, serialize_activity, serialize_created_map_asset,
-        serialize_created_reflection, serialize_map_assets,
+        document, is_supported_content_api_activity_type, require_content_permission,
+        serialize_activity, serialize_created_map_asset, serialize_created_reflective_activity,
+        serialize_map_assets,
     };
 
     #[test]
@@ -562,6 +590,7 @@ mod tests {
         assert_eq!(operations[5]["id"], "activities.index");
         assert_eq!(operations[6]["id"], "activities.store");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
+        assert_eq!(document["activityTypes"][1]["key"], "review");
     }
 
     #[test]
@@ -573,6 +602,13 @@ mod tests {
         };
 
         assert!(require_content_permission(&principal, "ro").is_err());
+    }
+
+    #[test]
+    fn content_api_advertises_only_its_typed_activity_creators() {
+        assert!(is_supported_content_api_activity_type("reflection"));
+        assert!(is_supported_content_api_activity_type("review"));
+        assert!(!is_supported_content_api_activity_type("markdown"));
     }
 
     #[test]
@@ -650,7 +686,7 @@ mod tests {
     }
 
     #[test]
-    fn activities_keep_the_source_shape_for_reads_and_reflection_creates() {
+    fn activities_keep_the_source_shape_for_reads_and_reflective_creates() {
         let map_asset_id = Uuid::new_v4();
         let activity_id = Uuid::new_v4();
         let activity = wicked_learning_application::content_api_activity::ContentApiActivity {
@@ -676,18 +712,19 @@ mod tests {
             )
             .expect("valid reflection")
             .with_graph_position(Some(120), Some(80));
-        let created = serialize_created_reflection(
+        let created = serialize_created_reflective_activity(
             map_asset_id,
             wicked_learning_application::admin_world_reflection::CreatedReflectionActivity {
                 activity_id,
                 slug: "energy-reflection-2".to_owned(),
             },
             &form,
+            "review",
         );
 
         assert_eq!(listed["mapAssetId"], map_asset_id.to_string());
         assert_eq!(listed["position"], json!({ "x": 120.0, "y": 80.0 }));
-        assert_eq!(created["type"], "reflection");
+        assert_eq!(created["type"], "review");
         assert_eq!(created["slug"], "energy-reflection-2");
         assert_eq!(created["config"]["prompt"], "What changed?");
         assert_eq!(created["position"], json!({ "x": 120, "y": 80 }));
