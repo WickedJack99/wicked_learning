@@ -1657,11 +1657,13 @@ Rust now exposes the first source-compatible `/api/content/v1` namespace. Its
 machine-readable contract is session-authenticated and separately gated by the
 source `content_api` permission. It currently documents and serves only the
 operations Rust owns: reading the contract, listing maps already visible in
-the caller's scoped World Builder graph, and creating a map through the
-existing CSRF-protected World Builder command. Content API permission never
-widens map scope or lets a request nominate a World. MapAsset and activity
-operations remain absent from the advertised contract until their exact scoped
-adapters are implemented.
+the caller's scoped World Builder graph, creating a map through the existing
+CSRF-protected World Builder command, and listing source-shaped MapAssets for
+one already editable map. The MapAsset read reuses selected-map scope and
+obtains activity counts in one aggregate query. Content API permission never
+widens map scope or lets a request nominate a World. MapAsset writes and
+activity operations remain absent from the advertised contract until their
+exact scoped adapters are implemented.
 
 ### 7. Complete the replacement deliberately
 

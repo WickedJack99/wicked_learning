@@ -4805,12 +4805,15 @@ less-authorized requests.
 **Decision:** Serve `/api/content/v1/contract` only to principals with the
 source `content_api` permission, and list only implemented Rust operations.
 The first operations reuse the established World Builder graph and map-create
-command, preserving CSRF, map scope and server-owned World selection. Future
-MapAsset and Activity entries must be added with their exact Rust adapters.
+command, preserving CSRF, map scope and server-owned World selection. The
+first MapAsset read adapter reuses the selected-map projection and a bounded
+aggregate activity-count query. Future MapAsset writes and Activity entries
+must be added with their exact Rust adapters.
 
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
-operations before they are implemented.
+operations before they are implemented. MapAsset reads do not imply that the
+MapAsset write or Activity adapters exist.
 
 ## Phase 1 gate
 

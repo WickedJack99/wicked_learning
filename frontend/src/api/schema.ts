@@ -58,6 +58,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/content/v1/maps/{map_id}/map-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List source-compatible MapAssets for an editable map.
+         * @description Requires content_api read permission and the existing World Builder update scope for the requested map.
+         */
+        get: operations["getContentApiMapAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session": {
         parameters: {
             query?: never;
@@ -5314,6 +5334,36 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ContentApiMapAsset: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            mapId: string;
+            title: string | null;
+            description: string | null;
+            imageUrl: string | null;
+            text: string | null;
+            position: {
+                x: number;
+                y: number;
+                z: number;
+            };
+            width: number;
+            opacity: number;
+            locked: boolean;
+            /** @enum {string} */
+            interactionMode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
+            interactionConfig: {
+                [key: string]: unknown;
+            };
+            visualConfig: {
+                [key: string]: unknown;
+            };
+            soundConfig: {
+                [key: string]: unknown;
+            };
+            activityCount: number;
+        };
         CreateRegistrationTokenRequest: {
             /** Format: date-time */
             expires_at?: string | null;
@@ -9995,6 +10045,58 @@ export interface operations {
             };
             /** @description The current role lacks content_api read permission. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getContentApiMapAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The MapAssets, their linked node text, and activity counts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ContentApiMapAsset"][];
+                    };
+                };
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current role lacks content_api read permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unavailable in the caller's editable scope. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

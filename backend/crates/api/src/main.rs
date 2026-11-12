@@ -582,6 +582,10 @@ fn router(state: AppState) -> Router {
             "/api/content/v1/maps",
             get(content_api::maps).post(content_api::create_map),
         )
+        .route(
+            "/api/content/v1/maps/{map_id}/map-assets",
+            get(content_api::map_assets),
+        )
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route(

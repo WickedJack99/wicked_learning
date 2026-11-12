@@ -61,6 +61,35 @@ paths:
         '401': { description: No authenticated administration session. }
         '403': { description: The current role lacks content_api read permission. }
         '503': { description: The application database is unavailable. }
+  /content/v1/maps/{map_id}/map-assets:
+    servers:
+      - url: /api
+    get:
+      operationId: getContentApiMapAssets
+      summary: List source-compatible MapAssets for an editable map.
+      description: Requires content_api read permission and the existing World Builder update scope for the requested map.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The MapAssets, their linked node text, and activity counts.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ContentApiMapAsset' }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The current role lacks content_api read permission. }
+        '404': { description: The map is unavailable in the caller's editable scope. }
+        '503': { description: The application database is unavailable. }
   /session:
     get:
       operationId: getSessionStatus
@@ -6818,6 +6847,33 @@ components:
         pattern: '^[a-z0-9-]+$'
         maxLength: 80
   schemas:
+    ContentApiMapAsset:
+      type: object
+      additionalProperties: false
+      required: [id, mapId, title, description, imageUrl, text, position, width, opacity, locked, interactionMode, interactionConfig, visualConfig, soundConfig, activityCount]
+      properties:
+        id: { type: string, format: uuid }
+        mapId: { type: string, format: uuid }
+        title: { type: [string, 'null'] }
+        description: { type: [string, 'null'] }
+        imageUrl: { type: [string, 'null'] }
+        text: { type: [string, 'null'] }
+        position:
+          type: object
+          additionalProperties: false
+          required: [x, y, z]
+          properties:
+            x: { type: number }
+            y: { type: number }
+            z: { type: integer }
+        width: { type: number, minimum: 0 }
+        opacity: { type: number, minimum: 0, maximum: 1 }
+        locked: { type: boolean }
+        interactionMode: { type: string, enum: [focusable, decorative, hide_on_hover, toggle] }
+        interactionConfig: { type: object, additionalProperties: true }
+        visualConfig: { type: object, additionalProperties: true }
+        soundConfig: { type: object, additionalProperties: true }
+        activityCount: { type: integer, minimum: 0 }
     CreateRegistrationTokenRequest:
       type: object
       additionalProperties: false
