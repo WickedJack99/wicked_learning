@@ -15,6 +15,10 @@ use wicked_learning_application::{
         AdminWorldItemGrantCommand, AdminWorldItemGrantError, CreatedItemGrantActivity,
         ItemGrantActivityForm, ItemGrantItem,
     },
+    admin_world_item_obstacle::{
+        AdminWorldItemObstacleCommand, AdminWorldItemObstacleError, CreatedItemObstacleActivity,
+        ItemObstacleActivityForm, ItemObstacleSlot, ItemObstacleSound,
+    },
     admin_world_map::AdminWorldMapQuery,
     admin_world_map_asset::{AdminWorldMapAssetCommand, WorldMapAssetForm},
     admin_world_map_create::{AdminWorldMapCreateCommand, CreateWorldMapForm},
@@ -49,6 +53,7 @@ use wicked_learning_domain::world_content::{AdminEditableMapAsset, AdminNodeSumm
 use wicked_learning_persistence::{
     admin_world_graph::PostgresAdminWorldGraphRepository,
     admin_world_item_grant::PostgresAdminWorldItemGrantRepository,
+    admin_world_item_obstacle::PostgresAdminWorldItemObstacleRepository,
     admin_world_map::PostgresAdminWorldMapRepository,
     admin_world_map_asset::PostgresAdminWorldMapAssetRepository,
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
@@ -178,6 +183,27 @@ pub struct CreateActivityRequest {
     tool_grant_tool_x: Option<f64>,
     tool_grant_tool_y: Option<f64>,
     tool_grant_typing_speed: Option<f64>,
+    item_obstacle_background_dark: Option<String>,
+    item_obstacle_background_light: Option<String>,
+    item_obstacle_background_mirrored: Option<bool>,
+    item_obstacle_met_background_dark: Option<String>,
+    item_obstacle_met_background_light: Option<String>,
+    item_obstacle_met_background_mirrored: Option<bool>,
+    item_obstacle_overlay_dark: Option<String>,
+    item_obstacle_overlay_light: Option<String>,
+    item_obstacle_overlay_mirrored: Option<bool>,
+    item_obstacle_overlay_x: Option<f64>,
+    item_obstacle_overlay_y: Option<f64>,
+    item_obstacle_overlay_width: Option<f64>,
+    item_obstacle_slots: Option<Vec<ContentApiItemObstacleSlotRequest>>,
+    item_obstacle_consume_on_each_entry: Option<bool>,
+    item_obstacle_lock_minutes: Option<i32>,
+    item_obstacle_sound_not_met_enabled: Option<bool>,
+    item_obstacle_sound_not_met_id: Option<String>,
+    item_obstacle_sound_met_enabled: Option<bool>,
+    item_obstacle_sound_met_id: Option<String>,
+    item_obstacle_sound_transition_enabled: Option<bool>,
+    item_obstacle_sound_transition_id: Option<String>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
 }
@@ -198,6 +224,14 @@ struct ContentApiQuestionOptionRequest {
 struct ContentApiItemGrantItemRequest {
     item_id: String,
     quantity: u16,
+}
+
+#[derive(Deserialize)]
+struct ContentApiItemObstacleSlotRequest {
+    item_id: Option<String>,
+    x: Option<f64>,
+    y: Option<f64>,
+    width: Option<f64>,
 }
 
 /// Lists only maps already visible in the caller's existing scoped World
@@ -487,6 +521,16 @@ pub async fn create_activity(
                 .map_err(map_tool_grant_error)?
                 .map(|created| serialize_created_tool_grant(map_asset_id, created, &form))
         }
+        "item_obstacle" => {
+            let form = content_api_item_obstacle_form(&request)?;
+            let repository =
+                PostgresAdminWorldItemObstacleRepository::new(&state.application_database);
+            AdminWorldItemObstacleCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_item_obstacle_error)?
+                .map(|created| serialize_created_item_obstacle(map_asset_id, created, &form))
+        }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
     .ok_or_else(ApiError::not_found)?;
@@ -562,6 +606,7 @@ fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
             | "shared_task"
             | "item_grant"
             | "tool_grant"
+            | "item_obstacle"
     )
 }
 
@@ -618,6 +663,14 @@ fn map_tool_grant_error(error: AdminWorldToolGrantError) -> ApiError {
         AdminWorldToolGrantError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldToolGrantError::Conflict => ApiError::conflict(),
         AdminWorldToolGrantError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_item_obstacle_error(error: AdminWorldItemObstacleError) -> ApiError {
+    match error {
+        AdminWorldItemObstacleError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldItemObstacleError::Conflict => ApiError::conflict(),
+        AdminWorldItemObstacleError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -793,6 +846,96 @@ fn content_api_tool_grant_form(
     )
     .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
     .ok_or_else(ApiError::invalid_request)
+}
+
+fn content_api_item_obstacle_form(
+    request: &CreateActivityRequest,
+) -> Result<ItemObstacleActivityForm, ApiError> {
+    let slots = request
+        .item_obstacle_slots
+        .as_ref()
+        .map(|slots| {
+            if slots.len() > 10 {
+                return Err(ApiError::invalid_request());
+            }
+            slots
+                .iter()
+                .map(|slot| {
+                    let x = slot.x.unwrap_or(50.0);
+                    let y = slot.y.unwrap_or(50.0);
+                    let width = slot.width.unwrap_or(10.0);
+                    if !bounded_position(x, 0.0, 100.0)
+                        || !bounded_position(y, 0.0, 100.0)
+                        || !bounded_position(width, 1.0, 100.0)
+                    {
+                        return Err(ApiError::invalid_request());
+                    }
+                    slot.item_id
+                        .as_deref()
+                        .map(|item_id| {
+                            Ok(ItemObstacleSlot {
+                                item_id: Uuid::parse_str(item_id)
+                                    .map_err(|_| ApiError::invalid_request())?,
+                                x,
+                                y,
+                                width,
+                            })
+                        })
+                        .transpose()
+                })
+                .filter_map(Result::transpose)
+                .collect::<Result<Vec<_>, ApiError>>()
+        })
+        .transpose()?
+        .unwrap_or_default();
+    let sound = |enabled: Option<bool>, sound_id: Option<&str>| {
+        Ok(ItemObstacleSound {
+            enabled: enabled.unwrap_or(false),
+            sound_id: sound_id
+                .map(|id| Uuid::parse_str(id).map_err(|_| ApiError::invalid_request()))
+                .transpose()?,
+        })
+    };
+    ItemObstacleActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request.item_obstacle_background_dark.as_deref(),
+        request.item_obstacle_background_light.as_deref(),
+        request.item_obstacle_background_mirrored.unwrap_or(false),
+        request.item_obstacle_met_background_dark.as_deref(),
+        request.item_obstacle_met_background_light.as_deref(),
+        request
+            .item_obstacle_met_background_mirrored
+            .unwrap_or(false),
+        request.item_obstacle_overlay_dark.as_deref(),
+        request.item_obstacle_overlay_light.as_deref(),
+        request.item_obstacle_overlay_mirrored.unwrap_or(false),
+        request.item_obstacle_overlay_x.unwrap_or(50.0),
+        request.item_obstacle_overlay_y.unwrap_or(50.0),
+        request.item_obstacle_overlay_width.unwrap_or(30.0),
+        slots,
+        request.item_obstacle_consume_on_each_entry.unwrap_or(false),
+        request.item_obstacle_lock_minutes.unwrap_or(0),
+        sound(
+            request.item_obstacle_sound_not_met_enabled,
+            request.item_obstacle_sound_not_met_id.as_deref(),
+        )?,
+        sound(
+            request.item_obstacle_sound_met_enabled,
+            request.item_obstacle_sound_met_id.as_deref(),
+        )?,
+        sound(
+            request.item_obstacle_sound_transition_enabled,
+            request.item_obstacle_sound_transition_id.as_deref(),
+        )?,
+    )
+    .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
+    .ok_or_else(ApiError::invalid_request)
+}
+
+fn bounded_position(value: f64, minimum: f64, maximum: f64) -> bool {
+    value.is_finite() && (minimum..=maximum).contains(&value)
 }
 
 #[derive(FromRow)]
@@ -1020,6 +1163,23 @@ fn serialize_created_tool_grant(
     })
 }
 
+fn serialize_created_item_obstacle(
+    map_asset_id: Uuid,
+    created: CreatedItemObstacleActivity,
+    form: &ItemObstacleActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id,
+        "mapAssetId": map_asset_id,
+        "slug": created.slug,
+        "type": "item_obstacle",
+        "title": form.title,
+        "introduction": form.introduction,
+        "config": created.config,
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -1094,6 +1254,13 @@ fn document() -> Value {
                 "description": "A server-authorized grant of an optional catalog tool with authored scene presentation.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "item_obstacle",
+                "label": "Item Obstacle",
+                "description": "A configured item-gated obstacle with optional transitions and sound effects.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "notMet", "label": "Not met" }, { "id": "met", "label": "Met" }, { "id": "transition", "label": "Transition" }]
             }
         ],
         "contentPlan": {
@@ -1111,7 +1278,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, or Tool Grant Activity through its matching scoped World Builder command.", json!({ "type": "tool_grant", "title": "Receive the circuit probe", "tool_grant_tool_id": "opaque-catalog-tool-id", "tool_grant_text": "Use this probe to inspect the circuit.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "tool_grant", "title": "Receive the circuit probe" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, or Item Obstacle Activity through its matching scoped World Builder command.", json!({ "type": "item_obstacle", "title": "Open the service bay", "item_obstacle_slots": [{ "item_id": "opaque-catalog-item-id", "x": 50, "y": 50, "width": 10 }], "item_obstacle_consume_on_each_entry": false, "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "item_obstacle", "title": "Open the service bay" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -1154,10 +1321,11 @@ mod tests {
     };
 
     use super::{
-        content_api_item_grant_form, content_api_shared_task_form, content_api_tool_grant_form,
-        document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_created_item_grant, serialize_created_map_asset,
-        serialize_created_markdown, serialize_created_open_practice, serialize_created_question,
+        content_api_item_grant_form, content_api_item_obstacle_form, content_api_shared_task_form,
+        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
+        require_content_permission, serialize_activity, serialize_created_item_grant,
+        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
+        serialize_created_open_practice, serialize_created_question,
         serialize_created_reflective_activity, serialize_created_shared_task,
         serialize_created_tool_grant, serialize_map_assets,
     };
@@ -1182,6 +1350,7 @@ mod tests {
         assert_eq!(document["activityTypes"][5]["key"], "shared_task");
         assert_eq!(document["activityTypes"][6]["key"], "item_grant");
         assert_eq!(document["activityTypes"][7]["key"], "tool_grant");
+        assert_eq!(document["activityTypes"][8]["key"], "item_obstacle");
     }
 
     #[test]
@@ -1205,6 +1374,7 @@ mod tests {
         assert!(is_supported_content_api_activity_type("shared_task"));
         assert!(is_supported_content_api_activity_type("item_grant"));
         assert!(is_supported_content_api_activity_type("tool_grant"));
+        assert!(is_supported_content_api_activity_type("item_obstacle"));
         assert!(!is_supported_content_api_activity_type("portal"));
     }
 
@@ -1619,6 +1789,32 @@ mod tests {
             &form.with_graph_position(Some(120), None),
         );
         assert_eq!(created["config"]["toolId"], "circuit-probe");
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+    }
+
+    #[test]
+    fn item_obstacle_defaults_and_resolved_configuration_are_preserved() {
+        let request = serde_json::from_value(json!({
+            "type": "item_obstacle",
+            "title": "Open the service bay",
+        }))
+        .expect("valid partial Item Obstacle Content API request");
+        let Ok(form) = content_api_item_obstacle_form(&request) else {
+            panic!("source defaults are valid");
+        };
+        assert_eq!(form.overlay_width, 30.0);
+        assert!(form.slots.is_empty());
+
+        let created = serialize_created_item_obstacle(
+            Uuid::new_v4(),
+            wicked_learning_application::admin_world_item_obstacle::CreatedItemObstacleActivity {
+                activity_id: Uuid::new_v4(),
+                config: json!({ "slots": [{ "itemId": "service-key", "x": 50.0, "y": 50.0, "width": 10.0 }], "sounds": {} }),
+                slug: "open-the-service-bay".to_owned(),
+            },
+            &form.with_graph_position(Some(120), None),
+        );
+        assert_eq!(created["config"]["slots"][0]["itemId"], "service-key");
         assert_eq!(created["position"], json!({ "x": 120, "y": null }));
     }
 }

@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, or Tool Grant activity.
+          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, or Item Obstacle activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant, item_obstacle] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }
@@ -7081,6 +7081,30 @@ components:
         tool_grant_tool_x: { type: [number, 'null'], minimum: 0, maximum: 100 }
         tool_grant_tool_y: { type: [number, 'null'], minimum: 0, maximum: 100 }
         tool_grant_typing_speed: { type: [number, 'null'], minimum: 1, maximum: 250 }
+        item_obstacle_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        item_obstacle_background_light: { type: [string, 'null'], maxLength: 2048 }
+        item_obstacle_background_mirrored: { type: [boolean, 'null'] }
+        item_obstacle_met_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        item_obstacle_met_background_light: { type: [string, 'null'], maxLength: 2048 }
+        item_obstacle_met_background_mirrored: { type: [boolean, 'null'] }
+        item_obstacle_overlay_dark: { type: [string, 'null'], maxLength: 2048 }
+        item_obstacle_overlay_light: { type: [string, 'null'], maxLength: 2048 }
+        item_obstacle_overlay_mirrored: { type: [boolean, 'null'] }
+        item_obstacle_overlay_x: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        item_obstacle_overlay_y: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        item_obstacle_overlay_width: { type: [number, 'null'], minimum: 1, maximum: 100 }
+        item_obstacle_slots:
+          type: [array, 'null']
+          maxItems: 10
+          items: { $ref: '#/components/schemas/ContentApiItemObstacleSlot' }
+        item_obstacle_consume_on_each_entry: { type: [boolean, 'null'] }
+        item_obstacle_lock_minutes: { type: [integer, 'null'], minimum: 0, maximum: 10080 }
+        item_obstacle_sound_not_met_enabled: { type: [boolean, 'null'] }
+        item_obstacle_sound_not_met_id: { type: [string, 'null'], format: uuid }
+        item_obstacle_sound_met_enabled: { type: [boolean, 'null'] }
+        item_obstacle_sound_met_id: { type: [string, 'null'], format: uuid }
+        item_obstacle_sound_transition_enabled: { type: [boolean, 'null'] }
+        item_obstacle_sound_transition_id: { type: [string, 'null'], format: uuid }
         graph_position_x: { type: [integer, 'null'] }
         graph_position_y: { type: [integer, 'null'] }
     ContentApiQuestionOption:
@@ -7102,6 +7126,14 @@ components:
       properties:
         item_id: { type: string, format: uuid }
         quantity: { type: integer, minimum: 1, maximum: 999 }
+    ContentApiItemObstacleSlot:
+      type: object
+      additionalProperties: false
+      properties:
+        item_id: { type: [string, 'null'], format: uuid }
+        x: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        y: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        width: { type: [number, 'null'], minimum: 1, maximum: 100 }
     CreateRegistrationTokenRequest:
       type: object
       additionalProperties: false

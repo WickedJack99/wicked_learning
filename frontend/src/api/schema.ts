@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5507,6 +5507,30 @@ export interface components {
             tool_grant_tool_x?: number | null;
             tool_grant_tool_y?: number | null;
             tool_grant_typing_speed?: number | null;
+            item_obstacle_background_dark?: string | null;
+            item_obstacle_background_light?: string | null;
+            item_obstacle_background_mirrored?: boolean | null;
+            item_obstacle_met_background_dark?: string | null;
+            item_obstacle_met_background_light?: string | null;
+            item_obstacle_met_background_mirrored?: boolean | null;
+            item_obstacle_overlay_dark?: string | null;
+            item_obstacle_overlay_light?: string | null;
+            item_obstacle_overlay_mirrored?: boolean | null;
+            item_obstacle_overlay_x?: number | null;
+            item_obstacle_overlay_y?: number | null;
+            item_obstacle_overlay_width?: number | null;
+            item_obstacle_slots?: components["schemas"]["ContentApiItemObstacleSlot"][] | null;
+            item_obstacle_consume_on_each_entry?: boolean | null;
+            item_obstacle_lock_minutes?: number | null;
+            item_obstacle_sound_not_met_enabled?: boolean | null;
+            /** Format: uuid */
+            item_obstacle_sound_not_met_id?: string | null;
+            item_obstacle_sound_met_enabled?: boolean | null;
+            /** Format: uuid */
+            item_obstacle_sound_met_id?: string | null;
+            item_obstacle_sound_transition_enabled?: boolean | null;
+            /** Format: uuid */
+            item_obstacle_sound_transition_id?: string | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -5525,6 +5549,13 @@ export interface components {
             /** Format: uuid */
             item_id: string;
             quantity: number;
+        };
+        ContentApiItemObstacleSlot: {
+            /** Format: uuid */
+            item_id?: string | null;
+            x?: number | null;
+            y?: number | null;
+            width?: number | null;
         };
         CreateRegistrationTokenRequest: {
             /** Format: date-time */
@@ -10407,7 +10438,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, or Tool Grant activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, or Item Obstacle activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

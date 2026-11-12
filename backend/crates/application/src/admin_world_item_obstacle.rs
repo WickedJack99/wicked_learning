@@ -19,6 +19,8 @@ pub struct ItemObstacleSound {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ItemObstacleActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -99,6 +101,8 @@ impl ItemObstacleActivityForm {
         }
 
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction: introduction.map(str::to_owned),
@@ -128,6 +132,15 @@ impl ItemObstacleActivityForm {
             sound_transition,
         })
     }
+
+    /// The source Content API may place a newly created graph card directly.
+    /// The World Builder's create route leaves both coordinates absent and
+    /// continues to use its separate graph-position command.
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
+    }
 }
 
 fn valid_slug(value: &str) -> bool {
@@ -153,13 +166,22 @@ pub struct UpdatedItemObstacleActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct CreatedItemObstacleActivity {
+    pub activity_id: Uuid,
+    pub config: serde_json::Value,
+    pub slug: String,
+}
+
 pub trait AdminWorldItemObstacleRepository {
     fn create_item_obstacle(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ItemObstacleActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldItemObstacleError>> + Send;
+    ) -> impl Future<
+        Output = Result<Option<CreatedItemObstacleActivity>, AdminWorldItemObstacleError>,
+    > + Send;
 
     fn update_item_obstacle(
         &self,
@@ -189,7 +211,7 @@ where
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ItemObstacleActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldItemObstacleError> {
+    ) -> Result<Option<CreatedItemObstacleActivity>, AdminWorldItemObstacleError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -231,8 +253,8 @@ mod tests {
 
     use super::{
         AdminWorldItemObstacleCommand, AdminWorldItemObstacleError,
-        AdminWorldItemObstacleRepository, ItemObstacleActivityForm, ItemObstacleSlot,
-        ItemObstacleSound, UpdatedItemObstacleActivity,
+        AdminWorldItemObstacleRepository, CreatedItemObstacleActivity, ItemObstacleActivityForm,
+        ItemObstacleSlot, ItemObstacleSound, UpdatedItemObstacleActivity,
     };
 
     struct RecordingRepository {
@@ -245,8 +267,9 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &ItemObstacleActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldItemObstacleError>> + Send
-        {
+        ) -> impl Future<
+            Output = Result<Option<CreatedItemObstacleActivity>, AdminWorldItemObstacleError>,
+        > + Send {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
