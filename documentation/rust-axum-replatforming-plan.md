@@ -1665,11 +1665,12 @@ atomic MapAsset, compatibility-node, and draft-route command, carrying the
 source API's explicit node title and description. Content API permission never
 widens map scope or lets a request nominate a World. MapAsset Activity listing
 uses the distinct scoped World Activity policy; Reflection, Review, Open
-Practice, Markdown, and Question are the only Activity types currently
-creatable through the API, preserving their existing typed commands, Markdown's
-managed-media references, Question's bounded answer options, and optional graph
-coordinates. Other Activity types remain absent from the advertised contract
-until their exact scoped adapters are implemented.
+Practice, Markdown, Question, and Shared Task are the only Activity types
+currently creatable through the API, preserving their existing typed commands,
+Markdown's managed-media references, Question's bounded answer options, Shared
+Task's bounded collaboration configuration, and optional graph coordinates.
+Other Activity types remain absent from the advertised contract until their
+exact scoped adapters are implemented.
 
 ### 7. Complete the replacement deliberately
 

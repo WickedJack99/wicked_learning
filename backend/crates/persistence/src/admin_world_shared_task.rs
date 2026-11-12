@@ -2,8 +2,8 @@ use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_shared_task::{
-    AdminWorldSharedTaskError, AdminWorldSharedTaskRepository as Port, SharedTaskActivityForm,
-    UpdatedSharedTaskActivity, generated_slug,
+    AdminWorldSharedTaskError, AdminWorldSharedTaskRepository as Port, CreatedSharedTaskActivity,
+    SharedTaskActivityForm, UpdatedSharedTaskActivity, generated_slug,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -24,8 +24,9 @@ impl Port for PostgresAdminWorldSharedTaskRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &SharedTaskActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldSharedTaskError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedSharedTaskActivity>, AdminWorldSharedTaskError>,
+    > + Send {
         async move {
             create(self.pool, principal, node_id, form)
                 .await
@@ -92,7 +93,7 @@ async fn create(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &SharedTaskActivityForm,
-) -> Result<Option<Uuid>, MutationError> {
+) -> Result<Option<CreatedSharedTaskActivity>, MutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -104,10 +105,13 @@ async fn create(
     let slug = unique_slug(&mut transaction, map_asset_id, form, None).await?;
     let position: i16 = sqlx::query_scalar("SELECT (COALESCE(MAX(position), -1)::integer + 1)::smallint FROM learning_activities WHERE route_id = $1").bind(route_id).fetch_one(&mut *transaction).await?;
     let id = Uuid::new_v4();
-    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'shared_task', $7, $8, 'needs_review')")
-        .bind(id).bind(route_id).bind(slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(config(form)).bind(&form.introduction).execute(&mut *transaction).await?;
+    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'shared_task', $7, $8, $9, $10, 'needs_review')")
+        .bind(id).bind(route_id).bind(&slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(config(form)).bind(&form.introduction).bind(form.graph_position_x.map(f64::from)).bind(form.graph_position_y.map(f64::from)).execute(&mut *transaction).await?;
     transaction.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedSharedTaskActivity {
+        activity_id: id,
+        slug,
+    }))
 }
 
 async fn update(
@@ -157,7 +161,7 @@ async fn update(
     }))
 }
 
-fn config(form: &SharedTaskActivityForm) -> Value {
+pub fn config(form: &SharedTaskActivityForm) -> Value {
     json!({ "taskKind": form.task_kind, "showContributions": form.show_contributions, "prompt": form.prompt, "instructions": form.instructions, "inputLabel": form.input_label, "projectGoal": form.project_goal, "projectDeliverable": form.project_deliverable, "projectSteps": form.project_steps, "peerReviewEnabled": form.peer_review_enabled, "peerReviewPrompt": form.peer_review_prompt, "threshold": form.threshold, "minimumLength": form.minimum_length, "repeatPolicy": form.repeat_policy, "validationMode": form.validation_mode, "cycleMode": form.cycle_mode })
 }
 

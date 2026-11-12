@@ -5,6 +5,8 @@ use wicked_learning_domain::identity_access::AuthorizedPrincipal;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SharedTaskActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -76,11 +78,14 @@ impl SharedTaskActivityForm {
             || project_steps.iter().any(|step| step.chars().count() > 240)
             || peer_review_prompt.is_empty()
             || peer_review_prompt.chars().count() > 1_000
-            || threshold == 0
+            || !(1..=1_000).contains(&threshold)
+            || minimum_length > 10_000
         {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction: introduction.map(str::to_owned),
@@ -100,6 +105,15 @@ impl SharedTaskActivityForm {
             validation_mode: validation_mode.to_owned(),
             cycle_mode: cycle_mode.to_owned(),
         })
+    }
+
+    /// The source Content API may place a newly created graph card directly.
+    /// The World Builder's create route leaves both coordinates absent and
+    /// continues to use its separate graph-position command.
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -141,13 +155,19 @@ pub struct UpdatedSharedTaskActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CreatedSharedTaskActivity {
+    pub activity_id: Uuid,
+    pub slug: String,
+}
+
 pub trait AdminWorldSharedTaskRepository {
     fn create_shared_task(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &SharedTaskActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldSharedTaskError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedSharedTaskActivity>, AdminWorldSharedTaskError>> + Send;
     fn update_shared_task(
         &self,
         principal: &AuthorizedPrincipal,
@@ -171,7 +191,7 @@ impl<'repository, Repository: AdminWorldSharedTaskRepository>
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &SharedTaskActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldSharedTaskError> {
+    ) -> Result<Option<CreatedSharedTaskActivity>, AdminWorldSharedTaskError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -269,5 +289,57 @@ mod tests {
             )
             .is_none()
         );
+        assert!(
+            SharedTaskActivityForm::parse(
+                "Task",
+                None,
+                None,
+                "text",
+                false,
+                "Prompt",
+                "",
+                "Your contribution",
+                "",
+                "",
+                vec![],
+                false,
+                "Review it",
+                1_001,
+                20,
+                "once_per_user",
+                "minimum_length",
+                "none"
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn content_api_can_retain_optional_graph_coordinates_on_create() {
+        let form = SharedTaskActivityForm::parse(
+            "Task",
+            None,
+            None,
+            "text",
+            false,
+            "Prompt",
+            "",
+            "Your contribution",
+            "",
+            "",
+            vec![],
+            false,
+            "Review it",
+            3,
+            20,
+            "once_per_user",
+            "minimum_length",
+            "none",
+        )
+        .expect("valid source-shaped Shared Task")
+        .with_graph_position(Some(120), None);
+
+        assert_eq!(form.graph_position_x, Some(120));
+        assert_eq!(form.graph_position_y, None);
     }
 }

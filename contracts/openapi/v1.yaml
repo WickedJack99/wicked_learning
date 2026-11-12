@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, Open Practice, Markdown, or Question activity.
+          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, or Shared Task activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice, markdown, question] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }
@@ -7038,6 +7038,24 @@ components:
           minItems: 2
           maxItems: 12
           items: { $ref: '#/components/schemas/ContentApiQuestionOption' }
+        shared_task_kind: { type: [string, 'null'], enum: [text, question, reflection, null] }
+        shared_task_show_contributions: { type: [boolean, 'null'] }
+        shared_task_prompt: { type: [string, 'null'], maxLength: 4000 }
+        shared_task_instructions: { type: [string, 'null'], maxLength: 4000 }
+        shared_task_input_label: { type: [string, 'null'], maxLength: 160 }
+        shared_task_project_goal: { type: [string, 'null'], maxLength: 1000 }
+        shared_task_project_deliverable: { type: [string, 'null'], maxLength: 1000 }
+        shared_task_project_steps:
+          type: [array, 'null']
+          maxItems: 6
+          items: { type: string, maxLength: 240 }
+        shared_task_peer_review_enabled: { type: [boolean, 'null'] }
+        shared_task_peer_review_prompt: { type: [string, 'null'], maxLength: 1000 }
+        shared_task_threshold: { type: [integer, 'null'], minimum: 1, maximum: 1000 }
+        shared_task_minimum_length: { type: [integer, 'null'], minimum: 0, maximum: 10000 }
+        shared_task_repeat_policy: { type: [string, 'null'], enum: [once_per_user, unlimited, null] }
+        shared_task_validation_mode: { type: [string, 'null'], enum: [minimum_length, none, null] }
+        shared_task_cycle_mode: { type: [string, 'null'], enum: [none, question_response_question, null] }
         graph_position_x: { type: [integer, 'null'] }
         graph_position_y: { type: [integer, 'null'] }
     ContentApiQuestionOption:

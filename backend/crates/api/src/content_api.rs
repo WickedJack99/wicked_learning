@@ -29,6 +29,10 @@ use wicked_learning_application::{
         AdminWorldReflectionCommand, AdminWorldReflectionError, AdminWorldReviewCommand,
         CreatedReflectionActivity, DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm,
     },
+    admin_world_shared_task::{
+        AdminWorldSharedTaskCommand, AdminWorldSharedTaskError, CreatedSharedTaskActivity,
+        SharedTaskActivityForm,
+    },
     content_api_activity::{
         ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
     },
@@ -43,6 +47,9 @@ use wicked_learning_persistence::{
     admin_world_open_practice::PostgresAdminWorldOpenPracticeRepository,
     admin_world_question::{PostgresAdminWorldQuestionRepository, config as question_config},
     admin_world_reflection::PostgresAdminWorldReflectionRepository,
+    admin_world_shared_task::{
+        PostgresAdminWorldSharedTaskRepository, config as shared_task_config,
+    },
     content_api_activity::PostgresContentApiActivityRepository,
 };
 
@@ -123,6 +130,21 @@ pub struct CreateActivityRequest {
     question_explanation: Option<String>,
     question_allow_multiple: Option<bool>,
     question_options: Option<Vec<ContentApiQuestionOptionRequest>>,
+    shared_task_kind: Option<String>,
+    shared_task_show_contributions: Option<bool>,
+    shared_task_prompt: Option<String>,
+    shared_task_instructions: Option<String>,
+    shared_task_input_label: Option<String>,
+    shared_task_project_goal: Option<String>,
+    shared_task_project_deliverable: Option<String>,
+    shared_task_project_steps: Option<Vec<String>>,
+    shared_task_peer_review_enabled: Option<bool>,
+    shared_task_peer_review_prompt: Option<String>,
+    shared_task_threshold: Option<u16>,
+    shared_task_minimum_length: Option<u16>,
+    shared_task_repeat_policy: Option<String>,
+    shared_task_validation_mode: Option<String>,
+    shared_task_cycle_mode: Option<String>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
 }
@@ -396,6 +418,16 @@ pub async fn create_activity(
                 .map_err(map_question_error)?
                 .map(|created| serialize_created_question(map_asset_id, created, &form))
         }
+        "shared_task" => {
+            let form = content_api_shared_task_form(&request)?;
+            let repository =
+                PostgresAdminWorldSharedTaskRepository::new(&state.application_database);
+            AdminWorldSharedTaskCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_shared_task_error)?
+                .map(|created| serialize_created_shared_task(map_asset_id, created, &form))
+        }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
     .ok_or_else(ApiError::not_found)?;
@@ -463,7 +495,7 @@ fn empty_object() -> Value {
 fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
     matches!(
         activity_type,
-        "reflection" | "review" | "open_practice" | "markdown" | "question"
+        "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task"
     )
 }
 
@@ -496,6 +528,14 @@ fn map_question_error(error: AdminWorldQuestionError) -> ApiError {
         AdminWorldQuestionError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldQuestionError::Conflict => ApiError::conflict(),
         AdminWorldQuestionError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_shared_task_error(error: AdminWorldSharedTaskError) -> ApiError {
+    match error {
+        AdminWorldSharedTaskError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldSharedTaskError::Conflict => ApiError::conflict(),
+        AdminWorldSharedTaskError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -539,6 +579,66 @@ fn content_api_question_form(
         request.question_explanation.as_deref().unwrap_or_default(),
         request.question_allow_multiple.unwrap_or(false),
         options,
+    )
+    .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
+    .ok_or_else(ApiError::invalid_request)
+}
+
+fn content_api_shared_task_form(
+    request: &CreateActivityRequest,
+) -> Result<SharedTaskActivityForm, ApiError> {
+    let task_kind = request.shared_task_kind.as_deref().unwrap_or("text");
+    let input_label = request
+        .shared_task_input_label
+        .as_deref()
+        .unwrap_or(match task_kind {
+            "question" => "Your question",
+            "reflection" => "Your reflection",
+            _ => "Your contribution",
+        });
+    SharedTaskActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        task_kind,
+        request.shared_task_show_contributions.unwrap_or(false),
+        request
+            .shared_task_prompt
+            .as_deref()
+            .unwrap_or("Add a useful contribution."),
+        request
+            .shared_task_instructions
+            .as_deref()
+            .unwrap_or_default(),
+        input_label,
+        request
+            .shared_task_project_goal
+            .as_deref()
+            .unwrap_or_default(),
+        request
+            .shared_task_project_deliverable
+            .as_deref()
+            .unwrap_or_default(),
+        request
+            .shared_task_project_steps
+            .clone()
+            .unwrap_or_default(),
+        request.shared_task_peer_review_enabled.unwrap_or(false),
+        request
+            .shared_task_peer_review_prompt
+            .as_deref()
+            .unwrap_or("What does this contribution help you notice, question, or extend?"),
+        request.shared_task_threshold.unwrap_or(3),
+        request.shared_task_minimum_length.unwrap_or(20),
+        request
+            .shared_task_repeat_policy
+            .as_deref()
+            .unwrap_or("once_per_user"),
+        request
+            .shared_task_validation_mode
+            .as_deref()
+            .unwrap_or("minimum_length"),
+        request.shared_task_cycle_mode.as_deref().unwrap_or("none"),
     )
     .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
     .ok_or_else(ApiError::invalid_request)
@@ -722,6 +822,23 @@ fn serialize_created_question(
     })
 }
 
+fn serialize_created_shared_task(
+    map_asset_id: Uuid,
+    created: CreatedSharedTaskActivity,
+    form: &SharedTaskActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id,
+        "mapAssetId": map_asset_id,
+        "slug": created.slug,
+        "type": "shared_task",
+        "title": form.title,
+        "introduction": form.introduction,
+        "config": shared_task_config(form),
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -775,6 +892,13 @@ fn document() -> Value {
                 "description": "A configurable question that can branch by answer outcome.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "correct", "label": "Correct" }, { "id": "incorrect", "label": "Incorrect" }, { "id": "outcome", "label": "Outcome" }]
+            },
+            {
+                "key": "shared_task",
+                "label": "Shared Task",
+                "description": "A bounded shared contribution, project, and optional peer-review activity.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
         "contentPlan": {
@@ -792,7 +916,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, or Question Activity through its matching scoped World Builder command.", json!({ "type": "question", "title": "Check the alternator flow", "slug": "check-alternator-flow", "introduction": "Choose the energy conversion that fits the component.", "question_prompt": "Which conversion best describes an alternator?", "question_options": [{ "label": "A", "body": "Mechanical energy becomes electrical energy.", "is_correct": true }, { "label": "B", "body": "Electrical energy becomes mechanical energy.", "is_correct": false }], "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "question", "title": "Check the alternator flow" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, or Shared Task Activity through its matching scoped World Builder command.", json!({ "type": "shared_task", "title": "Compare repair observations", "slug": "compare-repair-observations", "introduction": "Add one evidence-based observation.", "shared_task_kind": "reflection", "shared_task_prompt": "What did you notice during the repair?", "shared_task_input_label": "Your reflection", "shared_task_peer_review_enabled": true, "shared_task_peer_review_prompt": "What does this observation help you notice?", "shared_task_threshold": 3, "shared_task_minimum_length": 20, "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "shared_task", "title": "Compare repair observations" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -835,10 +959,10 @@ mod tests {
     };
 
     use super::{
-        document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_created_map_asset, serialize_created_markdown,
-        serialize_created_open_practice, serialize_created_question,
-        serialize_created_reflective_activity, serialize_map_assets,
+        content_api_shared_task_form, document, is_supported_content_api_activity_type,
+        require_content_permission, serialize_activity, serialize_created_map_asset,
+        serialize_created_markdown, serialize_created_open_practice, serialize_created_question,
+        serialize_created_reflective_activity, serialize_created_shared_task, serialize_map_assets,
     };
 
     #[test]
@@ -858,6 +982,7 @@ mod tests {
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
         assert_eq!(document["activityTypes"][4]["key"], "question");
+        assert_eq!(document["activityTypes"][5]["key"], "shared_task");
     }
 
     #[test]
@@ -878,6 +1003,7 @@ mod tests {
         assert!(is_supported_content_api_activity_type("open_practice"));
         assert!(is_supported_content_api_activity_type("markdown"));
         assert!(is_supported_content_api_activity_type("question"));
+        assert!(is_supported_content_api_activity_type("shared_task"));
         assert!(!is_supported_content_api_activity_type("portal"));
     }
 
@@ -1136,5 +1262,74 @@ mod tests {
         assert_eq!(created["slug"], "check-the-alternator-flow-2");
         assert_eq!(created["config"]["options"][0]["isCorrect"], true);
         assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+    }
+
+    #[test]
+    fn shared_task_creates_keep_the_source_configuration_shape() {
+        use wicked_learning_application::admin_world_shared_task::SharedTaskActivityForm;
+
+        let map_asset_id = Uuid::new_v4();
+        let activity_id = Uuid::new_v4();
+        let form = SharedTaskActivityForm::parse(
+            "Compare repair observations",
+            None,
+            Some("Add one evidence-based observation."),
+            "reflection",
+            true,
+            "What did you notice during the repair?",
+            "Use one concrete detail.",
+            "Your reflection",
+            "Build a repair record.",
+            "One clear observation.",
+            vec!["Observe".to_owned(), "Explain".to_owned()],
+            true,
+            "What does this observation help you notice?",
+            3,
+            20,
+            "once_per_user",
+            "minimum_length",
+            "none",
+        )
+        .expect("valid Shared Task")
+        .with_graph_position(Some(120), None);
+        let created = serialize_created_shared_task(
+            map_asset_id,
+            wicked_learning_application::admin_world_shared_task::CreatedSharedTaskActivity {
+                activity_id,
+                slug: "compare-repair-observations-2".to_owned(),
+            },
+            &form,
+        );
+
+        assert_eq!(created["type"], "shared_task");
+        assert_eq!(created["slug"], "compare-repair-observations-2");
+        assert_eq!(created["config"]["taskKind"], "reflection");
+        assert_eq!(
+            created["config"]["projectSteps"],
+            json!(["Observe", "Explain"])
+        );
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+    }
+
+    #[test]
+    fn shared_task_create_defaults_match_the_source_configuration() {
+        let request = serde_json::from_value(json!({
+            "type": "shared_task",
+            "title": "Add one repair observation",
+        }))
+        .expect("valid partial Shared Task Content API request");
+        let Ok(form) = content_api_shared_task_form(&request) else {
+            panic!("source defaults are valid");
+        };
+
+        assert_eq!(form.task_kind, "text");
+        assert_eq!(form.prompt, "Add a useful contribution.");
+        assert_eq!(form.input_label, "Your contribution");
+        assert_eq!(
+            form.peer_review_prompt,
+            "What does this contribution help you notice, question, or extend?"
+        );
+        assert_eq!(form.threshold, 3);
+        assert_eq!(form.minimum_length, 20);
     }
 }

@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5463,6 +5463,25 @@ export interface components {
             question_explanation?: string | null;
             question_allow_multiple?: boolean | null;
             question_options?: components["schemas"]["ContentApiQuestionOption"][] | null;
+            /** @enum {string|null} */
+            shared_task_kind?: "text" | "question" | "reflection" | null;
+            shared_task_show_contributions?: boolean | null;
+            shared_task_prompt?: string | null;
+            shared_task_instructions?: string | null;
+            shared_task_input_label?: string | null;
+            shared_task_project_goal?: string | null;
+            shared_task_project_deliverable?: string | null;
+            shared_task_project_steps?: string[] | null;
+            shared_task_peer_review_enabled?: boolean | null;
+            shared_task_peer_review_prompt?: string | null;
+            shared_task_threshold?: number | null;
+            shared_task_minimum_length?: number | null;
+            /** @enum {string|null} */
+            shared_task_repeat_policy?: "once_per_user" | "unlimited" | null;
+            /** @enum {string|null} */
+            shared_task_validation_mode?: "minimum_length" | "none" | null;
+            /** @enum {string|null} */
+            shared_task_cycle_mode?: "none" | "question_response_question" | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -10358,7 +10377,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, or Question activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, or Shared Task activity. */
             201: {
                 headers: {
                     [name: string]: unknown;
