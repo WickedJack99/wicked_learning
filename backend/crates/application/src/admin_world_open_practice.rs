@@ -8,6 +8,8 @@ pub const DEFAULT_OPEN_PRACTICE_NEXT_STEP: &str =
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OpenPracticeActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -36,6 +38,8 @@ impl OpenPracticeActivityForm {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction,
@@ -43,6 +47,15 @@ impl OpenPracticeActivityForm {
                 .unwrap_or(DEFAULT_OPEN_PRACTICE_NEXT_STEP)
                 .to_owned(),
         })
+    }
+
+    /// The source Content API may place a newly created graph card directly.
+    /// The World Builder's create route leaves both coordinates absent and
+    /// continues to use its separate graph-position command.
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -85,13 +98,21 @@ pub struct UpdatedOpenPracticeActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CreatedOpenPracticeActivity {
+    pub activity_id: Uuid,
+    pub slug: String,
+}
+
 pub trait AdminWorldOpenPracticeRepository {
     fn create_open_practice(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &OpenPracticeActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldOpenPracticeError>> + Send;
+    ) -> impl Future<
+        Output = Result<Option<CreatedOpenPracticeActivity>, AdminWorldOpenPracticeError>,
+    > + Send;
 
     fn update_open_practice(
         &self,
@@ -124,7 +145,7 @@ where
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &OpenPracticeActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldOpenPracticeError> {
+    ) -> Result<Option<CreatedOpenPracticeActivity>, AdminWorldOpenPracticeError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -167,8 +188,9 @@ mod tests {
 
     use super::{
         AdminWorldOpenPracticeCommand, AdminWorldOpenPracticeError,
-        AdminWorldOpenPracticeRepository, DEFAULT_OPEN_PRACTICE_NEXT_STEP,
-        OpenPracticeActivityForm, UpdatedOpenPracticeActivity, generated_slug,
+        AdminWorldOpenPracticeRepository, CreatedOpenPracticeActivity,
+        DEFAULT_OPEN_PRACTICE_NEXT_STEP, OpenPracticeActivityForm, UpdatedOpenPracticeActivity,
+        generated_slug,
     };
 
     struct RecordingRepository {
@@ -181,8 +203,9 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &OpenPracticeActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldOpenPracticeError>> + Send
-        {
+        ) -> impl Future<
+            Output = Result<Option<CreatedOpenPracticeActivity>, AdminWorldOpenPracticeError>,
+        > + Send {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
@@ -224,6 +247,16 @@ mod tests {
             OpenPracticeActivityForm::parse("Title", None, None, Some(&"x".repeat(4_001)))
                 .is_none()
         );
+    }
+
+    #[test]
+    fn content_api_can_retain_optional_graph_coordinates_on_create() {
+        let form = OpenPracticeActivityForm::parse("A practice", None, None, None)
+            .expect("source-bounded open practice form is valid")
+            .with_graph_position(Some(120), None);
+
+        assert_eq!(form.graph_position_x, Some(120));
+        assert_eq!(form.graph_position_y, None);
     }
 
     #[tokio::test]

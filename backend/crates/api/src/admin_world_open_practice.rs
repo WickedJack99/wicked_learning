@@ -86,14 +86,16 @@ pub async fn create(
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresAdminWorldOpenPracticeRepository::new(&state.application_database);
-    let activity_id = AdminWorldOpenPracticeCommand::new(&repository)
+    let created = AdminWorldOpenPracticeCommand::new(&repository)
         .create(&principal, node_id, &form)
         .await
         .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok((
         StatusCode::CREATED,
-        Json(CreateOpenPracticeResponse { activity_id }),
+        Json(CreateOpenPracticeResponse {
+            activity_id: created.activity_id,
+        }),
     ))
 }
 

@@ -100,8 +100,8 @@ export interface paths {
         get: operations["getContentApiMapAssetActivities"];
         put?: never;
         /**
-         * Create a Reflection or Review activity for an editable MapAsset.
-         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection and Review are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
+         * Create a Reflection, Review, or Open Practice activity for an editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, and Open Practice are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
          */
         post: operations["createContentApiActivity"];
         delete?: never;
@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review";
+            type: "reflection" | "review" | "open_practice";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5453,6 +5453,7 @@ export interface components {
             reflection_note?: string | null;
             reflection_topic?: string | null;
             reflection_subtopic?: string | null;
+            open_practice_next_step?: string | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -10337,7 +10338,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection or Review activity. */
+            /** @description The created source-shaped Reflection, Review, or Open Practice activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

@@ -3,7 +3,8 @@ use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_open_practice::{
     AdminWorldOpenPracticeError, AdminWorldOpenPracticeRepository as Port,
-    OpenPracticeActivityForm, UpdatedOpenPracticeActivity, generated_slug,
+    CreatedOpenPracticeActivity, OpenPracticeActivityForm, UpdatedOpenPracticeActivity,
+    generated_slug,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -25,8 +26,9 @@ impl Port for PostgresAdminWorldOpenPracticeRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &OpenPracticeActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldOpenPracticeError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedOpenPracticeActivity>, AdminWorldOpenPracticeError>,
+    > + Send {
         async move {
             create_open_practice(self.pool, principal, node_id, form)
                 .await
@@ -98,7 +100,7 @@ async fn create_open_practice(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &OpenPracticeActivityForm,
-) -> Result<Option<Uuid>, OpenPracticeMutationError> {
+) -> Result<Option<CreatedOpenPracticeActivity>, OpenPracticeMutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_editable_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -128,20 +130,25 @@ async fn create_open_practice(
     let id = Uuid::new_v4();
     let description = form.introduction.clone().unwrap_or_default();
     sqlx::query(
-        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'open_practice', $7, $8, 'needs_review')",
+        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'open_practice', $7, $8, $9, $10, 'needs_review')",
     )
     .bind(id)
     .bind(route_id)
-    .bind(slug)
+    .bind(&slug)
     .bind(&form.title)
     .bind(description)
     .bind(position)
     .bind(json!({ "nextStep": form.next_step }))
     .bind(&form.introduction)
+    .bind(form.graph_position_x.map(f64::from))
+    .bind(form.graph_position_y.map(f64::from))
     .execute(&mut *transaction)
     .await?;
     transaction.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedOpenPracticeActivity {
+        activity_id: id,
+        slug,
+    }))
 }
 
 async fn update_open_practice(

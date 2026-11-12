@@ -14,6 +14,10 @@ use wicked_learning_application::{
     admin_world_map::AdminWorldMapQuery,
     admin_world_map_asset::{AdminWorldMapAssetCommand, WorldMapAssetForm},
     admin_world_map_create::{AdminWorldMapCreateCommand, CreateWorldMapForm},
+    admin_world_open_practice::{
+        AdminWorldOpenPracticeCommand, AdminWorldOpenPracticeError, CreatedOpenPracticeActivity,
+        OpenPracticeActivityForm,
+    },
     admin_world_reflection::{
         AdminWorldReflectionCommand, AdminWorldReflectionError, AdminWorldReviewCommand,
         CreatedReflectionActivity, DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm,
@@ -28,6 +32,7 @@ use wicked_learning_persistence::{
     admin_world_map::PostgresAdminWorldMapRepository,
     admin_world_map_asset::PostgresAdminWorldMapAssetRepository,
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
+    admin_world_open_practice::PostgresAdminWorldOpenPracticeRepository,
     admin_world_reflection::PostgresAdminWorldReflectionRepository,
     content_api_activity::PostgresContentApiActivityRepository,
 };
@@ -92,6 +97,7 @@ pub struct CreateActivityRequest {
     reflection_note: Option<String>,
     reflection_topic: Option<String>,
     reflection_subtopic: Option<String>,
+    open_practice_next_step: Option<String>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
 }
@@ -233,20 +239,6 @@ pub async fn create_activity(
     if !is_supported_content_api_activity_type(&request.activity_type) {
         return Err(ApiError::invalid_request());
     }
-    let form = ReflectionActivityForm::parse(
-        &request.title,
-        request.slug.as_deref(),
-        request.introduction.as_deref(),
-        request
-            .reflection_prompt
-            .as_deref()
-            .unwrap_or(DEFAULT_REFLECTION_PROMPT),
-        request.reflection_note.as_deref().unwrap_or_default(),
-        request.reflection_topic.as_deref().unwrap_or_default(),
-        request.reflection_subtopic.as_deref().unwrap_or_default(),
-    )
-    .ok_or_else(ApiError::invalid_request)?
-    .with_graph_position(request.graph_position_x, request.graph_position_y);
     let principal = authenticated_principal(&state, auth_session).await?;
     require_content_permission(&principal, "ru")?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
@@ -257,33 +249,87 @@ pub async fn create_activity(
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .ok_or_else(ApiError::not_found)?;
-    let reflection_repository =
-        PostgresAdminWorldReflectionRepository::new(&state.application_database);
-    let created = match request.activity_type.as_str() {
+    let data = match request.activity_type.as_str() {
         "reflection" => {
-            AdminWorldReflectionCommand::new(&reflection_repository)
+            let form = ReflectionActivityForm::parse(
+                &request.title,
+                request.slug.as_deref(),
+                request.introduction.as_deref(),
+                request
+                    .reflection_prompt
+                    .as_deref()
+                    .unwrap_or(DEFAULT_REFLECTION_PROMPT),
+                request.reflection_note.as_deref().unwrap_or_default(),
+                request.reflection_topic.as_deref().unwrap_or_default(),
+                request.reflection_subtopic.as_deref().unwrap_or_default(),
+            )
+            .ok_or_else(ApiError::invalid_request)?
+            .with_graph_position(request.graph_position_x, request.graph_position_y);
+            let repository =
+                PostgresAdminWorldReflectionRepository::new(&state.application_database);
+            AdminWorldReflectionCommand::new(&repository)
                 .create(&principal, node_id, &form)
                 .await
+                .map_err(map_reflection_error)?
+                .map(|created| {
+                    serialize_created_reflective_activity(
+                        map_asset_id,
+                        created,
+                        &form,
+                        "reflection",
+                    )
+                })
         }
         "review" => {
-            AdminWorldReviewCommand::new(&reflection_repository)
+            let form = ReflectionActivityForm::parse(
+                &request.title,
+                request.slug.as_deref(),
+                request.introduction.as_deref(),
+                request
+                    .reflection_prompt
+                    .as_deref()
+                    .unwrap_or(DEFAULT_REFLECTION_PROMPT),
+                request.reflection_note.as_deref().unwrap_or_default(),
+                request.reflection_topic.as_deref().unwrap_or_default(),
+                request.reflection_subtopic.as_deref().unwrap_or_default(),
+            )
+            .ok_or_else(ApiError::invalid_request)?
+            .with_graph_position(request.graph_position_x, request.graph_position_y);
+            let repository =
+                PostgresAdminWorldReflectionRepository::new(&state.application_database);
+            AdminWorldReviewCommand::new(&repository)
                 .create(&principal, node_id, &form)
                 .await
+                .map_err(map_reflection_error)?
+                .map(|created| {
+                    serialize_created_reflective_activity(map_asset_id, created, &form, "review")
+                })
+        }
+        "open_practice" => {
+            let form = OpenPracticeActivityForm::parse(
+                &request.title,
+                request.slug.as_deref(),
+                request.introduction.as_deref(),
+                request.open_practice_next_step.as_deref(),
+            )
+            .ok_or_else(ApiError::invalid_request)?
+            .with_graph_position(request.graph_position_x, request.graph_position_y);
+            let repository =
+                PostgresAdminWorldOpenPracticeRepository::new(&state.application_database);
+            AdminWorldOpenPracticeCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_open_practice_error)?
+                .map(|created| serialize_created_open_practice(map_asset_id, created, &form))
         }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
-    .map_err(map_reflection_error)?
     .ok_or_else(ApiError::not_found)?;
 
     Ok((
         StatusCode::CREATED,
         Json(json!({
-            "data": serialize_created_reflective_activity(
-                map_asset_id,
-                created,
-                &form,
-                &request.activity_type,
-            ),
+            "data": data,
         })),
     ))
 }
@@ -341,7 +387,7 @@ fn empty_object() -> Value {
 }
 
 fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
-    matches!(activity_type, "reflection" | "review")
+    matches!(activity_type, "reflection" | "review" | "open_practice")
 }
 
 fn map_reflection_error(error: AdminWorldReflectionError) -> ApiError {
@@ -349,6 +395,14 @@ fn map_reflection_error(error: AdminWorldReflectionError) -> ApiError {
         AdminWorldReflectionError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldReflectionError::Conflict => ApiError::conflict(),
         AdminWorldReflectionError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_open_practice_error(error: AdminWorldOpenPracticeError) -> ApiError {
+    match error {
+        AdminWorldOpenPracticeError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldOpenPracticeError::Conflict => ApiError::conflict(),
+        AdminWorldOpenPracticeError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -479,6 +533,23 @@ fn serialize_created_reflective_activity(
     })
 }
 
+fn serialize_created_open_practice(
+    map_asset_id: Uuid,
+    created: CreatedOpenPracticeActivity,
+    form: &OpenPracticeActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id,
+        "mapAssetId": map_asset_id,
+        "slug": created.slug,
+        "type": "open_practice",
+        "title": form.title,
+        "introduction": form.introduction,
+        "config": { "nextStep": form.next_step },
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -511,6 +582,13 @@ fn document() -> Value {
                 "description": "A learner-owned return to earlier ideas with optional private comparison.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "open_practice",
+                "label": "Open practice",
+                "description": "A quiet pause where the learner chooses and carries out their own next step.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
         "contentPlan": {
@@ -528,7 +606,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection or Review Activity through its matching scoped World Builder command.", json!({ "type": "review", "title": "Revisit the energy conversion", "slug": "revisit-energy-conversion", "introduction": "Compare this explanation with an earlier observation.", "reflection_prompt": "What now feels clearer about the energy conversion?", "reflection_note": "Notice what changed in your explanation.", "reflection_topic": "Vehicle electrics", "reflection_subtopic": "Alternator", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "review", "title": "Revisit the energy conversion" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, or Open Practice Activity through its matching scoped World Builder command.", json!({ "type": "open_practice", "title": "Choose the next repair step", "slug": "choose-next-repair-step", "introduction": "Apply the energy-flow idea in your own work.", "open_practice_next_step": "Choose one nearby component to inspect and explain why it matters.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "open_practice", "title": "Choose the next repair step" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -572,8 +650,8 @@ mod tests {
 
     use super::{
         document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_created_map_asset, serialize_created_reflective_activity,
-        serialize_map_assets,
+        serialize_activity, serialize_created_map_asset, serialize_created_open_practice,
+        serialize_created_reflective_activity, serialize_map_assets,
     };
 
     #[test]
@@ -608,6 +686,7 @@ mod tests {
     fn content_api_advertises_only_its_typed_activity_creators() {
         assert!(is_supported_content_api_activity_type("reflection"));
         assert!(is_supported_content_api_activity_type("review"));
+        assert!(is_supported_content_api_activity_type("open_practice"));
         assert!(!is_supported_content_api_activity_type("markdown"));
     }
 
@@ -728,5 +807,35 @@ mod tests {
         assert_eq!(created["slug"], "energy-reflection-2");
         assert_eq!(created["config"]["prompt"], "What changed?");
         assert_eq!(created["position"], json!({ "x": 120, "y": 80 }));
+    }
+
+    #[test]
+    fn open_practice_creates_keep_the_source_configuration_shape() {
+        let map_asset_id = Uuid::new_v4();
+        let activity_id = Uuid::new_v4();
+        let form = wicked_learning_application::admin_world_open_practice::OpenPracticeActivityForm::parse(
+            "Choose the next repair step",
+            None,
+            Some("Apply the idea in your own work."),
+            Some("Inspect one nearby component and explain why it matters."),
+        )
+        .expect("valid open practice")
+        .with_graph_position(Some(120), None);
+        let created = serialize_created_open_practice(
+            map_asset_id,
+            wicked_learning_application::admin_world_open_practice::CreatedOpenPracticeActivity {
+                activity_id,
+                slug: "choose-the-next-repair-step-2".to_owned(),
+            },
+            &form,
+        );
+
+        assert_eq!(created["type"], "open_practice");
+        assert_eq!(created["slug"], "choose-the-next-repair-step-2");
+        assert_eq!(
+            created["config"]["nextStep"],
+            "Inspect one nearby component and explain why it matters."
+        );
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
     }
 }

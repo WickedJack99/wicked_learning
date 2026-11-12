@@ -528,10 +528,10 @@ Content API's explicit title and description into the compatibility node.
 Content API permission never widens map scope. Activity operations are not
 advertised until their scoped adapters exist. The first Activity adapter lists
 the current MapAsset route activities through the distinct World Activity scope
-and creates source-shaped Reflection or Review activities; it delegates each
-atomic write to the matching typed command and retains the optional graph-card
-coordinates. Other Activity types remain unavailable until their dedicated
-commands can be adapted.
+and creates source-shaped Reflection, Review, or Open Practice activities; it
+delegates each atomic write to the matching typed command and retains the
+optional graph-card coordinates. Other Activity types remain unavailable until
+their dedicated commands can be adapted.
 
 AI configuration uses:
 

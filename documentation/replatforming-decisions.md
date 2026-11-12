@@ -4810,14 +4810,14 @@ first MapAsset read adapter reuses the selected-map projection and a bounded
 aggregate activity-count query. Its write adapter reuses the atomic scoped
 MapAsset command while preserving the Content API's explicit title and
 description for the compatibility node. The first Activity adapter lists the
-scoped MapAsset route and creates Reflection or Review through their existing
-typed commands. Future Activity entries must be added with their exact Rust
-adapters.
+scoped MapAsset route and creates Reflection, Review, or Open Practice through
+their existing typed commands. Future Activity entries must be added with their
+exact Rust adapters.
 
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
-operations before they are implemented. Reflection and Review support do not
-imply that other Activity adapters exist.
+operations before they are implemented. Reflection, Review, and Open Practice
+support do not imply that other Activity adapters exist.
 
 ## Phase 1 gate
 
