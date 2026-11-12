@@ -1651,6 +1651,18 @@ scope configuration. A disposable authenticated browser check updates the
 platform setting, saves a graph, assigns a target and deletes the graph at
 desktop and narrow viewport sizes.
 
+### Content API map foundation slice — 12 November 2026
+
+Rust now exposes the first source-compatible `/api/content/v1` namespace. Its
+machine-readable contract is session-authenticated and separately gated by the
+source `content_api` permission. It currently documents and serves only the
+operations Rust owns: reading the contract, listing maps already visible in
+the caller's scoped World Builder graph, and creating a map through the
+existing CSRF-protected World Builder command. Content API permission never
+widens map scope or lets a request nominate a World. MapAsset and activity
+operations remain absent from the advertised contract until their exact scoped
+adapters are implemented.
+
 ### 7. Complete the replacement deliberately
 
 1. Verify every endpoint, scheduled/background process, mail flow, protected

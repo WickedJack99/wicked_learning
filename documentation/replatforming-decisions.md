@@ -4793,6 +4793,25 @@ ADRs 116 and 117.
 persistence, browser-side policy validation, streaming or a general-purpose AI
 assistant. The learner launcher remains defined by ADR-122.
 
+## ADR-124: Content API operations are advertised only after their scoped Rust adapter exists
+
+**Status:** Accepted — 12 November 2026
+
+**Problem:** The source Content API is a machine-readable administration
+boundary. Advertising Laravel's complete operation list before Rust has the
+matching scoped command would make a console or AI client issue unsupported or
+less-authorized requests.
+
+**Decision:** Serve `/api/content/v1/contract` only to principals with the
+source `content_api` permission, and list only implemented Rust operations.
+The first operations reuse the established World Builder graph and map-create
+command, preserving CSRF, map scope and server-owned World selection. Future
+MapAsset and Activity entries must be added with their exact Rust adapters.
+
+**Limits:** This foundation does not issue bearer tokens, make Content API
+permission a substitute for World Builder scope, or expose MapAsset/activity
+operations before they are implemented.
+
 ## Phase 1 gate
 
 Phase 1 passed on 1 November 2026. The user accepted the monorepo, same-origin

@@ -78,6 +78,7 @@ mod ai_provider;
 mod audio_upload;
 mod bootstrap;
 mod config;
+mod content_api;
 mod csrf;
 mod current_user;
 mod email_delivery;
@@ -576,6 +577,11 @@ fn router(state: AppState) -> Router {
         .merge(password_recovery_routes)
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
+        .route("/api/content/v1/contract", get(content_api::contract))
+        .route(
+            "/api/content/v1/maps",
+            get(content_api::maps).post(content_api::create_map),
+        )
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route(

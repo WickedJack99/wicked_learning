@@ -38,6 +38,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /content/v1/contract:
+    servers:
+      - url: /api
+    get:
+      operationId: getContentApiContract
+      summary: Read the source-compatible Content API machine contract.
+      description: Requires the source content_api read permission. This separate administration namespace documents bounded map, MapAsset and activity operations; it is not a public token API.
+      responses:
+        '200':
+          description: The versioned authoring contract.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    additionalProperties: true
+        '401': { description: No authenticated administration session. }
+        '403': { description: The current role lacks content_api read permission. }
+        '503': { description: The application database is unavailable. }
   /session:
     get:
       operationId: getSessionStatus
