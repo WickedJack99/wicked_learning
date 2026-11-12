@@ -11,6 +11,8 @@ pub struct ItemGrantItem {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ItemGrantActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -49,6 +51,8 @@ impl ItemGrantActivityForm {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction: introduction.map(str::to_owned),
@@ -58,6 +62,15 @@ impl ItemGrantActivityForm {
             items,
             probability_percent,
         })
+    }
+
+    /// The source Content API may place a newly created graph card directly.
+    /// The World Builder's create route leaves both coordinates absent and
+    /// continues to use its separate graph-position command.
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -102,13 +115,20 @@ pub struct UpdatedItemGrantActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct CreatedItemGrantActivity {
+    pub activity_id: Uuid,
+    pub config: serde_json::Value,
+    pub slug: String,
+}
+
 pub trait AdminWorldItemGrantRepository {
     fn create_item_grant(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ItemGrantActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldItemGrantError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedItemGrantActivity>, AdminWorldItemGrantError>> + Send;
     fn update_item_grant(
         &self,
         principal: &AuthorizedPrincipal,
@@ -134,7 +154,7 @@ where
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ItemGrantActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldItemGrantError> {
+    ) -> Result<Option<CreatedItemGrantActivity>, AdminWorldItemGrantError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -173,7 +193,8 @@ mod tests {
 
     use super::{
         AdminWorldItemGrantCommand, AdminWorldItemGrantError, AdminWorldItemGrantRepository,
-        ItemGrantActivityForm, ItemGrantItem, UpdatedItemGrantActivity, generated_slug,
+        CreatedItemGrantActivity, ItemGrantActivityForm, ItemGrantItem, UpdatedItemGrantActivity,
+        generated_slug,
     };
 
     struct RecordingRepository {
@@ -186,7 +207,9 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &ItemGrantActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldItemGrantError>> + Send {
+        ) -> impl Future<
+            Output = Result<Option<CreatedItemGrantActivity>, AdminWorldItemGrantError>,
+        > + Send {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
@@ -233,6 +256,17 @@ mod tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn content_api_can_retain_optional_graph_coordinates_on_create() {
+        let form =
+            ItemGrantActivityForm::parse("Grant", None, None, None, None, false, vec![], 100.0)
+                .expect("valid source-shaped item grant")
+                .with_graph_position(Some(120), None);
+
+        assert_eq!(form.graph_position_x, Some(120));
+        assert_eq!(form.graph_position_y, None);
     }
 
     #[tokio::test]

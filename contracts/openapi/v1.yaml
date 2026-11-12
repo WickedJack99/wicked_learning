@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, or Shared Task activity.
+          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, or Item Grant activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }
@@ -7056,6 +7056,13 @@ components:
         shared_task_repeat_policy: { type: [string, 'null'], enum: [once_per_user, unlimited, null] }
         shared_task_validation_mode: { type: [string, 'null'], enum: [minimum_length, none, null] }
         shared_task_cycle_mode: { type: [string, 'null'], enum: [none, question_response_question, null] }
+        item_grant_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        item_grant_background_light: { type: [string, 'null'], maxLength: 2048 }
+        item_grant_background_mirrored: { type: [boolean, 'null'] }
+        item_grant_items:
+          type: [array, 'null']
+          items: { $ref: '#/components/schemas/ContentApiItemGrantItem' }
+        item_grant_probability_percent: { type: [number, 'null'], minimum: 0.01, maximum: 100 }
         graph_position_x: { type: [integer, 'null'] }
         graph_position_y: { type: [integer, 'null'] }
     ContentApiQuestionOption:
@@ -7070,6 +7077,13 @@ components:
         outcome_key: { type: [string, 'null'], maxLength: 120 }
         feedback: { type: [string, 'null'], maxLength: 2000 }
         weights: { type: object, maxProperties: 20, additionalProperties: { type: number, minimum: 0, maximum: 1000 } }
+    ContentApiItemGrantItem:
+      type: object
+      additionalProperties: false
+      required: [item_id, quantity]
+      properties:
+        item_id: { type: string, format: uuid }
+        quantity: { type: integer, minimum: 1, maximum: 999 }
     CreateRegistrationTokenRequest:
       type: object
       additionalProperties: false

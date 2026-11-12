@@ -11,6 +11,10 @@ use std::collections::{BTreeMap, HashMap};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_graph::AdminWorldGraphQuery,
+    admin_world_item_grant::{
+        AdminWorldItemGrantCommand, AdminWorldItemGrantError, CreatedItemGrantActivity,
+        ItemGrantActivityForm, ItemGrantItem,
+    },
     admin_world_map::AdminWorldMapQuery,
     admin_world_map_asset::{AdminWorldMapAssetCommand, WorldMapAssetForm},
     admin_world_map_create::{AdminWorldMapCreateCommand, CreateWorldMapForm},
@@ -40,6 +44,7 @@ use wicked_learning_application::{
 use wicked_learning_domain::world_content::{AdminEditableMapAsset, AdminNodeSummary};
 use wicked_learning_persistence::{
     admin_world_graph::PostgresAdminWorldGraphRepository,
+    admin_world_item_grant::PostgresAdminWorldItemGrantRepository,
     admin_world_map::PostgresAdminWorldMapRepository,
     admin_world_map_asset::PostgresAdminWorldMapAssetRepository,
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
@@ -145,6 +150,11 @@ pub struct CreateActivityRequest {
     shared_task_repeat_policy: Option<String>,
     shared_task_validation_mode: Option<String>,
     shared_task_cycle_mode: Option<String>,
+    item_grant_background_dark: Option<String>,
+    item_grant_background_light: Option<String>,
+    item_grant_background_mirrored: Option<bool>,
+    item_grant_items: Option<Vec<ContentApiItemGrantItemRequest>>,
+    item_grant_probability_percent: Option<f64>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
 }
@@ -159,6 +169,12 @@ struct ContentApiQuestionOptionRequest {
     feedback: Option<String>,
     #[serde(default)]
     weights: BTreeMap<String, f64>,
+}
+
+#[derive(Deserialize)]
+struct ContentApiItemGrantItemRequest {
+    item_id: String,
+    quantity: u16,
 }
 
 /// Lists only maps already visible in the caller's existing scoped World
@@ -428,6 +444,16 @@ pub async fn create_activity(
                 .map_err(map_shared_task_error)?
                 .map(|created| serialize_created_shared_task(map_asset_id, created, &form))
         }
+        "item_grant" => {
+            let form = content_api_item_grant_form(&request)?;
+            let repository =
+                PostgresAdminWorldItemGrantRepository::new(&state.application_database);
+            AdminWorldItemGrantCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_item_grant_error)?
+                .map(|created| serialize_created_item_grant(map_asset_id, created, &form))
+        }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
     .ok_or_else(ApiError::not_found)?;
@@ -495,7 +521,13 @@ fn empty_object() -> Value {
 fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
     matches!(
         activity_type,
-        "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task"
+        "reflection"
+            | "review"
+            | "open_practice"
+            | "markdown"
+            | "question"
+            | "shared_task"
+            | "item_grant"
     )
 }
 
@@ -536,6 +568,14 @@ fn map_shared_task_error(error: AdminWorldSharedTaskError) -> ApiError {
         AdminWorldSharedTaskError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldSharedTaskError::Conflict => ApiError::conflict(),
         AdminWorldSharedTaskError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_item_grant_error(error: AdminWorldItemGrantError) -> ApiError {
+    match error {
+        AdminWorldItemGrantError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldItemGrantError::Conflict => ApiError::conflict(),
+        AdminWorldItemGrantError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -639,6 +679,40 @@ fn content_api_shared_task_form(
             .as_deref()
             .unwrap_or("minimum_length"),
         request.shared_task_cycle_mode.as_deref().unwrap_or("none"),
+    )
+    .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
+    .ok_or_else(ApiError::invalid_request)
+}
+
+fn content_api_item_grant_form(
+    request: &CreateActivityRequest,
+) -> Result<ItemGrantActivityForm, ApiError> {
+    let items = request
+        .item_grant_items
+        .as_ref()
+        .map(|items| {
+            items
+                .iter()
+                .map(|item| {
+                    Ok(ItemGrantItem {
+                        item_id: Uuid::parse_str(&item.item_id)
+                            .map_err(|_| ApiError::invalid_request())?,
+                        quantity: item.quantity,
+                    })
+                })
+                .collect::<Result<Vec<_>, ApiError>>()
+        })
+        .transpose()?
+        .unwrap_or_default();
+    ItemGrantActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request.item_grant_background_dark.as_deref(),
+        request.item_grant_background_light.as_deref(),
+        request.item_grant_background_mirrored.unwrap_or(false),
+        items,
+        request.item_grant_probability_percent.unwrap_or(100.0),
     )
     .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
     .ok_or_else(ApiError::invalid_request)
@@ -839,6 +913,23 @@ fn serialize_created_shared_task(
     })
 }
 
+fn serialize_created_item_grant(
+    map_asset_id: Uuid,
+    created: CreatedItemGrantActivity,
+    form: &ItemGrantActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id,
+        "mapAssetId": map_asset_id,
+        "slug": created.slug,
+        "type": "item_grant",
+        "title": form.title,
+        "introduction": form.introduction,
+        "config": created.config,
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -899,6 +990,13 @@ fn document() -> Value {
                 "description": "A bounded shared contribution, project, and optional peer-review activity.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "item_grant",
+                "label": "Item Grant",
+                "description": "A server-authorized probability-based grant of catalog items.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
         "contentPlan": {
@@ -916,7 +1014,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, or Shared Task Activity through its matching scoped World Builder command.", json!({ "type": "shared_task", "title": "Compare repair observations", "slug": "compare-repair-observations", "introduction": "Add one evidence-based observation.", "shared_task_kind": "reflection", "shared_task_prompt": "What did you notice during the repair?", "shared_task_input_label": "Your reflection", "shared_task_peer_review_enabled": true, "shared_task_peer_review_prompt": "What does this observation help you notice?", "shared_task_threshold": 3, "shared_task_minimum_length": 20, "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "shared_task", "title": "Compare repair observations" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, or Item Grant Activity through its matching scoped World Builder command.", json!({ "type": "item_grant", "title": "Collect inspection tags", "slug": "collect-inspection-tags", "introduction": "Collect the configured tools for the next step.", "item_grant_items": [{ "item_id": "opaque-catalog-item-id", "quantity": 1 }], "item_grant_probability_percent": 100, "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "item_grant", "title": "Collect inspection tags" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -959,9 +1057,10 @@ mod tests {
     };
 
     use super::{
-        content_api_shared_task_form, document, is_supported_content_api_activity_type,
-        require_content_permission, serialize_activity, serialize_created_map_asset,
-        serialize_created_markdown, serialize_created_open_practice, serialize_created_question,
+        content_api_item_grant_form, content_api_shared_task_form, document,
+        is_supported_content_api_activity_type, require_content_permission, serialize_activity,
+        serialize_created_item_grant, serialize_created_map_asset, serialize_created_markdown,
+        serialize_created_open_practice, serialize_created_question,
         serialize_created_reflective_activity, serialize_created_shared_task, serialize_map_assets,
     };
 
@@ -983,6 +1082,7 @@ mod tests {
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
         assert_eq!(document["activityTypes"][4]["key"], "question");
         assert_eq!(document["activityTypes"][5]["key"], "shared_task");
+        assert_eq!(document["activityTypes"][6]["key"], "item_grant");
     }
 
     #[test]
@@ -1004,6 +1104,7 @@ mod tests {
         assert!(is_supported_content_api_activity_type("markdown"));
         assert!(is_supported_content_api_activity_type("question"));
         assert!(is_supported_content_api_activity_type("shared_task"));
+        assert!(is_supported_content_api_activity_type("item_grant"));
         assert!(!is_supported_content_api_activity_type("portal"));
     }
 
@@ -1331,5 +1432,67 @@ mod tests {
         );
         assert_eq!(form.threshold, 3);
         assert_eq!(form.minimum_length, 20);
+    }
+
+    #[test]
+    fn item_grant_creates_keep_the_resolved_source_configuration_shape() {
+        use wicked_learning_application::admin_world_item_grant::ItemGrantActivityForm;
+
+        let map_asset_id = Uuid::new_v4();
+        let activity_id = Uuid::new_v4();
+        let form = ItemGrantActivityForm::parse(
+            "Collect inspection tags",
+            None,
+            Some("Collect the configured tools."),
+            Some("/api/v1/admin/media-assets/example/content"),
+            None,
+            false,
+            vec![],
+            100.0,
+        )
+        .expect("valid Item Grant")
+        .with_graph_position(Some(120), None);
+        let created = serialize_created_item_grant(
+            map_asset_id,
+            wicked_learning_application::admin_world_item_grant::CreatedItemGrantActivity {
+                activity_id,
+                config: json!({
+                    "backgroundDark": "/api/v1/admin/media-assets/example/content",
+                    "backgroundLight": "",
+                    "backgroundMirrored": false,
+                    "items": [{ "itemId": "inspection-tag", "quantity": 1 }],
+                    "probabilityPercent": 100.0,
+                }),
+                slug: "collect-inspection-tags-2".to_owned(),
+            },
+            &form,
+        );
+
+        assert_eq!(created["type"], "item_grant");
+        assert_eq!(created["slug"], "collect-inspection-tags-2");
+        assert_eq!(created["config"]["items"][0]["itemId"], "inspection-tag");
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+    }
+
+    #[test]
+    fn item_grant_create_defaults_and_catalog_identifiers_are_checked() {
+        let request = serde_json::from_value(json!({
+            "type": "item_grant",
+            "title": "Collect inspection tags",
+        }))
+        .expect("valid partial Item Grant Content API request");
+        let Ok(form) = content_api_item_grant_form(&request) else {
+            panic!("source defaults are valid");
+        };
+        assert!(form.items.is_empty());
+        assert_eq!(form.probability_percent, 100.0);
+
+        let invalid = serde_json::from_value(json!({
+            "type": "item_grant",
+            "title": "Collect inspection tags",
+            "item_grant_items": [{ "item_id": "not-a-uuid", "quantity": 1 }],
+        }))
+        .expect("request itself can be deserialized");
+        assert!(content_api_item_grant_form(&invalid).is_err());
     }
 }

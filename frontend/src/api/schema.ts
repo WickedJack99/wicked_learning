@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5482,6 +5482,11 @@ export interface components {
             shared_task_validation_mode?: "minimum_length" | "none" | null;
             /** @enum {string|null} */
             shared_task_cycle_mode?: "none" | "question_response_question" | null;
+            item_grant_background_dark?: string | null;
+            item_grant_background_light?: string | null;
+            item_grant_background_mirrored?: boolean | null;
+            item_grant_items?: components["schemas"]["ContentApiItemGrantItem"][] | null;
+            item_grant_probability_percent?: number | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -5495,6 +5500,11 @@ export interface components {
             weights?: {
                 [key: string]: number;
             };
+        };
+        ContentApiItemGrantItem: {
+            /** Format: uuid */
+            item_id: string;
+            quantity: number;
         };
         CreateRegistrationTokenRequest: {
             /** Format: date-time */
@@ -10377,7 +10387,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, or Shared Task activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, or Item Grant activity. */
             201: {
                 headers: {
                     [name: string]: unknown;
