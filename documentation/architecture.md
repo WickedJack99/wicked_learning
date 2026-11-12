@@ -529,13 +529,14 @@ Content API permission never widens map scope. Activity operations are not
 advertised until their scoped adapters exist. The first Activity adapter lists
 the current MapAsset route activities through the distinct World Activity scope
 and creates source-shaped Reflection, Review, Open Practice, Markdown, Question,
-Shared Task, Item Grant, Tool Grant, or Item Obstacle activities; it delegates each atomic write to the
+Shared Task, Item Grant, Tool Grant, Item Obstacle, or Obstacle activities; it delegates each atomic write to the
 matching typed command, including Markdown's bounded page graph/media
 synchronization, Question's bounded answer options, Shared Task's bounded
 contribution/project/peer-review configuration, Item Grant's scoped catalog
 resolution and media references, Tool Grant's scoped tool resolution and
-authored presentation, and Item Obstacle's scoped item/sound resolution and
-media references, while retaining optional graph-card coordinates.
+authored presentation, Item Obstacle's scoped item/sound resolution and media
+references, and Obstacle's scoped tool resolution and authored visual states,
+while retaining optional graph-card coordinates.
 Other Activity types remain unavailable until their dedicated commands can be
 adapted.
 

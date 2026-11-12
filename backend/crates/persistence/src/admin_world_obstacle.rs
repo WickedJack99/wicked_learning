@@ -6,8 +6,8 @@ use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_item_grant::generated_slug,
     admin_world_obstacle::{
-        AdminWorldObstacleError, AdminWorldObstacleRepository as Port, ObstacleActivityForm,
-        UpdatedObstacleActivity,
+        AdminWorldObstacleError, AdminWorldObstacleRepository as Port, CreatedObstacleActivity,
+        ObstacleActivityForm, UpdatedObstacleActivity,
     },
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
@@ -43,8 +43,9 @@ impl Port for PostgresAdminWorldObstacleRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ObstacleActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldObstacleError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedObstacleActivity>, AdminWorldObstacleError>,
+    > + Send {
         async move {
             create(self.pool, principal, node_id, form)
                 .await
@@ -122,7 +123,7 @@ async fn create(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &ObstacleActivityForm,
-) -> Result<Option<Uuid>, MutationError> {
+) -> Result<Option<CreatedObstacleActivity>, MutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -150,21 +151,27 @@ async fn create(
     let id = Uuid::new_v4();
     let activity_config = config(form, &tool_slugs);
     sqlx::query(
-        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'obstacle', $7, $8, 'needs_review')",
+        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'obstacle', $7, $8, $9, $10, 'needs_review')",
     )
     .bind(id)
     .bind(route_id)
-    .bind(slug)
+    .bind(&slug)
     .bind(&form.title)
     .bind(form.introduction.clone().unwrap_or_default())
     .bind(position)
     .bind(&activity_config)
     .bind(&form.introduction)
+    .bind(form.graph_position_x.map(f64::from))
+    .bind(form.graph_position_y.map(f64::from))
     .execute(&mut *transaction)
     .await?;
     synchronize_media_references(&mut transaction, id, &activity_config).await?;
     transaction.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedObstacleActivity {
+        activity_id: id,
+        config: activity_config,
+        slug,
+    }))
 }
 
 async fn update(

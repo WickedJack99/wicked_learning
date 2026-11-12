@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, or Item Obstacle activity.
+          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, or Obstacle activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant, item_obstacle] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant, item_obstacle, obstacle] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }
@@ -7105,6 +7105,34 @@ components:
         item_obstacle_sound_met_id: { type: [string, 'null'], format: uuid }
         item_obstacle_sound_transition_enabled: { type: [boolean, 'null'] }
         item_obstacle_sound_transition_id: { type: [string, 'null'], format: uuid }
+        obstacle_allowed_tool_ids: { type: [array, 'null'], maxItems: 100, items: { type: string, format: uuid } }
+        obstacle_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_background_light: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_background_mirrored: { type: [boolean, 'null'] }
+        obstacle_bubble_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        obstacle_bubble_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        obstacle_bubble_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        obstacle_bubble_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        obstacle_bubble_opacity_dark: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        obstacle_bubble_opacity_light: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        obstacle_image_dark: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_image_light: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_image_mirrored: { type: [boolean, 'null'] }
+        obstacle_persist_after_solved: { type: [boolean, 'null'] }
+        obstacle_prompt_text: { type: [string, 'null'], maxLength: 2000 }
+        obstacle_x: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        obstacle_y: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        obstacle_width: { type: [number, 'null'], minimum: 1, maximum: 100 }
+        obstacle_revisit_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_revisit_background_light: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_revisit_background_mirrored: { type: [boolean, 'null'] }
+        obstacle_revisit_image_dark: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_revisit_image_light: { type: [string, 'null'], maxLength: 2048 }
+        obstacle_revisit_image_mirrored: { type: [boolean, 'null'] }
+        obstacle_revisit_text: { type: [string, 'null'], maxLength: 2000 }
+        obstacle_success_animation: { type: [string, 'null'], enum: [none, zoom, shake, rotate, null] }
+        obstacle_success_text: { type: [string, 'null'], maxLength: 2000 }
+        obstacle_typing_speed: { type: [number, 'null'], minimum: 1, maximum: 250 }
         graph_position_x: { type: [integer, 'null'] }
         graph_position_y: { type: [integer, 'null'] }
     ContentApiQuestionOption:

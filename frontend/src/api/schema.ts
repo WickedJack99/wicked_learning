@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5531,6 +5531,35 @@ export interface components {
             item_obstacle_sound_transition_enabled?: boolean | null;
             /** Format: uuid */
             item_obstacle_sound_transition_id?: string | null;
+            obstacle_allowed_tool_ids?: string[] | null;
+            obstacle_background_dark?: string | null;
+            obstacle_background_light?: string | null;
+            obstacle_background_mirrored?: boolean | null;
+            obstacle_bubble_border_color_dark?: string | null;
+            obstacle_bubble_border_color_light?: string | null;
+            obstacle_bubble_color_dark?: string | null;
+            obstacle_bubble_color_light?: string | null;
+            obstacle_bubble_opacity_dark?: number | null;
+            obstacle_bubble_opacity_light?: number | null;
+            obstacle_image_dark?: string | null;
+            obstacle_image_light?: string | null;
+            obstacle_image_mirrored?: boolean | null;
+            obstacle_persist_after_solved?: boolean | null;
+            obstacle_prompt_text?: string | null;
+            obstacle_x?: number | null;
+            obstacle_y?: number | null;
+            obstacle_width?: number | null;
+            obstacle_revisit_background_dark?: string | null;
+            obstacle_revisit_background_light?: string | null;
+            obstacle_revisit_background_mirrored?: boolean | null;
+            obstacle_revisit_image_dark?: string | null;
+            obstacle_revisit_image_light?: string | null;
+            obstacle_revisit_image_mirrored?: boolean | null;
+            obstacle_revisit_text?: string | null;
+            /** @enum {string|null} */
+            obstacle_success_animation?: "none" | "zoom" | "shake" | "rotate" | null;
+            obstacle_success_text?: string | null;
+            obstacle_typing_speed?: number | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -10438,7 +10467,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, or Item Obstacle activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, or Obstacle activity. */
             201: {
                 headers: {
                     [name: string]: unknown;
