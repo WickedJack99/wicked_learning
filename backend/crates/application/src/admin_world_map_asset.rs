@@ -8,6 +8,11 @@ use crate::admin_world_map_layout::HexPosition;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorldMapAssetForm {
+    /// Content API requests supply the title and description for the
+    /// compatibility node created with a MapAsset. Existing World Builder
+    /// surface writes continue to derive their initial title from `text`.
+    pub content_description: Option<String>,
+    pub content_title: Option<String>,
     pub image_url: Option<String>,
     pub text: Option<String>,
     pub position_x: f64,
@@ -67,6 +72,8 @@ impl WorldMapAssetForm {
         }
 
         Some(Self {
+            content_description: None,
+            content_title: None,
             image_url,
             text,
             position_x,
@@ -80,6 +87,21 @@ impl WorldMapAssetForm {
             visual_config,
             sound_config,
         })
+    }
+
+    /// Preserves the source Content API's separate node title and description
+    /// fields without making them implicit browser-controlled defaults for the
+    /// shared World Builder MapAsset command.
+    pub fn with_content_metadata(mut self, title: &str, description: Option<&str>) -> Option<Self> {
+        let title = title.trim();
+        if title.is_empty() || title.chars().count() > 120 {
+            return None;
+        }
+
+        self.content_title = Some(title.to_owned());
+        self.content_description = bounded_optional(description, 1_000)?;
+
+        Some(self)
     }
 }
 
@@ -629,6 +651,38 @@ mod tests {
         .expect("valid source-shaped form");
 
         assert_eq!(form.visual_config, visual_config);
+    }
+
+    #[test]
+    fn content_api_metadata_keeps_the_source_title_and_description_bounds() {
+        let form = valid_form("focusable")
+            .expect("valid map asset form")
+            .with_content_metadata("  Alternator  ", Some("  Converts energy.  "))
+            .expect("valid content metadata");
+
+        assert_eq!(form.content_title.as_deref(), Some("Alternator"));
+        assert_eq!(
+            form.content_description.as_deref(),
+            Some("Converts energy.")
+        );
+        assert!(
+            valid_form("focusable")
+                .expect("valid map asset form")
+                .with_content_metadata("", None)
+                .is_none()
+        );
+        assert!(
+            valid_form("focusable")
+                .expect("valid map asset form")
+                .with_content_metadata(&"x".repeat(121), None)
+                .is_none()
+        );
+        assert!(
+            valid_form("focusable")
+                .expect("valid map asset form")
+                .with_content_metadata("Alternator", Some(&"x".repeat(1_001)))
+                .is_none()
+        );
     }
 
     #[test]

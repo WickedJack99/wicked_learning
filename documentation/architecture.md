@@ -519,12 +519,14 @@ does not expose scoped `companion_config` authoring or a browser provider path.
 The Rust Content API starts at `/api/content/v1/contract`, outside the
 browser-facing `/api/v1` namespace. It is an authenticated, permission-gated
 machine contract, not a public token API. It exposes contract reading, scoped
-map listing and creation, and source-shaped MapAsset listing for one editable
-map. The MapAsset adapter reuses the World Builder selected-map authorization
-projection, derives node labels from that projection, and reads activity counts
-in one bounded aggregate query; Content API permission never widens map scope.
-MapAsset writes and Activity operations are not advertised until their scoped
-adapters exist.
+map listing and creation, and source-shaped MapAsset listing and creation for
+one editable map. The MapAsset read adapter reuses the World Builder
+selected-map authorization projection, derives node labels from that projection,
+and reads activity counts in one bounded aggregate query. Its write adapter
+reuses the atomic World Builder MapAsset command while carrying the source
+Content API's explicit title and description into the compatibility node.
+Content API permission never widens map scope. Activity operations are not
+advertised until their scoped adapters exist.
 
 AI configuration uses:
 

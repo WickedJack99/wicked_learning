@@ -62,7 +62,9 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                map_id: string;
+            };
             cookie?: never;
         };
         /**
@@ -71,7 +73,11 @@ export interface paths {
          */
         get: operations["getContentApiMapAssets"];
         put?: never;
-        post?: never;
+        /**
+         * Create a source-compatible MapAsset in an editable map.
+         * @description Requires content_api update permission, the existing World Builder update scope for the requested map, and a same-origin CSRF token. The command creates the MapAsset, its compatibility node, and an empty draft route atomically.
+         */
+        post: operations["createContentApiMapAsset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5334,6 +5340,30 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateContentApiMapAssetRequest: {
+            title: string;
+            description?: string | null;
+            image_url?: string | null;
+            text?: string | null;
+            position_x: number;
+            position_y: number;
+            position_z: number;
+            width: number;
+            opacity: number;
+            /** @default false */
+            locked: boolean;
+            /** @enum {string} */
+            interaction_mode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
+            interaction_config?: {
+                [key: string]: unknown;
+            };
+            visual_config?: {
+                [key: string]: unknown;
+            };
+            sound_config?: {
+                [key: string]: unknown;
+            };
+        };
         ContentApiMapAsset: {
             /** Format: uuid */
             id: string;
@@ -5363,6 +5393,9 @@ export interface components {
                 [key: string]: unknown;
             };
             activityCount: number;
+        };
+        ContentApiMapAssetResponse: {
+            data: components["schemas"]["ContentApiMapAsset"];
         };
         CreateRegistrationTokenRequest: {
             /** Format: date-time */
@@ -10089,6 +10122,70 @@ export interface operations {
                 content?: never;
             };
             /** @description The current role lacks content_api read permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unavailable in the caller's editable scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createContentApiMapAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContentApiMapAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description The created MapAsset, including its source-shaped node metadata. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiMapAssetResponse"];
+                };
+            };
+            /** @description The title, description, or MapAsset surface is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
             403: {
                 headers: {
                     [name: string]: unknown;

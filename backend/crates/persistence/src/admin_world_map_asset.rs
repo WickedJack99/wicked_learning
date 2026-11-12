@@ -291,19 +291,24 @@ async fn create_at(
     position_q: i32,
     position_r: i32,
 ) -> Result<CreatedWorldMapAsset, sqlx::Error> {
-    let title = form.text.as_deref().unwrap_or("MapAsset");
+    let title = form
+        .content_title
+        .as_deref()
+        .or(form.text.as_deref())
+        .unwrap_or("MapAsset");
+    let description = form.content_description.as_deref().unwrap_or("");
     let asset_id = Uuid::new_v4();
     let node_id = Uuid::new_v4();
     let route_id = Uuid::new_v4();
     let asset_slug = unique_slug(tx, map_id, "map-asset", "learning_map_assets").await?;
     let node_slug = unique_slug(tx, map_id, "map-asset", "learning_nodes").await?;
     let visual_config = normalized_visual_config(tx, &form.visual_config).await?;
-    sqlx::query("INSERT INTO learning_map_assets (id, map_id, slug, title, description, image_url, text, position_x, position_y, position_z, interaction_mode, published_at, width, opacity, locked, visual_config, interaction_config, sound_config) VALUES ($1, $2, $3, $4, '', $5, $6, $7, $8, $9, $10, NULL, $11, $12, $13, $14, $15, $16)")
-        .bind(asset_id).bind(map_id).bind(asset_slug).bind(title).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(&form.interaction_mode).bind(form.width).bind(form.opacity).bind(form.locked).bind(Json(&visual_config)).bind(Json(&form.interaction_config)).bind(Json(&form.sound_config)).execute(&mut **tx).await?;
-    sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at) VALUES ($1, $2, $3, $4, $5, '', $6, $7, 'available', $8, NULL)")
-        .bind(node_id).bind(map_id).bind(asset_id).bind(node_slug).bind(title).bind(position_q).bind(position_r).bind(Json(&visual_config)).execute(&mut **tx).await?;
-    sqlx::query("INSERT INTO learning_routes (id, map_asset_id, slug, title, description, position, published_at) VALUES ($1, $2, $3, $4, '', 0, NULL)")
-        .bind(route_id).bind(asset_id).bind("map-asset").bind(title).execute(&mut **tx).await?;
+    sqlx::query("INSERT INTO learning_map_assets (id, map_id, slug, title, description, image_url, text, position_x, position_y, position_z, interaction_mode, published_at, width, opacity, locked, visual_config, interaction_config, sound_config) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULL, $12, $13, $14, $15, $16, $17)")
+        .bind(asset_id).bind(map_id).bind(asset_slug).bind(title).bind(description).bind(&form.image_url).bind(&form.text).bind(form.position_x).bind(form.position_y).bind(form.position_z).bind(&form.interaction_mode).bind(form.width).bind(form.opacity).bind(form.locked).bind(Json(&visual_config)).bind(Json(&form.interaction_config)).bind(Json(&form.sound_config)).execute(&mut **tx).await?;
+    sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'available', $9, NULL)")
+        .bind(node_id).bind(map_id).bind(asset_id).bind(node_slug).bind(title).bind(description).bind(position_q).bind(position_r).bind(Json(&visual_config)).execute(&mut **tx).await?;
+    sqlx::query("INSERT INTO learning_routes (id, map_asset_id, slug, title, description, position, published_at) VALUES ($1, $2, $3, $4, $5, 0, NULL)")
+        .bind(route_id).bind(asset_id).bind("map-asset").bind(title).bind(description).execute(&mut **tx).await?;
     synchronize_media_references(tx, asset_id, form).await?;
     Ok(CreatedWorldMapAsset { asset_id, node_id })
 }

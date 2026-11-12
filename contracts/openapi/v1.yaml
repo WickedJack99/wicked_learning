@@ -64,15 +64,15 @@ paths:
   /content/v1/maps/{map_id}/map-assets:
     servers:
       - url: /api
+    parameters:
+      - name: map_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
     get:
       operationId: getContentApiMapAssets
       summary: List source-compatible MapAssets for an editable map.
       description: Requires content_api read permission and the existing World Builder update scope for the requested map.
-      parameters:
-        - name: map_id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
       responses:
         '200':
           description: The MapAssets, their linked node text, and activity counts.
@@ -90,6 +90,33 @@ paths:
         '403': { description: The current role lacks content_api read permission. }
         '404': { description: The map is unavailable in the caller's editable scope. }
         '503': { description: The application database is unavailable. }
+    post:
+      operationId: createContentApiMapAsset
+      summary: Create a source-compatible MapAsset in an editable map.
+      description: Requires content_api update permission, the existing World Builder update scope for the requested map, and a same-origin CSRF token. The command creates the MapAsset, its compatibility node, and an empty draft route atomically.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContentApiMapAssetRequest' }
+      responses:
+        '201':
+          description: The created MapAsset, including its source-shaped node metadata.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiMapAssetResponse' }
+        '400':
+          description: The title, description, or MapAsset surface is invalid.
+        '401':
+          description: No authenticated administration session.
+        '403':
+          description: The CSRF check failed or the current role lacks content_api update permission.
+        '404':
+          description: The map is unavailable in the caller's editable scope.
+        '503':
+          description: The application database is unavailable.
   /session:
     get:
       operationId: getSessionStatus
@@ -6847,6 +6874,25 @@ components:
         pattern: '^[a-z0-9-]+$'
         maxLength: 80
   schemas:
+    CreateContentApiMapAssetRequest:
+      type: object
+      additionalProperties: false
+      required: [title, position_x, position_y, position_z, width, opacity, interaction_mode]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        image_url: { type: [string, 'null'], maxLength: 2048 }
+        text: { type: [string, 'null'], maxLength: 255 }
+        position_x: { type: number, minimum: 0, maximum: 100 }
+        position_y: { type: number, minimum: 0, maximum: 100 }
+        position_z: { type: integer, minimum: -10000, maximum: 10000 }
+        width: { type: number, minimum: 1, maximum: 100 }
+        opacity: { type: number, minimum: 0, maximum: 1 }
+        locked: { type: boolean, default: false }
+        interaction_mode: { type: string, enum: [focusable, decorative, hide_on_hover, toggle] }
+        interaction_config: { type: object, additionalProperties: true }
+        visual_config: { type: object, additionalProperties: true }
+        sound_config: { type: object, additionalProperties: true }
     ContentApiMapAsset:
       type: object
       additionalProperties: false
@@ -6874,6 +6920,12 @@ components:
         visualConfig: { type: object, additionalProperties: true }
         soundConfig: { type: object, additionalProperties: true }
         activityCount: { type: integer, minimum: 0 }
+    ContentApiMapAssetResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/ContentApiMapAsset' }
     CreateRegistrationTokenRequest:
       type: object
       additionalProperties: false

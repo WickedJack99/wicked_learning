@@ -1658,12 +1658,14 @@ machine-readable contract is session-authenticated and separately gated by the
 source `content_api` permission. It currently documents and serves only the
 operations Rust owns: reading the contract, listing maps already visible in
 the caller's scoped World Builder graph, creating a map through the existing
-CSRF-protected World Builder command, and listing source-shaped MapAssets for
-one already editable map. The MapAsset read reuses selected-map scope and
-obtains activity counts in one aggregate query. Content API permission never
-widens map scope or lets a request nominate a World. MapAsset writes and
-activity operations remain absent from the advertised contract until their
-exact scoped adapters are implemented.
+CSRF-protected World Builder command, and listing or creating source-shaped
+MapAssets for one already editable map. The MapAsset read reuses selected-map
+scope and obtains activity counts in one aggregate query; its write reuses the
+atomic MapAsset, compatibility-node, and draft-route command, carrying the
+source API's explicit node title and description. Content API permission never
+widens map scope or lets a request nominate a World. Activity operations remain
+absent from the advertised contract until their exact scoped adapters are
+implemented.
 
 ### 7. Complete the replacement deliberately
 
