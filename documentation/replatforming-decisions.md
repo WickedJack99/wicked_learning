@@ -4809,13 +4809,14 @@ command, preserving CSRF, map scope and server-owned World selection. The
 first MapAsset read adapter reuses the selected-map projection and a bounded
 aggregate activity-count query. Its write adapter reuses the atomic scoped
 MapAsset command while preserving the Content API's explicit title and
-description for the compatibility node. Future Activity entries must be added
-with their exact Rust adapters.
+description for the compatibility node. The first Activity adapter lists the
+scoped MapAsset route and creates only Reflection through its existing typed
+command. Future Activity entries must be added with their exact Rust adapters.
 
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
-operations before they are implemented. MapAsset support does not imply that
-the Activity adapters exist.
+operations before they are implemented. Reflection support does not imply that
+other Activity adapters exist.
 
 ## Phase 1 gate
 

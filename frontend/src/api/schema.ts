@@ -84,6 +84,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List source-compatible activities for an editable MapAsset.
+         * @description Requires content_api read permission and the existing World Activity update scope for the MapAsset's compatibility node.
+         */
+        get: operations["getContentApiMapAssetActivities"];
+        put?: never;
+        /**
+         * Create a Reflection activity for an editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection is the first supported Content API Activity type; other types are rejected until their exact scoped adapters exist.
+         */
+        post: operations["createContentApiReflectionActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session": {
         parameters: {
             query?: never;
@@ -5397,6 +5423,39 @@ export interface components {
         ContentApiMapAssetResponse: {
             data: components["schemas"]["ContentApiMapAsset"];
         };
+        ContentApiActivity: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            mapAssetId: string;
+            slug: string;
+            type: string;
+            title: string;
+            introduction: string | null;
+            config: {
+                [key: string]: unknown;
+            };
+            position: {
+                x: number | null;
+                y: number | null;
+            };
+        };
+        ContentApiActivityResponse: {
+            data: components["schemas"]["ContentApiActivity"];
+        };
+        CreateContentApiReflectionActivityRequest: {
+            /** @enum {string} */
+            type: "reflection";
+            title: string;
+            slug?: string | null;
+            introduction?: string | null;
+            reflection_prompt?: string | null;
+            reflection_note?: string | null;
+            reflection_topic?: string | null;
+            reflection_subtopic?: string | null;
+            graph_position_x?: number | null;
+            graph_position_y?: number | null;
+        };
         CreateRegistrationTokenRequest: {
             /** Format: date-time */
             expires_at?: string | null;
@@ -10193,6 +10252,122 @@ export interface operations {
                 content?: never;
             };
             /** @description The map is unavailable in the caller's editable scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getContentApiMapAssetActivities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The source-shaped activities ordered by route and activity position. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ContentApiActivity"][];
+                    };
+                };
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current role lacks content_api read permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unavailable in the caller's World Activity scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createContentApiReflectionActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContentApiReflectionActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The created source-shaped Reflection activity. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityResponse"];
+                };
+            };
+            /** @description The requested type */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unavailable in the caller's World Activity scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

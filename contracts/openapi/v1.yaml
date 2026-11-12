@@ -117,6 +117,57 @@ paths:
           description: The map is unavailable in the caller's editable scope.
         '503':
           description: The application database is unavailable.
+  /content/v1/map-assets/{map_asset_id}/activities:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getContentApiMapAssetActivities
+      summary: List source-compatible activities for an editable MapAsset.
+      description: Requires content_api read permission and the existing World Activity update scope for the MapAsset's compatibility node.
+      responses:
+        '200':
+          description: The source-shaped activities ordered by route and activity position.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ContentApiActivity' }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The current role lacks content_api read permission. }
+        '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createContentApiReflectionActivity
+      summary: Create a Reflection activity for an editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection is the first supported Content API Activity type; other types are rejected until their exact scoped adapters exist.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContentApiReflectionActivityRequest' }
+      responses:
+        '201':
+          description: The created source-shaped Reflection activity.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
+        '400': { description: The requested type, reflection fields, or graph position is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
+        '503': { description: The application database is unavailable. }
   /session:
     get:
       operationId: getSessionStatus
@@ -6926,6 +6977,46 @@ components:
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/ContentApiMapAsset' }
+    ContentApiActivity:
+      type: object
+      additionalProperties: false
+      required: [id, mapAssetId, slug, type, title, introduction, config, position]
+      properties:
+        id: { type: string, format: uuid }
+        mapAssetId: { type: string, format: uuid }
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        type: { type: string }
+        title: { type: string }
+        introduction: { type: [string, 'null'] }
+        config: { type: object, additionalProperties: true }
+        position:
+          type: object
+          additionalProperties: false
+          required: [x, y]
+          properties:
+            x: { type: [number, 'null'] }
+            y: { type: [number, 'null'] }
+    ContentApiActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/ContentApiActivity' }
+    CreateContentApiReflectionActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [type, title]
+      properties:
+        type: { type: string, enum: [reflection] }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        reflection_prompt: { type: [string, 'null'], maxLength: 4000 }
+        reflection_note: { type: [string, 'null'], maxLength: 2000 }
+        reflection_topic: { type: [string, 'null'], maxLength: 160 }
+        reflection_subtopic: { type: [string, 'null'], maxLength: 160 }
+        graph_position_x: { type: [integer, 'null'] }
+        graph_position_y: { type: [integer, 'null'] }
     CreateRegistrationTokenRequest:
       type: object
       additionalProperties: false

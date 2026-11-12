@@ -2,8 +2,8 @@ use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_reflection::{
-    AdminWorldReflectionError, AdminWorldReflectionRepository as Port, ReflectionActivityForm,
-    ReflectionActivityType, UpdatedReflectionActivity, generated_slug,
+    AdminWorldReflectionError, AdminWorldReflectionRepository as Port, CreatedReflectionActivity,
+    ReflectionActivityForm, ReflectionActivityType, UpdatedReflectionActivity, generated_slug,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -25,8 +25,9 @@ impl Port for PostgresAdminWorldReflectionRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ReflectionActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError>,
+    > + Send {
         async move {
             create_activity(
                 self.pool,
@@ -68,8 +69,9 @@ impl Port for PostgresAdminWorldReflectionRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ReflectionActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError>,
+    > + Send {
         async move {
             create_activity(
                 self.pool,
@@ -155,7 +157,7 @@ async fn create_activity(
     node_id: Uuid,
     form: &ReflectionActivityForm,
     activity_type: ReflectionActivityType,
-) -> Result<Option<Uuid>, ReflectionMutationError> {
+) -> Result<Option<CreatedReflectionActivity>, ReflectionMutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_editable_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -181,21 +183,26 @@ async fn create_activity(
     .await?;
     let id = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, 'needs_review')",
+        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10, $11, 'needs_review')",
     )
     .bind(id)
     .bind(route_id)
-    .bind(slug)
+    .bind(&slug)
     .bind(&form.title)
     .bind(form.introduction.clone().unwrap_or_default())
     .bind(position)
     .bind(activity_type.as_str())
     .bind(reflection_config(form))
     .bind(&form.introduction)
+    .bind(form.graph_position_x.map(f64::from))
+    .bind(form.graph_position_y.map(f64::from))
     .execute(&mut *transaction)
     .await?;
     transaction.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedReflectionActivity {
+        activity_id: id,
+        slug,
+    }))
 }
 
 async fn update_activity(

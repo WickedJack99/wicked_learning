@@ -68,6 +68,7 @@ pub mod admin_world_review_queue;
 pub mod admin_world_shared_task;
 pub mod admin_world_tool_grant;
 mod admin_world_unlock_diagnostics;
+pub mod content_api_activity;
 pub mod current_user;
 pub mod feedback_prompt_preference;
 pub mod identity_deletion;

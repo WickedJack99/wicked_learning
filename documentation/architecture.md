@@ -526,7 +526,12 @@ and reads activity counts in one bounded aggregate query. Its write adapter
 reuses the atomic World Builder MapAsset command while carrying the source
 Content API's explicit title and description into the compatibility node.
 Content API permission never widens map scope. Activity operations are not
-advertised until their scoped adapters exist.
+advertised until their scoped adapters exist. The first Activity adapter lists
+the current MapAsset route activities through the distinct World Activity scope
+and creates only source-shaped Reflection activities; it delegates the atomic
+write to the existing Reflection command and retains the optional graph-card
+coordinates. Other Activity types remain unavailable until their dedicated
+commands can be adapted.
 
 AI configuration uses:
 

@@ -7,6 +7,8 @@ pub const DEFAULT_REFLECTION_PROMPT: &str = "What feels clearer now?";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReflectionActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -47,6 +49,8 @@ impl ReflectionActivityForm {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction,
@@ -55,6 +59,15 @@ impl ReflectionActivityForm {
             topic: topic.to_owned(),
             subtopic: subtopic.to_owned(),
         })
+    }
+
+    /// The source Content API may place a newly created graph card directly.
+    /// The World Builder's create route leaves both coordinates absent and
+    /// continues to use its separate graph-position command.
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -112,13 +125,19 @@ pub struct UpdatedReflectionActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CreatedReflectionActivity {
+    pub activity_id: Uuid,
+    pub slug: String,
+}
+
 pub trait AdminWorldReflectionRepository {
     fn create_reflection(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ReflectionActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError>> + Send;
 
     fn update_reflection(
         &self,
@@ -133,7 +152,7 @@ pub trait AdminWorldReflectionRepository {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ReflectionActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError>> + Send;
 
     fn update_review(
         &self,
@@ -164,7 +183,7 @@ where
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ReflectionActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldReflectionError> {
+    ) -> Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -207,7 +226,7 @@ impl<'repository, Repository: AdminWorldReflectionRepository>
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &ReflectionActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldReflectionError> {
+    ) -> Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -247,8 +266,8 @@ mod tests {
 
     use super::{
         AdminWorldReflectionCommand, AdminWorldReflectionError, AdminWorldReflectionRepository,
-        AdminWorldReviewCommand, DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm,
-        UpdatedReflectionActivity, generated_slug,
+        AdminWorldReviewCommand, CreatedReflectionActivity, DEFAULT_REFLECTION_PROMPT,
+        ReflectionActivityForm, UpdatedReflectionActivity, generated_slug,
     };
 
     struct RecordingRepository {
@@ -261,7 +280,9 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &ReflectionActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send {
+        ) -> impl Future<
+            Output = Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError>,
+        > + Send {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
@@ -284,7 +305,9 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &ReflectionActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldReflectionError>> + Send {
+        ) -> impl Future<
+            Output = Result<Option<CreatedReflectionActivity>, AdminWorldReflectionError>,
+        > + Send {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
@@ -330,6 +353,14 @@ mod tests {
             ReflectionActivityForm::parse("Title", None, None, "", &"x".repeat(2_001), "", "")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn content_api_can_retain_optional_graph_coordinates_on_create() {
+        let form = form().with_graph_position(Some(120), None);
+
+        assert_eq!(form.graph_position_x, Some(120));
+        assert_eq!(form.graph_position_y, None);
     }
 
     #[tokio::test]

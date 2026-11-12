@@ -14,6 +14,13 @@ use wicked_learning_application::{
     admin_world_map::AdminWorldMapQuery,
     admin_world_map_asset::{AdminWorldMapAssetCommand, WorldMapAssetForm},
     admin_world_map_create::{AdminWorldMapCreateCommand, CreateWorldMapForm},
+    admin_world_reflection::{
+        AdminWorldReflectionCommand, AdminWorldReflectionError, CreatedReflectionActivity,
+        DEFAULT_REFLECTION_PROMPT, ReflectionActivityForm,
+    },
+    content_api_activity::{
+        ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
+    },
 };
 use wicked_learning_domain::world_content::{AdminEditableMapAsset, AdminNodeSummary};
 use wicked_learning_persistence::{
@@ -21,6 +28,8 @@ use wicked_learning_persistence::{
     admin_world_map::PostgresAdminWorldMapRepository,
     admin_world_map_asset::PostgresAdminWorldMapAssetRepository,
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
+    admin_world_reflection::PostgresAdminWorldReflectionRepository,
+    content_api_activity::PostgresContentApiActivityRepository,
 };
 
 use crate::{
@@ -70,6 +79,21 @@ pub struct CreateMapAssetRequest {
     visual_config: Value,
     #[serde(default = "empty_object")]
     sound_config: Value,
+}
+
+#[derive(Deserialize)]
+pub struct CreateActivityRequest {
+    #[serde(rename = "type")]
+    activity_type: String,
+    title: String,
+    slug: Option<String>,
+    introduction: Option<String>,
+    reflection_prompt: Option<String>,
+    reflection_note: Option<String>,
+    reflection_topic: Option<String>,
+    reflection_subtopic: Option<String>,
+    graph_position_x: Option<i32>,
+    graph_position_y: Option<i32>,
 }
 
 /// Lists only maps already visible in the caller's existing scoped World
@@ -172,6 +196,83 @@ pub async fn create_map_asset(
     ))
 }
 
+/// Lists source-shaped activities only after resolving the MapAsset's
+/// compatibility node through the World Activity editor scope.
+pub async fn activities(
+    State(state): State<AppState>,
+    Path(map_asset_id): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ro")?;
+    let repository = PostgresContentApiActivityRepository::new(&state.application_database);
+    let activities = ContentApiActivityListQuery::new(&repository)
+        .execute(&principal, map_asset_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(Json(json!({
+        "data": activities.activities.iter().map(|activity| serialize_activity(map_asset_id, activity)).collect::<Vec<_>>(),
+    })))
+}
+
+/// Creates the first intentionally bounded Content API activity type. The
+/// Reflection command owns the write transaction and repeats scoped activity
+/// authorization; this adapter only translates the source request shape.
+pub async fn create_activity(
+    State(state): State<AppState>,
+    Path(map_asset_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<CreateActivityRequest>,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    if request.activity_type != "reflection" {
+        return Err(ApiError::invalid_request());
+    }
+    let form = ReflectionActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request
+            .reflection_prompt
+            .as_deref()
+            .unwrap_or(DEFAULT_REFLECTION_PROMPT),
+        request.reflection_note.as_deref().unwrap_or_default(),
+        request.reflection_topic.as_deref().unwrap_or_default(),
+        request.reflection_subtopic.as_deref().unwrap_or_default(),
+    )
+    .ok_or_else(ApiError::invalid_request)?
+    .with_graph_position(request.graph_position_x, request.graph_position_y);
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    let node_id = ContentApiActivityNodeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let reflection_repository =
+        PostgresAdminWorldReflectionRepository::new(&state.application_database);
+    let created = AdminWorldReflectionCommand::new(&reflection_repository)
+        .create(&principal, node_id, &form)
+        .await
+        .map_err(map_reflection_error)?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({
+            "data": serialize_created_reflection(map_asset_id, created, &form),
+        })),
+    ))
+}
+
 /// Creates a map through the established World Builder command. The Content
 /// API adds no browser-chosen World or scope: both remain server-owned.
 pub async fn create_map(
@@ -222,6 +323,14 @@ fn require_content_permission(
 
 fn empty_object() -> Value {
     Value::Object(Default::default())
+}
+
+fn map_reflection_error(error: AdminWorldReflectionError) -> ApiError {
+    match error {
+        AdminWorldReflectionError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldReflectionError::Conflict => ApiError::conflict(),
+        AdminWorldReflectionError::Unavailable => ApiError::service_unavailable(),
+    }
 }
 
 #[derive(FromRow)]
@@ -315,6 +424,41 @@ fn serialize_created_map_asset(map_id: Uuid, asset_id: Uuid, form: &WorldMapAsse
     })
 }
 
+fn serialize_activity(map_asset_id: Uuid, activity: &ContentApiActivity) -> Value {
+    json!({
+        "id": activity.id,
+        "mapAssetId": map_asset_id,
+        "slug": activity.slug,
+        "type": activity.activity_type,
+        "title": activity.title,
+        "introduction": activity.introduction,
+        "config": activity.config,
+        "position": { "x": activity.position_x, "y": activity.position_y },
+    })
+}
+
+fn serialize_created_reflection(
+    map_asset_id: Uuid,
+    created: CreatedReflectionActivity,
+    form: &ReflectionActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id,
+        "mapAssetId": map_asset_id,
+        "slug": created.slug,
+        "type": "reflection",
+        "title": form.title,
+        "introduction": form.introduction,
+        "config": {
+            "prompt": form.prompt,
+            "note": form.note,
+            "topic": form.topic,
+            "subtopic": form.subtopic,
+        },
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -333,7 +477,15 @@ fn document() -> Value {
             "Use the ContentPlan schema for AI-assisted drafts and never apply a generated draft without explicit administrator approval.",
             "If validation fails, repair only the fields named in the 422 response and ask before changing the instructional intent."
         ],
-        "activityTypes": [],
+        "activityTypes": [
+            {
+                "key": "reflection",
+                "label": "Reflection",
+                "description": "A learner-owned pause for useful notes or synthesis.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
+            }
+        ],
         "contentPlan": {
             "humanApprovalRequired": true,
             "placementDefaults": { "positionX": 50, "positionY": 50, "width": 14 },
@@ -348,6 +500,8 @@ fn document() -> Value {
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
+            operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a Reflection Activity", "Creates the first supported Content API Activity through the scoped Reflection command.", json!({ "type": "reflection", "title": "Explain the energy conversion", "slug": "explain-energy-conversion", "introduction": "Connect the visible parts to the flow of energy.", "reflection_prompt": "How does energy change form inside this component?", "reflection_note": "Name the input and output forms of energy.", "reflection_topic": "Vehicle electrics", "reflection_subtopic": "Alternator", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -390,7 +544,8 @@ mod tests {
     };
 
     use super::{
-        document, require_content_permission, serialize_created_map_asset, serialize_map_assets,
+        document, require_content_permission, serialize_activity, serialize_created_map_asset,
+        serialize_created_reflection, serialize_map_assets,
     };
 
     #[test]
@@ -399,11 +554,14 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(operations.len(), 5);
+        assert_eq!(operations.len(), 7);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "map-assets.index");
         assert_eq!(operations[4]["id"], "map-assets.store");
+        assert_eq!(operations[5]["id"], "activities.index");
+        assert_eq!(operations[6]["id"], "activities.store");
+        assert_eq!(document["activityTypes"][0]["key"], "reflection");
     }
 
     #[test]
@@ -489,5 +647,49 @@ mod tests {
         assert_eq!(data["title"], "Alternator");
         assert_eq!(data["description"], "Converts energy.");
         assert_eq!(data["activityCount"], 0);
+    }
+
+    #[test]
+    fn activities_keep_the_source_shape_for_reads_and_reflection_creates() {
+        let map_asset_id = Uuid::new_v4();
+        let activity_id = Uuid::new_v4();
+        let activity = wicked_learning_application::content_api_activity::ContentApiActivity {
+            id: activity_id,
+            slug: "energy-reflection".to_owned(),
+            activity_type: "reflection".to_owned(),
+            title: "Explain energy".to_owned(),
+            introduction: Some("Connect the flow.".to_owned()),
+            config: json!({ "prompt": "What changed?" }),
+            position_x: Some(120.0),
+            position_y: Some(80.0),
+        };
+        let listed = serialize_activity(map_asset_id, &activity);
+        let form =
+            wicked_learning_application::admin_world_reflection::ReflectionActivityForm::parse(
+                "Explain energy",
+                None,
+                Some("Connect the flow."),
+                "What changed?",
+                "Name the change.",
+                "Vehicle electrics",
+                "Alternator",
+            )
+            .expect("valid reflection")
+            .with_graph_position(Some(120), Some(80));
+        let created = serialize_created_reflection(
+            map_asset_id,
+            wicked_learning_application::admin_world_reflection::CreatedReflectionActivity {
+                activity_id,
+                slug: "energy-reflection-2".to_owned(),
+            },
+            &form,
+        );
+
+        assert_eq!(listed["mapAssetId"], map_asset_id.to_string());
+        assert_eq!(listed["position"], json!({ "x": 120.0, "y": 80.0 }));
+        assert_eq!(created["type"], "reflection");
+        assert_eq!(created["slug"], "energy-reflection-2");
+        assert_eq!(created["config"]["prompt"], "What changed?");
+        assert_eq!(created["position"], json!({ "x": 120, "y": 80 }));
     }
 }

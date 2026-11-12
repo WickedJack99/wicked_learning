@@ -112,14 +112,16 @@ pub async fn create(
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresAdminWorldReflectionRepository::new(&state.application_database);
-    let activity_id = AdminWorldReviewCommand::new(&repository)
+    let created = AdminWorldReviewCommand::new(&repository)
         .create(&principal, node_id, &form)
         .await
         .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok((
         StatusCode::CREATED,
-        Json(CreateReviewResponse { activity_id }),
+        Json(CreateReviewResponse {
+            activity_id: created.activity_id,
+        }),
     ))
 }
 
