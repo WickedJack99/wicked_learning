@@ -7,7 +7,7 @@ use axum_login::AuthSession;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_graph::AdminWorldGraphQuery,
@@ -20,6 +20,10 @@ use wicked_learning_application::{
     admin_world_open_practice::{
         AdminWorldOpenPracticeCommand, AdminWorldOpenPracticeError, CreatedOpenPracticeActivity,
         OpenPracticeActivityForm,
+    },
+    admin_world_question::{
+        AdminWorldQuestionCommand, AdminWorldQuestionError, CreatedQuestionActivity,
+        QuestionActivityForm, QuestionOptionForm,
     },
     admin_world_reflection::{
         AdminWorldReflectionCommand, AdminWorldReflectionError, AdminWorldReviewCommand,
@@ -37,6 +41,7 @@ use wicked_learning_persistence::{
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
     admin_world_markdown::{PostgresAdminWorldMarkdownRepository, markdown_config},
     admin_world_open_practice::PostgresAdminWorldOpenPracticeRepository,
+    admin_world_question::{PostgresAdminWorldQuestionRepository, config as question_config},
     admin_world_reflection::PostgresAdminWorldReflectionRepository,
     content_api_activity::PostgresContentApiActivityRepository,
 };
@@ -112,8 +117,26 @@ pub struct CreateActivityRequest {
     markdown_pages: Option<Vec<MarkdownPageRequest>>,
     markdown_transitions: Option<Vec<MarkdownTransitionRequest>>,
     markdown_graph_layout: Option<MarkdownGraphLayoutRequest>,
+    question_prompt: Option<String>,
+    question_feedback_correct: Option<String>,
+    question_feedback_incorrect: Option<String>,
+    question_explanation: Option<String>,
+    question_allow_multiple: Option<bool>,
+    question_options: Option<Vec<ContentApiQuestionOptionRequest>>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
+}
+
+#[derive(Deserialize)]
+struct ContentApiQuestionOptionRequest {
+    label: String,
+    body: String,
+    is_correct: bool,
+    key: Option<String>,
+    outcome_key: Option<String>,
+    feedback: Option<String>,
+    #[serde(default)]
+    weights: BTreeMap<String, f64>,
 }
 
 /// Lists only maps already visible in the caller's existing scoped World
@@ -364,6 +387,15 @@ pub async fn create_activity(
                 .map_err(map_markdown_error)?
                 .map(|created| serialize_created_markdown(map_asset_id, created, &form))
         }
+        "question" => {
+            let form = content_api_question_form(&request)?;
+            let repository = PostgresAdminWorldQuestionRepository::new(&state.application_database);
+            AdminWorldQuestionCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_question_error)?
+                .map(|created| serialize_created_question(map_asset_id, created, &form))
+        }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
     .ok_or_else(ApiError::not_found)?;
@@ -431,7 +463,7 @@ fn empty_object() -> Value {
 fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
     matches!(
         activity_type,
-        "reflection" | "review" | "open_practice" | "markdown"
+        "reflection" | "review" | "open_practice" | "markdown" | "question"
     )
 }
 
@@ -457,6 +489,59 @@ fn map_markdown_error(error: AdminWorldMarkdownError) -> ApiError {
         AdminWorldMarkdownError::Conflict => ApiError::conflict(),
         AdminWorldMarkdownError::Unavailable => ApiError::service_unavailable(),
     }
+}
+
+fn map_question_error(error: AdminWorldQuestionError) -> ApiError {
+    match error {
+        AdminWorldQuestionError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldQuestionError::Conflict => ApiError::conflict(),
+        AdminWorldQuestionError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn content_api_question_form(
+    request: &CreateActivityRequest,
+) -> Result<QuestionActivityForm, ApiError> {
+    let options = request
+        .question_options
+        .as_ref()
+        .ok_or_else(ApiError::invalid_request)?
+        .iter()
+        .map(|option| {
+            QuestionOptionForm::parse(
+                &option.label,
+                &option.body,
+                option.is_correct,
+                option.key.as_deref(),
+                option.outcome_key.as_deref().unwrap_or_default(),
+                option.feedback.as_deref().unwrap_or_default(),
+                option.weights.clone(),
+            )
+            .ok_or_else(ApiError::invalid_request)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    QuestionActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request
+            .question_prompt
+            .as_deref()
+            .ok_or_else(ApiError::invalid_request)?,
+        request
+            .question_feedback_correct
+            .as_deref()
+            .unwrap_or_default(),
+        request
+            .question_feedback_incorrect
+            .as_deref()
+            .unwrap_or_default(),
+        request.question_explanation.as_deref().unwrap_or_default(),
+        request.question_allow_multiple.unwrap_or(false),
+        options,
+    )
+    .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
+    .ok_or_else(ApiError::invalid_request)
 }
 
 #[derive(FromRow)]
@@ -620,6 +705,23 @@ fn serialize_created_markdown(
     })
 }
 
+fn serialize_created_question(
+    map_asset_id: Uuid,
+    created: CreatedQuestionActivity,
+    form: &QuestionActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id,
+        "mapAssetId": map_asset_id,
+        "slug": created.slug,
+        "type": "question",
+        "title": form.title,
+        "introduction": form.introduction,
+        "config": question_config(form),
+        "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -666,6 +768,13 @@ fn document() -> Value {
                 "description": "A connected set of readable Markdown pages with theme-specific page colors.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "question",
+                "label": "Question",
+                "description": "A configurable question that can branch by answer outcome.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "correct", "label": "Correct" }, { "id": "incorrect", "label": "Incorrect" }, { "id": "outcome", "label": "Outcome" }]
             }
         ],
         "contentPlan": {
@@ -683,7 +792,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, or Markdown Activity through its matching scoped World Builder command.", json!({ "type": "markdown", "title": "Read the alternator briefing", "slug": "alternator-briefing", "introduction": "Trace the energy conversion before inspecting the component.", "markdown_pages": [{ "id": "briefing", "title": "Alternator", "body": "# Alternator\n\nFollow the energy flow.", "position": { "x": 140, "y": 80 }, "visual": { "page_color_dark": "#0f172a", "page_color_light": "#ffffff", "border_color_dark": "#2dd4bf", "border_color_light": "#0891b2", "heading_color_dark": "#67e8f9", "heading_color_light": "#0e7490", "text_color_dark": "#f8fafc", "text_color_light": "#0f172a" } }], "markdown_transitions": [{ "id": "start-briefing", "from": "start", "to": "briefing" }, { "id": "briefing-end", "from": "briefing", "to": "end" }], "markdown_graph_layout": {}, "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "markdown", "title": "Read the alternator briefing" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, or Question Activity through its matching scoped World Builder command.", json!({ "type": "question", "title": "Check the alternator flow", "slug": "check-alternator-flow", "introduction": "Choose the energy conversion that fits the component.", "question_prompt": "Which conversion best describes an alternator?", "question_options": [{ "label": "A", "body": "Mechanical energy becomes electrical energy.", "is_correct": true }, { "label": "B", "body": "Electrical energy becomes mechanical energy.", "is_correct": false }], "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "question", "title": "Check the alternator flow" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -716,7 +825,7 @@ fn operation(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{BTreeMap, HashMap};
 
     use serde_json::json;
     use uuid::Uuid;
@@ -728,8 +837,8 @@ mod tests {
     use super::{
         document, is_supported_content_api_activity_type, require_content_permission,
         serialize_activity, serialize_created_map_asset, serialize_created_markdown,
-        serialize_created_open_practice, serialize_created_reflective_activity,
-        serialize_map_assets,
+        serialize_created_open_practice, serialize_created_question,
+        serialize_created_reflective_activity, serialize_map_assets,
     };
 
     #[test]
@@ -748,6 +857,7 @@ mod tests {
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
+        assert_eq!(document["activityTypes"][4]["key"], "question");
     }
 
     #[test]
@@ -767,7 +877,8 @@ mod tests {
         assert!(is_supported_content_api_activity_type("review"));
         assert!(is_supported_content_api_activity_type("open_practice"));
         assert!(is_supported_content_api_activity_type("markdown"));
-        assert!(!is_supported_content_api_activity_type("question"));
+        assert!(is_supported_content_api_activity_type("question"));
+        assert!(!is_supported_content_api_activity_type("portal"));
     }
 
     #[test]
@@ -968,5 +1079,62 @@ mod tests {
         assert_eq!(created["slug"], "read-the-alternator-briefing-2");
         assert_eq!(created["config"]["markdownPages"][0]["id"], "briefing");
         assert_eq!(created["position"], json!({ "x": 120, "y": 80 }));
+    }
+
+    #[test]
+    fn question_creates_keep_the_source_option_configuration_shape() {
+        use wicked_learning_application::admin_world_question::{
+            QuestionActivityForm, QuestionOptionForm,
+        };
+
+        let map_asset_id = Uuid::new_v4();
+        let activity_id = Uuid::new_v4();
+        let form = QuestionActivityForm::parse(
+            "Check the alternator flow",
+            None,
+            Some("Choose the conversion that fits."),
+            "Which conversion best describes an alternator?",
+            "Correct.",
+            "Try again.",
+            "An alternator generates electricity.",
+            false,
+            vec![
+                QuestionOptionForm::parse(
+                    "A",
+                    "Mechanical energy becomes electrical energy.",
+                    true,
+                    None,
+                    "correct",
+                    "Correct.",
+                    BTreeMap::new(),
+                )
+                .expect("valid option"),
+                QuestionOptionForm::parse(
+                    "B",
+                    "Electrical energy becomes mechanical energy.",
+                    false,
+                    None,
+                    "incorrect",
+                    "Try again.",
+                    BTreeMap::new(),
+                )
+                .expect("valid option"),
+            ],
+        )
+        .expect("valid question")
+        .with_graph_position(Some(120), None);
+        let created = serialize_created_question(
+            map_asset_id,
+            wicked_learning_application::admin_world_question::CreatedQuestionActivity {
+                activity_id,
+                slug: "check-the-alternator-flow-2".to_owned(),
+            },
+            &form,
+        );
+
+        assert_eq!(created["type"], "question");
+        assert_eq!(created["slug"], "check-the-alternator-flow-2");
+        assert_eq!(created["config"]["options"][0]["isCorrect"], true);
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
     }
 }

@@ -57,6 +57,8 @@ impl QuestionOptionForm {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct QuestionActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -101,6 +103,8 @@ impl QuestionActivityForm {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction: introduction.map(str::to_owned),
@@ -111,6 +115,15 @@ impl QuestionActivityForm {
             allow_multiple,
             options,
         })
+    }
+
+    /// The source Content API may place a newly created graph card directly.
+    /// The World Builder's create route leaves both coordinates absent and
+    /// continues to use its separate graph-position command.
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -153,13 +166,19 @@ pub struct UpdatedQuestionActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CreatedQuestionActivity {
+    pub activity_id: Uuid,
+    pub slug: String,
+}
+
 pub trait AdminWorldQuestionRepository {
     fn create_question(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &QuestionActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldQuestionError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedQuestionActivity>, AdminWorldQuestionError>> + Send;
 
     fn update_question(
         &self,
@@ -186,7 +205,7 @@ impl<'repository, Repository: AdminWorldQuestionRepository>
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &QuestionActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldQuestionError> {
+    ) -> Result<Option<CreatedQuestionActivity>, AdminWorldQuestionError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -279,5 +298,28 @@ mod tests {
             )
             .is_some()
         );
+    }
+
+    #[test]
+    fn content_api_can_retain_optional_graph_coordinates_on_create() {
+        let form = QuestionActivityForm::parse(
+            "Question",
+            None,
+            None,
+            "Which choice preserves learner agency?",
+            "",
+            "",
+            "",
+            false,
+            vec![
+                option("A", "Keep choices visible."),
+                option("B", "Hide routes."),
+            ],
+        )
+        .expect("valid source question")
+        .with_graph_position(Some(120), None);
+
+        assert_eq!(form.graph_position_x, Some(120));
+        assert_eq!(form.graph_position_y, None);
     }
 }

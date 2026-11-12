@@ -2,8 +2,8 @@ use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_question::{
-    AdminWorldQuestionError, AdminWorldQuestionRepository as Port, QuestionActivityForm,
-    UpdatedQuestionActivity, generated_slug,
+    AdminWorldQuestionError, AdminWorldQuestionRepository as Port, CreatedQuestionActivity,
+    QuestionActivityForm, UpdatedQuestionActivity, generated_slug,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -25,8 +25,9 @@ impl Port for PostgresAdminWorldQuestionRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &QuestionActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldQuestionError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedQuestionActivity>, AdminWorldQuestionError>,
+    > + Send {
         async move {
             create(self.pool, principal, node_id, form)
                 .await
@@ -98,7 +99,7 @@ async fn create(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &QuestionActivityForm,
-) -> Result<Option<Uuid>, Error> {
+) -> Result<Option<CreatedQuestionActivity>, Error> {
     let mut transaction = pool.begin().await?;
     let Some(node) = node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -110,9 +111,12 @@ async fn create(
     let slug = unique_slug(&mut transaction, map_asset_id, form, None).await?;
     let position: i16 = sqlx::query_scalar("SELECT (COALESCE(MAX(position), -1)::integer + 1)::smallint FROM learning_activities WHERE route_id = $1").bind(route_id).fetch_one(&mut *transaction).await?;
     let id = Uuid::new_v4();
-    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1,$2,$3,$4,$5,$6,NOW(),'question',$7,$8,'needs_review')").bind(id).bind(route_id).bind(slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(config(form)).bind(&form.introduction).execute(&mut *transaction).await?;
+    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1,$2,$3,$4,$5,$6,NOW(),'question',$7,$8,$9,$10,'needs_review')").bind(id).bind(route_id).bind(&slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(config(form)).bind(&form.introduction).bind(form.graph_position_x.map(f64::from)).bind(form.graph_position_y.map(f64::from)).execute(&mut *transaction).await?;
     transaction.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedQuestionActivity {
+        activity_id: id,
+        slug,
+    }))
 }
 
 async fn update(
@@ -161,7 +165,7 @@ async fn update(
     }))
 }
 
-fn config(form: &QuestionActivityForm) -> Value {
+pub fn config(form: &QuestionActivityForm) -> Value {
     json!({"prompt":form.prompt,"allowMultiple":form.allow_multiple,"feedbackCorrect":form.feedback_correct,"feedbackIncorrect":form.feedback_incorrect,"explanation":form.explanation,"options":form.options.iter().enumerate().map(|(index, option)| json!({"key":option.key.clone().unwrap_or_else(|| format!("answer-{}", index + 1)),"label":option.label,"body":option.body,"isCorrect":option.is_correct,"outcomeKey":option.outcome_key,"feedback":option.feedback,"weights":option.weights})).collect::<Vec<_>>()})
 }
 

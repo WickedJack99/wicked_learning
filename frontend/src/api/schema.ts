@@ -100,8 +100,8 @@ export interface paths {
         get: operations["getContentApiMapAssetActivities"];
         put?: never;
         /**
-         * Create a Reflection, Review, Open Practice, or Markdown activity for an editable MapAsset.
-         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, Open Practice, and Markdown are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
+         * Create a Reflection, Review, Open Practice, Markdown, or Question activity for an editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, Open Practice, Markdown, and Question are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
          */
         post: operations["createContentApiActivity"];
         delete?: never;
@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5457,8 +5457,25 @@ export interface components {
             markdown_pages?: components["schemas"]["MarkdownActivityPage"][] | null;
             markdown_transitions?: components["schemas"]["MarkdownActivityTransition"][] | null;
             markdown_graph_layout?: components["schemas"]["MarkdownActivityGraphLayout"] | null;
+            question_prompt?: string | null;
+            question_feedback_correct?: string | null;
+            question_feedback_incorrect?: string | null;
+            question_explanation?: string | null;
+            question_allow_multiple?: boolean | null;
+            question_options?: components["schemas"]["ContentApiQuestionOption"][] | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
+        };
+        ContentApiQuestionOption: {
+            label: string;
+            body: string;
+            is_correct: boolean;
+            key?: string | null;
+            outcome_key?: string | null;
+            feedback?: string | null;
+            weights?: {
+                [key: string]: number;
+            };
         };
         CreateRegistrationTokenRequest: {
             /** Format: date-time */
@@ -10341,7 +10358,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, or Markdown activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, or Question activity. */
             201: {
                 headers: {
                     [name: string]: unknown;
