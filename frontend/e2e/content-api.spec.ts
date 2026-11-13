@@ -66,6 +66,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const messageTitle = `Content API browser message ${suffix}`;
     const messageWallTitle = `Content API browser message wall ${suffix}`;
     const reflectionTitle = `Content API browser reflection ${suffix}`;
+    const reviewTitle = `Content API browser review ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -194,6 +195,23 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(reflection.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(reflection.data).toMatchObject({ type: 'reflection', title: reflectionTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'review',
+        title: reviewTitle,
+        introduction: 'Revisit an earlier idea with the benefit of this encounter.',
+        reflection_prompt: 'What would you now explain differently?',
+        reflection_note: 'Keep a small comparison note for your next return.',
+        reflection_topic: 'Content API browser evidence',
+        reflection_subtopic: 'Review',
+        graph_position_x: 420,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const review = await createdResponse(console);
+    expect(review.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(review.data).toMatchObject({ type: 'review', title: reviewTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -205,4 +223,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(messageTitle);
     await expect(console.locator('pre')).toContainText(messageWallTitle);
     await expect(console.locator('pre')).toContainText(reflectionTitle);
+    await expect(console.locator('pre')).toContainText(reviewTitle);
 });
