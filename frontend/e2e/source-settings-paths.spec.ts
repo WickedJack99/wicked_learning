@@ -109,4 +109,21 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await expect(
         page.getByRole('heading', { level: 1, name: 'Security' }),
     ).toBeVisible();
+
+    const legacyRedirects = [
+        ['/settings/assets', '/settings?panel=admin-assets-world-objects&asset=visuals'],
+        ['/settings/assets/media', '/settings?panel=admin-assets-world-objects&asset=visuals'],
+        ['/settings/assets/items', '/settings?panel=admin-assets-world-objects&asset=items'],
+        ['/settings/assets/tools', '/settings?panel=admin-assets-world-objects&asset=tools'],
+        ['/settings/assets/sounds', '/settings?panel=admin-assets-world-objects&asset=sounds'],
+        ['/settings/presentation', '/settings?panel=admin-presentation-localization&presentation=public'],
+        ['/settings/languages', '/settings?panel=admin-presentation-localization&presentation=languages'],
+        ['/settings/journal', '/settings?panel=admin-learning-support&support=journal'],
+        ['/settings/ai', '/settings?panel=admin-ai-integrations'],
+        ['/settings/groups', '/settings?panel=admin-access&access=groups'],
+    ];
+    for (const [sourcePath, destination] of legacyRedirects) {
+        await page.goto(sourcePath);
+        await expect(page).toHaveURL(destination);
+    }
 });

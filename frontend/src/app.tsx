@@ -1055,9 +1055,27 @@ export function App() {
 
     const legacySettingsRedirects: Record<string, string> = {
         '/settings/appearance': '/settings?panel=personal&personal=appearance',
+        '/settings/ai': '/settings?panel=admin-ai-integrations',
+        '/settings/assets':
+            '/settings?panel=admin-assets-world-objects&asset=visuals',
+        '/settings/assets/items':
+            '/settings?panel=admin-assets-world-objects&asset=items',
+        '/settings/assets/media':
+            '/settings?panel=admin-assets-world-objects&asset=visuals',
+        '/settings/assets/sounds':
+            '/settings?panel=admin-assets-world-objects&asset=sounds',
+        '/settings/assets/tools':
+            '/settings?panel=admin-assets-world-objects&asset=tools',
         '/settings/color-palette':
             '/settings?panel=admin-presentation-localization&presentation=palette',
+        '/settings/groups': '/settings?panel=admin-access&access=groups',
+        '/settings/journal':
+            '/settings?panel=admin-learning-support&support=journal',
         '/settings/language': '/settings?panel=personal&personal=language',
+        '/settings/languages':
+            '/settings?panel=admin-presentation-localization&presentation=languages',
+        '/settings/presentation':
+            '/settings?panel=admin-presentation-localization&presentation=public',
         '/settings/profile': '/settings?panel=personal&personal=profile',
     };
     const legacySettingsDestination = legacySettingsRedirects[location.pathname];
