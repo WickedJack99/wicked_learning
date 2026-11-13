@@ -1650,6 +1650,70 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/ai-content-plans:
+    post:
+      operationId: createAdminWorldBuilderContentPlan
+      summary: Generate one reviewable ContentPlan draft for an editable map.
+      description: >-
+        Requires AI update permission, the source World Map and Activity update
+        scopes, and a same-origin CSRF token. The server sends only the selected
+        map context and administrator-selected source records to an enabled
+        content-authoring template. Provider output is validated before a draft
+        is stored; this endpoint never creates a MapAsset or Activity.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GenerateAdminContentPlanRequest' }
+      responses:
+        '201':
+          description: A validated, human-reviewable draft. No learner-facing content has changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminContentPlanRunResponse' }
+        '400': { description: The bounded authoring brief is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: The caller lacks AI update permission or the same-origin CSRF check failed. }
+        '404': { description: The map, template, selected source, or scoped authoring access is unavailable. }
+        '422': { description: The provider response did not satisfy the strict ContentPlan contract. }
+        '503': { description: The application database is unavailable. }
+  /admin/ai-content-plans/{run_id}:
+    patch:
+      operationId: updateAdminContentPlan
+      summary: Save an administrator-edited reviewable ContentPlan draft.
+      description: >-
+        Requires the original draft author, AI update permission, the draft map's
+        current World Map update scope, and a same-origin CSRF token. The plan is
+        constrained to the original brief's activity types and selected source
+        records. Saving a draft never creates a MapAsset or Activity.
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAdminContentPlanRequest' }
+      responses:
+        '200':
+          description: The validated draft with refreshed placement warnings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminContentPlanRunResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: The caller lacks AI update permission or the same-origin CSRF check failed. }
+        '404': { description: The draft is not owned by the caller, is not editable, or its map is unavailable in scope. }
+        '422': { description: The edited draft does not satisfy its strict ContentPlan contract. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/nodes:
     post:
       operationId: createAdminWorldBuilderNode
@@ -13192,6 +13256,122 @@ components:
       required: [template_id]
       properties:
         template_id: { type: string, format: uuid }
+    GenerateAdminContentPlanRequest:
+      type: object
+      additionalProperties: false
+      required: [template_id, goal, route_length, activity_types]
+      properties:
+        template_id: { type: string, format: uuid }
+        goal: { type: string, minLength: 1, maxLength: 4000 }
+        target_audience: { type: [string, 'null'], maxLength: 1000 }
+        prior_knowledge: { type: [string, 'null'], maxLength: 1000 }
+        route_length: { type: integer, minimum: 1, maximum: 3 }
+        activity_types:
+          type: array
+          minItems: 1
+          maxItems: 3
+          uniqueItems: true
+          items: { type: string, enum: [markdown, reflection, message_prompt, shared_task, open_practice] }
+        source_record_ids:
+          type: array
+          maxItems: 5
+          uniqueItems: true
+          default: []
+          items: { type: string, format: uuid }
+    AdminContentPlanActivity:
+      type: object
+      additionalProperties: false
+      required: [type, title, introduction, body, prompt, note, topic, inputLabel, competenceTopics, learningIntent, sourceRecordIds]
+      properties:
+        type: { type: string, enum: [markdown, reflection, message_prompt, shared_task, open_practice] }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        body: { type: [string, 'null'], maxLength: 12000 }
+        prompt: { type: [string, 'null'], maxLength: 4000 }
+        note: { type: [string, 'null'], maxLength: 2000 }
+        topic: { type: [string, 'null'], maxLength: 120 }
+        inputLabel: { type: [string, 'null'], maxLength: 120 }
+        competenceTopics:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items: { type: string, minLength: 1, maxLength: 120 }
+        learningIntent: { type: string, enum: [apply, explain, participate, reflect, retrieve, review, transfer] }
+        sourceRecordIds:
+          type: array
+          maxItems: 5
+          uniqueItems: true
+          items: { type: string, format: uuid }
+    AdminContentPlan:
+      type: object
+      additionalProperties: false
+      required: [summary, mapAsset, activities]
+      properties:
+        summary: { type: string, minLength: 1, maxLength: 1200 }
+        mapAsset:
+          type: object
+          additionalProperties: false
+          required: [title, description, label]
+          properties:
+            title: { type: string, minLength: 1, maxLength: 120 }
+            description: { type: [string, 'null'], maxLength: 1000 }
+            label: { type: [string, 'null'], maxLength: 80 }
+        activities:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items: { $ref: '#/components/schemas/AdminContentPlanActivity' }
+    UpdateAdminContentPlanRequest:
+      type: object
+      additionalProperties: false
+      required: [plan]
+      properties:
+        plan: { $ref: '#/components/schemas/AdminContentPlan' }
+    AdminContentPlanSourceRecord:
+      type: object
+      additionalProperties: false
+      required: [id, anchor, concepts, excerpt, publishedAt, publisher, rights, title, url]
+      properties:
+        id: { type: string, format: uuid }
+        anchor: { type: [string, 'null'] }
+        concepts: { type: array, items: { type: string } }
+        excerpt: { type: [string, 'null'] }
+        publishedAt: { type: [string, 'null'], format: date }
+        publisher: { type: [string, 'null'] }
+        rights: { type: [string, 'null'] }
+        title: { type: string }
+        url: { type: string, format: uri }
+    AdminContentPlanUsage:
+      type: object
+      additionalProperties: false
+      required: [inputTokens, outputTokens, totalTokens]
+      properties:
+        inputTokens: { type: [integer, 'null'], minimum: 0 }
+        outputTokens: { type: [integer, 'null'], minimum: 0 }
+        totalTokens: { type: [integer, 'null'], minimum: 0 }
+    AdminContentPlanRun:
+      type: object
+      additionalProperties: false
+      required: [id, status, contractVersion, plan, sourceRecords, warnings, provider, model, usage, mapAsset, createdAt, appliedAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [draft, applied] }
+        contractVersion: { type: string }
+        plan: { $ref: '#/components/schemas/AdminContentPlan' }
+        sourceRecords: { type: array, items: { $ref: '#/components/schemas/AdminContentPlanSourceRecord' } }
+        warnings: { type: array, items: { type: string } }
+        provider: { type: string }
+        model: { type: string }
+        usage: { $ref: '#/components/schemas/AdminContentPlanUsage' }
+        mapAsset: { type: ['null'] }
+        createdAt: { type: string, format: date-time }
+        appliedAt: { type: ['null'], format: date-time }
+    AdminContentPlanRunResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/AdminContentPlanRun' }
     ReviewAdminActivityAiResponse:
       type: object
       additionalProperties: false

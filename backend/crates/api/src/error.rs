@@ -186,6 +186,14 @@ impl ApiError {
         }
     }
 
+    pub fn content_plan_rejected() -> Self {
+        Self {
+            code: "content_plan_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The ContentPlan draft could not be completed safely.",
+        }
+    }
+
     pub fn companion_turn_rejected() -> Self {
         Self {
             code: "companion_turn_rejected",

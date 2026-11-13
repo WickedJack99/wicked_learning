@@ -1780,58 +1780,7 @@ fn document() -> Value {
 }
 
 fn content_plan_document() -> Value {
-    json!({
-        "version": "1.5",
-        "purpose": "A reviewable draft for one MapAsset and a short linear learning route.",
-        "humanApprovalRequired": true,
-        "supportedActivityTypes": ["markdown", "reflection", "message_prompt", "shared_task", "open_practice"],
-        "placementDefaults": { "positionX": 50, "positionY": 50, "width": 14 },
-        "schema": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["summary", "mapAsset", "activities"],
-            "properties": {
-                "summary": {
-                    "type": "string",
-                    "description": "A short rationale for the proposed learning route.",
-                    "maxLength": 1200,
-                },
-                "mapAsset": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["title", "description", "label"],
-                    "properties": {
-                        "title": { "type": "string", "maxLength": 120 },
-                        "description": { "type": ["string", "null"], "maxLength": 1000 },
-                        "label": { "type": ["string", "null"], "maxLength": 80 },
-                    },
-                },
-                "activities": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxItems": 3,
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": ["type", "title", "introduction", "body", "prompt", "note", "topic", "inputLabel", "competenceTopics", "learningIntent", "sourceRecordIds"],
-                        "properties": {
-                            "type": { "type": "string", "enum": ["markdown", "reflection", "message_prompt", "shared_task", "open_practice"] },
-                            "title": { "type": "string", "maxLength": 120 },
-                            "introduction": { "type": ["string", "null"], "maxLength": 1000 },
-                            "body": { "type": ["string", "null"], "description": "Markdown body for markdown activities; null for interactive activities.", "maxLength": 12000 },
-                            "prompt": { "type": ["string", "null"], "description": "Learner prompt for reflections, message prompts, shared tasks and open practice; null for markdown activities.", "maxLength": 4000 },
-                            "note": { "type": ["string", "null"], "description": "Optional reflection guidance or shared-task instructions; null for markdown activities.", "maxLength": 2000 },
-                            "topic": { "type": ["string", "null"], "description": "Shared message topic for message prompts; null for other activity types, including shared tasks.", "maxLength": 120 },
-                            "inputLabel": { "type": ["string", "null"], "description": "Optional learner message or shared-task input label; null for other activity types.", "maxLength": 120 },
-                            "competenceTopics": { "type": "array", "description": "One to three short competence topic labels this activity intentionally nourishes.", "minItems": 1, "maxItems": 3, "items": { "type": "string", "maxLength": 120 } },
-                            "learningIntent": { "type": "string", "description": "The primary learning purpose of this activity, not a grade or performance judgment.", "enum": ["apply", "explain", "participate", "reflect", "retrieve", "review", "transfer"] },
-                            "sourceRecordIds": { "type": "array", "description": "Opaque UUIDs of selected source records that directly support this activity; use an empty array when none are directly attributed.", "maxItems": 5, "items": { "type": "string", "format": "uuid" } },
-                        },
-                    },
-                },
-            },
-        },
-    })
+    wicked_learning_application::admin_ai_content_authoring::content_plan_document()
 }
 
 fn operation(

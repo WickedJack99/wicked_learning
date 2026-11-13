@@ -4816,10 +4816,14 @@ Future Activity entries must be added with their exact Rust adapters.
 
 **Extension:** The contract also exposes Laravel's strict v1.5 ContentPlan
 draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and
-Open Practice. This schema remains a read-only authoring reference: it does not
-advertise provider generation, draft persistence or plan application before
-their dedicated scoped Rust commands exist. Selected source records are named
-by the platform's opaque UUIDs rather than Laravel's retired numeric IDs.
+Open Practice. Rust now advertises two dedicated, scoped administration
+commands: generate a validated persisted draft for one editable map, and save a
+human-edited draft owned by its creator. They require CSRF plus AI, map and
+activity authoring scope; provider output stays behind the encrypted server
+adapter and neither command writes learner-facing content. Plan application is
+still not advertised until its revalidation and atomic MapAsset/Activity/route
+writer exist. Selected source records are named by the platform's opaque UUIDs
+rather than Laravel's retired numeric IDs.
 
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity

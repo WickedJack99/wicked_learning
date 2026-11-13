@@ -4,9 +4,15 @@ use async_openai::{
     types::responses::{OutputItem, OutputMessageContent, Status},
 };
 use serde_json::{Value, json};
-use wicked_learning_application::admin_activity_ai_review::activity_review_schema;
+use wicked_learning_application::{
+    admin_activity_ai_review::activity_review_schema,
+    admin_ai_content_authoring::content_plan_document,
+};
 use wicked_learning_persistence::admin_activity_ai_review::{
     ActivityReviewExecution, ActivityReviewUsage,
+};
+use wicked_learning_persistence::admin_ai_content_authoring::{
+    ContentAuthoringExecution, ContentAuthoringProviderOutput,
 };
 use wicked_learning_persistence::learner_companion::CompanionTurnExecution;
 
@@ -19,6 +25,10 @@ pub struct AiProvider;
 pub struct AiProviderReviewOutput {
     pub review: Value,
     pub usage: ActivityReviewUsage,
+}
+
+pub struct AiProviderContentPlanOutput {
+    pub output: ContentAuthoringProviderOutput,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -92,6 +102,46 @@ impl AiProvider {
                 total_tokens: None,
             });
         Ok(AiProviderReviewOutput { review, usage })
+    }
+
+    pub async fn generate_content_plan(
+        execution: &ContentAuthoringExecution,
+        cipher: &AiCredentialCipher,
+    ) -> Result<AiProviderContentPlanOutput, AiProviderError> {
+        let client = provider_client(
+            &execution.provider,
+            execution.base_url.as_deref(),
+            execution.organization.as_deref(),
+            &execution.encrypted_api_key,
+            &execution.api_key_nonce,
+            cipher,
+        )?;
+        let request = content_plan_response_request(&execution)?;
+        let response = client
+            .responses()
+            .create(request)
+            .await
+            .map_err(|_| AiProviderError::Response)?;
+        if response.status != Status::Completed {
+            return Err(AiProviderError::Response);
+        }
+        let text = response_text(&response);
+        let plan = serde_json::from_str(&text).map_err(|_| AiProviderError::Response)?;
+        let output = ContentAuthoringProviderOutput {
+            plan,
+            provider_response_id: Some(response.id),
+            provider_request_id: None,
+            input_tokens: response
+                .usage
+                .as_ref()
+                .map(|usage| i64::from(usage.input_tokens)),
+            output_tokens: response
+                .usage
+                .as_ref()
+                .map(|usage| i64::from(usage.output_tokens)),
+            total_tokens: response.usage.map(|usage| i64::from(usage.total_tokens)),
+        };
+        Ok(AiProviderContentPlanOutput { output })
     }
 }
 
@@ -176,6 +226,39 @@ fn response_request(
     serde_json::from_value(request).map_err(|_| AiProviderError::Configuration)
 }
 
+fn content_plan_response_request(
+    execution: &ContentAuthoringExecution,
+) -> Result<async_openai::types::responses::CreateResponse, AiProviderError> {
+    let instructions = [
+        execution.system_prompt.as_deref(),
+        execution.task_prompt.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .map(str::trim)
+    .filter(|value| !value.is_empty())
+    .collect::<Vec<_>>()
+    .join("\n\n");
+    let mut request = json!({
+        "model": execution.model,
+        "input": execution.prompt,
+        "text": {"format": {"type": "json_schema", "name": "wicked_learning_content_plan", "description": "A reviewable draft for one MapAsset and a short linear learning route.", "strict": true, "schema": content_plan_document()["schema"]}},
+    });
+    if !instructions.is_empty() {
+        request["instructions"] = json!(instructions);
+    }
+    if let Some(maximum) = execution.max_output_tokens.filter(|value| *value > 0) {
+        request["max_output_tokens"] = json!(maximum);
+    }
+    if let Some(temperature) = execution.temperature {
+        request["temperature"] = json!(temperature);
+    }
+    if let Some(effort) = execution.reasoning_effort.as_deref() {
+        request["reasoning"] = json!({"effort": effort});
+    }
+    serde_json::from_value(request).map_err(|_| AiProviderError::Configuration)
+}
+
 fn companion_response_request(
     execution: &CompanionTurnExecution,
 ) -> Result<async_openai::types::responses::CreateResponse, AiProviderError> {
@@ -210,12 +293,13 @@ fn companion_response_request(
 
 #[cfg(test)]
 mod tests {
-    use super::{companion_response_request, response_request};
+    use super::{companion_response_request, content_plan_response_request, response_request};
     use serde_json::json;
     use uuid::Uuid;
     use wicked_learning_application::learner_companion_turn::LearnerCompanionAssistanceLevel;
     use wicked_learning_persistence::{
         admin_activity_ai_review::ActivityReviewExecution,
+        admin_ai_content_authoring::ContentAuthoringExecution,
         learner_companion::CompanionTurnExecution,
     };
 
@@ -281,5 +365,45 @@ mod tests {
         );
         assert_eq!(request["max_output_tokens"], json!(400));
         assert!(request.get("text").is_none());
+    }
+
+    #[test]
+    fn content_plan_request_keeps_the_named_strict_contract_and_scoped_prompt() {
+        let request = content_plan_response_request(&ContentAuthoringExecution {
+            map_id: Uuid::new_v4(),
+            template_id: Uuid::new_v4(),
+            provider: "openai".into(),
+            base_url: None,
+            organization: None,
+            encrypted_api_key: vec![1],
+            api_key_nonce: vec![2; 12],
+            model: "test-model".into(),
+            system_prompt: Some("System boundary".into()),
+            task_prompt: Some("Task boundary".into()),
+            temperature: None,
+            reasoning_effort: None,
+            max_output_tokens: Some(600),
+            prompt: "Scoped map context".into(),
+            context: json!({}),
+            brief:
+                wicked_learning_application::admin_ai_content_authoring::ContentPlanBrief::parse(
+                    Uuid::new_v4(),
+                    "Draft a route",
+                    None,
+                    None,
+                    1,
+                    vec!["markdown".into()],
+                    vec![],
+                )
+                .expect("brief"),
+        })
+        .expect("request");
+        let request = serde_json::to_value(request).expect("serialize request");
+        assert_eq!(
+            request["text"]["format"]["name"],
+            json!("wicked_learning_content_plan")
+        );
+        assert_eq!(request["text"]["format"]["strict"], json!(true));
+        assert_eq!(request["input"], json!("Scoped map context"));
     }
 }

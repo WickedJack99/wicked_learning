@@ -13,6 +13,7 @@ mod admin_activity_feedback_guidance;
 mod admin_activity_learning_design;
 mod admin_activity_source_references;
 mod admin_activity_templates;
+mod admin_ai_content_authoring;
 mod admin_ai_settings;
 mod admin_dialogue_typing_sound_set;
 mod admin_learning_companion;
@@ -811,6 +812,14 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/assets",
             post(admin_world_map_asset::create),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/ai-content-plans",
+            post(admin_ai_content_authoring::generate),
+        )
+        .route(
+            "/api/v1/admin/ai-content-plans/{run_id}",
+            patch(admin_ai_content_authoring::update),
         )
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/nodes",

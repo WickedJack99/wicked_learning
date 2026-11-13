@@ -1318,6 +1318,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/ai-content-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate one reviewable ContentPlan draft for an editable map.
+         * @description Requires AI update permission, the source World Map and Activity update scopes, and a same-origin CSRF token. The server sends only the selected map context and administrator-selected source records to an enabled content-authoring template. Provider output is validated before a draft is stored; this endpoint never creates a MapAsset or Activity.
+         */
+        post: operations["createAdminWorldBuilderContentPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai-content-plans/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save an administrator-edited reviewable ContentPlan draft.
+         * @description Requires the original draft author, AI update permission, the draft map's current World Map update scope, and a same-origin CSRF token. The plan is constrained to the original brief's activity types and selected source records. Saving a draft never creates a MapAsset or Activity.
+         */
+        patch: operations["updateAdminContentPlan"];
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/nodes": {
         parameters: {
             query?: never;
@@ -9697,6 +9737,84 @@ export interface components {
             /** Format: uuid */
             template_id: string;
         };
+        GenerateAdminContentPlanRequest: {
+            /** Format: uuid */
+            template_id: string;
+            goal: string;
+            target_audience?: string | null;
+            prior_knowledge?: string | null;
+            route_length: number;
+            activity_types: ("markdown" | "reflection" | "message_prompt" | "shared_task" | "open_practice")[];
+            /** @default [] */
+            source_record_ids: string[];
+        };
+        AdminContentPlanActivity: {
+            /** @enum {string} */
+            type: "markdown" | "reflection" | "message_prompt" | "shared_task" | "open_practice";
+            title: string;
+            introduction: string | null;
+            body: string | null;
+            prompt: string | null;
+            note: string | null;
+            topic: string | null;
+            inputLabel: string | null;
+            competenceTopics: string[];
+            /** @enum {string} */
+            learningIntent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
+            sourceRecordIds: string[];
+        };
+        AdminContentPlan: {
+            summary: string;
+            mapAsset: {
+                title: string;
+                description: string | null;
+                label: string | null;
+            };
+            activities: components["schemas"]["AdminContentPlanActivity"][];
+        };
+        UpdateAdminContentPlanRequest: {
+            plan: components["schemas"]["AdminContentPlan"];
+        };
+        AdminContentPlanSourceRecord: {
+            /** Format: uuid */
+            id: string;
+            anchor: string | null;
+            concepts: string[];
+            excerpt: string | null;
+            /** Format: date */
+            publishedAt: string | null;
+            publisher: string | null;
+            rights: string | null;
+            title: string;
+            /** Format: uri */
+            url: string;
+        };
+        AdminContentPlanUsage: {
+            inputTokens: number | null;
+            outputTokens: number | null;
+            totalTokens: number | null;
+        };
+        AdminContentPlanRun: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "applied";
+            contractVersion: string;
+            plan: components["schemas"]["AdminContentPlan"];
+            sourceRecords: components["schemas"]["AdminContentPlanSourceRecord"][];
+            warnings: string[];
+            provider: string;
+            model: string;
+            usage: components["schemas"]["AdminContentPlanUsage"];
+            mapAsset: null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            appliedAt: null;
+        };
+        AdminContentPlanRunResponse: {
+            data: components["schemas"]["AdminContentPlanRun"];
+        };
         ReviewAdminActivityAiResponse: {
             /** Format: uuid */
             activity_id: string;
@@ -14299,6 +14417,141 @@ export interface operations {
             };
             /** @description The map is unknown or unavailable through the source editor scope. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminWorldBuilderContentPlan: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateAdminContentPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description A validated, human-reviewable draft. No learner-facing content has changed. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContentPlanRunResponse"];
+                };
+            };
+            /** @description The bounded authoring brief is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The caller lacks AI update permission or the same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The provider response did not satisfy the strict ContentPlan contract. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminContentPlan: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminContentPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description The validated draft with refreshed placement warnings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContentPlanRunResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The caller lacks AI update permission or the same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The draft is not owned by the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The edited draft does not satisfy its strict ContentPlan contract. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1672,11 +1672,16 @@ options, Shared Task's bounded collaboration configuration, Item Grant's
 scoped catalog resolution, Tool Grant's scoped tool resolution, Item Obstacle's scoped item/sound resolution, Obstacle's scoped tool resolution, Portal's same-World input-target resolution and transactional link/media-reference write, NPC dialogue's default end-node scaffold, Message's map-scoped topic resolution, and optional graph coordinates. Other Activity types
 remain absent from the advertised contract until their exact scoped adapters are
 implemented. The contract also now publishes the source-compatible strict
-ContentPlan draft schema for the five source-supported plan activity types. It
-does not advertise AI generation, plan storage, editing or application: those
-remain separate Rust commands until their scoped validation and atomic-write
-evidence exists. Source attributions use opaque Rust source-record UUIDs;
-Laravel's numeric record identities are not a greenfield compatibility target.
+ContentPlan draft schema for the five source-supported plan activity types.
+The scoped Rust authoring endpoints generate and persist one reviewable draft
+for an editable map, and let only its creator save an edited draft after the
+same schema, selected-source and current map-scope checks. Provider execution
+uses the existing encrypted server-only Responses boundary; no prompt, key or
+unselected context is serialized back to the browser. Neither endpoint creates
+content. Applying a draft remains unadvertised until its revalidation and
+single-transaction MapAsset/Activity/route writer are migrated. Source
+attributions use opaque Rust source-record UUIDs; Laravel's numeric record
+identities are not a greenfield compatibility target.
 
 ### 7. Complete the replacement deliberately
 
