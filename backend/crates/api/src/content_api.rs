@@ -1825,7 +1825,7 @@ fn content_plan_document() -> Value {
                             "inputLabel": { "type": ["string", "null"], "description": "Optional learner message or shared-task input label; null for other activity types.", "maxLength": 120 },
                             "competenceTopics": { "type": "array", "description": "One to three short competence topic labels this activity intentionally nourishes.", "minItems": 1, "maxItems": 3, "items": { "type": "string", "maxLength": 120 } },
                             "learningIntent": { "type": "string", "description": "The primary learning purpose of this activity, not a grade or performance judgment.", "enum": ["apply", "explain", "participate", "reflect", "retrieve", "review", "transfer"] },
-                            "sourceRecordIds": { "type": "array", "description": "IDs of selected source records that directly support this activity; use an empty array when none are directly attributed.", "maxItems": 5, "items": { "type": "integer" } },
+                            "sourceRecordIds": { "type": "array", "description": "Opaque UUIDs of selected source records that directly support this activity; use an empty array when none are directly attributed.", "maxItems": 5, "items": { "type": "string", "format": "uuid" } },
                         },
                     },
                 },
@@ -1926,6 +1926,11 @@ mod tests {
                 "review",
                 "transfer"
             ])
+        );
+        assert_eq!(
+            document["contentPlan"]["schema"]["properties"]["activities"]["items"]["properties"]["sourceRecordIds"]
+                ["items"],
+            json!({ "type": "string", "format": "uuid" })
         );
     }
 

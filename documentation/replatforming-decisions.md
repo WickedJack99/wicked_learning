@@ -4818,7 +4818,8 @@ Future Activity entries must be added with their exact Rust adapters.
 draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and
 Open Practice. This schema remains a read-only authoring reference: it does not
 advertise provider generation, draft persistence or plan application before
-their dedicated scoped Rust commands exist.
+their dedicated scoped Rust commands exist. Selected source records are named
+by the platform's opaque UUIDs rather than Laravel's retired numeric IDs.
 
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity

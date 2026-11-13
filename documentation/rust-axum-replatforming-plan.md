@@ -1675,7 +1675,8 @@ implemented. The contract also now publishes the source-compatible strict
 ContentPlan draft schema for the five source-supported plan activity types. It
 does not advertise AI generation, plan storage, editing or application: those
 remain separate Rust commands until their scoped validation and atomic-write
-evidence exists.
+evidence exists. Source attributions use opaque Rust source-record UUIDs;
+Laravel's numeric record identities are not a greenfield compatibility target.
 
 ### 7. Complete the replacement deliberately
 

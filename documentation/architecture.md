@@ -568,7 +568,9 @@ API currently relies on the signed-in web session and CSRF token; it does not
 issue public bearer tokens. Its published ContentPlan is the source-compatible
 strict draft schema for a bounded MapAsset and short route; publishing that
 schema does not expose AI generation, draft storage or plan application until
-their scoped validation and atomic-write commands are migrated.
+their scoped validation and atomic-write commands are migrated. Its selected
+source references use the Rust platform's opaque UUIDs, not Laravel's retired
+numeric record identifiers.
 
 ## Account, Access And Support Models
 
