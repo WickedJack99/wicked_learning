@@ -527,6 +527,24 @@ paths:
         '404': { description: The Shared Task Activity is unavailable in the caller's scoped MapAsset. }
         '409': { description: The supplied updated_at value is stale. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/item-grant:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateContentApiItemGrantActivity
+      summary: Replace a source-compatible Item Grant Activity form.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateContentApiItemGrantActivityRequest' } } } }
+      responses:
+        '200': { description: The updated Item Grant Activity identity and fresh concurrency timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/ContentApiActivityUpdateResponse' } } } }
+        '400': { description: The complete Item Grant form is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The Item Grant Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
     servers:
       - url: /api
@@ -7831,6 +7849,20 @@ components:
           required: [updated_at]
           properties:
             updated_at: { type: string, format: date-time }
+    UpdateContentApiItemGrantActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, background_dark, background_light, background_mirrored, items, probability_percent, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean }
+        items: { type: array, items: { $ref: '#/components/schemas/AdminItemGrantItemRequest' } }
+        probability_percent: { type: number, minimum: 0.01, maximum: 100 }
+        updated_at: { type: string, format: date-time }
     ContentApiActivityUpdateResponse:
       type: object
       additionalProperties: false

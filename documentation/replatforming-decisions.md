@@ -4835,12 +4835,13 @@ the selected map's World Builder scope.
 
 **Reflective-activity extension:** Activity reads now return their source
 `updatedAt` value, and the Reflection, Review, Open Practice, Markdown,
-Question and Shared Task replacement endpoints each accept only their complete
+Question, Shared Task and Item Grant replacement endpoints each accept only their complete
 source form plus that current timestamp. Each separately proves the requested
 type and MapAsset membership before its typed command rechecks authoring scope
 and persists the update. Markdown keeps its complete page graph and managed-media
-references, Question keeps its answer configuration, and Shared Task keeps its
-collaboration configuration inside the existing typed commands. This is
+references, Question keeps its answer configuration, Shared Task keeps its
+collaboration configuration, and Item Grant resolves configured catalog UUIDs
+inside the existing typed commands. This is
 intentionally not a generic activity patch: every remaining Activity type stays
 behind its own source-shaped adapter.
 

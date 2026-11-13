@@ -63,6 +63,7 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/markdown` | Replace one complete Markdown Activity page graph |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/question` | Replace one complete Question Activity form |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/shared-task` | Replace one complete Shared Task Activity form |
+| `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/item-grant` | Replace one complete Item Grant Activity form |
 | `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
 | `POST` | `/map-assets/{mapAsset}/activity-transitions` | Connect two Activities through the scoped graph writer |
 | `PATCH` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Update a scoped Activity connection's presentation |
@@ -82,11 +83,12 @@ that the addressed transition belongs to the URL's MapAsset before delegation.
 Map deletion retains the established scoped cascade/reference cleanup. Bulk
 import and automatic graph wiring are not exposed. Activity reads include each
 record's `updatedAt` timestamp. Reflection, Review, Open Practice, Markdown,
-Question and Shared Task replacement each require that timestamp, the full
+Question, Shared Task and Item Grant replacement each require that timestamp, the full
 source form, and a URL whose MapAsset and typed Activity are proven to belong
 together; their typed commands retain page-graph/media, answer, and
-collaboration configuration respectively. Other Activity types remain behind
-their own typed adapters.
+collaboration configuration respectively. Item Grant resolves every catalog
+item UUID server-side inside its existing typed command. Other Activity types
+remain behind their own typed adapters.
 
 ## Settings Console
 

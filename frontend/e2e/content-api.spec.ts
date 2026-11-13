@@ -1317,6 +1317,41 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.getByText('HTTP 200')).toBeVisible();
     await expect(console.locator('pre')).toContainText(sharedTask.data.id);
 
+    const initialItemGrant = listedActivities.data.find((activity) => activity.id === itemGrant.data.id);
+    if (!initialItemGrant) {
+        throw new Error('the created Item Grant Activity was not returned by its scoped list');
+    }
+    const updatedItemGrantTitle = `${itemGrantTitle} updated`;
+    await console.getByLabel('Operation').selectOption('activities.item-grant.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${itemGrant.data.id}/item-grant`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedItemGrantTitle,
+        slug: null,
+        introduction: 'Collect the configured item after making an observation.',
+        background_dark: null,
+        background_light: null,
+        background_mirrored: false,
+        items: [{
+            item_id: '20000000-0000-4000-8000-000000000001',
+            quantity: 1,
+        }],
+        probability_percent: 100,
+        updated_at: initialItemGrant.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(itemGrant.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedItemGrantTitle);
+
     await console
         .getByLabel('Operation')
         .selectOption('activity-transitions.store');
