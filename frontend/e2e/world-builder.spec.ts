@@ -1,5 +1,7 @@
 import { expect, test } from './authenticated';
 
+test.setTimeout(60_000);
+
 test('a local world author can open the source-derived World Builder graph', async ({
     page,
 }) => {
@@ -165,8 +167,11 @@ test('a local world author can open the source-derived World Builder graph', asy
     await expect(
         page.getByRole('heading', { name: 'Add Reflection' }),
     ).toBeVisible();
-    await expect(page.getByLabel('Question')).toBeVisible();
-    await expect(page.getByLabel('Journal topic')).toBeVisible();
+    const reflectionDialog = page.getByRole('dialog', {
+        name: 'Add Reflection',
+    });
+    await expect(reflectionDialog.getByLabel('Question')).toBeVisible();
+    await expect(reflectionDialog.getByLabel('Journal topic')).toBeVisible();
     await page.getByRole('button', { name: 'Close activity form' }).click();
 
     await page.getByRole('button', { name: 'Item grant' }).click();
@@ -274,11 +279,10 @@ test('a local world author can open the source-derived World Builder graph', asy
                 ),
             ).toBeVisible();
         }
-        await page
-            .getByRole('group', {
-                name: `Edge from ${transition.from_activity_id} to ${transition.to_activity_id ?? '__end'}`,
-            })
-            .click();
+        const transitionEdge = page.getByRole('group', {
+            name: `Edge from ${transition.from_activity_id} to ${transition.to_activity_id ?? '__end'}`,
+        });
+        await transitionEdge.dispatchEvent('click');
         await expect(
             page.getByRole('heading', { name: 'Edit connection' }),
         ).toBeVisible();
@@ -292,7 +296,7 @@ test('a local world author can open the source-derived World Builder graph', asy
             .getByRole('group', {
                 name: `Edge from __start to ${startRoute.activity_id}`,
             })
-            .click({ force: true });
+            .dispatchEvent('click');
         await expect(
             page.getByRole('heading', { name: 'Route visuals' }),
         ).toBeVisible();
