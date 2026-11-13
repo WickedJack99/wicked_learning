@@ -76,6 +76,21 @@ The local HTTP stack intentionally does not mark session or CSRF cookies
 `Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser
 origin for every non-local deployment.
 
+## Private backend metrics
+
+The backend exports Prometheus exposition data at `GET /metrics` for a scraper
+on the private Compose network. Nginx intentionally does not proxy that path,
+and the backend has no host port, so it is not a browser-facing endpoint. The
+metrics are aggregate HTTP counters and duration/known response-size summaries
+labeled only with method, matched route template and status code; they never
+include request paths, query values, principals, IP addresses or payload data.
+The endpoint is non-cacheable and is excluded from its own request metrics.
+
+This gives local/development operators a scrape target, not a production
+monitoring or alert policy. A deployment still needs a private scraper, alert
+rules and a tested rollback exercise before it can satisfy the final
+observability gate.
+
 ## Browser acceptance checks
 
 With the stack running, install the Chromium test browser once and run the

@@ -139,6 +139,7 @@ mod learner_world;
 mod learning_support_moderation;
 mod login_rate_limit;
 pub mod media_store;
+mod observability;
 mod organization;
 mod organization_icon;
 mod organization_icon_moderation;
@@ -251,6 +252,12 @@ async fn main() -> ExitCode {
         }
         None => {}
     }
+
+    if let Err(error) = observability::initialize() {
+        error!(%error, "could not initialize metrics");
+        return ExitCode::FAILURE;
+    }
+    observability::spawn_upkeep();
 
     let application_database = match connect(&configuration.application_database_url).await {
         Ok(pool) => pool,
@@ -583,6 +590,7 @@ fn router(state: AppState) -> Router {
         .merge(two_factor_routes)
         .merge(passkey_routes)
         .merge(password_recovery_routes)
+        .route("/metrics", get(observability::scrape))
         .route("/api/v1/health/live", get(live))
         .route("/api/v1/health/ready", get(ready))
         .route("/api/content/v1/contract", get(content_api::contract))
@@ -1577,6 +1585,7 @@ fn router(state: AppState) -> Router {
                 .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestUuid))
                 .layer(TraceLayer::new_for_http())
                 .layer(PropagateRequestIdLayer::new(REQUEST_ID_HEADER))
+                .layer(middleware::from_fn(observability::record_http_metrics))
                 .layer(RequestBodyLimitLayer::new(account_profile_image::MAX_PROFILE_IMAGE_BYTES + 16 * 1024))
                 .layer(TimeoutLayer::with_status_code(
                     axum::http::StatusCode::REQUEST_TIMEOUT,
@@ -1674,7 +1683,7 @@ mod tests {
     use sqlx::postgres::PgPoolOptions;
     use tower::ServiceExt;
 
-    use super::{AppState, ai_credential_crypto, configure_webauthn, router};
+    use super::{AppState, ai_credential_crypto, configure_webauthn, observability, router};
 
     fn test_webauthn() -> webauthn_rs::prelude::Webauthn {
         configure_webauthn("http://localhost:8081").expect("a valid local WebAuthn configuration")
@@ -1740,6 +1749,105 @@ mod tests {
                 .to_bytes(),
             "{\"status\":\"ok\"}"
         );
+    }
+
+    #[tokio::test]
+    async fn metrics_scrape_uses_matched_routes_without_recording_the_scrape() {
+        observability::initialize().expect("metrics recorder initializes once");
+
+        let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let app = router(state);
+        let liveness_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/health/live")
+                    .body(Body::empty())
+                    .expect("a valid HTTP request"),
+            )
+            .await
+            .expect("liveness handler response");
+        assert_eq!(liveness_response.status(), 200);
+
+        let protected_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(
+                        "/api/v1/admin/world-builder/maps/raw-path-must-not-be-a-metric-label?query=must-not-appear",
+                    )
+                    .body(Body::empty())
+                    .expect("a valid HTTP request"),
+            )
+            .await
+            .expect("protected route response");
+        assert_eq!(protected_response.status(), 404);
+
+        let metrics_response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/metrics")
+                    .body(Body::empty())
+                    .expect("a valid HTTP request"),
+            )
+            .await
+            .expect("metrics handler response");
+
+        assert_eq!(metrics_response.status(), 200);
+        assert_eq!(
+            metrics_response
+                .headers()
+                .get("cache-control")
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
+        assert!(
+            metrics_response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|value| value.starts_with("text/plain; version=0.0.4"))
+        );
+
+        let metrics = String::from_utf8(
+            metrics_response
+                .into_body()
+                .collect()
+                .await
+                .expect("metrics body bytes")
+                .to_bytes()
+                .to_vec(),
+        )
+        .expect("UTF-8 metrics body");
+        assert!(metrics.contains(
+            "wicked_learning_http_requests_total{method=\"GET\",route=\"/api/v1/health/live\",status=\"200\"}"
+        ), "{metrics}");
+        assert!(metrics.contains(
+            "wicked_learning_http_requests_total{method=\"GET\",route=\"/api/v1/admin/world-builder/maps/{map_id}\",status=\"404\"}"
+        ), "{metrics}");
+        assert!(!metrics.contains("raw-path-must-not-be-a-metric-label"));
+        assert!(!metrics.contains("must-not-appear"));
+        assert!(!metrics.contains("route=\"/metrics\""));
     }
 
     #[tokio::test]
