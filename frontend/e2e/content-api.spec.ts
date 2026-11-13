@@ -568,4 +568,49 @@ test('a content API author creates a MapAsset Activity through the documented co
             id: createdTransition.id,
         }),
     );
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activity-transitions.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${portalTargetMapAsset.data.id}/activity-transitions/${createdTransition.id}`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 404')).toBeVisible();
+
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activity-transitions/${createdTransition.id}`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        label: 'Continue after checking the dialogue',
+        trigger_value: null,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    const updatedTransitionResponse = JSON.parse(
+        (await console.locator('pre').textContent()) ?? '{}',
+    ) as { data: Array<{ id: string; label: string | null }> };
+    expect(updatedTransitionResponse.data).toContainEqual(
+        expect.objectContaining({
+            id: createdTransition.id,
+            label: 'Continue after checking the dialogue',
+        }),
+    );
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activity-transitions.destroy');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activity-transitions/${createdTransition.id}`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    const deletedTransitionResponse = JSON.parse(
+        (await console.locator('pre').textContent()) ?? '{}',
+    ) as { data: Array<{ id: string }> };
+    expect(deletedTransitionResponse.data).not.toContainEqual(
+        expect.objectContaining({
+            id: createdTransition.id,
+        }),
+    );
 });

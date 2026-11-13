@@ -12,7 +12,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 
 import { getCsrfToken } from './api/client';
 
-type ContentApiMethod = 'GET' | 'POST';
+type ContentApiMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST';
 
 type ContentApiOperation = {
     description: string;
@@ -139,7 +139,7 @@ export function OriginalContentApiPage() {
         }
 
         let requestBody: unknown = null;
-        if (selectedOperation.method === 'POST') {
+        if (hasJsonRequestBody(selectedOperation.method)) {
             try {
                 requestBody = body.trim() === '' ? {} : JSON.parse(body);
             } catch {
@@ -211,7 +211,7 @@ export function OriginalContentApiPage() {
                                 <Field label="Request path">
                                     <div className="flex gap-2"><MethodBadge method={selectedOperation?.method ?? 'GET'} /><input aria-label="Request path" className={`${inputClass} min-w-0 flex-1 font-mono text-xs`} onChange={(event) => setPath(event.currentTarget.value)} value={path} /></div>
                                 </Field>
-                                {selectedOperation?.method === 'POST' ? <Field label="JSON request body"><textarea aria-label="JSON request body" className="min-h-80 w-full resize-y rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] p-3 font-mono text-xs leading-5 outline-none focus:border-[var(--settings-accent)]" onChange={(event) => setBody(event.currentTarget.value)} spellCheck={false} value={body} /></Field> : null}
+                                {selectedOperation && hasJsonRequestBody(selectedOperation.method) ? <Field label="JSON request body"><textarea aria-label="JSON request body" className="min-h-80 w-full resize-y rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] p-3 font-mono text-xs leading-5 outline-none focus:border-[var(--settings-accent)]" onChange={(event) => setBody(event.currentTarget.value)} spellCheck={false} value={body} /></Field> : null}
                                 {path.includes('{') ? <Message kind="warning">Replace every path parameter in braces before sending.</Message> : null}
                                 {requestError ? <Message kind="error">{requestError}</Message> : null}
                             </section>
@@ -247,7 +247,15 @@ function SectionButton({ active, icon, label, onClick }: { active: boolean; icon
 }
 
 function MethodBadge({ method }: { method: ContentApiMethod }) {
-    return <span className={`inline-flex h-10 min-w-16 items-center justify-center rounded-md px-2 font-mono text-xs font-semibold ${method === 'GET' ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'}`}>{method}</span>;
+    const color = method === 'GET'
+        ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300'
+        : method === 'POST'
+            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+            : method === 'PATCH'
+                ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
+                : 'bg-red-500/15 text-red-700 dark:text-red-300';
+
+    return <span className={`inline-flex h-10 min-w-16 items-center justify-center rounded-md px-2 font-mono text-xs font-semibold ${color}`}>{method}</span>;
 }
 
 function Field({ children, label }: { children: ReactNode; label: string }) { return <label className="grid gap-2 text-sm font-medium">{label}{children}</label>; }
@@ -266,9 +274,10 @@ async function loadContract(signal: AbortSignal): Promise<ContentApiContract> {
 async function executeContractRequest(method: ContentApiMethod, path: string, body: unknown): Promise<ConsoleResponse> {
     if (!path.startsWith('/api/content/v1/')) { throw new Error('Only documented Content API v1 paths are allowed.'); }
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (method === 'POST') { headers['Content-Type'] = 'application/json'; headers['X-CSRF-Token'] = await getCsrfToken(); }
+    if (method !== 'GET') { headers['X-CSRF-Token'] = await getCsrfToken(); }
+    if (hasJsonRequestBody(method)) { headers['Content-Type'] = 'application/json'; }
     const startedAt = performance.now();
-    const response = await fetch(path, { body: method === 'POST' ? JSON.stringify(body) : undefined, credentials: 'same-origin', headers, method });
+    const response = await fetch(path, { body: hasJsonRequestBody(method) ? JSON.stringify(body) : undefined, credentials: 'same-origin', headers, method });
     const text = await response.text();
     return { body: parseResponseBody(text), durationMs: Math.round(performance.now() - startedAt), ok: response.ok, status: response.status };
 }
@@ -281,7 +290,9 @@ function parseContract(data: unknown): ContentApiContract {
     return { activityTypes, aiInstructions: data.aiInstructions.filter((instruction): instruction is string => typeof instruction === 'string'), authentication: { description: data.authentication.description, type: data.authentication.type }, basePath: data.basePath, contentPlan: { humanApprovalRequired: data.contentPlan.humanApprovalRequired, purpose: data.contentPlan.purpose, schema: data.contentPlan.schema, supportedActivityTypes: data.contentPlan.supportedActivityTypes.filter((type): type is string => typeof type === 'string'), version: data.contentPlan.version }, errors: isRecord(data.errors) ? Object.fromEntries(Object.entries(data.errors).filter((entry): entry is [string, string] => typeof entry[1] === 'string')) : {}, name: data.name, operations, version: data.version };
 }
 
-function parseOperation(operation: unknown): ContentApiOperation { if (!isRecord(operation) || typeof operation.id !== 'string' || (operation.method !== 'GET' && operation.method !== 'POST') || typeof operation.path !== 'string' || typeof operation.summary !== 'string' || typeof operation.description !== 'string') { throw new Error('The Content API returned an invalid operation.'); } return { description: operation.description, id: operation.id, method: operation.method, path: operation.path, requestExample: isRecord(operation.requestExample) ? operation.requestExample : null, responseExample: operation.responseExample, summary: operation.summary }; }
+function parseOperation(operation: unknown): ContentApiOperation { if (!isRecord(operation) || typeof operation.id !== 'string' || !isContentApiMethod(operation.method) || typeof operation.path !== 'string' || typeof operation.summary !== 'string' || typeof operation.description !== 'string') { throw new Error('The Content API returned an invalid operation.'); } return { description: operation.description, id: operation.id, method: operation.method, path: operation.path, requestExample: isRecord(operation.requestExample) ? operation.requestExample : null, responseExample: operation.responseExample, summary: operation.summary }; }
+function isContentApiMethod(value: unknown): value is ContentApiMethod { return value === 'DELETE' || value === 'GET' || value === 'PATCH' || value === 'POST'; }
+function hasJsonRequestBody(method: ContentApiMethod): boolean { return method === 'PATCH' || method === 'POST'; }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function parseResponseBody(text: string): unknown { if (text.trim() === '') { return null; } try { return JSON.parse(text) as unknown; } catch { return text; } }
 function sectionFromSearch(search: string): Section { return new URLSearchParams(search).get('api') === 'documentation' ? 'documentation' : 'console'; }

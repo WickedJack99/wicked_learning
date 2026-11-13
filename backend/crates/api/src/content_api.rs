@@ -31,6 +31,7 @@ use wicked_learning_application::{
     },
     admin_world_node_transition::{
         AdminWorldNodeTransitionCommand, AdminWorldNodeTransitionError, CreateActivityTransition,
+        UpdateActivityTransition,
     },
     admin_world_npc_dialogue::{
         AdminWorldNpcDialogueCommand, AdminWorldNpcDialogueError, CreatedNpcDialogueActivity,
@@ -66,7 +67,7 @@ use wicked_learning_application::{
     },
     content_api_activity::{
         ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
-        ContentApiActivityTransitionListQuery,
+        ContentApiActivityTransitionListQuery, ContentApiActivityTransitionScopeQuery,
     },
 };
 use wicked_learning_domain::world_content::{
@@ -311,6 +312,12 @@ pub struct CreateActivityTransitionRequest {
     from_connector: String,
     to_connector: String,
     label: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateActivityTransitionRequest {
+    label: Option<String>,
+    trigger_value: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -772,6 +779,81 @@ pub async fn create_activity_transition(
         PostgresAdminWorldNodeTransitionRepository::new(&state.application_database);
     let transitions = AdminWorldNodeTransitionCommand::new(&transition_repository)
         .create(&principal, node_id, &form)
+        .await
+        .map_err(map_transition_error)?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(Json(json!({
+        "data": transitions.iter().map(serialize_activity_transition).collect::<Vec<_>>(),
+    })))
+}
+
+/// Changes only the source graph connection presentation. Before delegating to
+/// the existing World Builder writer, the explicit Content API MapAsset path
+/// must contain the transition so a scoped caller cannot address an edge from
+/// another map through its otherwise-valid identifier.
+pub async fn update_activity_transition(
+    State(state): State<AppState>,
+    Path((map_asset_id, transition_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateActivityTransitionRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let transition_id = Uuid::parse_str(&transition_id).map_err(|_| ApiError::not_found())?;
+    let form =
+        UpdateActivityTransition::parse(request.label.as_deref(), request.trigger_value.as_deref())
+            .ok_or_else(ApiError::invalid_request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityTransitionScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, transition_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let transition_repository =
+        PostgresAdminWorldNodeTransitionRepository::new(&state.application_database);
+    let transitions = AdminWorldNodeTransitionCommand::new(&transition_repository)
+        .update(&principal, transition_id, &form)
+        .await
+        .map_err(map_transition_error)?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(Json(json!({
+        "data": transitions.iter().map(serialize_activity_transition).collect::<Vec<_>>(),
+    })))
+}
+
+/// Removes one connection after proving it belongs to the MapAsset in the
+/// Content API URL. The World Builder command then repeats write authorization
+/// and records the source activity history in its transaction.
+pub async fn delete_activity_transition(
+    State(state): State<AppState>,
+    Path((map_asset_id, transition_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let transition_id = Uuid::parse_str(&transition_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityTransitionScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, transition_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let transition_repository =
+        PostgresAdminWorldNodeTransitionRepository::new(&state.application_database);
+    let transitions = AdminWorldNodeTransitionCommand::new(&transition_repository)
+        .delete(&principal, transition_id)
         .await
         .map_err(map_transition_error)?
         .ok_or_else(ApiError::not_found)?;
@@ -1760,7 +1842,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.3",
+        "version": "1.4",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -1872,7 +1954,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.3", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.4", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
@@ -1881,6 +1963,8 @@ fn document() -> Value {
             operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "npc_dialogue", "title": "Ask the archive guide", "introduction": "Follow the guide's questions.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "npc_dialogue", "title": "Ask the archive guide" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
+            operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
+            operation("activity-transitions.destroy", "DELETE", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Delete a MapAsset Activity Connection", "Deletes one scoped connection after proving it belongs to the addressed MapAsset and records the source activity history.", Value::Null, json!({ "data": [] })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -1946,8 +2030,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.3");
-        assert_eq!(operations.len(), 9);
+        assert_eq!(document["version"], "1.4");
+        assert_eq!(operations.len(), 11);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "map-assets.index");
@@ -1956,6 +2040,8 @@ mod tests {
         assert_eq!(operations[6]["id"], "activities.store");
         assert_eq!(operations[7]["id"], "activity-transitions.index");
         assert_eq!(operations[8]["id"], "activity-transitions.store");
+        assert_eq!(operations[9]["id"], "activity-transitions.update");
+        assert_eq!(operations[10]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");

@@ -54,6 +54,45 @@ pub trait ContentApiActivityRepository {
     ) -> impl Future<
         Output = Result<Option<ContentApiMapAssetTransitions>, ContentApiActivityReadError>,
     > + Send;
+
+    fn load_transition_id(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        transition_id: Uuid,
+    ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send;
+}
+
+/// Proves that one transition is part of the MapAsset addressed by a Content
+/// API mutation before its existing World Builder command performs the write.
+/// The command repeats the authoring authorization transactionally; this query
+/// adds the API path's explicit MapAsset boundary.
+pub struct ContentApiActivityTransitionScopeQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> ContentApiActivityTransitionScopeQuery<'repository, Repository>
+where
+    Repository: ContentApiActivityRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        transition_id: Uuid,
+    ) -> Result<Option<Uuid>, ContentApiActivityReadError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+
+        self.repository
+            .load_transition_id(principal, map_asset_id, transition_id)
+            .await
+    }
 }
 
 /// Returns only the source-ordered edges in an editable MapAsset graph. The
@@ -159,7 +198,8 @@ mod tests {
     use super::{
         ContentApiActivityListQuery, ContentApiActivityNodeQuery, ContentApiActivityReadError,
         ContentApiActivityRepository, ContentApiActivityTransitionListQuery,
-        ContentApiMapAssetActivities, ContentApiMapAssetTransitions,
+        ContentApiActivityTransitionScopeQuery, ContentApiMapAssetActivities,
+        ContentApiMapAssetTransitions,
     };
 
     struct RecordingRepository {
@@ -198,6 +238,17 @@ mod tests {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
+
+        fn load_transition_id(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: Uuid,
+        ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
     }
 
     #[tokio::test]
@@ -224,10 +275,15 @@ mod tests {
             .execute(&principal, Uuid::new_v4())
             .await
             .expect("authorization check");
+        let transition = ContentApiActivityTransitionScopeQuery::new(&repository)
+            .execute(&principal, Uuid::new_v4(), Uuid::new_v4())
+            .await
+            .expect("authorization check");
 
         assert!(activities.is_none());
         assert!(node.is_none());
         assert!(transitions.is_none());
+        assert!(transition.is_none());
         assert!(!called.load(Ordering::SeqCst));
     }
 }

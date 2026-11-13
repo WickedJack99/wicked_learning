@@ -1721,16 +1721,18 @@ Question, Shared Task, catalog-resolved Item Grant and Tool Grant, an Item
 Obstacle with a catalog-resolved item slot, a tool-resolved Obstacle, and a
 same-World Portal input/output link, back through the documented scoped route.
 The OpenAPI contract and
-generated TypeScript client now mirror all nine advertised operations,
+generated TypeScript client now mirror all eleven advertised operations,
 including the map list/create pair; no live console operation is outside the
 typed API surface.
 
 The bounded Content API graph slice exposes source-ordered connection reads and
-explicit Activity connections within one scoped MapAsset. It delegates to the existing idempotent World
-Builder transition command, so both endpoints, connector validation, entry
-portal terminal rules and activity-history snapshots remain server-owned. The
-machine contract, generated TypeScript client and console advertise the
-operation only after that complete boundary is present; it does not infer or
+an explicit create/update/delete lifecycle for Activity connections within one
+scoped MapAsset. It delegates to the existing idempotent World Builder
+transition commands, so connector validation, entry portal terminal rules and
+activity-history snapshots remain server-owned. Update and delete additionally
+prove that the path transition belongs to the path MapAsset before delegation;
+the machine contract, generated TypeScript client and console advertise those
+operations only after that complete boundary is present. It does not infer or
 automatically wire learning paths.
 
 ### 7. Complete the replacement deliberately

@@ -256,6 +256,56 @@ paths:
         '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
         '404': { description: The MapAsset or a referenced activity is unavailable in the caller's World Activity scope. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activity-transitions/{transition_id}:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: transition_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateContentApiActivityTransition
+      summary: Update a source-shaped activity connection in one editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. The transition must belong to the MapAsset in the URL before the World Builder graph command updates its source-compatible label or outcome value.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateContentApiActivityTransitionRequest' }
+      responses:
+        '200':
+          description: The source-ordered MapAsset transitions after the connection presentation update.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityTransitionsResponse' }
+        '400': { description: The transition label or outcome value is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The MapAsset or transition is unavailable in the caller's World Activity scope. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteContentApiActivityTransition
+      summary: Delete a source-shaped activity connection from one editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. The transition must belong to the MapAsset in the URL before the World Builder graph command deletes it and records source activity history.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The remaining source-ordered MapAsset transitions after deletion.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityTransitionsResponse' }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The MapAsset or transition is unavailable in the caller's World Activity scope. }
+        '503': { description: The application database is unavailable. }
   /session:
     get:
       operationId: getSessionStatus
@@ -7413,6 +7463,12 @@ components:
         from_connector: { type: string, minLength: 1, maxLength: 80 }
         to_connector: { type: string, minLength: 1, maxLength: 80 }
         label: { type: [string, 'null'], maxLength: 120 }
+    UpdateContentApiActivityTransitionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        label: { type: [string, 'null'], maxLength: 120 }
+        trigger_value: { type: [string, 'null'], maxLength: 120 }
     CreateContentApiActivityRequest:
       type: object
       additionalProperties: false

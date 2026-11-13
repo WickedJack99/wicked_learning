@@ -53,11 +53,15 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `POST` | `/map-assets/{mapAsset}/activities` | Create a validated Activity                     |
 | `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
 | `POST` | `/map-assets/{mapAsset}/activity-transitions` | Connect two Activities through the scoped graph writer |
+| `PATCH` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Update a scoped Activity connection's presentation |
+| `DELETE` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Delete one scoped Activity connection |
 
 The contract response contains the authoritative fields and examples. The API
-currently creates individual objects and explicitly connects existing
-Activities within one MapAsset. Update, delete, bulk import and automatic graph
-wiring are not yet exposed.
+currently creates individual objects and explicitly manages individual Activity
+connections within one MapAsset. A transition update or deletion first proves
+that the addressed transition belongs to the URL's MapAsset before it delegates
+to the existing scoped World Builder writer. Map and MapAsset updates/deletes,
+bulk import and automatic graph wiring are not yet exposed.
 
 ## Settings Console
 

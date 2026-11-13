@@ -160,6 +160,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activity-transitions/{transition_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                transition_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a source-shaped activity connection from one editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. The transition must belong to the MapAsset in the URL before the World Builder graph command deletes it and records source activity history.
+         */
+        delete: operations["deleteContentApiActivityTransition"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a source-shaped activity connection in one editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. The transition must belong to the MapAsset in the URL before the World Builder graph command updates its source-compatible label or outcome value.
+         */
+        patch: operations["updateContentApiActivityTransition"];
+        trace?: never;
+    };
     "/session": {
         parameters: {
             query?: never;
@@ -5795,6 +5822,10 @@ export interface components {
             to_connector: string;
             label?: string | null;
         };
+        UpdateContentApiActivityTransitionRequest: {
+            label?: string | null;
+            trigger_value?: string | null;
+        };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
             type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle" | "portal" | "npc_dialogue" | "message_prompt" | "message_wall";
@@ -11285,6 +11316,125 @@ export interface operations {
                 content?: never;
             };
             /** @description The MapAsset or a referenced activity is unavailable in the caller's World Activity scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteContentApiActivityTransition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                transition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The remaining source-ordered MapAsset transitions after deletion. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityTransitionsResponse"];
+                };
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset or transition is unavailable in the caller's World Activity scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiActivityTransition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                transition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContentApiActivityTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description The source-ordered MapAsset transitions after the connection presentation update. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityTransitionsResponse"];
+                };
+            };
+            /** @description The transition label or outcome value is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset or transition is unavailable in the caller's World Activity scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

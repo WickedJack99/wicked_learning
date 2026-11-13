@@ -599,6 +599,11 @@ fn router(state: AppState) -> Router {
             "/api/content/v1/map-assets/{map_asset_id}/activity-transitions",
             get(content_api::activity_transitions).post(content_api::create_activity_transition),
         )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activity-transitions/{transition_id}",
+            patch(content_api::update_activity_transition)
+                .delete(content_api::delete_activity_transition),
+        )
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
         .route(
