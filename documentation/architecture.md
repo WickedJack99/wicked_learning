@@ -574,8 +574,12 @@ Application revalidates the stored plan and atomically creates the MapAsset,
 compatibility node, route, supported typed Activities, route start and linear
 transitions; Markdown media references are synchronized before commit. Selected
 source references use the Rust platform's opaque UUIDs, not Laravel's retired
-numeric record identifiers. The React authoring dialog remains unavailable
-until its backend-first migration gate is complete.
+numeric record identifiers. The source-derived standalone World Builder map
+surface exposes the same bounded brief, source selection, draft preview/edit
+and explicit approval flow only after those Rust endpoints are available. It
+loads enabled `content_authoring` templates through the scoped AI settings
+projection, never invokes a provider from the browser, and refreshes the map
+only after a successful atomic application.
 
 ## Account, Access And Support Models
 

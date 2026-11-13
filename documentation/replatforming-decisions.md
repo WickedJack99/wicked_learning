@@ -4826,6 +4826,14 @@ in one transaction before marking the run applied. Markdown application also
 synchronizes managed-media references. Selected source records are named by the
 platform's opaque UUIDs rather than Laravel's retired numeric IDs.
 
+**Frontend status:** The existing source-derived standalone World Builder map
+surface now lifts the ContentPlan dialog after the draft lifecycle reached this
+gate. It obtains only enabled `content_authoring` templates from the scoped AI
+settings projection, keeps source selection and draft editing client-local
+until the existing CSRF-protected commands are requested, and reloads map data
+only after a successful server-side apply. Provider execution and every content
+write remain Rust-owned.
+
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
 operations before they are implemented. Reflection, Review, Open Practice,

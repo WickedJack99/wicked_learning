@@ -48,6 +48,7 @@ import {
 } from './original-activity-learning-design';
 import { OriginalActivitySourceReferencesDialog } from './original-activity-source-references';
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
+import { ContentAuthoringDialog } from './original-content-authoring-dialog';
 import { OriginalNpcDialogueEditor } from './original-npc-dialogue-editor';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
 import { PortalScene } from './original-portal-activity';
@@ -3886,6 +3887,13 @@ function MapDetails({
             >
                 Tile layout history
             </button>
+            <div className="mt-3">
+                <ContentAuthoringDialog
+                    mapId={map.id}
+                    mapTitle={map.title}
+                    onApplied={onUpdated}
+                />
+            </div>
             <button
                 className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
                 data-wl-id="authoring.map-node-create.open"

@@ -1685,8 +1685,12 @@ start and linear transitions in one transaction before marking the run applied.
 Markdown media references are synchronized in that transaction; any failure
 rolls all writes back. Source attributions use opaque Rust source-record UUIDs;
 Laravel's numeric record identities are not a greenfield compatibility target.
-The browser authoring dialog remains unexposed while the backend-first
-authoring migration continues.
+The source-derived standalone World Builder now exposes that authoring dialog
+from an editable map only after the full draft lifecycle is present: authors
+choose an enabled scoped content-authoring template, select bounded source
+context, review or edit the validated plan, and explicitly approve one atomic
+application. The browser remains a typed client and refreshes its map only
+after the server reports the apply transaction successful.
 
 ### 7. Complete the replacement deliberately
 

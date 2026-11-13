@@ -1117,6 +1117,11 @@ The draft can be edited before approval, including explicit per-Activity
 attribution of selected source records. Edited plans receive the same
 validation before application, and only attributed source snapshots are copied
 into the created Activities.
+
+The standalone Rust World Builder retains this source-shaped flow: it lists
+only enabled content-authoring templates, lets the author select bounded saved
+source context, inspect or edit the validated draft, and makes no learner
+content change until the explicit approval action succeeds.
 See [AI-assisted authoring](ai-authoring.md).
 
 ### Content API
