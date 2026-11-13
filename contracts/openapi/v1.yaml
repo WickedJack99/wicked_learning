@@ -5571,6 +5571,20 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '503': { description: The application database is unavailable. }
+  /learner/platform-translations:
+    get:
+      operationId: getLearnerPlatformTranslations
+      summary: Read the current learner's enabled platform translation catalog.
+      description: Resolves the private locale preference only while the locale is enabled, otherwise safely returns the canonical English strings. This endpoint carries platform UI copy, not authored activity behavior or learner-private content.
+      responses:
+        '200':
+          description: The selected enabled locale and its flat platform string catalog.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerPlatformTranslationResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: The identity has no application principal or role assignment. }
+        '503': { description: The application database is unavailable. }
   /learner/feedback-prompt-preference:
     get:
       operationId: getFeedbackPromptPreference
@@ -7991,6 +8005,15 @@ components:
         locale:
           type: string
           maxLength: 16
+    LearnerPlatformTranslationResponse:
+      type: object
+      additionalProperties: false
+      required: [locale, translations]
+      properties:
+        locale: { type: string, maxLength: 16 }
+        translations:
+          type: object
+          additionalProperties: { type: string }
     FeedbackPromptPreference:
       type: object
       additionalProperties: false

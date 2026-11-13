@@ -116,6 +116,7 @@ mod learner_npc_dialogue;
 mod learner_obstacle_tool;
 mod learner_paths;
 mod learner_peer_message;
+mod learner_platform_translation;
 mod learner_playback;
 mod learner_portal;
 mod learner_question;
@@ -1250,6 +1251,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/language-preference",
             get(learner_language_preference::show).patch(learner_language_preference::update),
+        )
+        .route(
+            "/api/v1/learner/platform-translations",
+            get(learner_platform_translation::show),
         )
         .route(
             "/api/v1/learner/desk-planning-preference",

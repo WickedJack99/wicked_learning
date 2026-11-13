@@ -4524,6 +4524,26 @@ export interface paths {
         patch: operations["updateLearnerLanguagePreference"];
         trace?: never;
     };
+    "/learner/platform-translations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the current learner's enabled platform translation catalog.
+         * @description Resolves the private locale preference only while the locale is enabled, otherwise safely returns the canonical English strings. This endpoint carries platform UI copy, not authored activity behavior or learner-private content.
+         */
+        get: operations["getLearnerPlatformTranslations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/feedback-prompt-preference": {
         parameters: {
             query?: never;
@@ -6172,6 +6192,12 @@ export interface components {
         LearnerLanguagePreference: {
             available_languages: components["schemas"]["AvailableLanguage"][];
             locale: string;
+        };
+        LearnerPlatformTranslationResponse: {
+            locale: string;
+            translations: {
+                [key: string]: string;
+            };
         };
         FeedbackPromptPreference: {
             /** @enum {string} */
@@ -27010,6 +27036,47 @@ export interface operations {
                 content?: never;
             };
             /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerPlatformTranslations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The selected enabled locale and its flat platform string catalog. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPlatformTranslationResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
             403: {
                 headers: {
                     [name: string]: unknown;
