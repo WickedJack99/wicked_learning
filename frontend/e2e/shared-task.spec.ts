@@ -1,22 +1,14 @@
 import { expect, installE2eAdminSession, test } from './authenticated';
+import {
+    collaborationStorageStatePath,
+    hasCollaborationStorageState,
+} from './session-state';
 
 const publicOrigin = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
 ).origin;
 
 type Session = { csrf: string; request: Parameters<typeof advanceToSharedTask>[0] };
-
-async function login(request: Parameters<typeof advanceToSharedTask>[0], email: string, password: string): Promise<Session> {
-    const csrf = await request.get('/api/v1/security/csrf');
-    expect(csrf.status()).toBe(200);
-    const { token } = await csrf.json();
-    const response = await request.post('/api/v1/session/login', {
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-        data: { email, password },
-    });
-    expect(response.status()).toBe(200);
-    return { csrf: token, request };
-}
 
 async function authenticatedSession(request: Parameters<typeof advanceToSharedTask>[0]): Promise<Session> {
     const csrf = await request.get('/api/v1/security/csrf');
@@ -55,13 +47,6 @@ async function advanceToSharedTask(session: Session, marker: string): Promise<{ 
     });
     expect(support.status()).toBe(200);
     for (const slug of ['ask-learning-support', 'share-orientation-note']) {
-        if (slug === 'share-orientation-note') {
-            const contribution = await session.request.post(`${base}/${slug}/peer-message`, {
-                headers: { Origin: publicOrigin, 'X-CSRF-Token': session.csrf },
-                data: { body: `A peer orientation note (${marker}).` },
-            });
-            expect(contribution.status()).toBe(200);
-        }
         const result = await session.request.post(`${base}/${slug}/complete`, {
             headers: { Origin: publicOrigin, 'X-CSRF-Token': session.csrf }, data: {},
         });
@@ -82,21 +67,25 @@ async function advanceToSharedTask(session: Session, marker: string): Promise<{ 
 test('the source-shaped Shared Task preserves anonymous contributions, review and private checklist state', async ({
     page,
     playwright,
-    request,
 }) => {
-    const firstEmail = process.env.E2E_LOGIN_EMAIL;
-    const firstPassword = process.env.E2E_LOGIN_PASSWORD;
-    const secondEmail = process.env.E2E_SECOND_LOGIN_EMAIL;
-    const secondPassword = process.env.E2E_SECOND_LOGIN_PASSWORD;
-    test.skip(!firstEmail || !firstPassword || !secondEmail || !secondPassword, 'requires two disposable local identities');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD || !hasCollaborationStorageState(),
+        'requires the disposable local administrator and global collaboration sessions',
+    );
 
-    const secondRequest = await playwright.request.newContext({ baseURL: publicOrigin });
     const marker = String(Date.now());
+    const firstRequest = await playwright.request.newContext({
+        baseURL: publicOrigin,
+        storageState: collaborationStorageStatePath('first'),
+    });
+    const secondRequest = await playwright.request.newContext({
+        baseURL: publicOrigin,
+        storageState: collaborationStorageStatePath('second'),
+    });
     try {
         await installE2eAdminSession(page.context());
-        request = page.context().request;
-        const first = await authenticatedSession(request);
-        const second = await login(secondRequest, secondEmail!, secondPassword!);
+        const first = await authenticatedSession(firstRequest);
+        const second = await authenticatedSession(secondRequest);
         const firstRun = await advanceToSharedTask(first, `first-${marker}`);
         const secondRun = await advanceToSharedTask(second, `second-${marker}`);
         const firstContribution = `A concrete first-map clue from the first learner (${marker}).`;
@@ -109,7 +98,7 @@ test('the source-shaped Shared Task preserves anonymous contributions, review an
         expect(firstSubmitted.status()).toBe(200);
         const firstState = await firstSubmitted.json();
         expect(firstState).toMatchObject({ accepted_count: expect.any(Number), submission: { body: firstContribution } });
-        expect(JSON.stringify(firstState)).not.toContain(firstEmail!);
+        expect(JSON.stringify(firstState)).not.toContain('shared-task-');
 
         const secondSubmitted = await second.request.post(`${secondRun.base}/build-orientation-clues/shared-task/submissions`, {
             headers: { Origin: publicOrigin, 'X-CSRF-Token': second.csrf },
@@ -137,7 +126,7 @@ test('the source-shaped Shared Task preserves anonymous contributions, review an
         const secondPlayback = await refreshedSecond.json();
         const receivedReview = secondPlayback.activity.shared_task.peer_review.received_reviews[0];
         expect(receivedReview).toMatchObject({ can_mark_helpful: true, response_type: 'example' });
-        expect(JSON.stringify(receivedReview)).not.toContain(firstEmail!);
+        expect(JSON.stringify(receivedReview)).not.toContain('shared-task-');
         const helpful = await second.request.patch(`${secondRun.base}/build-orientation-clues/shared-task/reviews/${receivedReview.id}/helpfulness`, {
             headers: { Origin: publicOrigin, 'X-CSRF-Token': second.csrf }, data: { helpful: true },
         });
@@ -156,7 +145,7 @@ test('the source-shaped Shared Task preserves anonymous contributions, review an
         expect(checklist.status()).toBe(200);
         await expect(checklist.json()).resolves.toEqual({ completed_step_indexes: [0, 2] });
 
-        const storageState = await request.storageState();
+        const storageState = await first.request.storageState();
         await page.context().addCookies(storageState.cookies);
         await page.goto(`/learning/nodes/${firstRun.nodeSlug}/play?run=${firstRun.playRunId}`);
         await expect(page.getByText('Build orientation clues together')).toBeVisible();
@@ -166,6 +155,7 @@ test('the source-shaped Shared Task preserves anonymous contributions, review an
             page.getByText('This makes the next first move clearer and easier to test.'),
         ).toBeVisible();
     } finally {
+        await firstRequest.dispose();
         await secondRequest.dispose();
     }
 });

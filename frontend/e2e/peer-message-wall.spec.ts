@@ -22,7 +22,10 @@ test('a learner can start a source peer-message prompt and follow it into the or
         Origin: publicOrigin,
         'X-CSRF-Token': token,
     };
-    const testMessagePrefix = 'I noticed the route is tied to a place on the map (';
+    const testMessagePrefixes = [
+        'I noticed the route is tied to a place on the map (',
+        'A peer orientation note (',
+    ];
     const removePriorTestMessages = async () => {
         const topics = await request.get('/api/v1/learning-support/topics');
         expect(topics.status()).toBe(200);
@@ -46,7 +49,7 @@ test('a learner can start a source peer-message prompt and follow it into the or
                 pagination: { last_page: number };
             };
             for (const message of document.messages.filter((candidate) =>
-                candidate.body.startsWith(testMessagePrefix),
+                testMessagePrefixes.some((prefix) => candidate.body.startsWith(prefix)),
             )) {
                 const deleted = await request.delete(
                     `/api/v1/learning-support/messages/${message.id}`,

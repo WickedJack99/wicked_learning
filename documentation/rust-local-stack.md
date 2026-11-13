@@ -137,6 +137,22 @@ while running tests, alongside `E2E_LOGIN_EMAIL=e2e-admin@wicked-learning.local`
 This account belongs only to the local Compose databases and must never be used
 against production or copied to a shared deployment.
 
+A separate persistent local learner,
+`e2e-learner@wicked-learning.local`, is available for manual collaboration
+checks. Its password is likewise deliberately not
+committed; it is stored mode `0600` at
+`/home/student/.config/wicked-learning/e2e-learner-password`. Future Codex
+sessions may read that file only to supply `E2E_SECOND_LOGIN_PASSWORD` alongside
+`E2E_SECOND_LOGIN_EMAIL=e2e-learner@wicked-learning.local` for manual local
+collaboration checks. This account belongs only to the local Compose databases
+and must never be used against production or copied to a shared deployment.
+
+When `E2E_LOGIN_EMAIL` and `E2E_LOGIN_PASSWORD` are set, the browser suite
+instead creates two fresh invitation-registered learners during global setup
+and keeps only their short-lived authenticated session state under ignored
+`frontend/test-results`. This keeps durable learner workflow evidence isolated
+without placing more passwords or credentials in the repository.
+
 ## Local invitation registration
 
 The lifted `/register` page requires a one-use invitation. Issue one to a

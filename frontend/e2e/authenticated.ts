@@ -1,25 +1,21 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
 import { expect, test as base } from '@playwright/test';
 import type { BrowserContext, Cookie } from '@playwright/test';
 
-const storageStatePath = resolve(
-    import.meta.dirname,
-    '../test-results/e2e-authenticated-state.json',
-);
+import { administratorStorageStatePath } from './session-state';
 
 function hasAuthenticatedState(): boolean {
     return Boolean(
         process.env.E2E_LOGIN_EMAIL &&
             process.env.E2E_LOGIN_PASSWORD &&
-            existsSync(storageStatePath),
+            existsSync(administratorStorageStatePath),
     );
 }
 
 function authenticatedCookies(): Cookie[] {
     const state = JSON.parse(
-        readFileSync(storageStatePath, 'utf8'),
+        readFileSync(administratorStorageStatePath, 'utf8'),
     ) as { cookies: Cookie[] };
 
     return state.cookies;

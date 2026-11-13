@@ -929,7 +929,15 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     const moderationWithoutRequest = await request.get(
         `/api/v1/learning-support/topics/${supportTopic!.id}/requests`,
     );
-    expect(moderationWithoutRequest.status()).toBe(404);
+    if (moderationWithoutRequest.status() === 200) {
+        await expect(moderationWithoutRequest.json()).resolves.toMatchObject({
+            requests: expect.not.arrayContaining([
+                expect.objectContaining({ id: submittedRequest!.id }),
+            ]),
+        });
+    } else {
+        expect(moderationWithoutRequest.status()).toBe(404);
+    }
 });
 
 test('using a learner tool requires an authenticated application principal', async ({

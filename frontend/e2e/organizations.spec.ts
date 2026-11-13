@@ -1,26 +1,14 @@
 import { expect, installE2eAdminSession, test } from './authenticated';
 import type { APIRequestContext } from '@playwright/test';
+import {
+    collaborationStorageStatePath,
+    hasCollaborationStorageState,
+} from './session-state';
 
 const origin = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
 ).origin;
 const api = (path: string) => new URL(path, origin).toString();
-
-async function login(
-    request: APIRequestContext,
-    email: string,
-    password: string,
-): Promise<string> {
-    const csrf = await request.get(api('/api/v1/security/csrf'));
-    expect(csrf.status()).toBe(200);
-    const { token } = await csrf.json();
-    const result = await request.post(api('/api/v1/session/login'), {
-        data: { email, password },
-        headers: { Origin: origin, 'X-CSRF-Token': token },
-    });
-    expect(result.status()).toBe(200);
-    return token;
-}
 
 async function csrfToken(request: APIRequestContext): Promise<string> {
     const csrf = await request.get(api('/api/v1/security/csrf'));
@@ -52,21 +40,21 @@ test('organizations preserve the source membership, leadership and chat workflow
     playwright,
     request,
 }) => {
-    const firstEmail = process.env.E2E_LOGIN_EMAIL;
-    const firstPassword = process.env.E2E_LOGIN_PASSWORD;
-    const secondEmail = process.env.E2E_SECOND_LOGIN_EMAIL;
-    const secondPassword = process.env.E2E_SECOND_LOGIN_PASSWORD;
     test.skip(
-        !firstEmail || !firstPassword || !secondEmail || !secondPassword,
-        'requires two disposable local identities',
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD || !hasCollaborationStorageState(),
+        'requires the disposable local administrator and global collaboration sessions',
     );
 
     const marker = String(Date.now());
-    const second = await playwright.request.newContext({ baseURL: origin });
+    const second = await playwright.request.newContext({
+        baseURL: origin,
+        storageState: collaborationStorageStatePath('second'),
+    });
     try {
         await installE2eAdminSession(page.context());
         request = page.context().request;
         const firstCsrf = await csrfToken(request);
+        const firstStorage = await page.context().storageState();
         const organization = await createOrganization(request, firstCsrf, marker);
         const uploaded = await request.post(
             api(`/api/v1/organizations/${organization.slug}/icon`),
@@ -89,7 +77,7 @@ test('organizations preserve the source membership, leadership and chat workflow
         expect(servedIcon.status()).toBe(200);
         expect(servedIcon.headers()['content-type']).toBe('image/svg+xml');
 
-        const secondCsrf = await login(second, secondEmail!, secondPassword!);
+        const secondCsrf = await csrfToken(second);
         const requested = await second.post(
             api(`/api/v1/organizations/${organization.slug}/join-requests`),
             {
@@ -145,6 +133,7 @@ test('organizations preserve the source membership, leadership and chat workflow
         await expect(page.getByText(`A member chat message (${marker}).`)).toBeVisible();
         await expect(page.getByRole('button', { name: /Members \(2\)/ })).toBeVisible();
 
+        await page.context().addCookies(firstStorage.cookies);
         await page.goto(
             new URL('/settings?panel=admin-learning-support&support=organization-icons', origin).toString(),
         );
