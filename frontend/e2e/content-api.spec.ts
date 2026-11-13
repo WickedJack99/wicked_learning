@@ -65,6 +65,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const dialogueTitle = `Content API browser dialogue ${suffix}`;
     const messageTitle = `Content API browser message ${suffix}`;
     const messageWallTitle = `Content API browser message wall ${suffix}`;
+    const reflectionTitle = `Content API browser reflection ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -176,6 +177,23 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(messageWall.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(messageWall.data).toMatchObject({ type: 'message_wall', title: messageWallTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'reflection',
+        title: reflectionTitle,
+        introduction: 'Pause to connect this place with an earlier idea.',
+        reflection_prompt: 'What connection do you notice here?',
+        reflection_note: 'A short private note can help you return to this thought.',
+        reflection_topic: 'Content API browser evidence',
+        reflection_subtopic: 'Reflection',
+        graph_position_x: 360,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const reflection = await createdResponse(console);
+    expect(reflection.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(reflection.data).toMatchObject({ type: 'reflection', title: reflectionTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -186,4 +204,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(dialogueTitle);
     await expect(console.locator('pre')).toContainText(messageTitle);
     await expect(console.locator('pre')).toContainText(messageWallTitle);
+    await expect(console.locator('pre')).toContainText(reflectionTitle);
 });
