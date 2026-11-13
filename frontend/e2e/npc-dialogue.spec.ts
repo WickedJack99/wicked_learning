@@ -25,6 +25,14 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
 
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
+    const soundPreferences = await request.patch(
+        '/api/v1/learner/sound-preferences',
+        {
+            data: { ambience_volume: 100, effects_volume: 100, muted: false },
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        },
+    );
+    expect(soundPreferences.status()).toBe(200);
 
     const world = await request.get('/api/v1/learner/world');
     expect(world.status()).toBe(200);
@@ -241,6 +249,15 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
         { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
     );
     expect(startDeskRoute.status()).toBe(200);
+
+    const resetPlanningPreference = await request.patch(
+        '/api/v1/learner/desk-planning-preference',
+        {
+            data: { purpose_filter: 'any', time_budget: 'any' },
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        },
+    );
+    expect(resetPlanningPreference.status()).toBe(200);
 
     await page.goto('/home');
     await page.getByRole('button', { name: 'Continue learning' }).click();
