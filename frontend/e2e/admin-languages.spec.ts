@@ -153,10 +153,18 @@ test('an enabled locale reaches the actual learner language selector', async ({ 
         'aria-checked',
         String(storedLanguage!.is_enabled),
     );
-    if (storedLanguage!.is_enabled) {
+    if (!storedLanguage!.is_enabled) {
         await activation.click();
-        await expect(activation).not.toBeChecked();
+        await expect(activation).toBeChecked();
+        const initiallyEnabledResponse = page.waitForResponse((response) =>
+            response.request().method() === 'PATCH'
+            && response.url().endsWith('/api/v1/admin/languages/zz'),
+        );
+        await page.getByRole('button', { name: 'Save language' }).click();
+        expect((await initiallyEnabledResponse).status()).toBe(200);
     }
+    await activation.click();
+    await expect(activation).not.toBeChecked();
     await page.getByLabel('Language name').last().fill('Browser translation language');
     await page.getByLabel('Native name').last().fill('Browser translation language');
     const disableResponse = page.waitForResponse((response) =>
