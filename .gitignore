@@ -38,6 +38,7 @@ container.txt
 /frontend/.env.*
 /frontend/playwright-report
 /frontend/test-results
+/frontend/.e2e-state
 /backend/.env
 /backend/.env.*
 /.env.rust

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { mkdir, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 
@@ -8,8 +9,11 @@ import {
     collaborationStorageStatePath,
 } from './session-state';
 
-const rateLimitRetryDelayMs = 1_100;
-const rateLimitRetryAttempts = 6;
+// The server's trusted-client limiter replenishes one credential request every
+// sixty seconds. Normal repeat runs reuse valid local sessions; this fallback
+// handles only an externally exhausted burst or a stale session.
+const rateLimitRetryDelayMs = 60_000;
+const rateLimitRetryAttempts = 2;
 
 async function retryRateLimitedPost(
     send: () => Promise<APIResponse>,
@@ -33,25 +37,53 @@ async function retryRateLimitedPost(
     );
 }
 
-export default async function globalSetup(): Promise<void> {
-    await Promise.all([
-        rm(administratorStorageStatePath, { force: true }),
-        rm(collaborationStorageStatePath('first'), { force: true }),
-        rm(collaborationStorageStatePath('second'), { force: true }),
-    ]);
+async function hasUsableSession(
+    baseURL: string,
+    storageStatePath: string,
+): Promise<boolean> {
+    if (!existsSync(storageStatePath)) {
+        return false;
+    }
 
+    const collaborator = await request.newContext({
+        baseURL,
+        storageState: storageStatePath,
+    });
+    try {
+        return (await collaborator.get('/api/v1/me')).ok();
+    } catch {
+        return false;
+    } finally {
+        await collaborator.dispose();
+    }
+}
+
+export default async function globalSetup(): Promise<void> {
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
     if (!email || !password) {
         return;
     }
 
-    await mkdir(new URL('../test-results/', import.meta.url), {
+    await mkdir(new URL('../.e2e-state/', import.meta.url), {
         recursive: true,
     });
 
     const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081';
-    const api = await request.newContext({ baseURL });
+    const hasAdministratorSession = await hasUsableSession(
+        baseURL,
+        administratorStorageStatePath,
+    );
+    if (!hasAdministratorSession) {
+        await rm(administratorStorageStatePath, { force: true });
+    }
+
+    const api = await request.newContext({
+        baseURL,
+        ...(hasAdministratorSession
+            ? { storageState: administratorStorageStatePath }
+            : {}),
+    });
 
     try {
         const csrf = await api.get('/api/v1/security/csrf');
@@ -61,27 +93,35 @@ export default async function globalSetup(): Promise<void> {
             );
         }
         const { token } = (await csrf.json()) as { token: string };
-        const login = await retryRateLimitedPost(
-            () =>
-                api.post('/api/v1/session/login', {
-                    data: { email, password },
-                    headers: {
-                        Origin: new URL(baseURL).origin,
-                        'X-CSRF-Token': token,
-                    },
-                }),
-            'session bootstrap login',
-        );
-        if (!login.ok()) {
-            throw new Error(
-                `E2E session bootstrap login failed (${login.status()}).`,
+        if (!hasAdministratorSession) {
+            const login = await retryRateLimitedPost(
+                () =>
+                    api.post('/api/v1/session/login', {
+                        data: { email, password },
+                        headers: {
+                            Origin: new URL(baseURL).origin,
+                            'X-CSRF-Token': token,
+                        },
+                    }),
+                'session bootstrap login',
             );
-        }
+            if (!login.ok()) {
+                throw new Error(
+                    `E2E session bootstrap login failed (${login.status()}).`,
+                );
+            }
 
-        await api.storageState({ path: administratorStorageStatePath });
+            await api.storageState({ path: administratorStorageStatePath });
+        }
 
         const marker = randomUUID();
         for (const identity of ['first', 'second'] as const) {
+            const storageStatePath = collaborationStorageStatePath(identity);
+            if (await hasUsableSession(baseURL, storageStatePath)) {
+                continue;
+            }
+
+            await rm(storageStatePath, { force: true });
             const invitation = await retryRateLimitedPost(
                 () =>
                     api.post('/api/v1/registration-tokens', {
@@ -142,7 +182,7 @@ export default async function globalSetup(): Promise<void> {
                     );
                 }
                 await collaborator.storageState({
-                    path: collaborationStorageStatePath(identity),
+                    path: storageStatePath,
                 });
             } finally {
                 await collaborator.dispose();

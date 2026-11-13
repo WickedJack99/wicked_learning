@@ -95,14 +95,18 @@ JSON/problem contracts; and the safe anonymous session shape. When a disposable
 bootstrap administrator is provided, they also cover the Rust-owned React
 sign-in/sign-out proof. They do not use, start, or alter the Laravel stack.
 
-Credentialed browser checks bootstrap one real same-origin CSRF/session login
-per Playwright run. Their opted-in fixture keeps each test anonymous until its
-source-derived login form submits, then installs an isolated copy of that
+Credentialed browser checks revalidate their ignored same-origin session state
+before bootstrapping. Their opted-in fixture keeps each test anonymous until
+its source-derived login form submits, then installs an isolated copy of that
 server-issued local session instead of repeatedly spending the production-like
 per-client login-rate-limit burst. The dedicated session and invalid-credential
-contract checks still call the live login endpoint. The transient state lives
-only under ignored frontend/test-results; no credentials or session material
-are committed.
+contract checks still call the live login endpoint. Shared-task and
+collaboration fixtures likewise revalidate their two collaborator sessions and
+create a replacement only when a local state file is absent or stale; repeated
+focused runs therefore issue no credential writes. Playwright clears its
+ordinary ignored `frontend/test-results` artifacts between runs; the separate
+ignored `frontend/.e2e-state` directory holds only the local session state.
+No credentials or session material are committed.
 
 ## Fresh administrator bootstrap
 

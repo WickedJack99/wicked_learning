@@ -1,7 +1,10 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const stateDirectory = resolve(import.meta.dirname, '../test-results');
+// Playwright clears its test-results output directory after global setup.
+// Keep credential-bearing local session state in a separate ignored directory
+// so one bootstrap can be shared safely by the focused collaboration specs.
+const stateDirectory = resolve(import.meta.dirname, '../.e2e-state');
 
 export const administratorStorageStatePath = resolve(
     stateDirectory,
