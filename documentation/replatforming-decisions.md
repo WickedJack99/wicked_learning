@@ -4814,6 +4814,12 @@ scoped MapAsset route and creates Reflection, Review, Open Practice, Markdown,
 Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall through their existing typed commands.
 Future Activity entries must be added with their exact Rust adapters.
 
+**Extension:** The contract also exposes Laravel's strict v1.5 ContentPlan
+draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and
+Open Practice. This schema remains a read-only authoring reference: it does not
+advertise provider generation, draft persistence or plan application before
+their dedicated scoped Rust commands exist.
+
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
 operations before they are implemented. Reflection, Review, Open Practice,

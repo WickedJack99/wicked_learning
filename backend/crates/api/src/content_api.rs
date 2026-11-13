@@ -1760,14 +1760,7 @@ fn document() -> Value {
                 "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
-        "contentPlan": {
-            "humanApprovalRequired": true,
-            "placementDefaults": { "positionX": 50, "positionY": 50, "width": 14 },
-            "purpose": "Structured AI-assisted authoring drafts require administrator review before content is created.",
-            "schema": {},
-            "supportedActivityTypes": [],
-            "version": "1.5"
-        },
+        "contentPlan": content_plan_document(),
         "operations": [
             operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.1", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
@@ -1783,6 +1776,61 @@ fn document() -> Value {
             "404": "The requested content object does not exist.",
             "422": "The request body does not satisfy the documented contract."
         }
+    })
+}
+
+fn content_plan_document() -> Value {
+    json!({
+        "version": "1.5",
+        "purpose": "A reviewable draft for one MapAsset and a short linear learning route.",
+        "humanApprovalRequired": true,
+        "supportedActivityTypes": ["markdown", "reflection", "message_prompt", "shared_task", "open_practice"],
+        "placementDefaults": { "positionX": 50, "positionY": 50, "width": 14 },
+        "schema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["summary", "mapAsset", "activities"],
+            "properties": {
+                "summary": {
+                    "type": "string",
+                    "description": "A short rationale for the proposed learning route.",
+                    "maxLength": 1200,
+                },
+                "mapAsset": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["title", "description", "label"],
+                    "properties": {
+                        "title": { "type": "string", "maxLength": 120 },
+                        "description": { "type": ["string", "null"], "maxLength": 1000 },
+                        "label": { "type": ["string", "null"], "maxLength": 80 },
+                    },
+                },
+                "activities": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["type", "title", "introduction", "body", "prompt", "note", "topic", "inputLabel", "competenceTopics", "learningIntent", "sourceRecordIds"],
+                        "properties": {
+                            "type": { "type": "string", "enum": ["markdown", "reflection", "message_prompt", "shared_task", "open_practice"] },
+                            "title": { "type": "string", "maxLength": 120 },
+                            "introduction": { "type": ["string", "null"], "maxLength": 1000 },
+                            "body": { "type": ["string", "null"], "description": "Markdown body for markdown activities; null for interactive activities.", "maxLength": 12000 },
+                            "prompt": { "type": ["string", "null"], "description": "Learner prompt for reflections, message prompts, shared tasks and open practice; null for markdown activities.", "maxLength": 4000 },
+                            "note": { "type": ["string", "null"], "description": "Optional reflection guidance or shared-task instructions; null for markdown activities.", "maxLength": 2000 },
+                            "topic": { "type": ["string", "null"], "description": "Shared message topic for message prompts; null for other activity types, including shared tasks.", "maxLength": 120 },
+                            "inputLabel": { "type": ["string", "null"], "description": "Optional learner message or shared-task input label; null for other activity types.", "maxLength": 120 },
+                            "competenceTopics": { "type": "array", "description": "One to three short competence topic labels this activity intentionally nourishes.", "minItems": 1, "maxItems": 3, "items": { "type": "string", "maxLength": 120 } },
+                            "learningIntent": { "type": "string", "description": "The primary learning purpose of this activity, not a grade or performance judgment.", "enum": ["apply", "explain", "participate", "reflect", "retrieve", "review", "transfer"] },
+                            "sourceRecordIds": { "type": "array", "description": "IDs of selected source records that directly support this activity; use an empty array when none are directly attributed.", "maxItems": 5, "items": { "type": "integer" } },
+                        },
+                    },
+                },
+            },
+        },
     })
 }
 
@@ -1855,6 +1903,30 @@ mod tests {
         assert_eq!(document["activityTypes"][11]["key"], "npc_dialogue");
         assert_eq!(document["activityTypes"][12]["key"], "message_prompt");
         assert_eq!(document["activityTypes"][13]["key"], "message_wall");
+        assert_eq!(document["contentPlan"]["version"], "1.5");
+        assert_eq!(
+            document["contentPlan"]["supportedActivityTypes"],
+            json!([
+                "markdown",
+                "reflection",
+                "message_prompt",
+                "shared_task",
+                "open_practice"
+            ])
+        );
+        assert_eq!(
+            document["contentPlan"]["schema"]["properties"]["activities"]["items"]["properties"]["learningIntent"]
+                ["enum"],
+            json!([
+                "apply",
+                "explain",
+                "participate",
+                "reflect",
+                "retrieve",
+                "review",
+                "transfer"
+            ])
+        );
     }
 
     #[test]

@@ -565,7 +565,10 @@ transitions inside one database transaction.
 `/api/content/v1/contract`. The same contract drives the Settings documentation
 and API console. Read and mutation access use separate permission levels. The
 API currently relies on the signed-in web session and CSRF token; it does not
-issue public bearer tokens.
+issue public bearer tokens. Its published ContentPlan is the source-compatible
+strict draft schema for a bounded MapAsset and short route; publishing that
+schema does not expose AI generation, draft storage or plan application until
+their scoped validation and atomic-write commands are migrated.
 
 ## Account, Access And Support Models
 

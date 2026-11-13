@@ -1671,7 +1671,11 @@ commands, Markdown's managed-media references, Question's bounded answer
 options, Shared Task's bounded collaboration configuration, Item Grant's
 scoped catalog resolution, Tool Grant's scoped tool resolution, Item Obstacle's scoped item/sound resolution, Obstacle's scoped tool resolution, Portal's same-World input-target resolution and transactional link/media-reference write, NPC dialogue's default end-node scaffold, Message's map-scoped topic resolution, and optional graph coordinates. Other Activity types
 remain absent from the advertised contract until their exact scoped adapters are
-implemented.
+implemented. The contract also now publishes the source-compatible strict
+ContentPlan draft schema for the five source-supported plan activity types. It
+does not advertise AI generation, plan storage, editing or application: those
+remain separate Rust commands until their scoped validation and atomic-write
+evidence exists.
 
 ### 7. Complete the replacement deliberately
 
