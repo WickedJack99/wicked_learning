@@ -71,6 +71,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const questionTitle = `Content API browser question ${suffix}`;
     const sharedTaskTitle = `Content API browser shared task ${suffix}`;
     const itemGrantTitle = `Content API browser item grant ${suffix}`;
+    const toolGrantTitle = `Content API browser tool grant ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -330,6 +331,34 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(itemGrant.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(itemGrant.data).toMatchObject({ type: 'item_grant', title: itemGrantTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'tool_grant',
+        title: toolGrantTitle,
+        introduction: 'Receive a scoped tool for a later author-designed interaction.',
+        tool_grant_bubble_border_color_dark: '#2dd4bf',
+        tool_grant_bubble_border_color_light: '#0891b2',
+        tool_grant_bubble_color_dark: '#0f172a',
+        tool_grant_bubble_color_light: '#ffffff',
+        tool_grant_bubble_opacity_dark: 92,
+        tool_grant_bubble_opacity_light: 94,
+        tool_grant_fade_duration_seconds: 0.4,
+        tool_grant_slide_direction: 'left',
+        tool_grant_slide_duration_seconds: 0.6,
+        tool_grant_text: 'Use this tool when the next place invites careful inspection.',
+        tool_grant_tool_id: '10000000-0000-4000-8000-000000000001',
+        tool_grant_tool_mirrored: false,
+        tool_grant_tool_x: 50,
+        tool_grant_tool_y: 50,
+        tool_grant_typing_speed: 24,
+        graph_position_x: 720,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const toolGrant = await createdResponse(console);
+    expect(toolGrant.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(toolGrant.data).toMatchObject({ type: 'tool_grant', title: toolGrantTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -346,4 +375,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(questionTitle);
     await expect(console.locator('pre')).toContainText(sharedTaskTitle);
     await expect(console.locator('pre')).toContainText(itemGrantTitle);
+    await expect(console.locator('pre')).toContainText(toolGrantTitle);
 });

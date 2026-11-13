@@ -1714,8 +1714,8 @@ and activity scope checks. The local browser proof creates a disposable map,
 MapAsset, Open Practice Activity, NPC dialogue, Message Prompt, Message Wall,
 Reflection, Review / revisit and Markdown through that console, then reads all
 ten Activities, including a bounded-answer Question, Shared Task and
-catalog-resolved Item Grant, back through the documented scoped route. The
-OpenAPI contract and
+catalog-resolved Item Grant, and Tool Grant, back through the documented scoped
+route. The OpenAPI contract and
 generated TypeScript client now mirror all seven advertised operations,
 including the map list/create pair; no live console operation is outside the
 typed API surface.
