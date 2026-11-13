@@ -143,7 +143,11 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List source-shaped activity connections in one editable MapAsset.
+         * @description Requires content_api read permission and the existing World Activity update scope for the MapAsset's compatibility node.
+         */
+        get: operations["getContentApiActivityTransitions"];
         put?: never;
         /**
          * Connect source-shaped activities in one editable MapAsset.
@@ -11160,6 +11164,56 @@ export interface operations {
                 content?: never;
             };
             /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unavailable in the caller's World Activity scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getContentApiActivityTransitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The source-ordered transitions for the editable MapAsset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityTransitionsResponse"];
+                };
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current role lacks content_api read permission. */
             403: {
                 headers: {
                     [name: string]: unknown;

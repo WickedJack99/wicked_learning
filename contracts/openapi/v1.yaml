@@ -220,6 +220,20 @@ paths:
         in: path
         required: true
         schema: { type: string, format: uuid }
+    get:
+      operationId: getContentApiActivityTransitions
+      summary: List source-shaped activity connections in one editable MapAsset.
+      description: Requires content_api read permission and the existing World Activity update scope for the MapAsset's compatibility node.
+      responses:
+        '200':
+          description: The source-ordered transitions for the editable MapAsset.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityTransitionsResponse' }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The current role lacks content_api read permission. }
+        '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
+        '503': { description: The application database is unavailable. }
     post:
       operationId: createContentApiActivityTransition
       summary: Connect source-shaped activities in one editable MapAsset.

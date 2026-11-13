@@ -51,6 +51,7 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `POST` | `/maps/{map}/map-assets`            | Create a MapAsset and internal content record   |
 | `GET`  | `/map-assets/{mapAsset}/activities` | List a MapAsset's Activities                    |
 | `POST` | `/map-assets/{mapAsset}/activities` | Create a validated Activity                     |
+| `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
 | `POST` | `/map-assets/{mapAsset}/activity-transitions` | Connect two Activities through the scoped graph writer |
 
 The contract response contains the authoritative fields and examples. The API

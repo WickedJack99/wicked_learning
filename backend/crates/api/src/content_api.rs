@@ -66,6 +66,7 @@ use wicked_learning_application::{
     },
     content_api_activity::{
         ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
+        ContentApiActivityTransitionListQuery,
     },
 };
 use wicked_learning_domain::world_content::{
@@ -471,6 +472,28 @@ pub async fn activities(
 
     Ok(Json(json!({
         "data": activities.activities.iter().map(|activity| serialize_activity(map_asset_id, activity)).collect::<Vec<_>>(),
+    })))
+}
+
+/// Lists the source-ordered graph edges for one editable MapAsset. The same
+/// scoped activity policy as activity listing and graph mutation applies.
+pub async fn activity_transitions(
+    State(state): State<AppState>,
+    Path(map_asset_id): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ro")?;
+    let repository = PostgresContentApiActivityRepository::new(&state.application_database);
+    let transitions = ContentApiActivityTransitionListQuery::new(&repository)
+        .execute(&principal, map_asset_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(Json(json!({
+        "data": transitions.transitions.iter().map(serialize_activity_transition).collect::<Vec<_>>(),
     })))
 }
 
@@ -1737,7 +1760,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.2",
+        "version": "1.3",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -1849,13 +1872,14 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.2", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.3", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
             operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "npc_dialogue", "title": "Ask the archive guide", "introduction": "Follow the guide's questions.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "npc_dialogue", "title": "Ask the archive guide" } })),
+            operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
         ],
         "errors": {
@@ -1922,15 +1946,16 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.2");
-        assert_eq!(operations.len(), 8);
+        assert_eq!(document["version"], "1.3");
+        assert_eq!(operations.len(), 9);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "map-assets.index");
         assert_eq!(operations[4]["id"], "map-assets.store");
         assert_eq!(operations[5]["id"], "activities.index");
         assert_eq!(operations[6]["id"], "activities.store");
-        assert_eq!(operations[7]["id"], "activity-transitions.store");
+        assert_eq!(operations[7]["id"], "activity-transitions.index");
+        assert_eq!(operations[8]["id"], "activity-transitions.store");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");

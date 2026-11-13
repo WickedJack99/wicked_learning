@@ -3,9 +3,12 @@ use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::content_api_activity::{
     ContentApiActivity, ContentApiActivityReadError, ContentApiActivityRepository,
-    ContentApiMapAssetActivities,
+    ContentApiMapAssetActivities, ContentApiMapAssetTransitions,
 };
-use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
+use wicked_learning_domain::{
+    identity_access::{AuthorizedPrincipal, permission_scope_allows},
+    world_content::AdminActivityTransition,
+};
 
 pub struct PostgresContentApiActivityRepository<'pool> {
     pool: &'pool PgPool,
@@ -45,6 +48,20 @@ impl ContentApiActivityRepository for PostgresContentApiActivityRepository<'_> {
                 .map_err(unavailable)
         }
     }
+
+    fn load_transitions(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+    ) -> impl std::future::Future<
+        Output = Result<Option<ContentApiMapAssetTransitions>, ContentApiActivityReadError>,
+    > + Send {
+        async move {
+            load_transitions(self.pool, principal, map_asset_id)
+                .await
+                .map_err(unavailable)
+        }
+    }
 }
 
 fn unavailable(error: sqlx::Error) -> ContentApiActivityReadError {
@@ -69,6 +86,18 @@ struct ActivityRow {
     config: Value,
     position_x: Option<f64>,
     position_y: Option<f64>,
+}
+
+#[derive(FromRow)]
+struct TransitionRow {
+    id: Uuid,
+    from_activity_id: Uuid,
+    to_activity_id: Option<Uuid>,
+    from_connector: String,
+    to_connector: Option<String>,
+    trigger: String,
+    trigger_value: Option<String>,
+    label: Option<String>,
 }
 
 async fn load_activities(
@@ -105,6 +134,45 @@ async fn load_activities(
                 config: row.config,
                 position_x: row.position_x,
                 position_y: row.position_y,
+            })
+            .collect(),
+    }))
+}
+
+async fn load_transitions(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    map_asset_id: Uuid,
+) -> Result<Option<ContentApiMapAssetTransitions>, sqlx::Error> {
+    if load_context(pool, principal, map_asset_id).await?.is_none() {
+        return Ok(None);
+    }
+    let rows = sqlx::query_as::<_, TransitionRow>(
+        "SELECT transitions.id, transitions.from_activity_id, transitions.to_activity_id, \
+         transitions.from_connector, transitions.to_connector, transitions.trigger, \
+         transitions.trigger_value, transitions.label \
+         FROM learning_activity_transitions AS transitions \
+         INNER JOIN learning_activities AS activities ON activities.id = transitions.from_activity_id \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         WHERE routes.map_asset_id = $1 \
+         ORDER BY transitions.created_at ASC, transitions.id ASC",
+    )
+    .bind(map_asset_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(Some(ContentApiMapAssetTransitions {
+        transitions: rows
+            .into_iter()
+            .map(|row| AdminActivityTransition {
+                id: row.id,
+                from_activity_id: row.from_activity_id,
+                to_activity_id: row.to_activity_id,
+                from_connector: row.from_connector,
+                to_connector: row.to_connector.unwrap_or_else(|| "in".to_owned()),
+                trigger: row.trigger,
+                trigger_value: row.trigger_value,
+                label: row.label,
             })
             .collect(),
     }))

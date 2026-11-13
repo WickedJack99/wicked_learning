@@ -2,7 +2,9 @@ use std::future::Future;
 
 use serde_json::Value;
 use uuid::Uuid;
-use wicked_learning_domain::identity_access::AuthorizedPrincipal;
+use wicked_learning_domain::{
+    identity_access::AuthorizedPrincipal, world_content::AdminActivityTransition,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContentApiActivity {
@@ -22,6 +24,11 @@ pub struct ContentApiMapAssetActivities {
     pub activities: Vec<ContentApiActivity>,
 }
 
+#[derive(Clone, Debug)]
+pub struct ContentApiMapAssetTransitions {
+    pub transitions: Vec<AdminActivityTransition>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ContentApiActivityReadError;
 
@@ -39,6 +46,44 @@ pub trait ContentApiActivityRepository {
         principal: &AuthorizedPrincipal,
         map_asset_id: Uuid,
     ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send;
+
+    fn load_transitions(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+    ) -> impl Future<
+        Output = Result<Option<ContentApiMapAssetTransitions>, ContentApiActivityReadError>,
+    > + Send;
+}
+
+/// Returns only the source-ordered edges in an editable MapAsset graph. The
+/// Content API exposes graph facts separately from the activity list so a
+/// client can safely reload an idempotent connection result.
+pub struct ContentApiActivityTransitionListQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> ContentApiActivityTransitionListQuery<'repository, Repository>
+where
+    Repository: ContentApiActivityRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+    ) -> Result<Option<ContentApiMapAssetTransitions>, ContentApiActivityReadError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+
+        self.repository
+            .load_transitions(principal, map_asset_id)
+            .await
+    }
 }
 
 /// Keeps the Content API's MapAsset activity listing behind the same World
@@ -113,7 +158,8 @@ mod tests {
 
     use super::{
         ContentApiActivityListQuery, ContentApiActivityNodeQuery, ContentApiActivityReadError,
-        ContentApiActivityRepository, ContentApiMapAssetActivities,
+        ContentApiActivityRepository, ContentApiActivityTransitionListQuery,
+        ContentApiMapAssetActivities, ContentApiMapAssetTransitions,
     };
 
     struct RecordingRepository {
@@ -141,6 +187,17 @@ mod tests {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
+
+        fn load_transitions(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+        ) -> impl Future<
+            Output = Result<Option<ContentApiMapAssetTransitions>, ContentApiActivityReadError>,
+        > + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
     }
 
     #[tokio::test]
@@ -163,9 +220,14 @@ mod tests {
             .execute(&principal, Uuid::new_v4())
             .await
             .expect("authorization check");
+        let transitions = ContentApiActivityTransitionListQuery::new(&repository)
+            .execute(&principal, Uuid::new_v4())
+            .await
+            .expect("authorization check");
 
         assert!(activities.is_none());
         assert!(node.is_none());
+        assert!(transitions.is_none());
         assert!(!called.load(Ordering::SeqCst));
     }
 }

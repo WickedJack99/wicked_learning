@@ -530,6 +530,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     ) as {
         data: Array<{
             fromActivityId: string;
+            id: string;
             label: string | null;
             toActivityId: string | null;
         }>;
@@ -539,6 +540,32 @@ test('a content API author creates a MapAsset Activity through the documented co
             fromActivityId: activity.data.id,
             label: 'Continue to the dialogue',
             toActivityId: dialogue.data.id,
+        }),
+    );
+    const createdTransition = transitionResponse.data.find(
+        (transition) =>
+            transition.fromActivityId === activity.data.id &&
+            transition.toActivityId === dialogue.data.id,
+    );
+    expect(createdTransition).toBeDefined();
+    if (!createdTransition) {
+        throw new Error('the Content API did not return the created transition');
+    }
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activity-transitions.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activity-transitions`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    const listedTransitionResponse = JSON.parse(
+        (await console.locator('pre').textContent()) ?? '{}',
+    ) as { data: Array<{ id: string }> };
+    expect(listedTransitionResponse.data).toContainEqual(
+        expect.objectContaining({
+            id: createdTransition.id,
         }),
     );
 });
