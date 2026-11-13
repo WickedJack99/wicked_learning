@@ -52,8 +52,7 @@ const journalStyle = {
     '--journal-sidebar-background': 'rgba(17, 24, 39, 0.64)',
 } as CSSProperties;
 
-/** Source-adapted from the original JournalOverlay. Fuller check-in-history
- * affordances remain unavailable until their source-defined contracts exist. */
+/** Source-adapted from the original JournalOverlay. */
 export function OriginalJournalOverlay({ onClose }: { onClose: () => void }) {
     const navigate = useNavigate();
     const [journal, setJournal] = useState<JournalDocument | null>(null);

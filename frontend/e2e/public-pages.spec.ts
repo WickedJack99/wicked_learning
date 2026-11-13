@@ -940,6 +940,10 @@ test('the authenticated Topics reader keeps the source directory, topic Trail an
         page.getByRole('heading', { name: 'Your trail in this topic' }),
     ).toBeVisible();
     await expect(page.getByText('Recent reflections')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open journal' })).toHaveAttribute(
+        'href',
+        '/journal',
+    );
     await page.getByRole('link', { name: 'Open focused map' }).click();
     await expect(page).toHaveURL(
         /\/competence\?topic=map-orientation&from=map-orientation$/,
@@ -1480,7 +1484,38 @@ async function mockTopicReader(page: import('@playwright/test').Page) {
                             recorded_at: '2026-11-05T12:00:00Z',
                         },
                     ],
-                    reflection_narrative: null,
+                    reflection_narrative: {
+                        earlier: {
+                            activity_title: 'Notice the map',
+                            created_at: '2026-10-02T12:00:00Z',
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d76',
+                            question: 'What did you notice first?',
+                            reflection: 'The paths made more sense.',
+                        },
+                        entries: [
+                            {
+                                activity_title: 'Notice the map',
+                                created_at: '2026-10-02T12:00:00Z',
+                                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d76',
+                                question: 'What did you notice first?',
+                                reflection: 'The paths made more sense.',
+                            },
+                            {
+                                activity_title: 'Consider a direction',
+                                created_at: '2026-11-05T12:00:00Z',
+                                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77',
+                                question: 'What will you try next?',
+                                reflection: 'I will start with one route.',
+                            },
+                        ],
+                        later: {
+                            activity_title: 'Consider a direction',
+                            created_at: '2026-11-05T12:00:00Z',
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77',
+                            question: 'What will you try next?',
+                            reflection: 'I will start with one route.',
+                        },
+                    },
                     subtopic_competence: [],
                     topic,
                 }),

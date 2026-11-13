@@ -382,6 +382,22 @@ export function App() {
         );
     }
 
+    if (location.pathname === '/journal') {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        return (
+            <Navigate
+                replace
+                to={currentUser.kind === 'loaded' ? '/home?journal=1' : '/login'}
+            />
+        );
+    }
+
     if (location.pathname === '/home') {
         if (
             currentUser.kind === 'loading' ||

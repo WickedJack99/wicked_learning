@@ -50,9 +50,8 @@ export const topicSurfaceStyle = {
  * Source-adapted from `features/topics/topic-directory.tsx` and
  * `features/topics/topic-detail.tsx`. The server owns topic visibility,
  * pagination, learner history and route start authorization. Source controls
- * that require an unavailable Rust destination (competence drill-down and
- * the Journal overlay) are intentionally not rendered rather than replaced
- * with a new interaction. Historical activity replay uses the shared opaque
+ * that require an unavailable Rust destination are intentionally not rendered
+ * rather than replaced with a new interaction. Historical activity replay uses the shared opaque
  * command, so it remains an original learner control without exposing an
  * activity URL from the read model.
  */
@@ -984,15 +983,25 @@ function ReflectionNarrative({
             aria-labelledby="topic-reflection-comparison-heading"
             className="mt-8 border-b border-[var(--learner-border-color)] py-7"
         >
-            <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
-                Your reflections over time
-            </p>
-            <h2
-                className="mt-2 text-sm font-semibold"
-                id="topic-reflection-comparison-heading"
-            >
-                Earlier and later
-            </h2>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
+                        Your reflections over time
+                    </p>
+                    <h2
+                        className="mt-2 text-sm font-semibold"
+                        id="topic-reflection-comparison-heading"
+                    >
+                        Earlier and later
+                    </h2>
+                </div>
+                <Link
+                    className="shrink-0 text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
+                    to="/journal"
+                >
+                    Open journal
+                </Link>
+            </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <ReflectionSnapshot
                     label="Earlier"

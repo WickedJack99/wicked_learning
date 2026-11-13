@@ -1,5 +1,5 @@
 import { ChevronDown, LogOut, NotebookPen, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
@@ -21,9 +21,12 @@ export function OriginalLearnerHeader({
 }) {
     const location = useLocation();
     const t = usePlatformTranslation();
-    const [isJournalOpen, setIsJournalOpen] = useState(false);
+    const [isJournalOpen, setIsJournalOpen] = useState(() =>
+        journalQueryIsOpen(location.search),
+    );
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
+    const journalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const primaryItems = [
         {
             href: '/home',
@@ -72,6 +75,28 @@ export function OriginalLearnerHeader({
                 ),
             );
         }
+    }
+
+    useEffect(() => {
+        if (journalQueryIsOpen(location.search)) {
+            setIsJournalOpen(true);
+        }
+    }, [location.search]);
+
+    function closeJournal(): void {
+        setIsJournalOpen(false);
+
+        if (journalQueryIsOpen(location.search)) {
+            const nextUrl = new URL(window.location.href);
+            nextUrl.searchParams.delete('journal');
+            window.history.replaceState(
+                window.history.state,
+                '',
+                `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`,
+            );
+        }
+
+        window.setTimeout(() => journalTriggerRef.current?.focus(), 0);
     }
 
     return (
@@ -124,7 +149,15 @@ export function OriginalLearnerHeader({
                         aria-expanded={isJournalOpen}
                         aria-label={t('navigation.primary.journal', 'Journal')}
                         className="grid size-10 place-items-center rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] transition hover:bg-white/10 hover:text-[var(--learner-heading-text)]"
-                        onClick={() => setIsJournalOpen((open) => !open)}
+                        onClick={() => {
+                            if (isJournalOpen) {
+                                closeJournal();
+                                return;
+                            }
+
+                            setIsJournalOpen(true);
+                        }}
+                        ref={journalTriggerRef}
                         type="button"
                     >
                         <NotebookPen className="size-4" />
@@ -152,10 +185,14 @@ export function OriginalLearnerHeader({
                     ) : null}
                 </div>
             </div>
-            {isJournalOpen ? <OriginalJournalOverlay onClose={() => setIsJournalOpen(false)} /> : null}
+            {isJournalOpen ? <OriginalJournalOverlay onClose={closeJournal} /> : null}
             <OriginalPlatformFeedbackPrompt />
         </header>
     );
+}
+
+function journalQueryIsOpen(search: string): boolean {
+    return new URLSearchParams(search).get('journal') === '1';
 }
 
 function isActiveNavigationItem(pathname: string, href: string): boolean {
