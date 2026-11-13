@@ -72,6 +72,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const sharedTaskTitle = `Content API browser shared task ${suffix}`;
     const itemGrantTitle = `Content API browser item grant ${suffix}`;
     const toolGrantTitle = `Content API browser tool grant ${suffix}`;
+    const itemObstacleTitle = `Content API browser item obstacle ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -359,6 +360,30 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(toolGrant.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(toolGrant.data).toMatchObject({ type: 'tool_grant', title: toolGrantTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'item_obstacle',
+        title: itemObstacleTitle,
+        introduction: 'Use a scoped item deliberately to open the next encounter.',
+        item_obstacle_overlay_x: 50,
+        item_obstacle_overlay_y: 50,
+        item_obstacle_overlay_width: 30,
+        item_obstacle_slots: [{
+            item_id: '20000000-0000-4000-8000-000000000001',
+            x: 50,
+            y: 50,
+            width: 10,
+        }],
+        item_obstacle_consume_on_each_entry: false,
+        item_obstacle_lock_minutes: 0,
+        graph_position_x: 780,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const itemObstacle = await createdResponse(console);
+    expect(itemObstacle.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(itemObstacle.data).toMatchObject({ type: 'item_obstacle', title: itemObstacleTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -376,4 +401,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(sharedTaskTitle);
     await expect(console.locator('pre')).toContainText(itemGrantTitle);
     await expect(console.locator('pre')).toContainText(toolGrantTitle);
+    await expect(console.locator('pre')).toContainText(itemObstacleTitle);
 });
