@@ -88,26 +88,36 @@ export function OriginalPaginatedItems<T>({
 export function OriginalPaginationControls({
     buttonClassName,
     className,
+    currentPageLabel = 'Current page',
     currentPage,
     focusOutlineClassName = 'focus-visible:outline-[var(--journal-accent)]',
     focusRingClassName = 'focus-visible:ring-[var(--journal-accent)]',
     label,
+    nextText = 'Next',
     nextLabel = 'Next items',
     onPageChange,
     pageCount,
+    pageText = 'Page',
     previousLabel = 'Previous items',
+    previousText = 'Previous',
+    ofText = 'of',
     textClassName,
 }: {
     buttonClassName: string;
     className: string;
+    currentPageLabel?: string;
     currentPage: number;
     focusOutlineClassName?: string;
     focusRingClassName?: string;
     label: string;
+    nextText?: string;
     nextLabel?: string;
     onPageChange: (page: number) => void;
     pageCount: number;
+    pageText?: string;
     previousLabel?: string;
+    previousText?: string;
+    ofText?: string;
     textClassName: string;
 }) {
     const inputId = `pagination-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
@@ -159,18 +169,18 @@ export function OriginalPaginationControls({
                 type="button"
             >
                 <ChevronLeft aria-hidden="true" className="size-4" />
-                Previous
+                {previousText}
             </button>
             <span
                 aria-live="polite"
                 className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap ${textClassName}`}
             >
                 <label className="sr-only" htmlFor={inputId}>
-                    Current page
+                    {currentPageLabel}
                 </label>
-                <span aria-hidden="true">Page</span>
+                <span aria-hidden="true">{pageText}</span>
                 <input
-                    aria-label="Current page"
+                    aria-label={currentPageLabel}
                     className={`h-7 w-12 rounded border border-current/30 bg-transparent px-1 text-center text-inherit outline-none focus-visible:ring-2 ${focusRingClassName}`}
                     defaultValue={safeCurrentPage}
                     id={inputId}
@@ -219,7 +229,9 @@ export function OriginalPaginationControls({
                     ref={pageInputRef}
                     type="number"
                 />
-                <span aria-hidden="true">of {safePageCount}</span>
+                <span aria-hidden="true">
+                    {ofText} {safePageCount}
+                </span>
             </span>
             <button
                 aria-label={nextLabel}
@@ -228,7 +240,7 @@ export function OriginalPaginationControls({
                 onClick={() => onPageChange(safeCurrentPage + 1)}
                 type="button"
             >
-                Next
+                {nextText}
                 <ChevronRight aria-hidden="true" className="size-4" />
             </button>
         </nav>

@@ -374,6 +374,7 @@ function TopicDirectory() {
 }
 
 function TopicDetail({ topicSlug }: { topicSlug: string }) {
+    const t = usePlatformTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const [section, setSection] = useState<TopicSection>(() =>
@@ -586,10 +587,19 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
         return <TopicsMessage message="This topic is not available." />;
     }
     const sections: { id: TopicSection; label: string }[] = [
-        { id: 'trail', label: 'Trail' },
-        { id: 'routes', label: 'Routes' },
-        { id: 'maps', label: 'Maps' },
-        { id: 'overview', label: 'Overview' },
+        {
+            id: 'trail',
+            label: t('topics.detail.navigation.trail', 'Trail'),
+        },
+        {
+            id: 'routes',
+            label: t('topics.detail.navigation.routes', 'Routes'),
+        },
+        { id: 'maps', label: t('topics.detail.navigation.maps', 'Maps') },
+        {
+            id: 'overview',
+            label: t('topics.detail.navigation.overview', 'Overview'),
+        },
     ];
     return (
         <TopicSurface marker="learner.topic.detail">
@@ -599,7 +609,7 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
                     to={header.parent?.href ?? '/topics'}
                 >
                     <ArrowLeft className="size-4" />
-                    {header.parent?.title ?? 'Topics'}
+                    {header.parent?.title ?? t('topics.title', 'Topics')}
                 </Link>
                 <header className="mt-6 shrink-0 border-b border-[var(--learner-border-color)] pb-6">
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
@@ -615,7 +625,10 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
                     ) : null}
                 </header>
                 <nav
-                    aria-label="Topic sections"
+                    aria-label={t(
+                        'topics.detail.navigation.label',
+                        'Topic sections',
+                    )}
                     className="mt-5 flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--learner-border-color)] pb-px"
                     data-wl-id="learner.topic.sections"
                     role="tablist"
@@ -1151,6 +1164,7 @@ function RoutesPanel({
     startError: string | null;
     startingId: string | null;
 }) {
+    const t = usePlatformTranslation();
     return (
         <section
             aria-labelledby="topic-routes-tab"
@@ -1266,12 +1280,15 @@ function RoutesPanel({
                                 </button>
                             </>
                         ) : (
-                            'No routes are available yet.'
+                            t(
+                                'topics.detail.paths.empty',
+                                'No routes are available yet.',
+                            )
                         )}
                     </div>
                 )}
                 <TopicPagination
-                    label="Topic routes"
+                    label={t('topics.detail.paths.pagination', 'Topic routes')}
                     pagination={data.pagination}
                     onPageChange={(nextPage) =>
                         onChange(
@@ -1369,6 +1386,7 @@ function MapsPanel({
     data: components['schemas']['LearnerTopicMaps'];
     onPageChange: (page: number) => void;
 }) {
+    const t = usePlatformTranslation();
     return (
         <section
             aria-labelledby="topic-maps-tab"
@@ -1381,17 +1399,19 @@ function MapsPanel({
                     className="mt-10 border-b border-[var(--learner-border-color)] py-7"
                 >
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
-                        Explore this topic
+                        {t('topics.detail.maps.eyebrow', 'Explore this topic')}
                     </p>
                     <h2
                         className="mt-2 text-sm font-semibold"
                         id="topic-maps-heading"
                     >
-                        Map surfaces
+                        {t('topics.detail.maps.title', 'Map surfaces')}
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                        Open a map to explore this topic through places,
-                        activities and connected paths.
+                        {t(
+                            'topics.detail.maps.description',
+                            'Open a map to explore this topic through places, activities and connected paths.',
+                        )}
                     </p>
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
                         {data.maps.map((map) => (
@@ -1412,11 +1432,21 @@ function MapsPanel({
                                     ) : null}
                                     <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
                                         {map.node_count === 1
-                                            ? '1 place to explore'
-                                            : `${map.node_count} places to explore`}
+                                            ? t(
+                                                  'topics.detail.maps.place_count.one',
+                                                  '1 place to explore',
+                                              )
+                                            : t(
+                                                  'topics.detail.maps.place_count.many',
+                                                  ':count places to explore',
+                                                  { count: map.node_count },
+                                              )}
                                     </span>
                                     <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-[var(--learner-action-accent)] uppercase">
-                                        Open map
+                                        {t(
+                                            'topics.detail.maps.open',
+                                            'Open map',
+                                        )}
                                         <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
                                     </span>
                                 </span>
@@ -1424,14 +1454,17 @@ function MapsPanel({
                         ))}
                     </div>
                     <TopicPagination
-                        label="Topic maps"
+                        label={t('topics.detail.maps.pagination', 'Topic maps')}
                         pagination={data.maps_pagination}
                         onPageChange={onPageChange}
                     />
                 </section>
             ) : (
                 <p className="mt-8 border-b border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
-                    No maps are available yet.
+                    {t(
+                        'topics.detail.maps.empty',
+                        'No maps are available yet.',
+                    )}
                 </p>
             )}
         </section>
@@ -1445,6 +1478,7 @@ function OverviewPanel({
     data: components['schemas']['LearnerTopicOverview'];
     onPageChange: (page: number) => void;
 }) {
+    const t = usePlatformTranslation();
     return (
         <section
             aria-labelledby="topic-overview-tab"
@@ -1462,15 +1496,17 @@ function OverviewPanel({
                         <div className="border-b border-[var(--learner-border-color)] py-7">
                             <BookOpenText className="size-5 text-[var(--learner-action-accent)]" />
                             <p className="mt-3 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                This topic currently serves as an overview.
-                                Continue with one of its subtopics.
+                                {t(
+                                    'topics.detail.no_content',
+                                    'This topic currently serves as an overview. Continue with one of its subtopics.',
+                                )}
                             </p>
                         </div>
                     )}
                 </article>
                 <aside>
                     <h2 className="border-b border-[var(--learner-border-color)] pb-3 text-xs font-semibold tracking-[0.18em] text-[var(--learner-muted-text)] uppercase">
-                        Subtopics
+                        {t('topics.detail.subtopics', 'Subtopics')}
                     </h2>
                     {data.subtopics.length ? (
                         <>
@@ -1488,8 +1524,17 @@ function OverviewPanel({
                                             {topic.map_count ? (
                                                 <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                                                     {topic.map_count === 1
-                                                        ? '1 map available'
-                                                        : `${topic.map_count} maps available`}
+                                                        ? t(
+                                                              'topics.detail.subtopics.map_count.one',
+                                                              '1 map available',
+                                                          )
+                                                        : t(
+                                                              'topics.detail.subtopics.map_count.many',
+                                                              ':count maps available',
+                                                              {
+                                                                  count: topic.map_count,
+                                                              },
+                                                          )}
                                                 </span>
                                             ) : null}
                                             {topic.description ? (
@@ -1503,14 +1548,20 @@ function OverviewPanel({
                                 ))}
                             </div>
                             <TopicPagination
-                                label="Topic subtopics"
+                                label={t(
+                                    'topics.detail.subtopics.pagination',
+                                    'Topic subtopics',
+                                )}
                                 pagination={data.subtopics_pagination}
                                 onPageChange={onPageChange}
                             />
                         </>
                     ) : (
                         <p className="py-4 text-sm leading-6 text-[var(--learner-muted-text)]">
-                            No subtopics have been published here yet.
+                            {t(
+                                'topics.detail.no_subtopics',
+                                'No subtopics have been published here yet.',
+                            )}
                         </p>
                     )}
                 </aside>
@@ -1530,16 +1581,27 @@ export function TopicPagination({
         | components['schemas']['LearnerPathPagination'];
     onPageChange: (page: number) => void;
 }) {
+    const t = usePlatformTranslation();
     return (
         <OriginalPaginationControls
             buttonClassName="inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40"
             className="mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3"
+            currentPageLabel={t(
+                'common.pagination.current_page',
+                'Current page',
+            )}
             currentPage={pagination.current_page}
             focusOutlineClassName="focus-visible:outline-[var(--learner-action-accent)]"
             focusRingClassName="focus-visible:ring-[var(--learner-action-accent)]"
             label={label}
+            nextLabel={t('common.pagination.next', 'Next items')}
+            nextText={t('common.pagination.next_short', 'Next')}
             onPageChange={onPageChange}
+            ofText={t('common.pagination.of', 'of')}
             pageCount={pagination.last_page}
+            pageText={t('common.pagination.page_label', 'Page')}
+            previousLabel={t('common.pagination.previous', 'Previous items')}
+            previousText={t('common.pagination.previous_short', 'Previous')}
             textClassName="text-xs text-[var(--learner-muted-text)]"
         />
     );
@@ -1582,6 +1644,7 @@ function TopicsMessage({ message }: { message: string }) {
     );
 }
 function SectionLoading() {
+    const t = usePlatformTranslation();
     return (
         <section
             className="grid min-h-64 place-items-center border-b border-[var(--learner-border-color)] py-10 text-center"
@@ -1590,7 +1653,10 @@ function SectionLoading() {
             <div>
                 <LoaderCircle className="mx-auto size-5 animate-spin text-[var(--learner-action-accent)]" />
                 <p className="mt-3 text-sm text-[var(--learner-muted-text)]">
-                    Loading this section…
+                    {t(
+                        'topics.detail.navigation.loading',
+                        'Loading this section…',
+                    )}
                 </p>
             </div>
         </section>

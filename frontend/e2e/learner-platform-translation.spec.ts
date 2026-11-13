@@ -177,6 +177,75 @@ test('the topic directory receives its source management capability and catalog 
     ).toHaveAttribute('href', '/admin/topics');
 });
 
+test('the topic detail consumes its source navigation and overview catalog copy', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                roles: ['learner'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/platform-translations', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'topics.detail.navigation.label': 'Localized sections',
+                    'topics.detail.navigation.overview': 'Localized overview',
+                    'topics.detail.no_content':
+                        'Localized topic overview guidance.',
+                    'topics.detail.no_subtopics':
+                        'Localized empty subtopics guidance.',
+                    'topics.detail.subtopics': 'Localized subtopics',
+                },
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/topics/example/overview**', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                subtopics: [],
+                subtopics_pagination: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 6,
+                    total: 0,
+                },
+                topic: {
+                    area_title: 'Orientation',
+                    content: null,
+                    description: null,
+                    parent: null,
+                    slug: 'example',
+                    title: 'Example topic',
+                },
+            }),
+        }),
+    );
+
+    await page.goto('/topics/example?section=overview');
+    await expect(
+        page.getByRole('tablist', { name: 'Localized sections' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('tab', { name: 'Localized overview' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Localized topic overview guidance.'),
+    ).toBeVisible();
+    await expect(page.getByText('Localized subtopics')).toBeVisible();
+    await expect(
+        page.getByText('Localized empty subtopics guidance.'),
+    ).toBeVisible();
+});
+
 async function expectNavigationItemsInsideViewport(
     page: import('@playwright/test').Page,
     items: import('@playwright/test').Locator,
