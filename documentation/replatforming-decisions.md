@@ -2105,14 +2105,18 @@ copying email into application message rows would violate the accepted
 identity/application database separation. All are rejected.
 
 **Evidence and boundary:** Application tests constrain the source filter
-vocabulary; the workspace, contract and generated client build together. A
-local Compose browser journey creates a peer note through its original
-playback, verifies it on the wall, hides it through the capability-gated staff
-endpoint and confirms it disappears from the wall, restores it, then confirms
-it in the source-derived staff panel. The existing private-support journey
-remains covered separately. This is not full Settings, organization, authoring
-or user-management migration, and does not make peer messages a public
-browsing surface.
+vocabulary; the workspace, contract and generated client build together. The
+standalone page now composes the extracted source Settings top bar, primary
+sidebar, account corner, nested topic navigation and Needs attention digest;
+only Inertia transport and source database IDs are adapted to the typed Rust
+client. A local Compose browser journey creates a peer note through its
+original playback, verifies it on the wall, hides it through the
+capability-gated staff endpoint and confirms it disappears from the wall,
+restores it, then confirms it in the source-derived staff panel at desktop and
+narrow viewports. The existing private-support journey remains covered
+separately. This is not full Settings, organization, authoring or
+user-management migration, and does not make peer messages a public browsing
+surface.
 
 ## ADR-052: Shared Task stays activity-scoped, anonymous and threshold-gated
 

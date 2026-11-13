@@ -144,7 +144,7 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
     const response = await request.get('/api/v1/public/world');
 
     expect(response.status()).toBe(200);
-    const world = await response.json() as { maps: Array<{ slug: string }> };
+    const world = (await response.json()) as { maps: Array<{ slug: string }> };
     expect(world).toMatchObject({
         slug: 'orientation-garden',
         title: 'Orientation Garden',
@@ -152,48 +152,48 @@ test('the public world endpoint returns a bounded fresh exploration graph', asyn
     });
     const firstPath = world.maps.find((map) => map.slug === 'first-path');
     expect(firstPath).toMatchObject({
-                slug: 'first-path',
-                title: 'The First Path',
-                background_config: {
-                    accentColor: '#5eead4',
-                    pageBackground: '#0b1117',
-                },
-                grid_config: { tileWidth: 96, tileHeight: 84, gap: 8 },
-                map_assets_locked: false,
-                assets: [
-                    {
-                        slug: 'notice-the-map',
-                        interaction_mode: 'focusable',
-                        z: 0,
-                        locked: false,
-                        sound_config: {},
-                        visual_config: { tileColor: '#0e7490' },
-                    },
-                    {
-                        slug: 'choose-a-direction',
-                        interaction_mode: 'focusable',
-                        z: 1,
-                        visual_config: { tileColor: '#0e7490' },
-                    },
-                ],
-                nodes: [
-                    {
-                        asset_slug: 'notice-the-map',
-                        slug: 'notice-the-map',
-                        q: 0,
-                        r: 0,
-                        state: 'available',
-                        visual_config: { icon: 'map' },
-                    },
-                    {
-                        asset_slug: 'choose-a-direction',
-                        slug: 'choose-a-direction',
-                        q: 2,
-                        r: 1,
-                        state: 'available',
-                        visual_config: { icon: 'signpost' },
-                    },
-                ],
+        slug: 'first-path',
+        title: 'The First Path',
+        background_config: {
+            accentColor: '#5eead4',
+            pageBackground: '#0b1117',
+        },
+        grid_config: { tileWidth: 96, tileHeight: 84, gap: 8 },
+        map_assets_locked: false,
+        assets: [
+            {
+                slug: 'notice-the-map',
+                interaction_mode: 'focusable',
+                z: 0,
+                locked: false,
+                sound_config: {},
+                visual_config: { tileColor: '#0e7490' },
+            },
+            {
+                slug: 'choose-a-direction',
+                interaction_mode: 'focusable',
+                z: 1,
+                visual_config: { tileColor: '#0e7490' },
+            },
+        ],
+        nodes: [
+            {
+                asset_slug: 'notice-the-map',
+                slug: 'notice-the-map',
+                q: 0,
+                r: 0,
+                state: 'available',
+                visual_config: { icon: 'map' },
+            },
+            {
+                asset_slug: 'choose-a-direction',
+                slug: 'choose-a-direction',
+                q: 2,
+                r: 1,
+                state: 'available',
+                visual_config: { icon: 'signpost' },
+            },
+        ],
     });
 });
 
@@ -205,7 +205,7 @@ test('a public map place exposes only its bounded published route previews', asy
     );
 
     expect(response.status()).toBe(200);
-    const place = await response.json() as { routes: Array<unknown> };
+    const place = (await response.json()) as { routes: Array<unknown> };
     expect(place).toMatchObject({
         world_slug: 'orientation-garden',
         world_title: 'Orientation Garden',
@@ -216,15 +216,17 @@ test('a public map place exposes only its bounded published route previews', asy
         description:
             'A learner can choose a useful next direction without pressure or hidden ranking.',
     });
-    expect(place.routes).toEqual(expect.arrayContaining([
-        expect.objectContaining({
-            slug: 'choose-your-next-step',
-            title: 'Choose your next step',
-            description:
-                'A short route for considering a useful direction without a prescribed order.',
-            activity_count: expect.any(Number),
-        }),
-    ]));
+    expect(place.routes).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                slug: 'choose-your-next-step',
+                title: 'Choose your next step',
+                description:
+                    'A short route for considering a useful direction without a prescribed order.',
+                activity_count: expect.any(Number),
+            }),
+        ]),
+    );
 
     const missingResponse = await request.get(
         '/api/v1/public/worlds/orientation-garden/maps/first-path/assets/not-published',
@@ -244,7 +246,7 @@ test('a public route exposes only its bounded published activity outline', async
     );
 
     expect(response.status()).toBe(200);
-    const route = await response.json() as { activities: Array<unknown> };
+    const route = (await response.json()) as { activities: Array<unknown> };
     expect(route).toMatchObject({
         world_slug: 'orientation-garden',
         world_title: 'Orientation Garden',
@@ -257,20 +259,22 @@ test('a public route exposes only its bounded published activity outline', async
         description:
             'A short route for considering a useful direction without a prescribed order.',
     });
-    expect(route.activities).toEqual(expect.arrayContaining([
-        expect.objectContaining({
-            slug: 'consider-a-direction',
-            title: 'Consider a direction',
-            description:
-                'Compare available directions without ranking them or creating urgency.',
-        }),
-        expect.objectContaining({
-            slug: 'reflect-on-direction',
-            title: 'Connect the direction',
-            description:
-                'Keep a private note about what feels useful to explore next.',
-        }),
-    ]));
+    expect(route.activities).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                slug: 'consider-a-direction',
+                title: 'Consider a direction',
+                description:
+                    'Compare available directions without ranking them or creating urgency.',
+            }),
+            expect.objectContaining({
+                slug: 'reflect-on-direction',
+                title: 'Connect the direction',
+                description:
+                    'Keep a private note about what feels useful to explore next.',
+            }),
+        ]),
+    );
 
     const missingResponse = await request.get(
         '/api/v1/public/worlds/orientation-garden/maps/first-path/assets/choose-a-direction/routes/not-published',
@@ -284,21 +288,23 @@ test('public search returns only published map places and validates its query', 
     const response = await request.get('/api/v1/public/search?q=direction');
 
     expect(response.status()).toBe(200);
-    const search = await response.json() as { results: Array<unknown> };
+    const search = (await response.json()) as { results: Array<unknown> };
     expect(search).toMatchObject({
         query: 'direction',
     });
-    expect(search.results).toEqual(expect.arrayContaining([
-        expect.objectContaining({
-            world_slug: 'orientation-garden',
-            map_slug: 'first-path',
-            map_title: 'The First Path',
-            asset_slug: 'choose-a-direction',
-            title: 'Choose a direction',
-            description:
-                'A learner can choose a useful next direction without pressure or hidden ranking.',
-        }),
-    ]));
+    expect(search.results).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                world_slug: 'orientation-garden',
+                map_slug: 'first-path',
+                map_title: 'The First Path',
+                asset_slug: 'choose-a-direction',
+                title: 'Choose a direction',
+                description:
+                    'A learner can choose a useful next direction without pressure or hidden ranking.',
+            }),
+        ]),
+    );
 
     const invalidQuery = await request.get('/api/v1/public/search?q=x');
     expect(invalidQuery.status()).toBe(400);
@@ -690,7 +696,9 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
         });
     }
 
-    const playback = await request.get(`/api/v1/learner/play-runs/${run.play_run_id}`);
+    const playback = await request.get(
+        `/api/v1/learner/play-runs/${run.play_run_id}`,
+    );
     expect(playback.status()).toBe(200);
     await expect(playback.json()).resolves.toMatchObject({
         activity: {
@@ -702,7 +710,7 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     const requestPath = `${activityPath}/ask-learning-support/support-request`;
     const before = await request.get(requestPath);
     expect(before.status()).toBe(200);
-    const beforeDocument = await before.json() as {
+    const beforeDocument = (await before.json()) as {
         has_contributed: boolean;
         message: { body: string } | null;
         topic_title: string;
@@ -767,7 +775,9 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
         `/api/v1/learning-support/messages/${submittedRequest!.id}/responses`,
         {
             headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-            data: { body: 'Look for the landmarks that make the map easier to revisit.' },
+            data: {
+                body: 'Look for the landmarks that make the map easier to revisit.',
+            },
         },
     );
     expect(staffReply.status()).toBe(201);
@@ -782,7 +792,9 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
         `/api/v1/learning-support/messages/${submittedRequest!.id}/responses`,
         {
             headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-            data: { body: 'Look for one landmark that will make this map easier to revisit.' },
+            data: {
+                body: 'Look for one landmark that will make this map easier to revisit.',
+            },
         },
     );
     expect(updatedStaffReply.status()).toBe(200);
@@ -795,19 +807,15 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
         '/settings?panel=admin-learning-support&support=learner-messages',
     );
     await expect(
-        page.getByRole('heading', { name: 'Learning Support' }),
+        page.locator(
+            '[data-wl-id="settings.learning-support.learner-messages"]',
+        ),
     ).toBeVisible();
-    await page
-        .getByRole('button', { name: /Orientation support/ })
-        .click();
+    await page.getByRole('button', { name: /Orientation support/ }).click();
     await expect(
         page.getByText('The First Path · Orientation support', { exact: true }),
     ).toBeVisible();
-    await expect(
-        page
-            .getByText(supportBody)
-            .first(),
-    ).toBeVisible();
+    await expect(page.getByText(supportBody).first()).toBeVisible();
 
     const learnerView = await request.get(requestPath);
     expect(learnerView.status()).toBe(200);

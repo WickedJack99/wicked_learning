@@ -44,12 +44,14 @@ test('a learner can start a source peer-message prompt and follow it into the or
                 break;
             }
             expect(messages.status()).toBe(200);
-            const document = await messages.json() as {
+            const document = (await messages.json()) as {
                 messages: Array<{ body: string; id: string }>;
                 pagination: { last_page: number };
             };
             for (const message of document.messages.filter((candidate) =>
-                testMessagePrefixes.some((prefix) => candidate.body.startsWith(prefix)),
+                testMessagePrefixes.some((prefix) =>
+                    candidate.body.startsWith(prefix),
+                ),
             )) {
                 const deleted = await request.delete(
                     `/api/v1/learning-support/messages/${message.id}`,
@@ -86,16 +88,22 @@ test('a learner can start a source peer-message prompt and follow it into the or
     const base = `/api/v1/learner/play-runs/${run.play_run_id}/activities`;
 
     for (const activitySlug of ['find-your-place', 'name-a-landmark']) {
-        const completed = await request.post(`${base}/${activitySlug}/complete`, {
-            headers: requestHeaders,
-            data: {},
-        });
+        const completed = await request.post(
+            `${base}/${activitySlug}/complete`,
+            {
+                headers: requestHeaders,
+                data: {},
+            },
+        );
         expect(completed.status()).toBe(200);
     }
-    const support = await request.post(`${base}/ask-learning-support/support-request`, {
-        headers: requestHeaders,
-        data: { body: 'Please help me notice the map orientation.' },
-    });
+    const support = await request.post(
+        `${base}/ask-learning-support/support-request`,
+        {
+            headers: requestHeaders,
+            data: { body: 'Please help me notice the map orientation.' },
+        },
+    );
     expect(support.status()).toBe(200);
     const completedSupport = await request.post(
         `${base}/ask-learning-support/complete`,
@@ -121,24 +129,27 @@ test('a learner can start a source peer-message prompt and follow it into the or
     await expect(
         page.getByRole('button', { name: 'Continue without answering' }),
     ).toBeVisible();
-    const wallResponse = page.waitForResponse(
-        (response) => new URL(response.url()).pathname.endsWith('/peer-wall'),
+    const wallResponse = page.waitForResponse((response) =>
+        new URL(response.url()).pathname.endsWith('/peer-wall'),
     );
-    await page.getByRole('button', { name: 'Continue without answering' }).click();
+    await page
+        .getByRole('button', { name: 'Continue without answering' })
+        .click();
 
     await expect(page.getByText('Orientation notes')).toBeVisible();
     const wall = await wallResponse;
     expect(wall.status()).toBe(200);
     expect(
         (await wall.json()).messages.some(
-            (message: { body: string }) =>
-                message.body === peerNote,
+            (message: { body: string }) => message.body === peerNote,
         ),
     ).toBe(true);
     await expect(
         page.locator('article:visible').filter({ hasText: peerNote }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Close message wall' })).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Close message wall' }),
+    ).toBeVisible();
 
     const topics = await request.get('/api/v1/learning-support/topics');
     expect(topics.status()).toBe(200);
@@ -167,8 +178,23 @@ test('a learner can start a source peer-message prompt and follow it into the or
         '/settings?panel=admin-learning-support&support=learner-messages',
     );
     await expect(
-        page.getByRole('heading', { name: 'Learning Support' }),
+        page.locator(
+            '[data-wl-id="settings.learning-support.learner-messages"]',
+        ),
     ).toBeVisible();
+    await expect(
+        page.locator(
+            '[data-wl-id="settings.learning-support.learner-messages.digest"]',
+        ),
+    ).toBeVisible();
+    await page.setViewportSize({ height: 844, width: 390 });
+    await expect(page.getByLabel('Settings area')).toBeVisible();
+    await expect(
+        page.locator(
+            '[data-wl-id="settings.learning-support.learner-messages"]',
+        ),
+    ).toBeVisible();
+    await page.setViewportSize({ height: 720, width: 1280 });
     await expect(
         page.locator('article:visible').filter({ hasText: peerNote }),
     ).toBeVisible();
@@ -176,7 +202,9 @@ test('a learner can start a source peer-message prompt and follow it into the or
         .locator('article:visible')
         .filter({ hasText: peerNote });
     await moderationCard.getByRole('button', { name: 'Hide' }).click();
-    await expect(moderationCard.getByText('Hidden from learners')).toBeVisible();
+    await expect(
+        moderationCard.getByText('Hidden from learners'),
+    ).toBeVisible();
 
     const hiddenWall = await request.get(
         `${base}/explore-peer-wall/peer-wall?page=1&per_page=10`,

@@ -316,7 +316,9 @@ export function App() {
         location.pathname === '/source' ||
         /^\/info\/[^/]+$/.test(location.pathname) ||
         fixedPublicInformationSlugs.includes(
-            location.pathname.slice(1) as (typeof fixedPublicInformationSlugs)[number],
+            location.pathname.slice(
+                1,
+            ) as (typeof fixedPublicInformationSlugs)[number],
         );
     if (isPublicPresentationRoute && presentationState.kind !== 'loaded') {
         return <PublicPresentationStatus state={presentationState.kind} />;
@@ -394,7 +396,9 @@ export function App() {
         return (
             <Navigate
                 replace
-                to={currentUser.kind === 'loaded' ? '/home?journal=1' : '/login'}
+                to={
+                    currentUser.kind === 'loaded' ? '/home?journal=1' : '/login'
+                }
             />
         );
     }
@@ -672,14 +676,11 @@ export function App() {
             settingsPanel === 'admin-assets-world-objects' ||
             settingsPanel === 'admin-assets';
         const usersPanel =
-            settingsPanel === 'admin-access' &&
-            accessSection === 'users';
+            settingsPanel === 'admin-access' && accessSection === 'users';
         const rolesPanel =
-            settingsPanel === 'admin-access' &&
-            accessSection === 'roles';
+            settingsPanel === 'admin-access' && accessSection === 'roles';
         const groupPanel =
-            settingsPanel === 'admin-access' &&
-            accessSection === 'groups';
+            settingsPanel === 'admin-access' && accessSection === 'groups';
         const supportPanel = settingsPanel === 'admin-learning-support';
         if (
             currentUser.kind === 'loading' ||
@@ -694,15 +695,11 @@ export function App() {
 
         if (settingsPanel === 'information') {
             return (
-                <OriginalSettingsInformationGroupPage
-                    appearance={appearance}
-                />
+                <OriginalSettingsInformationGroupPage appearance={appearance} />
             );
         }
 
-        if (
-            settingsPanel === 'admin-world-builder'
-        ) {
+        if (settingsPanel === 'admin-world-builder') {
             return (
                 <OriginalWorldBuilderPage
                     appearance={appearance}
@@ -713,9 +710,7 @@ export function App() {
             );
         }
 
-        if (
-            settingsPanel === 'admin-ai-integrations'
-        ) {
+        if (settingsPanel === 'admin-ai-integrations') {
             return (
                 <Suspense fallback={null}>
                     <OriginalAiSettingsPage appearance={appearance} />
@@ -723,9 +718,7 @@ export function App() {
             );
         }
 
-        if (
-            settingsPanel === 'admin-api'
-        ) {
+        if (settingsPanel === 'admin-api') {
             return (
                 <Suspense fallback={null}>
                     <OriginalContentApiPage />
@@ -733,9 +726,7 @@ export function App() {
             );
         }
 
-        if (
-            settingsPanel === 'admin-learning-companion'
-        ) {
+        if (settingsPanel === 'admin-learning-companion') {
             return (
                 <Suspense fallback={null}>
                     <OriginalLearningCompanionSettingsPage
@@ -745,54 +736,42 @@ export function App() {
             );
         }
 
-        if (
-            assetsPanel && assetSection === 'items'
-        ) {
+        if (assetsPanel && assetSection === 'items') {
             return (
                 <Suspense fallback={null}>
                     <OriginalAssetCatalogPage kind="items" />
                 </Suspense>
             );
         }
-        if (
-            assetsPanel && assetSection === 'tools'
-        ) {
+        if (assetsPanel && assetSection === 'tools') {
             return (
                 <Suspense fallback={null}>
                     <OriginalAssetCatalogPage kind="tools" />
                 </Suspense>
             );
         }
-        if (
-            assetsPanel && assetSection === 'cursors'
-        ) {
+        if (assetsPanel && assetSection === 'cursors') {
             return (
                 <Suspense fallback={null}>
                     <OriginalCursorSettingsPage appearance={appearance} />
                 </Suspense>
             );
         }
-        if (
-            assetsPanel && assetSection === 'sounds'
-        ) {
+        if (assetsPanel && assetSection === 'sounds') {
             return (
                 <Suspense fallback={null}>
                     <OriginalSoundLibraryPage />
                 </Suspense>
             );
         }
-        if (
-            assetsPanel && assetSection === 'dialogue-sounds'
-        ) {
+        if (assetsPanel && assetSection === 'dialogue-sounds') {
             return (
                 <Suspense fallback={null}>
                     <OriginalDialogueTypingSoundSetsPage />
                 </Suspense>
             );
         }
-        if (
-            assetsPanel
-        ) {
+        if (assetsPanel) {
             return (
                 <Suspense fallback={null}>
                     <OriginalMediaLibraryPage />
@@ -897,10 +876,7 @@ export function App() {
             );
         }
 
-        if (
-            supportPanel &&
-            supportSection === 'platform-feedback'
-        ) {
+        if (supportPanel && supportSection === 'platform-feedback') {
             if (!currentUser.capabilities.includes('platform_feedback_view')) {
                 return <Navigate replace to="/home" />;
             }
@@ -917,10 +893,7 @@ export function App() {
             );
         }
 
-        if (
-            supportPanel &&
-            supportSection === 'organization-icons'
-        ) {
+        if (supportPanel && supportSection === 'organization-icons') {
             if (
                 !currentUser.capabilities.includes(
                     'organization_icons_moderate',
@@ -937,10 +910,7 @@ export function App() {
             );
         }
 
-        if (
-            supportPanel &&
-            supportSection === 'feedback-requests'
-        ) {
+        if (supportPanel && supportSection === 'feedback-requests') {
             const canViewJournalFeedback = currentUser.capabilities.includes(
                 'journal_feedback_view',
             );
@@ -966,10 +936,7 @@ export function App() {
             );
         }
 
-        if (
-            supportPanel &&
-            supportSection === 'journal'
-        ) {
+        if (supportPanel && supportSection === 'journal') {
             if (
                 !currentUser.capabilities.includes(
                     'journal_feedback_policy_manage',
@@ -1040,9 +1007,7 @@ export function App() {
             return <Navigate replace to="/home" />;
         }
 
-        if (
-            supportSection === 'support-signals'
-        ) {
+        if (supportSection === 'support-signals') {
             return (
                 <Suspense fallback={null}>
                     <OriginalLearningSupportSignalsPage
@@ -1056,6 +1021,8 @@ export function App() {
             <Suspense fallback={null}>
                 <OriginalLearningSupportModerationPage
                     appearance={appearance}
+                    onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                    settingsAccess={currentUser.settingsAccess}
                 />
             </Suspense>
         );
@@ -1089,7 +1056,8 @@ export function App() {
         '/settings/profile': '/settings?panel=personal&personal=profile',
         '/settings/worlds': '/settings?panel=admin-world-builder',
     };
-    const legacySettingsDestination = legacySettingsRedirects[location.pathname];
+    const legacySettingsDestination =
+        legacySettingsRedirects[location.pathname];
     if (legacySettingsDestination) {
         if (
             currentUser.kind === 'loading' ||
@@ -1196,9 +1164,8 @@ export function App() {
         );
     }
 
-    const configuredInformationMatch = location.pathname.match(
-        /^\/info\/([^/]+)$/,
-    );
+    const configuredInformationMatch =
+        location.pathname.match(/^\/info\/([^/]+)$/);
     const publicInformationSlug = configuredInformationMatch
         ? decodeURIComponent(configuredInformationMatch[1])
         : location.pathname.slice(1);

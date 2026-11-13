@@ -6,30 +6,46 @@ import {
     MessageSquareText,
     Trash2,
 } from 'lucide-react';
-import { type CSSProperties, useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    SettingsNestedWorkspace,
+    SettingsSectionNavigation,
+    type SettingsNavigationItem,
+} from './extracted-settings-configuration-shell';
+import { settingsSections } from './extracted-settings-navigation';
+import {
+    SettingsSidebarNavigation,
+    SettingsTopBar,
+} from './extracted-settings-sidebar-navigation';
+import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Topic = components['schemas']['LearningSupportTopic'];
 type ModerationPage = components['schemas']['LearningSupportModerationPage'];
-type ModerationMessage = components['schemas']['LearningSupportModerationMessage'];
+type ModerationMessage =
+    components['schemas']['LearningSupportModerationMessage'];
 type SupportReply = components['schemas']['LearningSupportModerationReply'];
 type ResponseFilter = 'all' | 'helpful' | 'unconfirmed';
 
 /**
- * Source-adapted from `learner-message-moderation-panel.tsx`. The complete
- * Settings shell is not available yet, so this retains the source workspace's
- * topic navigation, resolution filters and moderation controls without
- * inventing an alternative admin flow.
+ * Source-adapted from `learner-message-moderation-panel.tsx`. The existing
+ * Settings shell is lifted from the Laravel React source; only Inertia
+ * transport and source database IDs are adapted to typed Rust API seams.
  */
 export function OriginalLearningSupportModerationPage({
     appearance,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
+    const t = usePlatformTranslation();
     const [topics, setTopics] = useState<Topic[]>([]);
     const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
     const [page, setPage] = useState<ModerationPage | null>(null);
@@ -43,6 +59,21 @@ export function OriginalLearningSupportModerationPage({
     const [submittingReply, setSubmittingReply] = useState(false);
     const [actionError, setActionError] = useState('');
     const [responseFilter, setResponseFilter] = useState<ResponseFilter>('all');
+    const [settingsMenuQuery, setSettingsMenuQuery] = useState('');
+    const accessCapabilities = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(settingsAccess).map(([key, read]) => [
+                    key,
+                    { delete: false, read, update: false },
+                ]),
+            ),
+        [settingsAccess],
+    );
+    const navigationSections = useMemo(
+        () => settingsSections(t, accessCapabilities, true, settingsMenuQuery),
+        [accessCapabilities, settingsMenuQuery, t],
+    );
 
     useEffect(() => {
         let active = true;
@@ -277,252 +308,321 @@ export function OriginalLearningSupportModerationPage({
     }
 
     const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
+    const topicItems = useMemo(
+        () =>
+            topics.map(
+                (topic): SettingsNavigationItem<string> => ({
+                    description: `${topic.map_title} · ${t(
+                        topic.message_count === 1
+                            ? 'settings.learner_messages.count_one'
+                            : 'settings.learner_messages.count_many',
+                        topic.message_count === 1
+                            ? ':count message'
+                            : ':count messages',
+                        { count: topic.message_count },
+                    )}`,
+                    icon: MessageSquareText,
+                    key: topic.id,
+                    label: `${topic.map_asset_title} — ${topic.title}`,
+                }),
+            ),
+        [t, topics],
+    );
 
     return (
         <main
-            className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
+            className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100"
+            data-wl-id="settings.learning-support.learner-messages"
             style={settingsStyle(appearance)}
         >
-            <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
-                <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
-                    <div>
-                        <Link
-                            className="mb-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] transition hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]"
-                            to="/home"
-                        >
-                            <ChevronLeft className="size-4" /> Learning desk
-                        </Link>
-                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                            Settings
-                        </p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                            Learning Support
-                        </h1>
-                    </div>
-                </header>
-
-                <section className="grid min-h-0 flex-1 gap-0 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] lg:grid-cols-[16rem_minmax(0,1fr)]">
-                    <aside className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 lg:border-r lg:border-b-0">
-                        <nav aria-label="Message topics" className="grid gap-2">
-                            {topics.map((topic) => (
-                                <button
-                                    className={`relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${topic.id === selectedTopicId ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]'}`}
-                                    key={topic.id}
-                                    onClick={() => {
-                                        setSelectedTopicId(topic.id);
+            <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                <SettingsTopBar
+                    menuQuery={settingsMenuQuery}
+                    onSearchChange={setSettingsMenuQuery}
+                />
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+                    <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
+                        <SettingsSidebarNavigation
+                            activePanel="admin-learning-support"
+                            sections={navigationSections}
+                        />
+                        <SettingsCornerNavigation onSignedOut={onSignedOut} />
+                    </aside>
+                    <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
+                        <SettingsNestedWorkspace
+                            contentClassName="p-0 sm:p-0"
+                            sidebar={
+                                <SettingsSectionNavigation
+                                    activeSection={selectedTopicId ?? ''}
+                                    ariaLabel={t(
+                                        'settings.learner_messages.topic_navigation',
+                                        'Message topics',
+                                    )}
+                                    items={topicItems}
+                                    onChange={(topicId) => {
+                                        setSelectedTopicId(topicId);
                                         setResponseFilter('all');
                                     }}
-                                    type="button"
-                                >
-                                    <span
-                                        aria-hidden="true"
-                                        className={`absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] ${topic.id === selectedTopicId ? 'opacity-100' : 'opacity-0'}`}
-                                    />
-                                    <MessageSquareText className="mt-0.5 size-4 shrink-0" />
-                                    <span className="min-w-0">
-                                        <span className="block truncate">
-                                            {topic.map_asset_title} —{' '}
-                                            {topic.title}
-                                        </span>
-                                        <span className="mt-1 block text-xs leading-5 text-[var(--settings-muted-text)]">
-                                            {topic.map_title} ·{' '}
-                                            {topic.message_count}{' '}
-                                            {topic.message_count === 1
-                                                ? 'message'
-                                                : 'messages'}
-                                        </span>
-                                    </span>
-                                </button>
-                            ))}
-                        </nav>
-                    </aside>
-
-                    <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
-                        {loadingTopics ? (
-                            <p className="py-8 text-sm text-[var(--settings-muted-text)]">
-                                Loading messages...
-                            </p>
-                        ) : null}
-                        {!loadingTopics && !selectedTopic ? (
-                            <EmptyState />
-                        ) : null}
-                        {selectedTopic ? (
-                            <div className="flex min-h-full flex-col">
-                                <header className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
-                                    <div className="min-w-0">
-                                        <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
-                                            <MessageSquareText className="size-5" />
-                                            <p className="text-xs font-medium tracking-[0.18em] uppercase">
-                                                Learner messages
+                                />
+                            }
+                        >
+                            <div className="flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-5">
+                                {loadingTopics ? (
+                                    <p className="py-8 text-sm text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.learner_messages.loading',
+                                            'Loading messages...',
+                                        )}
+                                    </p>
+                                ) : null}
+                                {!loadingTopics && !selectedTopic ? (
+                                    <EmptyState t={t} />
+                                ) : null}
+                                {selectedTopic ? (
+                                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                                        <header className="shrink-0 border-b border-[var(--settings-border-color)] pb-5">
+                                            <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
+                                                <MessageSquareText className="size-5" />
+                                                <p className="text-xs font-medium tracking-[0.18em] uppercase">
+                                                    {t(
+                                                        'settings.learner_messages.eyebrow',
+                                                        'Learner messages',
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <h2 className="text-2xl font-semibold tracking-normal">
+                                                {selectedTopic.map_asset_title}
+                                            </h2>
+                                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                                                {selectedTopic.map_title} ·{' '}
+                                                {selectedTopic.title}
                                             </p>
-                                        </div>
-                                        <h2 className="text-2xl font-semibold tracking-normal">
-                                            {selectedTopic.map_asset_title}
-                                        </h2>
-                                        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
-                                            {selectedTopic.map_title} ·{' '}
-                                            {selectedTopic.title}
-                                        </p>
-                                    </div>
-                                </header>
+                                        </header>
 
-                                <div
-                                    aria-label="Resolution view"
-                                    className="mt-4 flex flex-wrap items-center gap-2 border-b border-[var(--settings-border-color)] pb-3"
-                                    role="group"
-                                >
-                                    <span className="mr-1 text-xs font-semibold tracking-wide text-[var(--settings-muted-text)] uppercase">
-                                        Resolution view
-                                    </span>
-                                    {[
-                                        ['all', `All (${page?.counts.all ?? 0})`],
-                                        [
-                                            'unconfirmed',
-                                            `Needs learner confirmation (${page?.counts.unconfirmed ?? 0})`,
-                                        ],
-                                        [
-                                            'helpful',
-                                            `Learner-confirmed helpful (${page?.counts.helpful ?? 0})`,
-                                        ],
-                                    ].map(([filter, label]) => (
-                                        <button
-                                            aria-pressed={responseFilter === filter}
-                                            className={`min-h-9 rounded-md border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${responseFilter === filter ? 'border-[var(--settings-accent)] bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'border-[var(--settings-border-color)] text-[var(--settings-muted-text)] hover:border-[var(--settings-accent)] hover:text-[var(--settings-accent)]'}`}
-                                            key={filter}
-                                            onClick={() => setResponseFilter(filter as ResponseFilter)}
-                                            type="button"
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
+                                        <SupportDigest
+                                            onSelectTopic={(topicId) => {
+                                                setSelectedTopicId(topicId);
+                                                setResponseFilter(
+                                                    'unconfirmed',
+                                                );
+                                            }}
+                                            t={t}
+                                            topics={topics}
+                                        />
 
-                                <div
-                                    aria-busy={loadingRequests}
-                                    className="mt-4 flex min-h-0 flex-1 flex-col"
-                                >
-                                    {error ? (
-                                        <p
-                                            className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
-                                            role="alert"
+                                        <div
+                                            aria-label={t(
+                                                'settings.learner_messages.filter_label',
+                                                'Resolution view',
+                                            )}
+                                            className="mt-4 flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--settings-border-color)] pb-3"
+                                            role="group"
                                         >
-                                            {error}
-                                        </p>
-                                    ) : null}
-                                    {actionError ? (
-                                        <p
-                                            className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
-                                            role="alert"
-                                        >
-                                            {actionError}
-                                        </p>
-                                    ) : null}
-                                    {loadingRequests ? (
-                                        <p className="py-8 text-sm text-[var(--settings-muted-text)]">
-                                            Loading messages...
-                                        </p>
-                                    ) : null}
-                                    {!loadingRequests && page ? (
-                                        <>
-                                            <div className="grid gap-3">
-                                                {page.messages.map(
-                                                    (message) => (
-                                                        <RequestCard
-                                                            key={message.id}
-                                                            message={message}
-                                                            onDelete={() =>
-                                                                void deleteRequest(
-                                                                    message,
-                                                                )
-                                                            }
-                                                            onReply={() => {
-                                                                setReplyingMessageId(
-                                                                    (
-                                                                        current,
-                                                                    ) =>
-                                                                        current ===
-                                                                        message.id
-                                                                            ? null
-                                                                            : message.id,
-                                                                );
-                                                                setReplyBody(
-                                                                    '',
-                                                                );
-                                                                setActionError(
-                                                                    '',
-                                                                );
-                                                            }}
-                                                            onSaveReply={() =>
-                                                                void saveReply(
-                                                                    message.id,
-                                                                )
-                                                            }
-                                                            onSetVisibility={() =>
-                                                                void setRequestVisibility(
-                                                                    message,
-                                                                )
-                                                            }
-                                                            replying={
-                                                                replyingMessageId ===
-                                                                message.id
-                                                            }
-                                                            replyBody={
-                                                                replyBody
-                                                            }
-                                                            setReplyBody={
-                                                                setReplyBody
-                                                            }
-                                                            submittingReply={
-                                                                submittingReply
-                                                            }
-                                                            onDeleteReply={(
-                                                                reply,
-                                                            ) =>
-                                                                void deleteReply(
-                                                                    reply,
-                                                                )
-                                                            }
-                                                            onSetReplyVisibility={(
-                                                                reply,
-                                                            ) =>
-                                                                void setReplyVisibility(
-                                                                    reply,
-                                                                )
-                                                            }
-                                                            onResponsePageChange={(
-                                                                responsePage,
-                                                            ) =>
-                                                                void loadResponses(
-                                                                    message.id,
-                                                                    responsePage,
-                                                                )
-                                                            }
-                                                        />
-                                                    ),
+                                            <span className="mr-1 text-xs font-semibold tracking-wide text-[var(--settings-muted-text)] uppercase">
+                                                {t(
+                                                    'settings.learner_messages.filter_label',
+                                                    'Resolution view',
                                                 )}
-                                                {page.messages.length === 0 ? (
-                                                    <p className="border-b border-[var(--settings-border-color)] px-1 py-8 text-sm text-[var(--settings-muted-text)]">
-                                                        No messages match this
-                                                        view.
+                                            </span>
+                                            {[
+                                                {
+                                                    filter: 'all' as const,
+                                                    label: t(
+                                                        'settings.learner_messages.filter_all',
+                                                        'All (:count)',
+                                                        {
+                                                            count:
+                                                                page?.counts
+                                                                    .all ?? 0,
+                                                        },
+                                                    ),
+                                                },
+                                                {
+                                                    filter: 'unconfirmed' as const,
+                                                    label: t(
+                                                        'settings.learner_messages.filter_unconfirmed',
+                                                        'Needs learner confirmation (:count)',
+                                                        {
+                                                            count:
+                                                                page?.counts
+                                                                    .unconfirmed ??
+                                                                0,
+                                                        },
+                                                    ),
+                                                },
+                                                {
+                                                    filter: 'helpful' as const,
+                                                    label: t(
+                                                        'settings.learner_messages.filter_helpful',
+                                                        'Learner-confirmed helpful (:count)',
+                                                        {
+                                                            count:
+                                                                page?.counts
+                                                                    .helpful ??
+                                                                0,
+                                                        },
+                                                    ),
+                                                },
+                                            ].map((option) => (
+                                                <button
+                                                    aria-pressed={
+                                                        responseFilter ===
+                                                        option.filter
+                                                    }
+                                                    className={`min-h-9 rounded-md border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${responseFilter === option.filter ? 'border-[var(--settings-accent)] bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'border-[var(--settings-border-color)] text-[var(--settings-muted-text)] hover:border-[var(--settings-accent)] hover:text-[var(--settings-accent)]'}`}
+                                                    key={option.filter}
+                                                    onClick={() =>
+                                                        setResponseFilter(
+                                                            option.filter,
+                                                        )
+                                                    }
+                                                    type="button"
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div
+                                            aria-busy={loadingRequests}
+                                            className="mt-4 flex min-h-0 flex-1 flex-col"
+                                        >
+                                            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                                                {error ? (
+                                                    <p
+                                                        className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
+                                                        role="alert"
+                                                    >
+                                                        {error}
                                                     </p>
                                                 ) : null}
+                                                {actionError ? (
+                                                    <p
+                                                        className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
+                                                        role="alert"
+                                                    >
+                                                        {actionError}
+                                                    </p>
+                                                ) : null}
+                                                {loadingRequests ? (
+                                                    <p className="py-8 text-sm text-[var(--settings-muted-text)]">
+                                                        {t(
+                                                            'settings.learner_messages.loading',
+                                                            'Loading messages...',
+                                                        )}
+                                                    </p>
+                                                ) : null}
+                                                {!loadingRequests && page ? (
+                                                    <div className="grid gap-3">
+                                                        {page.messages.map(
+                                                            (message) => (
+                                                                <RequestCard
+                                                                    key={
+                                                                        message.id
+                                                                    }
+                                                                    message={
+                                                                        message
+                                                                    }
+                                                                    onDelete={() =>
+                                                                        void deleteRequest(
+                                                                            message,
+                                                                        )
+                                                                    }
+                                                                    onReply={() => {
+                                                                        setReplyingMessageId(
+                                                                            (
+                                                                                current,
+                                                                            ) =>
+                                                                                current ===
+                                                                                message.id
+                                                                                    ? null
+                                                                                    : message.id,
+                                                                        );
+                                                                        setReplyBody(
+                                                                            '',
+                                                                        );
+                                                                        setActionError(
+                                                                            '',
+                                                                        );
+                                                                    }}
+                                                                    onSaveReply={() =>
+                                                                        void saveReply(
+                                                                            message.id,
+                                                                        )
+                                                                    }
+                                                                    onSetVisibility={() =>
+                                                                        void setRequestVisibility(
+                                                                            message,
+                                                                        )
+                                                                    }
+                                                                    replying={
+                                                                        replyingMessageId ===
+                                                                        message.id
+                                                                    }
+                                                                    replyBody={
+                                                                        replyBody
+                                                                    }
+                                                                    setReplyBody={
+                                                                        setReplyBody
+                                                                    }
+                                                                    submittingReply={
+                                                                        submittingReply
+                                                                    }
+                                                                    onDeleteReply={(
+                                                                        reply,
+                                                                    ) =>
+                                                                        void deleteReply(
+                                                                            reply,
+                                                                        )
+                                                                    }
+                                                                    onSetReplyVisibility={(
+                                                                        reply,
+                                                                    ) =>
+                                                                        void setReplyVisibility(
+                                                                            reply,
+                                                                        )
+                                                                    }
+                                                                    onResponsePageChange={(
+                                                                        responsePage,
+                                                                    ) =>
+                                                                        void loadResponses(
+                                                                            message.id,
+                                                                            responsePage,
+                                                                        )
+                                                                    }
+                                                                />
+                                                            ),
+                                                        )}
+                                                        {page.messages
+                                                            .length === 0 ? (
+                                                            <p className="border-b border-[var(--settings-border-color)] px-1 py-8 text-sm text-[var(--settings-muted-text)]">
+                                                                {t(
+                                                                    'settings.learner_messages.filter_empty',
+                                                                    'No messages match this view.',
+                                                                )}
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
+                                                ) : null}
                                             </div>
-                                            <Pagination
-                                                pagination={page.pagination}
-                                                onPageChange={(nextPage) =>
-                                                    void loadMessages(
-                                                        selectedTopic.id,
-                                                        nextPage,
-                                                    )
-                                                }
-                                            />
-                                        </>
-                                    ) : null}
-                                </div>
+                                            {page ? (
+                                                <Pagination
+                                                    pagination={page.pagination}
+                                                    onPageChange={(nextPage) =>
+                                                        void loadMessages(
+                                                            selectedTopic.id,
+                                                            nextPage,
+                                                        )
+                                                    }
+                                                />
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
-                        ) : null}
+                        </SettingsNestedWorkspace>
                     </div>
-                </section>
+                </div>
             </div>
         </main>
     );
@@ -781,18 +881,122 @@ function Pagination({
     );
 }
 
-function EmptyState() {
+function EmptyState({ t }: { t: ReturnType<typeof usePlatformTranslation> }) {
     return (
         <section className="grid h-full place-items-center p-6 text-center">
             <div className="max-w-lg">
                 <MessageSquareText className="mx-auto size-8 text-slate-400" />
                 <h2 className="mt-4 text-lg font-semibold">
-                    No learner messages yet
+                    {t(
+                        'settings.learner_messages.empty_title',
+                        'No learner messages yet',
+                    )}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
-                    Messages appear here after learners contribute through a
-                    Message prompt activity.
+                    {t(
+                        'settings.learner_messages.empty_description',
+                        'Messages appear here after learners contribute through a Message prompt activity.',
+                    )}
                 </p>
+            </div>
+        </section>
+    );
+}
+
+function SupportDigest({
+    onSelectTopic,
+    t,
+    topics,
+}: {
+    onSelectTopic: (topicId: string) => void;
+    t: ReturnType<typeof usePlatformTranslation>;
+    topics: Topic[];
+}) {
+    const attentionTopics = [...topics]
+        .filter((topic) => topic.unconfirmed_message_count > 0)
+        .sort(
+            (left, right) =>
+                right.unconfirmed_message_count -
+                    left.unconfirmed_message_count ||
+                right.message_count - left.message_count,
+        )
+        .slice(0, 3);
+
+    if (attentionTopics.length === 0) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-labelledby="learner-message-digest-heading"
+            className="mt-4 rounded-lg border border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-accent)_7%,transparent)] p-3"
+            data-wl-id="settings.learning-support.learner-messages.digest"
+        >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                    <h2
+                        className="text-sm font-semibold text-[var(--settings-heading-color)]"
+                        id="learner-message-digest-heading"
+                    >
+                        {t(
+                            'settings.learner_messages.digest_title',
+                            'Needs attention',
+                        )}
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.learner_messages.digest_description',
+                            'Open topics with messages that do not yet have a learner-confirmed resolution.',
+                        )}
+                    </p>
+                </div>
+                <span
+                    aria-live="polite"
+                    className="text-xs font-medium text-[var(--settings-accent)]"
+                >
+                    {t(
+                        attentionTopics.length === 1
+                            ? 'settings.learner_messages.digest_topic_one'
+                            : 'settings.learner_messages.digest_topic_many',
+                        attentionTopics.length === 1
+                            ? ':count topic'
+                            : ':count topics',
+                        { count: attentionTopics.length },
+                    )}
+                </span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {attentionTopics.map((topic) => (
+                    <button
+                        aria-label={t(
+                            'settings.learner_messages.digest_open_topic',
+                            'Open :topic; :count messages need learner-confirmed resolution',
+                            {
+                                count: topic.unconfirmed_message_count,
+                                topic: `${topic.map_asset_title} — ${topic.title}`,
+                            },
+                        )}
+                        className="rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] px-3 py-2 text-left text-xs transition hover:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                        key={topic.id}
+                        onClick={() => onSelectTopic(topic.id)}
+                        type="button"
+                    >
+                        <span className="block truncate font-medium text-[var(--settings-heading-color)]">
+                            {topic.map_asset_title} — {topic.title}
+                        </span>
+                        <span className="mt-1 block text-[var(--settings-muted-text)]">
+                            {t(
+                                topic.unconfirmed_message_count === 1
+                                    ? 'settings.learner_messages.digest_message_one'
+                                    : 'settings.learner_messages.digest_message_many',
+                                topic.unconfirmed_message_count === 1
+                                    ? ':count message'
+                                    : ':count messages',
+                                { count: topic.unconfirmed_message_count },
+                            )}
+                        </span>
+                    </button>
+                ))}
             </div>
         </section>
     );
@@ -808,11 +1012,15 @@ function settingsStyle(appearance: OriginalAppearance): CSSProperties {
             : 'rgb(15 118 110 / 10%)',
         '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0',
         '--settings-content-background': dark ? '#0b1117' : '#f1f5f9',
+        '--settings-heading-color': dark ? '#f8fafc' : '#0f172a',
         '--settings-input-background': dark ? 'rgb(2 6 23 / 38%)' : '#ffffff',
         '--settings-muted-text': dark ? '#94a3b8' : '#64748b',
         '--settings-nested-sidebar-background': dark
             ? 'rgb(5 8 22 / 96%)'
             : 'rgb(248 250 252 / 96%)',
         '--settings-panel-background': dark ? '#111820' : '#ffffff',
+        '--settings-sidebar-background': dark
+            ? 'rgb(5 8 22 / 96%)'
+            : 'rgb(248 250 252 / 96%)',
     } as CSSProperties;
 }
