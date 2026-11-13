@@ -42,7 +42,7 @@ test('a local author exports, validates, and imports a standalone MapAsset', asy
 
     await page.getByRole('button', { name: 'Edit MapAsset' }).click();
     const download = page.waitForEvent('download');
-    await page.getByRole('link', { name: 'Export MapAsset' }).click();
+    await page.getByRole('link', { name: 'Export MapAsset', exact: true }).click();
     const manifest = await download;
     expect(manifest.suggestedFilename()).toContain('wicked-learning-asset.json');
     const filePath = await manifest.path();
