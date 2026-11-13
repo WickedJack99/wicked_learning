@@ -1940,7 +1940,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Rename one administrator-created locale without changing its code. */
+        /** Rename or enable one administrator-created locale without changing its code. */
         patch: operations["updateAdminLanguage"];
         trace?: never;
     };
@@ -6258,7 +6258,7 @@ export interface components {
             code: string;
             name: string;
             native_name: string;
-            /** @description False until translated playback and platform-copy delivery are released. */
+            /** @description Whether learners may select this locale. */
             is_enabled: boolean;
             /** @description True only for canonical English. */
             is_default: boolean;
@@ -6274,6 +6274,7 @@ export interface components {
             native_name: string;
         };
         AdminLanguageUpdateRequest: {
+            is_enabled: boolean;
             name: string;
             native_name: string;
         };
@@ -16959,7 +16960,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The saved locale definition. */
+            /** @description The saved locale definition. Enabled locales become available to learners immediately. */
             200: {
                 headers: {
                     [name: string]: unknown;

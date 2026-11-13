@@ -7,7 +7,8 @@ use wicked_learning_application::{
     activity_translation_catalog::{merge_strings_within_source_shape, source_payload},
     admin_translation_catalog::{
         AdminPlatformLanguage, AdminTranslationCatalogError, AdminTranslationCatalogRepository,
-        PlatformLanguageForm, english_platform_translations, string_values, translation_catalog,
+        PlatformLanguageForm, UpdatePlatformLanguageForm, english_platform_translations,
+        string_values, translation_catalog,
     },
 };
 use wicked_learning_domain::identity_access::AuthorizedPrincipal;
@@ -47,7 +48,7 @@ impl AdminTranslationCatalogRepository for PostgresAdminTranslationCatalogReposi
         &self,
         principal: &AuthorizedPrincipal,
         code: &str,
-        form: &PlatformLanguageForm,
+        form: &UpdatePlatformLanguageForm,
     ) -> impl Future<Output = Result<Option<AdminPlatformLanguage>, AdminTranslationCatalogError>> + Send
     {
         async move {
@@ -196,15 +197,16 @@ async fn update_language(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
     code: &str,
-    form: &PlatformLanguageForm,
+    form: &UpdatePlatformLanguageForm,
 ) -> Result<Option<AdminPlatformLanguage>, sqlx::Error> {
     let principal_id = principal_id(pool, principal.subject_id).await?;
     let row = sqlx::query_as::<_, LanguageRow>(
-        "UPDATE application_locales SET name = $2, native_name = $3, updated_by_principal_id = $4, updated_at = NOW() WHERE code = $1 AND code <> 'en' RETURNING code, name, native_name, is_enabled, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at",
+        "UPDATE application_locales SET name = $2, native_name = $3, is_enabled = $4, updated_by_principal_id = $5, updated_at = NOW() WHERE code = $1 AND code <> 'en' RETURNING code, name, native_name, is_enabled, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at",
     )
     .bind(code)
     .bind(&form.name)
     .bind(&form.native_name)
+    .bind(form.is_enabled)
     .bind(principal_id)
     .fetch_optional(pool)
     .await?;

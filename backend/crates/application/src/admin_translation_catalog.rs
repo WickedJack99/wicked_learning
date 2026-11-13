@@ -39,6 +39,25 @@ impl PlatformLanguageForm {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpdatePlatformLanguageForm {
+    pub is_enabled: bool,
+    pub name: String,
+    pub native_name: String,
+}
+
+impl UpdatePlatformLanguageForm {
+    pub fn parse(is_enabled: bool, name: &str, native_name: &str) -> Option<Self> {
+        let name = name.trim();
+        let native_name = native_name.trim();
+        (bounded_nonempty(name, 80) && bounded_nonempty(native_name, 80)).then(|| Self {
+            is_enabled,
+            name: name.to_owned(),
+            native_name: native_name.to_owned(),
+        })
+    }
+}
+
 pub trait AdminTranslationCatalogRepository {
     fn list_languages(
         &self,
@@ -52,7 +71,7 @@ pub trait AdminTranslationCatalogRepository {
         &self,
         principal: &AuthorizedPrincipal,
         code: &str,
-        form: &PlatformLanguageForm,
+        form: &UpdatePlatformLanguageForm,
     ) -> impl Future<Output = Result<Option<AdminPlatformLanguage>, AdminTranslationCatalogError>> + Send;
     fn english_catalog(
         &self,
@@ -116,9 +135,9 @@ where
         &self,
         principal: &AuthorizedPrincipal,
         code: &str,
-        form: &PlatformLanguageForm,
+        form: &UpdatePlatformLanguageForm,
     ) -> Result<Option<AdminPlatformLanguage>, AdminTranslationCatalogError> {
-        if !can_write(principal) || code != form.code || code == "en" {
+        if !can_write(principal) || !valid_locale_code(code) || code == "en" {
             return Ok(None);
         }
         self.repository.update_language(principal, code, form).await
@@ -283,8 +302,8 @@ mod tests {
 
     use super::{
         AdminTranslationCatalogCommand, AdminTranslationCatalogError,
-        AdminTranslationCatalogRepository, PlatformLanguageForm, english_platform_translations,
-        valid_catalog_shape,
+        AdminTranslationCatalogRepository, PlatformLanguageForm, UpdatePlatformLanguageForm,
+        english_platform_translations, valid_catalog_shape,
     };
 
     struct Repository;
@@ -312,7 +331,7 @@ mod tests {
             &self,
             _: &AuthorizedPrincipal,
             _: &str,
-            _: &PlatformLanguageForm,
+            _: &UpdatePlatformLanguageForm,
         ) -> impl std::future::Future<
             Output = Result<Option<super::AdminPlatformLanguage>, AdminTranslationCatalogError>,
         > + Send {
@@ -350,6 +369,8 @@ mod tests {
         assert!(PlatformLanguageForm::parse("de", "German", "Deutsch").is_some());
         assert!(PlatformLanguageForm::parse("en", "English", "English").is_none());
         assert!(PlatformLanguageForm::parse("de-de", "German", "Deutsch").is_none());
+        assert!(UpdatePlatformLanguageForm::parse(true, "German", "Deutsch").is_some());
+        assert!(UpdatePlatformLanguageForm::parse(false, "", "Deutsch").is_none());
         assert!(valid_catalog_shape(
             &json!({"meta":{"format":"learning-worlds.translation-catalog","locale":"de"},"platform":{},"activities":{}}),
             "de",

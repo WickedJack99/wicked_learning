@@ -2577,11 +2577,11 @@ paths:
   /admin/languages/{code}:
     patch:
       operationId: updateAdminLanguage
-      summary: Rename one administrator-created locale without changing its code.
+      summary: Rename or enable one administrator-created locale without changing its code.
       parameters: [ { name: code, in: path, required: true, schema: { type: string, pattern: '^[a-z]{2,3}(-[A-Z]{2})?$' } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguageUpdateRequest' } } } }
       responses:
-        '200': { description: The saved locale definition., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguage' } } } }
+        '200': { description: The saved locale definition. Enabled locales become available to learners immediately., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguage' } } } }
         '400': { description: The locale names are invalid. }
         '401': { description: The browser has no authenticated session. }
         '403': { description: The same-origin CSRF check failed. }
@@ -8115,7 +8115,7 @@ components:
         code: { type: string, pattern: '^[a-z]{2,3}(-[A-Z]{2})?$', maxLength: 16 }
         name: { type: string, minLength: 1, maxLength: 80 }
         native_name: { type: string, minLength: 1, maxLength: 80 }
-        is_enabled: { type: boolean, description: False until translated playback and platform-copy delivery are released. }
+        is_enabled: { type: boolean, description: Whether learners may select this locale. }
         is_default: { type: boolean, description: True only for canonical English. }
         updated_at: { type: string, format: date-time }
     AdminLanguageListResponse:
@@ -8135,8 +8135,9 @@ components:
     AdminLanguageUpdateRequest:
       type: object
       additionalProperties: false
-      required: [name, native_name]
+      required: [is_enabled, name, native_name]
       properties:
+        is_enabled: { type: boolean }
         name: { type: string, minLength: 1, maxLength: 80 }
         native_name: { type: string, minLength: 1, maxLength: 80 }
     AdminLanguageCatalogResponse:

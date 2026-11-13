@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wicked_learning_application::admin_translation_catalog::{
     AdminPlatformLanguage, AdminTranslationCatalogCommand, AdminTranslationCatalogError,
-    PlatformLanguageForm,
+    PlatformLanguageForm, UpdatePlatformLanguageForm,
 };
 use wicked_learning_persistence::admin_translation_catalog::PostgresAdminTranslationCatalogRepository;
 
@@ -28,6 +28,7 @@ pub struct CreateLanguageRequest {
 
 #[derive(Deserialize)]
 pub struct UpdateLanguageRequest {
+    is_enabled: bool,
     name: String,
     native_name: String,
 }
@@ -96,8 +97,9 @@ pub async fn update(
     session: AuthSession<IdentityBackend>,
     Json(request): Json<UpdateLanguageRequest>,
 ) -> Result<Json<LanguageResponse>, ApiError> {
-    let form = PlatformLanguageForm::parse(&code, &request.name, &request.native_name)
-        .ok_or_else(ApiError::invalid_request)?;
+    let form =
+        UpdatePlatformLanguageForm::parse(request.is_enabled, &request.name, &request.native_name)
+            .ok_or_else(ApiError::invalid_request)?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let principal = authenticated_principal(&state, session).await?;
     let repository = PostgresAdminTranslationCatalogRepository::new(&state.application_database);
@@ -226,9 +228,15 @@ mod tests {
         assert!(serde_json::from_str::<CreateLanguageRequest>(r#"{"code":"de"}"#).is_err());
         assert!(
             serde_json::from_str::<UpdateLanguageRequest>(
-                r#"{"name":"German","native_name":"Deutsch"}"#
+                r#"{"is_enabled":true,"name":"German","native_name":"Deutsch"}"#
             )
             .is_ok()
+        );
+        assert!(
+            serde_json::from_str::<UpdateLanguageRequest>(
+                r#"{"name":"German","native_name":"Deutsch"}"#
+            )
+            .is_err()
         );
     }
 }

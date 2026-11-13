@@ -9,7 +9,7 @@ type Language = {
     updated_at: string;
 };
 
-test('the source-derived language workspace manages disabled catalogs without exposing activation', async ({
+test('the source-derived language workspace manages catalog activation', async ({
     page,
 }) => {
     const email = process.env.E2E_LOGIN_EMAIL;
@@ -62,7 +62,7 @@ test('the source-derived language workspace manages disabled catalogs without ex
             return;
         }
         if (request.method() === 'PATCH') {
-            const requestBody = request.postDataJSON() as Pick<Language, 'name' | 'native_name'>;
+            const requestBody = request.postDataJSON() as Pick<Language, 'is_enabled' | 'name' | 'native_name'>;
             const code = url.pathname.split('/').at(-1)!;
             const language = languages.find((candidate) => candidate.code === code)!;
             Object.assign(language, requestBody);
@@ -91,12 +91,14 @@ test('the source-derived language workspace manages disabled catalogs without ex
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: 'German' })).toBeVisible();
-    await expect(page.getByText('This catalog remains disabled for learners.')).toBeVisible();
-    await expect(page.locator('input[type="checkbox"]')).toHaveCount(0);
+    const activation = page.getByRole('checkbox', { name: 'Enabled for learners' });
+    await expect(activation).not.toBeChecked();
+    await activation.check();
 
     await page.getByLabel('Language name').last().fill('German (catalog)');
     await page.getByRole('button', { name: 'Save language' }).click();
     await expect(page.getByRole('heading', { name: 'German (catalog)' })).toBeVisible();
+    await expect(activation).toBeChecked();
 
     await page.locator('input[type="file"]').setInputFiles({
         buffer: Buffer.from('{"translations":{}}'),
@@ -110,6 +112,81 @@ test('the source-derived language workspace manages disabled catalogs without ex
     await page.setViewportSize({ width: 390, height: 844 });
     await expectInsideViewport(page, page.getByRole('button', { name: 'German (catalog)' }));
     await expectInsideViewport(page, page.getByRole('button', { name: 'Upload translation catalog' }));
+});
+
+test('an enabled locale reaches the actual learner language selector', async ({ page }) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email!);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+
+    await page.goto('/settings?panel=admin-presentation-localization&presentation=languages');
+    await expect(
+        page.getByRole('button', { name: 'English English · en' }),
+    ).toBeVisible();
+    const languageList = page.locator('[data-wl-id="settings.administration.languages.list"]');
+    const testLanguage = languageList.getByRole('button').filter({ hasText: 'zz' });
+    const activation = page.getByRole('checkbox', { name: 'Enabled for learners' });
+    if (await testLanguage.count() === 0) {
+        await page.getByRole('button', { name: 'Add language' }).click();
+        await page.getByLabel('Language code').fill('zz');
+        await page.getByLabel('Language name').first().fill('Browser translation language');
+        await page.getByLabel('Native name').first().fill('Browser translation language');
+        await page.getByRole('button', { name: 'Create', exact: true }).click();
+    } else {
+        await testLanguage.click();
+    }
+
+    await expect(activation).toBeVisible();
+    const storedLanguages = await page.evaluate(async () => {
+        const response = await fetch('/api/v1/admin/languages');
+        return response.json() as Promise<{ languages: Language[] }>;
+    });
+    const storedLanguage = storedLanguages.languages.find((language) => language.code === 'zz');
+    expect(storedLanguage).toBeDefined();
+    await expect(activation).toHaveAttribute(
+        'aria-checked',
+        String(storedLanguage!.is_enabled),
+    );
+    if (storedLanguage!.is_enabled) {
+        await activation.click();
+        await expect(activation).not.toBeChecked();
+    }
+    await page.getByLabel('Language name').last().fill('Browser translation language');
+    await page.getByLabel('Native name').last().fill('Browser translation language');
+    const disableResponse = page.waitForResponse((response) =>
+        response.request().method() === 'PATCH'
+        && response.url().endsWith('/api/v1/admin/languages/zz'),
+    );
+    await page.getByRole('button', { name: 'Save language' }).click();
+    expect((await disableResponse).status()).toBe(200);
+    await expect(activation).not.toBeChecked();
+
+    await page.goto('/settings?panel=personal&personal=language');
+    await expect(page.locator('#language option[value="zz"]')).toHaveCount(0);
+
+    await page.goto('/settings?panel=admin-presentation-localization&presentation=languages');
+    const languageToEnable = languageList.getByRole('button').filter({ hasText: 'zz' });
+    await languageToEnable.click();
+    await activation.click();
+    await expect(activation).toBeChecked();
+    const enableResponse = page.waitForResponse((response) =>
+        response.request().method() === 'PATCH'
+        && response.url().endsWith('/api/v1/admin/languages/zz'),
+    );
+    await page.getByRole('button', { name: 'Save language' }).click();
+    expect((await enableResponse).status()).toBe(200);
+    await expect(activation).toBeChecked();
+
+    await page.goto('/settings?panel=personal&personal=language');
+    await expect(page.locator('#language option[value="zz"]')).toHaveText(
+        'Browser translation language (Browser translation language)',
+    );
 });
 
 async function expectInsideViewport(
