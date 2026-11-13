@@ -4,8 +4,8 @@ use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_npc_dialogue::{
         AdminWorldNpcDialogueError, AdminWorldNpcDialogueRepository as Port,
-        NpcDialogueActivityForm, NpcDialogueNodeForm, NpcDialogueNodeType, NpcDialoguePosition,
-        NpcDialogueTransitionForm,
+        CreatedNpcDialogueActivity, NpcDialogueActivityForm, NpcDialogueNodeForm,
+        NpcDialogueNodeType, NpcDialoguePosition, NpcDialogueTransitionForm,
     },
     admin_world_reflection::generated_slug,
 };
@@ -53,8 +53,9 @@ impl Port for PostgresAdminWorldNpcDialogueRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &NpcDialogueActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldNpcDialogueError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedNpcDialogueActivity>, AdminWorldNpcDialogueError>,
+    > + Send {
         async move {
             create(self.pool, principal, node_id, form)
                 .await
@@ -292,7 +293,7 @@ async fn create(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &NpcDialogueActivityForm,
-) -> Result<Option<Uuid>, MutationError> {
+) -> Result<Option<CreatedNpcDialogueActivity>, MutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_editable_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -304,13 +305,18 @@ async fn create(
     let id = Uuid::new_v4();
     let position: i16 = sqlx::query_scalar("SELECT (COALESCE(MAX(position), -1)::integer + 1)::smallint FROM learning_activities WHERE route_id = $1").bind(route_id).fetch_one(&mut *transaction).await?;
     let slug = unique_slug(&mut transaction, map_asset_id, form, None).await?;
-    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'npc_dialogue', $7, $8, 'needs_review')")
-        .bind(id).bind(route_id).bind(slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(json!({"dialogueGraphLayout": {}})).bind(&form.introduction).execute(&mut *transaction).await?;
+    let config = json!({"dialogueGraphLayout": {}});
+    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'npc_dialogue', $7, $8, $9, $10, 'needs_review')")
+        .bind(id).bind(route_id).bind(&slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(&config).bind(&form.introduction).bind(form.graph_position_x.map(f64::from)).bind(form.graph_position_y.map(f64::from)).execute(&mut *transaction).await?;
     let end_id = Uuid::new_v4();
     sqlx::query("INSERT INTO learning_npc_dialogue_nodes (id, activity_id, node_type, title, body, node_config, sort_order, graph_position_x, graph_position_y) VALUES ($1, $2, 'end', 'End A', NULL, $3, 10, 520, 80)")
         .bind(end_id).bind(id).bind(json!({"connectorColor":"#0ea5e9","connectorSymbol":"A"})).execute(&mut *transaction).await?;
     transaction.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedNpcDialogueActivity {
+        activity_id: id,
+        config,
+        slug,
+    }))
 }
 
 async fn create_node(

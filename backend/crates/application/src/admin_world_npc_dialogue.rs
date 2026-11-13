@@ -14,6 +14,8 @@ pub struct NpcDialogueActivityForm {
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
 }
 
 impl NpcDialogueActivityForm {
@@ -31,7 +33,15 @@ impl NpcDialogueActivityForm {
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction: introduction.map(str::to_owned),
+            graph_position_x: None,
+            graph_position_y: None,
         })
+    }
+
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -335,6 +345,13 @@ pub enum AdminWorldNpcDialogueError {
     Unavailable,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct CreatedNpcDialogueActivity {
+    pub activity_id: Uuid,
+    pub config: Value,
+    pub slug: String,
+}
+
 pub trait AdminWorldNpcDialogueRepository {
     fn load_npc_dialogue(
         &self,
@@ -346,7 +363,8 @@ pub trait AdminWorldNpcDialogueRepository {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &NpcDialogueActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldNpcDialogueError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedNpcDialogueActivity>, AdminWorldNpcDialogueError>>
+    + Send;
     fn create_dialogue_node(
         &self,
         principal: &AuthorizedPrincipal,
@@ -415,7 +433,7 @@ impl<'repository, Repository: AdminWorldNpcDialogueRepository>
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &NpcDialogueActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldNpcDialogueError> {
+    ) -> Result<Option<CreatedNpcDialogueActivity>, AdminWorldNpcDialogueError> {
         if !self.permitted(principal) {
             return Ok(None);
         }
@@ -518,7 +536,17 @@ impl<'repository, Repository: AdminWorldNpcDialogueRepository>
 mod tests {
     use serde_json::json;
 
-    use super::{NpcDialogueNodeForm, NpcDialogueNodeType};
+    use super::{NpcDialogueActivityForm, NpcDialogueNodeForm, NpcDialogueNodeType};
+
+    #[test]
+    fn activity_form_keeps_optional_graph_position() {
+        let form = NpcDialogueActivityForm::parse("Guide", None, None)
+            .expect("valid dialogue activity")
+            .with_graph_position(Some(120), None);
+
+        assert_eq!(form.graph_position_x, Some(120));
+        assert_eq!(form.graph_position_y, None);
+    }
 
     #[test]
     fn preserves_source_scene_configuration_but_rejects_unbounded_assets() {

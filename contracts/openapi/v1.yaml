@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, or Message Wall activity.
+          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant, item_obstacle, obstacle, portal, message_prompt, message_wall] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant, item_obstacle, obstacle, portal, npc_dialogue, message_prompt, message_wall] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }

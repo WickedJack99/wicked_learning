@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle" | "portal" | "message_prompt" | "message_wall";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle" | "portal" | "npc_dialogue" | "message_prompt" | "message_wall";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -10525,7 +10525,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, or Message Wall activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

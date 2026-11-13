@@ -4811,13 +4811,13 @@ aggregate activity-count query. Its write adapter reuses the atomic scoped
 MapAsset command while preserving the Content API's explicit title and
 description for the compatibility node. The first Activity adapter lists the
 scoped MapAsset route and creates Reflection, Review, Open Practice, Markdown,
-Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, or Message Wall through their existing typed commands.
+Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall through their existing typed commands.
 Future Activity entries must be added with their exact Rust adapters.
 
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
 operations before they are implemented. Reflection, Review, Open Practice,
-Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, and Message Wall support do not imply that other
+Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, and Message Wall support do not imply that other
 Activity adapters exist.
 
 ## Phase 1 gate
