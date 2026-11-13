@@ -18,7 +18,9 @@ test('a local author swaps adjacent source hex-grid tiles', async ({ page }) => 
     await page.getByLabel('Title').fill(title);
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
-    const exportHref = await page.getByRole('link', { name: 'Export map' }).getAttribute('href');
+    const exportHref = await page
+        .getByRole('link', { name: 'Export map', exact: true })
+        .getAttribute('href');
     const mapId = exportHref?.match(/maps\/([^/]+)\/export$/)?.[1];
     if (!mapId) throw new Error('the created map did not expose its export route');
     for (let count = 0; count < 2; count += 1) {

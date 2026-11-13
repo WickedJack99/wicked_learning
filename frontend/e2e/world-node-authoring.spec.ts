@@ -83,6 +83,7 @@ test('a local author writes the complete source node lifecycle', async ({ page }
         asset: { id: string; url: string };
     };
     const mediaName = `Node visual ${Date.now()}`;
+    await expect(page.getByLabel('Visual name')).toHaveValue('Uploaded visual');
     await page.getByLabel('Visual name').fill(mediaName);
     const savedMetadata = page.waitForResponse(
         (response) =>
@@ -90,7 +91,11 @@ test('a local author writes the complete source node lifecycle', async ({ page }
             response.url().includes(`/api/v1/admin/media-assets/${media.asset.id}`),
     );
     await page.getByRole('button', { name: 'Save details' }).click();
-    expect((await savedMetadata).status()).toBe(200);
+    const savedAsset = await savedMetadata;
+    expect(savedAsset.status()).toBe(200);
+    await expect(savedAsset.json()).resolves.toMatchObject({
+        asset: { display_name: mediaName, id: media.asset.id },
+    });
 
     await page.goto('/settings?panel=admin-world-builder');
 
@@ -100,7 +105,7 @@ test('a local author writes the complete source node lifecycle', async ({ page }
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page.getByRole('heading', { name: mapTitle })).toBeVisible();
     const exportHref = await page
-        .getByRole('link', { name: 'Export map' })
+        .getByRole('link', { name: 'Export map', exact: true })
         .getAttribute('href');
     const mapId = exportHref?.match(/maps\/([^/]+)\/export$/)?.[1];
     if (!mapId) throw new Error('the disposable map did not expose its ID');

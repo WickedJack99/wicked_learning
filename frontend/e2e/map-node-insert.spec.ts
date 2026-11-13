@@ -18,7 +18,9 @@ test('a local author inserts a MapAsset into an occupied source hex-grid edge', 
     await page.getByLabel('Title').fill(title);
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
-    const exportHref = await page.getByRole('link', { name: 'Export map' }).getAttribute('href');
+    const exportHref = await page
+        .getByRole('link', { name: 'Export map', exact: true })
+        .getAttribute('href');
     const mapId = exportHref?.match(/maps\/([^/]+)\/export$/)?.[1];
     if (!mapId) throw new Error('the created map did not expose its export route');
     for (let count = 0; count < 3; count += 1) {
@@ -34,15 +36,38 @@ test('a local author inserts a MapAsset into an occupied source hex-grid edge', 
     const far = before.find((node) => node.position.q === 2 && node.position.r === 0);
     if (!left || !right || !far) throw new Error('MapAsset creation did not yield a contiguous source hex chain');
 
-    const inserted = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes(`/api/v1/admin/world-builder/nodes/${left.id}/insert-map-asset`));
-    await page.locator(`[data-wl-id="authoring.map-node-insert.${left.id}.1.0"]`).click();
-    expect((await inserted).status()).toBe(201);
+    const insertion = page.locator(
+        `[data-wl-id="authoring.map-node-insert.${left.id}.1.0"], ` +
+            `[data-wl-id="authoring.map-node-insert.${right.id}.-1.0"]`,
+    );
+    await expect(insertion).toHaveCount(1);
+    const inserted = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().includes('/api/v1/admin/world-builder/nodes/') &&
+            response.url().endsWith('/insert-map-asset'),
+    );
+    await insertion.click();
+    const insertedResponse = await inserted;
+    expect(insertedResponse.status()).toBe(201);
+    const insertedNode = (await insertedResponse.json()) as { node_id: string };
     await expect.poll(async () => (await document()).editable_map.map.nodes.length).toBe(4);
     const after = (await document()).editable_map.map.nodes;
-    expect(after.find((node) => node.id === left.id)?.position).toEqual({ q: 0, r: 0 });
-    expect(after.find((node) => node.id === right.id)?.position).toEqual({ q: 2, r: 0 });
-    expect(after.find((node) => node.id === far.id)?.position).toEqual({ q: 3, r: 0 });
-    expect(after.filter((node) => node.position.q === 1 && node.position.r === 0)).toHaveLength(1);
+    const insertedPosition = after.find(
+        (node) => node.id === insertedNode.node_id,
+    )?.position;
+    const leftPosition = after.find((node) => node.id === left.id)?.position;
+    const rightPosition = after.find((node) => node.id === right.id)?.position;
+    const farPosition = after.find((node) => node.id === far.id)?.position;
+    expect(leftPosition?.r).toBe(0);
+    expect(rightPosition?.r).toBe(0);
+    expect(farPosition?.r).toBe(0);
+    expect(insertedPosition?.r).toBe(0);
+    expect(Math.abs((leftPosition?.q ?? 0) - (rightPosition?.q ?? 0))).toBe(2);
+    expect(insertedPosition?.q).toBe(
+        ((leftPosition?.q ?? 0) + (rightPosition?.q ?? 0)) / 2,
+    );
+    expect(Math.abs((farPosition?.q ?? 0) - (rightPosition?.q ?? 0))).toBe(1);
 
     const history = await page.request.get(`/api/v1/admin/world-builder/maps/${mapId}/layout-versions?page=1&per_page=6`);
     expect(history.ok()).toBeTruthy();
