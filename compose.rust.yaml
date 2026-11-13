@@ -87,7 +87,24 @@ services:
       - "${RUST_MAILPIT_PORT:-8026}:8025"
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    depends_on:
+      backend:
+        condition: service_healthy
+    profiles:
+      - observability
+    volumes:
+      - ./prometheus.rust.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus-alerts.rust.yml:/etc/prometheus/rules.yml:ro
+      - wicked_prometheus_data:/prometheus
+    restart: unless-stopped
+
 volumes:
   wicked_application_database:
   wicked_identity_database:
   wicked_media:
+  wicked_prometheus_data:

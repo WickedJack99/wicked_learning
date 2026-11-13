@@ -1,0 +1,24 @@
+groups:
+  - name: wicked-learning-runtime
+    rules:
+      - alert: WickedLearningBackendDown
+        expr: up{job="wicked-learning-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Wicked Learning Rust backend is not scrapeable
+          description: The private backend metrics endpoint has been unavailable for two minutes.
+
+      - alert: WickedLearningSustainedServerErrors
+        expr: |
+          sum(rate(wicked_learning_http_requests_total{status=~"5.."}[5m]))
+            /
+          clamp_min(sum(rate(wicked_learning_http_requests_total[5m])), 0.001)
+            > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Wicked Learning Rust backend has a sustained server-error ratio
+          description: More than five percent of observed HTTP responses have been 5xx for five minutes.

@@ -4,7 +4,7 @@ This is a greenfield proof-of-concept stack. It does not replace, route traffic
 to, import data from, or otherwise alter the existing Laravel application.
 
 The separate [`compose.rust.yaml`](../compose.rust.yaml) leaves the current
-Laravel [`compose.yaml`](../compose.yaml) untouched. It starts four services:
+Laravel [`compose.yaml`](../compose.yaml) untouched. It starts five services:
 
 | Service | Responsibility | Publicly reachable |
 | --- | --- | --- |
@@ -12,6 +12,7 @@ Laravel [`compose.yaml`](../compose.yaml) untouched. It starts four services:
 | `backend` | Rust/Axum API | No |
 | `application-db` | Greenfield application data only | No |
 | `identity-db` | Greenfield credentials and identity data only | No |
+| `mailpit` | Local SMTP capture for recovery-email rehearsal | Yes, port 8026 by default |
 
 The backend has one mounted named volume, `wicked_media`, at
 `/var/lib/wicked-learning/media`. It is the initial media store; object storage
@@ -89,10 +90,23 @@ metric fields. Metrics never include request paths, query values, principals, IP
 addresses or payload data.
 The endpoint is non-cacheable and is excluded from its own request metrics.
 
-This gives local/development operators a scrape target, not a production
-monitoring or alert policy. A deployment still needs a private scraper, alert
-rules and a tested rollback exercise before it can satisfy the final
-observability gate.
+Start the opt-in local scraper and rule evaluator with:
+
+```bash
+docker compose --env-file .env.rust -f compose.rust.yaml --profile observability up -d prometheus
+```
+
+The Prometheus service has no host port. Inspect it from the private Compose
+network, for example with `docker compose ... exec prometheus wget -qO-
+http://127.0.0.1:9090/api/v1/targets`. It scrapes only `backend:3000/metrics`
+and evaluates backend-unavailable and sustained-5xx-ratio rules. There is no
+Alertmanager in this disposable local profile, so no notification leaves the
+machine.
+
+This gives local/development operators a scraper and rule-evaluation target,
+not a production monitoring or alert policy. A deployment still needs private
+scraping, alert routing, ownership and a tested rollback exercise before it
+can satisfy the final observability gate.
 
 ## Browser acceptance checks
 
