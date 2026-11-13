@@ -80,6 +80,11 @@ pub async fn update(
     }
     let refreshed_subject = subject.with_replaced_password_hash(password_hash);
     auth_session
+        .session
+        .cycle_id()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    auth_session
         .login(&refreshed_subject)
         .await
         .map_err(|_| ApiError::service_unavailable())?;

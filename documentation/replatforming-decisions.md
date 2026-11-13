@@ -256,8 +256,8 @@ hash, identity record or credential in browser storage.
 Secure cookies are enabled by default. The local Compose proof of concept sets
 `SESSION_COOKIE_SECURE=false` solely because it is served over `http://localhost`.
 Any HTTPS deployment must leave it enabled. A successful password change changes
-the stored session-authentication hash, which invalidates existing sessions at
-the next request.
+the stored session-authentication hash, cycles the initiating session identifier
+and invalidates existing sessions at their next request.
 
 The local proof of concept now has `POST /session/login` and `POST
 /session/logout`, both protected by an exact configured Origin and CSRF token.
