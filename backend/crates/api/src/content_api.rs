@@ -11,6 +11,7 @@ use std::collections::{BTreeMap, HashMap};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 use wicked_learning_application::{
+    admin_world_activity_delete::AdminWorldActivityDeleteCommand,
     admin_world_graph::AdminWorldGraphQuery,
     admin_world_item_grant::{
         AdminWorldItemGrantCommand, AdminWorldItemGrantError, CreatedItemGrantActivity,
@@ -71,7 +72,7 @@ use wicked_learning_application::{
     content_api_activity::{
         ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
         ContentApiActivityScopeQuery, ContentApiActivityTransitionListQuery,
-        ContentApiActivityTransitionScopeQuery,
+        ContentApiActivityTransitionScopeQuery, ContentApiAnyActivityScopeQuery,
     },
 };
 use wicked_learning_domain::{
@@ -81,6 +82,7 @@ use wicked_learning_domain::{
     },
 };
 use wicked_learning_persistence::{
+    admin_world_activity_delete::PostgresAdminWorldActivityDeleteRepository,
     admin_world_graph::PostgresAdminWorldGraphRepository,
     admin_world_item_grant::PostgresAdminWorldItemGrantRepository,
     admin_world_item_obstacle::PostgresAdminWorldItemObstacleRepository,
@@ -906,6 +908,37 @@ pub async fn activities(
     Ok(Json(json!({
         "data": activities.activities.iter().map(|activity| serialize_activity(map_asset_id, activity)).collect::<Vec<_>>(),
     })))
+}
+
+/// Deletes one Activity only after proving that it belongs to the explicit
+/// MapAsset path. The existing World Builder command retains transactional
+/// start-route, preferred-start, dependent-record and media-reference cleanup.
+pub async fn delete_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiAnyActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let repository = PostgresAdminWorldActivityDeleteRepository::new(&state.application_database);
+    AdminWorldActivityDeleteCommand::new(&repository)
+        .execute(&principal, activity_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
 }
 
 /// Lists the source-ordered graph edges for one editable MapAsset. The same
@@ -3270,7 +3303,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.19",
+        "version": "1.20",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -3382,7 +3415,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.19", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.20", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -3394,6 +3427,7 @@ fn document() -> Value {
             operation("map-assets.destroy", "DELETE", "/api/content/v1/map-assets/{mapAsset}", "Delete a MapAsset", "Deletes a MapAsset only through the scoped World Builder cascade. It requires Content API and World Builder delete permission.", Value::Null, Value::Null),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
             operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "npc_dialogue", "title": "Ask the archive guide", "introduction": "Follow the guide's questions.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "npc_dialogue", "title": "Ask the archive guide" } })),
+            operation("activities.destroy", "DELETE", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}", "Delete a MapAsset Activity", "Proves MapAsset membership before delegating deletion and its transactional cleanup to the scoped World Builder command.", Value::Null, Value::Null),
             operation("activities.reflection.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/reflection", "Replace a Reflection Activity", "Replaces the complete source Reflection form only after proving its type and MapAsset membership.", json!({ "title": "Explain the energy conversion", "slug": Value::Null, "introduction": "Trace the current through the alternator.", "prompt": "What changed?", "note": Value::Null, "topic": "Vehicle electrics", "subtopic": Value::Null, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.review.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/review", "Replace a Review Activity", "Replaces the complete source Review form only after proving its distinct type and MapAsset membership.", json!({ "title": "Revisit the energy conversion", "slug": Value::Null, "introduction": "Compare this explanation with your earlier note.", "prompt": "What is clearer now?", "note": Value::Null, "topic": "Vehicle electrics", "subtopic": Value::Null, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.open-practice.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/open-practice", "Replace an Open Practice Activity", "Replaces the complete source Open Practice form only after proving its type and MapAsset membership.", json!({ "title": "Choose a useful next step", "slug": Value::Null, "introduction": "Apply the idea in your own work.", "next_step": "Try one nearby example, then name what changed.", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
@@ -3489,8 +3523,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.19");
-        assert_eq!(operations.len(), 36);
+        assert_eq!(document["version"], "1.20");
+        assert_eq!(operations.len(), 37);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -3502,42 +3536,43 @@ mod tests {
         assert_eq!(operations[9]["id"], "map-assets.destroy");
         assert_eq!(operations[10]["id"], "activities.index");
         assert_eq!(operations[11]["id"], "activities.store");
-        assert_eq!(operations[12]["id"], "activities.reflection.update");
-        assert_eq!(operations[13]["id"], "activities.review.update");
-        assert_eq!(operations[14]["id"], "activities.open-practice.update");
-        assert_eq!(operations[15]["id"], "activities.markdown.update");
-        assert_eq!(operations[16]["id"], "activities.question.update");
-        assert_eq!(operations[17]["id"], "activities.shared-task.update");
-        assert_eq!(operations[18]["id"], "activities.item-grant.update");
-        assert_eq!(operations[19]["id"], "activities.tool-grant.update");
-        assert_eq!(operations[20]["id"], "activities.item-obstacle.update");
-        assert_eq!(operations[21]["id"], "activities.obstacle.update");
-        assert_eq!(operations[22]["id"], "activities.portal.update");
-        assert_eq!(operations[23]["id"], "activities.message-prompt.update");
-        assert_eq!(operations[24]["id"], "activities.message-wall.update");
-        assert_eq!(operations[25]["id"], "activities.npc-dialogue.graph");
-        assert_eq!(operations[26]["id"], "activities.npc-dialogue.nodes.store");
-        assert_eq!(operations[27]["id"], "activities.npc-dialogue.nodes.update");
+        assert_eq!(operations[12]["id"], "activities.destroy");
+        assert_eq!(operations[13]["id"], "activities.reflection.update");
+        assert_eq!(operations[14]["id"], "activities.review.update");
+        assert_eq!(operations[15]["id"], "activities.open-practice.update");
+        assert_eq!(operations[16]["id"], "activities.markdown.update");
+        assert_eq!(operations[17]["id"], "activities.question.update");
+        assert_eq!(operations[18]["id"], "activities.shared-task.update");
+        assert_eq!(operations[19]["id"], "activities.item-grant.update");
+        assert_eq!(operations[20]["id"], "activities.tool-grant.update");
+        assert_eq!(operations[21]["id"], "activities.item-obstacle.update");
+        assert_eq!(operations[22]["id"], "activities.obstacle.update");
+        assert_eq!(operations[23]["id"], "activities.portal.update");
+        assert_eq!(operations[24]["id"], "activities.message-prompt.update");
+        assert_eq!(operations[25]["id"], "activities.message-wall.update");
+        assert_eq!(operations[26]["id"], "activities.npc-dialogue.graph");
+        assert_eq!(operations[27]["id"], "activities.npc-dialogue.nodes.store");
+        assert_eq!(operations[28]["id"], "activities.npc-dialogue.nodes.update");
         assert_eq!(
-            operations[28]["id"],
+            operations[29]["id"],
             "activities.npc-dialogue.nodes.destroy"
         );
         assert_eq!(
-            operations[29]["id"],
+            operations[30]["id"],
             "activities.npc-dialogue.transitions.store"
         );
         assert_eq!(
-            operations[30]["id"],
+            operations[31]["id"],
             "activities.npc-dialogue.transitions.destroy"
         );
         assert_eq!(
-            operations[31]["id"],
+            operations[32]["id"],
             "activities.npc-dialogue.layout.update"
         );
-        assert_eq!(operations[32]["id"], "activity-transitions.index");
-        assert_eq!(operations[33]["id"], "activity-transitions.store");
-        assert_eq!(operations[34]["id"], "activity-transitions.update");
-        assert_eq!(operations[35]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[33]["id"], "activity-transitions.index");
+        assert_eq!(operations[34]["id"], "activity-transitions.store");
+        assert_eq!(operations[35]["id"], "activity-transitions.update");
+        assert_eq!(operations[36]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");

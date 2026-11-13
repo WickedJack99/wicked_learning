@@ -1764,6 +1764,12 @@ the machine contract, generated TypeScript client and console advertise those
 operations only after that complete boundary is present. It does not infer or
 automatically wire learning paths.
 
+The Content API also deletes one scoped Activity only after proving that it
+belongs to the MapAsset named in the URL. It then delegates the complete
+transactional route-start, preferred-start, dependent-record and managed-media
+cleanup to the existing World Builder deletion command; the API introduces no
+second cleanup implementation.
+
 The Content API now also exposes a complete scoped MapAsset surface-replacement
 and deletion boundary. Both adapters require their corresponding `content_api`
 capability level, a same-origin CSRF token and the existing World Builder map

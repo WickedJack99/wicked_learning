@@ -190,6 +190,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete one source-shaped Activity from an editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. The Activity must belong to the MapAsset in the URL before the scoped World Builder deletion command performs its source-compatible route-start, dependent-record and media-reference cleanup.
+         */
+        delete: operations["deleteContentApiActivity"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/reflection": {
         parameters: {
             query?: never;
@@ -12120,6 +12143,58 @@ export interface operations {
                 content?: never;
             };
             /** @description The MapAsset is unavailable in the caller's World Activity scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteContentApiActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The scoped Activity was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Activity update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset or Activity is unavailable in the caller's scoped World Activity graph. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -317,6 +317,30 @@ paths:
         '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
         '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: activity_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      operationId: deleteContentApiActivity
+      summary: Delete one source-shaped Activity from an editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. The Activity must belong to the MapAsset in the URL before the scoped World Builder deletion command performs its source-compatible route-start, dependent-record and media-reference cleanup.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The scoped Activity was deleted. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The MapAsset or Activity is unavailable in the caller's scoped World Activity graph. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/reflection:
     servers:
       - url: /api

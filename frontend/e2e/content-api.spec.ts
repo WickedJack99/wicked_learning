@@ -1791,4 +1791,27 @@ test('a content API author creates a MapAsset Activity through the documented co
             id: createdTransition.id,
         }),
     );
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.destroy');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${portalTargetMapAsset.data.id}/activities/${activity.data.id}`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 404')).toBeVisible();
+
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${activity.data.id}`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    expect((await console.locator('pre').textContent()) ?? '').not.toContain(activityTitle);
 });

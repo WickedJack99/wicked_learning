@@ -4862,6 +4862,13 @@ configured catalog UUIDs, Portal resolves its selected same-World input Portal, 
 intentionally not a generic activity patch: every remaining Activity type stays
 behind its own source-shaped adapter.
 
+**Activity-deletion extension:** The contract advertises a generic Activity
+delete only after a scoped query proves the Activity belongs to the MapAsset
+named by the path. The endpoint then delegates to the existing World Builder
+deletion command, which repeats scoped authorization and retains transactional
+route-start, preferred-start, dependent-record and managed-media cleanup. This
+is a deletion boundary, not an untyped Activity mutation surface.
+
 **NPC Dialogue extension:** The contract now exposes the existing scoped NPC
 Dialogue graph reader and its individual node, edge and start-layout commands.
 Each operation first proves the typed Activity and MapAsset relationship, then

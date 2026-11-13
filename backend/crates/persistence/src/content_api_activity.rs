@@ -70,6 +70,20 @@ impl ContentApiActivityRepository for PostgresContentApiActivityRepository<'_> {
         }
     }
 
+    fn load_any_activity_id(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        activity_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send
+    {
+        async move {
+            load_any_activity_id(self.pool, principal, map_asset_id, activity_id)
+                .await
+                .map_err(unavailable)
+        }
+    }
+
     fn load_transitions(
         &self,
         principal: &AuthorizedPrincipal,
@@ -259,6 +273,28 @@ async fn load_activity_id(
     .bind(map_asset_id)
     .bind(activity_id)
     .bind(activity_type)
+    .fetch_optional(pool)
+    .await
+}
+
+async fn load_any_activity_id(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    map_asset_id: Uuid,
+    activity_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    if load_context(pool, principal, map_asset_id).await?.is_none() {
+        return Ok(None);
+    }
+
+    sqlx::query_scalar::<_, Uuid>(
+        "SELECT activities.id \
+         FROM learning_activities AS activities \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         WHERE routes.map_asset_id = $1 AND activities.id = $2",
+    )
+    .bind(map_asset_id)
+    .bind(activity_id)
     .fetch_optional(pool)
     .await
 }

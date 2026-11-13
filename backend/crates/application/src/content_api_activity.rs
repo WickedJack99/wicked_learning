@@ -56,6 +56,13 @@ pub trait ContentApiActivityRepository {
         activity_type: &str,
     ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send;
 
+    fn load_any_activity_id(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        activity_id: Uuid,
+    ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send;
+
     fn load_transitions(
         &self,
         principal: &AuthorizedPrincipal,
@@ -176,6 +183,37 @@ pub struct ContentApiActivityScopeQuery<'repository, Repository> {
     repository: &'repository Repository,
 }
 
+/// Proves that an activity belongs to the explicit MapAsset path before the
+/// existing World Builder deletion command removes it. Deletion is not type
+/// specific, but must retain the same scoped authoring boundary.
+pub struct ContentApiAnyActivityScopeQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> ContentApiAnyActivityScopeQuery<'repository, Repository>
+where
+    Repository: ContentApiActivityRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        activity_id: Uuid,
+    ) -> Result<Option<Uuid>, ContentApiActivityReadError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+
+        self.repository
+            .load_any_activity_id(principal, map_asset_id, activity_id)
+            .await
+    }
+}
+
 impl<'repository, Repository> ContentApiActivityScopeQuery<'repository, Repository>
 where
     Repository: ContentApiActivityRepository,
@@ -239,7 +277,8 @@ mod tests {
         ContentApiActivityListQuery, ContentApiActivityNodeQuery, ContentApiActivityReadError,
         ContentApiActivityRepository, ContentApiActivityScopeQuery,
         ContentApiActivityTransitionListQuery, ContentApiActivityTransitionScopeQuery,
-        ContentApiMapAssetActivities, ContentApiMapAssetTransitions,
+        ContentApiAnyActivityScopeQuery, ContentApiMapAssetActivities,
+        ContentApiMapAssetTransitions,
     };
 
     struct RecordingRepository {
@@ -274,6 +313,17 @@ mod tests {
             _: Uuid,
             _: Uuid,
             _: &str,
+        ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn load_any_activity_id(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: Uuid,
         ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send
         {
             self.called.store(true, Ordering::SeqCst);
@@ -327,6 +377,10 @@ mod tests {
             .execute(&principal, Uuid::new_v4(), Uuid::new_v4(), "reflection")
             .await
             .expect("authorization check");
+        let any_activity = ContentApiAnyActivityScopeQuery::new(&repository)
+            .execute(&principal, Uuid::new_v4(), Uuid::new_v4())
+            .await
+            .expect("authorization check");
         let transitions = ContentApiActivityTransitionListQuery::new(&repository)
             .execute(&principal, Uuid::new_v4())
             .await
@@ -339,6 +393,7 @@ mod tests {
         assert!(activities.is_none());
         assert!(node.is_none());
         assert!(activity.is_none());
+        assert!(any_activity.is_none());
         assert!(transitions.is_none());
         assert!(transition.is_none());
         assert!(!called.load(Ordering::SeqCst));

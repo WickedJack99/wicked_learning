@@ -533,7 +533,10 @@ update/delete paths; replacement changes no compatibility-node metadata, while
 deletion requires the command's explicit delete capability and owns the same
 cascade/reference cleanup as the World Builder.
 Content API permission never widens map scope. Activity operations are not
-advertised until their scoped adapters exist. The first Activity adapter lists
+advertised until their scoped adapters exist. A generic Activity deletion
+adapter first proves that the Activity belongs to the explicit MapAsset path,
+then delegates cleanup to the existing transactional scoped World Builder
+command. The first Activity adapter lists
 the current MapAsset route activities through the distinct World Activity scope
 and creates source-shaped Reflection, Review, Open Practice, Markdown, Question,
 Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall activities; it delegates each atomic write to the
