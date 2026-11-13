@@ -1226,9 +1226,9 @@ invitation fields, including the source default invitation and node-scoped slug
 suffixing. It immediately publishes the new activity, as source creation has
 no independent activity-draft state. Rust's retained route grouping is selected
 internally and deterministically for this source-shaped node command; ADR-093
-records that temporary storage adaptation. All other activity types remain
-unavailable until their distinct source validation, dependent facts and review
-semantics are migrated.
+records that temporary storage adaptation. The remaining registered activity
+types now use their own source-shaped commands below; they do not fall through
+to a generic configuration writer.
 Open Practice editing is now available at `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/open-practice`. It accepts
 the source form's title, slug, introduction and learner invitation as one
@@ -1337,7 +1337,8 @@ atomically resynchronizes the legacy preferred start from the ordered eligible
 routes. Route-start presentation editing and ordering are now source-compatible:
 visual fields retain the original bounds and color validation, and route moves
 lock the node's complete start list, renumber it and resynchronize the preferred
-start. Additional activity-content commands remain unavailable.
+start. Activity-content commands remain type-specific rather than accepting a
+generic configuration payload.
 Transition creation is now available through the source-defined scoped command:
 it validates both endpoint activities against the selected node, derives the
 trigger and fallback label from the source connector, preserves idempotency by
@@ -1346,8 +1347,8 @@ Transition editing and deletion now use the same scoped authoring boundary.
 Editing preserves the source form's narrow scope: it accepts only the display
 label and an outcome transition's optional trigger value; an empty label falls
 back to the target activity title or source connector label. Deletion returns
-the selected node's complete ordered transition state. All activity-content
-types without a source-shaped writer remain unavailable.
+the selected node's complete ordered transition state. Any future activity type
+remains unavailable until it has its own source-shaped writer.
 The source-derived World Builder graph reader is now exposed through
 `/settings?panel=admin-world-builder`. It uses the original React Flow graph
 language to read the scoped world graph, then separately loads a selected map
