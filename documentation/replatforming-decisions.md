@@ -4845,6 +4845,13 @@ configured catalog UUIDs, Portal resolves its selected same-World input Portal, 
 intentionally not a generic activity patch: every remaining Activity type stays
 behind its own source-shaped adapter.
 
+**NPC Dialogue extension:** The contract now exposes the existing scoped NPC
+Dialogue graph reader and its individual node, edge and start-layout commands.
+Each operation first proves the typed Activity and MapAsset relationship, then
+delegates to the source World Builder command with the same CSRF and authoring
+scope checks. The API intentionally does not provide a generic graph or
+Activity replacement writer.
+
 **Extension:** The contract also exposes Laravel's strict v1.5 ContentPlan
 draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and
 Open Practice. Rust advertises scoped administration commands to generate a

@@ -1154,6 +1154,11 @@ advertised API namespace and using the signed-in session plus CSRF protection
 for mutations. It is an administration API rather than a public token API. See
 [Content API](content-api.md).
 
+NPC Dialogue authoring remains a source-shaped graph lifecycle rather than a
+complete Activity form replacement: the Content API reads a scoped graph and
+individually creates, replaces or deletes dialogue nodes and edges, and saves
+the start-node layout through the existing typed command.
+
 ## Intentional Non-goals
 
 The prototype deliberately avoids global point totals, streak pressure,

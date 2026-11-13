@@ -1589,6 +1589,107 @@ test('a content API author creates a MapAsset Activity through the documented co
 
     await console
         .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.graph');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(dialogueTitle);
+
+    const dialogueNodeTitle = `Guide introduction ${suffix}`;
+    const updatedDialogueNodeTitle = `${dialogueNodeTitle} updated`;
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.nodes.store');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue/nodes`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        node_type: 'npc_monologue',
+        title: dialogueNodeTitle,
+        body: 'Welcome to this place. Start by noticing one useful detail.',
+        config: {},
+        position: { x: 180, y: 80 },
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const dialogueNode = await createdResponse(console);
+    expect(dialogueNode.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.nodes.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue/nodes/${dialogueNode.data.id}`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        node_type: 'npc_monologue',
+        title: updatedDialogueNodeTitle,
+        body: 'Notice the evidence around you before choosing what to ask next.',
+        config: {},
+        position: { x: 220, y: 80 },
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.graph');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedDialogueNodeTitle);
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.transitions.store');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue/transitions`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        from_node_id: null,
+        to_node_id: dialogueNode.data.id,
+        from_connector: 'out',
+        to_connector: 'in',
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const dialogueTransition = await createdResponse(console);
+    expect(dialogueTransition.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.layout.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue/graph-layout`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({ x: 120, y: 80 }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.transitions.destroy');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue/transitions/${dialogueTransition.data.id}`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activities.npc-dialogue.nodes.destroy');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${dialogue.data.id}/npc-dialogue/nodes/${dialogueNode.data.id}`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+
+    await console
+        .getByLabel('Operation')
         .selectOption('activity-transitions.store');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activity-transitions`,

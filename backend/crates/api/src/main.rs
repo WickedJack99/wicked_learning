@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 mod access_link;
 mod account_deletion;
 mod account_passkey;
@@ -656,6 +658,31 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/message-wall",
             patch(content_api::update_message_wall_activity),
+        )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue",
+            get(content_api::npc_dialogue_graph),
+        )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/nodes",
+            post(content_api::create_npc_dialogue_node),
+        )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}",
+            patch(content_api::update_npc_dialogue_node)
+                .delete(content_api::delete_npc_dialogue_node),
+        )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/transitions",
+            post(content_api::create_npc_dialogue_transition),
+        )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/transitions/{transition_id}",
+            delete(content_api::delete_npc_dialogue_transition),
+        )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/graph-layout",
+            patch(content_api::update_npc_dialogue_layout),
         )
         .route(
             "/api/content/v1/map-assets/{map_asset_id}/activity-transitions",

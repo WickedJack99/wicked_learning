@@ -556,6 +556,9 @@ matching typed World Builder command. Their configured catalog UUIDs resolve
 inside that command; Portal's selected input activity resolves in the same
 World before its travel link changes.
 Message adapters retain their type, MapAsset-scoped topic and audience boundaries.
+NPC Dialogue instead exposes its source-shaped graph lifecycle: a scoped graph
+read plus individual node, edge and start-layout commands. It never accepts a
+generic full-Activity replacement.
 
 AI configuration uses:
 

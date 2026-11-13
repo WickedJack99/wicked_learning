@@ -33,8 +33,8 @@ pub struct CreateNpcDialogueActivityResponse {
 
 #[derive(Deserialize)]
 pub struct DialoguePositionRequest {
-    x: f64,
-    y: f64,
+    pub x: f64,
+    pub y: f64,
 }
 
 #[derive(Deserialize)]
@@ -59,7 +59,7 @@ pub struct CreatedResource {
     pub id: Uuid,
 }
 
-fn node_form(request: DialogueNodeRequest) -> Result<NpcDialogueNodeForm, ApiError> {
+pub fn node_form(request: DialogueNodeRequest) -> Result<NpcDialogueNodeForm, ApiError> {
     let position = match request.position {
         Some(position) => Some(
             NpcDialoguePosition::parse(position.x, position.y)
@@ -77,7 +77,7 @@ fn node_form(request: DialogueNodeRequest) -> Result<NpcDialogueNodeForm, ApiErr
     .ok_or_else(ApiError::invalid_request)
 }
 
-fn transition_form(
+pub fn transition_form(
     request: DialogueTransitionRequest,
 ) -> Result<NpcDialogueTransitionForm, ApiError> {
     NpcDialogueTransitionForm::parse(

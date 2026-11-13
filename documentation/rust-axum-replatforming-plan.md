@@ -1769,6 +1769,11 @@ Wall retain their typed topic/audience contract inside their command. This estab
 backend-first pattern for later type-specific activity updates without an
 untyped JSON activity writer or a new frontend surface.
 
+NPC Dialogue follows the same backend-first boundary as a separately scoped
+graph lifecycle: the Content API reads the source graph, then delegates each
+individual node, edge and start-layout mutation to its existing typed World
+Builder command. It does not offer a generic full-Activity graph replacement.
+
 ### Local backup and isolated restore-drill slice — 13 November 2026
 
 The Rust local stack now has explicit operational evidence for its two

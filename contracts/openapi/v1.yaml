@@ -653,6 +653,118 @@ paths:
         '404': { description: The Message Wall Activity is unavailable in the caller's scoped MapAsset. }
         '409': { description: The supplied updated_at value is stale. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getContentApiNpcDialogueGraph
+      summary: Load one scoped source NPC Dialogue graph.
+      description: Requires content_api read permission and the existing World Activity update scope for the addressed MapAsset. The graph remains an individual-node and edge lifecycle rather than a generic Activity replacement.
+      responses:
+        '200': { description: The editable source-shaped NPC Dialogue graph., content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueGraph' } } } }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The current role lacks content_api read permission. }
+        '404': { description: The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. }
+        '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/nodes:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: createContentApiNpcDialogueNode
+      summary: Add one source NPC Dialogue node.
+      description: Requires content_api update permission, scoped NPC Dialogue membership and a same-origin CSRF token.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueNodeRequest' } } } }
+      responses:
+        '201': { description: The created dialogue node identifier., content: { application/json: { schema: { $ref: '#/components/schemas/ContentApiCreatedResourceResponse' } } } }
+        '400': { description: The dialogue node is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. }
+        '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: dialogue_node_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateContentApiNpcDialogueNode
+      summary: Replace one source NPC Dialogue node.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueNodeRequest' } } } }
+      responses:
+        '204': { description: The dialogue node was saved. }
+        '400': { description: The dialogue node is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The NPC Dialogue Activity or node is unavailable in the caller's scoped MapAsset. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteContentApiNpcDialogueNode
+      summary: Delete one source NPC Dialogue node and its edges.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The dialogue node was deleted. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The NPC Dialogue Activity or node is unavailable in the caller's scoped MapAsset. }
+        '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/transitions:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: createContentApiNpcDialogueTransition
+      summary: Connect two source NPC Dialogue graph nodes.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialogueTransitionRequest' } } } }
+      responses:
+        '201': { description: The created dialogue edge identifier., content: { application/json: { schema: { $ref: '#/components/schemas/ContentApiCreatedResourceResponse' } } } }
+        '400': { description: The dialogue edge is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: That source connector is already connected. }
+        '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/transitions/{transition_id}:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: transition_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      operationId: deleteContentApiNpcDialogueTransition
+      summary: Delete one source NPC Dialogue graph edge.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      responses:
+        '204': { description: The dialogue edge was deleted. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The NPC Dialogue Activity or edge is unavailable in the caller's scoped MapAsset. }
+        '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/graph-layout:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateContentApiNpcDialogueGraphLayout
+      summary: Save the source NPC Dialogue start-node position.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminNpcDialoguePosition' } } } }
+      responses:
+        '204': { description: The dialogue graph layout was saved. }
+        '400': { description: The graph position is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
     servers:
       - url: /api
@@ -8010,6 +8122,17 @@ components:
           properties:
             id: { type: string, format: uuid }
             updatedAt: { type: string, format: date-time }
+    ContentApiCreatedResourceResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [id]
+          properties:
+            id: { type: string, format: uuid }
     ContentApiActivityTransition:
       type: object
       additionalProperties: false

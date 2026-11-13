@@ -468,6 +468,135 @@ export interface paths {
         patch: operations["updateContentApiMessageWallActivity"];
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Load one scoped source NPC Dialogue graph.
+         * @description Requires content_api read permission and the existing World Activity update scope for the addressed MapAsset. The graph remains an individual-node and edge lifecycle rather than a generic Activity replacement.
+         */
+        get: operations["getContentApiNpcDialogueGraph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add one source NPC Dialogue node.
+         * @description Requires content_api update permission, scoped NPC Dialogue membership and a same-origin CSRF token.
+         */
+        post: operations["createContentApiNpcDialogueNode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+                dialogue_node_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one source NPC Dialogue node and its edges. */
+        delete: operations["deleteContentApiNpcDialogueNode"];
+        options?: never;
+        head?: never;
+        /** Replace one source NPC Dialogue node. */
+        patch: operations["updateContentApiNpcDialogueNode"];
+        trace?: never;
+    };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect two source NPC Dialogue graph nodes. */
+        post: operations["createContentApiNpcDialogueTransition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/transitions/{transition_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+                transition_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one source NPC Dialogue graph edge. */
+        delete: operations["deleteContentApiNpcDialogueTransition"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/npc-dialogue/graph-layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save the source NPC Dialogue start-node position. */
+        patch: operations["updateContentApiNpcDialogueGraphLayout"];
+        trace?: never;
+    };
     "/content/v1/map-assets/{map_asset_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -6251,6 +6380,12 @@ export interface components {
                 id: string;
                 /** Format: date-time */
                 updatedAt: string;
+            };
+        };
+        ContentApiCreatedResourceResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
             };
         };
         ContentApiActivityTransition: {
@@ -12884,6 +13019,427 @@ export interface operations {
             };
             /** @description The supplied updated_at value is stale. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getContentApiNpcDialogueGraph: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The editable source-shaped NPC Dialogue graph. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminNpcDialogueGraph"];
+                };
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current role lacks content_api read permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createContentApiNpcDialogueNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialogueNodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The created dialogue node identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiCreatedResourceResponse"];
+                };
+            };
+            /** @description The dialogue node is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteContentApiNpcDialogueNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+                dialogue_node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dialogue node was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC Dialogue Activity or node is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiNpcDialogueNode: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+                dialogue_node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialogueNodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The dialogue node was saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The dialogue node is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC Dialogue Activity or node is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createContentApiNpcDialogueTransition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialogueTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description The created dialogue edge identifier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiCreatedResourceResponse"];
+                };
+            };
+            /** @description The dialogue edge is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description That source connector is already connected. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteContentApiNpcDialogueTransition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+                transition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dialogue edge was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC Dialogue Activity or edge is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiNpcDialogueGraphLayout: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminNpcDialoguePosition"];
+            };
+        };
+        responses: {
+            /** @description The dialogue graph layout was saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The graph position is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The NPC Dialogue Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -70,6 +70,13 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/portal` | Replace one complete Portal Activity form |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/message-prompt` | Replace one complete Message Prompt Activity form |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/message-wall` | Replace one complete Message Wall Activity form |
+| `GET` | `/map-assets/{mapAsset}/activities/{activity}/npc-dialogue` | Read one scoped NPC Dialogue graph |
+| `POST` | `/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/nodes` | Add one NPC Dialogue graph node |
+| `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/nodes/{dialogueNode}` | Replace one NPC Dialogue graph node |
+| `DELETE` | `/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/nodes/{dialogueNode}` | Delete one NPC Dialogue graph node and its edges |
+| `POST` | `/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/transitions` | Add one NPC Dialogue graph edge |
+| `DELETE` | `/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/transitions/{transition}` | Delete one NPC Dialogue graph edge |
+| `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/graph-layout` | Move the NPC Dialogue start node |
 | `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
 | `POST` | `/map-assets/{mapAsset}/activity-transitions` | Connect two Activities through the scoped graph writer |
 | `PATCH` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Update a scoped Activity connection's presentation |
@@ -100,6 +107,12 @@ typed adapters. Portal resolves its selected input Portal server-side in the
 same World before it updates the travel link.
 Message Prompt and Message Wall retain their source activity-type, topic and
 audience boundaries inside the typed command.
+
+NPC Dialogue is deliberately a scoped graph lifecycle rather than a generic
+Activity replacement: callers read the source graph, then create, replace or
+delete individual nodes and edges and update the start-node layout. Every
+operation proves both the NPC Dialogue type and MapAsset membership before it
+delegates to the existing typed World Builder command.
 
 ## Settings Console
 

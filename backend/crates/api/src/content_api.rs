@@ -38,7 +38,7 @@ use wicked_learning_application::{
     },
     admin_world_npc_dialogue::{
         AdminWorldNpcDialogueCommand, AdminWorldNpcDialogueError, CreatedNpcDialogueActivity,
-        NpcDialogueActivityForm,
+        NpcDialogueActivityForm, NpcDialoguePosition,
     },
     admin_world_obstacle::{
         AdminWorldObstacleCommand, AdminWorldObstacleError, CreatedObstacleActivity,
@@ -110,6 +110,10 @@ use crate::{
     admin_world_markdown::{
         MarkdownGraphLayoutRequest, MarkdownPageRequest, MarkdownTransitionRequest,
         form as markdown_form,
+    },
+    admin_world_npc_dialogue::{
+        DialogueNodeRequest, DialoguePositionRequest, DialogueTransitionRequest, node_form,
+        transition_form,
     },
     admin_world_question::{QuestionActivityRequest, form as question_form},
     admin_world_shared_task::{SharedTaskRequest, form as shared_task_form},
@@ -1750,6 +1754,169 @@ pub async fn update_message_wall_activity(
     .await
 }
 
+pub async fn npc_dialogue_graph(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<wicked_learning_domain::world_content::AdminNpcDialogueGraph>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ro")?;
+    scope_npc_dialogue_activity(&state, &principal, map_asset_id, activity_id).await?;
+    let repository = PostgresAdminWorldNpcDialogueRepository::new(&state.application_database);
+    let graph = AdminWorldNpcDialogueCommand::new(&repository)
+        .load(&principal, activity_id)
+        .await
+        .map_err(map_npc_dialogue_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(graph))
+}
+
+pub async fn create_npc_dialogue_node(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<DialogueNodeRequest>,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let form = node_form(request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    scope_npc_dialogue_activity(&state, &principal, map_asset_id, activity_id).await?;
+    let repository = PostgresAdminWorldNpcDialogueRepository::new(&state.application_database);
+    let id = AdminWorldNpcDialogueCommand::new(&repository)
+        .create_node(&principal, activity_id, &form)
+        .await
+        .map_err(map_npc_dialogue_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok((StatusCode::CREATED, Json(json!({ "data": { "id": id } }))))
+}
+
+pub async fn update_npc_dialogue_node(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id, dialogue_node_id)): Path<(String, String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<DialogueNodeRequest>,
+) -> Result<StatusCode, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let dialogue_node_id = Uuid::parse_str(&dialogue_node_id).map_err(|_| ApiError::not_found())?;
+    let form = node_form(request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    scope_npc_dialogue_activity(&state, &principal, map_asset_id, activity_id).await?;
+    let repository = PostgresAdminWorldNpcDialogueRepository::new(&state.application_database);
+    AdminWorldNpcDialogueCommand::new(&repository)
+        .update_node(&principal, activity_id, dialogue_node_id, &form)
+        .await
+        .map_err(map_npc_dialogue_error)?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
+}
+
+pub async fn delete_npc_dialogue_node(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id, dialogue_node_id)): Path<(String, String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let dialogue_node_id = Uuid::parse_str(&dialogue_node_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    scope_npc_dialogue_activity(&state, &principal, map_asset_id, activity_id).await?;
+    let repository = PostgresAdminWorldNpcDialogueRepository::new(&state.application_database);
+    AdminWorldNpcDialogueCommand::new(&repository)
+        .delete_node(&principal, activity_id, dialogue_node_id)
+        .await
+        .map_err(map_npc_dialogue_error)?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
+}
+
+pub async fn create_npc_dialogue_transition(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<DialogueTransitionRequest>,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let form = transition_form(request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    scope_npc_dialogue_activity(&state, &principal, map_asset_id, activity_id).await?;
+    let repository = PostgresAdminWorldNpcDialogueRepository::new(&state.application_database);
+    let id = AdminWorldNpcDialogueCommand::new(&repository)
+        .create_transition(&principal, activity_id, &form)
+        .await
+        .map_err(map_npc_dialogue_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok((StatusCode::CREATED, Json(json!({ "data": { "id": id } }))))
+}
+
+pub async fn delete_npc_dialogue_transition(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id, transition_id)): Path<(String, String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let transition_id = Uuid::parse_str(&transition_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    scope_npc_dialogue_activity(&state, &principal, map_asset_id, activity_id).await?;
+    let repository = PostgresAdminWorldNpcDialogueRepository::new(&state.application_database);
+    AdminWorldNpcDialogueCommand::new(&repository)
+        .delete_transition(&principal, activity_id, transition_id)
+        .await
+        .map_err(map_npc_dialogue_error)?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
+}
+
+pub async fn update_npc_dialogue_layout(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<DialoguePositionRequest>,
+) -> Result<StatusCode, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let position =
+        NpcDialoguePosition::parse(request.x, request.y).ok_or_else(ApiError::invalid_request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    scope_npc_dialogue_activity(&state, &principal, map_asset_id, activity_id).await?;
+    let repository = PostgresAdminWorldNpcDialogueRepository::new(&state.application_database);
+    AdminWorldNpcDialogueCommand::new(&repository)
+        .update_layout(&principal, activity_id, position)
+        .await
+        .map_err(map_npc_dialogue_error)?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn update_message_activity(
     state: AppState,
@@ -2023,6 +2190,21 @@ fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
             | "message_prompt"
             | "message_wall"
     )
+}
+
+async fn scope_npc_dialogue_activity(
+    state: &AppState,
+    principal: &AuthorizedPrincipal,
+    map_asset_id: Uuid,
+    activity_id: Uuid,
+) -> Result<(), ApiError> {
+    let repository = PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&repository)
+        .execute(principal, map_asset_id, activity_id, "npc_dialogue")
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(())
 }
 
 fn map_reflection_error(error: AdminWorldReflectionError) -> ApiError {
@@ -3088,7 +3270,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.18",
+        "version": "1.19",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -3200,7 +3382,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.18", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.19", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -3225,6 +3407,13 @@ fn document() -> Value {
             operation("activities.portal.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/portal", "Replace a Portal Activity", "Replaces the complete source Portal form only after proving its type and MapAsset membership. The typed command resolves a selected input Portal inside the same World.", serde_json::from_str(r##"{"title":"Enter the relay archive","slug":null,"introduction":"Travel to the related MapAsset after this encounter.","portal_mode":"output","portal_background_dark":"","portal_background_light":"","portal_background_mirrored":false,"portal_assets":[],"portal_duration_seconds":1.5,"portal_foreground_dark":"","portal_foreground_light":"","portal_foreground_mirrored":false,"portal_foreground_width":28,"portal_foreground_x":50,"portal_foreground_y":50,"portal_show_on_arrival":true,"portal_swirl_enabled":true,"portal_bubble_text":"Enter the next place when you are ready.","portal_bubble_typing_speed":24,"portal_bubble_color_dark":"#0f172a","portal_bubble_color_light":"#ffffff","portal_bubble_border_color_dark":"#2dd4bf","portal_bubble_border_color_light":"#0891b2","portal_bubble_text_color_dark":"#f8fafc","portal_bubble_text_color_light":"#0f172a","portal_wait_for_enter":false,"target_portal_activity_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"##).expect("valid Portal Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.message-prompt.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/message-prompt", "Replace a Message Prompt Activity", "Replaces the complete source Message Prompt form only after proving its type and MapAsset membership.", json!({ "title": "Ask for an observation", "slug": Value::Null, "introduction": "Invite a useful observation.", "activity_type": "message_prompt", "topic_id": Value::Null, "topic_title": "Inspection notes", "audience": "peers", "allow_responses": false, "response_prompt": "", "prompt": "What did you notice?", "input_label": "Your note", "surface_color_dark": "#071018", "surface_color_light": "#e6f5f2", "card_color_dark": "#13262d", "card_color_light": "#ffffff", "card_border_color_dark": "#2dd4bf", "card_border_color_light": "#0f766e", "text_color_dark": "#f1f5f9", "text_color_light": "#0f172a", "accent_color_dark": "#5eead4", "accent_color_light": "#0f766e", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.message-wall.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/message-wall", "Replace a Message Wall Activity", "Replaces the complete source Message Wall form only after proving its type and MapAsset membership.", json!({ "title": "Read inspection notes", "slug": Value::Null, "introduction": "Find observations others have shared.", "activity_type": "message_wall", "topic_id": Value::Null, "topic_title": "Inspection notes", "audience": "peers", "allow_responses": false, "response_prompt": "", "prompt": "What do these observations help you notice?", "input_label": "Your note", "surface_color_dark": "#071018", "surface_color_light": "#e6f5f2", "card_color_dark": "#13262d", "card_color_light": "#ffffff", "card_border_color_dark": "#2dd4bf", "card_border_color_light": "#0f766e", "text_color_dark": "#f1f5f9", "text_color_light": "#0f172a", "accent_color_dark": "#5eead4", "accent_color_light": "#0f766e", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.npc-dialogue.graph", "GET", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/npc-dialogue", "Read an NPC Dialogue graph", "Loads the source NPC Dialogue graph after proving its type and MapAsset membership.", Value::Null, json!({ "activity": { "id": "opaque-activity-id", "slug": "guide-dialogue", "title": "Ask the guide", "introduction": "Follow the guide's explanation.", "graph_layout": {} }, "dialogue_nodes": [], "transitions": [], "world_nodes": [], "typing_sound_sets": [] })),
+            operation("activities.npc-dialogue.nodes.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/nodes", "Add an NPC Dialogue node", "Adds one source-shaped node to a scoped NPC Dialogue graph; it does not replace the Activity.", json!({ "node_type": "npc_monologue", "title": "Guide", "body": "Welcome to this place.", "config": {}, "position": { "x": 180, "y": 80 } }), json!({ "data": { "id": "opaque-dialogue-node-id" } })),
+            operation("activities.npc-dialogue.nodes.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/nodes/{dialogueNode}", "Replace an NPC Dialogue node", "Replaces one source-shaped node after proving that both the graph and node belong to the scoped NPC Dialogue Activity.", json!({ "node_type": "npc_monologue", "title": "Guide", "body": "Notice the evidence around you.", "config": {}, "position": { "x": 220, "y": 80 } }), Value::Null),
+            operation("activities.npc-dialogue.nodes.destroy", "DELETE", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/nodes/{dialogueNode}", "Delete an NPC Dialogue node", "Deletes one source-shaped dialogue node and its graph edges after proving scoped membership.", Value::Null, Value::Null),
+            operation("activities.npc-dialogue.transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/transitions", "Connect NPC Dialogue nodes", "Adds one source-shaped edge inside a scoped NPC Dialogue graph.", json!({ "from_node_id": Value::Null, "to_node_id": "opaque-dialogue-node-id", "from_connector": "out", "to_connector": "in" }), json!({ "data": { "id": "opaque-dialogue-transition-id" } })),
+            operation("activities.npc-dialogue.transitions.destroy", "DELETE", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/transitions/{transition}", "Delete an NPC Dialogue edge", "Deletes one source-shaped dialogue edge after proving scoped graph membership.", Value::Null, Value::Null),
+            operation("activities.npc-dialogue.layout.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/npc-dialogue/graph-layout", "Move the NPC Dialogue start node", "Updates only the source graph's start-node layout position after proving scoped membership.", json!({ "x": 120, "y": 80 }), Value::Null),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -3300,8 +3489,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.18");
-        assert_eq!(operations.len(), 29);
+        assert_eq!(document["version"], "1.19");
+        assert_eq!(operations.len(), 36);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -3326,10 +3515,29 @@ mod tests {
         assert_eq!(operations[22]["id"], "activities.portal.update");
         assert_eq!(operations[23]["id"], "activities.message-prompt.update");
         assert_eq!(operations[24]["id"], "activities.message-wall.update");
-        assert_eq!(operations[25]["id"], "activity-transitions.index");
-        assert_eq!(operations[26]["id"], "activity-transitions.store");
-        assert_eq!(operations[27]["id"], "activity-transitions.update");
-        assert_eq!(operations[28]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[25]["id"], "activities.npc-dialogue.graph");
+        assert_eq!(operations[26]["id"], "activities.npc-dialogue.nodes.store");
+        assert_eq!(operations[27]["id"], "activities.npc-dialogue.nodes.update");
+        assert_eq!(
+            operations[28]["id"],
+            "activities.npc-dialogue.nodes.destroy"
+        );
+        assert_eq!(
+            operations[29]["id"],
+            "activities.npc-dialogue.transitions.store"
+        );
+        assert_eq!(
+            operations[30]["id"],
+            "activities.npc-dialogue.transitions.destroy"
+        );
+        assert_eq!(
+            operations[31]["id"],
+            "activities.npc-dialogue.layout.update"
+        );
+        assert_eq!(operations[32]["id"], "activity-transitions.index");
+        assert_eq!(operations[33]["id"], "activity-transitions.store");
+        assert_eq!(operations[34]["id"], "activity-transitions.update");
+        assert_eq!(operations[35]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
