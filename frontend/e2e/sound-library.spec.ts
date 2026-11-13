@@ -11,7 +11,7 @@ test('an authorized administrator can store, preview, publish and delete a reusa
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/world$/);
 
-    await page.goto('/settings?panel=admin-assets&asset=sounds');
+    await page.goto('/settings?panel=admin-assets-world-objects&asset=sounds');
     await expect(page.getByRole('heading', { name: 'Reusable sound library' })).toBeVisible();
     await page.getByRole('button', { name: 'Create sound' }).first().click();
 
