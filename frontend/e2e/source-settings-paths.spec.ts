@@ -111,6 +111,7 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     ).toBeVisible();
 
     const legacyRedirects = [
+        ['/settings/admin-panel', '/settings?panel=admin-learning-support&support=admin-panel'],
         ['/settings/assets', '/settings?panel=admin-assets-world-objects&asset=visuals'],
         ['/settings/assets/media', '/settings?panel=admin-assets-world-objects&asset=visuals'],
         ['/settings/assets/items', '/settings?panel=admin-assets-world-objects&asset=items'],

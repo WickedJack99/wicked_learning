@@ -1056,6 +1056,8 @@ export function App() {
     const legacySettingsRedirects: Record<string, string> = {
         '/settings/appearance': '/settings?panel=personal&personal=appearance',
         '/settings/ai': '/settings?panel=admin-ai-integrations',
+        '/settings/admin-panel':
+            '/settings?panel=admin-learning-support&support=admin-panel',
         '/settings/assets':
             '/settings?panel=admin-assets-world-objects&asset=visuals',
         '/settings/assets/items':
