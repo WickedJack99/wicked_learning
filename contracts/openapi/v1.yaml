@@ -8182,6 +8182,7 @@ components:
           $ref: '#/components/schemas/PublicWelcome'
         information_pages:
           type: array
+          minItems: 1
           maxItems: 24
           description: Ordered source-configured public information pages.
           items:

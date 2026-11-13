@@ -92,6 +92,7 @@ pub fn valid_public_presentation(presentation: &PublicPresentation) -> bool {
         && !presentation.welcome.pages.is_empty()
         && presentation.welcome.pages.iter().all(valid_welcome_page)
         && presentation.information_pages.len() <= 24
+        && !presentation.information_pages.is_empty()
         && presentation
             .information_pages
             .iter()
@@ -319,6 +320,25 @@ mod tests {
                 title: "Custom".to_owned(),
             },
         ];
+
+        assert!(
+            UpdateAdminPublicPresentation::new(&Repository)
+                .execute(&principal, invalid)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn public_presentation_requires_one_information_page_before_writing() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:presentation:ru:all".to_owned()],
+        };
+        let mut invalid = presentation();
+        invalid.information_pages = vec![];
 
         assert!(
             UpdateAdminPublicPresentation::new(&Repository)
