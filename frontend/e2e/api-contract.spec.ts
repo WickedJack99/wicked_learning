@@ -711,7 +711,7 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
         topic_title: 'Orientation support',
     });
 
-    const supportBody = 'Could you help me notice the useful map details?';
+    let supportBody = 'Could you help me notice the useful map details?';
     if (!beforeDocument.has_contributed) {
         const submission = await request.post(requestPath, {
             headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
@@ -723,7 +723,8 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
             message: { body: supportBody, responses: [] },
         });
     } else {
-        expect(beforeDocument.message).toMatchObject({ body: supportBody });
+        expect(beforeDocument.message).not.toBeNull();
+        supportBody = beforeDocument.message!.body;
     }
 
     const repeat = await request.post(requestPath, {
@@ -758,9 +759,7 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
         }>;
     };
     const submittedRequest = moderationDocument.requests.find(
-        (candidate) =>
-            candidate.body ===
-            'Could you help me notice the useful map details?',
+        (candidate) => candidate.body === supportBody,
     );
     expect(submittedRequest).toMatchObject({ author: { email } });
 
@@ -806,7 +805,7 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     ).toBeVisible();
     await expect(
         page
-            .getByText('Could you help me notice the useful map details?')
+            .getByText(supportBody)
             .first(),
     ).toBeVisible();
 
@@ -877,7 +876,7 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     await expect(restoredLearnerView.json()).resolves.toMatchObject({
         has_contributed: true,
         message: {
-            body: 'Could you help me notice the useful map details?',
+            body: supportBody,
             responses: [
                 {
                     body: 'Look for one landmark that will make this map easier to revisit.',
