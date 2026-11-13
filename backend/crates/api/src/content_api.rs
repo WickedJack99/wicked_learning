@@ -134,6 +134,12 @@ pub struct CreateMapRequest {
 pub struct CreateMapAssetRequest {
     title: String,
     description: Option<String>,
+    #[serde(flatten)]
+    surface: MapAssetSurfaceRequest,
+}
+
+#[derive(Deserialize)]
+pub struct MapAssetSurfaceRequest {
     image_url: Option<String>,
     text: Option<String>,
     position_x: f64,
@@ -149,6 +155,22 @@ pub struct CreateMapAssetRequest {
     #[serde(default = "empty_object")]
     visual_config: Value,
     #[serde(default = "empty_object")]
+    sound_config: Value,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateMapAssetSurfaceRequest {
+    image_url: Option<String>,
+    text: Option<String>,
+    position_x: f64,
+    position_y: f64,
+    position_z: i32,
+    width: f64,
+    opacity: f64,
+    locked: bool,
+    interaction_mode: String,
+    interaction_config: Value,
+    visual_config: Value,
     sound_config: Value,
 }
 
@@ -426,22 +448,9 @@ pub async fn create_map_asset(
     Json(request): Json<CreateMapAssetRequest>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
     let map_id = Uuid::parse_str(&map_id).map_err(|_| ApiError::not_found())?;
-    let form = WorldMapAssetForm::parse(
-        request.image_url.as_deref(),
-        request.text.as_deref(),
-        request.position_x,
-        request.position_y,
-        request.position_z,
-        request.width,
-        request.opacity,
-        request.locked,
-        &request.interaction_mode,
-        request.interaction_config,
-        request.visual_config,
-        request.sound_config,
-    )
-    .and_then(|form| form.with_content_metadata(&request.title, request.description.as_deref()))
-    .ok_or_else(ApiError::invalid_request)?;
+    let form = map_asset_surface_form(request.surface)
+        .and_then(|form| form.with_content_metadata(&request.title, request.description.as_deref()))
+        .ok_or_else(ApiError::invalid_request)?;
     let principal = authenticated_principal(&state, auth_session).await?;
     require_content_permission(&principal, "ru")?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
@@ -458,6 +467,54 @@ pub async fn create_map_asset(
             "data": serialize_created_map_asset(map_id, created.asset_id, &form),
         })),
     ))
+}
+
+/// Updates only the MapAsset's source surface. The compatibility node title
+/// and description remain the creation metadata, just as they do in the
+/// existing World Builder MapAsset command.
+pub async fn update_map_asset(
+    State(state): State<AppState>,
+    Path(map_asset_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateMapAssetSurfaceRequest>,
+) -> Result<StatusCode, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let form = update_map_asset_surface_form(request).ok_or_else(ApiError::invalid_request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresAdminWorldMapAssetRepository::new(&state.application_database);
+    AdminWorldMapAssetCommand::new(&repository)
+        .update(&principal, map_asset_id, &form)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
+}
+
+/// Deletes a MapAsset only through the existing scoped World Builder cascade.
+/// Content API delete permission is intentionally distinct from ordinary
+/// content creation/update permission.
+pub async fn delete_map_asset(
+    State(state): State<AppState>,
+    Path(map_asset_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "rud")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresAdminWorldMapAssetRepository::new(&state.application_database);
+    AdminWorldMapAssetCommand::new(&repository)
+        .delete(&principal, map_asset_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
 }
 
 /// Lists source-shaped activities only after resolving the MapAsset's
@@ -909,6 +966,42 @@ fn require_content_permission(
         .has_permission("content_api", level)
         .then_some(())
         .ok_or_else(ApiError::forbidden)
+}
+
+fn map_asset_surface_form(request: MapAssetSurfaceRequest) -> Option<WorldMapAssetForm> {
+    WorldMapAssetForm::parse(
+        request.image_url.as_deref(),
+        request.text.as_deref(),
+        request.position_x,
+        request.position_y,
+        request.position_z,
+        request.width,
+        request.opacity,
+        request.locked,
+        &request.interaction_mode,
+        request.interaction_config,
+        request.visual_config,
+        request.sound_config,
+    )
+}
+
+fn update_map_asset_surface_form(
+    request: UpdateMapAssetSurfaceRequest,
+) -> Option<WorldMapAssetForm> {
+    WorldMapAssetForm::parse(
+        request.image_url.as_deref(),
+        request.text.as_deref(),
+        request.position_x,
+        request.position_y,
+        request.position_z,
+        request.width,
+        request.opacity,
+        request.locked,
+        &request.interaction_mode,
+        request.interaction_config,
+        request.visual_config,
+        request.sound_config,
+    )
 }
 
 fn empty_object() -> Value {
@@ -1842,7 +1935,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.4",
+        "version": "1.5",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -1959,6 +2052,8 @@ fn document() -> Value {
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
+            operation("map-assets.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}", "Update a MapAsset surface", "Replaces the source-shaped MapAsset surface through the scoped World Builder command. It does not rename the linked compatibility node.", json!({ "image_url": Value::Null, "text": "Alternator housing", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), Value::Null),
+            operation("map-assets.destroy", "DELETE", "/api/content/v1/map-assets/{mapAsset}", "Delete a MapAsset", "Deletes a MapAsset only through the scoped World Builder cascade. It requires Content API and World Builder delete permission.", Value::Null, Value::Null),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
             operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "npc_dialogue", "title": "Ask the archive guide", "introduction": "Follow the guide's questions.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "npc_dialogue", "title": "Ask the archive guide" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -2013,15 +2108,16 @@ mod tests {
     };
 
     use super::{
-        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
-        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
-        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
-        require_content_permission, serialize_activity, serialize_activity_transition,
-        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
-        serialize_created_markdown, serialize_created_message, serialize_created_npc_dialogue,
-        serialize_created_obstacle, serialize_created_open_practice, serialize_created_portal,
-        serialize_created_question, serialize_created_reflective_activity,
-        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
+        UpdateMapAssetSurfaceRequest, content_api_item_grant_form, content_api_item_obstacle_form,
+        content_api_message_form, content_api_obstacle_form, content_api_portal_form,
+        content_api_shared_task_form, content_api_tool_grant_form, document,
+        is_supported_content_api_activity_type, require_content_permission, serialize_activity,
+        serialize_activity_transition, serialize_created_item_grant,
+        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
+        serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
+        serialize_created_open_practice, serialize_created_portal, serialize_created_question,
+        serialize_created_reflective_activity, serialize_created_shared_task,
+        serialize_created_tool_grant, serialize_map_assets, update_map_asset_surface_form,
     };
 
     #[test]
@@ -2030,18 +2126,20 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.4");
-        assert_eq!(operations.len(), 11);
+        assert_eq!(document["version"], "1.5");
+        assert_eq!(operations.len(), 13);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "map-assets.index");
         assert_eq!(operations[4]["id"], "map-assets.store");
-        assert_eq!(operations[5]["id"], "activities.index");
-        assert_eq!(operations[6]["id"], "activities.store");
-        assert_eq!(operations[7]["id"], "activity-transitions.index");
-        assert_eq!(operations[8]["id"], "activity-transitions.store");
-        assert_eq!(operations[9]["id"], "activity-transitions.update");
-        assert_eq!(operations[10]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[5]["id"], "map-assets.update");
+        assert_eq!(operations[6]["id"], "map-assets.destroy");
+        assert_eq!(operations[7]["id"], "activities.index");
+        assert_eq!(operations[8]["id"], "activities.store");
+        assert_eq!(operations[9]["id"], "activity-transitions.index");
+        assert_eq!(operations[10]["id"], "activity-transitions.store");
+        assert_eq!(operations[11]["id"], "activity-transitions.update");
+        assert_eq!(operations[12]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -2095,6 +2193,41 @@ mod tests {
         };
 
         assert!(require_content_permission(&principal, "ro").is_err());
+    }
+
+    #[test]
+    fn map_asset_surface_updates_reuse_the_scoped_world_builder_form() {
+        let form = update_map_asset_surface_form(UpdateMapAssetSurfaceRequest {
+            image_url: None,
+            text: Some("Alternator housing".to_owned()),
+            position_x: 50.0,
+            position_y: 40.0,
+            position_z: 2,
+            width: 14.0,
+            opacity: 1.0,
+            locked: false,
+            interaction_mode: "focusable".to_owned(),
+            interaction_config: json!({}),
+            visual_config: json!({}),
+            sound_config: json!({}),
+        })
+        .expect("valid source-shaped MapAsset surface");
+
+        assert_eq!(form.text.as_deref(), Some("Alternator housing"));
+        assert!(form.content_title.is_none());
+        assert!(form.content_description.is_none());
+    }
+
+    #[test]
+    fn map_asset_surface_updates_require_the_complete_source_form() {
+        assert!(serde_json::from_str::<UpdateMapAssetSurfaceRequest>(
+            r#"{"image_url":null,"text":"Alternator","position_x":50,"position_y":40,"position_z":2,"width":14,"opacity":1,"locked":false,"interaction_mode":"focusable","interaction_config":{},"visual_config":{},"sound_config":{}}"#,
+        )
+        .is_ok());
+        assert!(serde_json::from_str::<UpdateMapAssetSurfaceRequest>(
+            r#"{"text":"Alternator","position_x":50,"position_y":40,"position_z":2,"width":14,"opacity":1,"locked":false,"interaction_mode":"focusable","interaction_config":{},"visual_config":{}}"#,
+        )
+        .is_err());
     }
 
     #[test]

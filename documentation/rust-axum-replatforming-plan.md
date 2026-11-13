@@ -1721,7 +1721,7 @@ Question, Shared Task, catalog-resolved Item Grant and Tool Grant, an Item
 Obstacle with a catalog-resolved item slot, a tool-resolved Obstacle, and a
 same-World Portal input/output link, back through the documented scoped route.
 The OpenAPI contract and
-generated TypeScript client now mirror all eleven advertised operations,
+generated TypeScript client now mirror all thirteen advertised operations,
 including the map list/create pair; no live console operation is outside the
 typed API surface.
 
@@ -1734,6 +1734,17 @@ prove that the path transition belongs to the path MapAsset before delegation;
 the machine contract, generated TypeScript client and console advertise those
 operations only after that complete boundary is present. It does not infer or
 automatically wire learning paths.
+
+The Content API now also exposes a complete scoped MapAsset surface-replacement
+and deletion boundary. Both adapters require their corresponding `content_api`
+capability level, a same-origin CSRF token and the existing World Builder map
+scope; deletion additionally requires the existing `world_maps.rud` scope.
+They delegate to the typed World Builder command rather than duplicating its
+history, cascade or reusable-media-reference rules. A replacement updates only
+the MapAsset surface, intentionally preserving the linked node's creation
+title and description. The live machine contract, generated client and
+source-adapted API console advertise those operations only after the route and
+browser proof are present.
 
 ### Local backup and isolated restore-drill slice — 13 November 2026
 

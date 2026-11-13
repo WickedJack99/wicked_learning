@@ -19,7 +19,8 @@ requests also require the page CSRF token in `X-CSRF-TOKEN`.
 Role permissions are separate:
 
 - `content_api.ro` can read the contract and scoped content.
-- `content_api.ru` can also create supported content.
+- `content_api.ru` can create or update supported content.
+- `content_api.rud` is required for the advertised destructive operations.
 
 Normal map edit scope still applies. The API does not bypass resource
 permissions merely because a user can open the console.
@@ -49,6 +50,8 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `POST` | `/maps`                             | Create a map in the current world               |
 | `GET`  | `/maps/{map}/map-assets`            | List a map's MapAssets and Activity counts      |
 | `POST` | `/maps/{map}/map-assets`            | Create a MapAsset and internal content record   |
+| `PATCH` | `/map-assets/{mapAsset}` | Replace one MapAsset's authored surface |
+| `DELETE` | `/map-assets/{mapAsset}` | Delete one MapAsset through the scoped authoring cascade |
 | `GET`  | `/map-assets/{mapAsset}/activities` | List a MapAsset's Activities                    |
 | `POST` | `/map-assets/{mapAsset}/activities` | Create a validated Activity                     |
 | `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
@@ -57,11 +60,14 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `DELETE` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Delete one scoped Activity connection |
 
 The contract response contains the authoritative fields and examples. The API
-currently creates individual objects and explicitly manages individual Activity
-connections within one MapAsset. A transition update or deletion first proves
-that the addressed transition belongs to the URL's MapAsset before it delegates
-to the existing scoped World Builder writer. Map and MapAsset updates/deletes,
-bulk import and automatic graph wiring are not yet exposed.
+creates individual objects, replaces or deletes one MapAsset surface through
+the existing scoped World Builder command, and explicitly manages individual
+Activity connections within one MapAsset. MapAsset replacement deliberately
+does not rename the linked compatibility node: its title and description are
+the creation metadata. A MapAsset or transition mutation remains subject to
+the command's map scope; a transition update or deletion additionally proves
+that the addressed transition belongs to the URL's MapAsset before delegation.
+Map updates/deletes, bulk import and automatic graph wiring are not exposed.
 
 ## Settings Console
 

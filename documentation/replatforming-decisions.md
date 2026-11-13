@@ -4814,6 +4814,15 @@ scoped MapAsset route and creates Reflection, Review, Open Practice, Markdown,
 Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall through their existing typed commands.
 Future Activity entries must be added with their exact Rust adapters.
 
+**MapAsset extension:** The contract now advertises source-shaped MapAsset
+surface replacement and deletion only after both can delegate to the existing
+scoped World Builder command. Replacement requires `content_api.ru` plus the
+World Builder update scope and deliberately leaves the compatibility node's
+creation title and description unchanged. Deletion requires `content_api.rud`
+plus the World Builder delete scope, preserving the command's transactional
+cascade and managed-media reference cleanup. Both retain the same-origin CSRF
+boundary; no Content API permission widens the addressed MapAsset scope.
+
 **Extension:** The contract also exposes Laravel's strict v1.5 ContentPlan
 draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and
 Open Practice. Rust advertises scoped administration commands to generate a

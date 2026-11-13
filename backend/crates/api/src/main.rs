@@ -592,6 +592,10 @@ fn router(state: AppState) -> Router {
             get(content_api::map_assets).post(content_api::create_map_asset),
         )
         .route(
+            "/api/content/v1/map-assets/{map_asset_id}",
+            patch(content_api::update_map_asset).delete(content_api::delete_map_asset),
+        )
+        .route(
             "/api/content/v1/map-assets/{map_asset_id}/activities",
             get(content_api::activities).post(content_api::create_activity),
         )

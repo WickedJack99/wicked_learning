@@ -53,6 +53,106 @@ test('a content API author can inspect the live contract and send a documented r
     expect(docsBox!.x + docsBox!.width).toBeLessThanOrEqual(390);
 });
 
+test('a content API author can replace and delete a scoped MapAsset through the documented console', async ({
+    page,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    const suffix = Date.now();
+    const mapTitle = `Content API surface map ${suffix}`;
+    const assetTitle = `Content API surface MapAsset ${suffix}`;
+    const updatedText = `${assetTitle} updated`;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email!);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+
+    await page.goto('/settings?panel=admin-api&api=console');
+    const console = page.locator('[data-wl-id="settings.content-api.console"]');
+    await expect(console).toBeVisible();
+
+    await console.getByLabel('Operation').selectOption('maps.store');
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: mapTitle,
+        description: 'A disposable map for scoped MapAsset mutation evidence.',
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const map = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('map-assets.store');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/maps/${map.data.id}/map-assets`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: assetTitle,
+        description: 'A disposable MapAsset for replacement and deletion evidence.',
+        image_url: null,
+        text: assetTitle,
+        position_x: 50,
+        position_y: 50,
+        position_z: 0,
+        width: 14,
+        opacity: 1,
+        locked: false,
+        interaction_mode: 'focusable',
+        interaction_config: {},
+        visual_config: {},
+        sound_config: {},
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const mapAsset = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('map-assets.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        image_url: null,
+        text: updatedText,
+        position_x: 56,
+        position_y: 42,
+        position_z: 1,
+        width: 18,
+        opacity: 0.8,
+        locked: true,
+        interaction_mode: 'focusable',
+        interaction_config: {},
+        visual_config: {},
+        sound_config: {},
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+
+    await console.getByLabel('Operation').selectOption('map-assets.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/maps/${map.data.id}/map-assets`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedText);
+    await expect(console.locator('pre')).toContainText('"locked": true');
+
+    await console.getByLabel('Operation').selectOption('map-assets.destroy');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+
+    await console.getByLabel('Operation').selectOption('map-assets.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/maps/${map.data.id}/map-assets`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).not.toContainText(updatedText);
+});
+
 test('a content API author creates a MapAsset Activity through the documented console flow', async ({
     page,
 }) => {

@@ -108,6 +108,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a source-compatible MapAsset through the World Builder cascade.
+         * @description Requires content_api delete permission, the existing World Builder delete scope for the addressed MapAsset, and a same-origin CSRF token. The existing scoped command owns the cascade and media-reference cleanup.
+         */
+        delete: operations["deleteContentApiMapAsset"];
+        options?: never;
+        head?: never;
+        /**
+         * Replace a source-compatible MapAsset surface.
+         * @description Requires content_api update permission, the existing World Builder update scope for the addressed MapAsset, and a same-origin CSRF token. This updates only the MapAsset surface; the linked compatibility node title and description remain its creation metadata.
+         */
+        patch: operations["updateContentApiMapAsset"];
+        trace?: never;
+    };
     "/content/v1/map-assets/{map_asset_id}/activities": {
         parameters: {
             query?: never;
@@ -5744,6 +5770,27 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        UpdateContentApiMapAssetRequest: {
+            image_url?: string | null;
+            text?: string | null;
+            position_x: number;
+            position_y: number;
+            position_z: number;
+            width: number;
+            opacity: number;
+            locked: boolean;
+            /** @enum {string} */
+            interaction_mode: "focusable" | "decorative" | "hide_on_hover" | "toggle";
+            interaction_config: {
+                [key: string]: unknown;
+            };
+            visual_config: {
+                [key: string]: unknown;
+            };
+            sound_config: {
+                [key: string]: unknown;
+            };
+        };
         ContentApiMapAsset: {
             /** Format: uuid */
             id: string;
@@ -11086,6 +11133,119 @@ export interface operations {
                 content?: never;
             };
             /** @description The map is unavailable in the caller's editable scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteContentApiMapAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The scoped MapAsset was deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Builder delete permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unavailable in the caller's delete scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiMapAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContentApiMapAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description The scoped MapAsset surface was replaced. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The complete MapAsset surface is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Builder update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The MapAsset is unavailable in the caller's editable scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -519,12 +519,16 @@ does not expose scoped `companion_config` authoring or a browser provider path.
 The Rust Content API starts at `/api/content/v1/contract`, outside the
 browser-facing `/api/v1` namespace. It is an authenticated, permission-gated
 machine contract, not a public token API. It exposes contract reading, scoped
-map listing and creation, and source-shaped MapAsset listing and creation for
-one editable map. The MapAsset read adapter reuses the World Builder
+map listing and creation, and source-shaped MapAsset listing, creation,
+surface replacement and deletion for one editable map. The MapAsset read adapter reuses the World Builder
 selected-map authorization projection, derives node labels from that projection,
 and reads activity counts in one bounded aggregate query. Its write adapter
 reuses the atomic World Builder MapAsset command while carrying the source
 Content API's explicit title and description into the compatibility node.
+Its surface-replacement and deletion adapters reuse that command's scoped
+update/delete paths; replacement changes no compatibility-node metadata, while
+deletion requires the command's explicit delete capability and owns the same
+cascade/reference cleanup as the World Builder.
 Content API permission never widens map scope. Activity operations are not
 advertised until their scoped adapters exist. The first Activity adapter lists
 the current MapAsset route activities through the distinct World Activity scope
@@ -538,9 +542,9 @@ authored presentation, Item Obstacle's scoped item/sound resolution and media
 references, Obstacle's scoped tool resolution and authored visual states,
 Portal's same-World input-target resolution, media-reference synchronization
 and transactional link creation, NPC dialogue's default end-node scaffold, and Message's map-scoped topic resolution and bounded peer/support configuration,
-while retaining optional graph-card coordinates.
-Other Activity types remain unavailable until their dedicated commands can be
-adapted.
+while retaining optional graph-card coordinates. Those fourteen types are the
+complete source activity registry, so no registry Activity type is advertised
+without a matching command adapter.
 
 AI configuration uses:
 
