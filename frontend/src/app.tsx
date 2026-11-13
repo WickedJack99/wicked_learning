@@ -178,6 +178,10 @@ const OriginalMediaLibraryPage = lazy(async () => {
 
     return { default: module.OriginalMediaLibraryPage };
 });
+const OriginalAssetCatalogPage = lazy(async () => {
+    const module = await import('./original-asset-catalog');
+    return { default: module.OriginalAssetCatalogPage };
+});
 const OriginalSoundLibraryPage = lazy(async () => {
     const module = await import('./original-sound-library');
 
@@ -665,6 +669,28 @@ export function App() {
             );
         }
 
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-assets' &&
+            new URLSearchParams(location.search).get('asset') === 'items'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalAssetCatalogPage kind="items" />
+                </Suspense>
+            );
+        }
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-assets' &&
+            new URLSearchParams(location.search).get('asset') === 'tools'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalAssetCatalogPage kind="tools" />
+                </Suspense>
+            );
+        }
         if (
             new URLSearchParams(location.search).get('panel') ===
                 'admin-assets' &&
