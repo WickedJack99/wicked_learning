@@ -144,6 +144,22 @@ while running tests, alongside `E2E_LOGIN_EMAIL=e2e-admin@wicked-learning.local`
 This account belongs only to the local Compose databases and must never be used
 against production or copied to a shared deployment.
 
+### Persistent local owner administrator
+
+Keep a separate disposable owner account for local manual checks:
+`local.test.admin@wicked-learning.test`. Its password is stored mode `0600` at
+`/home/student/.config/wicked-learning/local-test-admin-password`; the private
+local account register at
+`/home/student/.config/wicked-learning/local-test-users.md` identifies its
+role and the existing browser-test accounts. Neither file is committed.
+
+This account is local/development/test-only and may be created, modified or
+deleted while testing the replatform. If a local data reset or user-deletion
+test removes it, restore it as a `platform_administrator` with the same
+one-time bootstrap command above, substituting the local password-file path
+and this email. The bootstrap command repairs a missing application principal
+or role mapping but deliberately never changes an existing password.
+
 A separate persistent local learner,
 `e2e-learner@wicked-learning.local`, is available for manual collaboration
 checks. Its password is likewise deliberately not
