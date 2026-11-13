@@ -4834,6 +4834,12 @@ until the existing CSRF-protected commands are requested, and reloads map data
 only after a successful server-side apply. Provider execution and every content
 write remain Rust-owned.
 
+The standalone Settings API Console and API Documentation views likewise load
+the live contract before presenting an operation. The console accepts only
+advertised v1 paths, blocks unresolved placeholders and obtains the existing
+same-origin CSRF token only for documented mutations; its response pane reflects
+the exact server result rather than treating a browser as a bearer-token client.
+
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
 operations before they are implemented. Reflection, Review, Open Practice,

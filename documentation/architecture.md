@@ -562,10 +562,12 @@ which revalidates and creates the MapAsset, Activities, route start and
 transitions inside one database transaction.
 
 `ContentApiContract` publishes the machine-readable administration contract at
-`/api/content/v1/contract`. The same contract drives the Settings documentation
-and API console. Read and mutation access use separate permission levels. The
-API currently relies on the signed-in web session and CSRF token; it does not
-issue public bearer tokens. Its published ContentPlan is the source-compatible
+`/api/content/v1/contract`. The standalone React Settings API console and
+documentation view load that live contract before presenting an operation; the
+console permits only its advertised v1 paths and obtains a Rust CSRF token for
+documented mutations. Read and mutation access use separate permission levels.
+The API currently relies on the signed-in web session and CSRF token; it does
+not issue public bearer tokens. Its published ContentPlan is the source-compatible
 strict draft schema for a bounded MapAsset and short route. The main
 administration API exposes scoped ContentPlan generation, owner draft editing,
 and one-time owner application. All require AI, map and activity scope plus

@@ -149,6 +149,12 @@ const OriginalAiSettingsPage = lazy(async () => {
     return { default: module.OriginalAiSettingsPage };
 });
 
+const OriginalContentApiPage = lazy(async () => {
+    const module = await import('./original-content-api');
+
+    return { default: module.OriginalContentApiPage };
+});
+
 const OriginalLearningCompanionSettingsPage = lazy(async () => {
     const module = await import('./original-learning-companion-settings');
 
@@ -632,6 +638,16 @@ export function App() {
             return (
                 <Suspense fallback={null}>
                     <OriginalAiSettingsPage appearance={appearance} />
+                </Suspense>
+            );
+        }
+
+        if (
+            new URLSearchParams(location.search).get('panel') === 'admin-api'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalContentApiPage />
                 </Suspense>
             );
         }

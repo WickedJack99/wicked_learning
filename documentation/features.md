@@ -1127,9 +1127,11 @@ See [AI-assisted authoring](ai-authoring.md).
 ### Content API
 
 The permission-controlled Content API exposes a versioned machine contract and
-operations for maps, MapAssets and Activities. Settings contains an interactive
-console and readable contract view. It is an administration API rather than a
-public token API. See [Content API](content-api.md).
+operations for maps, MapAssets and Activities. The standalone Settings API
+surface loads that live contract for its interactive console and readable
+documentation, refusing paths outside the advertised API namespace and using
+the signed-in session plus CSRF protection for mutations. It is an
+administration API rather than a public token API. See [Content API](content-api.md).
 
 ## Intentional Non-goals
 

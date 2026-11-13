@@ -1692,6 +1692,14 @@ context, review or edit the validated plan, and explicitly approve one atomic
 application. The browser remains a typed client and refreshes its map only
 after the server reports the apply transaction successful.
 
+The standalone Settings API surface now also lifts the source API Console and
+API Documentation views. It loads the live Rust Content API contract first,
+uses only its advertised operations, blocks unresolved path placeholders, and
+obtains the existing same-origin CSRF token only for documented mutations.
+The response pane exposes the exact server status and JSON body; it never turns
+the console into a bearer-token client or a substitute for the contract's map
+and activity scope checks.
+
 ### 7. Complete the replacement deliberately
 
 1. Verify every endpoint, scheduled/background process, mail flow, protected
