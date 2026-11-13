@@ -246,6 +246,67 @@ test('the topic detail consumes its source navigation and overview catalog copy'
     ).toBeVisible();
 });
 
+test('the topic trail consumes its source competence catalog copy', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                roles: ['learner'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/platform-translations', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'topics.detail.competence.empty':
+                        'Localized first learning light.',
+                    'topics.detail.competence.eyebrow':
+                        'Localized learning trail',
+                    'topics.detail.competence.open_all':
+                        'Localized competence map',
+                    'topics.detail.competence.title': 'Localized topic trail',
+                },
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/topics/example/trail', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                competence: null,
+                learning_areas: [],
+                learning_pulse: [],
+                reflection_narrative: null,
+                subtopic_competence: [],
+                topic: {
+                    area_title: 'Orientation',
+                    description: null,
+                    parent: null,
+                    slug: 'example',
+                    title: 'Example topic',
+                },
+            }),
+        }),
+    );
+
+    await page.goto('/topics/example');
+    await expect(page.getByText('Localized learning trail')).toBeVisible();
+    await expect(page.getByText('Localized topic trail')).toBeVisible();
+    await expect(
+        page.getByText('Localized first learning light.'),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Localized competence map' }),
+    ).toBeVisible();
+});
+
 async function expectNavigationItemsInsideViewport(
     page: import('@playwright/test').Page,
     items: import('@playwright/test').Locator,

@@ -725,6 +725,7 @@ function TrailPanel({
     onOpenActivity: (activitySlug: string) => Promise<void>;
     openingActivitySlug: string | null;
 }) {
+    const t = usePlatformTranslation();
     const competence = data.competence;
     const connected = data.subtopic_competence.filter(
         (entry) =>
@@ -744,20 +745,32 @@ function TrailPanel({
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
-                            Learning trail
+                            {t(
+                                'topics.detail.competence.eyebrow',
+                                'Learning trail',
+                            )}
                         </p>
                         <h2
                             className="mt-2 text-sm font-semibold"
                             id="topic-learning-trail-heading"
                         >
-                            Your trail in this topic
+                            {t(
+                                'topics.detail.competence.title',
+                                'Your trail in this topic',
+                            )}
                         </h2>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
                             {competence
                                 ? competence.visual.description
                                 : connected.length
-                                  ? 'Learning is unfolding across connected areas.'
-                                  : 'A first light will appear here as you work with this topic.'}
+                                  ? t(
+                                        'topics.detail.competence.subtopic_summary',
+                                        'Learning is unfolding across connected areas.',
+                                    )
+                                  : t(
+                                        'topics.detail.competence.empty',
+                                        'A first light will appear here as you work with this topic.',
+                                    )}
                         </p>
                     </div>
                     <Link
@@ -772,15 +785,24 @@ function TrailPanel({
                         }
                     >
                         {focusedCompetenceSlug
-                            ? 'Open focused map'
-                            : 'Open competence map'}
+                            ? t(
+                                  'topics.detail.competence.open',
+                                  'Open focused map',
+                              )
+                            : t(
+                                  'topics.detail.competence.open_all',
+                                  'Open competence map',
+                              )}
                         <ArrowRight className="size-4" />
                     </Link>
                 </div>
                 {connected.length ? (
                     <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
                         <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
-                            Connected learning areas
+                            {t(
+                                'topics.detail.competence.connected_areas',
+                                'Connected learning areas',
+                            )}
                         </p>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
                             {connected.map((area) => (
@@ -807,13 +829,19 @@ function TrailPanel({
                     className="mt-8 border-b border-[var(--learner-border-color)] py-7"
                 >
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
-                        Learning areas
+                        {t(
+                            'topics.detail.learning_areas.eyebrow',
+                            'Learning areas',
+                        )}
                     </p>
                     <h2
                         className="mt-2 text-sm font-semibold"
                         id="topic-learning-areas-heading"
                     >
-                        What you can practice here
+                        {t(
+                            'topics.detail.learning_areas.title',
+                            'What you can practice here',
+                        )}
                     </h2>
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
                         {data.learning_areas.map((area) => (
@@ -827,7 +855,9 @@ function TrailPanel({
                                     </span>
                                     <span className="mt-2 block text-xs leading-5 text-[var(--learner-muted-text)]">
                                         {area.learning_intents
-                                            .map(intentLabel)
+                                            .map((intent) =>
+                                                platformIntentLabel(intent, t),
+                                            )
                                             .join(' · ')}
                                     </span>
                                 </span>
@@ -842,13 +872,19 @@ function TrailPanel({
                     className="mt-8 border-b border-[var(--learner-border-color)] py-7"
                 >
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
-                        Recent reflections
+                        {t(
+                            'topics.detail.learning_pulse.eyebrow',
+                            'Recent reflections',
+                        )}
                     </p>
                     <h2
                         className="mt-2 text-sm font-semibold"
                         id="topic-learning-pulse-heading"
                     >
-                        Moments you chose to keep
+                        {t(
+                            'topics.detail.learning_pulse.title',
+                            'Moments you chose to keep',
+                        )}
                     </h2>
                     <div className="mt-4 divide-y divide-[var(--learner-border-color)]">
                         {data.learning_pulse.map((entry) => (
@@ -900,6 +936,7 @@ function CompetenceCard({
     area: components['schemas']['LearnerTopicTrailCompetence'];
     topicSlug: string;
 }) {
+    const t = usePlatformTranslation();
     return (
         <Link
             className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_45%,transparent)] p-3 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
@@ -922,7 +959,7 @@ function CompetenceCard({
                 {area.visual.evidence_types.length ? (
                     <span className="mt-2 block text-xs text-[var(--learner-action-accent)]">
                         {area.visual.evidence_types
-                            .map(intentLabel)
+                            .map((type) => platformIntentLabel(type, t))
                             .join(' · ')}
                     </span>
                 ) : null}
@@ -941,12 +978,16 @@ function CompetenceDetail({
     onOpenActivity: (activitySlug: string) => Promise<void>;
     openingActivitySlug: string | null;
 }) {
+    const t = usePlatformTranslation();
     return (
         <>
             <div className="mt-6 grid gap-5 border-t border-[var(--learner-border-color)] pt-5 sm:grid-cols-2">
                 <div>
                     <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
-                        Ways you have been learning
+                        {t(
+                            'topics.detail.competence.ways',
+                            'Ways you have been learning',
+                        )}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                         {competence.visual.evidence_types.map((type) => (
@@ -954,14 +995,14 @@ function CompetenceDetail({
                                 className="border border-[color-mix(in_srgb,var(--learner-action-accent)_20%,transparent)] px-2.5 py-1 text-xs text-[var(--learner-action-accent)]"
                                 key={type}
                             >
-                                {intentLabel(type)}
+                                {platformIntentLabel(type, t)}
                             </span>
                         ))}
                     </div>
                 </div>
                 <div>
                     <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
-                        Recently
+                        {t('topics.detail.competence.recent', 'Recently')}
                     </p>
                     <p className="mt-3 text-sm leading-6 text-[var(--learner-body-text)]">
                         {competence.visual.recent_description}
@@ -976,7 +1017,10 @@ function CompetenceDetail({
             {competence.visual.evidence_ledger.length ? (
                 <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
                     <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
-                        Recent moments
+                        {t(
+                            'topics.detail.competence.moments',
+                            'Recent moments',
+                        )}
                     </p>
                     <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
                         {competence.visual.evidence_ledger.map((entry) => (
@@ -995,7 +1039,10 @@ function CompetenceDetail({
                                             'Learning moment'}
                                     </span>
                                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
-                                        {intentLabel(entry.evidence_type)}
+                                        {platformIntentLabel(
+                                            entry.evidence_type,
+                                            t,
+                                        )}
                                         {entry.node_title
                                             ? ` · ${entry.node_title}`
                                             : ''}
@@ -1024,7 +1071,8 @@ function CompetenceDetail({
                     }
                     type="button"
                 >
-                    Return to {competence.revisit.activity_title}
+                    {t('topics.detail.competence.revisit', 'Return to')}{' '}
+                    {competence.revisit.activity_title}
                     <ArrowRight className="size-4" />
                 </button>
             ) : null}
@@ -1037,6 +1085,7 @@ function ReflectionNarrative({
 }: {
     narrative: components['schemas']['LearnerTopicReflectionNarrative'];
 }) {
+    const t = usePlatformTranslation();
     const middle = narrative.entries.filter(
         (entry) =>
             entry.id !== narrative.earlier.id &&
@@ -1050,33 +1099,54 @@ function ReflectionNarrative({
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
-                        Your reflections over time
+                        {t(
+                            'topics.detail.reflection_comparison.eyebrow',
+                            'Your reflections over time',
+                        )}
                     </p>
                     <h2
                         className="mt-2 text-sm font-semibold"
                         id="topic-reflection-comparison-heading"
                     >
-                        Earlier and later
+                        {t(
+                            'topics.detail.reflection_comparison.title',
+                            'Earlier and later',
+                        )}
                     </h2>
                 </div>
                 <Link
                     className="shrink-0 text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
                     to="/journal"
                 >
-                    Open journal
+                    {t(
+                        'topics.detail.reflection_comparison.open_journal',
+                        'Open journal',
+                    )}
                 </Link>
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <ReflectionSnapshot
-                    label="Earlier"
+                    label={t(
+                        'topics.detail.reflection_comparison.earlier',
+                        'Earlier',
+                    )}
                     snapshot={narrative.earlier}
                 />
-                <ReflectionSnapshot label="Later" snapshot={narrative.later} />
+                <ReflectionSnapshot
+                    label={t(
+                        'topics.detail.reflection_comparison.later',
+                        'Later',
+                    )}
+                    snapshot={narrative.later}
+                />
             </div>
             {middle.length ? (
                 <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
                     <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
-                        Reflections along the way
+                        {t(
+                            'topics.detail.reflection_comparison.trail',
+                            'Reflections along the way',
+                        )}
                     </p>
                     <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
                         {middle.map((entry) => (
@@ -1216,7 +1286,7 @@ function RoutesPanel({
                             <option value="">Any purpose</option>
                             {learningIntents.map((intent) => (
                                 <option key={intent} value={intent}>
-                                    {intentLabel(intent)}
+                                    {platformIntentLabel(intent, t)}
                                 </option>
                             ))}
                         </select>
@@ -1704,20 +1774,6 @@ function learningIntent(
 function timeBudget(value: string | null): 15 | 30 | null {
     return value === '15' ? 15 : value === '30' ? 30 : null;
 }
-function intentLabel(value: string): string {
-    return (
-        {
-            apply: 'Apply',
-            explain: 'Explain',
-            participate: 'Participate',
-            reflect: 'Reflect',
-            retrieve: 'Retrieve',
-            review: 'Review',
-            transfer: 'Transfer',
-        }[value] ?? value
-    );
-}
-
 function platformIntentLabel(
     value: string,
     t: (key: string, fallback?: string) => string,
