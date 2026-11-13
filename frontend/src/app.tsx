@@ -66,7 +66,11 @@ type PublicPresentationState =
     | { kind: 'loaded'; presentation: PublicPresentation }
     | { kind: 'unavailable' };
 
-const publicSlugs = ['about', 'imprint', 'data-protection'] as const;
+const fixedPublicInformationSlugs = [
+    'about',
+    'imprint',
+    'data-protection',
+] as const;
 
 const OriginalCompetencePage = lazy(async () => {
     const module = await import('./original-competence');
@@ -308,8 +312,9 @@ export function App() {
         location.pathname === '/two-factor-challenge' ||
         location.pathname === '/register' ||
         location.pathname === '/source' ||
-        publicSlugs.includes(
-            location.pathname.slice(1) as (typeof publicSlugs)[number],
+        /^\/info\/[^/]+$/.test(location.pathname) ||
+        fixedPublicInformationSlugs.includes(
+            location.pathname.slice(1) as (typeof fixedPublicInformationSlugs)[number],
         );
     if (isPublicPresentationRoute && presentationState.kind !== 'loaded') {
         return <PublicPresentationStatus state={presentationState.kind} />;
@@ -1076,10 +1081,15 @@ export function App() {
         );
     }
 
-    const publicInformationSlug = location.pathname.slice(1);
+    const configuredInformationMatch = location.pathname.match(
+        /^\/info\/([^/]+)$/,
+    );
+    const publicInformationSlug = configuredInformationMatch
+        ? decodeURIComponent(configuredInformationMatch[1])
+        : location.pathname.slice(1);
     if (
-        publicSlugs.includes(
-            publicInformationSlug as (typeof publicSlugs)[number],
+        presentation?.information_pages.some(
+            (page) => page.slug === publicInformationSlug,
         )
     ) {
         return (

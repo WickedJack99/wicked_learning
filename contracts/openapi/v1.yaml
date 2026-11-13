@@ -8170,7 +8170,7 @@ components:
     PublicPresentation:
       type: object
       additionalProperties: false
-      required: [branding, auth, cursors, welcome, public_palette]
+      required: [branding, auth, cursors, welcome, information_pages, public_palette]
       properties:
         branding:
           $ref: '#/components/schemas/PublicBranding'
@@ -8180,6 +8180,12 @@ components:
           $ref: '#/components/schemas/PublicCursors'
         welcome:
           $ref: '#/components/schemas/PublicWelcome'
+        information_pages:
+          type: array
+          maxItems: 24
+          description: Ordered source-configured public information pages.
+          items:
+            $ref: '#/components/schemas/PublicInformationPage'
         public_palette:
           $ref: '#/components/schemas/PublicPaletteModes'
     PublicBranding:
@@ -8275,6 +8281,16 @@ components:
       properties:
         target: { type: string, maxLength: 2048 }
         text: { type: string, maxLength: 80 }
+    PublicInformationPage:
+      type: object
+      additionalProperties: false
+      required: [backgrounds, body, slug, title]
+      properties:
+        backgrounds:
+          $ref: '#/components/schemas/PublicAppearanceImages'
+        body: { type: string, minLength: 1, maxLength: 50000 }
+        slug: { type: string, pattern: '^[a-z0-9-]+$', maxLength: 80 }
+        title: { type: string, minLength: 1, maxLength: 120 }
     PublicAppearanceImages:
       type: object
       additionalProperties: false

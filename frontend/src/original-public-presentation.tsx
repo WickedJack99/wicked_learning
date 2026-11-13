@@ -10,9 +10,9 @@ import { publicPresentationStyle } from './public-presentation';
 type Presentation = components['schemas']['PublicPresentation'];
 type WelcomePage = components['schemas']['PublicWelcomePage'];
 type WelcomeButton = components['schemas']['PublicWelcomeButton'];
+type InformationPage = components['schemas']['PublicInformationPage'];
 type MediaAsset = components['schemas']['AdminMediaAsset'];
 type MediaAssetPage = components['schemas']['AdminMediaAssetPage'];
-type PublicPage = components['schemas']['PublicPage'];
 type PublicSourceLinks = components['schemas']['PublicSourceLinks'];
 type SourceLink = components['schemas']['PublicSourceLink'];
 type Section = 'branding' | 'backgrounds' | 'welcome' | 'information' | 'source-links';
@@ -35,8 +35,6 @@ export function OriginalPublicPresentationPage({ appearance }: { appearance: Ori
     const [mode, setMode] = useState<Mode>('dark');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-    const [informationPages, setInformationPages] = useState<PublicPage[] | null>(null);
-    const [informationDrafts, setInformationDrafts] = useState<PublicPage[] | null>(null);
     const [sourceLinks, setSourceLinks] = useState<PublicSourceLinks | null>(null);
     const [sourceLinksDraft, setSourceLinksDraft] = useState<PublicSourceLinks | null>(null);
 
@@ -56,25 +54,19 @@ export function OriginalPublicPresentationPage({ appearance }: { appearance: Ori
 
     useEffect(() => {
         let active = true;
-        void Promise.all([
-            apiClient.GET('/admin/public-information-pages'),
-            apiClient.GET('/admin/public-source-links'),
-        ]).then(([pages, links]) => {
+        void apiClient.GET('/admin/public-source-links').then(({ data, response }) => {
             if (!active) return;
-            if (!pages.response.ok || !pages.data || !links.response.ok || !links.data) {
+            if (!response.ok || !data) {
                 setError('Public content settings are unavailable for this account.');
                 return;
             }
-            setInformationPages(pages.data);
-            setInformationDrafts(structuredClone(pages.data));
-            setSourceLinks(links.data);
-            setSourceLinksDraft(structuredClone(links.data));
+            setSourceLinks(data);
+            setSourceLinksDraft(structuredClone(data));
         }).catch(() => active && setError('Public content settings are temporarily unavailable.'));
         return () => { active = false; };
     }, []);
 
     const changed = Boolean(draft && presentation && JSON.stringify(draft) !== JSON.stringify(presentation));
-    const informationChanged = Boolean(informationDrafts && informationPages && JSON.stringify(informationDrafts) !== JSON.stringify(informationPages));
     const sourceLinksChanged = Boolean(sourceLinksDraft && sourceLinks && JSON.stringify(sourceLinksDraft) !== JSON.stringify(sourceLinks));
 
     async function save(): Promise<void> {
@@ -92,31 +84,6 @@ export function OriginalPublicPresentationPage({ appearance }: { appearance: Ori
             setDraft(structuredClone(data));
         } catch {
             setError('The public presentation could not be saved. Check its copy, colors, and selected images, then try again.');
-        } finally {
-            setBusy(false);
-        }
-    }
-
-    async function saveInformationPages(): Promise<void> {
-        if (!informationDrafts || !informationPages || !informationChanged || busy) return;
-        setBusy(true);
-        setError('');
-        try {
-            const token = await getCsrfToken();
-            const saved = await Promise.all(informationDrafts.map(async (page) => {
-                const original = informationPages.find((item) => item.slug === page.slug);
-                if (original?.body === page.body) return original;
-                const { data, response } = await apiClient.PATCH('/admin/public-information-pages/{slug}', {
-                    body: { body: page.body },
-                    params: { header: { 'X-CSRF-Token': token }, path: { slug: page.slug as 'about' | 'imprint' | 'data-protection' } },
-                });
-                if (!response.ok || !data) throw new Error('save');
-                return data;
-            }));
-            setInformationPages(saved);
-            setInformationDrafts(structuredClone(saved));
-        } catch {
-            setError('The public information pages could not be saved. Keep markdown within 50,000 characters and try again.');
         } finally {
             setBusy(false);
         }
@@ -142,8 +109,8 @@ export function OriginalPublicPresentationPage({ appearance }: { appearance: Ori
         }
     }
 
-    const saveCurrent = section === 'information' ? saveInformationPages : section === 'source-links' ? saveSourceLinks : save;
-    const currentChanged = section === 'information' ? informationChanged : section === 'source-links' ? sourceLinksChanged : changed;
+    const saveCurrent = section === 'source-links' ? saveSourceLinks : save;
+    const currentChanged = section === 'source-links' ? sourceLinksChanged : changed;
 
     return <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}>
         <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
@@ -153,13 +120,13 @@ export function OriginalPublicPresentationPage({ appearance }: { appearance: Ori
             </header>
             {error ? <p className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p> : null}
             {!draft ? <p className="p-6 text-sm text-[var(--settings-muted-text)]">Loading public presentation settings…</p> : <section className="min-h-0 flex-1 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]"><div className="grid h-full min-h-0 lg:grid-cols-[15rem_minmax(0,1fr)]">
-                <aside className="border-b border-[var(--settings-border-color)] p-3 lg:border-r lg:border-b-0"><SectionButton active={section === 'branding'} description="Logo used on public authentication surfaces." icon={<Image className="size-4" />} label="Branding" onClick={() => setSection('branding')} /><SectionButton active={section === 'backgrounds'} description="Public and authentication page imagery." icon={<LogIn className="size-4" />} label="Backgrounds" onClick={() => setSection('backgrounds')} /><SectionButton active={section === 'welcome'} description="Full-screen welcome sequence copy and actions." icon={<LayoutPanelTop className="size-4" />} label="Welcome pages" onClick={() => setSection('welcome')} /><SectionButton active={section === 'information'} description="About, imprint and data-protection markdown." icon={<FileText className="size-4" />} label="Information pages" onClick={() => setSection('information')} /><SectionButton active={section === 'source-links'} description="Original and deployment-modified source locations." icon={<Github className="size-4" />} label="Source links" onClick={() => setSection('source-links')} /></aside>
+                <aside className="border-b border-[var(--settings-border-color)] p-3 lg:border-r lg:border-b-0"><SectionButton active={section === 'branding'} description="Logo used on public authentication surfaces." icon={<Image className="size-4" />} label="Branding" onClick={() => setSection('branding')} /><SectionButton active={section === 'backgrounds'} description="Public and authentication page imagery." icon={<LogIn className="size-4" />} label="Backgrounds" onClick={() => setSection('backgrounds')} /><SectionButton active={section === 'welcome'} description="Full-screen welcome sequence copy and actions." icon={<LayoutPanelTop className="size-4" />} label="Welcome pages" onClick={() => setSection('welcome')} /><SectionButton active={section === 'information'} description="Ordered public markdown pages, routes and imagery." icon={<FileText className="size-4" />} label="Information pages" onClick={() => setSection('information')} /><SectionButton active={section === 'source-links'} description="Original and deployment-modified source locations." icon={<Github className="size-4" />} label="Source links" onClick={() => setSection('source-links')} /></aside>
                 <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
-                    <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--settings-border-color)] pb-4"><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Public presentation</p><h2 className="mt-2 text-2xl font-semibold">{section === 'branding' ? 'Branding' : section === 'backgrounds' ? 'Backgrounds' : section === 'welcome' ? 'Welcome pages' : section === 'information' ? 'Information pages' : 'Source links'}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">{section === 'branding' ? 'Choose the shared platform logo.' : section === 'backgrounds' ? `Edit ${mode} mode background images.` : section === 'welcome' ? `Edit ${mode} mode welcome-page imagery. Copy and actions are shared across modes.` : section === 'information' ? 'Edit the fixed About, Imprint and Data protection markdown shown on public routes.' : 'Configure the upstream repository and deployment-specific modified source locations.'}</p></div>{section === 'backgrounds' || section === 'welcome' ? <ModeSwitch mode={mode} onChange={setMode} /> : null}</header>
+                    <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--settings-border-color)] pb-4"><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Public presentation</p><h2 className="mt-2 text-2xl font-semibold">{section === 'branding' ? 'Branding' : section === 'backgrounds' ? 'Backgrounds' : section === 'welcome' ? 'Welcome pages' : section === 'information' ? 'Information pages' : 'Source links'}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">{section === 'branding' ? 'Choose the shared platform logo.' : section === 'backgrounds' ? `Edit ${mode} mode background images.` : section === 'welcome' ? `Edit ${mode} mode welcome-page imagery. Copy and actions are shared across modes.` : section === 'information' ? `Edit ordered public markdown pages and ${mode} mode imagery.` : 'Configure the upstream repository and deployment-specific modified source locations.'}</p></div>{section === 'backgrounds' || section === 'welcome' || section === 'information' ? <ModeSwitch mode={mode} onChange={setMode} /> : null}</header>
                     {section === 'branding' ? <BrandingEditor value={draft.branding.logo} onChange={(logo) => setDraft((current) => current ? { ...current, branding: { ...current.branding, logo } } : current)} /> : null}
                     {section === 'backgrounds' ? <BackgroundsEditor draft={draft} mode={mode} onChange={setDraft} /> : null}
                     {section === 'welcome' ? <WelcomePagesEditor draft={draft} mode={mode} onChange={setDraft} /> : null}
-                    {section === 'information' ? <InformationPagesEditor pages={informationDrafts} onChange={setInformationDrafts} /> : null}
+                    {section === 'information' ? <InformationPagesEditor draft={draft} mode={mode} onChange={setDraft} /> : null}
                     {section === 'source-links' ? <SourceLinksEditor links={sourceLinksDraft} onChange={setSourceLinksDraft} /> : null}
                 </div>
             </div></section>}
@@ -196,9 +163,17 @@ function WelcomeButtons({ buttons, onChange }: { buttons: WelcomeButton[]; onCha
     return <section className="border-t border-[var(--settings-border-color)] pt-4"><div className="flex items-center justify-between gap-3"><div><h4 className="font-medium">Actions</h4><p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">Source welcome actions use the application’s existing destinations.</p></div><button className="inline-flex items-center gap-1 rounded border border-[var(--settings-border-color)] px-2 py-1.5 text-sm disabled:opacity-50" disabled={buttons.length >= 6} onClick={() => onChange([...buttons, { text: 'New button', target: '/world' }])} type="button"><Plus className="size-4" />Add action</button></div>{buttons.map((button, index) => <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" key={`${button.text}-${index}`}><TextInput label={`Action ${index + 1} label`} onChange={(value) => update(index, 'text', value)} value={button.text} /><TextInput label={`Action ${index + 1} destination`} onChange={(value) => update(index, 'target', value)} value={button.target} /><button aria-label={`Remove action ${index + 1}`} className="self-end rounded p-2 text-red-700 hover:bg-red-500/10 dark:text-red-300" onClick={() => onChange(buttons.filter((_, buttonIndex) => buttonIndex !== index))} type="button"><Trash2 className="size-4" /></button></div>)}</section>;
 }
 
-function InformationPagesEditor({ onChange, pages }: { onChange: Dispatch<SetStateAction<PublicPage[] | null>>; pages: PublicPage[] | null }) {
-    if (!pages) return <p className="mt-6 text-sm text-[var(--settings-muted-text)]">Loading public information pages…</p>;
-    return <section className="mt-6 grid gap-5">{pages.map((page) => <article className="rounded-lg border border-[var(--settings-border-color)] p-4" key={page.slug}><div><h3 className="font-semibold">{page.title}</h3><p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">Markdown shown at /{page.slug}. The route and page title remain the fixed source public-information surface.</p></div><Textarea label={`${page.title} markdown`} onChange={(body) => onChange((current) => current?.map((item) => item.slug === page.slug ? { ...item, body } : item) ?? current)} value={page.body} /></article>)}</section>;
+function InformationPagesEditor({ draft, mode, onChange }: { draft: Presentation; mode: Mode; onChange: Dispatch<SetStateAction<Presentation | null>> }) {
+    function update(index: number, updater: (page: InformationPage) => InformationPage): void {
+        onChange((current) => current ? { ...current, information_pages: current.information_pages.map((page, pageIndex) => pageIndex === index ? updater(page) : page) } : current);
+    }
+    function remove(index: number): void {
+        onChange((current) => current && current.information_pages.length > 1 ? { ...current, information_pages: current.information_pages.filter((_, pageIndex) => pageIndex !== index) } : current);
+    }
+    function add(): void {
+        onChange((current) => !current || current.information_pages.length >= 24 ? current : { ...current, information_pages: [...current.information_pages, blankInformationPage(current.information_pages)] });
+    }
+    return <section className="mt-6 grid gap-5" data-wl-id="settings.public-presentation.information-pages"><div className="flex justify-end"><button className="inline-flex items-center gap-1 rounded border border-[var(--settings-border-color)] px-3 py-2 text-sm disabled:opacity-50" disabled={draft.information_pages.length >= 24} onClick={add} type="button"><Plus className="size-4" />Add page</button></div>{draft.information_pages.map((page, index) => <article className="rounded-lg border border-[var(--settings-border-color)] p-4" key={`${page.slug}-${index}`}><div className="flex items-start justify-between gap-4"><div><h3 className="font-semibold">Information page {index + 1}</h3><p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">Public route: {informationHref(page.slug)}</p></div><button aria-label={`Remove information page ${index + 1}`} className="rounded p-2 text-red-700 hover:bg-red-500/10 disabled:opacity-40 dark:text-red-300" disabled={draft.information_pages.length <= 1} onClick={() => remove(index)} type="button"><Trash2 className="size-4" /></button></div><div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]"><div className="grid gap-4"><div className="grid gap-4 sm:grid-cols-2"><TextInput label="Title" onChange={(title) => update(index, (current) => ({ ...current, title }))} value={page.title} /><TextInput label="Slug" onChange={(slug) => update(index, (current) => ({ ...current, slug: slugify(slug) }))} value={page.slug} /></div><Textarea label="Markdown body" onChange={(body) => update(index, (current) => ({ ...current, body }))} value={page.body} /><ImageInput description={`Displayed behind this page in ${mode} mode.`} label={`${capitalize(mode)} mode page background`} onChange={(image) => update(index, (current) => ({ ...current, backgrounds: { ...current.backgrounds, [mode]: image } }))} value={page.backgrounds[mode]} /></div></div></article>)}</section>;
 }
 
 function SourceLinksEditor({ links, onChange }: { links: PublicSourceLinks | null; onChange: Dispatch<SetStateAction<PublicSourceLinks | null>> }) {
@@ -227,5 +202,9 @@ function TextInput({ label, onChange, value }: { label: string; onChange: (value
 function Textarea({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) { return <label className="grid gap-1 text-sm font-medium">{label}<textarea className="min-h-28 rounded-md border border-[var(--settings-border-color)] bg-transparent px-3 py-2 text-sm leading-6" onChange={(event) => onChange(event.target.value)} value={value} /></label>; }
 function WelcomePreview({ mode, page, presentation }: { mode: Mode; page: WelcomePage; presentation: Presentation }) { const style = publicPresentationStyle(presentation, mode, 'welcome'); const background = page.backgrounds[mode] ?? presentation.auth.welcome[mode].background_image; return <div className="relative min-h-64 overflow-hidden rounded-lg border border-[var(--settings-border-color)] bg-[var(--auth-background-color)] p-5" style={style}><div aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: background ? `url(${background})` : 'none' }} /><div aria-hidden="true" className="absolute inset-0" style={{ background: 'var(--public-welcome-overlay)' }} /><div className="relative z-10"><p className="text-xs font-medium tracking-[.18em] uppercase" style={{ color: 'var(--public-accent)' }}>{page.eyebrow}</p><h3 className="mt-3 text-2xl font-semibold" style={{ color: 'var(--public-heading-text)' }}>{page.title}</h3><p className="mt-3 text-sm leading-6" style={{ color: 'var(--public-body-text)' }}>{page.body}</p></div></div>; }
 function blankWelcomePage(): WelcomePage { return { backgrounds: { dark: null, light: null }, body: 'Describe this public welcome page.', buttons: [{ text: 'Open learning desk', target: '/world' }], eyebrow: 'New page', title: 'New welcome page' }; }
+function blankInformationPage(pages: InformationPage[]): InformationPage { return { backgrounds: { dark: null, light: null }, body: '# New information page\n\nDescribe this public information page.', slug: uniqueInformationSlug(pages), title: 'New information page' }; }
+function uniqueInformationSlug(pages: InformationPage[]): string { const base = 'information'; for (let index = 1; index <= 24; index += 1) { const candidate = index === 1 ? base : `${base}-${index}`; if (!pages.some((page) => page.slug === candidate)) return candidate; } return `information-${pages.length + 1}`; }
+function slugify(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80); }
+function informationHref(slug: string): string { return ['about', 'imprint', 'data-protection'].includes(slug) ? `/${slug}` : `/info/${slug}`; }
 function capitalize(value: string): string { return `${value.charAt(0).toUpperCase()}${value.slice(1)}`; }
 function settingsStyle(appearance: OriginalAppearance): CSSProperties { const dark = appearance === 'dark'; return { '--settings-accent': dark ? '#2dd4bf' : '#0f766e', '--settings-active-background': dark ? 'rgba(45, 212, 191, 0.12)' : '#ccfbf1', '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0', '--settings-content-background': dark ? '#0b1117' : '#f1f5f9', '--settings-muted-text': dark ? '#94a3b8' : '#64748b', '--settings-panel-background': dark ? '#111820' : '#ffffff' } as CSSProperties; }

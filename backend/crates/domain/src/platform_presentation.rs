@@ -13,6 +13,11 @@ pub struct PublicPresentation {
     #[serde(default)]
     pub cursors: PublicCursors,
     pub welcome: PublicWelcome,
+    /// Ordered public information pages configured from the source
+    /// presentation workspace. Older rows deliberately deserialize to an
+    /// empty collection until the compatibility migration has seeded them.
+    #[serde(default)]
+    pub information_pages: Vec<PublicInformationPage>,
     pub public_palette: PublicPaletteModes,
 }
 
@@ -130,6 +135,14 @@ pub struct PublicWelcomePage {
 pub struct PublicWelcomeButton {
     pub target: String,
     pub text: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct PublicInformationPage {
+    pub backgrounds: PublicAppearanceImages,
+    pub body: String,
+    pub slug: String,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

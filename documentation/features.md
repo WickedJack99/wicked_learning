@@ -16,15 +16,19 @@ silently inventing a new contract.
 
 ### Public Pages And Accounts
 
-Visitors can open the welcome, About, Imprint, Data Protection and source-code
-pages before logging in. Public and authentication surfaces support configurable
-light and dark presentation values.
+Visitors can open the welcome, configured information pages (including About,
+Imprint and Data Protection) and source-code page before logging in. Public and
+authentication surfaces support configurable light and dark presentation values.
 
 Authenticated `/settings/about`, `/settings/imprint` and
 `/settings/data-protection` routes retain the source settings article surface.
 They read the same published content; a principal with presentation permission
 may edit the fixed Markdown document there, while other signed-in readers stay
-read-only.
+read-only. The Public presentation workspace also retains the source's ordered
+information-page collection: up to 24 pages with a bounded slug, title,
+Markdown body and per-mode background. The three direct routes retain their
+source-compatible fixed-content override; additional pages are available under
+`/info/{slug}`.
 
 Registration requires a valid registration token. Authenticated users can edit
 their profile and language, choose appearance and sound preferences, manage

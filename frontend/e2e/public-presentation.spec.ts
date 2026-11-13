@@ -63,6 +63,28 @@ test('a local administrator saves a public visual and anonymous visitors receive
     expect((await publicMedia).status()).toBe(200);
     await anonymous.close();
 
+    await page.getByRole('button', { name: 'Information pages' }).click();
+    await page.getByRole('button', { name: 'Add page' }).click();
+    const title = page.getByLabel('Title').last();
+    await title.fill('Field notes');
+    await page
+        .getByLabel('Markdown body')
+        .last()
+        .fill('# Field notes\n\nA configured public page.');
+    const savedInformationPage = page.waitForResponse((response) =>
+        response.request().method() === 'PATCH' &&
+        response.url().endsWith('/api/v1/admin/public-presentation'),
+    );
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    expect((await savedInformationPage).ok()).toBe(true);
+
+    await page.goto('/info/information');
+    await expect(
+        page.getByRole('heading', { name: 'Field notes' }),
+    ).toBeVisible();
+    await expect(page.getByText('A configured public page.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Field notes' })).toBeVisible();
+
     const csrf = await page.request.get('/api/v1/security/csrf');
     expect(csrf.ok()).toBeTruthy();
     const { token } = (await csrf.json()) as { token: string };

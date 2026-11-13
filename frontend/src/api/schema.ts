@@ -6290,6 +6290,8 @@ export interface components {
             auth: components["schemas"]["PublicPresentationAuth"];
             cursors: components["schemas"]["PublicCursors"];
             welcome: components["schemas"]["PublicWelcome"];
+            /** @description Ordered source-configured public information pages. */
+            information_pages: components["schemas"]["PublicInformationPage"][];
             public_palette: components["schemas"]["PublicPaletteModes"];
         };
         PublicBranding: {
@@ -6341,6 +6343,12 @@ export interface components {
         PublicWelcomeButton: {
             target: string;
             text: string;
+        };
+        PublicInformationPage: {
+            backgrounds: components["schemas"]["PublicAppearanceImages"];
+            body: string;
+            slug: string;
+            title: string;
         };
         PublicAppearanceImages: {
             dark: string | null;

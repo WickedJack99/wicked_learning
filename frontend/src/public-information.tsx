@@ -3,6 +3,7 @@ import { ArrowLeft, Compass, ExternalLink, Github } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 
 import { apiClient } from './api/client';
+import type { components } from './api/schema';
 import { OriginalMarkdownRenderer } from './original-markdown';
 import {
     publicPresentationStyle,
@@ -10,11 +11,7 @@ import {
 } from './public-presentation';
 import type { OriginalAppearance } from './original-appearance';
 
-const pageLabels: Record<string, string> = {
-    about: 'About',
-    imprint: 'Imprint',
-    'data-protection': 'Data protection',
-};
+const fixedInformationSlugs = new Set(['about', 'imprint', 'data-protection']);
 
 type PageState =
     | { kind: 'loading' }
@@ -41,30 +38,48 @@ export function PublicInformationPage({
     slug: string;
 }) {
     const [page, setPage] = useState<PageState>({ kind: 'loading' });
+    const configuredPage = presentation.information_pages.find(
+        (candidate) => candidate.slug === slug,
+    );
 
     useEffect(() => {
+        if (!configuredPage) {
+            setPage({ kind: 'not-found' });
+            return;
+        }
+
+        if (!fixedInformationSlugs.has(slug)) {
+            setPage({
+                kind: 'loaded',
+                body: configuredPage.body,
+                title: configuredPage.title,
+            });
+            return;
+        }
+
         setPage({ kind: 'loading' });
         void apiClient
             .GET('/public/pages/{slug}', { params: { path: { slug } } })
             .then(({ data, response }) => {
-                if (response.status === 404) {
-                    setPage({ kind: 'not-found' });
-                    return;
-                }
-                if (!data) {
+                if (!response.ok || !data) {
                     setPage({ kind: 'unavailable' });
                     return;
                 }
 
-                setPage({ kind: 'loaded', body: data.body, title: data.title });
+                setPage({
+                    kind: 'loaded',
+                    body: data.body,
+                    title: configuredPage.title,
+                });
             })
             .catch(() => setPage({ kind: 'unavailable' }));
-    }, [slug]);
+    }, [configuredPage, slug]);
 
     return (
         <PublicInformationSurface
             activeSlug={slug}
             appearance={appearance}
+            page={configuredPage}
             presentation={presentation}
         >
             <section className="relative z-10 flex min-h-[calc(100svh-5rem)] items-center px-6 py-8 md:px-10">
@@ -103,7 +118,7 @@ export function PublicInformationPage({
                                 className="m-0 text-xs font-medium tracking-[0.18em] uppercase"
                                 style={{ color: 'var(--public-accent)' }}
                             >
-                                {pageLabels[slug] ?? page.title}
+                                {page.title}
                             </p>
                             <div className="mt-4">
                                 {hasDocumentTitle(page.body) ? null : (
@@ -282,18 +297,28 @@ function PublicInformationSurface({
     activeSlug,
     appearance,
     children,
+    page,
     presentation,
 }: {
     activeSlug?: string;
     appearance: OriginalAppearance;
     children: React.ReactNode;
+    page?: components['schemas']['PublicInformationPage'];
     presentation: PublicPresentation;
 }) {
+    const background = page
+        ? page.backgrounds[appearance] ?? page.backgrounds.dark
+        : null;
     return (
         <main
             className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
             data-wl-id="public.information"
-            style={publicPresentationStyle(presentation, appearance, 'welcome')}
+            style={{
+                ...publicPresentationStyle(presentation, appearance, 'welcome'),
+                ...(background
+                    ? { '--auth-background-image': `url(${background})` }
+                    : {}),
+            }}
         >
             <div
                 aria-hidden="true"
@@ -337,19 +362,19 @@ function PublicInformationSurface({
                     >
                         Home
                     </Link>
-                    {Object.entries(pageLabels).map(([slug, label]) => (
+                    {presentation.information_pages.map((informationPage) => (
                         <Link
                             className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/10"
-                            key={slug}
+                            key={informationPage.slug}
                             style={{
                                 color:
-                                    slug === activeSlug
+                                    informationPage.slug === activeSlug
                                         ? 'var(--public-accent)'
                                         : 'var(--public-control-text)',
                             }}
-                            to={`/${slug}`}
+                            to={informationHref(informationPage.slug)}
                         >
-                            {label}
+                            {informationPage.title}
                         </Link>
                     ))}
                 </nav>
@@ -357,6 +382,10 @@ function PublicInformationSurface({
             {children}
         </main>
     );
+}
+
+function informationHref(slug: string): string {
+    return fixedInformationSlugs.has(slug) ? `/${slug}` : `/info/${slug}`;
 }
 
 function InformationCard({

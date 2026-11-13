@@ -104,6 +104,18 @@ fn media_references(presentation: &PublicPresentation) -> Vec<(Uuid, String)> {
             format!("welcome.pages.{index}.backgrounds.light"),
         );
     }
+    for (index, page) in presentation.information_pages.iter().enumerate() {
+        push_optional_reference(
+            &mut references,
+            page.backgrounds.dark.as_deref(),
+            format!("information_pages.{index}.backgrounds.dark"),
+        );
+        push_optional_reference(
+            &mut references,
+            page.backgrounds.light.as_deref(),
+            format!("information_pages.{index}.backgrounds.light"),
+        );
+    }
     for (role, cursor) in [
         ("action", presentation.cursors.action.as_ref()),
         ("default", presentation.cursors.default.as_ref()),
@@ -255,6 +267,7 @@ mod tests {
                     title: "Title".to_owned(),
                 }],
             },
+            information_pages: vec![],
             public_palette: PublicPaletteModes {
                 dark: palette.clone(),
                 light: palette,

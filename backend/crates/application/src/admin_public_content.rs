@@ -10,9 +10,10 @@ use crate::public_page::PublicPageSlug;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AdminPublicContentError;
 
-/// The source exposes three fixed public-information pages. Keeping that
-/// allow-list at the command boundary prevents an editor from creating a
-/// public route the lifted browser does not intentionally navigate to.
+/// The three direct source routes retain a separate fixed-content override.
+/// Configured information pages belong to the public-presentation workspace;
+/// keeping this narrower allow-list prevents the legacy override writer from
+/// creating a second dynamic-page lifecycle.
 pub const EDITABLE_PUBLIC_PAGE_SLUGS: [&str; 3] = ["about", "imprint", "data-protection"];
 
 pub trait AdminPublicContentRepository {

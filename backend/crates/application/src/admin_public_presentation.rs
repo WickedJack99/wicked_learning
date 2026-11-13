@@ -4,7 +4,7 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     platform_presentation::{
         PublicAppearanceImages, PublicAppearanceThemes, PublicAuthTheme, PublicCursor,
-        PublicPalette, PublicPresentation, PublicWelcomePage,
+        PublicInformationPage, PublicPalette, PublicPresentation, PublicWelcomePage,
     },
 };
 
@@ -91,6 +91,11 @@ pub fn valid_public_presentation(presentation: &PublicPresentation) -> bool {
         && presentation.welcome.pages.len() <= 12
         && !presentation.welcome.pages.is_empty()
         && presentation.welcome.pages.iter().all(valid_welcome_page)
+        && presentation.information_pages.len() <= 24
+        && presentation
+            .information_pages
+            .iter()
+            .all(valid_information_page)
         && valid_palette(&presentation.public_palette.dark)
         && valid_palette(&presentation.public_palette.light)
 }
@@ -131,6 +136,23 @@ fn valid_welcome_page(page: &PublicWelcomePage) -> bool {
             .buttons
             .iter()
             .all(|button| bounded(&button.target, 2_048) && bounded(&button.text, 80))
+}
+
+fn valid_information_page(page: &PublicInformationPage) -> bool {
+    valid_images(&page.backgrounds)
+        && valid_information_slug(&page.slug)
+        && !page.title.is_empty()
+        && bounded(&page.title, 120)
+        && !page.body.is_empty()
+        && bounded(&page.body, 50_000)
+}
+
+fn valid_information_slug(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 80
+        && value.bytes().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == b'-'
+        })
 }
 
 fn valid_images(images: &PublicAppearanceImages) -> bool {
@@ -277,6 +299,36 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn public_presentation_rejects_an_unbounded_information_page_before_writing() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:presentation:ru:all".to_owned()],
+        };
+        let mut invalid = presentation();
+        invalid.information_pages = vec![
+            wicked_learning_domain::platform_presentation::PublicInformationPage {
+                backgrounds:
+                    wicked_learning_domain::platform_presentation::PublicAppearanceImages {
+                        dark: None,
+                        light: None,
+                    },
+                body: "x".repeat(50_001),
+                slug: "custom".to_owned(),
+                title: "Custom".to_owned(),
+            },
+        ];
+
+        assert!(
+            UpdateAdminPublicPresentation::new(&Repository)
+                .execute(&principal, invalid)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
     fn presentation() -> PublicPresentation {
         let theme = PublicAuthTheme {
             background_color: "#000".to_owned(),
@@ -337,6 +389,7 @@ mod tests {
                     },
                 ],
             },
+            information_pages: vec![],
             public_palette: PublicPaletteModes {
                 dark: palette.clone(),
                 light: palette,

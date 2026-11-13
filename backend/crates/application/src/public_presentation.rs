@@ -112,6 +112,7 @@ mod tests {
             },
             cursors: PublicCursors::default(),
             welcome: PublicWelcome { pages: vec![] },
+            information_pages: vec![],
             public_palette: PublicPaletteModes {
                 dark: palette.clone(),
                 light: palette,

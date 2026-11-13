@@ -55,6 +55,10 @@ fn public_presentation(mut presentation: PublicPresentation) -> PublicPresentati
         public_optional_media_url(&mut page.backgrounds.dark);
         public_optional_media_url(&mut page.backgrounds.light);
     }
+    for page in &mut presentation.information_pages {
+        public_optional_media_url(&mut page.backgrounds.dark);
+        public_optional_media_url(&mut page.backgrounds.light);
+    }
     for cursor in [
         presentation.cursors.action.as_mut(),
         presentation.cursors.default.as_mut(),

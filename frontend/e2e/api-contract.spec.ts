@@ -125,6 +125,16 @@ test('the public-presentation endpoint returns the source-derived browser shell 
             }),
         ]),
     );
+    expect(presentation.information_pages).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                slug: 'about',
+                title: 'About Wicked Learning',
+                body: expect.stringContaining('curiosity'),
+                backgrounds: { dark: null, light: null },
+            }),
+        ]),
+    );
 });
 
 test('the public world endpoint returns a bounded fresh exploration graph', async ({
