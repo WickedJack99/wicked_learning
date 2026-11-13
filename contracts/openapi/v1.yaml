@@ -6032,6 +6032,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/translation:
+    get:
+      operationId: getLearnerActiveActivityTranslation
+      summary: Read translated learner copy for the current authorized route activity.
+      description: Returns translated learner-facing copy only when the requested activity is the caller's current step in an active, visible route run. English or an untranslated enabled locale returns a null translation; the endpoint never exposes arbitrary activity translations or behavior-bearing activity data.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+      responses:
+        '200':
+          description: The current activity's filtered translation, if the learner selected an enabled translated locale.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerActivityTranslationResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: The identity has no application principal or role assignment. }
+        '404': { description: The run/activity pair is stale, unavailable, not owned by this learner, or does not exist. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/complete:
     post:
       operationId: completeLearnerCurrentActivity
@@ -9304,6 +9322,15 @@ components:
           oneOf:
             - $ref: '#/components/schemas/LearnerPathTopic'
             - type: 'null'
+    LearnerActivityTranslationResponse:
+      type: object
+      additionalProperties: false
+      required: [translation]
+      properties:
+        translation:
+          type: [object, 'null']
+          additionalProperties: true
+          description: Filtered learner-facing activity copy only. It cannot contain activity graph, correctness, media, or access data.
     LearnerPlaybackDocument:
       type: object
       additionalProperties: false

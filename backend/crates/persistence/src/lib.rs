@@ -78,6 +78,7 @@ pub mod identity_deletion;
 pub mod identity_registration;
 pub mod journal_feedback_review;
 pub mod learner_activity_replay_run;
+pub mod learner_activity_translation;
 pub mod learner_appearance_preference;
 pub mod learner_bookmark;
 pub mod learner_bookmark_map;

@@ -92,6 +92,7 @@ mod identity_registration;
 mod image_upload;
 mod journal_feedback_review;
 mod learner_activity_replay_run;
+mod learner_activity_translation;
 mod learner_appearance_preference;
 mod learner_bookmark;
 mod learner_bookmark_map;
@@ -1336,6 +1337,10 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/learner/play-runs/{play_run_id}",
             get(learner_playback::show),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/translation",
+            get(learner_activity_translation::show),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/support-request",

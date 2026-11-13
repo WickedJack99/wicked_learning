@@ -4863,6 +4863,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/translation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read translated learner copy for the current authorized route activity.
+         * @description Returns translated learner-facing copy only when the requested activity is the caller's current step in an active, visible route run. English or an untranslated enabled locale returns a null translation; the endpoint never exposes arbitrary activity translations or behavior-bearing activity data.
+         */
+        get: operations["getLearnerActiveActivityTranslation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete": {
         parameters: {
             query?: never;
@@ -6922,6 +6942,12 @@ export interface components {
             learning_intent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer";
             time_guide_minutes: number | null;
             topic: components["schemas"]["LearnerPathTopic"] | null;
+        };
+        LearnerActivityTranslationResponse: {
+            /** @description Filtered learner-facing activity copy only. It cannot contain activity graph, correctness, media, or access data. */
+            translation: {
+                [key: string]: unknown;
+            } | null;
         };
         LearnerPlaybackDocument: {
             /** Format: uuid */
@@ -28254,6 +28280,57 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getLearnerActiveActivityTranslation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current activity's filtered translation, if the learner selected an enabled translated locale. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerActivityTranslationResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The run/activity pair is stale */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
