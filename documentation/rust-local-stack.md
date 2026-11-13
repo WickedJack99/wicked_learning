@@ -82,9 +82,11 @@ The backend exports Prometheus exposition data at `GET /metrics` for a scraper
 on the private Compose network. Nginx intentionally does not proxy that path,
 and the backend has no host port, so it is not a browser-facing endpoint. The
 metrics are aggregate HTTP counters, actual streamed response-byte counters and
-duration/known response-size summaries labeled only with method, matched route
-template and status code; they never include request paths, query values,
-principals, IP addresses or payload data.
+duration/known response-size/per-request database-query summaries labeled only
+with method, matched route template and status code. SQL query events enable the
+count but their statements, parameters and result values are neither labels nor
+metric fields. Metrics never include request paths, query values, principals, IP
+addresses or payload data.
 The endpoint is non-cacheable and is excluded from its own request metrics.
 
 This gives local/development operators a scrape target, not a production

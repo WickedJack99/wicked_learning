@@ -1448,12 +1448,14 @@ viewports.
 The local Compose backend now exposes a private, non-cacheable Prometheus
 `GET /metrics` scrape route without adding a second listener or a public Nginx
 proxy. It records aggregate HTTP response counts and duration/known response
-size summaries, plus actual streamed response-byte counters, by method, matched
-route template and status only; request paths, query values, principals, IP
-addresses and payload data are deliberately not labels. The scrape route does
-not record itself. This supplies a local operational signal, while a production
-scraper, alert rules and rollback exercise remain required for the final
-operations gate.
+size/per-request database-query summaries, plus actual streamed response-byte
+counters, by method, matched route template and status only. The SQL tracing
+layer uses query completion events only to increment the current request count;
+it does not capture query statements, bound values or result data. Request
+paths, query values, principals, IP addresses and payload data are deliberately
+not labels. The scrape route does not record itself. This supplies a local
+operational signal, while a production scraper, alert rules and rollback
+exercise remain required for the final operations gate.
 Its first source-adapted reusable-visual-library
 vertical slice is now available at `/settings?panel=admin-assets-world-objects`: `assets.ro`
 lists a bounded searchable/tag-filtered catalog, `assets.ru` may upload a

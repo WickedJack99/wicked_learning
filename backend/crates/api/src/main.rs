@@ -1669,10 +1669,23 @@ async fn run_migrations(configuration: &Config) -> ExitCode {
 }
 
 fn configure_logging() {
-    tracing_subscriber::fmt()
-        .with_env_filter(std::env::var("RUST_LOG").unwrap_or_else(|_| "info,warn".to_owned()))
-        .with_target(false)
-        .compact()
+    use tracing_subscriber::{
+        EnvFilter,
+        layer::{Layer, SubscriberExt},
+        util::SubscriberInitExt,
+    };
+
+    tracing_subscriber::registry()
+        .with(observability::SqlQueryCountLayer)
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(false)
+                .compact()
+                .with_filter(
+                    EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| EnvFilter::new("info,warn")),
+                ),
+        )
         .init();
 }
 
