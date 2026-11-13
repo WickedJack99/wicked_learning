@@ -650,6 +650,14 @@ fn router(state: AppState) -> Router {
             patch(content_api::update_portal_activity),
         )
         .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/message-prompt",
+            patch(content_api::update_message_prompt_activity),
+        )
+        .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/message-wall",
+            patch(content_api::update_message_wall_activity),
+        )
+        .route(
             "/api/content/v1/map-assets/{map_asset_id}/activity-transitions",
             get(content_api::activity_transitions).post(content_api::create_activity_transition),
         )

@@ -579,6 +579,32 @@ pub struct UpdatePortalActivityRequest {
 }
 
 #[derive(Deserialize)]
+pub struct UpdateMessageActivityRequest {
+    title: String,
+    slug: NullableString,
+    introduction: NullableString,
+    activity_type: String,
+    topic_id: NullableString,
+    topic_title: String,
+    audience: String,
+    allow_responses: bool,
+    response_prompt: String,
+    prompt: String,
+    input_label: String,
+    surface_color_dark: String,
+    surface_color_light: String,
+    card_color_dark: String,
+    card_color_light: String,
+    card_border_color_dark: String,
+    card_border_color_light: String,
+    text_color_dark: String,
+    text_color_light: String,
+    accent_color_dark: String,
+    accent_color_light: String,
+    updated_at: String,
+}
+
+#[derive(Deserialize)]
 struct ContentApiQuestionOptionRequest {
     label: String,
     body: String,
@@ -1682,6 +1708,88 @@ pub async fn update_portal_activity(
     ))
 }
 
+pub async fn update_message_prompt_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateMessageActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    update_message_activity(
+        state,
+        map_asset_id,
+        activity_id,
+        headers,
+        csrf_token,
+        auth_session,
+        request,
+        "message_prompt",
+    )
+    .await
+}
+
+pub async fn update_message_wall_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateMessageActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    update_message_activity(
+        state,
+        map_asset_id,
+        activity_id,
+        headers,
+        csrf_token,
+        auth_session,
+        request,
+        "message_wall",
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn update_message_activity(
+    state: AppState,
+    map_asset_id: String,
+    activity_id: String,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    request: UpdateMessageActivityRequest,
+    expected_type: &str,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    if request.activity_type != expected_type {
+        return Err(ApiError::invalid_request());
+    }
+    let form = content_api_update_message_form(&request)?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id, expected_type)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let repository = PostgresAdminWorldMessageRepository::new(&state.application_database);
+    let updated = AdminWorldMessageCommand::new(&repository)
+        .update(&principal, activity_id, &form, &request.updated_at)
+        .await
+        .map_err(map_message_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(
+        json!({ "data": { "id": updated.activity_id, "updatedAt": updated.updated_at } }),
+    ))
+}
+
 /// Connects two activities through the same scoped, idempotent World Builder
 /// transition command. A Content API caller names only activities in the
 /// selected MapAsset; the command rechecks that relationship in its write
@@ -1997,19 +2105,19 @@ fn map_portal_error(error: AdminWorldPortalError) -> ApiError {
     }
 }
 
-fn map_npc_dialogue_error(error: AdminWorldNpcDialogueError) -> ApiError {
-    match error {
-        AdminWorldNpcDialogueError::Conflict => ApiError::conflict(),
-        AdminWorldNpcDialogueError::InvalidActivity => ApiError::invalid_request(),
-        AdminWorldNpcDialogueError::Unavailable => ApiError::service_unavailable(),
-    }
-}
-
 fn map_message_error(error: AdminWorldMessageError) -> ApiError {
     match error {
         AdminWorldMessageError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldMessageError::Conflict => ApiError::conflict(),
         AdminWorldMessageError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_npc_dialogue_error(error: AdminWorldNpcDialogueError) -> ApiError {
+    match error {
+        AdminWorldNpcDialogueError::Conflict => ApiError::conflict(),
+        AdminWorldNpcDialogueError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldNpcDialogueError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -2542,6 +2650,44 @@ fn content_api_update_portal_form(
     .ok_or_else(ApiError::invalid_request)
 }
 
+fn content_api_update_message_form(
+    request: &UpdateMessageActivityRequest,
+) -> Result<MessageActivityForm, ApiError> {
+    let topic_id = request
+        .topic_id
+        .as_deref()
+        .map(|id| Uuid::parse_str(id).map_err(|_| ApiError::invalid_request()))
+        .transpose()?;
+    let ui = MessageUi::parse(
+        &request.surface_color_dark,
+        &request.surface_color_light,
+        &request.card_color_dark,
+        &request.card_color_light,
+        &request.card_border_color_dark,
+        &request.card_border_color_light,
+        &request.text_color_dark,
+        &request.text_color_light,
+        &request.accent_color_dark,
+        &request.accent_color_light,
+    )
+    .ok_or_else(ApiError::invalid_request)?;
+    MessageActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        &request.activity_type,
+        topic_id,
+        &request.topic_title,
+        &request.audience,
+        request.allow_responses,
+        &request.response_prompt,
+        &request.prompt,
+        &request.input_label,
+        ui,
+    )
+    .ok_or_else(ApiError::invalid_request)
+}
+
 fn content_api_message_form(
     request: &CreateActivityRequest,
 ) -> Result<MessageActivityForm, ApiError> {
@@ -2942,7 +3088,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.17",
+        "version": "1.18",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -3054,7 +3200,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.17", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.18", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -3077,6 +3223,8 @@ fn document() -> Value {
             operation("activities.item-obstacle.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/item-obstacle", "Replace an Item Obstacle Activity", "Replaces the complete source Item Obstacle form only after proving its type and MapAsset membership.", serde_json::from_str(r#"{"title":"Unlock the inspection panel","slug":null,"introduction":"Use the configured item in its matching slot.","background_dark":null,"background_light":null,"background_mirrored":false,"met_background_dark":null,"met_background_light":null,"met_background_mirrored":false,"overlay_dark":null,"overlay_light":null,"overlay_mirrored":false,"overlay_x":50,"overlay_y":50,"overlay_width":30,"slots":[{"item_id":"20000000-0000-4000-8000-000000000001","x":50,"y":50,"width":10}],"consume_on_each_entry":false,"lock_minutes":0,"sound_not_met_enabled":false,"sound_not_met_id":null,"sound_met_enabled":false,"sound_met_id":null,"sound_transition_enabled":false,"sound_transition_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#).expect("valid Item Obstacle Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.obstacle.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/obstacle", "Replace a Base Obstacle Activity", "Replaces the complete source Base Obstacle form only after proving its type and MapAsset membership.", serde_json::from_str(r#"{"title":"Open the service panel","slug":null,"introduction":"Use the configured tool to inspect the panel.","allowed_tool_ids":["10000000-0000-4000-8000-000000000001"],"background_dark":null,"background_light":null,"background_mirrored":false,"bubble_border_color_dark":null,"bubble_border_color_light":null,"bubble_color_dark":null,"bubble_color_light":null,"bubble_opacity_dark":92,"bubble_opacity_light":94,"obstacle_image_dark":null,"obstacle_image_light":null,"obstacle_image_mirrored":false,"persist_after_solved":true,"prompt_text":null,"obstacle_x":50,"obstacle_y":50,"obstacle_width":28,"revisit_background_dark":null,"revisit_background_light":null,"revisit_background_mirrored":false,"revisit_image_dark":null,"revisit_image_light":null,"revisit_image_mirrored":false,"revisit_text":null,"success_animation":"zoom","success_text":null,"typing_speed":24,"updated_at":"2026-11-13T12:00:00.000000Z"}"#).expect("valid Base Obstacle Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.portal.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/portal", "Replace a Portal Activity", "Replaces the complete source Portal form only after proving its type and MapAsset membership. The typed command resolves a selected input Portal inside the same World.", serde_json::from_str(r##"{"title":"Enter the relay archive","slug":null,"introduction":"Travel to the related MapAsset after this encounter.","portal_mode":"output","portal_background_dark":"","portal_background_light":"","portal_background_mirrored":false,"portal_assets":[],"portal_duration_seconds":1.5,"portal_foreground_dark":"","portal_foreground_light":"","portal_foreground_mirrored":false,"portal_foreground_width":28,"portal_foreground_x":50,"portal_foreground_y":50,"portal_show_on_arrival":true,"portal_swirl_enabled":true,"portal_bubble_text":"Enter the next place when you are ready.","portal_bubble_typing_speed":24,"portal_bubble_color_dark":"#0f172a","portal_bubble_color_light":"#ffffff","portal_bubble_border_color_dark":"#2dd4bf","portal_bubble_border_color_light":"#0891b2","portal_bubble_text_color_dark":"#f8fafc","portal_bubble_text_color_light":"#0f172a","portal_wait_for_enter":false,"target_portal_activity_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"##).expect("valid Portal Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.message-prompt.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/message-prompt", "Replace a Message Prompt Activity", "Replaces the complete source Message Prompt form only after proving its type and MapAsset membership.", json!({ "title": "Ask for an observation", "slug": Value::Null, "introduction": "Invite a useful observation.", "activity_type": "message_prompt", "topic_id": Value::Null, "topic_title": "Inspection notes", "audience": "peers", "allow_responses": false, "response_prompt": "", "prompt": "What did you notice?", "input_label": "Your note", "surface_color_dark": "#071018", "surface_color_light": "#e6f5f2", "card_color_dark": "#13262d", "card_color_light": "#ffffff", "card_border_color_dark": "#2dd4bf", "card_border_color_light": "#0f766e", "text_color_dark": "#f1f5f9", "text_color_light": "#0f172a", "accent_color_dark": "#5eead4", "accent_color_light": "#0f766e", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.message-wall.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/message-wall", "Replace a Message Wall Activity", "Replaces the complete source Message Wall form only after proving its type and MapAsset membership.", json!({ "title": "Read inspection notes", "slug": Value::Null, "introduction": "Find observations others have shared.", "activity_type": "message_wall", "topic_id": Value::Null, "topic_title": "Inspection notes", "audience": "peers", "allow_responses": false, "response_prompt": "", "prompt": "What do these observations help you notice?", "input_label": "Your note", "surface_color_dark": "#071018", "surface_color_light": "#e6f5f2", "card_color_dark": "#13262d", "card_color_light": "#ffffff", "card_border_color_dark": "#2dd4bf", "card_border_color_light": "#0f766e", "text_color_dark": "#f1f5f9", "text_color_light": "#0f172a", "accent_color_dark": "#5eead4", "accent_color_light": "#0f766e", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -3131,19 +3279,19 @@ mod tests {
     use super::{
         UpdateItemGrantActivityRequest, UpdateItemObstacleActivityRequest,
         UpdateMapAssetSurfaceRequest, UpdateMapRequest, UpdateMarkdownActivityRequest,
-        UpdateObstacleActivityRequest, UpdateOpenPracticeActivityRequest,
-        UpdatePortalActivityRequest, UpdateQuestionActivityRequest,
-        UpdateReflectiveActivityRequest, UpdateToolGrantActivityRequest,
-        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
-        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
-        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
-        require_content_permission, serialize_activity, serialize_activity_transition,
-        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
-        serialize_created_markdown, serialize_created_message, serialize_created_npc_dialogue,
-        serialize_created_obstacle, serialize_created_open_practice, serialize_created_portal,
-        serialize_created_question, serialize_created_reflective_activity,
-        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
-        update_map_asset_surface_form,
+        UpdateMessageActivityRequest, UpdateObstacleActivityRequest,
+        UpdateOpenPracticeActivityRequest, UpdatePortalActivityRequest,
+        UpdateQuestionActivityRequest, UpdateReflectiveActivityRequest,
+        UpdateToolGrantActivityRequest, content_api_item_grant_form,
+        content_api_item_obstacle_form, content_api_message_form, content_api_obstacle_form,
+        content_api_portal_form, content_api_shared_task_form, content_api_tool_grant_form,
+        document, is_supported_content_api_activity_type, require_content_permission,
+        serialize_activity, serialize_activity_transition, serialize_created_item_grant,
+        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
+        serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
+        serialize_created_open_practice, serialize_created_portal, serialize_created_question,
+        serialize_created_reflective_activity, serialize_created_shared_task,
+        serialize_created_tool_grant, serialize_map_assets, update_map_asset_surface_form,
     };
 
     #[test]
@@ -3152,8 +3300,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.17");
-        assert_eq!(operations.len(), 27);
+        assert_eq!(document["version"], "1.18");
+        assert_eq!(operations.len(), 29);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -3176,10 +3324,12 @@ mod tests {
         assert_eq!(operations[20]["id"], "activities.item-obstacle.update");
         assert_eq!(operations[21]["id"], "activities.obstacle.update");
         assert_eq!(operations[22]["id"], "activities.portal.update");
-        assert_eq!(operations[23]["id"], "activity-transitions.index");
-        assert_eq!(operations[24]["id"], "activity-transitions.store");
-        assert_eq!(operations[25]["id"], "activity-transitions.update");
-        assert_eq!(operations[26]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[23]["id"], "activities.message-prompt.update");
+        assert_eq!(operations[24]["id"], "activities.message-wall.update");
+        assert_eq!(operations[25]["id"], "activity-transitions.index");
+        assert_eq!(operations[26]["id"], "activity-transitions.store");
+        assert_eq!(operations[27]["id"], "activity-transitions.update");
+        assert_eq!(operations[28]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -3348,6 +3498,20 @@ mod tests {
             r#"{"title":"Enter the relay archive","slug":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
         )
         .is_err());
+    }
+
+    #[test]
+    fn message_updates_require_the_complete_source_form() {
+        assert!(serde_json::from_str::<UpdateMessageActivityRequest>(
+            r##"{"title":"Prompt","slug":null,"introduction":null,"activity_type":"message_prompt","topic_id":null,"topic_title":"Notes","audience":"peers","allow_responses":false,"response_prompt":"","prompt":"Leave a note","input_label":"Your note","surface_color_dark":"#071018","surface_color_light":"#e6f5f2","card_color_dark":"#13262d","card_color_light":"#ffffff","card_border_color_dark":"#2dd4bf","card_border_color_light":"#0f766e","text_color_dark":"#f1f5f9","text_color_light":"#0f172a","accent_color_dark":"#5eead4","accent_color_light":"#0f766e","updated_at":"2026-11-13T12:00:00.000000Z"}"##,
+        )
+        .is_ok());
+        assert!(
+            serde_json::from_str::<UpdateMessageActivityRequest>(
+                r#"{"title":"Prompt","updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+            )
+            .is_err()
+        );
     }
 
     #[test]

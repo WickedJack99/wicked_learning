@@ -1527,6 +1527,66 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.getByText('HTTP 200')).toBeVisible();
     await expect(console.locator('pre')).toContainText(updatedPortalOutputTitle);
 
+    const initialMessage = listedActivities.data.find((activity) => activity.id === message.data.id);
+    const initialMessageWall = listedActivities.data.find((activity) => activity.id === messageWall.data.id);
+    if (!initialMessage || !initialMessageWall) {
+        throw new Error('the created Message Activities were not returned by their scoped list');
+    }
+    const updatedMessageTitle = `${messageTitle} updated`;
+    await console.getByLabel('Operation').selectOption('activities.message-prompt.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${message.data.id}/message-prompt`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedMessageTitle, slug: null,
+        introduction: 'Invite a useful observation from the next learner.',
+        activity_type: 'message_prompt', topic_id: null,
+        topic_title: `Content API browser notes ${suffix}`, audience: 'peers',
+        allow_responses: false, response_prompt: '',
+        prompt: 'What detail could another learner usefully notice here?', input_label: 'Your note',
+        surface_color_dark: '#071018', surface_color_light: '#e6f5f2',
+        card_color_dark: '#13262d', card_color_light: '#ffffff',
+        card_border_color_dark: '#2dd4bf', card_border_color_light: '#0f766e',
+        text_color_dark: '#f1f5f9', text_color_light: '#0f172a',
+        accent_color_dark: '#5eead4', accent_color_light: '#0f766e',
+        updated_at: initialMessage.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(message.data.id);
+
+    const updatedMessageWallTitle = `${messageWallTitle} updated`;
+    await console.getByLabel('Operation').selectOption('activities.message-wall.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${messageWall.data.id}/message-wall`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedMessageWallTitle, slug: null,
+        introduction: 'Let learners find observations others have shared.',
+        activity_type: 'message_wall', topic_id: null,
+        topic_title: `Content API browser notes ${suffix}`, audience: 'peers',
+        allow_responses: false, response_prompt: '',
+        prompt: 'What do these shared observations help you notice?', input_label: 'Your note',
+        surface_color_dark: '#071018', surface_color_light: '#e6f5f2',
+        card_color_dark: '#13262d', card_color_light: '#ffffff',
+        card_border_color_dark: '#2dd4bf', card_border_color_light: '#0f766e',
+        text_color_dark: '#f1f5f9', text_color_light: '#0f172a',
+        accent_color_dark: '#5eead4', accent_color_light: '#0f766e',
+        updated_at: initialMessageWall.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(messageWall.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedMessageTitle);
+    await expect(console.locator('pre')).toContainText(updatedMessageWallTitle);
+
     await console
         .getByLabel('Operation')
         .selectOption('activity-transitions.store');
