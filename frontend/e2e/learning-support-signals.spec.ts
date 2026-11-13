@@ -49,6 +49,24 @@ test('a local support worker can discover the source-shaped support signal secti
         }),
     ).toBeVisible();
 
+    await learningSupportNavigation
+        .getByRole('tab', { name: 'Learner Messages' })
+        .click();
+    await expect(page).toHaveURL(/support=learner-messages/);
+    await expect(
+        page.getByRole('tablist', { name: 'Learning support sections' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('tablist', { name: 'Message topics' }),
+    ).toBeVisible();
+
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=support-signals',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Collective Overview' }),
+    ).toBeVisible();
+
     await page.getByRole('tab', { name: 'Individual Support' }).click();
     await expect(
         page.getByRole('heading', { name: 'Individual Support' }),
@@ -67,6 +85,22 @@ test('a local support worker can discover the source-shaped support signal secti
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByLabel('Settings area')).toBeVisible();
+    const learningSupportSelect = page.getByLabel(
+        'Learning support section',
+        { exact: true },
+    );
+    await expect(learningSupportSelect).toBeVisible();
+    const learningSupportSelectBounds =
+        await learningSupportSelect.boundingBox();
+    expect(learningSupportSelectBounds).not.toBeNull();
+    expect(learningSupportSelectBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(learningSupportSelectBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(
+        learningSupportSelectBounds!.x + learningSupportSelectBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(
+        learningSupportSelectBounds!.y + learningSupportSelectBounds!.height,
+    ).toBeLessThanOrEqual(844);
     const peerSupportTab = page.getByRole('tab', { name: 'Peer Support' });
     await expect(peerSupportTab).toBeVisible();
     const peerSupportTabBounds = await peerSupportTab.boundingBox();

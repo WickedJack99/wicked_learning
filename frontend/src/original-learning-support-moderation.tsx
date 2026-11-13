@@ -15,6 +15,7 @@ import {
     SettingsSectionNavigation,
     type SettingsNavigationItem,
 } from './extracted-settings-configuration-shell';
+import { LearningSupportWorkspace } from './extracted-learning-support-navigation';
 import { settingsSections } from './extracted-settings-navigation';
 import {
     SettingsSidebarNavigation,
@@ -349,6 +350,10 @@ export function OriginalLearningSupportModerationPage({
                         <SettingsCornerNavigation onSignedOut={onSignedOut} />
                     </aside>
                     <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
+                        <LearningSupportWorkspace
+                            activeSection="learner-messages"
+                            settingsAccess={settingsAccess}
+                        >
                         <SettingsNestedWorkspace
                             contentClassName="p-0 sm:p-0"
                             sidebar={
@@ -621,6 +626,7 @@ export function OriginalLearningSupportModerationPage({
                                 ) : null}
                             </div>
                         </SettingsNestedWorkspace>
+                        </LearningSupportWorkspace>
                     </div>
                 </div>
             </div>

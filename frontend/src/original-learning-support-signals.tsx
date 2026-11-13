@@ -12,17 +12,16 @@ import {
     useMemo,
     useState,
 } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import {
     SettingsItemPanelHeader,
-    SettingsNestedWorkspace,
-    SettingsSectionNavigation,
     SettingsSectionWorkspace,
     type SettingsNavigationItem,
 } from './extracted-settings-configuration-shell';
+import { LearningSupportWorkspace } from './extracted-learning-support-navigation';
 import { settingsSections } from './extracted-settings-navigation';
 import {
     SettingsSidebarNavigation,
@@ -34,16 +33,6 @@ import { usePlatformTranslation } from './original-platform-translation';
 
 type Signals = components['schemas']['AdminSupportSignals'];
 type SupportSignalsView = 'collective' | 'individual' | 'peer-support';
-type LearningSupportSection =
-    | 'competence-topics'
-    | 'feedback-requests'
-    | 'journal'
-    | 'learner-messages'
-    | 'learning-concepts'
-    | 'organization-icons'
-    | 'platform-feedback'
-    | 'support-signals';
-
 /**
  * Lifted from `resources/js/features/settings/support-signals-panel.tsx`.
  * Laravel's Inertia router and numeric database IDs are the only seams
@@ -98,12 +87,6 @@ export function OriginalLearningSupportSignalsPage({
         key: 'support-signals',
         label: 'Support Signals',
     };
-    const learningSupportSections = useMemo(
-        () => visibleLearningSupportSections(settingsAccess),
-        [settingsAccess],
-    );
-    const navigate = useNavigate();
-
     return (
         <main className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100" data-wl-id="settings.learning-support.signals" style={settingsStyle(appearance)}>
             <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -114,9 +97,12 @@ export function OriginalLearningSupportSignalsPage({
                         <SettingsCornerNavigation onSignedOut={onSignedOut} />
                     </aside>
                     <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
-                        <SettingsNestedWorkspace contentClassName="p-0 sm:p-0" sidebar={<><label className="grid gap-2 px-1 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase lg:hidden"><span>Learning support section</span><select aria-label="Learning support section" className="h-10 w-full border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 text-sm normal-case tracking-normal text-[var(--settings-primary-text)]" onChange={(event) => navigate(`/settings?panel=admin-learning-support&support=${event.currentTarget.value}`)} value="support-signals">{learningSupportSections.map((section) => <option key={section.key} value={section.key}>{section.label}</option>)}</select></label><div className="hidden lg:block"><SettingsSectionNavigation activeSection="support-signals" ariaLabel="Learning support sections" items={learningSupportSections} onChange={(section) => navigate(`/settings?panel=admin-learning-support&support=${section}`)} /></div></>}>
+                        <LearningSupportWorkspace
+                            activeSection="support-signals"
+                            settingsAccess={settingsAccess}
+                        >
                             {error ? <div className="p-5"><p className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p></div> : !signals ? <p className="p-5 text-sm text-[var(--settings-muted-text)]">Loading support signals…</p> : <SupportSignalsPanel onManualUnlockChanged={load} sectionItem={sectionItem} settings={toSourceSettings(signals)} />}
-                        </SettingsNestedWorkspace>
+                        </LearningSupportWorkspace>
                     </div>
                 </div>
             </div>
@@ -157,38 +143,6 @@ const supportSignalSections = [
     { description: 'Review learner-specific evidence patterns as support prompts.', icon: HeartHandshake, key: 'individual', label: 'Individual Support' },
     { description: 'Spot shared-task exchanges waiting for a learner-confirmed resolution.', icon: HandHelping, key: 'peer-support', label: 'Peer Support' },
 ] satisfies SettingsNavigationItem<SupportSignalsView>[];
-
-const learningSupportSections = [
-    { description: 'Review short messages shared through MapAsset activities.', icon: HeartHandshake, key: 'learner-messages', label: 'Learner Messages' },
-    { description: 'Read scoped learner signals as prompts for support.', icon: HeartHandshake, key: 'support-signals', label: 'Support Signals' },
-    { description: 'Review learner journal feedback requests.', icon: HeartHandshake, key: 'feedback-requests', label: 'Feedback' },
-    { description: 'Review feedback deliberately shared about the platform.', icon: HeartHandshake, key: 'platform-feedback', label: 'Platform Feedback' },
-    { description: 'Review reported icons and organization limits.', icon: HandHelping, key: 'organization-icons', label: 'Organization Icons' },
-    { description: 'Define topics and star-map thresholds.', icon: Sparkles, key: 'competence-topics', label: 'Competence Topics' },
-    { description: 'Maintain reusable vocabulary for evidence authoring.', icon: Sparkles, key: 'learning-concepts', label: 'Concept Library' },
-    { description: 'Journal policy, background and interaction colors.', icon: Users, key: 'journal', label: 'Journal' },
-] satisfies SettingsNavigationItem<LearningSupportSection>[];
-
-function visibleLearningSupportSections(settingsAccess: Record<string, boolean>): SettingsNavigationItem<LearningSupportSection>[] {
-    const canRead = (resource: string) => settingsAccess[resource] === true;
-    return learningSupportSections.filter((section) =>
-        section.key === 'learner-messages'
-            ? true
-            : section.key === 'support-signals'
-              ? canRead('learner_support_signals')
-              : section.key === 'feedback-requests'
-                ? canRead('journal_feedback')
-                : section.key === 'platform-feedback'
-                  ? canRead('platform_feedback')
-                  : section.key === 'organization-icons'
-                    ? canRead('organization_moderation')
-                    : section.key === 'journal'
-                      ? canRead('journal_settings')
-                      : section.key === 'learning-concepts'
-                        ? canRead('learning_concepts')
-                        : canRead('competence_topics'),
-    );
-}
 
 const supportSignalDescriptions = {
     collective: 'Anonymous 30-day activity signals show whether the learning space is alive without exposing daily learner histories.',
