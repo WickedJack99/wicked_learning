@@ -23,6 +23,7 @@ import { OriginalPersonalDeleteAccountPage } from './original-personal-delete-ac
 import { OriginalPersonalSoundPage } from './original-personal-sound';
 import { OriginalPersonalSecurityPage } from './original-personal-security';
 import {
+    OriginalSettingsInformationGroupPage,
     OriginalSettingsInformationPage,
     type InformationPageSlug,
 } from './original-settings-information';
@@ -672,6 +673,14 @@ export function App() {
 
         if (currentUser.kind === 'anonymous') {
             return <Navigate replace to="/login" />;
+        }
+
+        if (settingsPanel === 'information') {
+            return (
+                <OriginalSettingsInformationGroupPage
+                    appearance={appearance}
+                />
+            );
         }
 
         if (

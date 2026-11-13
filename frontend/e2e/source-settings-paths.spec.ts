@@ -64,4 +64,14 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await expect(
         page.getByRole('heading', { level: 1, name: 'Users' }),
     ).toBeVisible();
+
+    await page.goto('/settings?panel=information');
+    await expect(
+        page.getByRole('heading', { level: 1, name: 'About & legal' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText(
+            'No settings are available here with the current permissions.',
+        ),
+    ).toBeVisible();
 });

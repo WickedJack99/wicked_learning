@@ -1,4 +1,4 @@
-import { ArrowLeft, Pencil, Save, X } from 'lucide-react';
+import { ArrowLeft, Info, Pencil, Save, X } from 'lucide-react';
 import { type CSSProperties, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
@@ -11,6 +11,66 @@ import { usePlatformTranslation } from './original-platform-translation';
 export type InformationPageSlug = 'about' | 'imprint' | 'data-protection';
 
 type PublicPage = components['schemas']['PublicPage'];
+
+/**
+ * Source-adapted from the SettingsRouteGroupPanel for the source
+ * `panel=information` corner-navigation destination. The source group has no
+ * child links: its three information pages are direct settings routes, so the
+ * current permissions message is the complete source behavior.
+ */
+export function OriginalSettingsInformationGroupPage({
+    appearance,
+}: {
+    appearance: OriginalAppearance;
+}) {
+    return (
+        <main
+            className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
+            data-wl-id="settings.information-group"
+            style={settingsStyle(appearance)}
+        >
+            <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
+                <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
+                    <div>
+                        <Link
+                            className="mb-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] transition hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]"
+                            to="/settings"
+                        >
+                            <ArrowLeft className="size-4" />
+                            Settings
+                        </Link>
+                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                            About &amp; legal
+                        </p>
+                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                            About &amp; legal
+                        </h1>
+                    </div>
+                </header>
+                <section className="min-h-0 flex-1 border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-5 sm:p-7">
+                    <div className="grid content-start gap-5">
+                        <div className="flex items-start gap-3">
+                            <span className="grid size-10 shrink-0 place-items-center rounded-md bg-[var(--settings-active-background)] text-[var(--settings-accent)]">
+                                <Info className="size-4" />
+                            </span>
+                            <div>
+                                <h2 className="text-xl font-semibold">
+                                    About &amp; legal
+                                </h2>
+                                <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
+                                    Read about the platform, imprint and data protection.
+                                </p>
+                            </div>
+                        </div>
+                        <p className="rounded-lg border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
+                            No settings are available here with the current permissions.
+                        </p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    );
+}
 
 /**
  * Source-adapted from `PlatformInfoPage`'s authenticated settings variant.
