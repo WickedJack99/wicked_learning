@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, installE2eAdminSession, test } from './authenticated';
 
 const publicOrigin = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
@@ -8,9 +8,12 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     page,
     request,
 }) => {
-    const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable local identity');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD,
+        'requires the disposable local identity',
+    );
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
     await page.addInitScript(() => {
         const pageWindow = window as typeof window & { typingSoundPlayCalls?: number };
         pageWindow.typingSoundPlayCalls = 0;
@@ -22,11 +25,6 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
 
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
-    const login = await request.post('/api/v1/session/login', {
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-        data: { email, password },
-    });
-    expect(login.status()).toBe(200);
 
     const world = await request.get('/api/v1/learner/world');
     expect(world.status()).toBe(200);

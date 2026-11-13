@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('an asset administrator uses the source-derived item and tool workspace', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

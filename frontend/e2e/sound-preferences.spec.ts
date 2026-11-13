@@ -1,14 +1,14 @@
-import { expect, test } from '@playwright/test';
-
-const origin = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081').origin;
+import { expect, installE2eAdminSession, test } from './authenticated';
 
 test('a learner saves private source-shaped sound preferences from the account menu', async ({ page, request }) => {
-    const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable local identity');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD,
+        'requires the disposable local identity',
+    );
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
-    expect((await request.post('/api/v1/session/login', { data: { email, password }, headers: { Origin: origin, 'X-CSRF-Token': token } })).status()).toBe(200);
     const state = await request.storageState();
     await page.context().addCookies(state.cookies);
     await page.goto('/home');

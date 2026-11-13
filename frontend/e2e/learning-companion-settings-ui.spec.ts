@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test.setTimeout(90_000);
 

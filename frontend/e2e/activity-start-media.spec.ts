@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author selects a reusable route visual and its reference cleans up', async ({
     page,

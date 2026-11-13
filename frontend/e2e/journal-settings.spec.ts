@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local administrator saves a Journal visual through the source-adapted settings and learners receive its protected projection', async ({
     page,

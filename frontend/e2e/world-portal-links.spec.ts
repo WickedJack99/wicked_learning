@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local global author can create and remove a node-to-node portal link', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

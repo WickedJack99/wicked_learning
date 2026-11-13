@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author sees an opening-path warning for an unreachable tile prerequisite', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

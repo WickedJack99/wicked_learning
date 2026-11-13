@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local administrator can open lifted workspaces at the current Laravel Settings paths', async ({
     page,

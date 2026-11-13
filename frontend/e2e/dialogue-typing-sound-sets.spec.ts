@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('an authorized administrator creates a complete dialogue typing set and replaces one letter', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

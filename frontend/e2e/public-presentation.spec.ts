@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local administrator saves a public visual and anonymous visitors receive only its public presentation projection', async ({
     browser,

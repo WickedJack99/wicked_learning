@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local world author can open a pending activity from the source-shaped review queue', async ({
     page,

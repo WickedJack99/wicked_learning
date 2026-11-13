@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a learner receives the canonical English platform catalog while no alternate locale is enabled', async ({
     page,

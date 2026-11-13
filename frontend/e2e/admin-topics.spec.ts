@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local content administrator can use the source-derived topic structure workspace', async ({
     page,

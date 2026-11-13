@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author can open the guarded source-derived activity review dialog', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

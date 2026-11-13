@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('the root renders the public welcome screen and offers exploration', async ({
     page,

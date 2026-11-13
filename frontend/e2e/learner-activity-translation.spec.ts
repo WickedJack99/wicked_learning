@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a learner can read only the current active activity translation', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

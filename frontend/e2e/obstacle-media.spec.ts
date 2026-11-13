@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author selects reusable activity visuals and map cleanup removes their references', async ({
     page,

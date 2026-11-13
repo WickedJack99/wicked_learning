@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('an authorized administrator can store, preview, publish and delete a reusable sound', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

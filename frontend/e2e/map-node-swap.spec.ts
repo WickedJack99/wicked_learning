@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author swaps adjacent source hex-grid tiles', async ({ page }) => {
     test.setTimeout(60_000);

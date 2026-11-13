@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local world author can save a source Markdown page graph', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

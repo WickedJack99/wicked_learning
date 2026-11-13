@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local administrator edits the source-adapted public information and source-link settings', async ({
     browser,

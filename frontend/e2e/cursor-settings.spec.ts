@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local administrator configures a reusable cursor image and the public shell receives its safe projection', async ({ browser, page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

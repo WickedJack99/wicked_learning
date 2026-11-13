@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author restores a scoped map detail version', async ({ page }) => {
     test.setTimeout(60_000);

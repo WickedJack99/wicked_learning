@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author can maintain the source-adapted reusable source catalog', async ({
     page,

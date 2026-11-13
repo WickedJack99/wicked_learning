@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author exports, validates, and imports a standalone MapAsset', async ({
     page,

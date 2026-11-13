@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local administrator updates the source public palette and anonymous pages receive it', async ({ browser, page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

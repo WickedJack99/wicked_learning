@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author can save, revise, restore and copy a reusable activity template', async ({
     page,

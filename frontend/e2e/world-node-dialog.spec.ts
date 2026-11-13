@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author creates, edits, and deletes a source-shaped map tile', async ({
     page,

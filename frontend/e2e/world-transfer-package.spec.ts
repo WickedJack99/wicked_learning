@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author transfers a map package with managed media', async ({ page }) => {
     test.setTimeout(90_000);

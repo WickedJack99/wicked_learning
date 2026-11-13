@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, installE2eAdminSession, test } from './authenticated';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -502,22 +502,21 @@ test('learner paths require an authenticated application principal', async ({
 });
 
 test('a local administrator receives the complete source-shaped selected-map support data', async ({
+    page,
     request,
 }) => {
-    const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable local administrator');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD,
+        'requires the disposable local administrator',
+    );
 
     const anonymous = await request.get('/api/v1/admin/world-builder');
     expect(anonymous.status()).toBe(401);
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
 
     const csrfResponse = await request.get('/api/v1/security/csrf');
     const { token } = await csrfResponse.json();
-    const login = await request.post('/api/v1/session/login', {
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-        data: { email, password },
-    });
-    expect(login.status()).toBe(200);
 
     const graphResponse = await request.get('/api/v1/admin/world-builder');
     expect(graphResponse.status()).toBe(200);
@@ -548,19 +547,18 @@ test('a local administrator receives the complete source-shaped selected-map sup
 });
 
 test('a local administrator receives the source-shaped selected-node activity graph', async ({
+    page,
     request,
 }) => {
-    const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable local administrator');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD,
+        'requires the disposable local administrator',
+    );
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
 
     const csrfResponse = await request.get('/api/v1/security/csrf');
     const { token } = await csrfResponse.json();
-    const login = await request.post('/api/v1/session/login', {
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-        data: { email, password },
-    });
-    expect(login.status()).toBe(200);
 
     const graphResponse = await request.get('/api/v1/admin/world-builder');
     expect(graphResponse.status()).toBe(200);
@@ -613,22 +611,18 @@ test('Learning Desk content search requires an authenticated application princip
 });
 
 test('a CI-only fresh identity receives source-ordered Learning Desk search results', async ({
+    page,
     request,
 }) => {
-    const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable CI identity');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD,
+        'requires the disposable CI identity',
+    );
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
 
     const csrfResponse = await request.get('/api/v1/security/csrf');
     const { token } = await csrfResponse.json();
-    const login = await request.post('/api/v1/session/login', {
-        headers: {
-            Origin: publicOrigin,
-            'X-CSRF-Token': token,
-        },
-        data: { email, password },
-    });
-    expect(login.status()).toBe(200);
 
     const response = await request.get('/api/v1/learner/search?query=map');
     expect(response.status()).toBe(200);
@@ -653,16 +647,15 @@ test('a CI-only fresh identity can submit its one private Learning Support reque
     page,
 }) => {
     const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable CI identity');
+    test.skip(
+        !email || !process.env.E2E_LOGIN_PASSWORD,
+        'requires the disposable CI identity',
+    );
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
 
     const csrfResponse = await request.get('/api/v1/security/csrf');
     const { token } = await csrfResponse.json();
-    const login = await request.post('/api/v1/session/login', {
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-        data: { email, password },
-    });
-    expect(login.status()).toBe(200);
 
     const world = await request.get('/api/v1/learner/world');
     expect(world.status()).toBe(200);

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('the source Journal route redirects to the Learning Desk overlay', async ({
     page,

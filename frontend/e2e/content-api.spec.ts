@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 import type { Locator } from '@playwright/test';
 
 type CreatedResponse = { data: { id: string } };

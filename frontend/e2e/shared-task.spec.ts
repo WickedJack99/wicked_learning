@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 const publicOrigin = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',

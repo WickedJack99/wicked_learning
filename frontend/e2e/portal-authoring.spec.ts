@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local world author can connect source-shaped Portal activities', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

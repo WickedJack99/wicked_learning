@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 type CatalogResponse = {
     item?: { id: string; title: string; slug: string };

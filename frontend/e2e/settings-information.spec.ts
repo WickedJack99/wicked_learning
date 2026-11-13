@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('the source settings information route preserves its scoped markdown editor', async ({
     page,

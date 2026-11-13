@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, installE2eAdminSession, test } from './authenticated';
 
 const publicOrigin = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
@@ -8,18 +8,15 @@ test('the player shows the original learning focus before an activity begins', a
     page,
     request,
 }) => {
-    const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
-    test.skip(!email || !password, 'requires the disposable local identity');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD,
+        'requires the disposable local identity',
+    );
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
 
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
-    const login = await request.post('/api/v1/session/login', {
-        data: { email, password },
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-    });
-    expect(login.status()).toBe(200);
-
     const world = await request.get('/api/v1/learner/world');
     expect(world.status()).toBe(200);
     const orientationStart = (await world.json()).start_routes.find(

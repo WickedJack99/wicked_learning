@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a scoped author can open the source-derived ContentPlan dialog from an editable map', async ({
     page,

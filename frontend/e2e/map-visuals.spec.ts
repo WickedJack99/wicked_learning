@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author configures Laravel-shaped map visuals with reusable media', async ({
     page,

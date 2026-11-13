@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, installE2eAdminSession, test } from './authenticated';
 
 const publicOrigin = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
@@ -8,19 +8,16 @@ test('a learner can start a source peer-message prompt and follow it into the or
     page,
     request,
 }) => {
-    const email = process.env.E2E_LOGIN_EMAIL;
-    const password = process.env.E2E_LOGIN_PASSWORD;
     const peerNote = `I noticed the route is tied to a place on the map (${Date.now()}).`;
-    test.skip(!email || !password, 'requires a disposable local identity');
+    test.skip(
+        !process.env.E2E_LOGIN_EMAIL || !process.env.E2E_LOGIN_PASSWORD,
+        'requires a disposable local identity',
+    );
+    await installE2eAdminSession(page.context());
+    request = page.context().request;
 
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
-    const login = await request.post('/api/v1/session/login', {
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-        data: { email, password },
-    });
-    expect(login.status()).toBe(200);
-
     const world = await request.get('/api/v1/learner/world');
     expect(world.status()).toBe(200);
     const worldDocument = await world.json();

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a learner receives bounded authored, active-run, and completed companion context', async ({
     page,

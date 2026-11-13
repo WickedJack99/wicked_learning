@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 type Language = { code: string; is_enabled: boolean; name: string; native_name: string };
 type Catalog = {

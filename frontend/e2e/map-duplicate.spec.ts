@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author duplicates a source-shaped map with its MapAsset surface', async ({
     page,

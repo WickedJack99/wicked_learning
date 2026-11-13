@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local support worker can read scoped collective and individual signals', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

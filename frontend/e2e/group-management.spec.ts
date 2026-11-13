@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local platform administrator can create and assign a source-derived learning group', async ({
     page,

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local author can inspect and restore a source-shaped activity history entry', async ({
     page,

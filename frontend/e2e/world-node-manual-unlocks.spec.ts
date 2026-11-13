@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 
 test('a local support-author can set and revoke a manual node override', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;

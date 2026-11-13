@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated';
 import type { APIRequestContext } from '@playwright/test';
 
 const origin = new URL(
