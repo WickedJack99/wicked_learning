@@ -30,6 +30,7 @@ mod admin_public_content;
 mod admin_public_presentation;
 mod admin_registration_tokens;
 mod admin_role;
+mod admin_settings_notifications;
 mod admin_sound;
 mod admin_source_records;
 mod admin_topics;
@@ -712,6 +713,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/security/csrf", get(csrf::show))
         .route("/api/v1/me", get(current_user::show))
+        .route(
+            "/api/v1/admin/settings/notifications",
+            get(admin_settings_notifications::show),
+        )
         .route(
             "/api/v1/account/password/confirmation",
             get(account_password_confirmation::status)

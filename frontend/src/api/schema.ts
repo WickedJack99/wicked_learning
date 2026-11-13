@@ -852,6 +852,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/settings/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the source Settings notification summary.
+         * @description Returns only the current administrator's permitted pending-review counts and at most four protected organization-icon report thumbnails. It does not expose permission scopes, journal content, or identity details.
+         */
+        get: operations["getAdminSettingsNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/platform-feedback": {
         parameters: {
             query?: never;
@@ -6834,6 +6854,16 @@ export interface components {
             subject_id: string;
             /** @description Application roles, not credentials or profile data. */
             roles: ("learner" | "learning_support" | "platform_administrator")[];
+        };
+        AdminSettingsNotifications: {
+            pending_feedback_requests: number;
+            pending_organization_icon_reports: number;
+            reported_organizations: components["schemas"]["AdminSettingsNotificationOrganization"][];
+        };
+        AdminSettingsNotificationOrganization: {
+            /** @description An authenticated route for the immutable reported-icon snapshot; never a storage path. */
+            icon_url: string | null;
+            name: string;
         };
         AccessLinkSummary: {
             /** Format: date-time */
@@ -14265,6 +14295,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getAdminSettingsNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The bounded, permission-filtered Settings notification summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSettingsNotifications"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

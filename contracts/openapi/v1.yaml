@@ -1080,6 +1080,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/settings/notifications:
+    get:
+      operationId: getAdminSettingsNotifications
+      summary: Read the source Settings notification summary.
+      description: Returns only the current administrator's permitted pending-review counts and at most four protected organization-icon report thumbnails. It does not expose permission scopes, journal content, or identity details.
+      responses:
+        '200':
+          description: The bounded, permission-filtered Settings notification summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSettingsNotifications' }
+        '401': { description: Authentication is required. }
+        '503': { description: The application database is unavailable. }
   /admin/platform-feedback:
     get:
       operationId: getAdminPlatformFeedback
@@ -8772,6 +8785,32 @@ components:
           items:
             type: string
             enum: [learner, learning_support, platform_administrator]
+    AdminSettingsNotifications:
+      type: object
+      additionalProperties: false
+      required: [pending_feedback_requests, pending_organization_icon_reports, reported_organizations]
+      properties:
+        pending_feedback_requests:
+          type: integer
+          minimum: 0
+        pending_organization_icon_reports:
+          type: integer
+          minimum: 0
+        reported_organizations:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/AdminSettingsNotificationOrganization' }
+    AdminSettingsNotificationOrganization:
+      type: object
+      additionalProperties: false
+      required: [icon_url, name]
+      properties:
+        icon_url:
+          type: [string, 'null']
+          description: An authenticated route for the immutable reported-icon snapshot; never a storage path.
+        name:
+          type: string
+          maxLength: 160
     AccessLinkSummary:
       type: object
       additionalProperties: false

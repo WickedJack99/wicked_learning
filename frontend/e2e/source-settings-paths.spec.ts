@@ -13,6 +13,11 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/world$/);
 
+    const notificationSummary = page.waitForResponse(
+        (response) =>
+            response.url().endsWith('/api/v1/admin/settings/notifications') &&
+            response.request().method() === 'GET',
+    );
     await page.goto('/settings?panel=admin-world-builder');
     const settingsNavigation = page.getByRole('navigation', {
         name: 'Settings navigation',
@@ -20,6 +25,34 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await expect(
         settingsNavigation.getByRole('button', { name: 'World Builder' }),
     ).toBeVisible();
+    await expect(page.getByLabel('Notifications')).toBeVisible();
+    const notificationResponse = await notificationSummary;
+    expect(notificationResponse.status()).toBe(200);
+    expect(await notificationResponse.json()).toEqual(
+        expect.objectContaining({
+            pending_feedback_requests: expect.any(Number),
+            pending_organization_icon_reports: expect.any(Number),
+            reported_organizations: expect.any(Array),
+        }),
+    );
+    await page.getByLabel('Notifications').click();
+    const notificationMenu = page.getByRole('region', {
+        name: 'Notifications',
+    });
+    await expect(
+        notificationMenu.getByRole('button', { name: 'Feedback requests' }),
+    ).toBeVisible();
+    await notificationMenu
+        .getByRole('button', { name: 'Feedback requests' })
+        .click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-learning-support&support=feedback-requests$/,
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Feedback requests' }),
+    ).toBeVisible();
+
+    await page.goto('/settings?panel=admin-world-builder');
     const worldBuilderSections = page.getByRole('tablist', {
         name: 'World builder sections',
     });

@@ -4922,6 +4922,13 @@ The copied Settings navigation retains every source child destination and its
 resource visibility gate, so the source search continues to discover completed
 subsections (such as guardrails, structural maps and asset catalogues) without
 inventing a separate standalone navigation model.
+The copied top bar also retains the source notification bell through a bounded
+Rust summary: it returns pending Journal-feedback and organization-icon-report
+counts only where the current administrator already has the corresponding
+queue capability, plus no more than four organization names and authenticated
+report-snapshot image URLs. It never returns journal text, reporter identity,
+storage paths or permission scopes, and its links lead back to the existing
+independently authorized Learning Support queues.
 The source World Builder Review queue is a URL-selected Settings section, not
 a standalone substitute modal: it consumes the existing bounded scoped Rust
 review-queue projection and opens an item only through the existing authored

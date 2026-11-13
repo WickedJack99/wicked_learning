@@ -24,6 +24,7 @@ pub mod admin_learning_taxonomy;
 pub mod admin_public_content;
 pub mod admin_public_presentation;
 pub mod admin_role;
+pub mod admin_settings_notifications;
 pub mod admin_sound;
 pub mod admin_source_records;
 pub mod admin_topics;

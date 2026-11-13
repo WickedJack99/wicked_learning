@@ -1,6 +1,17 @@
-import { HelpCircle, Search } from 'lucide-react';
+import {
+    Bell,
+    Building2,
+    HelpCircle,
+    NotebookPen,
+    Search,
+    Shield,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { apiClient } from './api/client';
+import type { components } from './api/schema';
 import type {
     SettingsListItem,
     SettingsNavigationSection,
@@ -157,8 +168,8 @@ export function SettingsSidebarNavigation({
 
 /**
  * Source Settings top bar with standalone seams for routing and loaded user
- * chrome. The world-builder route currently owns no notifications, so this
- * retains the source search and source-link controls without inventing data.
+ * chrome. The notification read is deliberately a bounded projection; the
+ * linked review workspaces retain the detailed authorization boundary.
  */
 export function SettingsTopBar({
     menuQuery,
@@ -168,6 +179,37 @@ export function SettingsTopBar({
     onSearchChange: (query: string) => void;
 }) {
     const t = usePlatformTranslation();
+    const navigate = useNavigate();
+    const [notifications, setNotifications] =
+        useState<components['schemas']['AdminSettingsNotifications']>({
+            pending_feedback_requests: 0,
+            pending_organization_icon_reports: 0,
+            reported_organizations: [],
+        });
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const total =
+        notifications.pending_feedback_requests +
+        notifications.pending_organization_icon_reports;
+
+    useEffect(() => {
+        let active = true;
+        void apiClient
+            .GET('/admin/settings/notifications')
+            .then(({ data, response }) => {
+                if (active && response.ok && data) {
+                    setNotifications(data);
+                }
+            })
+            .catch(() => undefined);
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const openNotificationTarget = (href: string) => {
+        setNotificationsOpen(false);
+        navigate(href);
+    };
 
     return (
         <header className="flex h-auto shrink-0 flex-col gap-3 border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between">
@@ -194,6 +236,88 @@ export function SettingsTopBar({
                     />
                 </label>
 
+                <div className="relative">
+                    <button
+                        aria-expanded={notificationsOpen}
+                        aria-label={t('settings.notifications', 'Notifications')}
+                        className="settings-topbar-control relative grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
+                        onClick={() => setNotificationsOpen((open) => !open)}
+                        type="button"
+                    >
+                        <Bell className="size-4" />
+                        {total > 0 ? (
+                            <span className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-[var(--settings-accent)] px-1 text-xs font-semibold text-[var(--settings-accent-foreground)]">
+                                {total > 99 ? '99+' : total}
+                            </span>
+                        ) : null}
+                    </button>
+                    {notificationsOpen ? (
+                        <section
+                            aria-label={t('settings.notifications', 'Notifications')}
+                            className="settings-floating-panel absolute right-0 z-20 mt-2 w-[21rem] max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 shadow-lg"
+                        >
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                                <p className="text-sm font-semibold">
+                                    {t('settings.notifications', 'Notifications')}
+                                </p>
+                                {total > 0 ? (
+                                    <span className="rounded-md bg-[var(--settings-active-background)] px-2 py-1 text-xs font-medium">
+                                        {total} {t('settings.notifications.pending', 'open')}
+                                    </span>
+                                ) : null}
+                            </div>
+                            <div className="grid gap-2 text-sm">
+                                <NotificationSummaryRow
+                                    count={notifications.pending_feedback_requests}
+                                    icon={NotebookPen}
+                                    label={t('settings.notifications.feedback_requests', 'Feedback requests')}
+                                    onClick={() =>
+                                        openNotificationTarget(
+                                            '/settings?panel=admin-learning-support&support=feedback-requests',
+                                        )
+                                    }
+                                />
+                                <NotificationSummaryRow
+                                    count={notifications.pending_organization_icon_reports}
+                                    icon={Shield}
+                                    label={t('settings.notifications.organization_reports', 'Reported organization icons')}
+                                    onClick={() =>
+                                        openNotificationTarget(
+                                            '/settings?panel=admin-learning-support&support=organization-icons',
+                                        )
+                                    }
+                                />
+                            </div>
+                            {notifications.reported_organizations.length > 0 ? (
+                                <div className="mt-3 border-t border-[var(--settings-border-color)] pt-3">
+                                    <p className="mb-2 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
+                                        {t('settings.notifications.organizations', 'Organizations')}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        {notifications.reported_organizations.map((organization) => (
+                                            <div
+                                                aria-label={`${organization.name} icon`}
+                                                className="grid size-9 overflow-hidden rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] text-[var(--settings-muted-text)]"
+                                                key={organization.icon_url ?? organization.name}
+                                            >
+                                                {organization.icon_url ? (
+                                                    <img
+                                                        alt={`${organization.name} icon`}
+                                                        className="size-full object-cover"
+                                                        src={organization.icon_url}
+                                                    />
+                                                ) : (
+                                                    <Building2 className="m-auto size-4" />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
+                        </section>
+                    ) : null}
+                </div>
+
                 <a
                     aria-label={t('navigation.source', 'Source code')}
                     className="settings-topbar-control grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
@@ -205,5 +329,35 @@ export function SettingsTopBar({
                 </a>
             </div>
         </header>
+    );
+}
+
+function NotificationSummaryRow({
+    count,
+    icon: Icon,
+    label,
+    onClick,
+}: {
+    count: number;
+    icon: LucideIcon;
+    label: string;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            className="flex items-center gap-3 rounded-md p-2 text-left transition hover:bg-[var(--settings-active-background)]"
+            onClick={onClick}
+            type="button"
+        >
+            <span className="grid size-8 place-items-center rounded-md bg-[color-mix(in_srgb,var(--settings-muted-text)_12%,transparent)] text-[var(--settings-muted-text)]">
+                <Icon className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{label}</span>
+            </span>
+            <span className="rounded-md bg-[var(--settings-active-background)] px-2 py-1 text-xs font-medium">
+                {count}
+            </span>
+        </button>
     );
 }
