@@ -1171,7 +1171,10 @@ with purpose-separated server-side material and is never read back into the
 browser; deleting a provider detaches its templates. A saved-template test now
 accepts one bounded prompt only through `ai.ru` plus CSRF, decrypts the selected
 provider key only for that outbound request, and returns text plus bounded usage
-metadata without storing a content change or exposing credential material. An author with both the
+metadata without storing a content change or exposing credential material. The
+lifted standalone template panel keeps the source saved-only test control,
+server-key notice, result pane and sanitized failure state rather than making a
+browser credential field or a new AI workspace. An author with both the
 source-scoped `world_activities` and `ai.ru` grants can now choose an enabled
 `activity_review` helper from the selected-node editor and request `POST
 /api/v1/admin/world-builder/activities/{activity_id}/ai-review`. The backend

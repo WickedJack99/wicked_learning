@@ -1,4 +1,12 @@
-import { Bot, KeyRound, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+    Bot,
+    KeyRound,
+    Plus,
+    Save,
+    Send,
+    ShieldCheck,
+    Trash2,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 
@@ -12,55 +20,909 @@ type Template = components['schemas']['AdminAiAgentTemplate'];
 type Section = 'providers' | 'templates' | 'guardrails';
 type ProviderRequest = components['schemas']['SaveAdminAiProviderRequest'];
 type TemplateRequest = components['schemas']['SaveAdminAiTemplateRequest'];
+type TemplateTestResult = components['schemas']['TestAdminAiTemplateResponse'];
 
 type ProviderForm = {
-  label: string; provider: string; base_url: string; api_key: string; organization: string;
-  enabled: boolean; monthly_token_limit: string; monthly_cost_limit_cents: string; notes: string;
+    label: string;
+    provider: string;
+    base_url: string;
+    api_key: string;
+    organization: string;
+    enabled: boolean;
+    monthly_token_limit: string;
+    monthly_cost_limit_cents: string;
+    notes: string;
 };
 type TemplateForm = {
-  ai_provider_credential_id: string; name: string; slug: string; purpose: string; model: string;
-  system_prompt: string; task_prompt: string; temperature: string; reasoning_effort: string;
-  max_output_tokens: string; concurrency_limit: string; monthly_token_limit: string;
-  enabled: boolean; guarded_context: boolean;
+    ai_provider_credential_id: string;
+    name: string;
+    slug: string;
+    purpose: string;
+    model: string;
+    system_prompt: string;
+    task_prompt: string;
+    temperature: string;
+    reasoning_effort: string;
+    max_output_tokens: string;
+    concurrency_limit: string;
+    monthly_token_limit: string;
+    enabled: boolean;
+    guarded_context: boolean;
 };
 
-const blankProvider = (): ProviderForm => ({ label: '', provider: 'openai', base_url: '', api_key: '', organization: '', enabled: true, monthly_token_limit: '', monthly_cost_limit_cents: '', notes: '' });
-const blankTemplate = (): TemplateForm => ({ ai_provider_credential_id: '', name: '', slug: '', purpose: 'sdt_design', model: '', system_prompt: '', task_prompt: '', temperature: '', reasoning_effort: '', max_output_tokens: '', concurrency_limit: '1', monthly_token_limit: '', enabled: false, guarded_context: true });
-const providerForm = (item: Provider): ProviderForm => ({ label: item.label, provider: item.provider, base_url: item.base_url ?? '', api_key: '', organization: item.organization ?? '', enabled: item.enabled, monthly_token_limit: item.monthly_token_limit?.toString() ?? '', monthly_cost_limit_cents: item.monthly_cost_limit_cents?.toString() ?? '', notes: item.notes ?? '' });
-const templateForm = (item: Template): TemplateForm => ({ ai_provider_credential_id: item.ai_provider_credential_id ?? '', name: item.name, slug: item.slug, purpose: item.purpose, model: item.model ?? '', system_prompt: item.system_prompt ?? '', task_prompt: item.task_prompt ?? '', temperature: item.temperature?.toString() ?? '', reasoning_effort: item.reasoning_effort ?? '', max_output_tokens: item.max_output_tokens?.toString() ?? '', concurrency_limit: item.concurrency_limit.toString(), monthly_token_limit: item.monthly_token_limit?.toString() ?? '', enabled: item.enabled, guarded_context: item.guarded_context });
+const blankProvider = (): ProviderForm => ({
+    label: '',
+    provider: 'openai',
+    base_url: '',
+    api_key: '',
+    organization: '',
+    enabled: true,
+    monthly_token_limit: '',
+    monthly_cost_limit_cents: '',
+    notes: '',
+});
+const blankTemplate = (): TemplateForm => ({
+    ai_provider_credential_id: '',
+    name: '',
+    slug: '',
+    purpose: 'sdt_design',
+    model: '',
+    system_prompt: '',
+    task_prompt: '',
+    temperature: '',
+    reasoning_effort: '',
+    max_output_tokens: '',
+    concurrency_limit: '1',
+    monthly_token_limit: '',
+    enabled: false,
+    guarded_context: true,
+});
+const providerForm = (item: Provider): ProviderForm => ({
+    label: item.label,
+    provider: item.provider,
+    base_url: item.base_url ?? '',
+    api_key: '',
+    organization: item.organization ?? '',
+    enabled: item.enabled,
+    monthly_token_limit: item.monthly_token_limit?.toString() ?? '',
+    monthly_cost_limit_cents: item.monthly_cost_limit_cents?.toString() ?? '',
+    notes: item.notes ?? '',
+});
+const templateForm = (item: Template): TemplateForm => ({
+    ai_provider_credential_id: item.ai_provider_credential_id ?? '',
+    name: item.name,
+    slug: item.slug,
+    purpose: item.purpose,
+    model: item.model ?? '',
+    system_prompt: item.system_prompt ?? '',
+    task_prompt: item.task_prompt ?? '',
+    temperature: item.temperature?.toString() ?? '',
+    reasoning_effort: item.reasoning_effort ?? '',
+    max_output_tokens: item.max_output_tokens?.toString() ?? '',
+    concurrency_limit: item.concurrency_limit.toString(),
+    monthly_token_limit: item.monthly_token_limit?.toString() ?? '',
+    enabled: item.enabled,
+    guarded_context: item.guarded_context,
+});
 const optional = (value: string) => value.trim() || null;
-const numberOrNull = (value: string) => value.trim() === '' ? null : Number(value);
+const numberOrNull = (value: string) =>
+    value.trim() === '' ? null : Number(value);
 
 /** Source-adapted from Laravel's `AiSettings`: provider keys, templates and guardrails. */
-export function OriginalAiSettingsPage({ appearance: _appearance }: { appearance: OriginalAppearance }) {
-  const location = useLocation(); const navigate = useNavigate();
-  const section = (new URLSearchParams(location.search).get('ai') ?? 'providers') as Section;
-  const [data, setData] = useState<Settings | null>(null); const [forbidden, setForbidden] = useState(false);
-  const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<string | 'new'>('new');
-  const [selectedTemplate, setSelectedTemplate] = useState<string | 'new'>('new');
-  const [provider, setProvider] = useState<ProviderForm>(blankProvider());
-  const [template, setTemplate] = useState<TemplateForm>(blankTemplate());
-  const selectedProviderItem = useMemo(() => data?.provider_credentials.find((item) => item.id === selectedProvider) ?? null, [data, selectedProvider]);
-  const selectedTemplateItem = useMemo(() => data?.agent_templates.find((item) => item.id === selectedTemplate) ?? null, [data, selectedTemplate]);
-  const setSection = (next: Section) => { const params = new URLSearchParams(location.search); params.set('panel', 'admin-ai-integrations'); params.set('ai', next); navigate(`/settings?${params}`); };
-  const load = async () => { setError(''); const { data: response, response: raw } = await apiClient.GET('/admin/ai/settings'); if (raw.status === 403 || raw.status === 404) { setForbidden(true); return; } if (!raw.ok || !response) throw new Error(); setData(response); };
-  useEffect(() => { void load().catch(() => setError('AI settings are temporarily unavailable.')); }, []);
-  const chooseProvider = (item: Provider | null) => { setSelectedProvider(item?.id ?? 'new'); setProvider(item ? providerForm(item) : blankProvider()); setError(''); };
-  const chooseTemplate = (item: Template | null) => { setSelectedTemplate(item?.id ?? 'new'); setTemplate(item ? templateForm(item) : blankTemplate()); setError(''); };
-  const providerBody = (): ProviderRequest => ({ ...provider, provider: provider.provider as ProviderRequest['provider'], label: provider.label.trim(), base_url: optional(provider.base_url), api_key: optional(provider.api_key), organization: optional(provider.organization), monthly_token_limit: numberOrNull(provider.monthly_token_limit), monthly_cost_limit_cents: numberOrNull(provider.monthly_cost_limit_cents), notes: optional(provider.notes) });
-  const templateBody = (): TemplateRequest => ({ ...template, purpose: template.purpose as TemplateRequest['purpose'], ai_provider_credential_id: optional(template.ai_provider_credential_id), slug: optional(template.slug), model: optional(template.model), system_prompt: optional(template.system_prompt), task_prompt: optional(template.task_prompt), temperature: numberOrNull(template.temperature), reasoning_effort: optional(template.reasoning_effort) as TemplateRequest['reasoning_effort'], max_output_tokens: numberOrNull(template.max_output_tokens), concurrency_limit: Number(template.concurrency_limit), monthly_token_limit: numberOrNull(template.monthly_token_limit) });
-  const saveProvider = async () => { setSaving(true); setError(''); try { const token = await getCsrfToken(); const result = selectedProviderItem ? await apiClient.PATCH('/admin/ai/providers/{provider_id}', { params: { path: { provider_id: selectedProviderItem.id }, header: { 'X-CSRF-Token': token } }, body: providerBody() }) : await apiClient.POST('/admin/ai/providers', { params: { header: { 'X-CSRF-Token': token } }, body: providerBody() }); if (!result.response.ok || !result.data) throw new Error(); await load(); chooseProvider('provider_credential' in result.data ? result.data.provider_credential : null); } catch { setError('The provider could not be saved. Check the required fields and limits.'); } finally { setSaving(false); } };
-  const saveTemplate = async () => { setSaving(true); setError(''); try { const token = await getCsrfToken(); const result = selectedTemplateItem ? await apiClient.PATCH('/admin/ai/templates/{template_id}', { params: { path: { template_id: selectedTemplateItem.id }, header: { 'X-CSRF-Token': token } }, body: templateBody() }) : await apiClient.POST('/admin/ai/templates', { params: { header: { 'X-CSRF-Token': token } }, body: templateBody() }); if (!result.response.ok || !result.data) throw new Error(); await load(); chooseTemplate('agent_template' in result.data ? result.data.agent_template : null); } catch { setError('The template could not be saved. A custom slug must be unique.'); } finally { setSaving(false); } };
-  const remove = async (kind: 'provider' | 'template') => { const item = kind === 'provider' ? selectedProviderItem : selectedTemplateItem; if (!item || !window.confirm(`Delete ${'name' in item ? item.name : item.label}?`)) return; setSaving(true); try { const token = await getCsrfToken(); const result = kind === 'provider' ? await apiClient.DELETE('/admin/ai/providers/{provider_id}', { params: { path: { provider_id: item.id }, header: { 'X-CSRF-Token': token } } }) : await apiClient.DELETE('/admin/ai/templates/{template_id}', { params: { path: { template_id: item.id }, header: { 'X-CSRF-Token': token } } }); if (!result.response.ok) throw new Error(); await load(); kind === 'provider' ? chooseProvider(null) : chooseTemplate(null); } catch { setError('The saved settings could not be deleted.'); } finally { setSaving(false); } };
-  if (forbidden) return <Navigate replace to="/home" />;
-  const style = { '--settings-accent': '#4f46e5' } as React.CSSProperties;
-  return <main className="settings-surface min-h-svh bg-slate-50 px-4 py-5 text-slate-950 dark:bg-slate-950 dark:text-slate-100" style={style}><div className="mx-auto w-full max-w-[92rem]"><header className="mb-5"><Link className="text-sm text-[var(--settings-accent)]" to="/home">Settings</Link><p className="mt-4 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p><h1 className="mt-2 text-3xl font-semibold">AI support</h1><p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">Provider keys, reusable agent behavior and guardrails. Saving a template does not invoke a provider or change learning content.</p></header><nav className="mb-5 flex gap-2 border-b border-slate-300 pb-3 dark:border-slate-700">{([['providers', KeyRound, 'Provider keys'], ['templates', Bot, 'Agent templates'], ['guardrails', ShieldCheck, 'Guardrails']] as const).map(([key, Icon, label]) => <button key={key} className={`inline-flex items-center gap-2 rounded px-3 py-2 text-sm ${section === key ? 'bg-[var(--settings-accent)] text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800'}`} onClick={() => setSection(key)}><Icon className="size-4" />{label}</button>)}</nav>{error && <p className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</p>}{!data ? <p>Loading AI settings…</p> : section === 'providers' ? <Workspace items={data.provider_credentials} selected={selectedProvider} onNew={() => chooseProvider(null)} onSelect={chooseProvider} label={(item) => item.label} render={() => <ProviderEditor form={provider} setForm={setProvider} options={data.provider_options} existing={selectedProviderItem} saving={saving} onSave={saveProvider} onDelete={() => void remove('provider')} />} /> : section === 'templates' ? <Workspace items={data.agent_templates} selected={selectedTemplate} onNew={() => chooseTemplate(null)} onSelect={chooseTemplate} label={(item) => item.name} detail={(item) => `${item.purpose}${item.provider_label ? ` · ${item.provider_label}` : ''}`} render={() => <TemplateEditor form={template} setForm={setTemplate} settings={data} existing={selectedTemplateItem} saving={saving} onSave={saveTemplate} onDelete={() => void remove('template')} />} /> : <section className="grid gap-4 md:grid-cols-2">{data.guardrail_notes.map((note) => <article key={note} className="border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900"><ShieldCheck className="mb-3 size-5 text-[var(--settings-accent)]" /><p>{note}</p></article>)}<article className="border border-amber-300 bg-amber-50 p-5 text-amber-950"><h2 className="font-semibold">Execution is separate</h2><p className="mt-2 text-sm">This migration slice configures encrypted credentials and templates only. Any future review execution stays server-owned, bounded and requires its own authorized use case.</p></article></section>}</div></main>;
+export function OriginalAiSettingsPage({
+    appearance: _appearance,
+}: {
+    appearance: OriginalAppearance;
+}) {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const section = (new URLSearchParams(location.search).get('ai') ??
+        'providers') as Section;
+    const [data, setData] = useState<Settings | null>(null);
+    const [forbidden, setForbidden] = useState(false);
+    const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [selectedProvider, setSelectedProvider] = useState<string | 'new'>(
+        'new',
+    );
+    const [selectedTemplate, setSelectedTemplate] = useState<string | 'new'>(
+        'new',
+    );
+    const [provider, setProvider] = useState<ProviderForm>(blankProvider());
+    const [template, setTemplate] = useState<TemplateForm>(blankTemplate());
+    const selectedProviderItem = useMemo(
+        () =>
+            data?.provider_credentials.find(
+                (item) => item.id === selectedProvider,
+            ) ?? null,
+        [data, selectedProvider],
+    );
+    const selectedTemplateItem = useMemo(
+        () =>
+            data?.agent_templates.find(
+                (item) => item.id === selectedTemplate,
+            ) ?? null,
+        [data, selectedTemplate],
+    );
+    const setSection = (next: Section) => {
+        const params = new URLSearchParams(location.search);
+        params.set('panel', 'admin-ai-integrations');
+        params.set('ai', next);
+        navigate(`/settings?${params}`);
+    };
+    const load = async () => {
+        setError('');
+        const { data: response, response: raw } =
+            await apiClient.GET('/admin/ai/settings');
+        if (raw.status === 403 || raw.status === 404) {
+            setForbidden(true);
+            return;
+        }
+        if (!raw.ok || !response) throw new Error();
+        setData(response);
+    };
+    useEffect(() => {
+        void load().catch(() =>
+            setError('AI settings are temporarily unavailable.'),
+        );
+    }, []);
+    const chooseProvider = (item: Provider | null) => {
+        setSelectedProvider(item?.id ?? 'new');
+        setProvider(item ? providerForm(item) : blankProvider());
+        setError('');
+    };
+    const chooseTemplate = (item: Template | null) => {
+        setSelectedTemplate(item?.id ?? 'new');
+        setTemplate(item ? templateForm(item) : blankTemplate());
+        setError('');
+    };
+    const providerBody = (): ProviderRequest => ({
+        ...provider,
+        provider: provider.provider as ProviderRequest['provider'],
+        label: provider.label.trim(),
+        base_url: optional(provider.base_url),
+        api_key: optional(provider.api_key),
+        organization: optional(provider.organization),
+        monthly_token_limit: numberOrNull(provider.monthly_token_limit),
+        monthly_cost_limit_cents: numberOrNull(
+            provider.monthly_cost_limit_cents,
+        ),
+        notes: optional(provider.notes),
+    });
+    const templateBody = (): TemplateRequest => ({
+        ...template,
+        purpose: template.purpose as TemplateRequest['purpose'],
+        ai_provider_credential_id: optional(template.ai_provider_credential_id),
+        slug: optional(template.slug),
+        model: optional(template.model),
+        system_prompt: optional(template.system_prompt),
+        task_prompt: optional(template.task_prompt),
+        temperature: numberOrNull(template.temperature),
+        reasoning_effort: optional(
+            template.reasoning_effort,
+        ) as TemplateRequest['reasoning_effort'],
+        max_output_tokens: numberOrNull(template.max_output_tokens),
+        concurrency_limit: Number(template.concurrency_limit),
+        monthly_token_limit: numberOrNull(template.monthly_token_limit),
+    });
+    const saveProvider = async () => {
+        setSaving(true);
+        setError('');
+        try {
+            const token = await getCsrfToken();
+            const result = selectedProviderItem
+                ? await apiClient.PATCH('/admin/ai/providers/{provider_id}', {
+                      params: {
+                          path: { provider_id: selectedProviderItem.id },
+                          header: { 'X-CSRF-Token': token },
+                      },
+                      body: providerBody(),
+                  })
+                : await apiClient.POST('/admin/ai/providers', {
+                      params: { header: { 'X-CSRF-Token': token } },
+                      body: providerBody(),
+                  });
+            if (!result.response.ok || !result.data) throw new Error();
+            await load();
+            chooseProvider(
+                'provider_credential' in result.data
+                    ? result.data.provider_credential
+                    : null,
+            );
+        } catch {
+            setError(
+                'The provider could not be saved. Check the required fields and limits.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+    const saveTemplate = async () => {
+        setSaving(true);
+        setError('');
+        try {
+            const token = await getCsrfToken();
+            const result = selectedTemplateItem
+                ? await apiClient.PATCH('/admin/ai/templates/{template_id}', {
+                      params: {
+                          path: { template_id: selectedTemplateItem.id },
+                          header: { 'X-CSRF-Token': token },
+                      },
+                      body: templateBody(),
+                  })
+                : await apiClient.POST('/admin/ai/templates', {
+                      params: { header: { 'X-CSRF-Token': token } },
+                      body: templateBody(),
+                  });
+            if (!result.response.ok || !result.data) throw new Error();
+            await load();
+            chooseTemplate(
+                'agent_template' in result.data
+                    ? result.data.agent_template
+                    : null,
+            );
+        } catch {
+            setError(
+                'The template could not be saved. A custom slug must be unique.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+    const remove = async (kind: 'provider' | 'template') => {
+        const item =
+            kind === 'provider' ? selectedProviderItem : selectedTemplateItem;
+        if (
+            !item ||
+            !window.confirm(
+                `Delete ${'name' in item ? item.name : item.label}?`,
+            )
+        )
+            return;
+        setSaving(true);
+        try {
+            const token = await getCsrfToken();
+            const result =
+                kind === 'provider'
+                    ? await apiClient.DELETE(
+                          '/admin/ai/providers/{provider_id}',
+                          {
+                              params: {
+                                  path: { provider_id: item.id },
+                                  header: { 'X-CSRF-Token': token },
+                              },
+                          },
+                      )
+                    : await apiClient.DELETE(
+                          '/admin/ai/templates/{template_id}',
+                          {
+                              params: {
+                                  path: { template_id: item.id },
+                                  header: { 'X-CSRF-Token': token },
+                              },
+                          },
+                      );
+            if (!result.response.ok) throw new Error();
+            await load();
+            kind === 'provider' ? chooseProvider(null) : chooseTemplate(null);
+        } catch {
+            setError('The saved settings could not be deleted.');
+        } finally {
+            setSaving(false);
+        }
+    };
+    if (forbidden) return <Navigate replace to="/home" />;
+    const style = { '--settings-accent': '#4f46e5' } as React.CSSProperties;
+    return (
+        <main
+            className="settings-surface min-h-svh bg-slate-50 px-4 py-5 text-slate-950 dark:bg-slate-950 dark:text-slate-100"
+            style={style}
+        >
+            <div className="mx-auto w-full max-w-[92rem]">
+                <header className="mb-5">
+                    <Link
+                        className="text-sm text-[var(--settings-accent)]"
+                        to="/home"
+                    >
+                        Settings
+                    </Link>
+                    <p className="mt-4 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                        Administration
+                    </p>
+                    <h1 className="mt-2 text-3xl font-semibold">AI support</h1>
+                    <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
+                        Provider keys, reusable agent behavior and guardrails.
+                        Saving a template does not invoke a provider or change
+                        learning content.
+                    </p>
+                </header>
+                <nav className="mb-5 flex gap-2 border-b border-slate-300 pb-3 dark:border-slate-700">
+                    {(
+                        [
+                            ['providers', KeyRound, 'Provider keys'],
+                            ['templates', Bot, 'Agent templates'],
+                            ['guardrails', ShieldCheck, 'Guardrails'],
+                        ] as const
+                    ).map(([key, Icon, label]) => (
+                        <button
+                            key={key}
+                            className={`inline-flex items-center gap-2 rounded px-3 py-2 text-sm ${section === key ? 'bg-[var(--settings-accent)] text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+                            onClick={() => setSection(key)}
+                        >
+                            <Icon className="size-4" />
+                            {label}
+                        </button>
+                    ))}
+                </nav>
+                {error && (
+                    <p className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                        {error}
+                    </p>
+                )}
+                {!data ? (
+                    <p>Loading AI settings…</p>
+                ) : section === 'providers' ? (
+                    <Workspace
+                        items={data.provider_credentials}
+                        selected={selectedProvider}
+                        onNew={() => chooseProvider(null)}
+                        onSelect={chooseProvider}
+                        label={(item) => item.label}
+                        render={() => (
+                            <ProviderEditor
+                                form={provider}
+                                setForm={setProvider}
+                                options={data.provider_options}
+                                existing={selectedProviderItem}
+                                saving={saving}
+                                onSave={saveProvider}
+                                onDelete={() => void remove('provider')}
+                            />
+                        )}
+                    />
+                ) : section === 'templates' ? (
+                    <Workspace
+                        items={data.agent_templates}
+                        selected={selectedTemplate}
+                        onNew={() => chooseTemplate(null)}
+                        onSelect={chooseTemplate}
+                        label={(item) => item.name}
+                        detail={(item) =>
+                            `${item.purpose}${item.provider_label ? ` · ${item.provider_label}` : ''}`
+                        }
+                        render={() => (
+                            <>
+                                <TemplateEditor
+                                    form={template}
+                                    setForm={setTemplate}
+                                    settings={data}
+                                    existing={selectedTemplateItem}
+                                    saving={saving}
+                                    onSave={saveTemplate}
+                                    onDelete={() => void remove('template')}
+                                />
+                                <TemplateTestPanel
+                                    template={selectedTemplateItem}
+                                />
+                            </>
+                        )}
+                    />
+                ) : (
+                    <section className="grid gap-4 md:grid-cols-2">
+                        {data.guardrail_notes.map((note) => (
+                            <article
+                                key={note}
+                                className="border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900"
+                            >
+                                <ShieldCheck className="mb-3 size-5 text-[var(--settings-accent)]" />
+                                <p>{note}</p>
+                            </article>
+                        ))}
+                        <article className="border border-amber-300 bg-amber-50 p-5 text-amber-950">
+                            <h2 className="font-semibold">
+                                Execution is separate
+                            </h2>
+                            <p className="mt-2 text-sm">
+                                This migration slice configures encrypted
+                                credentials and templates only. Any future
+                                review execution stays server-owned, bounded and
+                                requires its own authorized use case.
+                            </p>
+                        </article>
+                    </section>
+                )}
+            </div>
+        </main>
+    );
 }
 
-function Workspace<T extends { id: string }>({ items, selected, onNew, onSelect, label, detail, render }: { items: T[]; selected: string | 'new'; onNew: () => void; onSelect: (item: T) => void; label: (item: T) => string; detail?: (item: T) => string; render: () => React.ReactNode }) { return <section className="grid min-h-[32rem] gap-4 lg:grid-cols-[19rem_1fr]"><aside className="border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"><button className="mb-3 inline-flex items-center gap-2 rounded bg-[var(--settings-accent)] px-3 py-2 text-sm text-white" onClick={onNew}><Plus className="size-4" />New</button><div className="space-y-1">{items.map((item) => <button key={item.id} className={`block w-full rounded p-3 text-left text-sm ${selected === item.id ? 'bg-slate-200 dark:bg-slate-800' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60'}`} onClick={() => onSelect(item)}><span className="block font-medium">{label(item)}</span>{detail && <span className="block text-xs text-slate-500">{detail(item)}</span>}</button>)}</div></aside><div className="border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">{render()}</div></section>; }
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block text-sm font-medium">{label}<span className="mt-1 block">{children}</span></label>; }
-const input = 'w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950';
-function ProviderEditor({ form, setForm, options, existing, saving, onSave, onDelete }: { form: ProviderForm; setForm: React.Dispatch<React.SetStateAction<ProviderForm>>; options: Settings['provider_options']; existing: Provider | null; saving: boolean; onSave: () => void; onDelete: () => void }) { const edit = (key: keyof ProviderForm, value: string | boolean) => setForm((f) => ({ ...f, [key]: value })); return <div className="space-y-4"><h2 className="text-xl font-semibold">{existing ? 'Edit provider key' : 'New provider key'}</h2><div className="grid gap-4 md:grid-cols-2"><Field label="Label"><input className={input} value={form.label} onChange={(e) => edit('label', e.target.value)} /></Field><Field label="Provider"><select className={input} value={form.provider} onChange={(e) => edit('provider', e.target.value)}>{options.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field><Field label="Base URL"><input className={input} value={form.base_url} onChange={(e) => edit('base_url', e.target.value)} placeholder="Optional for compatible or local services" /></Field><Field label={existing?.has_api_key ? `Replace API key (saved ending ${existing.api_key_last_four})` : 'API key'}><input className={input} type="password" value={form.api_key} onChange={(e) => edit('api_key', e.target.value)} placeholder={existing?.has_api_key ? 'Leave blank to preserve encrypted key' : ''} /></Field><Field label="Organization"><input className={input} value={form.organization} onChange={(e) => edit('organization', e.target.value)} /></Field><Field label="Monthly token limit"><input className={input} inputMode="numeric" value={form.monthly_token_limit} onChange={(e) => edit('monthly_token_limit', e.target.value)} /></Field><Field label="Monthly cost limit (cents)"><input className={input} inputMode="numeric" value={form.monthly_cost_limit_cents} onChange={(e) => edit('monthly_cost_limit_cents', e.target.value)} /></Field></div><Field label="Notes"><textarea className={input} rows={4} value={form.notes} onChange={(e) => edit('notes', e.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.enabled} onChange={(e) => edit('enabled', e.target.checked)} />Enabled</label><Actions saving={saving} existing={!!existing} onSave={onSave} onDelete={onDelete} /></div>; }
-function TemplateEditor({ form, setForm, settings, existing, saving, onSave, onDelete }: { form: TemplateForm; setForm: React.Dispatch<React.SetStateAction<TemplateForm>>; settings: Settings; existing: Template | null; saving: boolean; onSave: () => void; onDelete: () => void }) { const edit = (key: keyof TemplateForm, value: string | boolean) => setForm((f) => ({ ...f, [key]: value })); return <div className="space-y-4"><h2 className="text-xl font-semibold">{existing ? 'Edit agent template' : 'New agent template'}</h2><div className="grid gap-4 md:grid-cols-2"><Field label="Name"><input className={input} value={form.name} onChange={(e) => edit('name', e.target.value)} /></Field><Field label="Purpose"><select className={input} value={form.purpose} onChange={(e) => edit('purpose', e.target.value)}>{settings.purpose_options.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field><Field label="Provider credential"><select className={input} value={form.ai_provider_credential_id} onChange={(e) => edit('ai_provider_credential_id', e.target.value)}><option value="">No provider selected</option>{settings.provider_credentials.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></Field><Field label="Model"><input className={input} value={form.model} onChange={(e) => edit('model', e.target.value)} /></Field><Field label="Slug"><input className={input} value={form.slug} onChange={(e) => edit('slug', e.target.value)} placeholder="Generated from name when blank" /></Field><Field label="Max output tokens"><input className={input} value={form.max_output_tokens} onChange={(e) => edit('max_output_tokens', e.target.value)} /></Field><Field label="Temperature"><input className={input} value={form.temperature} onChange={(e) => edit('temperature', e.target.value)} placeholder="Leave blank for reasoning controls" /></Field><Field label="Reasoning effort"><select className={input} value={form.reasoning_effort} onChange={(e) => edit('reasoning_effort', e.target.value)}><option value="">None</option>{['none','low','medium','high','xhigh','max'].map((value) => <option key={value}>{value}</option>)}</select></Field><Field label="Concurrency limit"><input className={input} value={form.concurrency_limit} onChange={(e) => edit('concurrency_limit', e.target.value)} /></Field><Field label="Monthly token limit"><input className={input} value={form.monthly_token_limit} onChange={(e) => edit('monthly_token_limit', e.target.value)} /></Field></div><Field label="System prompt"><textarea className={input} rows={5} value={form.system_prompt} onChange={(e) => edit('system_prompt', e.target.value)} /></Field><Field label="Task prompt"><textarea className={input} rows={5} value={form.task_prompt} onChange={(e) => edit('task_prompt', e.target.value)} /></Field><div className="flex gap-5 text-sm"><label><input type="checkbox" checked={form.enabled} onChange={(e) => edit('enabled', e.target.checked)} /> Enabled</label><label><input type="checkbox" checked={form.guarded_context} onChange={(e) => edit('guarded_context', e.target.checked)} /> Guarded context</label></div><Actions saving={saving} existing={!!existing} onSave={onSave} onDelete={onDelete} /></div>; }
-function Actions({ saving, existing, onSave, onDelete }: { saving: boolean; existing: boolean; onSave: () => void; onDelete: () => void }) { return <div className="flex gap-3 border-t border-slate-200 pt-4 dark:border-slate-700"><button disabled={saving} className="inline-flex items-center gap-2 rounded bg-[var(--settings-accent)] px-3 py-2 text-sm text-white disabled:opacity-60" onClick={() => void onSave()}><Save className="size-4" />Save</button>{existing && <button disabled={saving} className="inline-flex items-center gap-2 rounded border border-red-300 px-3 py-2 text-sm text-red-700" onClick={() => void onDelete()}><Trash2 className="size-4" />Delete</button>}</div>; }
+function Workspace<T extends { id: string }>({
+    items,
+    selected,
+    onNew,
+    onSelect,
+    label,
+    detail,
+    render,
+}: {
+    items: T[];
+    selected: string | 'new';
+    onNew: () => void;
+    onSelect: (item: T) => void;
+    label: (item: T) => string;
+    detail?: (item: T) => string;
+    render: () => React.ReactNode;
+}) {
+    return (
+        <section className="grid min-h-[32rem] gap-4 lg:grid-cols-[19rem_1fr]">
+            <aside className="border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                <button
+                    className="mb-3 inline-flex items-center gap-2 rounded bg-[var(--settings-accent)] px-3 py-2 text-sm text-white"
+                    onClick={onNew}
+                >
+                    <Plus className="size-4" />
+                    New
+                </button>
+                <div className="space-y-1">
+                    {items.map((item) => (
+                        <button
+                            key={item.id}
+                            className={`block w-full rounded p-3 text-left text-sm ${selected === item.id ? 'bg-slate-200 dark:bg-slate-800' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60'}`}
+                            onClick={() => onSelect(item)}
+                        >
+                            <span className="block font-medium">
+                                {label(item)}
+                            </span>
+                            {detail && (
+                                <span className="block text-xs text-slate-500">
+                                    {detail(item)}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </aside>
+            <div className="border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+                {render()}
+            </div>
+        </section>
+    );
+}
+function Field({
+    label,
+    children,
+}: {
+    label: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <label className="block text-sm font-medium">
+            {label}
+            <span className="mt-1 block">{children}</span>
+        </label>
+    );
+}
+const input =
+    'w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950';
+function ProviderEditor({
+    form,
+    setForm,
+    options,
+    existing,
+    saving,
+    onSave,
+    onDelete,
+}: {
+    form: ProviderForm;
+    setForm: React.Dispatch<React.SetStateAction<ProviderForm>>;
+    options: Settings['provider_options'];
+    existing: Provider | null;
+    saving: boolean;
+    onSave: () => void;
+    onDelete: () => void;
+}) {
+    const edit = (key: keyof ProviderForm, value: string | boolean) =>
+        setForm((f) => ({ ...f, [key]: value }));
+    return (
+        <div className="space-y-4">
+            <h2 className="text-xl font-semibold">
+                {existing ? 'Edit provider key' : 'New provider key'}
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Label">
+                    <input
+                        className={input}
+                        value={form.label}
+                        onChange={(e) => edit('label', e.target.value)}
+                    />
+                </Field>
+                <Field label="Provider">
+                    <select
+                        className={input}
+                        value={form.provider}
+                        onChange={(e) => edit('provider', e.target.value)}
+                    >
+                        {options.map((item) => (
+                            <option key={item.value} value={item.value}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+                <Field label="Base URL">
+                    <input
+                        className={input}
+                        value={form.base_url}
+                        onChange={(e) => edit('base_url', e.target.value)}
+                        placeholder="Optional for compatible or local services"
+                    />
+                </Field>
+                <Field
+                    label={
+                        existing?.has_api_key
+                            ? `Replace API key (saved ending ${existing.api_key_last_four})`
+                            : 'API key'
+                    }
+                >
+                    <input
+                        className={input}
+                        type="password"
+                        value={form.api_key}
+                        onChange={(e) => edit('api_key', e.target.value)}
+                        placeholder={
+                            existing?.has_api_key
+                                ? 'Leave blank to preserve encrypted key'
+                                : ''
+                        }
+                    />
+                </Field>
+                <Field label="Organization">
+                    <input
+                        className={input}
+                        value={form.organization}
+                        onChange={(e) => edit('organization', e.target.value)}
+                    />
+                </Field>
+                <Field label="Monthly token limit">
+                    <input
+                        className={input}
+                        inputMode="numeric"
+                        value={form.monthly_token_limit}
+                        onChange={(e) =>
+                            edit('monthly_token_limit', e.target.value)
+                        }
+                    />
+                </Field>
+                <Field label="Monthly cost limit (cents)">
+                    <input
+                        className={input}
+                        inputMode="numeric"
+                        value={form.monthly_cost_limit_cents}
+                        onChange={(e) =>
+                            edit('monthly_cost_limit_cents', e.target.value)
+                        }
+                    />
+                </Field>
+            </div>
+            <Field label="Notes">
+                <textarea
+                    className={input}
+                    rows={4}
+                    value={form.notes}
+                    onChange={(e) => edit('notes', e.target.value)}
+                />
+            </Field>
+            <label className="flex items-center gap-2 text-sm">
+                <input
+                    type="checkbox"
+                    checked={form.enabled}
+                    onChange={(e) => edit('enabled', e.target.checked)}
+                />
+                Enabled
+            </label>
+            <Actions
+                saving={saving}
+                existing={!!existing}
+                onSave={onSave}
+                onDelete={onDelete}
+            />
+        </div>
+    );
+}
+function TemplateEditor({
+    form,
+    setForm,
+    settings,
+    existing,
+    saving,
+    onSave,
+    onDelete,
+}: {
+    form: TemplateForm;
+    setForm: React.Dispatch<React.SetStateAction<TemplateForm>>;
+    settings: Settings;
+    existing: Template | null;
+    saving: boolean;
+    onSave: () => void;
+    onDelete: () => void;
+}) {
+    const edit = (key: keyof TemplateForm, value: string | boolean) =>
+        setForm((f) => ({ ...f, [key]: value }));
+    return (
+        <div className="space-y-4">
+            <h2 className="text-xl font-semibold">
+                {existing ? 'Edit agent template' : 'New agent template'}
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Name">
+                    <input
+                        className={input}
+                        value={form.name}
+                        onChange={(e) => edit('name', e.target.value)}
+                    />
+                </Field>
+                <Field label="Purpose">
+                    <select
+                        className={input}
+                        value={form.purpose}
+                        onChange={(e) => edit('purpose', e.target.value)}
+                    >
+                        {settings.purpose_options.map((item) => (
+                            <option key={item.value} value={item.value}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+                <Field label="Provider credential">
+                    <select
+                        className={input}
+                        value={form.ai_provider_credential_id}
+                        onChange={(e) =>
+                            edit('ai_provider_credential_id', e.target.value)
+                        }
+                    >
+                        <option value="">No provider selected</option>
+                        {settings.provider_credentials.map((item) => (
+                            <option key={item.id} value={item.id}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+                <Field label="Model">
+                    <input
+                        className={input}
+                        value={form.model}
+                        onChange={(e) => edit('model', e.target.value)}
+                    />
+                </Field>
+                <Field label="Slug">
+                    <input
+                        className={input}
+                        value={form.slug}
+                        onChange={(e) => edit('slug', e.target.value)}
+                        placeholder="Generated from name when blank"
+                    />
+                </Field>
+                <Field label="Max output tokens">
+                    <input
+                        className={input}
+                        value={form.max_output_tokens}
+                        onChange={(e) =>
+                            edit('max_output_tokens', e.target.value)
+                        }
+                    />
+                </Field>
+                <Field label="Temperature">
+                    <input
+                        className={input}
+                        value={form.temperature}
+                        onChange={(e) => edit('temperature', e.target.value)}
+                        placeholder="Leave blank for reasoning controls"
+                    />
+                </Field>
+                <Field label="Reasoning effort">
+                    <select
+                        className={input}
+                        value={form.reasoning_effort}
+                        onChange={(e) =>
+                            edit('reasoning_effort', e.target.value)
+                        }
+                    >
+                        <option value="">None</option>
+                        {['none', 'low', 'medium', 'high', 'xhigh', 'max'].map(
+                            (value) => (
+                                <option key={value}>{value}</option>
+                            ),
+                        )}
+                    </select>
+                </Field>
+                <Field label="Concurrency limit">
+                    <input
+                        className={input}
+                        value={form.concurrency_limit}
+                        onChange={(e) =>
+                            edit('concurrency_limit', e.target.value)
+                        }
+                    />
+                </Field>
+                <Field label="Monthly token limit">
+                    <input
+                        className={input}
+                        value={form.monthly_token_limit}
+                        onChange={(e) =>
+                            edit('monthly_token_limit', e.target.value)
+                        }
+                    />
+                </Field>
+            </div>
+            <Field label="System prompt">
+                <textarea
+                    className={input}
+                    rows={5}
+                    value={form.system_prompt}
+                    onChange={(e) => edit('system_prompt', e.target.value)}
+                />
+            </Field>
+            <Field label="Task prompt">
+                <textarea
+                    className={input}
+                    rows={5}
+                    value={form.task_prompt}
+                    onChange={(e) => edit('task_prompt', e.target.value)}
+                />
+            </Field>
+            <div className="flex gap-5 text-sm">
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={form.enabled}
+                        onChange={(e) => edit('enabled', e.target.checked)}
+                    />{' '}
+                    Enabled
+                </label>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={form.guarded_context}
+                        onChange={(e) =>
+                            edit('guarded_context', e.target.checked)
+                        }
+                    />{' '}
+                    Guarded context
+                </label>
+            </div>
+            <Actions
+                saving={saving}
+                existing={!!existing}
+                onSave={onSave}
+                onDelete={onDelete}
+            />
+        </div>
+    );
+}
+function TemplateTestPanel({ template }: { template: Template | null }) {
+    const [prompt, setPrompt] = useState('');
+    const [result, setResult] = useState<TemplateTestResult | null>(null);
+    const [error, setError] = useState('');
+    const [testing, setTesting] = useState(false);
+    const canSubmit = Boolean(template && prompt.trim() && !testing);
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!template || !prompt.trim()) return;
+        setError('');
+        setResult(null);
+        setTesting(true);
+        try {
+            const token = await getCsrfToken();
+            const response = await apiClient.POST(
+                '/admin/ai/templates/{template_id}/test',
+                {
+                    body: { prompt },
+                    params: {
+                        header: { 'X-CSRF-Token': token },
+                        path: { template_id: template.id },
+                    },
+                },
+            );
+            if (!response.response.ok || !response.data) throw new Error();
+            setResult(response.data);
+        } catch {
+            setError('The template test could not be completed safely.');
+        } finally {
+            setTesting(false);
+        }
+    };
+    return (
+        <form
+            className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950"
+            data-wl-id="settings.ai.template-test"
+            onSubmit={(event) => void submit(event)}
+        >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 className="text-sm font-semibold">Test request</h3>
+                    <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {template
+                            ? 'Uses the saved agent template and its server-side provider key.'
+                            : 'Save this agent template before sending a test request.'}
+                    </p>
+                </div>
+                <button
+                    className="inline-flex items-center gap-2 rounded border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-60 dark:border-slate-700"
+                    disabled={!canSubmit}
+                    type="submit"
+                >
+                    <Send className="size-4" />
+                    {testing ? 'Sending' : 'Send test'}
+                </button>
+            </div>
+            <textarea
+                aria-label="Test prompt"
+                className={`${input} min-h-28`}
+                disabled={!template || testing}
+                maxLength={12000}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Ask a short test question..."
+                value={prompt}
+            />
+            {error ? (
+                <p
+                    className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+                    role="alert"
+                >
+                    {error}
+                </p>
+            ) : null}
+            {result ? (
+                <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900">
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span>{result.provider}</span>
+                        <span>{result.model}</span>
+                        {result.usage.totalTokens !== null ? (
+                            <span>Tokens: {result.usage.totalTokens}</span>
+                        ) : null}
+                    </div>
+                    <pre className="max-h-80 overflow-auto text-sm leading-6 whitespace-pre-wrap">
+                        {result.text || 'The provider returned no text.'}
+                    </pre>
+                </div>
+            ) : null}
+        </form>
+    );
+}
+function Actions({
+    saving,
+    existing,
+    onSave,
+    onDelete,
+}: {
+    saving: boolean;
+    existing: boolean;
+    onSave: () => void;
+    onDelete: () => void;
+}) {
+    return (
+        <div className="flex gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+            <button
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded bg-[var(--settings-accent)] px-3 py-2 text-sm text-white disabled:opacity-60"
+                onClick={() => void onSave()}
+            >
+                <Save className="size-4" />
+                Save
+            </button>
+            {existing && (
+                <button
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 rounded border border-red-300 px-3 py-2 text-sm text-red-700"
+                    onClick={() => void onDelete()}
+                >
+                    <Trash2 className="size-4" />
+                    Delete
+                </button>
+            )}
+        </div>
+    );
+}

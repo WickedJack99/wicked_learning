@@ -4884,6 +4884,9 @@ Rust loads the selected template and provider configuration server-side, decrypt
 the provider key only for the outbound request, and returns only response text,
 provider/model metadata and usage. The test does not create content or persist
 a provider response, and configuration/provider failures remain sanitized.
+The standalone AI settings lift now retains the source saved-template test
+panel: it remains unavailable for an unsaved template, displays the server-key
+notice and sends only the bounded prompt through the generated CSRF client.
 
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
