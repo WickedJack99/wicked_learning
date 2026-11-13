@@ -625,22 +625,43 @@ export function App() {
 
     if (location.pathname === '/settings') {
         const settingsQuery = new URLSearchParams(location.search);
-        const settingsPanel = settingsQuery.get('panel');
+        const rawSettingsPanel = settingsQuery.get('panel');
+        const settingsPanel =
+            {
+                appearance: 'personal',
+                'admin-presentation': 'admin-public-pages',
+                'admin-users': 'admin-access',
+                'admin-world': 'admin-world-builder',
+                notifications: 'personal',
+                profile: 'personal',
+                security: 'personal',
+            }[rawSettingsPanel ?? ''] ?? rawSettingsPanel;
         const assetSection = settingsQuery.get('asset');
         const presentationSection = settingsQuery.get('presentation');
         const supportSection = settingsQuery.get('support');
+        const personalSection =
+            settingsQuery.get('personal') ??
+            {
+                appearance: 'appearance',
+                notifications: 'notifications',
+                profile: 'profile',
+                security: 'security',
+            }[rawSettingsPanel ?? ''];
+        const accessSection =
+            settingsQuery.get('access') ??
+            (settingsPanel === 'admin-access' ? 'users' : null);
         const assetsPanel =
             settingsPanel === 'admin-assets-world-objects' ||
             settingsPanel === 'admin-assets';
         const usersPanel =
             settingsPanel === 'admin-access' &&
-            settingsQuery.get('access') === 'users';
+            accessSection === 'users';
         const rolesPanel =
             settingsPanel === 'admin-access' &&
-            settingsQuery.get('access') === 'roles';
+            accessSection === 'roles';
         const groupPanel =
             settingsPanel === 'admin-access' &&
-            settingsQuery.get('access') === 'groups';
+            accessSection === 'groups';
         const supportPanel = settingsPanel === 'admin-learning-support';
         if (
             currentUser.kind === 'loading' ||
@@ -932,43 +953,26 @@ export function App() {
         }
 
         if (!supportPanel) {
-            if (
-                new URLSearchParams(location.search).get('personal') ===
-                'language'
-            ) {
+            if (personalSection === 'language') {
                 return <OriginalPersonalLanguagePage appearance={appearance} />;
             }
-            if (
-                new URLSearchParams(location.search).get('personal') ===
-                'feedback'
-            ) {
+            if (personalSection === 'feedback') {
                 return <OriginalPersonalFeedbackPage appearance={appearance} />;
             }
-            if (
-                new URLSearchParams(location.search).get('personal') ===
-                'notifications'
-            ) {
+            if (personalSection === 'notifications') {
                 return (
                     <OriginalPersonalNotificationsPage
                         appearance={appearance}
                     />
                 );
             }
-            if (
-                new URLSearchParams(location.search).get('personal') === 'sound'
-            ) {
+            if (personalSection === 'sound') {
                 return <OriginalPersonalSoundPage appearance={appearance} />;
             }
-            if (
-                new URLSearchParams(location.search).get('personal') ===
-                'security'
-            ) {
+            if (personalSection === 'security') {
                 return <OriginalPersonalSecurityPage appearance={appearance} />;
             }
-            if (
-                new URLSearchParams(location.search).get('personal') ===
-                'delete-account'
-            ) {
+            if (personalSection === 'delete-account') {
                 return (
                     <OriginalPersonalDeleteAccountPage
                         appearance={appearance}
@@ -982,10 +986,7 @@ export function App() {
                     />
                 );
             }
-            if (
-                new URLSearchParams(location.search).get('personal') ===
-                'appearance'
-            ) {
+            if (personalSection === 'appearance') {
                 return (
                     <OriginalPersonalAppearancePage
                         appearance={appearance}

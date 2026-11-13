@@ -51,4 +51,17 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
 
     await page.goto('/settings?personal=appearance&support=learning-concepts');
     await expect(page.getByRole('heading', { name: 'Appearance' })).toBeVisible();
+
+    await page.goto('/settings?panel=appearance');
+    await expect(page.getByRole('heading', { name: 'Appearance' })).toBeVisible();
+
+    await page.goto('/settings?panel=admin-presentation');
+    await expect(
+        page.getByRole('heading', { name: 'Public presentation' }),
+    ).toBeVisible();
+
+    await page.goto('/settings?panel=admin-users');
+    await expect(
+        page.getByRole('heading', { level: 1, name: 'Users' }),
+    ).toBeVisible();
 });
