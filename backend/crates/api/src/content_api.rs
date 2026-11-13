@@ -2470,5 +2470,23 @@ mod tests {
         assert_eq!(created["type"], "message_prompt");
         assert_eq!(created["config"]["messageAudience"], "peers");
         assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+
+        let wall_request = serde_json::from_value(json!({
+            "type": "message_wall", "title": "Read the repair notes", "message_topic_title": "Relay cabinet notes",
+        })).expect("valid partial Message Wall Content API request");
+        let Ok(wall_form) = content_api_message_form(&wall_request) else {
+            panic!("source defaults are valid");
+        };
+        let wall = serialize_created_message(
+            Uuid::new_v4(),
+            wicked_learning_application::admin_world_message::CreatedMessageActivity {
+                activity_id: Uuid::new_v4(),
+                config: json!({ "messageTopicId": Uuid::new_v4(), "messageAudience": "peers" }),
+                slug: "read-the-repair-notes".to_owned(),
+            },
+            &wall_form,
+        );
+        assert_eq!(wall["type"], "message_wall");
+        assert_eq!(wall["title"], "Read the repair notes");
     }
 }
