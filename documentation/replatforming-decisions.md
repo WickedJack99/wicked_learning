@@ -4823,6 +4823,16 @@ plus the World Builder delete scope, preserving the command's transactional
 cascade and managed-media reference cleanup. Both retain the same-origin CSRF
 boundary; no Content API permission widens the addressed MapAsset scope.
 
+**Map extension:** The contract now exposes the existing scoped Map Details
+read/update and map-delete commands. Read returns the current
+optimistic-concurrency timestamp; update requires the complete source form and
+that exact timestamp, while preserving distinct visual, access and MapAsset
+boundaries. Delete requires `content_api.rud` plus the World Builder delete
+scope and delegates to the existing cascade/media-reference cleanup. The
+machine contract and console advertise these operations only after the route,
+generated client and browser lifecycle proof exist; `content_api` never widens
+the selected map's World Builder scope.
+
 **Extension:** The contract also exposes Laravel's strict v1.5 ContentPlan
 draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and
 Open Practice. Rust advertises scoped administration commands to generate a

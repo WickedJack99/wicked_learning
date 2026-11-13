@@ -105,6 +105,73 @@ paths:
         '401': { description: No authenticated administration session. }
         '403': { description: The CSRF check failed or the current role lacks content_api or World Builder map-create permission. }
         '503': { description: The application database is unavailable. }
+  /content/v1/maps/{map_id}:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getContentApiMap
+      summary: Read the complete source-compatible details for one editable map.
+      description: Requires content_api read permission and the existing World Builder update scope. It returns the current optimistic-concurrency timestamp required by the map-details writer.
+      responses:
+        '200':
+          description: The editable map details, without nested MapAssets or activity graphs.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/ContentApiEditableMap' }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The current role lacks content_api read permission. }
+        '404': { description: The map is unavailable in the caller's editable scope. }
+        '503': { description: The application database is unavailable. }
+    patch:
+      operationId: updateContentApiMap
+      summary: Replace the complete source Map Details form for one editable map.
+      description: Requires content_api update permission, the existing World Builder update scope, the current updated_at value, and a same-origin CSRF token. This does not update visuals, access rules, or MapAsset surfaces.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateContentApiMapRequest' }
+      responses:
+        '200':
+          description: The updated complete map-details projection.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/ContentApiEditableMap' }
+        '400': { description: The complete Map Details form or topic reference is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Builder update permission. }
+        '404': { description: The map is unavailable in the caller's editable scope. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
+    delete:
+      operationId: deleteContentApiMap
+      summary: Delete a source-compatible map through the World Builder cascade.
+      description: Requires content_api delete permission, the existing World Builder delete scope, and a same-origin CSRF token. The existing scoped command owns dependent-record and media-reference cleanup.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The scoped map was deleted. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Builder delete permission. }
+        '404': { description: The map is unavailable in the caller's delete scope. }
+        '503': { description: The application database is unavailable. }
   /content/v1/maps/{map_id}/map-assets:
     servers:
       - url: /api
@@ -7393,6 +7460,28 @@ components:
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/ContentApiMap' }
+    ContentApiEditableMap:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description, topicId, mapAssetsLocked, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 1000 }
+        topicId: { type: [string, 'null'], format: uuid }
+        mapAssetsLocked: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+    UpdateContentApiMapRequest:
+      type: object
+      additionalProperties: false
+      required: [title, description, topic_id, map_assets_locked, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        topic_id: { type: [string, 'null'], format: uuid }
+        map_assets_locked: { type: boolean }
+        updated_at: { type: string, format: date-time }
     CreateContentApiMapAssetRequest:
       type: object
       additionalProperties: false

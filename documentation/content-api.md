@@ -48,6 +48,9 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `GET`  | `/contract`                         | Read the authoring contract                     |
 | `GET`  | `/maps`                             | List maps in the administrator's editable scope |
 | `POST` | `/maps`                             | Create a map in the current world               |
+| `GET` | `/maps/{map}` | Read one map's complete editable details and concurrency timestamp |
+| `PATCH` | `/maps/{map}` | Replace one map's complete source Map Details form |
+| `DELETE` | `/maps/{map}` | Delete one map through the scoped authoring cascade |
 | `GET`  | `/maps/{map}/map-assets`            | List a map's MapAssets and Activity counts      |
 | `POST` | `/maps/{map}/map-assets`            | Create a MapAsset and internal content record   |
 | `PATCH` | `/map-assets/{mapAsset}` | Replace one MapAsset's authored surface |
@@ -60,14 +63,18 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `DELETE` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Delete one scoped Activity connection |
 
 The contract response contains the authoritative fields and examples. The API
-creates individual objects, replaces or deletes one MapAsset surface through
-the existing scoped World Builder command, and explicitly manages individual
-Activity connections within one MapAsset. MapAsset replacement deliberately
+creates individual objects, reads, replaces or deletes one scoped map, replaces
+or deletes one MapAsset surface through the existing scoped World Builder
+commands, and explicitly manages individual Activity connections within one
+MapAsset. Map replacement requires the current `updatedAt` from its read
+response and changes only the source Map Details form; visual configuration,
+access rules and MapAssets retain their separate commands. MapAsset replacement deliberately
 does not rename the linked compatibility node: its title and description are
 the creation metadata. A MapAsset or transition mutation remains subject to
 the command's map scope; a transition update or deletion additionally proves
 that the addressed transition belongs to the URL's MapAsset before delegation.
-Map updates/deletes, bulk import and automatic graph wiring are not exposed.
+Map deletion retains the established scoped cascade/reference cleanup. Bulk
+import and automatic graph wiring are not exposed.
 
 ## Settings Console
 

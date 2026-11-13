@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool};
 use std::collections::{BTreeMap, HashMap};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_graph::AdminWorldGraphQuery,
@@ -22,6 +23,8 @@ use wicked_learning_application::{
     admin_world_map::AdminWorldMapQuery,
     admin_world_map_asset::{AdminWorldMapAssetCommand, WorldMapAssetForm},
     admin_world_map_create::{AdminWorldMapCreateCommand, CreateWorldMapForm},
+    admin_world_map_delete::AdminWorldMapDeleteCommand,
+    admin_world_map_details::{AdminWorldMapDetailsCommand, UpdateWorldMapDetailsForm},
     admin_world_markdown::{
         AdminWorldMarkdownCommand, AdminWorldMarkdownError, CreatedMarkdownActivity,
     },
@@ -70,8 +73,11 @@ use wicked_learning_application::{
         ContentApiActivityTransitionListQuery, ContentApiActivityTransitionScopeQuery,
     },
 };
-use wicked_learning_domain::world_content::{
-    AdminActivityTransition, AdminEditableMapAsset, AdminNodeSummary,
+use wicked_learning_domain::{
+    identity_access::AuthorizedPrincipal,
+    world_content::{
+        AdminActivityTransition, AdminEditableMapAsset, AdminEditableMapSummary, AdminNodeSummary,
+    },
 };
 use wicked_learning_persistence::{
     admin_world_graph::PostgresAdminWorldGraphRepository,
@@ -80,6 +86,8 @@ use wicked_learning_persistence::{
     admin_world_map::PostgresAdminWorldMapRepository,
     admin_world_map_asset::PostgresAdminWorldMapAssetRepository,
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
+    admin_world_map_delete::PostgresAdminWorldMapDeleteRepository,
+    admin_world_map_details::PostgresAdminWorldMapDetailsRepository,
     admin_world_markdown::{PostgresAdminWorldMarkdownRepository, markdown_config},
     admin_world_message::PostgresAdminWorldMessageRepository,
     admin_world_node_transition::PostgresAdminWorldNodeTransitionRepository,
@@ -128,6 +136,49 @@ pub struct CreateMapRequest {
     title: String,
     slug: Option<String>,
     description: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateMapRequest {
+    title: String,
+    description: NullableString,
+    topic_id: NullableUuid,
+    map_assets_locked: bool,
+    updated_at: String,
+}
+
+/// Required nullable fields preserve the source map-details form: `null`
+/// clears the value, while omitting the field is not a partial update.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum NullableString {
+    Text(String),
+    Null(()),
+}
+
+impl NullableString {
+    fn as_deref(&self) -> Option<&str> {
+        match self {
+            Self::Text(value) => Some(value),
+            Self::Null(()) => None,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum NullableUuid {
+    Id(Uuid),
+    Null(()),
+}
+
+impl NullableUuid {
+    fn as_option(&self) -> Option<Uuid> {
+        match self {
+            Self::Id(value) => Some(*value),
+            Self::Null(()) => None,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -406,6 +457,95 @@ pub async fn maps(
             "description": map.description,
         })).collect::<Vec<_>>(),
     })))
+}
+
+/// Reads the source Map Details projection required to make an optimistic,
+/// complete map replacement. The map scope remains the World Builder's scope.
+pub async fn map(
+    State(state): State<AppState>,
+    Path(map_id): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<Value>, ApiError> {
+    let map_id = Uuid::parse_str(&map_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ro")?;
+    let map = scoped_map(&state, &principal, map_id).await?;
+
+    Ok(Json(json!({ "data": serialize_editable_map(&map) })))
+}
+
+/// Replaces the source Map Details form, retaining its complete-form and
+/// optimistic-concurrency boundary rather than applying a partial patch.
+pub async fn update_map(
+    State(state): State<AppState>,
+    Path(map_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateMapRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_id = Uuid::parse_str(&map_id).map_err(|_| ApiError::not_found())?;
+    let form = UpdateWorldMapDetailsForm::parse(
+        &request.title,
+        request.description.as_deref(),
+        request.topic_id.as_option(),
+        request.map_assets_locked,
+    )
+    .ok_or_else(ApiError::invalid_request)?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresAdminWorldMapDetailsRepository::new(&state.application_database);
+    AdminWorldMapDetailsCommand::new(&repository)
+        .execute(&principal, map_id, &form, &request.updated_at)
+        .await
+        .map_err(|error| match error {
+            wicked_learning_application::admin_world_map_details::AdminWorldMapDetailsError::InvalidTopic => ApiError::invalid_request(),
+            wicked_learning_application::admin_world_map_details::AdminWorldMapDetailsError::Conflict => ApiError::conflict(),
+            wicked_learning_application::admin_world_map_details::AdminWorldMapDetailsError::Unavailable => ApiError::service_unavailable(),
+        })?
+        .ok_or_else(ApiError::not_found)?;
+    let map = scoped_map(&state, &principal, map_id).await?;
+
+    Ok(Json(json!({ "data": serialize_editable_map(&map) })))
+}
+
+/// Deletes a map only through the existing scoped World Builder cascade.
+pub async fn delete_map(
+    State(state): State<AppState>,
+    Path(map_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    let map_id = Uuid::parse_str(&map_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "rud")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresAdminWorldMapDeleteRepository::new(&state.application_database);
+    AdminWorldMapDeleteCommand::new(&repository)
+        .execute(&principal, map_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .then_some(StatusCode::NO_CONTENT)
+        .ok_or_else(ApiError::not_found)
+}
+
+async fn scoped_map(
+    state: &AppState,
+    principal: &AuthorizedPrincipal,
+    map_id: Uuid,
+) -> Result<AdminEditableMapSummary, ApiError> {
+    let repository = PostgresAdminWorldMapRepository::new(&state.application_database);
+    let editable_map = AdminWorldMapQuery::new(&repository)
+        .execute(principal, map_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(editable_map.editable_map.map)
 }
 
 /// Lists the source-compatible MapAssets for one already editable map. The
@@ -1702,6 +1842,18 @@ fn serialize_map_assets(
         .collect()
 }
 
+fn serialize_editable_map(map: &AdminEditableMapSummary) -> Value {
+    json!({
+        "id": map.id,
+        "slug": map.slug,
+        "title": map.title,
+        "description": map.description,
+        "topicId": map.topic_id,
+        "mapAssetsLocked": map.map_assets_locked,
+        "updatedAt": map.updated_at,
+    })
+}
+
 fn serialize_created_map_asset(map_id: Uuid, asset_id: Uuid, form: &WorldMapAssetForm) -> Value {
     json!({
         "id": asset_id,
@@ -1935,7 +2087,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.5",
+        "version": "1.6",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -2047,9 +2199,12 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.4", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.6", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
+            operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
+            operation("maps.update", "PATCH", "/api/content/v1/maps/{map}", "Replace a map's details", "Replaces the complete source Map Details form through the scoped World Builder command and requires its current updatedAt value.", json!({ "title": "Engine Bay: electrical systems", "description": "A revised exploratory map.", "topic_id": Value::Null, "map_assets_locked": false, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay: electrical systems", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("maps.destroy", "DELETE", "/api/content/v1/maps/{map}", "Delete a map", "Deletes a map only through the scoped World Builder cascade. It requires Content API and World Builder delete permission.", Value::Null, Value::Null),
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("map-assets.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}", "Update a MapAsset surface", "Replaces the source-shaped MapAsset surface through the scoped World Builder command. It does not rename the linked compatibility node.", json!({ "image_url": Value::Null, "text": "Alternator housing", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), Value::Null),
@@ -2108,11 +2263,11 @@ mod tests {
     };
 
     use super::{
-        UpdateMapAssetSurfaceRequest, content_api_item_grant_form, content_api_item_obstacle_form,
-        content_api_message_form, content_api_obstacle_form, content_api_portal_form,
-        content_api_shared_task_form, content_api_tool_grant_form, document,
-        is_supported_content_api_activity_type, require_content_permission, serialize_activity,
-        serialize_activity_transition, serialize_created_item_grant,
+        UpdateMapAssetSurfaceRequest, UpdateMapRequest, content_api_item_grant_form,
+        content_api_item_obstacle_form, content_api_message_form, content_api_obstacle_form,
+        content_api_portal_form, content_api_shared_task_form, content_api_tool_grant_form,
+        document, is_supported_content_api_activity_type, require_content_permission,
+        serialize_activity, serialize_activity_transition, serialize_created_item_grant,
         serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
         serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
         serialize_created_open_practice, serialize_created_portal, serialize_created_question,
@@ -2126,20 +2281,23 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.5");
-        assert_eq!(operations.len(), 13);
+        assert_eq!(document["version"], "1.6");
+        assert_eq!(operations.len(), 16);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
-        assert_eq!(operations[3]["id"], "map-assets.index");
-        assert_eq!(operations[4]["id"], "map-assets.store");
-        assert_eq!(operations[5]["id"], "map-assets.update");
-        assert_eq!(operations[6]["id"], "map-assets.destroy");
-        assert_eq!(operations[7]["id"], "activities.index");
-        assert_eq!(operations[8]["id"], "activities.store");
-        assert_eq!(operations[9]["id"], "activity-transitions.index");
-        assert_eq!(operations[10]["id"], "activity-transitions.store");
-        assert_eq!(operations[11]["id"], "activity-transitions.update");
-        assert_eq!(operations[12]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[3]["id"], "maps.show");
+        assert_eq!(operations[4]["id"], "maps.update");
+        assert_eq!(operations[5]["id"], "maps.destroy");
+        assert_eq!(operations[6]["id"], "map-assets.index");
+        assert_eq!(operations[7]["id"], "map-assets.store");
+        assert_eq!(operations[8]["id"], "map-assets.update");
+        assert_eq!(operations[9]["id"], "map-assets.destroy");
+        assert_eq!(operations[10]["id"], "activities.index");
+        assert_eq!(operations[11]["id"], "activities.store");
+        assert_eq!(operations[12]["id"], "activity-transitions.index");
+        assert_eq!(operations[13]["id"], "activity-transitions.store");
+        assert_eq!(operations[14]["id"], "activity-transitions.update");
+        assert_eq!(operations[15]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -2193,6 +2351,18 @@ mod tests {
         };
 
         assert!(require_content_permission(&principal, "ro").is_err());
+    }
+
+    #[test]
+    fn map_updates_require_the_complete_source_details_form() {
+        assert!(serde_json::from_str::<UpdateMapRequest>(
+            r#"{"title":"Engine Bay","description":null,"topic_id":null,"map_assets_locked":false,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_ok());
+        assert!(serde_json::from_str::<UpdateMapRequest>(
+            r#"{"title":"Engine Bay","description":null,"topic_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_err());
     }
 
     #[test]

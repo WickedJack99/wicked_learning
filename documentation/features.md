@@ -1139,7 +1139,10 @@ See [AI-assisted authoring](ai-authoring.md).
 ### Content API
 
 The permission-controlled Content API exposes a versioned machine contract and
-operations for maps, MapAssets and Activities. It can replace or delete a
+operations for maps, MapAssets and Activities. It can read, replace or delete a
+single scoped map only through the existing World Builder details/delete
+commands; replacement requires the current source concurrency timestamp and
+does not change map visuals, access or MapAssets. It can replace or delete a
 single scoped MapAsset only through the existing World Builder command and its
 map scope; replacement preserves the linked compatibility node's creation
 metadata. The standalone Settings API surface loads that live contract for its

@@ -1721,8 +1721,8 @@ Question, Shared Task, catalog-resolved Item Grant and Tool Grant, an Item
 Obstacle with a catalog-resolved item slot, a tool-resolved Obstacle, and a
 same-World Portal input/output link, back through the documented scoped route.
 The OpenAPI contract and
-generated TypeScript client now mirror all thirteen advertised operations,
-including the map list/create pair; no live console operation is outside the
+generated TypeScript client now mirror all sixteen advertised operations,
+including the map lifecycle; no live console operation is outside the
 typed API surface.
 
 The bounded Content API graph slice exposes source-ordered connection reads and
@@ -1745,6 +1745,16 @@ the MapAsset surface, intentionally preserving the linked node's creation
 title and description. The live machine contract, generated client and
 source-adapted API console advertise those operations only after the route and
 browser proof are present.
+
+The Content API map lifecycle now reads, replaces and deletes one scoped map
+through the exact World Builder commands. The read returns the source Map
+Details concurrency timestamp; replacement requires that current value and the
+complete title, description, topic and MapAsset-lock form, then returns the
+fresh projection. It deliberately leaves visuals, access settings and MapAssets
+to their distinct commands. Map deletion requires `content_api.rud` and the
+existing `world_maps.rud` scope, preserving the transactional cascade and
+managed-media cleanup. The generated client and disposable console browser flow
+prove the read/update/delete lifecycle before it is advertised.
 
 ### Local backup and isolated restore-drill slice — 13 November 2026
 
