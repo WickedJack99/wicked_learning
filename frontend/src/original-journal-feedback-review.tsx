@@ -1,9 +1,10 @@
 import { ChevronLeft, ChevronRight, Inbox, Send, ShieldCheck, Users } from 'lucide-react';
-import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { LearningSupportSettingsShell } from './extracted-learning-support-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type ReviewPage = components['schemas']['AdminJournalFeedbackPage'];
@@ -18,11 +19,15 @@ export function OriginalJournalFeedbackReviewPage({
     canManagePolicy,
     canRespond,
     canView,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
     canManagePolicy: boolean;
     canRespond: boolean;
     canView: boolean;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -148,17 +153,8 @@ export function OriginalJournalFeedbackReviewPage({
     }
 
     return (
-        <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}>
-            <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
-                <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
-                    <div>
-                        <Link className="mb-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] transition hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]" to="/home"><ChevronLeft className="size-4" /> Learning desk</Link>
-                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Settings</p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">Learning Support</h1>
-                    </div>
-                </header>
-                <section className="min-h-0 flex-1 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]">
-                    <div className="flex h-full min-h-0 flex-col" data-wl-id="settings.learning-support.feedback-requests">
+        <LearningSupportSettingsShell activeSection="feedback-requests" appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}>
+            <section className="flex h-full min-h-0 flex-col" data-wl-id="settings.learning-support.feedback-requests">
                         <header className="shrink-0 border-b border-[var(--settings-border-color)] px-4 py-4 sm:px-5">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div className="flex items-start gap-3"><Inbox className="mt-1 size-5 shrink-0 text-[var(--settings-accent)]" /><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Journal feedback</p><h2 className="mt-2 text-2xl font-semibold">Feedback requests</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">Learners have deliberately shared these journal pages for one-time informational feedback.</p></div></div>
@@ -172,10 +168,8 @@ export function OriginalJournalFeedbackReviewPage({
                             {selected ? <section className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]"><FeedbackRequestHeader item={selected} /><div className="grid min-h-0 gap-5 overflow-y-auto p-4 sm:p-5 xl:grid-cols-2"><div className="min-h-[14rem] border-b border-[var(--settings-border-color)] pb-4 text-sm leading-6 whitespace-pre-wrap xl:border-r xl:border-b-0 xl:pr-5 xl:pb-0"><h3 className="mb-3 font-semibold">Reflection</h3>{selected.page.markdown || 'This journal page is empty.'}</div><label className="grid min-h-[14rem] grid-rows-[auto_minmax(0,1fr)] gap-3 font-semibold">Feedback<textarea className="min-h-[14rem] resize-none rounded-md border border-[var(--settings-border-color)] p-3 text-sm font-normal outline-none focus:border-[var(--settings-accent)]" disabled={!canRespond || selected.responded_at !== null} onChange={(event) => setFeedbackById((current) => ({ ...current, [selected.id]: event.target.value }))} placeholder="Write informational feedback for this learner..." value={currentFeedback} /></label></div><footer className="flex justify-end px-4 pb-4 sm:px-5 sm:pb-5"><button className="inline-flex items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={!canRespond || saving || selected.responded_at !== null || !currentFeedback.trim()} onClick={() => void sendFeedback()} type="button"><Send className="size-4" />{saving ? 'Sending...' : selected.responded_at ? 'Responded' : 'Send'}</button></footer></section> : <div className="grid place-items-center text-sm text-[var(--settings-muted-text)]">Select a feedback request.</div>}
                         </div> : null}
                         {!loading && !canView ? <p className="p-6 text-sm text-[var(--settings-muted-text)]">You can manage the review policy, but do not have access to learner review requests.</p> : null}
-                    </div>
-                </section>
-            </div>
-        </main>
+            </section>
+        </LearningSupportSettingsShell>
     );
 }
 
@@ -189,9 +183,4 @@ function FeedbackRequestHeader({ item }: { item: ReviewItem }) {
 
 function Pagination({ current, last, onChange }: { current: number; last: number; onChange: (next: number) => void }) {
     return <footer className="flex items-center justify-between gap-2 border-t border-[var(--settings-border-color)] p-3 text-sm"><button className="inline-flex items-center disabled:opacity-40" disabled={current <= 1} onClick={() => onChange(current - 1)} type="button"><ChevronLeft className="size-4" /> Previous</button><span className="text-xs text-[var(--settings-muted-text)]">Page {current} of {last}</span><button className="inline-flex items-center disabled:opacity-40" disabled={current >= last} onClick={() => onChange(current + 1)} type="button">Next <ChevronRight className="size-4" /></button></footer>;
-}
-
-function settingsStyle(appearance: OriginalAppearance): CSSProperties {
-    const dark = appearance === 'dark';
-    return { '--settings-accent': dark ? '#2dd4bf' : '#0f766e', '--settings-active-background': dark ? 'rgba(45, 212, 191, 0.12)' : '#ccfbf1', '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0', '--settings-content-background': dark ? '#0b1117' : '#f1f5f9', '--settings-muted-text': dark ? '#94a3b8' : '#64748b', '--settings-panel-background': dark ? '#111820' : '#ffffff' } as CSSProperties;
 }

@@ -933,6 +933,8 @@ export function App() {
                             'journal_feedback_review',
                         )}
                         canView={canViewJournalFeedback}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
                     />
                 </Suspense>
             );

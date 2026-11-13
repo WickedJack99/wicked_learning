@@ -366,10 +366,10 @@ source-shaped summary counts and at most twelve anonymous unresolved
 shared-task review aggregates for the caller's already-scoped learners. The
 aggregate deliberately excludes learner writing and identities; the later
 three-section source UI lift now consumes it without adding a new staff-data
-authority. The standalone Support Signals, Learner Messages and Platform
-Feedback pages retain the extracted source Settings shell and the same source
-Learning Support section navigator, so moving between those child workspaces
-does not discard the parent source hierarchy. The Support Signals child
+authority. The standalone Support Signals, Learner Messages, Platform Feedback
+and Journal Feedback pages retain the extracted source Settings shell and the
+same source Learning Support section navigator, so moving between those child
+workspaces does not discard the parent source hierarchy. The Support Signals child
 retains its Collective Overview chart, Individual Support reader/manual-node
 access, and Peer Support queue. On a narrow viewport that source section
 navigator becomes a compact selector so the active nested view remains inside

@@ -74,6 +74,25 @@ test('a local support worker can discover the source-shaped support signal secti
     await expect(
         page.getByRole('heading', { name: 'Shared feedback' }),
     ).toBeVisible();
+
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=feedback-requests',
+    );
+    await expect(
+        page.getByRole('tablist', { name: 'Learning support sections' }),
+    ).toBeVisible();
+    await expect(
+        page
+            .getByRole('tablist', { name: 'Learning support sections' })
+            .getByRole('tab', { name: /^Feedback/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=platform-feedback',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Shared feedback' }),
+    ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     const platformFeedbackHeadingBounds = await page
         .getByRole('heading', { name: 'Shared feedback' })
