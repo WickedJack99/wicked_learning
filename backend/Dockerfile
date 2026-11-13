@@ -1,10 +1,11 @@
 FROM rust:1.89-bookworm AS builder
 
-WORKDIR /src
+WORKDIR /src/backend
 
-COPY Cargo.toml Cargo.lock ./
-COPY crates ./crates
-COPY migrations ./migrations
+COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/crates ./crates
+COPY backend/migrations ./migrations
+COPY lang/en /src/lang/en
 
 RUN cargo build --release --locked --package wicked-learning-api
 
@@ -17,7 +18,7 @@ RUN apt-get update \
     && useradd --system --gid wicked --create-home wicked \
     && install --directory --owner wicked --group wicked /var/lib/wicked-learning/media
 
-COPY --from=builder /src/target/release/wicked-learning-api /usr/local/bin/wicked-learning-api
+COPY --from=builder /src/backend/target/release/wicked-learning-api /usr/local/bin/wicked-learning-api
 
 ENV LISTEN_ADDRESS=0.0.0.0:3000
 ENV MEDIA_ROOT=/var/lib/wicked-learning/media

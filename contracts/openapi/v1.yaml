@@ -2507,6 +2507,78 @@ paths:
         '401': { description: The browser has no authenticated session. }
         '404': { description: The identity cannot author activities. }
         '503': { description: The application database is unavailable. }
+  /admin/languages:
+    get:
+      operationId: getAdminLanguages
+      summary: List the source-compatible platform language catalog.
+      responses:
+        '200': { description: English plus administrator-created locale definitions., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguageListResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot view language administration. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminLanguage
+      summary: Create a translation locale in a disabled state.
+      description: The locale remains unavailable to learners until the separate translated playback and platform-copy delivery gate is complete.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguageCreateRequest' } } } }
+      responses:
+        '200': { description: The new disabled locale definition., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguage' } } } }
+        '400': { description: The locale code or names are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage language administration. }
+        '409': { description: The locale code already exists. }
+        '503': { description: The application database is unavailable. }
+  /admin/languages/{code}:
+    patch:
+      operationId: updateAdminLanguage
+      summary: Rename one administrator-created locale without changing its code.
+      parameters: [ { name: code, in: path, required: true, schema: { type: string, pattern: '^[a-z]{2,3}(-[A-Z]{2})?$' } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguageUpdateRequest' } } } }
+      responses:
+        '200': { description: The saved locale definition., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguage' } } } }
+        '400': { description: The locale names are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The locale is English, unknown, or outside the caller's administration scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/languages/{code}/translation-catalog:
+    get:
+      operationId: exportAdminLanguageTranslationCatalog
+      summary: Export one locale's mutable platform and activity translation catalog.
+      parameters: [ { name: code, in: path, required: true, schema: { type: string, pattern: '^[a-z]{2,3}(-[A-Z]{2})?$' } } ]
+      responses:
+        '200': { description: A JSON translation catalog with its current optimistic-concurrency source timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguageCatalogResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The locale is English, unknown, or outside the caller's administration scope. }
+        '503': { description: The application database is unavailable. }
+  /admin/languages/{code}/translation-catalog/import:
+    post:
+      operationId: importAdminLanguageTranslationCatalog
+      summary: Import one source-compatible locale translation catalog.
+      description: Imports platform strings and filtered learner-copy activity strings only; graph, scoring, media, and access data are ignored.
+      parameters: [ { name: code, in: path, required: true, schema: { type: string, pattern: '^[a-z]{2,3}(-[A-Z]{2})?$' } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [catalog], properties: { catalog: { type: string, format: binary, description: JSON or plain-text JSON, maximum: 2097152 } } } } }
+      responses:
+        '200': { description: The catalog was stored. }
+        '400': { description: The file, catalog structure, or optimistic source timestamp is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The locale is English, unknown, or outside the caller's administration scope. }
+        '413': { description: The upload exceeds two MiB. }
+        '503': { description: The application database is unavailable. }
+  /admin/localization/catalogs/english:
+    get:
+      operationId: exportAdminEnglishTranslationCatalog
+      summary: Export canonical English platform and activity learner copy for translation.
+      responses:
+        '200': { description: The canonical English translation catalog., content: { application/json: { schema: { $ref: '#/components/schemas/AdminLanguageCatalogResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot view language administration. }
+        '503': { description: The application database is unavailable. }
   /admin/media-assets:
     get:
       operationId: getAdminMediaAssets
@@ -7927,6 +7999,46 @@ components:
       required: [locale]
       properties:
         locale: { type: string, maxLength: 16 }
+    AdminLanguage:
+      type: object
+      additionalProperties: false
+      required: [code, name, native_name, is_enabled, is_default, updated_at]
+      properties:
+        code: { type: string, pattern: '^[a-z]{2,3}(-[A-Z]{2})?$', maxLength: 16 }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        native_name: { type: string, minLength: 1, maxLength: 80 }
+        is_enabled: { type: boolean, description: False until translated playback and platform-copy delivery are released. }
+        is_default: { type: boolean, description: True only for canonical English. }
+        updated_at: { type: string, format: date-time }
+    AdminLanguageListResponse:
+      type: object
+      additionalProperties: false
+      required: [languages]
+      properties:
+        languages: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/AdminLanguage' } }
+    AdminLanguageCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [code, name, native_name]
+      properties:
+        code: { type: string, pattern: '^[a-z]{2,3}(-[A-Z]{2})?$', maxLength: 16 }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        native_name: { type: string, minLength: 1, maxLength: 80 }
+    AdminLanguageUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, native_name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        native_name: { type: string, minLength: 1, maxLength: 80 }
+    AdminLanguageCatalogResponse:
+      type: object
+      additionalProperties: false
+      required: [catalog]
+      properties:
+        catalog:
+          type: object
+          additionalProperties: true
     LoginRequest:
       type: object
       additionalProperties: false

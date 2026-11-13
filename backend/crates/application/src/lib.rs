@@ -27,6 +27,7 @@ pub mod admin_role;
 pub mod admin_sound;
 pub mod admin_source_records;
 pub mod admin_topics;
+pub mod admin_translation_catalog;
 pub mod admin_user;
 pub mod admin_world_activity_delete;
 pub mod admin_world_activity_history;

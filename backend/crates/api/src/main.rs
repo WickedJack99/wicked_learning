@@ -30,6 +30,7 @@ mod admin_role;
 mod admin_sound;
 mod admin_source_records;
 mod admin_topics;
+mod admin_translation_catalog;
 mod admin_user;
 mod admin_world_activity_ai_review;
 mod admin_world_activity_delete;
@@ -951,6 +952,11 @@ fn router(state: AppState) -> Router {
             post(admin_source_records::restore),
         )
         .route("/api/v1/admin/activity-templates", get(admin_activity_templates::index))
+        .route("/api/v1/admin/languages", get(admin_translation_catalog::list).post(admin_translation_catalog::create))
+        .route("/api/v1/admin/languages/{code}", patch(admin_translation_catalog::update))
+        .route("/api/v1/admin/languages/{code}/translation-catalog", get(admin_translation_catalog::language_export))
+        .route("/api/v1/admin/languages/{code}/translation-catalog/import", post(admin_translation_catalog::import).layer(DefaultBodyLimit::max(admin_translation_catalog::MAX_TRANSLATION_CATALOG_BYTES + 16 * 1024)))
+        .route("/api/v1/admin/localization/catalogs/english", get(admin_translation_catalog::english_export))
         .route("/api/v1/admin/media-assets", get(admin_media_assets::index).post(admin_media_assets::upload).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
         .route("/api/v1/admin/assets/items", get(admin_asset_catalog::list_items).post(admin_asset_catalog::create_item))
         .route("/api/v1/admin/assets/items/{item_id}", patch(admin_asset_catalog::update_item))
