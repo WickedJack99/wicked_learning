@@ -261,16 +261,18 @@ and invalidates existing sessions at their next request.
 
 The local proof of concept now has `POST /session/login` and `POST
 /session/logout`, both protected by an exact configured Origin and CSRF token.
-Login retains a five-attempt client-IP burst with one attempt replenished per
-minute using `tower_governor`; Nginx overwrites the trusted `X-Real-IP` header.
-It also atomically applies a five-attempt, one-minute per-account window in the
-identity database. The window is represented only by a `LOGIN_RATE_LIMIT_KEY`-
-keyed email digest and expires automatically; a correct password clears it.
-This is a bounded identity proof, not a user cutover: a comprehensive audited
-security-event policy, verification/recovery, MFA/passkeys and the full
-authorization matrix remain required before a user pilot, and the process-local
-IP limiter must become a shared/gateway control before multi-replica operation.
-SameSite is defense in depth, not a substitute for CSRF or origin enforcement.
+Nginx overwrites the trusted `X-Real-IP` header. Login keeps a small local
+`tower_governor` burst as an early guard and atomically applies five-attempt,
+one-minute windows in the shared identity database for both the account and the
+trusted client IP. Those rows contain only domain-separated
+`LOGIN_RATE_LIMIT_KEY`-keyed digests, expire automatically, and never retain a
+raw email address or IP; a correct password clears only the account window so
+it cannot bypass the client burst. The database-backed client window is the
+multi-replica authority. This is a bounded identity proof, not a user cutover:
+a comprehensive audited security-event policy, verification/recovery,
+MFA/passkeys and the full authorization matrix remain required before a user
+pilot. SameSite is defense in depth, not a substitute for CSRF or origin
+enforcement.
 
 ## ADR-012: Fresh public exploration model
 

@@ -65,11 +65,12 @@ foundation endpoint. The local proof of concept exposes password
 `POST /api/v1/session/login` and `POST /api/v1/session/logout`, with a small
 React sign-in/sign-out proof: both require the token's `X-CSRF-Token` header
 and the configured `PUBLIC_ORIGIN`. Login accepts only active, email-verified
-Rust identities, shares a small client-IP rate-limit burst with invitation
-registration, and atomically keeps a five-attempt one-minute per-account login
-window in the identity database. The window stores only a
-`LOGIN_RATE_LIMIT_KEY`-keyed email digest, expires automatically and is cleared
-by a correct password. The example key is deliberately predictable only for
+Rust identities, shares a small local client-IP rate-limit burst with invitation
+registration, and atomically keeps five-attempt one-minute account and trusted
+client windows in the shared identity database. Those windows store only
+domain-separated `LOGIN_RATE_LIMIT_KEY`-keyed digests; they never retain raw
+emails or addresses, expire automatically, and a correct password clears only
+the account window. The example key is deliberately predictable only for
 disposable local development; every shared deployment needs a distinct stable
 Base64-encoded 32-byte key. Authenticated password updates and factor changes
 also enqueue credential-free source-shaped access-history records through the
@@ -78,7 +79,7 @@ now cover TOTP enrollment and confirmation, authenticator/recovery-code login
 challenges, recovery-code viewing and replacement, factor disablement, and the
 corresponding passkey enrollment, confirmation, login and removal lifecycles.
 TOTP secrets remain encrypted and recovery codes retain Argon2id verifiers.
-The comprehensive production security-event policy, shared client-IP limiter,
+The comprehensive production security-event policy, proxy-header trust review,
 independent security review and production authorization/cutover gate remain
 separate required work; this local stack is not a user cutover.
 
@@ -140,7 +141,9 @@ Credentialed browser checks revalidate their ignored same-origin administrator
 session state before bootstrapping. Their opted-in fixture keeps each test
 anonymous until its source-derived login form submits, then installs an
 isolated copy of that server-issued local session instead of repeatedly
-spending the production-like per-client login-rate-limit burst. The dedicated
+spending the shared five-attempt client login window. That window persists only
+a `LOGIN_RATE_LIMIT_KEY`-keyed digest of Nginx's trusted `X-Real-IP`; it never
+stores a raw address, and successful passwords do not clear it. The dedicated
 session and invalid-credential contract checks still call the live login
 endpoint. Collaboration checks create two fresh collaborator sessions for each
 suite because source-owned learner work persists beyond a route reset,

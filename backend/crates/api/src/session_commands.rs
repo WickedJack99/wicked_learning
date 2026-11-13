@@ -137,6 +137,18 @@ pub async fn login(
     Json(request): Json<LoginRequest>,
 ) -> Result<Json<SessionStatusResponse>, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let client_ip = login_rate_limit::trusted_proxy_client_ip(&headers)
+        .ok_or_else(ApiError::service_unavailable)?;
+    if !login_rate_limit::claim_client_ip_login_attempt(
+        &state.identity_database,
+        &state.login_rate_limit_key,
+        client_ip,
+    )
+    .await
+    .map_err(|_| ApiError::service_unavailable())?
+    {
+        return Err(ApiError::too_many_requests());
+    }
     let normalized_email = request.email.trim().to_lowercase();
     if normalized_email.is_empty()
         || normalized_email.len() > MAX_EMAIL_BYTES

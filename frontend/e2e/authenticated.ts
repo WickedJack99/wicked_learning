@@ -39,7 +39,9 @@ export async function installE2eAdminSession(
  */
 export const test = base.extend({
     context: async ({ browser }, use) => {
-        const context = await browser.newContext();
+        const context = await browser.newContext({
+            baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
+        });
 
         if (hasAuthenticatedState()) {
             await context.route('**/api/v1/session/login', async (route) => {
