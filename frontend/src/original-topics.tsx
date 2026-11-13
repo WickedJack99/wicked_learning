@@ -1249,17 +1249,25 @@ function RoutesPanel({
                     <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
                     <div>
                         <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
-                            Optional ways in
+                            {t(
+                                'topics.detail.paths.eyebrow',
+                                'Optional ways in',
+                            )}
                         </p>
                         <h2
                             className="mt-2 text-sm font-semibold"
                             id="topic-paths-heading"
                         >
-                            Start with a route
+                            {t(
+                                'topics.detail.paths.title',
+                                'Start with a route',
+                            )}
                         </h2>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                            A route is a suggested beginning. You can follow it,
-                            pause, or explore the map in your own direction.
+                            {t(
+                                'topics.detail.paths.description',
+                                'A route is a suggested beginning. You can follow it, pause, or explore the map in your own direction.',
+                            )}
                         </p>
                     </div>
                 </div>
@@ -1269,7 +1277,10 @@ function RoutesPanel({
                             className="text-xs font-medium text-[var(--learner-muted-text)]"
                             htmlFor="topic-paths-purpose"
                         >
-                            Learning purpose
+                            {t(
+                                'topics.detail.paths.filters.purpose.label',
+                                'Learning purpose',
+                            )}
                         </label>
                         <select
                             className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
@@ -1283,7 +1294,12 @@ function RoutesPanel({
                             }
                             value={data.selected_purpose ?? ''}
                         >
-                            <option value="">Any purpose</option>
+                            <option value="">
+                                {t(
+                                    'topics.detail.paths.filters.purpose.any',
+                                    'Any purpose',
+                                )}
+                            </option>
                             {learningIntents.map((intent) => (
                                 <option key={intent} value={intent}>
                                     {platformIntentLabel(intent, t)}
@@ -1296,7 +1312,10 @@ function RoutesPanel({
                             className="text-xs font-medium text-[var(--learner-muted-text)]"
                             htmlFor="topic-paths-time"
                         >
-                            Available time
+                            {t(
+                                'topics.detail.paths.filters.time.label',
+                                'Available time',
+                            )}
                         </label>
                         <select
                             className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
@@ -1310,15 +1329,32 @@ function RoutesPanel({
                             }
                             value={data.selected_time_budget ?? ''}
                         >
-                            <option value="">Any time</option>
-                            <option value="15">Up to 15 minutes</option>
-                            <option value="30">Up to 30 minutes</option>
+                            <option value="">
+                                {t(
+                                    'topics.detail.paths.filters.time.any',
+                                    'Any time',
+                                )}
+                            </option>
+                            <option value="15">
+                                {t(
+                                    'topics.detail.paths.filters.time.short',
+                                    'Up to 15 minutes',
+                                )}
+                            </option>
+                            <option value="30">
+                                {t(
+                                    'topics.detail.paths.filters.time.medium',
+                                    'Up to 30 minutes',
+                                )}
+                            </option>
                         </select>
                     </div>
                 </div>
                 <p className="mt-3 text-xs text-[var(--learner-muted-text)]">
-                    Narrow these starting points by purpose or the time you have
-                    available.
+                    {t(
+                        'topics.detail.paths.filters.description',
+                        'Narrow these starting points by purpose or the time you have available.',
+                    )}
                 </p>
                 {startError ? (
                     <p className="mt-3 text-sm text-red-300" role="alert">
@@ -1340,13 +1376,21 @@ function RoutesPanel({
                     <div className="mt-8 text-sm leading-6 text-[var(--learner-muted-text)]">
                         {data.selected_purpose || data.selected_time_budget ? (
                             <>
-                                <p>No routes match these filters yet.</p>
+                                <p>
+                                    {t(
+                                        'topics.detail.paths.filtered_empty',
+                                        'No routes match these filters yet.',
+                                    )}
+                                </p>
                                 <button
                                     className="mt-3 block text-sm font-medium text-[var(--learner-action-accent)] underline underline-offset-2"
                                     onClick={() => onChange(1, null, null)}
                                     type="button"
                                 >
-                                    Show all routes
+                                    {t(
+                                        'topics.detail.paths.filtered_empty.clear',
+                                        'Show all routes',
+                                    )}
                                 </button>
                             </>
                         ) : (

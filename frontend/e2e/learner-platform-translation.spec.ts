@@ -307,6 +307,68 @@ test('the topic trail consumes its source competence catalog copy', async ({
     ).toBeVisible();
 });
 
+test('the topic routes filters consume their source catalog copy', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                roles: ['learner'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/platform-translations', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'topics.detail.paths.description':
+                        'Localized route guidance.',
+                    'topics.detail.paths.eyebrow': 'Localized routes',
+                    'topics.detail.paths.filters.purpose.label':
+                        'Localized purpose',
+                    'topics.detail.paths.filters.time.label': 'Localized time',
+                    'topics.detail.paths.title': 'Localized route start',
+                },
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/paths**', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                pagination: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 6,
+                    total: 0,
+                },
+                paths: [],
+                selected_purpose: null,
+                selected_time_budget: null,
+                topic_context: {
+                    area_title: 'Orientation',
+                    description: null,
+                    parent: null,
+                    slug: 'example',
+                    title: 'Example topic',
+                },
+            }),
+        }),
+    );
+
+    await page.goto('/topics/example?section=routes');
+    await expect(page.getByText('Localized routes')).toBeVisible();
+    await expect(page.getByText('Localized route start')).toBeVisible();
+    await expect(page.getByText('Localized route guidance.')).toBeVisible();
+    await expect(page.getByLabel('Localized purpose')).toBeVisible();
+    await expect(page.getByLabel('Localized time')).toBeVisible();
+});
+
 async function expectNavigationItemsInsideViewport(
     page: import('@playwright/test').Page,
     items: import('@playwright/test').Locator,
