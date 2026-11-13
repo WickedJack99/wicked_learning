@@ -65,6 +65,7 @@ import {
     SettingsSidebarNavigation,
     SettingsTopBar,
 } from './extracted-settings-sidebar-navigation';
+import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
 import { usePlatformTranslation } from './original-platform-translation';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
@@ -403,10 +404,12 @@ type StartRouteForm = {
 export function OriginalWorldBuilderPage({
     appearance,
     isAuthenticated,
+    onSignedOut,
     settingsAccess,
 }: {
     appearance: OriginalAppearance;
     isAuthenticated: boolean;
+    onSignedOut: () => void;
     settingsAccess: Record<string, boolean>;
 }) {
     if (!isAuthenticated) {
@@ -417,6 +420,7 @@ export function OriginalWorldBuilderPage({
         <ReactFlowProvider>
             <WorldBuilderContent
                 appearance={appearance}
+                onSignedOut={onSignedOut}
                 settingsAccess={settingsAccess}
             />
         </ReactFlowProvider>
@@ -425,9 +429,11 @@ export function OriginalWorldBuilderPage({
 
 function WorldBuilderContent({
     appearance,
+    onSignedOut,
     settingsAccess,
 }: {
     appearance: OriginalAppearance;
+    onSignedOut: () => void;
     settingsAccess: Record<string, boolean>;
 }) {
     const location = useLocation();
@@ -642,6 +648,7 @@ function WorldBuilderContent({
                             activePanel="admin-world-builder"
                             sections={navigationSections}
                         />
+                        <SettingsCornerNavigation onSignedOut={onSignedOut} />
                     </aside>
                     <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
                         <SettingsNestedWorkspace

@@ -707,6 +707,7 @@ export function App() {
                 <OriginalWorldBuilderPage
                     appearance={appearance}
                     isAuthenticated
+                    onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
                     settingsAccess={currentUser.settingsAccess}
                 />
             );

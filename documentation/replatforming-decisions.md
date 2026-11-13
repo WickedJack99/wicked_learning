@@ -4914,6 +4914,10 @@ into the standalone package with their component structure, markup and styles
 intact when the separate package roots would otherwise load a second React
 runtime. Only framework seams (Inertia navigation/page props and Laravel
 requests) may be adapted. A source-inspired replacement is not a lifted UI.
+The World Builder shell also retains the source Settings corner navigation
+(desk, current map, bookmarks, logout, source and legal destinations), with
+React Router and the existing CSRF-protected Rust session logout as its only
+standalone seams. Its desktop and narrow layouts remain browser-covered.
 
 **Template-test extension:** Rust now preserves Laravel's explicit saved-agent
 test boundary. A principal with `ai.ru` submits one bounded prompt with CSRF;
