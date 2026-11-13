@@ -482,6 +482,35 @@ pub struct UpdateToolGrantActivityRequest {
 }
 
 #[derive(Deserialize)]
+pub struct UpdateItemObstacleActivityRequest {
+    title: String,
+    slug: NullableString,
+    introduction: NullableString,
+    background_dark: NullableString,
+    background_light: NullableString,
+    background_mirrored: bool,
+    met_background_dark: NullableString,
+    met_background_light: NullableString,
+    met_background_mirrored: bool,
+    overlay_dark: NullableString,
+    overlay_light: NullableString,
+    overlay_mirrored: bool,
+    overlay_x: f64,
+    overlay_y: f64,
+    overlay_width: f64,
+    slots: Vec<ContentApiItemObstacleSlotRequest>,
+    consume_on_each_entry: bool,
+    lock_minutes: i32,
+    sound_not_met_enabled: bool,
+    sound_not_met_id: NullableString,
+    sound_met_enabled: bool,
+    sound_met_id: NullableString,
+    sound_transition_enabled: bool,
+    sound_transition_id: NullableString,
+    updated_at: String,
+}
+
+#[derive(Deserialize)]
 struct ContentApiQuestionOptionRequest {
     label: String,
     body: String,
@@ -1397,6 +1426,78 @@ pub async fn update_tool_grant_activity(
     ))
 }
 
+pub async fn update_item_obstacle_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateItemObstacleActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let slots = content_api_item_obstacle_slots(request.slots)?;
+    let sound = |enabled: bool, sound_id: Option<&str>| {
+        Ok(ItemObstacleSound {
+            enabled,
+            sound_id: sound_id
+                .map(|id| Uuid::parse_str(id).map_err(|_| ApiError::invalid_request()))
+                .transpose()?,
+        })
+    };
+    let form = ItemObstacleActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request.background_dark.as_deref(),
+        request.background_light.as_deref(),
+        request.background_mirrored,
+        request.met_background_dark.as_deref(),
+        request.met_background_light.as_deref(),
+        request.met_background_mirrored,
+        request.overlay_dark.as_deref(),
+        request.overlay_light.as_deref(),
+        request.overlay_mirrored,
+        request.overlay_x,
+        request.overlay_y,
+        request.overlay_width,
+        slots,
+        request.consume_on_each_entry,
+        request.lock_minutes,
+        sound(
+            request.sound_not_met_enabled,
+            request.sound_not_met_id.as_deref(),
+        )?,
+        sound(request.sound_met_enabled, request.sound_met_id.as_deref())?,
+        sound(
+            request.sound_transition_enabled,
+            request.sound_transition_id.as_deref(),
+        )?,
+    )
+    .ok_or_else(ApiError::invalid_request)?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id, "item_obstacle")
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let repository = PostgresAdminWorldItemObstacleRepository::new(&state.application_database);
+    let updated = AdminWorldItemObstacleCommand::new(&repository)
+        .update(&principal, activity_id, &form, &request.updated_at)
+        .await
+        .map_err(map_item_obstacle_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(
+        json!({ "data": { "id": updated.activity_id, "updatedAt": updated.updated_at } }),
+    ))
+}
+
 /// Connects two activities through the same scoped, idempotent World Builder
 /// transition command. A Content API caller names only activities in the
 /// selected MapAsset; the command rechecks that relationship in its write
@@ -1995,6 +2096,41 @@ fn content_api_item_obstacle_form(
     .ok_or_else(ApiError::invalid_request)
 }
 
+fn content_api_item_obstacle_slots(
+    slots: Vec<ContentApiItemObstacleSlotRequest>,
+) -> Result<Vec<ItemObstacleSlot>, ApiError> {
+    if slots.len() > 10 {
+        return Err(ApiError::invalid_request());
+    }
+    slots
+        .into_iter()
+        .map(|slot| {
+            let x = slot.x.unwrap_or(50.0);
+            let y = slot.y.unwrap_or(50.0);
+            let width = slot.width.unwrap_or(10.0);
+            if !bounded_position(x, 0.0, 100.0)
+                || !bounded_position(y, 0.0, 100.0)
+                || !bounded_position(width, 1.0, 100.0)
+            {
+                return Err(ApiError::invalid_request());
+            }
+            slot.item_id
+                .as_deref()
+                .map(|item_id| {
+                    Ok(ItemObstacleSlot {
+                        item_id: Uuid::parse_str(item_id)
+                            .map_err(|_| ApiError::invalid_request())?,
+                        x,
+                        y,
+                        width,
+                    })
+                })
+                .transpose()
+        })
+        .filter_map(Result::transpose)
+        .collect()
+}
+
 fn content_api_obstacle_form(
     request: &CreateActivityRequest,
 ) -> Result<ObstacleActivityForm, ApiError> {
@@ -2552,7 +2688,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.14",
+        "version": "1.15",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -2664,7 +2800,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.14", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.15", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -2684,6 +2820,7 @@ fn document() -> Value {
             operation("activities.shared-task.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/shared-task", "Replace a Shared Task Activity", "Replaces the complete source Shared Task form only after proving its type and MapAsset membership.", json!({ "title": "Compare observations", "slug": Value::Null, "introduction": "Contribute one useful observation.", "task_kind": "reflection", "show_contributions": true, "prompt": "What did you notice?", "instructions": "Use one concrete detail.", "input_label": "Your observation", "project_goal": "", "project_deliverable": "", "project_steps": [], "peer_review_enabled": false, "peer_review_prompt": "Review this contribution.", "threshold": 3, "minimum_length": 20, "repeat_policy": "once_per_user", "validation_mode": "minimum_length", "cycle_mode": "none", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.item-grant.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/item-grant", "Replace an Item Grant Activity", "Replaces the complete source Item Grant form only after proving its type and MapAsset membership.", json!({ "title": "Collect inspection tags", "slug": Value::Null, "introduction": "Collect the configured item after making an observation.", "background_dark": Value::Null, "background_light": Value::Null, "background_mirrored": false, "items": [{ "item_id": "20000000-0000-4000-8000-000000000001", "quantity": 1 }], "probability_percent": 100, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.tool-grant.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/tool-grant", "Replace a Tool Grant Activity", "Replaces the complete source Tool Grant form only after proving its type and MapAsset membership.", json!({ "title": "Receive the circuit probe", "slug": Value::Null, "introduction": "Use this configured tool at the next interaction.", "background_dark": Value::Null, "background_light": Value::Null, "background_mirrored": false, "bubble_border_color_dark": "#2dd4bf", "bubble_border_color_light": "#0891b2", "bubble_color_dark": "#0f172a", "bubble_color_light": "#ffffff", "bubble_opacity_dark": 92, "bubble_opacity_light": 94, "fade_duration_seconds": 0.4, "slide_direction": "left", "slide_duration_seconds": 0.6, "text": "Use this tool when the next place invites careful inspection.", "tool_id": "10000000-0000-4000-8000-000000000001", "tool_mirrored": false, "tool_x": 50, "tool_y": 50, "typing_speed": 24, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.item-obstacle.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/item-obstacle", "Replace an Item Obstacle Activity", "Replaces the complete source Item Obstacle form only after proving its type and MapAsset membership.", serde_json::from_str(r#"{"title":"Unlock the inspection panel","slug":null,"introduction":"Use the configured item in its matching slot.","background_dark":null,"background_light":null,"background_mirrored":false,"met_background_dark":null,"met_background_light":null,"met_background_mirrored":false,"overlay_dark":null,"overlay_light":null,"overlay_mirrored":false,"overlay_x":50,"overlay_y":50,"overlay_width":30,"slots":[{"item_id":"20000000-0000-4000-8000-000000000001","x":50,"y":50,"width":10}],"consume_on_each_entry":false,"lock_minutes":0,"sound_not_met_enabled":false,"sound_not_met_id":null,"sound_met_enabled":false,"sound_met_id":null,"sound_transition_enabled":false,"sound_transition_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#).expect("valid Item Obstacle Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -2736,19 +2873,20 @@ mod tests {
     };
 
     use super::{
-        UpdateItemGrantActivityRequest, UpdateMapAssetSurfaceRequest, UpdateMapRequest,
-        UpdateMarkdownActivityRequest, UpdateOpenPracticeActivityRequest,
-        UpdateQuestionActivityRequest, UpdateReflectiveActivityRequest,
-        UpdateToolGrantActivityRequest, content_api_item_grant_form,
-        content_api_item_obstacle_form, content_api_message_form, content_api_obstacle_form,
-        content_api_portal_form, content_api_shared_task_form, content_api_tool_grant_form,
-        document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_activity_transition, serialize_created_item_grant,
-        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
-        serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
-        serialize_created_open_practice, serialize_created_portal, serialize_created_question,
-        serialize_created_reflective_activity, serialize_created_shared_task,
-        serialize_created_tool_grant, serialize_map_assets, update_map_asset_surface_form,
+        UpdateItemGrantActivityRequest, UpdateItemObstacleActivityRequest,
+        UpdateMapAssetSurfaceRequest, UpdateMapRequest, UpdateMarkdownActivityRequest,
+        UpdateOpenPracticeActivityRequest, UpdateQuestionActivityRequest,
+        UpdateReflectiveActivityRequest, UpdateToolGrantActivityRequest,
+        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
+        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
+        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
+        require_content_permission, serialize_activity, serialize_activity_transition,
+        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
+        serialize_created_markdown, serialize_created_message, serialize_created_npc_dialogue,
+        serialize_created_obstacle, serialize_created_open_practice, serialize_created_portal,
+        serialize_created_question, serialize_created_reflective_activity,
+        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
+        update_map_asset_surface_form,
     };
 
     #[test]
@@ -2757,8 +2895,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.14");
-        assert_eq!(operations.len(), 24);
+        assert_eq!(document["version"], "1.15");
+        assert_eq!(operations.len(), 25);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -2778,10 +2916,11 @@ mod tests {
         assert_eq!(operations[17]["id"], "activities.shared-task.update");
         assert_eq!(operations[18]["id"], "activities.item-grant.update");
         assert_eq!(operations[19]["id"], "activities.tool-grant.update");
-        assert_eq!(operations[20]["id"], "activity-transitions.index");
-        assert_eq!(operations[21]["id"], "activity-transitions.store");
-        assert_eq!(operations[22]["id"], "activity-transitions.update");
-        assert_eq!(operations[23]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[20]["id"], "activities.item-obstacle.update");
+        assert_eq!(operations[21]["id"], "activity-transitions.index");
+        assert_eq!(operations[22]["id"], "activity-transitions.store");
+        assert_eq!(operations[23]["id"], "activity-transitions.update");
+        assert_eq!(operations[24]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -2912,6 +3051,18 @@ mod tests {
         .is_ok());
         assert!(serde_json::from_str::<UpdateToolGrantActivityRequest>(
             r#"{"title":"Receive the circuit probe","slug":null,"introduction":null,"background_dark":null,"background_light":null,"background_mirrored":false,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn item_obstacle_updates_require_the_complete_source_form() {
+        assert!(serde_json::from_str::<UpdateItemObstacleActivityRequest>(
+            r#"{"title":"Unlock the inspection panel","slug":null,"introduction":null,"background_dark":null,"background_light":null,"background_mirrored":false,"met_background_dark":null,"met_background_light":null,"met_background_mirrored":false,"overlay_dark":null,"overlay_light":null,"overlay_mirrored":false,"overlay_x":50,"overlay_y":50,"overlay_width":30,"slots":[],"consume_on_each_entry":false,"lock_minutes":0,"sound_not_met_enabled":false,"sound_not_met_id":null,"sound_met_enabled":false,"sound_met_id":null,"sound_transition_enabled":false,"sound_transition_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_ok());
+        assert!(serde_json::from_str::<UpdateItemObstacleActivityRequest>(
+            r#"{"title":"Unlock the inspection panel","slug":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
         )
         .is_err());
     }

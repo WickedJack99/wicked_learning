@@ -1397,6 +1397,59 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.getByText('HTTP 200')).toBeVisible();
     await expect(console.locator('pre')).toContainText(updatedToolGrantTitle);
 
+    const initialItemObstacle = listedActivities.data.find((activity) => activity.id === itemObstacle.data.id);
+    if (!initialItemObstacle) {
+        throw new Error('the created Item Obstacle Activity was not returned by its scoped list');
+    }
+    const updatedItemObstacleTitle = `${itemObstacleTitle} updated`;
+    await console.getByLabel('Operation').selectOption('activities.item-obstacle.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${itemObstacle.data.id}/item-obstacle`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedItemObstacleTitle,
+        slug: null,
+        introduction: 'Use a scoped item deliberately to open the next encounter.',
+        background_dark: null,
+        background_light: null,
+        background_mirrored: false,
+        met_background_dark: null,
+        met_background_light: null,
+        met_background_mirrored: false,
+        overlay_dark: null,
+        overlay_light: null,
+        overlay_mirrored: false,
+        overlay_x: 50,
+        overlay_y: 50,
+        overlay_width: 30,
+        slots: [{
+            item_id: '20000000-0000-4000-8000-000000000001',
+            x: 50,
+            y: 50,
+            width: 10,
+        }],
+        consume_on_each_entry: false,
+        lock_minutes: 0,
+        sound_not_met_enabled: false,
+        sound_not_met_id: null,
+        sound_met_enabled: false,
+        sound_met_id: null,
+        sound_transition_enabled: false,
+        sound_transition_id: null,
+        updated_at: initialItemObstacle.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(itemObstacle.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedItemObstacleTitle);
+
     await console
         .getByLabel('Operation')
         .selectOption('activity-transitions.store');
