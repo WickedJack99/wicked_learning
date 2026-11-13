@@ -1711,8 +1711,8 @@ obtains the existing same-origin CSRF token only for documented mutations.
 The response pane exposes the exact server status and JSON body; it never turns
 the console into a bearer-token client or a substitute for the contract's map
 and activity scope checks. The local browser proof creates a disposable map,
-MapAsset, Open Practice Activity and NPC dialogue through that console, then
-reads both Activities back through the documented scoped route. The OpenAPI contract and
+MapAsset, Open Practice Activity, NPC dialogue and Message Prompt through that
+console, then reads all three Activities back through the documented scoped route. The OpenAPI contract and
 generated TypeScript client now mirror all seven advertised operations,
 including the map list/create pair; no live console operation is outside the
 typed API surface.
