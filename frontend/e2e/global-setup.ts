@@ -117,10 +117,10 @@ export default async function globalSetup(): Promise<void> {
         const marker = randomUUID();
         for (const identity of ['first', 'second'] as const) {
             const storageStatePath = collaborationStorageStatePath(identity);
-            if (await hasUsableSession(baseURL, storageStatePath)) {
-                continue;
-            }
-
+            // Collaboration checks exercise source-owned state that persists
+            // beyond a route reset (including once-per-user contributions and
+            // consumed item-obstacle slots). Give each suite fresh learners
+            // rather than weakening or deleting that persisted work.
             await rm(storageStatePath, { force: true });
             const invitation = await retryRateLimitedPost(
                 () =>

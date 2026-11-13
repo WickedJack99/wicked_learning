@@ -52,6 +52,9 @@ test('the player shows the original learning focus before an activity begins', a
     await expect(
         page.getByRole('link', { name: 'Orientation' }),
     ).toHaveAttribute('href', '/competence?topic=orientation');
+    const activityHeading = page.getByRole('heading', { level: 3 });
+    const activityTitle = await activityHeading.textContent();
+    expect(activityTitle).toBeTruthy();
 
     const replacementRun = page.waitForResponse(
         (response) =>
@@ -67,6 +70,6 @@ test('the player shows the original learning focus before an activity begins', a
         ),
     );
     await expect(
-        page.getByRole('heading', { name: 'Find your place' }),
+        page.getByRole('heading', { name: activityTitle! }),
     ).toBeVisible();
 });

@@ -24,5 +24,7 @@ test('a local platform administrator can create and assign a source-derived lear
     const firstMember = page.locator('input[type="checkbox"]').first();
     await firstMember.check();
     await page.getByRole('button', { name: 'Save members' }).click();
-    await expect(page.getByText('1 members')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: `${name} 1 members` }),
+    ).toBeVisible();
 });

@@ -91,7 +91,9 @@ test('a local author can inspect and restore a source-shaped activity history en
         844,
     );
     await historyDialog.getByRole('button', { name: 'Inspect' }).first().click();
-    await expect(page.getByText('Type-specific settings')).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Type-specific settings' }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Back to history' }).click();
 
     page.once('dialog', (dialog) => dialog.accept());

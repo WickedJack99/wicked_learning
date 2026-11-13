@@ -1045,6 +1045,7 @@ test('the CSRF foundation issues a non-cacheable token and protected cookie', as
 test('unsafe browser requests require same-origin CSRF and login returns generic invalid credentials', async ({
     request,
 }) => {
+    test.setTimeout(75_000);
     const csrfResponse = await request.get('/api/v1/security/csrf');
     const { token } = await csrfResponse.json();
     const body = {
@@ -1065,13 +1066,27 @@ test('unsafe browser requests require same-origin CSRF and login returns generic
     });
     expect(foreignOrigin.status()).toBe(403);
 
-    const invalidCredentials = await request.post('/api/v1/session/login', {
+    let invalidCredentials = await request.post('/api/v1/session/login', {
         headers: {
             Origin: publicOrigin,
             'X-CSRF-Token': token,
         },
         data: body,
     });
+    if (invalidCredentials.status() === 429) {
+        await new Promise<void>((resolve) => {
+            setTimeout(resolve, 60_000);
+        });
+        const retryCsrfResponse = await request.get('/api/v1/security/csrf');
+        const { token: retryToken } = await retryCsrfResponse.json();
+        invalidCredentials = await request.post('/api/v1/session/login', {
+            headers: {
+                Origin: publicOrigin,
+                'X-CSRF-Token': retryToken,
+            },
+            data: body,
+        });
+    }
     expect(invalidCredentials.status()).toBe(401);
     await expect(invalidCredentials.json()).resolves.toEqual({
         code: 'invalid_credentials',
@@ -1082,19 +1097,34 @@ test('unsafe browser requests require same-origin CSRF and login returns generic
 test('a CI-only fresh identity can login, report its session, and logout', async ({
     request,
 }) => {
+    test.setTimeout(75_000);
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
     test.skip(!email || !password, 'requires the disposable CI identity');
 
-    const csrfResponse = await request.get('/api/v1/security/csrf');
-    const { token } = await csrfResponse.json();
-    const login = await request.post('/api/v1/session/login', {
+    let csrfResponse = await request.get('/api/v1/security/csrf');
+    let { token } = await csrfResponse.json();
+    let login = await request.post('/api/v1/session/login', {
         headers: {
             Origin: publicOrigin,
             'X-CSRF-Token': token,
         },
         data: { email, password },
     });
+    if (login.status() === 429) {
+        await new Promise<void>((resolve) => {
+            setTimeout(resolve, 60_000);
+        });
+        csrfResponse = await request.get('/api/v1/security/csrf');
+        ({ token } = await csrfResponse.json());
+        login = await request.post('/api/v1/session/login', {
+            headers: {
+                Origin: publicOrigin,
+                'X-CSRF-Token': token,
+            },
+            data: { email, password },
+        });
+    }
 
     expect(login.status()).toBe(200);
     const session = await login.json();

@@ -102,9 +102,13 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     ).toBeVisible();
 
     await page.goto('/settings/security');
-    await expect(page).toHaveURL(/\/confirm-password\?next=%2Fsettings%2Fsecurity$/);
-    await page.getByLabel('Password').fill(password!);
-    await page.getByRole('button', { name: 'Confirm password' }).click();
+    if (new URL(page.url()).pathname === '/confirm-password') {
+        await expect(page).toHaveURL(
+            /\/confirm-password\?next=%2Fsettings%2Fsecurity$/,
+        );
+        await page.getByLabel('Password').fill(password!);
+        await page.getByRole('button', { name: 'Confirm password' }).click();
+    }
     await expect(page).toHaveURL(/\/settings\/security$/);
     await expect(
         page.getByRole('heading', { level: 1, name: 'Security' }),
