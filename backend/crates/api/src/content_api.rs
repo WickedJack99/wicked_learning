@@ -547,6 +547,38 @@ pub struct UpdateObstacleActivityRequest {
 }
 
 #[derive(Deserialize)]
+pub struct UpdatePortalActivityRequest {
+    title: String,
+    slug: NullableString,
+    introduction: NullableString,
+    portal_mode: String,
+    portal_background_dark: String,
+    portal_background_light: String,
+    portal_background_mirrored: bool,
+    portal_assets: Vec<ContentApiPortalAssetUpdateRequest>,
+    portal_duration_seconds: f64,
+    portal_foreground_dark: String,
+    portal_foreground_light: String,
+    portal_foreground_mirrored: bool,
+    portal_foreground_width: f64,
+    portal_foreground_x: f64,
+    portal_foreground_y: f64,
+    portal_show_on_arrival: bool,
+    portal_swirl_enabled: bool,
+    portal_bubble_text: String,
+    portal_bubble_typing_speed: f64,
+    portal_bubble_color_dark: String,
+    portal_bubble_color_light: String,
+    portal_bubble_border_color_dark: String,
+    portal_bubble_border_color_light: String,
+    portal_bubble_text_color_dark: String,
+    portal_bubble_text_color_light: String,
+    portal_wait_for_enter: bool,
+    target_portal_activity_id: NullableString,
+    updated_at: String,
+}
+
+#[derive(Deserialize)]
 struct ContentApiQuestionOptionRequest {
     label: String,
     body: String,
@@ -584,6 +616,20 @@ struct ContentApiPortalAssetRequest {
     width: Option<f64>,
     x: Option<f64>,
     y: Option<f64>,
+}
+
+#[derive(Deserialize)]
+struct ContentApiPortalAssetUpdateRequest {
+    id: String,
+    image_dark: String,
+    image_light: String,
+    label: String,
+    layer: String,
+    mirrored: bool,
+    opacity: f64,
+    width: f64,
+    x: f64,
+    y: f64,
 }
 
 /// Lists only maps already visible in the caller's existing scoped World
@@ -1602,6 +1648,40 @@ pub async fn update_obstacle_activity(
     ))
 }
 
+pub async fn update_portal_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdatePortalActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let form = content_api_update_portal_form(&request)?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id, "portal")
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let repository = PostgresAdminWorldPortalRepository::new(&state.application_database);
+    let updated = AdminWorldPortalCommand::new(&repository)
+        .update(&principal, activity_id, &form, &request.updated_at)
+        .await
+        .map_err(map_portal_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(
+        json!({ "data": { "id": updated.activity_id, "updatedAt": updated.updated_at } }),
+    ))
+}
+
 /// Connects two activities through the same scoped, idempotent World Builder
 /// transition command. A Content API caller names only activities in the
 /// selected MapAsset; the command rechecks that relationship in its write
@@ -2402,6 +2482,66 @@ fn content_api_portal_form(
     .ok_or_else(ApiError::invalid_request)
 }
 
+fn content_api_update_portal_form(
+    request: &UpdatePortalActivityRequest,
+) -> Result<PortalActivityForm, ApiError> {
+    let mode = PortalMode::parse(&request.portal_mode).ok_or_else(ApiError::invalid_request)?;
+    let assets = request
+        .portal_assets
+        .iter()
+        .map(|asset| {
+            PortalAssetForm::parse(
+                &asset.id,
+                &asset.image_dark,
+                &asset.image_light,
+                &asset.label,
+                &asset.layer,
+                asset.mirrored,
+                asset.opacity,
+                asset.width,
+                asset.x,
+                asset.y,
+            )
+            .ok_or_else(ApiError::invalid_request)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let target_portal_activity_id = request
+        .target_portal_activity_id
+        .as_deref()
+        .map(|id| Uuid::parse_str(id).map_err(|_| ApiError::invalid_request()))
+        .transpose()?;
+    PortalActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        mode,
+        &request.portal_background_dark,
+        &request.portal_background_light,
+        request.portal_background_mirrored,
+        assets,
+        request.portal_duration_seconds,
+        &request.portal_foreground_dark,
+        &request.portal_foreground_light,
+        request.portal_foreground_mirrored,
+        request.portal_foreground_width,
+        request.portal_foreground_x,
+        request.portal_foreground_y,
+        request.portal_show_on_arrival,
+        request.portal_swirl_enabled,
+        &request.portal_bubble_text,
+        request.portal_bubble_typing_speed,
+        &request.portal_bubble_color_dark,
+        &request.portal_bubble_color_light,
+        &request.portal_bubble_border_color_dark,
+        &request.portal_bubble_border_color_light,
+        &request.portal_bubble_text_color_dark,
+        &request.portal_bubble_text_color_light,
+        request.portal_wait_for_enter,
+        target_portal_activity_id,
+    )
+    .ok_or_else(ApiError::invalid_request)
+}
+
 fn content_api_message_form(
     request: &CreateActivityRequest,
 ) -> Result<MessageActivityForm, ApiError> {
@@ -2802,7 +2942,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.16",
+        "version": "1.17",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -2914,7 +3054,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.16", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.17", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -2936,6 +3076,7 @@ fn document() -> Value {
             operation("activities.tool-grant.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/tool-grant", "Replace a Tool Grant Activity", "Replaces the complete source Tool Grant form only after proving its type and MapAsset membership.", json!({ "title": "Receive the circuit probe", "slug": Value::Null, "introduction": "Use this configured tool at the next interaction.", "background_dark": Value::Null, "background_light": Value::Null, "background_mirrored": false, "bubble_border_color_dark": "#2dd4bf", "bubble_border_color_light": "#0891b2", "bubble_color_dark": "#0f172a", "bubble_color_light": "#ffffff", "bubble_opacity_dark": 92, "bubble_opacity_light": 94, "fade_duration_seconds": 0.4, "slide_direction": "left", "slide_duration_seconds": 0.6, "text": "Use this tool when the next place invites careful inspection.", "tool_id": "10000000-0000-4000-8000-000000000001", "tool_mirrored": false, "tool_x": 50, "tool_y": 50, "typing_speed": 24, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.item-obstacle.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/item-obstacle", "Replace an Item Obstacle Activity", "Replaces the complete source Item Obstacle form only after proving its type and MapAsset membership.", serde_json::from_str(r#"{"title":"Unlock the inspection panel","slug":null,"introduction":"Use the configured item in its matching slot.","background_dark":null,"background_light":null,"background_mirrored":false,"met_background_dark":null,"met_background_light":null,"met_background_mirrored":false,"overlay_dark":null,"overlay_light":null,"overlay_mirrored":false,"overlay_x":50,"overlay_y":50,"overlay_width":30,"slots":[{"item_id":"20000000-0000-4000-8000-000000000001","x":50,"y":50,"width":10}],"consume_on_each_entry":false,"lock_minutes":0,"sound_not_met_enabled":false,"sound_not_met_id":null,"sound_met_enabled":false,"sound_met_id":null,"sound_transition_enabled":false,"sound_transition_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#).expect("valid Item Obstacle Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.obstacle.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/obstacle", "Replace a Base Obstacle Activity", "Replaces the complete source Base Obstacle form only after proving its type and MapAsset membership.", serde_json::from_str(r#"{"title":"Open the service panel","slug":null,"introduction":"Use the configured tool to inspect the panel.","allowed_tool_ids":["10000000-0000-4000-8000-000000000001"],"background_dark":null,"background_light":null,"background_mirrored":false,"bubble_border_color_dark":null,"bubble_border_color_light":null,"bubble_color_dark":null,"bubble_color_light":null,"bubble_opacity_dark":92,"bubble_opacity_light":94,"obstacle_image_dark":null,"obstacle_image_light":null,"obstacle_image_mirrored":false,"persist_after_solved":true,"prompt_text":null,"obstacle_x":50,"obstacle_y":50,"obstacle_width":28,"revisit_background_dark":null,"revisit_background_light":null,"revisit_background_mirrored":false,"revisit_image_dark":null,"revisit_image_light":null,"revisit_image_mirrored":false,"revisit_text":null,"success_animation":"zoom","success_text":null,"typing_speed":24,"updated_at":"2026-11-13T12:00:00.000000Z"}"#).expect("valid Base Obstacle Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.portal.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/portal", "Replace a Portal Activity", "Replaces the complete source Portal form only after proving its type and MapAsset membership. The typed command resolves a selected input Portal inside the same World.", serde_json::from_str(r##"{"title":"Enter the relay archive","slug":null,"introduction":"Travel to the related MapAsset after this encounter.","portal_mode":"output","portal_background_dark":"","portal_background_light":"","portal_background_mirrored":false,"portal_assets":[],"portal_duration_seconds":1.5,"portal_foreground_dark":"","portal_foreground_light":"","portal_foreground_mirrored":false,"portal_foreground_width":28,"portal_foreground_x":50,"portal_foreground_y":50,"portal_show_on_arrival":true,"portal_swirl_enabled":true,"portal_bubble_text":"Enter the next place when you are ready.","portal_bubble_typing_speed":24,"portal_bubble_color_dark":"#0f172a","portal_bubble_color_light":"#ffffff","portal_bubble_border_color_dark":"#2dd4bf","portal_bubble_border_color_light":"#0891b2","portal_bubble_text_color_dark":"#f8fafc","portal_bubble_text_color_light":"#0f172a","portal_wait_for_enter":false,"target_portal_activity_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"##).expect("valid Portal Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -2991,17 +3132,18 @@ mod tests {
         UpdateItemGrantActivityRequest, UpdateItemObstacleActivityRequest,
         UpdateMapAssetSurfaceRequest, UpdateMapRequest, UpdateMarkdownActivityRequest,
         UpdateObstacleActivityRequest, UpdateOpenPracticeActivityRequest,
-        UpdateQuestionActivityRequest, UpdateReflectiveActivityRequest,
-        UpdateToolGrantActivityRequest, content_api_item_grant_form,
-        content_api_item_obstacle_form, content_api_message_form, content_api_obstacle_form,
-        content_api_portal_form, content_api_shared_task_form, content_api_tool_grant_form,
-        document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_activity_transition, serialize_created_item_grant,
-        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
-        serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
-        serialize_created_open_practice, serialize_created_portal, serialize_created_question,
-        serialize_created_reflective_activity, serialize_created_shared_task,
-        serialize_created_tool_grant, serialize_map_assets, update_map_asset_surface_form,
+        UpdatePortalActivityRequest, UpdateQuestionActivityRequest,
+        UpdateReflectiveActivityRequest, UpdateToolGrantActivityRequest,
+        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
+        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
+        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
+        require_content_permission, serialize_activity, serialize_activity_transition,
+        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
+        serialize_created_markdown, serialize_created_message, serialize_created_npc_dialogue,
+        serialize_created_obstacle, serialize_created_open_practice, serialize_created_portal,
+        serialize_created_question, serialize_created_reflective_activity,
+        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
+        update_map_asset_surface_form,
     };
 
     #[test]
@@ -3010,8 +3152,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.16");
-        assert_eq!(operations.len(), 26);
+        assert_eq!(document["version"], "1.17");
+        assert_eq!(operations.len(), 27);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -3033,10 +3175,11 @@ mod tests {
         assert_eq!(operations[19]["id"], "activities.tool-grant.update");
         assert_eq!(operations[20]["id"], "activities.item-obstacle.update");
         assert_eq!(operations[21]["id"], "activities.obstacle.update");
-        assert_eq!(operations[22]["id"], "activity-transitions.index");
-        assert_eq!(operations[23]["id"], "activity-transitions.store");
-        assert_eq!(operations[24]["id"], "activity-transitions.update");
-        assert_eq!(operations[25]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[22]["id"], "activities.portal.update");
+        assert_eq!(operations[23]["id"], "activity-transitions.index");
+        assert_eq!(operations[24]["id"], "activity-transitions.store");
+        assert_eq!(operations[25]["id"], "activity-transitions.update");
+        assert_eq!(operations[26]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -3191,6 +3334,18 @@ mod tests {
         .is_ok());
         assert!(serde_json::from_str::<UpdateObstacleActivityRequest>(
             r#"{"title":"Open the service panel","slug":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn portal_updates_require_the_complete_source_form() {
+        assert!(serde_json::from_str::<UpdatePortalActivityRequest>(
+            r##"{"title":"Enter the relay archive","slug":null,"introduction":null,"portal_mode":"output","portal_background_dark":"","portal_background_light":"","portal_background_mirrored":false,"portal_assets":[],"portal_duration_seconds":1.5,"portal_foreground_dark":"","portal_foreground_light":"","portal_foreground_mirrored":false,"portal_foreground_width":28,"portal_foreground_x":50,"portal_foreground_y":50,"portal_show_on_arrival":true,"portal_swirl_enabled":true,"portal_bubble_text":"","portal_bubble_typing_speed":24,"portal_bubble_color_dark":"#0f172a","portal_bubble_color_light":"#ffffff","portal_bubble_border_color_dark":"#2dd4bf","portal_bubble_border_color_light":"#0891b2","portal_bubble_text_color_dark":"#f8fafc","portal_bubble_text_color_light":"#0f172a","portal_wait_for_enter":false,"target_portal_activity_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"##,
+        )
+        .is_ok());
+        assert!(serde_json::from_str::<UpdatePortalActivityRequest>(
+            r#"{"title":"Enter the relay archive","slug":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
         )
         .is_err());
     }

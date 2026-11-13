@@ -67,6 +67,7 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/tool-grant` | Replace one complete Tool Grant Activity form |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/item-obstacle` | Replace one complete Item Obstacle Activity form |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/obstacle` | Replace one complete Base Obstacle Activity form |
+| `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/portal` | Replace one complete Portal Activity form |
 | `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
 | `POST` | `/map-assets/{mapAsset}/activity-transitions` | Connect two Activities through the scoped graph writer |
 | `PATCH` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Update a scoped Activity connection's presentation |
@@ -86,14 +87,15 @@ that the addressed transition belongs to the URL's MapAsset before delegation.
 Map deletion retains the established scoped cascade/reference cleanup. Bulk
 import and automatic graph wiring are not exposed. Activity reads include each
 record's `updatedAt` timestamp. Reflection, Review, Open Practice, Markdown,
-Question, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle replacement each require that
+Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Base Obstacle and Portal replacement each require that
 timestamp, the full source form, and a URL whose MapAsset and typed Activity
 are proven to belong together. Their typed commands retain each Activity's
 source-specific configuration. Item Grant resolves every catalog item UUID and
 Tool Grant resolves its catalog tool UUID server-side, and Item Obstacle resolves
 slot-item and optional sound UUIDs server-side; Base Obstacle resolves its
 allowed-tool UUIDs server-side. Other Activity types remain behind their own
-typed adapters.
+typed adapters. Portal resolves its selected input Portal server-side in the
+same World before it updates the travel link.
 
 ## Settings Console
 

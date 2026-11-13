@@ -550,10 +550,11 @@ complete source activity registry for creation, so no registry Activity type is
 advertised without a matching command adapter. Activity reads carry the source
 concurrency timestamp, and type-specific replacement adapters expose only the
 complete Reflection, Review, Open Practice, Markdown page-graph, Question,
-Shared Task, Item Grant, Tool Grant, Item Obstacle or Base Obstacle form after proving the
+Shared Task, Item Grant, Tool Grant, Item Obstacle, Base Obstacle or Portal form after proving the
 distinct activity type and its MapAsset membership before delegating to the
 matching typed World Builder command. Their configured catalog UUIDs resolve
-inside that command.
+inside that command; Portal's selected input activity resolves in the same
+World before its travel link changes.
 
 AI configuration uses:
 

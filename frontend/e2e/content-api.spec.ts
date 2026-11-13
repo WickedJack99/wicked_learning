@@ -1488,6 +1488,45 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.getByText('HTTP 200')).toBeVisible();
     await expect(console.locator('pre')).toContainText(updatedObstacleTitle);
 
+    const initialPortalOutput = listedActivities.data.find(
+        (activity) => activity.id === portalOutput.data.id,
+    );
+    if (!initialPortalOutput) {
+        throw new Error('the created Portal Activity was not returned by its scoped list');
+    }
+    const updatedPortalOutputTitle = `${portalOutputTitle} updated`;
+    await console.getByLabel('Operation').selectOption('activities.portal.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${portalOutput.data.id}/portal`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedPortalOutputTitle, slug: null,
+        introduction: 'Travel to the related MapAsset after this verified update.',
+        portal_mode: 'output',
+        portal_background_dark: '', portal_background_light: '', portal_background_mirrored: false,
+        portal_assets: [], portal_duration_seconds: 1.5,
+        portal_foreground_dark: '', portal_foreground_light: '', portal_foreground_mirrored: false,
+        portal_foreground_width: 28, portal_foreground_x: 50, portal_foreground_y: 50,
+        portal_show_on_arrival: true, portal_swirl_enabled: true,
+        portal_bubble_text: 'Enter the next place when you are ready.', portal_bubble_typing_speed: 24,
+        portal_bubble_color_dark: '#0f172a', portal_bubble_color_light: '#ffffff',
+        portal_bubble_border_color_dark: '#2dd4bf', portal_bubble_border_color_light: '#0891b2',
+        portal_bubble_text_color_dark: '#f8fafc', portal_bubble_text_color_light: '#0f172a',
+        portal_wait_for_enter: false, target_portal_activity_id: portalInput.data.id,
+        updated_at: initialPortalOutput.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(portalOutput.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedPortalOutputTitle);
+
     await console
         .getByLabel('Operation')
         .selectOption('activity-transitions.store');
