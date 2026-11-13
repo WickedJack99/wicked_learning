@@ -626,7 +626,9 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
     await expect(
         page.getByRole('heading', { name: 'Saved place' }),
     ).toBeVisible();
-    await expect(page.getByText('The First Path')).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'The First Path', exact: true }),
+    ).toBeVisible();
     await expect(
         page.getByRole('link', { name: 'Go to node' }),
     ).toHaveAttribute('href', '/world?map=first-path&focused=saved-place');
@@ -3520,7 +3522,9 @@ test('the public explorer search is bounded and presents matching places', async
     await expect(
         page.getByRole('heading', { name: 'Choose a direction' }),
     ).toBeVisible();
-    await expect(page.getByText('The First Path')).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'The First Path', exact: true }),
+    ).toBeVisible();
 });
 
 test('a legacy standalone search URL returns to the retained welcome surface', async ({
