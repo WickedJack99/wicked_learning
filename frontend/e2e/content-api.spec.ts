@@ -70,6 +70,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const markdownTitle = `Content API browser briefing ${suffix}`;
     const questionTitle = `Content API browser question ${suffix}`;
     const sharedTaskTitle = `Content API browser shared task ${suffix}`;
+    const itemGrantTitle = `Content API browser item grant ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -311,6 +312,24 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(sharedTask.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(sharedTask.data).toMatchObject({ type: 'shared_task', title: sharedTaskTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'item_grant',
+        title: itemGrantTitle,
+        introduction: 'Receive a scoped catalog item after making an observation.',
+        item_grant_items: [{
+            item_id: '20000000-0000-4000-8000-000000000001',
+            quantity: 1,
+        }],
+        item_grant_probability_percent: 100,
+        graph_position_x: 660,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const itemGrant = await createdResponse(console);
+    expect(itemGrant.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(itemGrant.data).toMatchObject({ type: 'item_grant', title: itemGrantTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -326,4 +345,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(markdownTitle);
     await expect(console.locator('pre')).toContainText(questionTitle);
     await expect(console.locator('pre')).toContainText(sharedTaskTitle);
+    await expect(console.locator('pre')).toContainText(itemGrantTitle);
 });
