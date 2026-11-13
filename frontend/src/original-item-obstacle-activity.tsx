@@ -53,7 +53,7 @@ export function OriginalItemObstacleActivity({
     const [error, setError] = useState('');
     const [continuing, setContinuing] = useState(false);
     const { play } = useItemObstacleSoundPlayer();
-    const previousConditionsMet = useRef(state.conditions_met);
+    const playedInitialSound = useRef(false);
     const slots = useMemo(() => configuredSlots(config), [activity.slug]);
     const configuredItems = useMemo(
         () => configuredObstacleItems(config),
@@ -95,15 +95,8 @@ export function OriginalItemObstacleActivity({
     const isLocked = Boolean(lockedUntil && lockedUntil > new Date());
 
     useEffect(() => {
-        const wasMet = previousConditionsMet.current;
-        previousConditionsMet.current = state.conditions_met;
-
-        if (!wasMet && state.conditions_met) {
-            playConfiguredSound(activity, play, 'transition');
-            playConfiguredSound(activity, play, 'met');
-            return;
-        }
-
+        if (playedInitialSound.current) return;
+        playedInitialSound.current = true;
         playConfiguredSound(
             activity,
             play,
@@ -176,6 +169,10 @@ export function OriginalItemObstacleActivity({
     }
 
     function applyResult(result: LearnerItemObstacleResult): void {
+        if (!state.conditions_met && result.state.conditions_met) {
+            playConfiguredSound(activity, play, 'transition');
+            playConfiguredSound(activity, play, 'met');
+        }
         onInventoryChange(result.inventory);
         setState(result.state);
     }
@@ -425,7 +422,8 @@ function useItemObstacleSoundPlayer(): {
             const audio = new Audio(sound.url);
             audio.loop = sound.looped;
             audio.preload = 'auto';
-            audio.volume = normalizedVolume(sound.volume) *
+            audio.volume =
+                normalizedVolume(sound.volume) *
                 normalizedVolume(preferences.effects_volume);
             const layer = { audio, timeoutId: undefined as number | undefined };
             if (sound.play_seconds && sound.play_seconds > 0) {

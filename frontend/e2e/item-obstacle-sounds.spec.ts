@@ -28,10 +28,13 @@ test('an item obstacle plays its source-configured effect events after a valid i
 
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
-    const preferences = await request.patch('/api/v1/learner/sound-preferences', {
-        data: { ambience_volume: 100, effects_volume: 100, muted: false },
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
-    });
+    const preferences = await request.patch(
+        '/api/v1/learner/sound-preferences',
+        {
+            data: { ambience_volume: 100, effects_volume: 100, muted: false },
+            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        },
+    );
     expect(preferences.status()).toBe(200);
 
     const world = await request.get('/api/v1/learner/world');
@@ -51,7 +54,6 @@ test('an item obstacle plays its source-configured effect events after a valid i
     );
     expect(started.status()).toBe(200);
     const { play_run_id: playRunId } = await started.json();
-
     const storageState = await request.storageState();
     await page.context().addCookies(storageState.cookies);
     await page.goto(
@@ -70,12 +72,15 @@ test('an item obstacle plays its source-configured effect events after a valid i
     await expect(
         page.getByRole('heading', { name: 'Place the signal stone' }),
     ).toBeVisible();
-
     await expect
         .poll(() =>
-            page.evaluate(() =>
-                (window as typeof window & { itemObstacleSoundUrls?: string[] })
-                    .itemObstacleSoundUrls ?? [],
+            page.evaluate(
+                () =>
+                    (
+                        window as typeof window & {
+                            itemObstacleSoundUrls?: string[];
+                        }
+                    ).itemObstacleSoundUrls ?? [],
             ),
         )
         .toContainEqual(expect.stringContaining('/sounds/soft-chime.wav'));
@@ -85,14 +90,32 @@ test('an item obstacle plays its source-configured effect events after a valid i
     await page.getByTitle('Signal stone').dispatchEvent('dragstart', {
         dataTransfer,
     });
+    const placementResponse = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response
+                .url()
+                .includes(
+                    `/api/v1/learner/play-runs/${playRunId}/activities/place-the-signal-stone/item-obstacle-slots/0`,
+                ),
+    );
     await page
         .locator('[data-wl-id="learner.activity.item-obstacle.slot.0"]')
         .dispatchEvent('drop', { dataTransfer });
+    const placement = await placementResponse;
+    expect(placement.status()).toBe(200);
+    await expect(placement.json()).resolves.toMatchObject({
+        state: { conditions_met: true },
+    });
     await expect
         .poll(() =>
-            page.evaluate(() =>
-                (window as typeof window & { itemObstacleSoundUrls?: string[] })
-                    .itemObstacleSoundUrls?.filter((url) =>
+            page.evaluate(
+                () =>
+                    (
+                        window as typeof window & {
+                            itemObstacleSoundUrls?: string[];
+                        }
+                    ).itemObstacleSoundUrls?.filter((url) =>
                         url.includes('/sounds/soft-chime.wav'),
                     ).length ?? 0,
             ),
