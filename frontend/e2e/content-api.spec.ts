@@ -69,6 +69,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const reviewTitle = `Content API browser review ${suffix}`;
     const markdownTitle = `Content API browser briefing ${suffix}`;
     const questionTitle = `Content API browser question ${suffix}`;
+    const sharedTaskTitle = `Content API browser shared task ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -282,6 +283,34 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(question.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(question.data).toMatchObject({ type: 'question', title: questionTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'shared_task',
+        title: sharedTaskTitle,
+        introduction: 'Gather a small collection of observations with other learners.',
+        shared_task_kind: 'reflection',
+        shared_task_show_contributions: true,
+        shared_task_prompt: 'What did you notice while working through this place?',
+        shared_task_instructions: 'Use one concrete detail that another learner can build on.',
+        shared_task_input_label: 'Your reflection',
+        shared_task_project_goal: 'Build a shared record of useful observations.',
+        shared_task_project_deliverable: 'One clear evidence-based contribution.',
+        shared_task_project_steps: ['Observe', 'Explain'],
+        shared_task_peer_review_enabled: true,
+        shared_task_peer_review_prompt: 'What does this contribution help you notice?',
+        shared_task_threshold: 3,
+        shared_task_minimum_length: 20,
+        shared_task_repeat_policy: 'once_per_user',
+        shared_task_validation_mode: 'minimum_length',
+        shared_task_cycle_mode: 'none',
+        graph_position_x: 600,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const sharedTask = await createdResponse(console);
+    expect(sharedTask.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(sharedTask.data).toMatchObject({ type: 'shared_task', title: sharedTaskTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -296,4 +325,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(reviewTitle);
     await expect(console.locator('pre')).toContainText(markdownTitle);
     await expect(console.locator('pre')).toContainText(questionTitle);
+    await expect(console.locator('pre')).toContainText(sharedTaskTitle);
 });
