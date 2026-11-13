@@ -9886,13 +9886,38 @@ components:
         reflection: { type: string, maxLength: 10000 }
     AdminSupportSignals:
       type: object
-      required: [activity_overview_30_days, can_grant_manual_unlocks, learners, manual_unlock_targets, month_key]
+      required: [activity_overview_30_days, can_grant_manual_unlocks, learners, manual_unlock_targets, month_key, peer_support, summary]
       properties:
         activity_overview_30_days: { type: array, items: { $ref: '#/components/schemas/AdminSupportActivityBucket' } }
         can_grant_manual_unlocks: { type: boolean, description: Whether the current support reader also has source map-edit authority for manual locked-node overrides. }
         learners: { type: array, items: { $ref: '#/components/schemas/AdminSupportLearner' } }
         manual_unlock_targets: { type: array, description: Locked nodes on maps that the current support reader may edit; no other nodes are projected., items: { type: object, required: [id, nodes, title], properties: { id: { type: string, format: uuid }, title: { type: string }, nodes: { type: array, items: { type: object, required: [id, title], properties: { id: { type: string, format: uuid }, title: { type: string } } } } } } }
         month_key: { type: string, pattern: '^\\d{4}-\\d{2}$' }
+        peer_support:
+          type: array
+          maxItems: 12
+          description: Anonymous scoped shared-task review aggregates that have not received a learner helpfulness signal. It contains no learner writing or identity.
+          items:
+            type: object
+            required: [activity_id, activity_title, context_href, contributor_count, latest_review_at, map_id, map_title, node_id, node_title, unresolved_review_count]
+            properties:
+              activity_id: { type: string, format: uuid }
+              activity_title: { type: string, maxLength: 240 }
+              context_href: { type: string, pattern: '^/world\\?map=[a-z0-9-]+&focused=[a-z0-9-]+$' }
+              contributor_count: { type: integer, minimum: 0 }
+              latest_review_at: { type: [string, 'null'], format: date-time }
+              map_id: { type: string, format: uuid }
+              map_title: { type: string, maxLength: 240 }
+              node_id: { type: string, format: uuid }
+              node_title: { type: string, maxLength: 240 }
+              unresolved_review_count: { type: integer, minimum: 0 }
+        summary:
+          type: object
+          required: [learners, learners_with_signals, topics_with_monthly_activity]
+          properties:
+            learners: { type: integer, minimum: 0 }
+            learners_with_signals: { type: integer, minimum: 0 }
+            topics_with_monthly_activity: { type: integer, minimum: 0 }
     AdminSupportActivityBucket:
       type: object
       required: [active_learners, contribution_recorded, date, evidence_events]

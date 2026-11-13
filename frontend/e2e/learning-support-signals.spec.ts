@@ -9,7 +9,23 @@ test('a local support worker can read scoped collective and individual signals',
     await page.getByLabel('Password').fill(password!);
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/world$/);
+    const signalsResponsePromise = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/v1/admin/learning-support/signals') &&
+            response.status() === 200,
+    );
     await page.goto('/settings?panel=admin-learning-support&support=support-signals');
+    const signalsResponse = await signalsResponsePromise;
+    expect(signalsResponse.status()).toBe(200);
+    const signals = await signalsResponse.json();
+    expect(signals).toMatchObject({
+        peer_support: expect.any(Array),
+        summary: {
+            learners: expect.any(Number),
+            learners_with_signals: expect.any(Number),
+            topics_with_monthly_activity: expect.any(Number),
+        },
+    });
     await expect(page.getByRole('heading', { name: 'Learning Support' })).toBeVisible();
     await expect(page.getByText('Collective overview')).toBeVisible();
 });

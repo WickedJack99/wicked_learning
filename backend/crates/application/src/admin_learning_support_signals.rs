@@ -46,6 +46,27 @@ pub struct AdminSupportNote {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct AdminSupportPeerSupport {
+    pub activity_id: String,
+    pub activity_title: String,
+    pub context_href: String,
+    pub contributor_count: i64,
+    pub latest_review_at: Option<String>,
+    pub map_id: String,
+    pub map_title: String,
+    pub node_id: String,
+    pub node_title: String,
+    pub unresolved_review_count: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct AdminSupportSummary {
+    pub learners: i64,
+    pub learners_with_signals: i64,
+    pub topics_with_monthly_activity: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct AdminSupportTopic {
     pub evidence_types: Vec<String>,
     pub monthly_contribution: f64,
@@ -74,6 +95,8 @@ pub struct AdminSupportSignals {
     pub learners: Vec<AdminSupportLearner>,
     pub manual_unlock_targets: Vec<AdminSupportManualUnlockTarget>,
     pub month_key: String,
+    pub peer_support: Vec<AdminSupportPeerSupport>,
+    pub summary: AdminSupportSummary,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -140,6 +163,12 @@ mod tests {
                     learners: vec![],
                     manual_unlock_targets: vec![],
                     month_key: "2026-11".to_owned(),
+                    peer_support: vec![],
+                    summary: AdminSupportSummary {
+                        learners: 0,
+                        learners_with_signals: 0,
+                        topics_with_monthly_activity: 0,
+                    },
                 })
             }
         }
@@ -160,5 +189,21 @@ mod tests {
 
         assert!(denied.is_none());
         assert!(!called.load(Ordering::SeqCst));
+
+        let authorized = AdminSupportSignalsQuery::new(&repository)
+            .execute(&AuthorizedPrincipal {
+                subject_id: Uuid::new_v4(),
+                roles: vec![],
+                capabilities: vec!["role_permission:learner_support_signals:ro:all".to_owned()],
+            })
+            .await
+            .expect("authorized result")
+            .expect("support signal payload");
+
+        assert!(called.load(Ordering::SeqCst));
+        assert!(authorized.peer_support.is_empty());
+        assert_eq!(authorized.summary.learners, 0);
+        assert_eq!(authorized.summary.learners_with_signals, 0);
+        assert_eq!(authorized.summary.topics_with_monthly_activity, 0);
     }
 }

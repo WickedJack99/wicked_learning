@@ -5,8 +5,8 @@ use uuid::Uuid;
 use wicked_learning_application::admin_learning_support_signals::{
     AdminSupportActivityBucket, AdminSupportGroup, AdminSupportLearner, AdminSupportManualUnlock,
     AdminSupportManualUnlockTarget, AdminSupportManualUnlockTargetNode, AdminSupportNote,
-    AdminSupportSignals, AdminSupportSignalsError, AdminSupportSignalsRepository,
-    AdminSupportTopic,
+    AdminSupportPeerSupport, AdminSupportSignals, AdminSupportSignalsError,
+    AdminSupportSignalsRepository, AdminSupportSummary, AdminSupportTopic,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -87,6 +87,21 @@ struct ManualUnlockTargetRow {
     node_title: String,
 }
 
+#[derive(FromRow)]
+struct PeerSupportRow {
+    activity_id: Uuid,
+    activity_title: String,
+    contributor_count: i64,
+    latest_review_at: Option<String>,
+    map_id: Uuid,
+    map_slug: String,
+    map_title: String,
+    node_id: Uuid,
+    node_slug: String,
+    node_title: String,
+    unresolved_review_count: i64,
+}
+
 impl AdminSupportSignalsRepository for PostgresAdminSupportSignalsRepository<'_> {
     fn load(
         &self,
@@ -157,11 +172,12 @@ async fn load(
     };
     let activity_overview_30_days =
         load_activity_overview(application_pool, &principal_ids).await?;
+    let peer_support = load_peer_support(application_pool, &principal_ids).await?;
     let month_key = sqlx::query_scalar::<_, String>("SELECT to_char(CURRENT_DATE, 'YYYY-MM')")
         .fetch_one(application_pool)
         .await?;
 
-    let learners = learners
+    let learners: Vec<AdminSupportLearner> = learners
         .into_iter()
         .filter_map(|learner| {
             let identity = identities.get(&learner.subject_id)?;
@@ -189,12 +205,27 @@ async fn load(
         })
         .collect();
 
+    let summary = AdminSupportSummary {
+        learners: learners.len() as i64,
+        learners_with_signals: learners
+            .iter()
+            .filter(|learner| !learner.topics.is_empty())
+            .count() as i64,
+        topics_with_monthly_activity: learners
+            .iter()
+            .flat_map(|learner| learner.topics.iter())
+            .filter(|topic| topic.monthly_contribution > 0.0)
+            .count() as i64,
+    };
+
     Ok(AdminSupportSignals {
         activity_overview_30_days,
         can_grant_manual_unlocks,
         learners,
         manual_unlock_targets,
         month_key,
+        peer_support,
+        summary,
     })
 }
 
@@ -207,6 +238,12 @@ async fn empty_signals(pool: &PgPool) -> Result<AdminSupportSignals, sqlx::Error
         month_key: sqlx::query_scalar::<_, String>("SELECT to_char(CURRENT_DATE, 'YYYY-MM')")
             .fetch_one(pool)
             .await?,
+        peer_support: vec![],
+        summary: AdminSupportSummary {
+            learners: 0,
+            learners_with_signals: 0,
+            topics_with_monthly_activity: 0,
+        },
     })
 }
 
@@ -372,6 +409,38 @@ async fn load_activity_overview(
             contribution_recorded: row.contribution_recorded,
             date: row.date,
             evidence_events: row.evidence_events,
+        })
+        .collect())
+}
+
+async fn load_peer_support(
+    pool: &PgPool,
+    principal_ids: &[Uuid],
+) -> Result<Vec<AdminSupportPeerSupport>, sqlx::Error> {
+    if principal_ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let rows = sqlx::query_as::<_, PeerSupportRow>(
+        "SELECT reviews.activity_id, activities.title AS activity_title, nodes.id AS node_id, nodes.slug AS node_slug, nodes.title AS node_title, maps.id AS map_id, maps.slug AS map_slug, maps.title AS map_title, COUNT(*)::BIGINT AS unresolved_review_count, COUNT(DISTINCT submissions.principal_id)::BIGINT AS contributor_count, MAX(to_char(reviews.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')) AS latest_review_at FROM learner_shared_task_reviews AS reviews INNER JOIN learner_shared_task_submissions AS submissions ON submissions.id = reviews.submission_id INNER JOIN learning_activities AS activities ON activities.id = reviews.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE submissions.principal_id = ANY($1) AND activities.activity_type = 'shared_task' AND submissions.status = 'accepted' AND submissions.share_with_peers = TRUE AND NOT EXISTS (SELECT 1 FROM learner_shared_task_reviews AS resolved_reviews WHERE resolved_reviews.submission_id = submissions.id AND resolved_reviews.helpful_at IS NOT NULL) GROUP BY reviews.activity_id, activities.title, nodes.id, nodes.slug, nodes.title, maps.id, maps.slug, maps.title ORDER BY unresolved_review_count DESC, latest_review_at DESC NULLS LAST, reviews.activity_id DESC LIMIT 12",
+    )
+    .bind(principal_ids)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| AdminSupportPeerSupport {
+            activity_id: row.activity_id.to_string(),
+            activity_title: row.activity_title,
+            context_href: format!("/world?map={}&focused={}", row.map_slug, row.node_slug),
+            contributor_count: row.contributor_count,
+            latest_review_at: row.latest_review_at,
+            map_id: row.map_id.to_string(),
+            map_title: row.map_title,
+            node_id: row.node_id.to_string(),
+            node_title: row.node_title,
+            unresolved_review_count: row.unresolved_review_count,
         })
         .collect())
 }

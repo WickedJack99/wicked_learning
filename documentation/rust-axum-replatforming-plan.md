@@ -358,13 +358,17 @@ hidden material is withheld from learner readers while a hidden request still
 consumes its single contribution. Deleting a request deletes its replies,
 matching the source's ownership semantics.
 
-The adjacent source Support Signals collective and individual views are now
-available at `support=support-signals`. Their separate typed read contract
+The adjacent Support Signals read contract at `support=support-signals`
 resolves all/group/self visibility in the application database before it joins
 only visible learners' identity labels, and returns evidence aggregates, group
-context and active manual node overrides. It deliberately excludes journal
-text, private reflections, confidence and rankings; peer-message resolution
-remains in the dedicated moderation workspace above.
+context and active manual node overrides. It now also carries the
+source-shaped summary counts and at most twelve anonymous unresolved
+shared-task review aggregates for the caller's already-scoped learners. The
+aggregate deliberately excludes learner writing and identities; the later
+three-section source UI lift may consume it without adding a new staff-data
+authority. It deliberately excludes journal text, private reflections,
+confidence and rankings; peer-message resolution remains in the dedicated
+moderation workspace above.
 
 ### Peer message prompt and wall slice — 6 November 2026
 

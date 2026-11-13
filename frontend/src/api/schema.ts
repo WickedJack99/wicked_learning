@@ -7470,6 +7470,28 @@ export interface components {
                 }[];
             }[];
             month_key: string;
+            /** @description Anonymous scoped shared-task review aggregates that have not received a learner helpfulness signal. It contains no learner writing or identity. */
+            peer_support: {
+                /** Format: uuid */
+                activity_id: string;
+                activity_title: string;
+                context_href: string;
+                contributor_count: number;
+                /** Format: date-time */
+                latest_review_at: string | null;
+                /** Format: uuid */
+                map_id: string;
+                map_title: string;
+                /** Format: uuid */
+                node_id: string;
+                node_title: string;
+                unresolved_review_count: number;
+            }[];
+            summary: {
+                learners: number;
+                learners_with_signals: number;
+                topics_with_monthly_activity: number;
+            };
         };
         AdminSupportActivityBucket: {
             active_learners: number;
