@@ -1077,6 +1077,7 @@ export function App() {
         '/settings/presentation':
             '/settings?panel=admin-presentation-localization&presentation=public',
         '/settings/profile': '/settings?panel=personal&personal=profile',
+        '/settings/worlds': '/settings?panel=admin-world-builder',
     };
     const legacySettingsDestination = legacySettingsRedirects[location.pathname];
     if (legacySettingsDestination) {
@@ -1095,6 +1096,29 @@ export function App() {
                         ? legacySettingsDestination
                         : '/login'
                 }
+            />
+        );
+    }
+
+    const legacyWorldMapRedirect = location.pathname.match(
+        /^\/settings\/worlds\/maps\/([^/]+)\/(edit|configure)$/,
+    );
+    if (legacyWorldMapRedirect) {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        const [, mapId, action] = legacyWorldMapRedirect;
+        const worldView = action === 'configure' ? 'configure' : 'nodes';
+        const destination = `/settings?panel=admin-world-builder&map=${encodeURIComponent(mapId)}&worldView=${worldView}`;
+
+        return (
+            <Navigate
+                replace
+                to={currentUser.kind === 'loaded' ? destination : '/login'}
             />
         );
     }

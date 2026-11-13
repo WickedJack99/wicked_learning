@@ -126,4 +126,25 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
         await page.goto(sourcePath);
         await expect(page).toHaveURL(destination);
     }
+
+    const graphResponse = await page.request.get('/api/v1/admin/world-builder');
+    expect(graphResponse.ok()).toBeTruthy();
+    const graph = (await graphResponse.json()) as {
+        maps: Array<{ id: string }>;
+    };
+    const editableMapId = graph.maps[0]?.id;
+    expect(editableMapId).toBeTruthy();
+
+    await page.goto('/settings/worlds');
+    await expect(page).toHaveURL('/settings?panel=admin-world-builder');
+
+    await page.goto(`/settings/worlds/maps/${editableMapId}/edit`);
+    await expect(page).toHaveURL(
+        `/settings?panel=admin-world-builder&map=${editableMapId}&worldView=nodes`,
+    );
+
+    await page.goto(`/settings/worlds/maps/${editableMapId}/configure`);
+    await expect(page).toHaveURL(
+        `/settings?panel=admin-world-builder&map=${editableMapId}&worldView=configure`,
+    );
 });
