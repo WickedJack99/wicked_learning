@@ -74,4 +74,39 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
             'No settings are available here with the current permissions.',
         ),
     ).toBeVisible();
+
+    await page.goto('/settings/profile');
+    await expect(page).toHaveURL(/\/settings\?panel=personal&personal=profile$/);
+    await expect(
+        page.getByRole('heading', { level: 1, name: 'Profile' }),
+    ).toBeVisible();
+
+    await page.goto('/settings/language');
+    await expect(page).toHaveURL(/\/settings\?panel=personal&personal=language$/);
+    await expect(
+        page.getByRole('heading', { level: 1, name: 'Language' }),
+    ).toBeVisible();
+
+    await page.goto('/settings/appearance');
+    await expect(page).toHaveURL(/\/settings\?panel=personal&personal=appearance$/);
+    await expect(
+        page.getByRole('heading', { level: 1, name: 'Appearance' }),
+    ).toBeVisible();
+
+    await page.goto('/settings/color-palette');
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-presentation-localization&presentation=palette$/,
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Color palette' }),
+    ).toBeVisible();
+
+    await page.goto('/settings/security');
+    await expect(page).toHaveURL(/\/confirm-password\?next=%2Fsettings%2Fsecurity$/);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Confirm password' }).click();
+    await expect(page).toHaveURL(/\/settings\/security$/);
+    await expect(
+        page.getByRole('heading', { level: 1, name: 'Security' }),
+    ).toBeVisible();
 });

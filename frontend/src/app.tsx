@@ -1053,6 +1053,53 @@ export function App() {
         );
     }
 
+    const legacySettingsRedirects: Record<string, string> = {
+        '/settings/appearance': '/settings?panel=personal&personal=appearance',
+        '/settings/color-palette':
+            '/settings?panel=admin-presentation-localization&presentation=palette',
+        '/settings/language': '/settings?panel=personal&personal=language',
+        '/settings/profile': '/settings?panel=personal&personal=profile',
+    };
+    const legacySettingsDestination = legacySettingsRedirects[location.pathname];
+    if (legacySettingsDestination) {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        return (
+            <Navigate
+                replace
+                to={
+                    currentUser.kind === 'loaded'
+                        ? legacySettingsDestination
+                        : '/login'
+                }
+            />
+        );
+    }
+
+    if (location.pathname === '/settings/security') {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+        if (currentUser.kind === 'anonymous') {
+            return <Navigate replace to="/login" />;
+        }
+
+        return (
+            <OriginalPersonalSecurityPage
+                appearance={appearance}
+                confirmationReturnPath="/settings/security"
+            />
+        );
+    }
+
     const settingsInformationMatch = location.pathname.match(
         /^\/settings\/(about|imprint|data-protection)$/,
     );

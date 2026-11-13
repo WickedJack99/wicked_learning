@@ -9,7 +9,13 @@ import { OriginalPersonalSettingsNavigation } from './original-personal-settings
 import { OriginalTwoFactorManagement } from './original-two-factor-management';
 
 /** Source-adapted from the password-confirmed Security settings route and SecuritySettingsPanel. */
-export function OriginalPersonalSecurityPage({ appearance }: { appearance: OriginalAppearance }) {
+export function OriginalPersonalSecurityPage({
+    appearance,
+    confirmationReturnPath = '/settings?panel=personal&personal=security',
+}: {
+    appearance: OriginalAppearance;
+    confirmationReturnPath?: string;
+}) {
     const navigate = useNavigate();
     const [passwordConfirmed, setPasswordConfirmed] = useState(false);
     const [currentPassword, setCurrentPassword] = useState('');
@@ -19,9 +25,9 @@ export function OriginalPersonalSecurityPage({ appearance }: { appearance: Origi
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const changed = currentPassword !== '' || password !== '' || passwordConfirmation !== '';
-    const confirmationPath = '/confirm-password?next=%2Fsettings%3Fpanel%3Dpersonal%26personal%3Dsecurity';
+    const confirmationPath = `/confirm-password?next=${encodeURIComponent(confirmationReturnPath)}`;
 
-    useEffect(() => { let isCurrent = true; void apiClient.GET('/account/password/confirmation').then(({ data, response }) => { if (!isCurrent) return; if (response.ok && data?.confirmed) { setPasswordConfirmed(true); return; } navigate(confirmationPath, { replace: true }); }).catch(() => { if (isCurrent) navigate(confirmationPath, { replace: true }); }); return () => { isCurrent = false; }; }, [navigate]);
+    useEffect(() => { let isCurrent = true; void apiClient.GET('/account/password/confirmation').then(({ data, response }) => { if (!isCurrent) return; if (response.ok && data?.confirmed) { setPasswordConfirmed(true); return; } navigate(confirmationPath, { replace: true }); }).catch(() => { if (isCurrent) navigate(confirmationPath, { replace: true }); }); return () => { isCurrent = false; }; }, [confirmationPath, navigate]);
     if (!passwordConfirmed) return null;
     async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); if (saving || !changed) return; setSaving(true); setMessage(null); try { const token = await getCsrfToken(); const { response } = await apiClient.PATCH('/account/password', { body: { current_password: currentPassword, password, password_confirmation: passwordConfirmation }, params: { header: { 'X-CSRF-Token': token } } }); if (!response.ok) { setMessage('The password could not be updated with these details.'); return; } setCurrentPassword(''); setPassword(''); setPasswordConfirmation(''); setMessage('Password updated.'); } catch { setMessage('The password could not be updated right now.'); } finally { setSaving(false); } }
     const inputType = showPasswords ? 'text' : 'password';
