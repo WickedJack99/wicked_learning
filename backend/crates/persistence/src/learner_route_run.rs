@@ -10,6 +10,26 @@ use wicked_learning_domain::{
 
 use crate::learner_node_availability::PostgresLearnerNodeAvailability;
 
+/// Ordinary route starts need a full Rust-owned playback path. Keep this
+/// shared allowlist aligned with the World start projection rather than making
+/// a Content API-created message activity unreachable to its learners.
+pub(crate) const ROUTE_START_ACTIVITY_TYPES: &[&str] = &[
+    "open_practice",
+    "question",
+    "reflection",
+    "review",
+    "tool_grant",
+    "item_grant",
+    "item_obstacle",
+    "obstacle",
+    "markdown",
+    "npc_dialogue",
+    "shared_task",
+    "portal",
+    "message_prompt",
+    "message_wall",
+];
+
 pub struct PostgresLearnerRouteRunRepository<'pool> {
     pool: &'pool PgPool,
 }
@@ -237,9 +257,10 @@ async fn resolve_visible_start(
         return Ok(None);
     };
     let start = sqlx::query_as::<_, StartRow>(
-        "SELECT activities.id AS activity_id, activities.slug AS activity_slug, nodes.id AS node_id, nodes.slug AS node_slug, nodes.state AS node_state, nodes.visual_config AS node_visual_config, routes.id AS route_id, routes.slug AS route_slug, starts.id AS start_id FROM learning_activity_starts AS starts INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE starts.id = $1 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue', 'shared_task', 'portal') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2)))",
+        "SELECT activities.id AS activity_id, activities.slug AS activity_slug, nodes.id AS node_id, nodes.slug AS node_slug, nodes.state AS node_state, nodes.visual_config AS node_visual_config, routes.id AS route_id, routes.slug AS route_slug, starts.id AS start_id FROM learning_activity_starts AS starts INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE starts.id = $1 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = ANY($2) AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
     )
     .bind(start_id)
+    .bind(ROUTE_START_ACTIVITY_TYPES)
     .bind(&principal.roles)
     .fetch_optional(&mut **transaction)
     .await?;
@@ -265,4 +286,15 @@ async fn load_progress_for_update(
     .bind(start_id)
     .fetch_optional(&mut **transaction)
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ROUTE_START_ACTIVITY_TYPES;
+
+    #[test]
+    fn route_start_allowlist_includes_message_playback_types() {
+        assert!(ROUTE_START_ACTIVITY_TYPES.contains(&"message_prompt"));
+        assert!(ROUTE_START_ACTIVITY_TYPES.contains(&"message_wall"));
+    }
 }
