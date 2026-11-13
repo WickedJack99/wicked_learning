@@ -486,6 +486,19 @@ function WorldBuilderContent({
             : query.get('worldSection') === 'structural'
               ? 'structural'
               : 'graph';
+    const canViewGraph =
+        settingsAccess.world_maps === true ||
+        settingsAccess.world_nodes === true ||
+        settingsAccess.world_activities === true;
+    const canViewStructural = settingsAccess.world_maps === true;
+    const visibleWorldBuilderSections = worldBuilderSections.filter((section) =>
+        section.key === 'structural' ? canViewStructural : canViewGraph,
+    );
+    const resolvedWorldBuilderSection = visibleWorldBuilderSections.some(
+        (section) => section.key === worldBuilderSection,
+    )
+        ? worldBuilderSection
+        : visibleWorldBuilderSections[0]?.key;
     const worldBuilderMapView: WorldBuilderMapView =
         query.get('worldView') === 'configure' ? 'configure' : 'nodes';
     const selectedMapId = query.get('map');
@@ -588,6 +601,10 @@ function WorldBuilderContent({
     );
 
     const loadWorld = useCallback(async () => {
+        if (!resolvedWorldBuilderSection) {
+            setWorldGraph(null);
+            return;
+        }
         setError(null);
         const { data, response } = await apiClient.GET('/admin/world-builder');
         if (!response.ok || !data) {
@@ -596,13 +613,13 @@ function WorldBuilderContent({
             return;
         }
         setWorldGraph(data);
-    }, []);
+    }, [resolvedWorldBuilderSection]);
 
     useEffect(() => {
         void loadWorld().catch(() =>
             setError('World Builder is temporarily unavailable.'),
         );
-    }, [loadWorld]);
+    }, [loadWorld, resolvedWorldBuilderSection]);
 
     useEffect(() => {
         if (!selectedMapId) {
@@ -673,7 +690,7 @@ function WorldBuilderContent({
     }, [nodeReload, selectedNodeId]);
 
     useEffect(() => {
-        if (worldBuilderSection !== 'review') {
+        if (resolvedWorldBuilderSection !== 'review') {
             return;
         }
         let current = true;
@@ -701,7 +718,7 @@ function WorldBuilderContent({
         return () => {
             current = false;
         };
-    }, [reviewQueuePage, reviewQueueRequestVersion, worldBuilderSection]);
+    }, [reviewQueuePage, reviewQueueRequestVersion, resolvedWorldBuilderSection]);
 
     const reviewCount =
         worldGraph?.maps.reduce(
@@ -709,10 +726,10 @@ function WorldBuilderContent({
             0,
         ) ?? 0;
 
-    if (error && !worldGraph && worldBuilderSection !== 'review') {
+    if (resolvedWorldBuilderSection && error && !worldGraph && resolvedWorldBuilderSection !== 'review') {
         return <WorldBuilderStatus message={error} />;
     }
-    if (!worldGraph && worldBuilderSection !== 'review') {
+    if (resolvedWorldBuilderSection && !worldGraph && resolvedWorldBuilderSection !== 'review') {
         return <WorldBuilderStatus message="Loading World Builder…" />;
     }
 
@@ -740,14 +757,16 @@ function WorldBuilderContent({
                             contentClassName="p-0 sm:p-0"
                             sidebar={
                                 <SettingsSectionNavigation
-                                    activeSection={worldBuilderSection}
+                                    activeSection={resolvedWorldBuilderSection}
                                     ariaLabel="World builder sections"
-                                    items={worldBuilderSections}
+                                    items={visibleWorldBuilderSections}
                                     onChange={selectWorldBuilderSection}
                                 />
                             }
                         >
-                {worldBuilderSection === 'review' ? (
+                {!resolvedWorldBuilderSection ? (
+                    <UnavailableWorldBuilder />
+                ) : resolvedWorldBuilderSection === 'review' ? (
                     <WorldBuilderReviewQueueWorkspace
                         error={reviewQueueError}
                         onOpenActivity={selectNode}
@@ -759,7 +778,7 @@ function WorldBuilderContent({
                         }
                         page={reviewQueue}
                     />
-                ) : worldBuilderSection === 'structural' ? (
+                ) : resolvedWorldBuilderSection === 'structural' ? (
                     <WorldMapManagementWorkspace
                         activeView={worldBuilderMapView}
                         detail={
@@ -2409,6 +2428,17 @@ function WorldBuilderStatus({ message }: { message: string }) {
         <main className="grid min-h-svh place-items-center bg-slate-100 p-6 text-slate-700 dark:bg-[#0b1117] dark:text-slate-200">
             <p role="status">{message}</p>
         </main>
+    );
+}
+
+function UnavailableWorldBuilder() {
+    return (
+        <section className="grid h-full place-items-center p-6 text-center">
+            <p className="max-w-lg text-sm leading-6 text-[var(--settings-muted-text)]">
+                World builder settings are not available with the current
+                permissions.
+            </p>
+        </section>
     );
 }
 

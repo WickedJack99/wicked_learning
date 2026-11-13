@@ -4930,6 +4930,13 @@ The source Structural section likewise retains its map list, selected-map
 summary, map-configuration entry and MapAsset list. It uses the graph's
 already-scoped map/node summaries and opens only the pre-existing scoped map
 and activity editors; switching Settings sections never broadens map access.
+The lifted World Builder section tabs retain the source visibility projection:
+Graph and Review require one of the readable map, MapAsset/node or activity
+resources, while Structural requires readable maps. A deep link to an
+unavailable section resolves to the first visible source section; no visible
+section renders the source unavailable state without issuing a World Builder
+read. This remains navigation-only evidence and does not replace endpoint
+authorization.
 
 **Template-test extension:** Rust now preserves Laravel's explicit saved-agent
 test boundary. A principal with `ai.ru` submits one bounded prompt with CSRF;

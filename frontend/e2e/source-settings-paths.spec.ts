@@ -238,3 +238,51 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
         `/settings?panel=admin-world-builder&map=${editableMapId}&worldView=configure`,
     );
 });
+
+test('World Builder retains source section visibility for a no-access Settings projection', async ({
+    page,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email!);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+
+    const currentUserResponse = await page.request.get('/api/v1/me');
+    expect(currentUserResponse.ok()).toBeTruthy();
+    const currentUser = (await currentUserResponse.json()) as {
+        settings_access: Record<string, boolean>;
+    };
+    const noAccess = Object.fromEntries(
+        Object.keys(currentUser.settings_access).map((resource) => [
+            resource,
+            false,
+        ]),
+    );
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            body: JSON.stringify({
+                ...currentUser,
+                settings_access: noAccess,
+            }),
+            contentType: 'application/json',
+        });
+    });
+
+    await page.goto('/settings?panel=admin-world-builder&worldSection=review');
+    await expect(
+        page.getByText(
+            'World builder settings are not available with the current permissions.',
+        ),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('tablist', { name: 'World builder sections' }),
+    ).toBeHidden();
+    await expect(
+        page.getByRole('heading', { name: 'Review queue' }),
+    ).toBeHidden();
+});
