@@ -16,6 +16,7 @@ pub struct ContentApiActivity {
     pub config: Value,
     pub position_x: Option<f64>,
     pub position_y: Option<f64>,
+    pub updated_at: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -45,6 +46,14 @@ pub trait ContentApiActivityRepository {
         &self,
         principal: &AuthorizedPrincipal,
         map_asset_id: Uuid,
+    ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send;
+
+    fn load_activity_id(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        activity_id: Uuid,
+        activity_type: &str,
     ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send;
 
     fn load_transitions(
@@ -161,6 +170,37 @@ pub struct ContentApiActivityNodeQuery<'repository, Repository> {
     repository: &'repository Repository,
 }
 
+/// Proves that a type-specific activity mutation is contained by the explicit
+/// MapAsset path before its existing typed World Builder command writes.
+pub struct ContentApiActivityScopeQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> ContentApiActivityScopeQuery<'repository, Repository>
+where
+    Repository: ContentApiActivityRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        activity_id: Uuid,
+        activity_type: &str,
+    ) -> Result<Option<Uuid>, ContentApiActivityReadError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+
+        self.repository
+            .load_activity_id(principal, map_asset_id, activity_id, activity_type)
+            .await
+    }
+}
+
 impl<'repository, Repository> ContentApiActivityNodeQuery<'repository, Repository>
 where
     Repository: ContentApiActivityRepository,
@@ -197,9 +237,9 @@ mod tests {
 
     use super::{
         ContentApiActivityListQuery, ContentApiActivityNodeQuery, ContentApiActivityReadError,
-        ContentApiActivityRepository, ContentApiActivityTransitionListQuery,
-        ContentApiActivityTransitionScopeQuery, ContentApiMapAssetActivities,
-        ContentApiMapAssetTransitions,
+        ContentApiActivityRepository, ContentApiActivityScopeQuery,
+        ContentApiActivityTransitionListQuery, ContentApiActivityTransitionScopeQuery,
+        ContentApiMapAssetActivities, ContentApiMapAssetTransitions,
     };
 
     struct RecordingRepository {
@@ -222,6 +262,18 @@ mod tests {
             &self,
             _: &AuthorizedPrincipal,
             _: Uuid,
+        ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn load_activity_id(
+            &self,
+            _: &AuthorizedPrincipal,
+            _: Uuid,
+            _: Uuid,
+            _: &str,
         ) -> impl Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send
         {
             self.called.store(true, Ordering::SeqCst);
@@ -271,6 +323,10 @@ mod tests {
             .execute(&principal, Uuid::new_v4())
             .await
             .expect("authorization check");
+        let activity = ContentApiActivityScopeQuery::new(&repository)
+            .execute(&principal, Uuid::new_v4(), Uuid::new_v4(), "reflection")
+            .await
+            .expect("authorization check");
         let transitions = ContentApiActivityTransitionListQuery::new(&repository)
             .execute(&principal, Uuid::new_v4())
             .await
@@ -282,6 +338,7 @@ mod tests {
 
         assert!(activities.is_none());
         assert!(node.is_none());
+        assert!(activity.is_none());
         assert!(transitions.is_none());
         assert!(transition.is_none());
         assert!(!called.load(Ordering::SeqCst));

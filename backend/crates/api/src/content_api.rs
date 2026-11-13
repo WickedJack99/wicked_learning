@@ -70,7 +70,8 @@ use wicked_learning_application::{
     },
     content_api_activity::{
         ContentApiActivity, ContentApiActivityListQuery, ContentApiActivityNodeQuery,
-        ContentApiActivityTransitionListQuery, ContentApiActivityTransitionScopeQuery,
+        ContentApiActivityScopeQuery, ContentApiActivityTransitionListQuery,
+        ContentApiActivityTransitionScopeQuery,
     },
 };
 use wicked_learning_domain::{
@@ -391,6 +392,18 @@ pub struct CreateActivityTransitionRequest {
 pub struct UpdateActivityTransitionRequest {
     label: Option<String>,
     trigger_value: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateReflectionActivityRequest {
+    title: String,
+    slug: NullableString,
+    introduction: NullableString,
+    prompt: NullableString,
+    note: NullableString,
+    topic: NullableString,
+    subtopic: NullableString,
+    updated_at: String,
 }
 
 #[derive(Deserialize)]
@@ -931,6 +944,54 @@ pub async fn create_activity(
             "data": data,
         })),
     ))
+}
+
+/// Replaces a Reflection Activity's complete source form only after proving
+/// both its type and MapAsset membership. Other Activity types retain their
+/// own typed adapters rather than sharing an unbounded update payload.
+pub async fn update_reflection_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateReflectionActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let form = ReflectionActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request.prompt.as_deref().unwrap_or_default(),
+        request.note.as_deref().unwrap_or_default(),
+        request.topic.as_deref().unwrap_or_default(),
+        request.subtopic.as_deref().unwrap_or_default(),
+    )
+    .ok_or_else(ApiError::invalid_request)?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id, "reflection")
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let reflection_repository =
+        PostgresAdminWorldReflectionRepository::new(&state.application_database);
+    let updated = AdminWorldReflectionCommand::new(&reflection_repository)
+        .update(&principal, activity_id, &form, &request.updated_at)
+        .await
+        .map_err(map_reflection_error)?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(Json(json!({
+        "data": { "id": updated.activity_id, "updatedAt": updated.updated_at },
+    })))
 }
 
 /// Connects two activities through the same scoped, idempotent World Builder
@@ -1884,6 +1945,7 @@ fn serialize_activity(map_asset_id: Uuid, activity: &ContentApiActivity) -> Valu
         "introduction": activity.introduction,
         "config": activity.config,
         "position": { "x": activity.position_x, "y": activity.position_y },
+        "updatedAt": activity.updated_at,
     })
 }
 
@@ -2087,7 +2149,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.6",
+        "version": "1.7",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -2199,7 +2261,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.6", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.7", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -2211,6 +2273,7 @@ fn document() -> Value {
             operation("map-assets.destroy", "DELETE", "/api/content/v1/map-assets/{mapAsset}", "Delete a MapAsset", "Deletes a MapAsset only through the scoped World Builder cascade. It requires Content API and World Builder delete permission.", Value::Null, Value::Null),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
             operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, NPC dialogue, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "npc_dialogue", "title": "Ask the archive guide", "introduction": "Follow the guide's questions.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "npc_dialogue", "title": "Ask the archive guide" } })),
+            operation("activities.reflection.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/reflection", "Replace a Reflection Activity", "Replaces the complete source Reflection form only after proving its type and MapAsset membership.", json!({ "title": "Explain the energy conversion", "slug": Value::Null, "introduction": "Trace the current through the alternator.", "prompt": "What changed?", "note": Value::Null, "topic": "Vehicle electrics", "subtopic": Value::Null, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -2263,16 +2326,17 @@ mod tests {
     };
 
     use super::{
-        UpdateMapAssetSurfaceRequest, UpdateMapRequest, content_api_item_grant_form,
-        content_api_item_obstacle_form, content_api_message_form, content_api_obstacle_form,
-        content_api_portal_form, content_api_shared_task_form, content_api_tool_grant_form,
-        document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_activity_transition, serialize_created_item_grant,
-        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
-        serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
-        serialize_created_open_practice, serialize_created_portal, serialize_created_question,
-        serialize_created_reflective_activity, serialize_created_shared_task,
-        serialize_created_tool_grant, serialize_map_assets, update_map_asset_surface_form,
+        UpdateMapAssetSurfaceRequest, UpdateMapRequest, UpdateReflectionActivityRequest,
+        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
+        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
+        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
+        require_content_permission, serialize_activity, serialize_activity_transition,
+        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
+        serialize_created_markdown, serialize_created_message, serialize_created_npc_dialogue,
+        serialize_created_obstacle, serialize_created_open_practice, serialize_created_portal,
+        serialize_created_question, serialize_created_reflective_activity,
+        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
+        update_map_asset_surface_form,
     };
 
     #[test]
@@ -2281,8 +2345,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.6");
-        assert_eq!(operations.len(), 16);
+        assert_eq!(document["version"], "1.7");
+        assert_eq!(operations.len(), 17);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -2294,10 +2358,11 @@ mod tests {
         assert_eq!(operations[9]["id"], "map-assets.destroy");
         assert_eq!(operations[10]["id"], "activities.index");
         assert_eq!(operations[11]["id"], "activities.store");
-        assert_eq!(operations[12]["id"], "activity-transitions.index");
-        assert_eq!(operations[13]["id"], "activity-transitions.store");
-        assert_eq!(operations[14]["id"], "activity-transitions.update");
-        assert_eq!(operations[15]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[12]["id"], "activities.reflection.update");
+        assert_eq!(operations[13]["id"], "activity-transitions.index");
+        assert_eq!(operations[14]["id"], "activity-transitions.store");
+        assert_eq!(operations[15]["id"], "activity-transitions.update");
+        assert_eq!(operations[16]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -2361,6 +2426,18 @@ mod tests {
         .is_ok());
         assert!(serde_json::from_str::<UpdateMapRequest>(
             r#"{"title":"Engine Bay","description":null,"topic_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn reflection_updates_require_the_complete_source_form() {
+        assert!(serde_json::from_str::<UpdateReflectionActivityRequest>(
+            r#"{"title":"Explain energy","slug":null,"introduction":null,"prompt":"What changed?","note":null,"topic":null,"subtopic":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_ok());
+        assert!(serde_json::from_str::<UpdateReflectionActivityRequest>(
+            r#"{"title":"Explain energy","slug":null,"introduction":null,"note":null,"topic":null,"subtopic":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
         )
         .is_err());
     }
@@ -2506,6 +2583,7 @@ mod tests {
             config: json!({ "prompt": "What changed?" }),
             position_x: Some(120.0),
             position_y: Some(80.0),
+            updated_at: "2026-11-13T12:00:00.000000Z".to_owned(),
         };
         let listed = serialize_activity(map_asset_id, &activity);
         let form =
@@ -2532,6 +2610,7 @@ mod tests {
 
         assert_eq!(listed["mapAssetId"], map_asset_id.to_string());
         assert_eq!(listed["position"], json!({ "x": 120.0, "y": 80.0 }));
+        assert_eq!(listed["updatedAt"], "2026-11-13T12:00:00.000000Z");
         assert_eq!(created["type"], "review");
         assert_eq!(created["slug"], "energy-reflection-2");
         assert_eq!(created["config"]["prompt"], "What changed?");

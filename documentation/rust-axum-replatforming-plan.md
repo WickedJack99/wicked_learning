@@ -1721,7 +1721,7 @@ Question, Shared Task, catalog-resolved Item Grant and Tool Grant, an Item
 Obstacle with a catalog-resolved item slot, a tool-resolved Obstacle, and a
 same-World Portal input/output link, back through the documented scoped route.
 The OpenAPI contract and
-generated TypeScript client now mirror all sixteen advertised operations,
+generated TypeScript client now mirror all seventeen advertised operations,
 including the map lifecycle; no live console operation is outside the
 typed API surface.
 
@@ -1755,6 +1755,14 @@ to their distinct commands. Map deletion requires `content_api.rud` and the
 existing `world_maps.rud` scope, preserving the transactional cascade and
 managed-media cleanup. The generated client and disposable console browser flow
 prove the read/update/delete lifecycle before it is advertised.
+
+The first type-specific Content API mutation replaces only a Reflection
+Activity. Activity reads now include their source concurrency timestamp; the
+Reflection writer requires it and the complete source form, proves both the
+activity type and its MapAsset membership through the existing scoped query,
+then delegates to the typed World Builder command. This establishes the
+backend-first pattern for later type-specific activity updates without an
+untyped JSON activity writer or a new frontend surface.
 
 ### Local backup and isolated restore-drill slice — 13 November 2026
 

@@ -606,6 +606,10 @@ fn router(state: AppState) -> Router {
             get(content_api::activities).post(content_api::create_activity),
         )
         .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/reflection",
+            patch(content_api::update_reflection_activity),
+        )
+        .route(
             "/api/content/v1/map-assets/{map_asset_id}/activity-transitions",
             get(content_api::activity_transitions).post(content_api::create_activity_transition),
         )

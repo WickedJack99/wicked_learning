@@ -317,6 +317,41 @@ paths:
         '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
         '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/reflection:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: activity_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateContentApiReflectionActivity
+      summary: Replace a source-compatible Reflection Activity form.
+      description: Requires content_api update permission, the existing World Activity update scope, a same-origin CSRF token, and the current updated_at value. Rust proves that the addressed activity is a Reflection within the URL's MapAsset before delegating to the typed World Builder command.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateContentApiReflectionActivityRequest' }
+      responses:
+        '200':
+          description: The updated Reflection Activity identity and fresh concurrency timestamp.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityUpdateResponse' }
+        '400': { description: The complete Reflection form is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The Reflection Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
     servers:
       - url: /api
@@ -7570,12 +7605,38 @@ components:
           properties:
             x: { type: [number, 'null'] }
             y: { type: [number, 'null'] }
+        updatedAt: { type: string, format: date-time }
     ContentApiActivityResponse:
       type: object
       additionalProperties: false
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/ContentApiActivity' }
+    UpdateContentApiReflectionActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, prompt, note, topic, subtopic, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        prompt: { type: [string, 'null'], maxLength: 4000 }
+        note: { type: [string, 'null'], maxLength: 2000 }
+        topic: { type: [string, 'null'], maxLength: 160 }
+        subtopic: { type: [string, 'null'], maxLength: 160 }
+        updated_at: { type: string, format: date-time }
+    ContentApiActivityUpdateResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [id, updatedAt]
+          properties:
+            id: { type: string, format: uuid }
+            updatedAt: { type: string, format: date-time }
     ContentApiActivityTransition:
       type: object
       additionalProperties: false

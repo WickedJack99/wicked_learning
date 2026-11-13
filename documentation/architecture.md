@@ -546,8 +546,11 @@ references, Obstacle's scoped tool resolution and authored visual states,
 Portal's same-World input-target resolution, media-reference synchronization
 and transactional link creation, NPC dialogue's default end-node scaffold, and Message's map-scoped topic resolution and bounded peer/support configuration,
 while retaining optional graph-card coordinates. Those fourteen types are the
-complete source activity registry, so no registry Activity type is advertised
-without a matching command adapter.
+complete source activity registry for creation, so no registry Activity type is
+advertised without a matching command adapter. Activity reads carry the source
+concurrency timestamp, and the first type-specific replacement adapter exposes
+only the complete Reflection form after proving both the activity type and its
+MapAsset membership before delegating to the typed World Builder command.
 
 AI configuration uses:
 

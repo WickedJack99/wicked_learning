@@ -49,6 +49,27 @@ impl ContentApiActivityRepository for PostgresContentApiActivityRepository<'_> {
         }
     }
 
+    fn load_activity_id(
+        &self,
+        principal: &AuthorizedPrincipal,
+        map_asset_id: Uuid,
+        activity_id: Uuid,
+        activity_type: &str,
+    ) -> impl std::future::Future<Output = Result<Option<Uuid>, ContentApiActivityReadError>> + Send
+    {
+        async move {
+            load_activity_id(
+                self.pool,
+                principal,
+                map_asset_id,
+                activity_id,
+                activity_type,
+            )
+            .await
+            .map_err(unavailable)
+        }
+    }
+
     fn load_transitions(
         &self,
         principal: &AuthorizedPrincipal,
@@ -100,6 +121,7 @@ struct ActivityRow {
     config: Value,
     position_x: Option<f64>,
     position_y: Option<f64>,
+    updated_at: String,
 }
 
 #[derive(FromRow)]
@@ -125,7 +147,8 @@ async fn load_activities(
     let rows = sqlx::query_as::<_, ActivityRow>(
         "SELECT activities.id, activities.slug, activities.activity_type, activities.title, \
          activities.introduction, activities.activity_config AS config, \
-         activities.graph_position_x AS position_x, activities.graph_position_y AS position_y \
+         activities.graph_position_x AS position_x, activities.graph_position_y AS position_y, \
+         to_char(activities.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at \
          FROM learning_activities AS activities \
          INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
          WHERE routes.map_asset_id = $1 \
@@ -148,6 +171,7 @@ async fn load_activities(
                 config: row.config,
                 position_x: row.position_x,
                 position_y: row.position_y,
+                updated_at: row.updated_at,
             })
             .collect(),
     }))
@@ -211,6 +235,30 @@ async fn load_transition_id(
     )
     .bind(map_asset_id)
     .bind(transition_id)
+    .fetch_optional(pool)
+    .await
+}
+
+async fn load_activity_id(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    map_asset_id: Uuid,
+    activity_id: Uuid,
+    activity_type: &str,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    if load_context(pool, principal, map_asset_id).await?.is_none() {
+        return Ok(None);
+    }
+
+    sqlx::query_scalar::<_, Uuid>(
+        "SELECT activities.id \
+         FROM learning_activities AS activities \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         WHERE routes.map_asset_id = $1 AND activities.id = $2 AND activities.activity_type = $3",
+    )
+    .bind(map_asset_id)
+    .bind(activity_id)
+    .bind(activity_type)
     .fetch_optional(pool)
     .await
 }
