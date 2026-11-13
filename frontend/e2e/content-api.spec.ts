@@ -68,6 +68,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const reflectionTitle = `Content API browser reflection ${suffix}`;
     const reviewTitle = `Content API browser review ${suffix}`;
     const markdownTitle = `Content API browser briefing ${suffix}`;
+    const questionTitle = `Content API browser question ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -247,6 +248,40 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(markdown.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(markdown.data).toMatchObject({ type: 'markdown', title: markdownTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'question',
+        title: questionTitle,
+        introduction: 'Choose the description that best fits the activity adapter.',
+        question_prompt: 'Which field carries the authored question text?',
+        question_feedback_correct: 'Yes — it is validated before the scoped command runs.',
+        question_feedback_incorrect: 'Try again by looking at the documented request fields.',
+        question_explanation: 'The typed question adapter retains source-shaped options and feedback.',
+        question_allow_multiple: false,
+        question_options: [
+            {
+                label: 'A',
+                body: 'question_prompt',
+                is_correct: true,
+                outcome_key: 'correct',
+                feedback: 'That is the authored question text.',
+            },
+            {
+                label: 'B',
+                body: 'graph_position_x',
+                is_correct: false,
+                outcome_key: 'incorrect',
+                feedback: 'That locates the card in the author graph.',
+            },
+        ],
+        graph_position_x: 540,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const question = await createdResponse(console);
+    expect(question.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(question.data).toMatchObject({ type: 'question', title: questionTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -260,4 +295,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(reflectionTitle);
     await expect(console.locator('pre')).toContainText(reviewTitle);
     await expect(console.locator('pre')).toContainText(markdownTitle);
+    await expect(console.locator('pre')).toContainText(questionTitle);
 });
