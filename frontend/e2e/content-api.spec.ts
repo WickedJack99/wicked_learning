@@ -73,6 +73,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const itemGrantTitle = `Content API browser item grant ${suffix}`;
     const toolGrantTitle = `Content API browser tool grant ${suffix}`;
     const itemObstacleTitle = `Content API browser item obstacle ${suffix}`;
+    const obstacleTitle = `Content API browser obstacle ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -384,6 +385,34 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(itemObstacle.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(itemObstacle.data).toMatchObject({ type: 'item_obstacle', title: itemObstacleTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'obstacle',
+        title: obstacleTitle,
+        introduction: 'Use the configured tool to make a careful next observation.',
+        obstacle_allowed_tool_ids: ['10000000-0000-4000-8000-000000000001'],
+        obstacle_bubble_border_color_dark: '#2dd4bf',
+        obstacle_bubble_border_color_light: '#0891b2',
+        obstacle_bubble_color_dark: '#0f172a',
+        obstacle_bubble_color_light: '#ffffff',
+        obstacle_bubble_opacity_dark: 92,
+        obstacle_bubble_opacity_light: 94,
+        obstacle_persist_after_solved: true,
+        obstacle_prompt_text: 'Which detail does the tool help you notice?',
+        obstacle_x: 50,
+        obstacle_y: 50,
+        obstacle_width: 28,
+        obstacle_success_animation: 'zoom',
+        obstacle_success_text: 'The obstacle has opened a useful next direction.',
+        obstacle_typing_speed: 24,
+        graph_position_x: 840,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const obstacle = await createdResponse(console);
+    expect(obstacle.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(obstacle.data).toMatchObject({ type: 'obstacle', title: obstacleTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -402,4 +431,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(itemGrantTitle);
     await expect(console.locator('pre')).toContainText(toolGrantTitle);
     await expect(console.locator('pre')).toContainText(itemObstacleTitle);
+    await expect(console.locator('pre')).toContainText(obstacleTitle);
 });

@@ -1713,9 +1713,10 @@ the console into a bearer-token client or a substitute for the contract's map
 and activity scope checks. The local browser proof creates a disposable map,
 MapAsset, Open Practice Activity, NPC dialogue, Message Prompt, Message Wall,
 Reflection, Review / revisit and Markdown through that console, then reads all
-twelve Activities, including a bounded-answer Question, Shared Task,
-catalog-resolved Item Grant and Tool Grant, and an Item Obstacle with a
-catalog-resolved item slot, back through the documented scoped route.
+thirteen Activities, including a bounded-answer Question, Shared Task,
+catalog-resolved Item Grant and Tool Grant, an Item Obstacle with a
+catalog-resolved item slot, and a tool-resolved Obstacle, back through the
+documented scoped route.
 The OpenAPI contract and
 generated TypeScript client now mirror all seven advertised operations,
 including the map list/create pair; no live console operation is outside the
