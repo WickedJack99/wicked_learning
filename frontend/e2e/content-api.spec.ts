@@ -556,6 +556,152 @@ test('a content API author can replace a scoped Open Practice Activity through t
     await expect(console.getByText('HTTP 204')).toBeVisible();
 });
 
+test('a content API author can replace a scoped Markdown Activity page graph through the documented console', async ({
+    page,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    const suffix = Date.now();
+    const mapTitle = `Content API Markdown map ${suffix}`;
+    const assetTitle = `Content API Markdown MapAsset ${suffix}`;
+    const markdownTitle = `Content API Markdown ${suffix}`;
+    const updatedTitle = `${markdownTitle} updated`;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email!);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+
+    await page.goto('/settings?panel=admin-api&api=console');
+    const console = page.locator('[data-wl-id="settings.content-api.console"]');
+    await expect(console).toBeVisible();
+
+    await console.getByLabel('Operation').selectOption('maps.store');
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: mapTitle,
+        description: 'A disposable map for Markdown page-graph replacement evidence.',
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const map = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('map-assets.store');
+    await console.getByLabel('Request path').fill(`/api/content/v1/maps/${map.data.id}/map-assets`);
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: assetTitle,
+        description: 'A disposable MapAsset for Markdown page-graph replacement evidence.',
+        image_url: null,
+        text: assetTitle,
+        position_x: 50,
+        position_y: 50,
+        position_z: 0,
+        width: 14,
+        opacity: 1,
+        locked: false,
+        interaction_mode: 'focusable',
+        interaction_config: {},
+        visual_config: {},
+        sound_config: {},
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const mapAsset = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('activities.store');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'markdown',
+        title: markdownTitle,
+        introduction: 'Read a short source-shaped briefing before continuing.',
+        markdown_pages: [{
+            id: 'briefing',
+            title: 'Briefing',
+            body: '# Start here\n\nChoose one detail worth revisiting.',
+            position: { x: 140, y: 80 },
+            visual: {
+                page_color_dark: '#0f172a',
+                page_color_light: '#ffffff',
+                border_color_dark: '#2dd4bf',
+                border_color_light: '#0891b2',
+                heading_color_dark: '#67e8f9',
+                heading_color_light: '#0e7490',
+                text_color_dark: '#f8fafc',
+                text_color_light: '#0f172a',
+            },
+        }],
+        markdown_transitions: [
+            { id: 'start-briefing', from: 'start', to: 'briefing' },
+            { id: 'briefing-end', from: 'briefing', to: 'end' },
+        ],
+        markdown_graph_layout: {},
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const markdown = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    const activities = JSON.parse((await console.locator('pre').textContent()) ?? '{}') as {
+        data: Array<{ id: string; updatedAt: string }>;
+    };
+    const initial = activities.data.find((activity) => activity.id === markdown.data.id);
+    if (!initial) {
+        throw new Error('the created Markdown Activity was not returned by its scoped list');
+    }
+    expect(initial.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    await console.getByLabel('Operation').selectOption('activities.markdown.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${markdown.data.id}/markdown`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedTitle,
+        slug: null,
+        introduction: 'Read this revised briefing before continuing.',
+        markdown_pages: [{
+            id: 'briefing',
+            title: 'Updated briefing',
+            body: '# Updated direction\n\nName one detail you will use next.',
+            position: { x: 140, y: 80 },
+            visual: {
+                page_color_dark: '#0f172a',
+                page_color_light: '#ffffff',
+                border_color_dark: '#2dd4bf',
+                border_color_light: '#0891b2',
+                heading_color_dark: '#67e8f9',
+                heading_color_light: '#0e7490',
+                text_color_dark: '#f8fafc',
+                text_color_light: '#0f172a',
+            },
+        }],
+        markdown_transitions: [
+            { id: 'start-briefing', from: 'start', to: 'briefing' },
+            { id: 'briefing-end', from: 'briefing', to: 'end' },
+        ],
+        markdown_graph_layout: {},
+        updated_at: initial.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(markdown.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedTitle);
+    await expect(console.locator('pre')).toContainText('Name one detail you will use next.');
+
+    await console.getByLabel('Operation').selectOption('maps.destroy');
+    await console.getByLabel('Request path').fill(`/api/content/v1/maps/${map.data.id}`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+});
+
 test('a content API author creates a MapAsset Activity through the documented console flow', async ({
     page,
 }) => {

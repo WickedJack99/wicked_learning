@@ -422,6 +422,41 @@ paths:
         '404': { description: The Open Practice Activity is unavailable in the caller's scoped MapAsset. }
         '409': { description: The supplied updated_at value is stale. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/markdown:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: activity_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateContentApiMarkdownActivity
+      summary: Replace a source-compatible Markdown Activity page graph.
+      description: Requires content_api update permission, the existing World Activity update scope, a same-origin CSRF token, and the current updated_at value. Rust proves that the addressed activity is Markdown within the URL's MapAsset before delegating to the typed World Builder command, which owns page-graph and managed-media-reference handling.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateContentApiMarkdownActivityRequest' }
+      responses:
+        '200':
+          description: The updated Markdown Activity identity and fresh concurrency timestamp.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityUpdateResponse' }
+        '400': { description: The complete Markdown page graph form is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The Markdown Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
     servers:
       - url: /api
@@ -7705,6 +7740,13 @@ components:
         introduction: { type: [string, 'null'], maxLength: 1000 }
         next_step: { type: [string, 'null'], maxLength: 4000 }
         updated_at: { type: string, format: date-time }
+    UpdateContentApiMarkdownActivityRequest:
+      allOf:
+        - $ref: '#/components/schemas/MarkdownActivityForm'
+        - type: object
+          required: [updated_at]
+          properties:
+            updated_at: { type: string, format: date-time }
     ContentApiActivityUpdateResponse:
       type: object
       additionalProperties: false

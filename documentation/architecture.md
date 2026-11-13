@@ -549,9 +549,9 @@ while retaining optional graph-card coordinates. Those fourteen types are the
 complete source activity registry for creation, so no registry Activity type is
 advertised without a matching command adapter. Activity reads carry the source
 concurrency timestamp, and type-specific replacement adapters expose only the
-complete Reflection, Review or Open Practice form after proving the distinct
-activity type and its MapAsset membership before delegating to the matching
-typed World Builder command.
+complete Reflection, Review, Open Practice or Markdown page-graph form after
+proving the distinct activity type and its MapAsset membership before
+delegating to the matching typed World Builder command.
 
 AI configuration uses:
 

@@ -259,6 +259,29 @@ export interface paths {
         patch: operations["updateContentApiOpenPracticeActivity"];
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/markdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace a source-compatible Markdown Activity page graph.
+         * @description Requires content_api update permission, the existing World Activity update scope, a same-origin CSRF token, and the current updated_at value. Rust proves that the addressed activity is Markdown within the URL's MapAsset before delegating to the typed World Builder command, which owns page-graph and managed-media-reference handling.
+         */
+        patch: operations["updateContentApiMarkdownActivity"];
+        trace?: never;
+    };
     "/content/v1/map-assets/{map_asset_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -5982,6 +6005,10 @@ export interface components {
             slug: string | null;
             introduction: string | null;
             next_step: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateContentApiMarkdownActivityRequest: components["schemas"]["MarkdownActivityForm"] & {
             /** Format: date-time */
             updated_at: string;
         };
@@ -11896,6 +11923,78 @@ export interface operations {
                 content?: never;
             };
             /** @description The Open Practice Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied updated_at value is stale. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiMarkdownActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContentApiMarkdownActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated Markdown Activity identity and fresh concurrency timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityUpdateResponse"];
+                };
+            };
+            /** @description The complete Markdown page graph form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Activity update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Markdown Activity is unavailable in the caller's scoped MapAsset. */
             404: {
                 headers: {
                     [name: string]: unknown;

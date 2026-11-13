@@ -416,6 +416,17 @@ pub struct UpdateOpenPracticeActivityRequest {
 }
 
 #[derive(Deserialize)]
+pub struct UpdateMarkdownActivityRequest {
+    title: String,
+    slug: NullableString,
+    introduction: NullableString,
+    markdown_pages: Vec<MarkdownPageRequest>,
+    markdown_transitions: Vec<MarkdownTransitionRequest>,
+    markdown_graph_layout: MarkdownGraphLayoutRequest,
+    updated_at: String,
+}
+
+#[derive(Deserialize)]
 struct ContentApiQuestionOptionRequest {
     label: String,
     body: String,
@@ -1089,6 +1100,52 @@ pub async fn update_open_practice_activity(
         .update(&principal, activity_id, &form, &request.updated_at)
         .await
         .map_err(map_open_practice_error)?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(Json(json!({
+        "data": { "id": updated.activity_id, "updatedAt": updated.updated_at },
+    })))
+}
+
+/// Replaces a Markdown Activity's complete source page graph only after
+/// proving its type and MapAsset membership before the matching typed World
+/// Builder command persists the graph and its managed-media references.
+pub async fn update_markdown_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateMarkdownActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let form = markdown_form(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        request.markdown_pages,
+        request.markdown_transitions,
+        request.markdown_graph_layout,
+    )?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id, "markdown")
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let markdown_repository =
+        PostgresAdminWorldMarkdownRepository::new(&state.application_database);
+    let updated = AdminWorldMarkdownCommand::new(&markdown_repository)
+        .update(&principal, activity_id, &form, &request.updated_at)
+        .await
+        .map_err(map_markdown_error)?
         .ok_or_else(ApiError::not_found)?;
 
     Ok(Json(json!({
@@ -2251,7 +2308,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.9",
+        "version": "1.10",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -2363,7 +2420,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.9", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.10", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -2378,6 +2435,7 @@ fn document() -> Value {
             operation("activities.reflection.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/reflection", "Replace a Reflection Activity", "Replaces the complete source Reflection form only after proving its type and MapAsset membership.", json!({ "title": "Explain the energy conversion", "slug": Value::Null, "introduction": "Trace the current through the alternator.", "prompt": "What changed?", "note": Value::Null, "topic": "Vehicle electrics", "subtopic": Value::Null, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.review.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/review", "Replace a Review Activity", "Replaces the complete source Review form only after proving its distinct type and MapAsset membership.", json!({ "title": "Revisit the energy conversion", "slug": Value::Null, "introduction": "Compare this explanation with your earlier note.", "prompt": "What is clearer now?", "note": Value::Null, "topic": "Vehicle electrics", "subtopic": Value::Null, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.open-practice.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/open-practice", "Replace an Open Practice Activity", "Replaces the complete source Open Practice form only after proving its type and MapAsset membership.", json!({ "title": "Choose a useful next step", "slug": Value::Null, "introduction": "Apply the idea in your own work.", "next_step": "Try one nearby example, then name what changed.", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.markdown.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/markdown", "Replace a Markdown Activity", "Replaces the complete source Markdown page graph only after proving its type and MapAsset membership.", json!({ "title": "Read the engine briefing", "slug": Value::Null, "introduction": "Follow the briefing pages.", "markdown_pages": [{ "id": "briefing", "title": "Briefing", "body": "# Engine briefing", "position": { "x": 140, "y": 80 }, "visual": { "page_color_dark": "#0f172a", "page_color_light": "#ffffff", "border_color_dark": "#2dd4bf", "border_color_light": "#0891b2", "heading_color_dark": "#67e8f9", "heading_color_light": "#0e7490", "text_color_dark": "#f8fafc", "text_color_light": "#0f172a" } }], "markdown_transitions": [{ "id": "start-briefing", "from": "start", "to": "briefing" }, { "id": "briefing-end", "from": "briefing", "to": "end" }], "markdown_graph_layout": {}, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -2430,17 +2488,18 @@ mod tests {
     };
 
     use super::{
-        UpdateMapAssetSurfaceRequest, UpdateMapRequest, UpdateOpenPracticeActivityRequest,
-        UpdateReflectiveActivityRequest, content_api_item_grant_form,
-        content_api_item_obstacle_form, content_api_message_form, content_api_obstacle_form,
-        content_api_portal_form, content_api_shared_task_form, content_api_tool_grant_form,
-        document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_activity_transition, serialize_created_item_grant,
-        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
-        serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
-        serialize_created_open_practice, serialize_created_portal, serialize_created_question,
-        serialize_created_reflective_activity, serialize_created_shared_task,
-        serialize_created_tool_grant, serialize_map_assets, update_map_asset_surface_form,
+        UpdateMapAssetSurfaceRequest, UpdateMapRequest, UpdateMarkdownActivityRequest,
+        UpdateOpenPracticeActivityRequest, UpdateReflectiveActivityRequest,
+        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
+        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
+        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
+        require_content_permission, serialize_activity, serialize_activity_transition,
+        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
+        serialize_created_markdown, serialize_created_message, serialize_created_npc_dialogue,
+        serialize_created_obstacle, serialize_created_open_practice, serialize_created_portal,
+        serialize_created_question, serialize_created_reflective_activity,
+        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
+        update_map_asset_surface_form,
     };
 
     #[test]
@@ -2449,8 +2508,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.9");
-        assert_eq!(operations.len(), 19);
+        assert_eq!(document["version"], "1.10");
+        assert_eq!(operations.len(), 20);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -2465,10 +2524,11 @@ mod tests {
         assert_eq!(operations[12]["id"], "activities.reflection.update");
         assert_eq!(operations[13]["id"], "activities.review.update");
         assert_eq!(operations[14]["id"], "activities.open-practice.update");
-        assert_eq!(operations[15]["id"], "activity-transitions.index");
-        assert_eq!(operations[16]["id"], "activity-transitions.store");
-        assert_eq!(operations[17]["id"], "activity-transitions.update");
-        assert_eq!(operations[18]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[15]["id"], "activities.markdown.update");
+        assert_eq!(operations[16]["id"], "activity-transitions.index");
+        assert_eq!(operations[17]["id"], "activity-transitions.store");
+        assert_eq!(operations[18]["id"], "activity-transitions.update");
+        assert_eq!(operations[19]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -2556,6 +2616,16 @@ mod tests {
         .is_ok());
         assert!(serde_json::from_str::<UpdateOpenPracticeActivityRequest>(
             r#"{"title":"Choose a next step","slug":null,"introduction":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn markdown_updates_require_the_complete_source_page_graph() {
+        let complete = r##"{"title":"Briefing","slug":null,"introduction":null,"markdown_pages":[{"id":"page-1","title":"First page","body":"# Hello","position":{"x":140,"y":80},"visual":{"page_color_dark":"#0f172a","page_color_light":"#ffffff","border_color_dark":"#2dd4bf","border_color_light":"#0891b2","heading_color_dark":"#67e8f9","heading_color_light":"#0e7490","text_color_dark":"#f8fafc","text_color_light":"#0f172a"}}],"markdown_transitions":[{"id":"start-page","from":"start","to":"page-1"}],"markdown_graph_layout":{},"updated_at":"2026-11-13T12:00:00.000000Z"}"##;
+        assert!(serde_json::from_str::<UpdateMarkdownActivityRequest>(complete).is_ok());
+        assert!(serde_json::from_str::<UpdateMarkdownActivityRequest>(
+            r#"{"title":"Briefing","slug":null,"introduction":null,"markdown_pages":[],"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
         )
         .is_err());
     }

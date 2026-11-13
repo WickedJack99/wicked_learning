@@ -60,6 +60,7 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/reflection` | Replace one complete Reflection Activity form |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/review` | Replace one complete Review Activity form |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/open-practice` | Replace one complete Open Practice Activity form |
+| `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/markdown` | Replace one complete Markdown Activity page graph |
 | `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
 | `POST` | `/map-assets/{mapAsset}/activity-transitions` | Connect two Activities through the scoped graph writer |
 | `PATCH` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Update a scoped Activity connection's presentation |
@@ -78,10 +79,11 @@ the command's map scope; a transition update or deletion additionally proves
 that the addressed transition belongs to the URL's MapAsset before delegation.
 Map deletion retains the established scoped cascade/reference cleanup. Bulk
 import and automatic graph wiring are not exposed. Activity reads include each
-record's `updatedAt` timestamp. Reflection, Review and Open Practice
+record's `updatedAt` timestamp. Reflection, Review, Open Practice and Markdown
 replacement each require that timestamp, the full source form, and a URL whose
-MapAsset and typed Activity are proven to belong together; other Activity types
-remain behind their own typed adapters.
+MapAsset and typed Activity are proven to belong together; the Markdown writer
+keeps page-graph and managed-media-reference handling inside its typed command.
+Other Activity types remain behind their own typed adapters.
 
 ## Settings Console
 
