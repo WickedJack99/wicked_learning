@@ -7,20 +7,30 @@ test('a learner saves private source-shaped sound preferences from the account m
     );
     await installE2eAdminSession(page.context());
     request = page.context().request;
-    const csrf = await request.get('/api/v1/security/csrf');
-    const { token } = await csrf.json();
-    const state = await request.storageState();
-    await page.context().addCookies(state.cookies);
-    await page.goto('/home');
-    await page.getByRole('button', { name: 'Open user menu' }).click();
-    await page.getByRole('menuitem', { name: 'Sound preferences' }).click();
-    await expect(page.getByRole('dialog', { name: 'Audio preferences' })).toBeVisible();
-    await page.getByRole('button', { name: 'Sound enabled' }).click();
-    const sliders = page.locator('input[type="range"]');
-    await sliders.nth(0).fill('35');
-    await sliders.nth(1).fill('65');
+    const before = await request.get('/api/v1/learner/sound-preferences');
+    expect(before.ok()).toBeTruthy();
+    const current = (await before.json()) as {
+        ambience_volume: number;
+        effects_volume: number;
+        muted: boolean;
+    };
+    const expected = {
+        ambience_volume: current.ambience_volume === 65 ? 64 : 65,
+        effects_volume: current.effects_volume === 35 ? 36 : 35,
+        muted: !current.muted,
+    };
+
+    await page.goto('/settings?panel=personal&personal=sound');
+    await expect(page.getByRole('heading', { name: 'Sound', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Audio preferences' })).toBeVisible();
+    await page.getByRole('button', { name: 'Mute all sound' }).click();
+    await page.getByRole('slider', { name: 'Effects volume' }).fill(String(expected.effects_volume));
+    await page.getByRole('slider', { name: 'Ambience volume' }).fill(String(expected.ambience_volume));
     await page.getByRole('button', { name: 'Save sound preferences' }).click();
-    await page.getByRole('button', { name: 'Close audio preferences' }).click();
-    const saved = await request.get('/api/v1/learner/sound-preferences');
-    await expect(saved.json()).resolves.toEqual({ muted: true, effects_volume: 35, ambience_volume: 65 });
+    await expect
+        .poll(async () => {
+            const saved = await request.get('/api/v1/learner/sound-preferences');
+            return saved.json();
+        })
+        .toEqual(expected);
 });
