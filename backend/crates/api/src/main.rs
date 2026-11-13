@@ -1788,6 +1788,11 @@ mod tests {
             .await
             .expect("liveness handler response");
         assert_eq!(liveness_response.status(), 200);
+        liveness_response
+            .into_body()
+            .collect()
+            .await
+            .expect("liveness body bytes");
 
         let protected_response = app
             .clone()
@@ -1842,6 +1847,17 @@ mod tests {
         assert!(metrics.contains(
             "wicked_learning_http_requests_total{method=\"GET\",route=\"/api/v1/health/live\",status=\"200\"}"
         ), "{metrics}");
+        let liveness_response_bytes = metrics
+            .lines()
+            .find(|line| {
+                line.starts_with(
+                    "wicked_learning_http_response_body_bytes_total{method=\"GET\",route=\"/api/v1/health/live\",status=\"200\"}",
+                )
+            })
+            .and_then(|line| line.rsplit_once(' '))
+            .and_then(|(_, value)| value.parse::<u64>().ok())
+            .expect("a streamed liveness response-byte metric");
+        assert!(liveness_response_bytes >= 15, "{metrics}");
         assert!(metrics.contains(
             "wicked_learning_http_requests_total{method=\"GET\",route=\"/api/v1/admin/world-builder/maps/{map_id}\",status=\"404\"}"
         ), "{metrics}");

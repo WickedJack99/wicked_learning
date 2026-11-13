@@ -4,16 +4,19 @@ use std::{
 };
 
 use axum::{
+    body::Body,
     extract::{MatchedPath, Request},
     http::{StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use futures_util::TryStreamExt;
 use metrics::{Unit, counter, describe_counter, describe_histogram, histogram};
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 
 const HTTP_REQUESTS: &str = "wicked_learning_http_requests_total";
 const HTTP_REQUEST_DURATION_SECONDS: &str = "wicked_learning_http_request_duration_seconds";
+const HTTP_RESPONSE_BODY_BYTES_TOTAL: &str = "wicked_learning_http_response_body_bytes_total";
 const HTTP_RESPONSE_BODY_BYTES: &str = "wicked_learning_http_response_body_bytes";
 
 static PROMETHEUS_HANDLE: OnceLock<PrometheusHandle> = OnceLock::new();
@@ -35,6 +38,11 @@ pub fn initialize() -> Result<(), String> {
         HTTP_REQUEST_DURATION_SECONDS,
         Unit::Seconds,
         "HTTP request duration grouped by method, matched route, and status code."
+    );
+    describe_counter!(
+        HTTP_RESPONSE_BODY_BYTES_TOTAL,
+        Unit::Bytes,
+        "HTTP response bytes streamed to the client, grouped by method, matched route, and status code."
     );
     describe_histogram!(
         HTTP_RESPONSE_BODY_BYTES,
@@ -113,6 +121,13 @@ pub async fn record_http_metrics(request: Request, next: Next) -> Response {
         )
         .record(started_at.elapsed().as_secs_f64());
 
+        let response_body_bytes = counter!(
+            HTTP_RESPONSE_BODY_BYTES_TOTAL,
+            "method" => method.clone(),
+            "route" => route.clone(),
+            "status" => status.clone(),
+        );
+
         if let Some(content_length) = response
             .headers()
             .get(header::CONTENT_LENGTH)
@@ -127,6 +142,13 @@ pub async fn record_http_metrics(request: Request, next: Next) -> Response {
             )
             .record(content_length as f64);
         }
+
+        let (parts, body) = response.into_parts();
+        let stream = body.into_data_stream().inspect_ok(move |chunk| {
+            response_body_bytes.increment(chunk.len() as u64);
+        });
+
+        return Response::from_parts(parts, Body::from_stream(stream));
     }
 
     response
