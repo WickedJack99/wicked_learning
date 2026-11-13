@@ -38,6 +38,11 @@ test('a local author manages source-shaped MapAssets and reusable visual referen
     const media = (await uploaded.json()) as {
         asset: { id: string; url: string };
     };
+    await expect(page.locator(`img[src="${media.asset.url}"]`).first()).toBeVisible();
+    await page
+        .getByRole('button')
+        .filter({ has: page.locator(`img[src="${media.asset.url}"]`) })
+        .click();
     const mediaName = `MapAsset visual ${Date.now()}`;
     await page.getByLabel('Visual name').fill(mediaName);
     const mediaMetadata = page.waitForResponse(
@@ -118,6 +123,7 @@ test('a local author manages source-shaped MapAssets and reusable visual referen
         await expect(
             page.getByRole('heading', { name: 'Select existing visual' }),
         ).toBeVisible();
+        await page.getByLabel('Search reusable visuals').fill(mediaName);
         await page.getByRole('button', { name: mediaName }).click();
         await page
             .getByLabel('Horizontal position (X)')

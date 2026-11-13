@@ -2891,13 +2891,20 @@ export function MediaPicker({
 }) {
     const [page, setPage] = useState<MediaAssetPage | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [query, setQuery] = useState('');
     const [uploading, setUploading] = useState(false);
     const upload = useRef<HTMLInputElement>(null);
     useEffect(() => {
         let current = true;
         void apiClient
             .GET('/admin/media-assets', {
-                params: { query: { page: 1, per_page: 12 } },
+                params: {
+                    query: {
+                        page: 1,
+                        per_page: 12,
+                        q: query.trim() || undefined,
+                    },
+                },
             })
             .then(({ data, response }) => {
                 if (!current) return;
@@ -2919,7 +2926,7 @@ export function MediaPicker({
         return () => {
             current = false;
         };
-    }, []);
+    }, [query]);
     const uploadImage = async (file: File | null) => {
         if (!file) return;
         setUploading(true);
@@ -2977,6 +2984,17 @@ export function MediaPicker({
                     <button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10" disabled={uploading} onClick={() => upload.current?.click()} type="button">{uploading ? 'Uploading…' : 'Upload image'}</button>
                     <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Or select a reusable visual below.</p>
                 </div>
+                <label className="mt-4 grid gap-1 text-sm font-medium">
+                    Search reusable visuals
+                    <input
+                        aria-label="Search reusable visuals"
+                        className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20"
+                        onChange={(event) => setQuery(event.currentTarget.value)}
+                        placeholder="Name, category, or tag"
+                        type="search"
+                        value={query}
+                    />
+                </label>
                 {error ? (
                     <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">
                         {error}

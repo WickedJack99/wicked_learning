@@ -27,6 +27,11 @@ test('a local author configures Laravel-shaped map visuals with reusable media',
     const media = (await (await upload).json()) as {
         asset: { id: string; url: string };
     };
+    await expect(page.locator(`img[src="${media.asset.url}"]`).first()).toBeVisible();
+    await page
+        .getByRole('button')
+        .filter({ has: page.locator(`img[src="${media.asset.url}"]`) })
+        .click();
     const mediaName = `Map visual ${Date.now()}`;
     await page.getByLabel('Visual name').fill(mediaName);
     const metadata = page.waitForResponse((response) =>
@@ -54,10 +59,12 @@ test('a local author configures Laravel-shaped map visuals with reusable media',
     await page.getByRole('button', { name: 'Background image' }).click();
     await page.getByRole('button', { name: 'Upload or select visual' }).click();
     await expect(page.getByRole('heading', { name: 'Select existing visual' })).toBeVisible();
+    await page.getByLabel('Search reusable visuals').fill(mediaName);
     await page.getByRole('button', { name: mediaName }).click();
     await page.getByRole('button', { name: 'Assets' }).click();
     await page.getByRole('button', { name: 'Add layer' }).click();
     await page.getByRole('button', { name: 'Upload or select visual' }).click();
+    await page.getByLabel('Search reusable visuals').fill(mediaName);
     await page.getByRole('button', { name: mediaName }).click();
     await page.getByLabel('X %').fill('35');
     const saved = page.waitForResponse((response) =>
