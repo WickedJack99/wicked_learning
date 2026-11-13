@@ -105,14 +105,16 @@ pub async fn create(
     let principal = authenticated_principal(&state, auth).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresAdminWorldMessageRepository::new(&state.application_database);
-    let activity_id = AdminWorldMessageCommand::new(&repository)
+    let created = AdminWorldMessageCommand::new(&repository)
         .create(&principal, node_id, &form)
         .await
         .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok((
         StatusCode::CREATED,
-        Json(CreateMessageActivityResponse { activity_id }),
+        Json(CreateMessageActivityResponse {
+            activity_id: created.activity_id,
+        }),
     ))
 }
 pub async fn update(

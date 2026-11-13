@@ -2,8 +2,8 @@ use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_message::{
-    AdminWorldMessageError, AdminWorldMessageRepository as Port, MessageActivityForm,
-    UpdatedMessageActivity, generated_slug,
+    AdminWorldMessageError, AdminWorldMessageRepository as Port, CreatedMessageActivity,
+    MessageActivityForm, UpdatedMessageActivity, generated_slug,
 };
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
@@ -23,8 +23,9 @@ impl Port for PostgresAdminWorldMessageRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &MessageActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldMessageError>> + Send
-    {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedMessageActivity>, AdminWorldMessageError>,
+    > + Send {
         async move {
             create(self.pool, principal, node_id, form)
                 .await
@@ -91,7 +92,7 @@ async fn create(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &MessageActivityForm,
-) -> Result<Option<Uuid>, Error> {
+) -> Result<Option<CreatedMessageActivity>, Error> {
     let mut tx = pool.begin().await?;
     let Some(node) = node(&mut tx, principal, node_id).await? else {
         return Ok(None);
@@ -104,9 +105,14 @@ async fn create(
     let slug = unique_slug(&mut tx, asset, form, None).await?;
     let position: i16 = sqlx::query_scalar("SELECT (COALESCE(MAX(position), -1)::integer + 1)::smallint FROM learning_activities WHERE route_id = $1").bind(route).fetch_one(&mut *tx).await?;
     let id = Uuid::new_v4();
-    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1,$2,$3,$4,$5,$6,NOW(),$7,$8,$9,'needs_review')").bind(id).bind(route).bind(slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(&form.activity_type).bind(config(form, topic)).bind(&form.introduction).execute(&mut *tx).await?;
+    let activity_config = config(form, topic);
+    sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1,$2,$3,$4,$5,$6,NOW(),$7,$8,$9,$10,$11,'needs_review')").bind(id).bind(route).bind(&slug).bind(&form.title).bind(form.introduction.clone().unwrap_or_default()).bind(position).bind(&form.activity_type).bind(&activity_config).bind(&form.introduction).bind(form.graph_position_x.map(f64::from)).bind(form.graph_position_y.map(f64::from)).execute(&mut *tx).await?;
     tx.commit().await?;
-    Ok(Some(id))
+    Ok(Some(CreatedMessageActivity {
+        activity_id: id,
+        config: activity_config,
+        slug,
+    }))
 }
 async fn update(
     pool: &PgPool,

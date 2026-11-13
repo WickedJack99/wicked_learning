@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle" | "message_prompt" | "message_wall";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5560,6 +5560,25 @@ export interface components {
             obstacle_success_animation?: "none" | "zoom" | "shake" | "rotate" | null;
             obstacle_success_text?: string | null;
             obstacle_typing_speed?: number | null;
+            /** Format: uuid */
+            message_topic_id?: string | null;
+            message_topic_title?: string | null;
+            /** @enum {string|null} */
+            message_audience?: "peers" | "support" | null;
+            message_allow_responses?: boolean | null;
+            message_response_prompt?: string | null;
+            message_prompt_text?: string | null;
+            message_input_label?: string | null;
+            message_surface_color_dark?: string | null;
+            message_surface_color_light?: string | null;
+            message_card_color_dark?: string | null;
+            message_card_color_light?: string | null;
+            message_card_border_color_dark?: string | null;
+            message_card_border_color_light?: string | null;
+            message_text_color_dark?: string | null;
+            message_text_color_light?: string | null;
+            message_accent_color_dark?: string | null;
+            message_accent_color_light?: string | null;
             graph_position_x?: number | null;
             graph_position_y?: number | null;
         };
@@ -10467,7 +10486,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, or Obstacle activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Message Prompt, or Message Wall activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

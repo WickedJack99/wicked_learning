@@ -63,6 +63,8 @@ impl MessageUi {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MessageActivityForm {
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
     pub title: String,
     pub slug: Option<String>,
     pub introduction: Option<String>,
@@ -118,6 +120,8 @@ impl MessageActivityForm {
             return None;
         }
         Some(Self {
+            graph_position_x: None,
+            graph_position_y: None,
             title: title.to_owned(),
             slug: slug.map(str::to_owned),
             introduction: introduction.map(str::to_owned),
@@ -131,6 +135,12 @@ impl MessageActivityForm {
             input_label: input_label.to_owned(),
             ui,
         })
+    }
+
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 fn valid_color(value: &str) -> bool {
@@ -173,13 +183,19 @@ pub struct UpdatedMessageActivity {
     pub activity_id: Uuid,
     pub updated_at: String,
 }
+#[derive(Clone, Debug, PartialEq)]
+pub struct CreatedMessageActivity {
+    pub activity_id: Uuid,
+    pub config: serde_json::Value,
+    pub slug: String,
+}
 pub trait AdminWorldMessageRepository {
     fn create_message(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &MessageActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldMessageError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedMessageActivity>, AdminWorldMessageError>> + Send;
     fn update_message(
         &self,
         principal: &AuthorizedPrincipal,
@@ -202,7 +218,7 @@ impl<'repository, Repository: AdminWorldMessageRepository>
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &MessageActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldMessageError> {
+    ) -> Result<Option<CreatedMessageActivity>, AdminWorldMessageError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }

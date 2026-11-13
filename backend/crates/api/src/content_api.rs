@@ -25,6 +25,10 @@ use wicked_learning_application::{
     admin_world_markdown::{
         AdminWorldMarkdownCommand, AdminWorldMarkdownError, CreatedMarkdownActivity,
     },
+    admin_world_message::{
+        AdminWorldMessageCommand, AdminWorldMessageError, CreatedMessageActivity,
+        MessageActivityForm, MessageUi,
+    },
     admin_world_obstacle::{
         AdminWorldObstacleCommand, AdminWorldObstacleError, CreatedObstacleActivity,
         ObstacleActivityForm,
@@ -62,6 +66,7 @@ use wicked_learning_persistence::{
     admin_world_map_asset::PostgresAdminWorldMapAssetRepository,
     admin_world_map_create::PostgresAdminWorldMapCreateRepository,
     admin_world_markdown::{PostgresAdminWorldMarkdownRepository, markdown_config},
+    admin_world_message::PostgresAdminWorldMessageRepository,
     admin_world_obstacle::PostgresAdminWorldObstacleRepository,
     admin_world_open_practice::PostgresAdminWorldOpenPracticeRepository,
     admin_world_question::{PostgresAdminWorldQuestionRepository, config as question_config},
@@ -237,6 +242,23 @@ pub struct CreateActivityRequest {
     obstacle_success_animation: Option<String>,
     obstacle_success_text: Option<String>,
     obstacle_typing_speed: Option<f64>,
+    message_topic_id: Option<String>,
+    message_topic_title: Option<String>,
+    message_audience: Option<String>,
+    message_allow_responses: Option<bool>,
+    message_response_prompt: Option<String>,
+    message_prompt_text: Option<String>,
+    message_input_label: Option<String>,
+    message_surface_color_dark: Option<String>,
+    message_surface_color_light: Option<String>,
+    message_card_color_dark: Option<String>,
+    message_card_color_light: Option<String>,
+    message_card_border_color_dark: Option<String>,
+    message_card_border_color_light: Option<String>,
+    message_text_color_dark: Option<String>,
+    message_text_color_light: Option<String>,
+    message_accent_color_dark: Option<String>,
+    message_accent_color_light: Option<String>,
     graph_position_x: Option<i32>,
     graph_position_y: Option<i32>,
 }
@@ -573,6 +595,15 @@ pub async fn create_activity(
                 .map_err(map_obstacle_error)?
                 .map(|created| serialize_created_obstacle(map_asset_id, created, &form))
         }
+        "message_prompt" | "message_wall" => {
+            let form = content_api_message_form(&request)?;
+            let repository = PostgresAdminWorldMessageRepository::new(&state.application_database);
+            AdminWorldMessageCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_message_error)?
+                .map(|created| serialize_created_message(map_asset_id, created, &form))
+        }
         _ => unreachable!("activity type is checked before creating an activity"),
     }
     .ok_or_else(ApiError::not_found)?;
@@ -650,6 +681,8 @@ fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
             | "tool_grant"
             | "item_obstacle"
             | "obstacle"
+            | "message_prompt"
+            | "message_wall"
     )
 }
 
@@ -722,6 +755,14 @@ fn map_obstacle_error(error: AdminWorldObstacleError) -> ApiError {
         AdminWorldObstacleError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldObstacleError::Conflict => ApiError::conflict(),
         AdminWorldObstacleError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_message_error(error: AdminWorldMessageError) -> ApiError {
+    match error {
+        AdminWorldMessageError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldMessageError::Conflict => ApiError::conflict(),
+        AdminWorldMessageError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -1040,6 +1081,85 @@ fn content_api_obstacle_form(
     .ok_or_else(ApiError::invalid_request)
 }
 
+fn content_api_message_form(
+    request: &CreateActivityRequest,
+) -> Result<MessageActivityForm, ApiError> {
+    let topic_id = request
+        .message_topic_id
+        .as_deref()
+        .filter(|id| !id.is_empty())
+        .map(|id| Uuid::parse_str(id).map_err(|_| ApiError::invalid_request()))
+        .transpose()?;
+    let ui = MessageUi::parse(
+        request
+            .message_surface_color_dark
+            .as_deref()
+            .unwrap_or("#071018"),
+        request
+            .message_surface_color_light
+            .as_deref()
+            .unwrap_or("#e6f5f2"),
+        request
+            .message_card_color_dark
+            .as_deref()
+            .unwrap_or("#13262d"),
+        request
+            .message_card_color_light
+            .as_deref()
+            .unwrap_or("#ffffff"),
+        request
+            .message_card_border_color_dark
+            .as_deref()
+            .unwrap_or("#2dd4bf"),
+        request
+            .message_card_border_color_light
+            .as_deref()
+            .unwrap_or("#0f766e"),
+        request
+            .message_text_color_dark
+            .as_deref()
+            .unwrap_or("#f1f5f9"),
+        request
+            .message_text_color_light
+            .as_deref()
+            .unwrap_or("#0f172a"),
+        request
+            .message_accent_color_dark
+            .as_deref()
+            .unwrap_or("#5eead4"),
+        request
+            .message_accent_color_light
+            .as_deref()
+            .unwrap_or("#0f766e"),
+    )
+    .ok_or_else(ApiError::invalid_request)?;
+    MessageActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        &request.activity_type,
+        topic_id,
+        request.message_topic_title.as_deref().unwrap_or_default(),
+        request.message_audience.as_deref().unwrap_or("peers"),
+        request.message_allow_responses.unwrap_or(false),
+        request
+            .message_response_prompt
+            .as_deref()
+            .unwrap_or_default(),
+        request
+            .message_prompt_text
+            .as_deref()
+            .unwrap_or("Leave a helpful note or an encouraging thought for the next learner."),
+        request
+            .message_input_label
+            .as_deref()
+            .unwrap_or("Your message"),
+        ui,
+    )
+    .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
+    .ok_or_else(ApiError::invalid_request)
+}
+
 fn bounded_position(value: f64, minimum: f64, maximum: f64) -> bool {
     value.is_finite() && (minimum..=maximum).contains(&value)
 }
@@ -1296,6 +1416,18 @@ fn serialize_created_obstacle(
         "config": created.config, "position": { "x": form.graph_position_x, "y": form.graph_position_y } })
 }
 
+fn serialize_created_message(
+    map_asset_id: Uuid,
+    created: CreatedMessageActivity,
+    form: &MessageActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id, "mapAssetId": map_asset_id, "slug": created.slug,
+        "type": form.activity_type, "title": form.title, "introduction": form.introduction,
+        "config": created.config, "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
@@ -1383,6 +1515,18 @@ fn document() -> Value {
                 "description": "A configured tool-gated obstacle with authored solved and revisit states.",
                 "inputs": [{ "id": "in", "label": "In" }],
                 "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "message_prompt", "label": "Message prompt",
+                "description": "A topic-bound peer or support message prompt.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
+            },
+            {
+                "key": "message_wall", "label": "Message wall",
+                "description": "A peer message wall for a topic-bound conversation.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "completed", "label": "Completed" }]
             }
         ],
         "contentPlan": {
@@ -1400,7 +1544,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, or Obstacle Activity through its matching scoped World Builder command.", json!({ "type": "obstacle", "title": "Inspect the relay cabinet", "obstacle_allowed_tool_ids": ["opaque-catalog-tool-id"], "obstacle_prompt_text": "Use the correct tool to inspect the relay.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "obstacle", "title": "Inspect the relay cabinet" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "message_prompt", "title": "Leave a repair note", "message_topic_title": "Relay cabinet notes", "message_prompt_text": "What will help the next learner?", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "message_prompt", "title": "Leave a repair note" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -1443,13 +1587,14 @@ mod tests {
     };
 
     use super::{
-        content_api_item_grant_form, content_api_item_obstacle_form, content_api_obstacle_form,
-        content_api_shared_task_form, content_api_tool_grant_form, document,
-        is_supported_content_api_activity_type, require_content_permission, serialize_activity,
-        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
-        serialize_created_markdown, serialize_created_obstacle, serialize_created_open_practice,
-        serialize_created_question, serialize_created_reflective_activity,
-        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
+        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
+        content_api_obstacle_form, content_api_shared_task_form, content_api_tool_grant_form,
+        document, is_supported_content_api_activity_type, require_content_permission,
+        serialize_activity, serialize_created_item_grant, serialize_created_item_obstacle,
+        serialize_created_map_asset, serialize_created_markdown, serialize_created_message,
+        serialize_created_obstacle, serialize_created_open_practice, serialize_created_question,
+        serialize_created_reflective_activity, serialize_created_shared_task,
+        serialize_created_tool_grant, serialize_map_assets,
     };
 
     #[test]
@@ -1474,6 +1619,8 @@ mod tests {
         assert_eq!(document["activityTypes"][7]["key"], "tool_grant");
         assert_eq!(document["activityTypes"][8]["key"], "item_obstacle");
         assert_eq!(document["activityTypes"][9]["key"], "obstacle");
+        assert_eq!(document["activityTypes"][10]["key"], "message_prompt");
+        assert_eq!(document["activityTypes"][11]["key"], "message_wall");
     }
 
     #[test]
@@ -1499,6 +1646,8 @@ mod tests {
         assert!(is_supported_content_api_activity_type("tool_grant"));
         assert!(is_supported_content_api_activity_type("item_obstacle"));
         assert!(is_supported_content_api_activity_type("obstacle"));
+        assert!(is_supported_content_api_activity_type("message_prompt"));
+        assert!(is_supported_content_api_activity_type("message_wall"));
         assert!(!is_supported_content_api_activity_type("portal"));
     }
 
@@ -1963,6 +2112,33 @@ mod tests {
             &form.with_graph_position(Some(120), None),
         );
         assert_eq!(created["config"]["allowedToolIds"][0], "circuit-probe");
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+    }
+
+    #[test]
+    fn message_creates_preserve_topic_configuration_and_source_defaults() {
+        let request = serde_json::from_value(json!({
+            "type": "message_prompt", "title": "Leave a repair note", "message_topic_title": "Relay cabinet notes",
+        })).expect("valid partial Message Content API request");
+        let Ok(form) = content_api_message_form(&request) else {
+            panic!("source defaults are valid");
+        };
+        assert_eq!(
+            form.prompt,
+            "Leave a helpful note or an encouraging thought for the next learner."
+        );
+        assert_eq!(form.ui.surface_color_dark, "#071018");
+        let created = serialize_created_message(
+            Uuid::new_v4(),
+            wicked_learning_application::admin_world_message::CreatedMessageActivity {
+                activity_id: Uuid::new_v4(),
+                config: json!({ "messageTopicId": Uuid::new_v4(), "messageAudience": "peers" }),
+                slug: "leave-a-repair-note".to_owned(),
+            },
+            &form.with_graph_position(Some(120), None),
+        );
+        assert_eq!(created["type"], "message_prompt");
+        assert_eq!(created["config"]["messageAudience"], "peers");
         assert_eq!(created["position"], json!({ "x": 120, "y": null }));
     }
 }
