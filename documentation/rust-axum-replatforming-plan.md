@@ -1756,16 +1756,16 @@ existing `world_maps.rud` scope, preserving the transactional cascade and
 managed-media cleanup. The generated client and disposable console browser flow
 prove the read/update/delete lifecycle before it is advertised.
 
-The first seven type-specific Content API mutations replace Reflection, Review,
-Open Practice, Markdown, Question, Shared Task and Item Grant Activities. Activity reads include their
+The first eight type-specific Content API mutations replace Reflection, Review,
+Open Practice, Markdown, Question, Shared Task, Item Grant and Tool Grant Activities. Activity reads include their
 source concurrency timestamp; each writer requires it and the complete source
 form, proves both its distinct activity type and MapAsset membership through the
 existing scoped query, then delegates to the matching typed World Builder
 command. Markdown keeps its page-graph and managed-media-reference update,
-Question keeps its answer configuration, and Item Grant resolves its catalog
-item UUIDs server-side, inside those commands. This establishes the backend-first
-pattern for later type-specific activity updates without an untyped JSON activity
-writer or a new frontend surface.
+Question keeps its answer configuration, and Item Grant and Tool Grant resolve
+their catalog UUIDs server-side, inside those commands. This establishes the
+backend-first pattern for later type-specific activity updates without an
+untyped JSON activity writer or a new frontend surface.
 
 ### Local backup and isolated restore-drill slice — 13 November 2026
 

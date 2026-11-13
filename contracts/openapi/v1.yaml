@@ -545,6 +545,24 @@ paths:
         '404': { description: The Item Grant Activity is unavailable in the caller's scoped MapAsset. }
         '409': { description: The supplied updated_at value is stale. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/tool-grant:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateContentApiToolGrantActivity
+      summary: Replace a source-compatible Tool Grant Activity form.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateContentApiToolGrantActivityRequest' } } } }
+      responses:
+        '200': { description: The updated Tool Grant Activity identity and fresh concurrency timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/ContentApiActivityUpdateResponse' } } } }
+        '400': { description: The complete Tool Grant form is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The Tool Grant Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
     servers:
       - url: /api
@@ -7862,6 +7880,33 @@ components:
         background_mirrored: { type: boolean }
         items: { type: array, items: { $ref: '#/components/schemas/AdminItemGrantItemRequest' } }
         probability_percent: { type: number, minimum: 0.01, maximum: 100 }
+        updated_at: { type: string, format: date-time }
+    UpdateContentApiToolGrantActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [title, slug, introduction, background_dark, background_light, background_mirrored, bubble_border_color_dark, bubble_border_color_light, bubble_color_dark, bubble_color_light, bubble_opacity_dark, bubble_opacity_light, fade_duration_seconds, slide_direction, slide_duration_seconds, text, tool_id, tool_mirrored, tool_x, tool_y, typing_speed, updated_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        introduction: { type: [string, 'null'], maxLength: 1000 }
+        background_dark: { type: [string, 'null'], maxLength: 2048 }
+        background_light: { type: [string, 'null'], maxLength: 2048 }
+        background_mirrored: { type: boolean }
+        bubble_border_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_border_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_dark: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_color_light: { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$' }
+        bubble_opacity_dark: { type: number, minimum: 0, maximum: 100 }
+        bubble_opacity_light: { type: number, minimum: 0, maximum: 100 }
+        fade_duration_seconds: { type: number, minimum: 0, maximum: 30 }
+        slide_direction: { type: [string, 'null'], enum: [left, right, top, bottom, none, null] }
+        slide_duration_seconds: { type: number, minimum: 0, maximum: 30 }
+        text: { type: [string, 'null'], maxLength: 2000 }
+        tool_id: { type: [string, 'null'], format: uuid }
+        tool_mirrored: { type: boolean }
+        tool_x: { type: number, minimum: 0, maximum: 100 }
+        tool_y: { type: number, minimum: 0, maximum: 100 }
+        typing_speed: { type: number, minimum: 1, maximum: 250 }
         updated_at: { type: string, format: date-time }
     ContentApiActivityUpdateResponse:
       type: object

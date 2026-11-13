@@ -348,6 +348,26 @@ export interface paths {
         patch: operations["updateContentApiItemGrantActivity"];
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/tool-grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace a source-compatible Tool Grant Activity form. */
+        patch: operations["updateContentApiToolGrantActivity"];
+        trace?: never;
+    };
     "/content/v1/map-assets/{map_asset_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -6095,6 +6115,33 @@ export interface components {
             background_mirrored: boolean;
             items: components["schemas"]["AdminItemGrantItemRequest"][];
             probability_percent: number;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateContentApiToolGrantActivityRequest: {
+            title: string;
+            slug: string | null;
+            introduction: string | null;
+            background_dark: string | null;
+            background_light: string | null;
+            background_mirrored: boolean;
+            bubble_border_color_dark: string | null;
+            bubble_border_color_light: string | null;
+            bubble_color_dark: string | null;
+            bubble_color_light: string | null;
+            bubble_opacity_dark: number;
+            bubble_opacity_light: number;
+            fade_duration_seconds: number;
+            /** @enum {string|null} */
+            slide_direction: "left" | "right" | "top" | "bottom" | "none" | null;
+            slide_duration_seconds: number;
+            text: string | null;
+            /** Format: uuid */
+            tool_id: string | null;
+            tool_mirrored: boolean;
+            tool_x: number;
+            tool_y: number;
+            typing_speed: number;
             /** Format: date-time */
             updated_at: string;
         };
@@ -12297,6 +12344,78 @@ export interface operations {
                 content?: never;
             };
             /** @description The Item Grant Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied updated_at value is stale. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiToolGrantActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContentApiToolGrantActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated Tool Grant Activity identity and fresh concurrency timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityUpdateResponse"];
+                };
+            };
+            /** @description The complete Tool Grant form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Activity update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Tool Grant Activity is unavailable in the caller's scoped MapAsset. */
             404: {
                 headers: {
                     [name: string]: unknown;

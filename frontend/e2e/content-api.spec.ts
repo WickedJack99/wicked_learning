@@ -1352,6 +1352,51 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.getByText('HTTP 200')).toBeVisible();
     await expect(console.locator('pre')).toContainText(updatedItemGrantTitle);
 
+    const initialToolGrant = listedActivities.data.find((activity) => activity.id === toolGrant.data.id);
+    if (!initialToolGrant) {
+        throw new Error('the created Tool Grant Activity was not returned by its scoped list');
+    }
+    const updatedToolGrantTitle = `${toolGrantTitle} updated`;
+    await console.getByLabel('Operation').selectOption('activities.tool-grant.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${toolGrant.data.id}/tool-grant`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedToolGrantTitle,
+        slug: null,
+        introduction: 'Receive a scoped tool for the next author-designed interaction.',
+        background_dark: null,
+        background_light: null,
+        background_mirrored: false,
+        bubble_border_color_dark: '#2dd4bf',
+        bubble_border_color_light: '#0891b2',
+        bubble_color_dark: '#0f172a',
+        bubble_color_light: '#ffffff',
+        bubble_opacity_dark: 92,
+        bubble_opacity_light: 94,
+        fade_duration_seconds: 0.4,
+        slide_direction: 'left',
+        slide_duration_seconds: 0.6,
+        text: 'Use this tool when the next place invites careful inspection.',
+        tool_id: '10000000-0000-4000-8000-000000000001',
+        tool_mirrored: false,
+        tool_x: 50,
+        tool_y: 50,
+        typing_speed: 24,
+        updated_at: initialToolGrant.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(toolGrant.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedToolGrantTitle);
+
     await console
         .getByLabel('Operation')
         .selectOption('activity-transitions.store');
