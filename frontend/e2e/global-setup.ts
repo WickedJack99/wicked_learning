@@ -1,12 +1,37 @@
 import { mkdir, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 
-import { request } from '@playwright/test';
+import { request, type APIResponse } from '@playwright/test';
 
 import {
     administratorStorageStatePath,
     collaborationStorageStatePath,
 } from './session-state';
+
+const rateLimitRetryDelayMs = 1_100;
+const rateLimitRetryAttempts = 6;
+
+async function retryRateLimitedPost(
+    send: () => Promise<APIResponse>,
+    description: string,
+): Promise<APIResponse> {
+    for (let attempt = 0; attempt < rateLimitRetryAttempts; attempt += 1) {
+        const response = await send();
+        if (response.status() !== 429) {
+            return response;
+        }
+
+        if (attempt + 1 < rateLimitRetryAttempts) {
+            await new Promise<void>((resolve) => {
+                setTimeout(resolve, rateLimitRetryDelayMs);
+            });
+        }
+    }
+
+    throw new Error(
+        `E2E ${description} remained rate limited after ${rateLimitRetryAttempts} attempts.`,
+    );
+}
 
 export default async function globalSetup(): Promise<void> {
     await Promise.all([
@@ -31,34 +56,46 @@ export default async function globalSetup(): Promise<void> {
     try {
         const csrf = await api.get('/api/v1/security/csrf');
         if (!csrf.ok()) {
-            throw new Error(`E2E session bootstrap CSRF request failed (${csrf.status()}).`);
+            throw new Error(
+                `E2E session bootstrap CSRF request failed (${csrf.status()}).`,
+            );
         }
         const { token } = (await csrf.json()) as { token: string };
-        const login = await api.post('/api/v1/session/login', {
-            data: { email, password },
-            headers: {
-                Origin: new URL(baseURL).origin,
-                'X-CSRF-Token': token,
-            },
-        });
+        const login = await retryRateLimitedPost(
+            () =>
+                api.post('/api/v1/session/login', {
+                    data: { email, password },
+                    headers: {
+                        Origin: new URL(baseURL).origin,
+                        'X-CSRF-Token': token,
+                    },
+                }),
+            'session bootstrap login',
+        );
         if (!login.ok()) {
-            throw new Error(`E2E session bootstrap login failed (${login.status()}).`);
+            throw new Error(
+                `E2E session bootstrap login failed (${login.status()}).`,
+            );
         }
 
         await api.storageState({ path: administratorStorageStatePath });
 
         const marker = randomUUID();
         for (const identity of ['first', 'second'] as const) {
-            const invitation = await api.post('/api/v1/registration-tokens', {
-                data: {
-                    note: `Shared Task E2E ${marker} ${identity}`,
-                    roles: ['learner'],
-                },
-                headers: {
-                    Origin: new URL(baseURL).origin,
-                    'X-CSRF-Token': token,
-                },
-            });
+            const invitation = await retryRateLimitedPost(
+                () =>
+                    api.post('/api/v1/registration-tokens', {
+                        data: {
+                            note: `Shared Task E2E ${marker} ${identity}`,
+                            roles: ['learner'],
+                        },
+                        headers: {
+                            Origin: new URL(baseURL).origin,
+                            'X-CSRF-Token': token,
+                        },
+                    }),
+                `${identity} collaborator invitation`,
+            );
             if (!invitation.ok()) {
                 throw new Error(
                     `E2E ${identity} collaborator invitation failed (${invitation.status()}).`,
@@ -69,29 +106,36 @@ export default async function globalSetup(): Promise<void> {
             };
             const collaborator = await request.newContext({ baseURL });
             try {
-                const collaboratorCsrf = await collaborator.get('/api/v1/security/csrf');
+                const collaboratorCsrf = await collaborator.get(
+                    '/api/v1/security/csrf',
+                );
                 if (!collaboratorCsrf.ok()) {
                     throw new Error(
                         `E2E ${identity} collaborator CSRF request failed (${collaboratorCsrf.status()}).`,
                     );
                 }
-                const { token: collaboratorCsrfToken } = (await collaboratorCsrf.json()) as {
-                    token: string;
-                };
+                const { token: collaboratorCsrfToken } =
+                    (await collaboratorCsrf.json()) as {
+                        token: string;
+                    };
                 const password = `Shared-task-${marker}-${identity}`;
-                const registration = await collaborator.post('/api/v1/registration', {
-                    data: {
-                        email: `shared-task-${marker}-${identity}@wicked-learning.local`,
-                        name: `Shared Task ${identity}`,
-                        password,
-                        password_confirmation: password,
-                        registration_token: registrationToken,
-                    },
-                    headers: {
-                        Origin: new URL(baseURL).origin,
-                        'X-CSRF-Token': collaboratorCsrfToken,
-                    },
-                });
+                const registration = await retryRateLimitedPost(
+                    () =>
+                        collaborator.post('/api/v1/registration', {
+                            data: {
+                                email: `shared-task-${marker}-${identity}@wicked-learning.local`,
+                                name: `Shared Task ${identity}`,
+                                password,
+                                password_confirmation: password,
+                                registration_token: registrationToken,
+                            },
+                            headers: {
+                                Origin: new URL(baseURL).origin,
+                                'X-CSRF-Token': collaboratorCsrfToken,
+                            },
+                        }),
+                    `${identity} collaborator registration`,
+                );
                 if (!registration.ok()) {
                     throw new Error(
                         `E2E ${identity} collaborator registration failed (${registration.status()}).`,
