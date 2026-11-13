@@ -9,6 +9,7 @@ import {
     Map as MapIcon,
     Route,
     Search,
+    Settings2,
     X,
 } from 'lucide-react';
 import {
@@ -97,6 +98,7 @@ export function OriginalTopicsPage({
 }
 
 function TopicDirectory() {
+    const t = usePlatformTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const area = searchParams.get('area') ?? undefined;
     const page = positiveInteger(searchParams.get('page'));
@@ -169,16 +171,27 @@ function TopicDirectory() {
                 <header className="mx-auto flex max-w-7xl items-end justify-between gap-6 border-b border-[var(--learner-border-color)] pb-7">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
-                            Knowledge directory
+                            {t('topics.eyebrow', 'Knowledge directory')}
                         </p>
                         <h1 className="mt-3 text-3xl font-medium tracking-tight">
-                            Topics
+                            {t('topics.title', 'Topics')}
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                            Browse broad areas and open a topic to continue into
-                            its subtopics and learning material.
+                            {t(
+                                'topics.description',
+                                'Browse broad areas and open a topic to continue into its subtopics and learning material.',
+                            )}
                         </p>
                     </div>
+                    {directory.can_manage_topics ? (
+                        <Link
+                            className="hidden shrink-0 items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--learner-accent)_40%,transparent)] px-4 py-2.5 text-sm font-medium text-[var(--learner-accent)] transition hover:bg-[color-mix(in_srgb,var(--learner-accent)_8%,transparent)] sm:inline-flex"
+                            to="/admin/topics"
+                        >
+                            <Settings2 className="size-4" />
+                            {t('topics.manage', 'Manage topics')}
+                        </Link>
+                    ) : null}
                 </header>
 
                 {selectedArea ? (
@@ -191,7 +204,7 @@ function TopicDirectory() {
                                 className="text-sm font-medium text-[var(--learner-body-text)]"
                                 htmlFor="topics-area"
                             >
-                                Topic area
+                                {t('topics.area.label', 'Topic area')}
                             </label>
                             <select
                                 className="mt-2 h-10 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-3 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
@@ -221,7 +234,7 @@ function TopicDirectory() {
                                 className="text-sm font-medium text-[var(--learner-body-text)]"
                                 htmlFor="topics-search"
                             >
-                                Search this area
+                                {t('topics.search.label', 'Search this area')}
                             </label>
                             <div className="relative mt-2">
                                 <Search
@@ -235,13 +248,19 @@ function TopicDirectory() {
                                     onChange={(event) =>
                                         setSearchTerm(event.target.value)
                                     }
-                                    placeholder="Search topic titles or descriptions"
+                                    placeholder={t(
+                                        'topics.search.placeholder',
+                                        'Search topic titles or descriptions',
+                                    )}
                                     type="search"
                                     value={searchTerm}
                                 />
                                 {searchTerm ? (
                                     <button
-                                        aria-label="Clear topic search"
+                                        aria-label={t(
+                                            'topics.search.clear',
+                                            'Clear topic search',
+                                        )}
                                         className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-[var(--learner-muted-text)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
                                         onClick={() => {
                                             setSearchTerm('');
@@ -272,8 +291,11 @@ function TopicDirectory() {
                             ) : null}
                             {directory.search ? (
                                 <p className="mt-2 text-sm text-[var(--learner-muted-text)]">
-                                    Showing topics matching “{directory.search}
-                                    ”.
+                                    {t(
+                                        'topics.search.summary',
+                                        'Showing topics matching: :search',
+                                        { search: directory.search },
+                                    )}
                                 </p>
                             ) : null}
                         </div>
@@ -289,8 +311,17 @@ function TopicDirectory() {
                                         {topic.map_count ? (
                                             <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                                                 {topic.map_count === 1
-                                                    ? '1 map available'
-                                                    : `${topic.map_count} maps available`}
+                                                    ? t(
+                                                          'topics.directory.map_count.one',
+                                                          '1 map available',
+                                                      )
+                                                    : t(
+                                                          'topics.directory.map_count.many',
+                                                          ':count maps available',
+                                                          {
+                                                              count: topic.map_count,
+                                                          },
+                                                      )}
                                             </span>
                                         ) : null}
                                     </span>
@@ -299,7 +330,7 @@ function TopicDirectory() {
                             ))}
                         </div>
                         <TopicPagination
-                            label={`${selectedArea.title} topics`}
+                            label={`${selectedArea.title} ${t('topics.title', 'Topics')}`}
                             pagination={directory.pagination}
                             onPageChange={(nextPage) =>
                                 visitTopics(selectedArea.slug, nextPage)
@@ -311,12 +342,29 @@ function TopicDirectory() {
                         <div>
                             <FolderTree className="mx-auto size-8 text-[var(--learner-action-accent)]" />
                             <h2 className="mt-5 text-sm font-semibold">
-                                No topics have been published yet
+                                {t(
+                                    'topics.empty.title',
+                                    'No topics have been published yet',
+                                )}
                             </h2>
                             <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                Topic areas will appear here as soon as an
-                                administrator adds their first published topic.
+                                {t(
+                                    'topics.empty.description',
+                                    'Topic areas will appear here as soon as an administrator adds their first published topic.',
+                                )}
                             </p>
+                            {directory.can_manage_topics ? (
+                                <Link
+                                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)]"
+                                    to="/admin/topics"
+                                >
+                                    {t(
+                                        'topics.empty.action',
+                                        'Create the first topic area',
+                                    )}
+                                    <ArrowRight className="size-4" />
+                                </Link>
+                            ) : null}
                         </div>
                     </div>
                 )}
@@ -337,9 +385,9 @@ function TopicDetail({ topicSlug }: { topicSlug: string }) {
     >('loading');
     const [startingId, setStartingId] = useState<string | null>(null);
     const [startError, setStartError] = useState<string | null>(null);
-    const [openingActivitySlug, setOpeningActivitySlug] = useState<string | null>(
-        null,
-    );
+    const [openingActivitySlug, setOpeningActivitySlug] = useState<
+        string | null
+    >(null);
 
     const routesPage = positiveInteger(searchParams.get('page'));
     const purpose = learningIntent(searchParams.get('purpose'));
@@ -795,7 +843,9 @@ function TrailPanel({
                                 className="flex w-full items-start justify-between gap-4 py-3 text-left transition hover:text-[var(--learner-accent)] disabled:opacity-50"
                                 disabled={openingActivitySlug !== null}
                                 key={`${entry.activity_title}:${entry.recorded_at}`}
-                                onClick={() => void onOpenActivity(entry.activity_slug)}
+                                onClick={() =>
+                                    void onOpenActivity(entry.activity_slug)
+                                }
                                 type="button"
                             >
                                 <span className="min-w-0">

@@ -6598,6 +6598,7 @@ export interface components {
         };
         LearnerTopicDirectory: {
             areas: components["schemas"]["LearnerTopicAreaOption"][];
+            can_manage_topics: boolean;
             pagination: components["schemas"]["LearnerTopicPagination"];
             search: string;
             selected_area: components["schemas"]["LearnerTopicArea"] | null;

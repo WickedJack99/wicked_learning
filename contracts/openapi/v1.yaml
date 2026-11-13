@@ -8773,12 +8773,13 @@ components:
     LearnerTopicDirectory:
       type: object
       additionalProperties: false
-      required: [areas, pagination, search, selected_area]
+      required: [areas, can_manage_topics, pagination, search, selected_area]
       properties:
         areas:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/LearnerTopicAreaOption' }
+        can_manage_topics: { type: boolean }
         pagination: { $ref: '#/components/schemas/LearnerTopicPagination' }
         search: { type: string, maxLength: 120 }
         selected_area:

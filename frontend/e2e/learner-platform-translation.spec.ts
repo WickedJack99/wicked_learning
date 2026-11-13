@@ -120,6 +120,63 @@ test('the lifted Paths reader consumes its source platform catalog entries', asy
     await expect(page.getByText('Translated routes')).toBeVisible();
 });
 
+test('the topic directory receives its source management capability and catalog copy', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'author@example.test',
+                roles: ['author'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/platform-translations', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'topics.manage': 'Manage localized topics',
+                    'topics.title': 'Translated Topics',
+                },
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/topics**', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                areas: [{ slug: 'orientation', title: 'Orientation' }],
+                can_manage_topics: true,
+                pagination: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 6,
+                    total: 0,
+                },
+                search: '',
+                selected_area: {
+                    description: null,
+                    slug: 'orientation',
+                    title: 'Orientation',
+                    topics: [],
+                },
+            }),
+        }),
+    );
+
+    await page.goto('/topics');
+    await expect(
+        page.getByRole('heading', { name: 'Translated Topics' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Manage localized topics' }),
+    ).toHaveAttribute('href', '/admin/topics');
+});
+
 async function expectNavigationItemsInsideViewport(
     page: import('@playwright/test').Page,
     items: import('@playwright/test').Locator,
