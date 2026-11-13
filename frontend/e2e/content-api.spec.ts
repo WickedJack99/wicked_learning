@@ -450,6 +450,112 @@ test('a content API author can replace a scoped Review Activity through the docu
     await expect(console.getByText('HTTP 204')).toBeVisible();
 });
 
+test('a content API author can replace a scoped Open Practice Activity through the documented console', async ({
+    page,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    const suffix = Date.now();
+    const mapTitle = `Content API open practice map ${suffix}`;
+    const assetTitle = `Content API open practice MapAsset ${suffix}`;
+    const practiceTitle = `Content API open practice ${suffix}`;
+    const updatedTitle = `${practiceTitle} updated`;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email!);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+
+    await page.goto('/settings?panel=admin-api&api=console');
+    const console = page.locator('[data-wl-id="settings.content-api.console"]');
+    await expect(console).toBeVisible();
+
+    await console.getByLabel('Operation').selectOption('maps.store');
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: mapTitle,
+        description: 'A disposable map for Open Practice replacement evidence.',
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const map = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('map-assets.store');
+    await console.getByLabel('Request path').fill(`/api/content/v1/maps/${map.data.id}/map-assets`);
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: assetTitle,
+        description: 'A disposable MapAsset for Open Practice replacement evidence.',
+        image_url: null,
+        text: assetTitle,
+        position_x: 50,
+        position_y: 50,
+        position_z: 0,
+        width: 14,
+        opacity: 1,
+        locked: false,
+        interaction_mode: 'focusable',
+        interaction_config: {},
+        visual_config: {},
+        sound_config: {},
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const mapAsset = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('activities.store');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'open_practice',
+        title: practiceTitle,
+        introduction: 'Try the idea in a nearby situation.',
+        open_practice_next_step: 'Choose one useful next step.',
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const practice = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    const activities = JSON.parse((await console.locator('pre').textContent()) ?? '{}') as {
+        data: Array<{ id: string; updatedAt: string }>;
+    };
+    const initial = activities.data.find((activity) => activity.id === practice.data.id);
+    if (!initial) {
+        throw new Error('the created Open Practice Activity was not returned by its scoped list');
+    }
+    expect(initial.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    await console.getByLabel('Operation').selectOption('activities.open-practice.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${practice.data.id}/open-practice`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedTitle,
+        slug: null,
+        introduction: 'Apply the idea in a different setting.',
+        next_step: 'Name one concrete next step before continuing.',
+        updated_at: initial.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(practice.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedTitle);
+    await expect(console.locator('pre')).toContainText('Name one concrete next step before continuing.');
+
+    await console.getByLabel('Operation').selectOption('maps.destroy');
+    await console.getByLabel('Request path').fill(`/api/content/v1/maps/${map.data.id}`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+});
+
 test('a content API author creates a MapAsset Activity through the documented console flow', async ({
     page,
 }) => {
