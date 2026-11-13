@@ -4918,6 +4918,10 @@ The World Builder shell also retains the source Settings corner navigation
 (desk, current map, bookmarks, logout, source and legal destinations), with
 React Router and the existing CSRF-protected Rust session logout as its only
 standalone seams. Its desktop and narrow layouts remain browser-covered.
+The source World Builder Review queue is a URL-selected Settings section, not
+a standalone substitute modal: it consumes the existing bounded scoped Rust
+review-queue projection and opens an item only through the existing authored
+map/node graph selection.
 
 **Template-test extension:** Rust now preserves Laravel's explicit saved-agent
 test boundary. A principal with `ai.ru` submits one bounded prompt with CSRF;

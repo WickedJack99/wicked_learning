@@ -20,6 +20,22 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await expect(
         settingsNavigation.getByRole('button', { name: 'World Builder' }),
     ).toBeVisible();
+    const worldBuilderSections = page.getByRole('tablist', {
+        name: 'World builder sections',
+    });
+    await worldBuilderSections
+        .getByRole('tab', { name: 'Review queue' })
+        .click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-world-builder&worldSection=review$/,
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Review queue' }),
+    ).toBeVisible();
+    await worldBuilderSections.getByRole('tab', { name: 'Graph' }).click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-world-builder&worldSection=graph$/,
+    );
     const quickNavigation = page.getByRole('navigation', {
         name: 'Settings quick navigation',
     });

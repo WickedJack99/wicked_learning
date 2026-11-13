@@ -183,7 +183,7 @@ type SupportedActivityType =
     | 'message_prompt'
     | 'message_wall';
 
-type WorldBuilderSection = 'graph';
+type WorldBuilderSection = 'graph' | 'review';
 
 const worldBuilderSections = [
     {
@@ -191,6 +191,12 @@ const worldBuilderSections = [
         icon: GitBranch,
         key: 'graph',
         label: 'Graph',
+    },
+    {
+        description: 'Open activities waiting for an authoring review.',
+        icon: Sparkles,
+        key: 'review',
+        label: 'Review queue',
     },
 ] satisfies SettingsNavigationItem<WorldBuilderSection>[];
 type ObstacleForm = {
@@ -458,6 +464,8 @@ function WorldBuilderContent({
         () => new URLSearchParams(location.search),
         [location.search],
     );
+    const worldBuilderSection: WorldBuilderSection =
+        query.get('worldSection') === 'review' ? 'review' : 'graph';
     const selectedMapId = query.get('map');
     const selectedNodeId = query.get('node');
     const [worldGraph, setWorldGraph] = useState<WorldGraph | null>(null);
@@ -473,17 +481,19 @@ function WorldBuilderContent({
     const [worldDetailsOpen, setWorldDetailsOpen] = useState(false);
     const [duplicateMapOpen, setDuplicateMapOpen] = useState(false);
     const [sourceCatalogOpen, setSourceCatalogOpen] = useState(false);
-    const [reviewQueueOpen, setReviewQueueOpen] = useState(false);
     const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
     const [reviewQueueError, setReviewQueueError] = useState<string | null>(
         null,
     );
     const [reviewQueuePage, setReviewQueuePage] = useState(1);
+    const [reviewQueueRequestVersion, setReviewQueueRequestVersion] =
+        useState(0);
 
     const selectMap = useCallback(
         (mapId: string) => {
             const next = new URLSearchParams(location.search);
             next.set('panel', 'admin-world-builder');
+            next.set('worldSection', 'graph');
             next.set('map', mapId);
             next.delete('node');
             navigate(`/settings?${next.toString()}`);
@@ -495,8 +505,22 @@ function WorldBuilderContent({
         (mapId: string, nodeId: string) => {
             const next = new URLSearchParams(location.search);
             next.set('panel', 'admin-world-builder');
+            next.set('worldSection', 'graph');
             next.set('map', mapId);
             next.set('node', nodeId);
+            navigate(`/settings?${next.toString()}`);
+        },
+        [location.search, navigate],
+    );
+
+    const selectWorldBuilderSection = useCallback(
+        (section: WorldBuilderSection) => {
+            const next = new URLSearchParams(location.search);
+            next.set('panel', 'admin-world-builder');
+            next.set('worldSection', section);
+            next.delete('map');
+            next.delete('node');
+            next.delete('worldView');
             navigate(`/settings?${next.toString()}`);
         },
         [location.search, navigate],
@@ -588,7 +612,7 @@ function WorldBuilderContent({
     }, [nodeReload, selectedNodeId]);
 
     useEffect(() => {
-        if (!reviewQueueOpen) {
+        if (worldBuilderSection !== 'review') {
             return;
         }
         let current = true;
@@ -616,7 +640,7 @@ function WorldBuilderContent({
         return () => {
             current = false;
         };
-    }, [reviewQueueOpen, reviewQueuePage]);
+    }, [reviewQueuePage, reviewQueueRequestVersion, worldBuilderSection]);
 
     const reviewCount =
         worldGraph?.maps.reduce(
@@ -624,10 +648,10 @@ function WorldBuilderContent({
             0,
         ) ?? 0;
 
-    if (error && !worldGraph) {
+    if (error && !worldGraph && worldBuilderSection !== 'review') {
         return <WorldBuilderStatus message={error} />;
     }
-    if (!worldGraph) {
+    if (!worldGraph && worldBuilderSection !== 'review') {
         return <WorldBuilderStatus message="Loading World Builder…" />;
     }
 
@@ -655,13 +679,26 @@ function WorldBuilderContent({
                             contentClassName="p-0 sm:p-0"
                             sidebar={
                                 <SettingsSectionNavigation
-                                    activeSection="graph"
+                                    activeSection={worldBuilderSection}
                                     ariaLabel="World builder sections"
                                     items={worldBuilderSections}
-                                    onChange={() => undefined}
+                                    onChange={selectWorldBuilderSection}
                                 />
                             }
                         >
+                {worldBuilderSection === 'review' ? (
+                    <WorldBuilderReviewQueueWorkspace
+                        error={reviewQueueError}
+                        onOpenActivity={selectNode}
+                        onPageChange={setReviewQueuePage}
+                        onRetry={() =>
+                            setReviewQueueRequestVersion(
+                                (version) => version + 1,
+                            )
+                        }
+                        page={reviewQueue}
+                    />
+                ) : (
                 <div className="h-full min-h-0 overflow-auto bg-slate-100 px-4 py-4 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
             <header className="mx-auto mb-4 flex max-w-[1600px] flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
                 <div>
@@ -676,11 +713,11 @@ function WorldBuilderContent({
                         World editing
                     </p>
                     <h1 className="mt-1 text-2xl font-semibold">
-                        {worldGraph.world.title}
+                        {worldGraph!.world.title}
                     </h1>
                 </div>
                 <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 2xl:block dark:text-slate-300">
-                    {worldGraph.world.description}
+                    {worldGraph!.world.description}
                 </p>
                 <div className="flex flex-wrap gap-2 2xl:shrink-0 2xl:justify-end">
                     <button
@@ -703,7 +740,7 @@ function WorldBuilderContent({
                         className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100 dark:hover:bg-amber-300/20"
                         onClick={() => {
                             setReviewQueuePage(1);
-                            setReviewQueueOpen(true);
+                            selectWorldBuilderSection('review');
                         }}
                         type="button"
                     >
@@ -771,7 +808,7 @@ function WorldBuilderContent({
                             onSelectMap={() =>
                                 selectedMapId && selectMap(selectedMapId)
                             }
-                            worldGraph={worldGraph}
+                            worldGraph={worldGraph!}
                         />
                     ) : editableMap && selectedMapId ? (
                         <MapAssetSurface
@@ -786,7 +823,7 @@ function WorldBuilderContent({
                         />
                     ) : (
                         <WorldGraphCanvas
-                            graph={worldGraph}
+                            graph={worldGraph!}
                             onPortal={setPortal}
                             onSelectMap={selectMap}
                         />
@@ -863,7 +900,7 @@ function WorldBuilderContent({
                 <EditWorldDetailsDialog
                     onClose={() => setWorldDetailsOpen(false)}
                     onUpdated={() => void loadWorld()}
-                    world={worldGraph.world}
+                    world={worldGraph!.world}
                 />
             ) : null}
             {duplicateMapOpen && editableMap ? (
@@ -882,19 +919,8 @@ function WorldBuilderContent({
                     onClose={() => setSourceCatalogOpen(false)}
                 />
             ) : null}
-            {reviewQueueOpen ? (
-                <WorldBuilderReviewQueueDialog
-                    error={reviewQueueError}
-                    onClose={() => setReviewQueueOpen(false)}
-                    onOpenActivity={(mapId, nodeId) => {
-                        setReviewQueueOpen(false);
-                        selectNode(mapId, nodeId);
-                    }}
-                    onPageChange={setReviewQueuePage}
-                    page={reviewQueue}
-                />
-            ) : null}
                 </div>
+                )}
                         </SettingsNestedWorkspace>
                     </div>
                 </div>
@@ -1447,6 +1473,206 @@ function formatWorldDetailsVersionDate(value: string): string {
               dateStyle: 'medium',
               timeStyle: 'short',
           }).format(date);
+}
+
+/**
+ * Extracted from resources/js/features/settings/world-builder-settings-panel.tsx.
+ * The source's Inertia destination is replaced by the existing scoped graph
+ * selection callback, so a review item still opens its authored activity.
+ */
+function WorldBuilderReviewQueueWorkspace({
+    error,
+    onOpenActivity,
+    onPageChange,
+    onRetry,
+    page,
+}: {
+    error: string | null;
+    onOpenActivity: (mapId: string, nodeId: string) => void;
+    onPageChange: (page: number) => void;
+    onRetry: () => void;
+    page: ReviewQueue | null;
+}) {
+    const total = page?.pagination.total ?? 0;
+    const t = usePlatformTranslation();
+
+    if (!page && !error) {
+        return (
+            <section className="grid h-full min-h-0 place-items-center p-6 text-center">
+                <p className="text-sm text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.world_builder.review_queue.loading',
+                        'Loading review queue…',
+                    )}
+                </p>
+            </section>
+        );
+    }
+
+    if (error) {
+        return (
+            <section className="grid h-full min-h-0 place-items-center p-6 text-center">
+                <p className="max-w-md text-sm leading-6 text-red-400">
+                    {error}
+                </p>
+                <button
+                    className="text-sm font-semibold text-[var(--settings-accent)] underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                    onClick={onRetry}
+                    type="button"
+                >
+                    {t('settings.retry', 'Try again')}
+                </button>
+            </section>
+        );
+    }
+
+    if (!page || page.items.length === 0) {
+        return (
+            <section className="flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-6">
+                <header className="shrink-0 border-b border-[var(--settings-border-color)] pb-4">
+                    <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                        {t(
+                            'settings.world_builder.review_queue.eyebrow',
+                            'Authoring',
+                        )}
+                    </p>
+                    <h2 className="mt-2 text-xl font-semibold">
+                        {t(
+                            'settings.world_builder.review_queue.title',
+                            'Review queue',
+                        )}
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.world_builder.review_queue.empty',
+                            'Everything in this world is up to date.',
+                        )}
+                    </p>
+                </header>
+                <div className="grid min-h-0 flex-1 place-items-center p-6 text-center">
+                    <p className="max-w-md text-sm leading-6 text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.world_builder.review_queue.empty_detail',
+                            'New or changed activities will appear here after an author saves them.',
+                        )}
+                    </p>
+                </div>
+            </section>
+        );
+    }
+
+    return (
+        <section className="flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-6">
+            <header className="shrink-0 border-b border-[var(--settings-border-color)] pb-4">
+                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                    {t(
+                        'settings.world_builder.review_queue.eyebrow',
+                        'Authoring',
+                    )}
+                </p>
+                <h2 className="mt-2 text-xl font-semibold">
+                    {t(
+                        'settings.world_builder.review_queue.title',
+                        'Review queue',
+                    )}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                    {total > 0
+                        ? total === 1
+                            ? t(
+                                  'settings.world_builder.review_queue.waiting_one',
+                                  '1 activity is waiting for review.',
+                              )
+                            : t(
+                                  'settings.world_builder.review_queue.waiting_many',
+                                  ':count activities are waiting for review.',
+                              ).replace(':count', String(total))
+                        : t(
+                              'settings.world_builder.review_queue.empty',
+                              'Everything in this world is up to date.',
+                          )}
+                </p>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            {page.items.map((item) => (
+                                <button
+                                    aria-label={`Review ${item.title}`}
+                                    className="group min-w-0 rounded-lg border border-[var(--settings-border-color)] p-3 text-left transition hover:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--settings-content-background)] focus-visible:outline-none"
+                                    key={item.id}
+                                    onClick={() =>
+                                        onOpenActivity(item.map.id, item.node.id)
+                                    }
+                                    type="button"
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
+                                                {item.map.title}
+                                            </p>
+                                            <h3 className="mt-1 truncate text-sm font-semibold">
+                                                {item.title}
+                                            </h3>
+                                            <p className="mt-1 truncate text-xs text-[var(--settings-muted-text)]">
+                                                {item.node.title} · {item.activity_type}
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 text-xs font-semibold text-[var(--settings-accent)] group-hover:underline">
+                                            {t(
+                                                'settings.world_builder.review_queue.open',
+                                                'Open',
+                                            )}{' '}
+                                            <span aria-hidden="true">→</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+            </div>
+            {page.pagination.last_page > 1 ? (
+                        <footer className="flex shrink-0 items-center justify-between border-t border-[var(--settings-border-color)] pt-3 text-xs text-[var(--settings-muted-text)]">
+                            <button
+                                className="text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:opacity-50"
+                                disabled={page.pagination.current_page === 1}
+                                onClick={() =>
+                                    onPageChange(
+                                        page.pagination.current_page - 1,
+                                    )
+                                }
+                                type="button"
+                            >
+                                {t(
+                                    'settings.world_builder.review_queue.previous',
+                                    'Previous',
+                                )}
+                            </button>
+                            <span>
+                                Page {page.pagination.current_page} of{' '}
+                                {page.pagination.last_page}
+                            </span>
+                            <button
+                                className="text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:opacity-50"
+                                disabled={
+                                    page.pagination.current_page ===
+                                    page.pagination.last_page
+                                }
+                                onClick={() =>
+                                    onPageChange(
+                                        page.pagination.current_page + 1,
+                                    )
+                                }
+                                type="button"
+                            >
+                                {t(
+                                    'settings.world_builder.review_queue.next',
+                                    'Next',
+                                )}
+                            </button>
+                        </footer>
+            ) : null}
+        </section>
+    );
 }
 
 function WorldBuilderReviewQueueDialog({
