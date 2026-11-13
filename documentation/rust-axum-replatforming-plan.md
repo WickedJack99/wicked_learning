@@ -367,12 +367,14 @@ shared-task review aggregates for the caller's already-scoped learners. The
 aggregate deliberately excludes learner writing and identities; the later
 three-section source UI lift now consumes it without adding a new staff-data
 authority. The standalone page retains the extracted source Settings shell and
-the source Collective Overview chart, Individual Support reader/manual-node
-access, and Peer Support queue; only Inertia's page data/router post seams are
-replaced with the typed Rust read, CSRF-protected manual-unlock command and
-React URL state. It deliberately excludes journal text, private reflections,
-confidence and rankings; peer-message resolution remains in the dedicated
-moderation workspace above.
+the source Learning Support section navigator, Collective Overview chart,
+Individual Support reader/manual-node access, and Peer Support queue. On a
+narrow viewport that source section navigator becomes a compact selector so
+the active nested view remains inside the Settings viewport. Only Inertia's
+page data/router post seams are replaced with the typed Rust read,
+CSRF-protected manual-unlock command and React URL state. It deliberately
+excludes journal text, private reflections, confidence and rankings;
+peer-message resolution remains in the dedicated moderation workspace above.
 
 ### Peer message prompt and wall slice — 6 November 2026
 

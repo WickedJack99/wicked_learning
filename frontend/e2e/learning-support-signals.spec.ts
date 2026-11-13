@@ -27,6 +27,19 @@ test('a local support worker can discover the source-shaped support signal secti
         },
     });
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    const learningSupportNavigation = page.getByRole('tablist', {
+        name: 'Learning support sections',
+    });
+    await expect(
+        learningSupportNavigation.getByRole('tab', {
+            name: 'Learner Messages',
+        }),
+    ).toBeVisible();
+    await expect(
+        learningSupportNavigation.getByRole('tab', {
+            name: 'Support Signals',
+        }),
+    ).toBeVisible();
     await expect(
         page.getByRole('heading', { name: 'Collective Overview' }),
     ).toBeVisible();
