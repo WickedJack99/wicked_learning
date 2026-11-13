@@ -58,6 +58,7 @@ type CurrentUserState =
           capabilities: string[];
           email: string;
           roles: string[];
+          settingsAccess: Record<string, boolean>;
           subjectId: string;
       }
     | { kind: 'unavailable' };
@@ -702,7 +703,13 @@ export function App() {
         if (
             settingsPanel === 'admin-world-builder'
         ) {
-            return <OriginalWorldBuilderPage isAuthenticated />;
+            return (
+                <OriginalWorldBuilderPage
+                    appearance={appearance}
+                    isAuthenticated
+                    settingsAccess={currentUser.settingsAccess}
+                />
+            );
         }
 
         if (
@@ -1253,6 +1260,7 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
             capabilities: data.capabilities,
             email: data.email,
             roles: data.roles,
+            settingsAccess: data.settings_access,
             subjectId: data.subject_id,
         };
     } catch {

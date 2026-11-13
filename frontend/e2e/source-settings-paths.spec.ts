@@ -13,6 +13,23 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/world$/);
 
+    await page.goto('/settings?panel=admin-world-builder');
+    const settingsNavigation = page.getByRole('navigation', {
+        name: 'Settings navigation',
+    });
+    await expect(
+        settingsNavigation.getByRole('button', { name: 'World Builder' }),
+    ).toBeVisible();
+    await settingsNavigation
+        .getByRole('button', { name: 'Assets & World Objects' })
+        .click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-assets-world-objects$/,
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Visual library' }),
+    ).toBeVisible();
+
     await page.goto('/settings?panel=admin-assets-world-objects&asset=items');
     await expect(page.getByRole('heading', { name: 'Edit items' })).toBeVisible();
 

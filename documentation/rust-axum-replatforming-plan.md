@@ -1749,10 +1749,16 @@ fifteen Activity records across two MapAssets, including a bounded-answer
 Question, Shared Task, catalog-resolved Item Grant and Tool Grant, an Item
 Obstacle with a catalog-resolved item slot, a tool-resolved Obstacle, and a
 same-World Portal input/output link, back through the documented scoped route.
-The OpenAPI contract and
-generated TypeScript client now mirror all twenty-one advertised operations,
-including the map lifecycle; no live console operation is outside the
-typed API surface.
+The OpenAPI contract and generated TypeScript client now mirror every
+advertised operation, including the map lifecycle; no live console operation
+is outside the typed API surface.
+
+Frontend migration gates include source navigation and discoverability, not
+only a directly addressable route. A source-derived authoring workspace is not
+considered lifted until an authorized browser can find it through its source
+Settings path and complete the corresponding browser proof. Server-projected
+visibility hints may expose only that an entry is available; they never expose
+permission scopes or replace endpoint authorization.
 
 The bounded Content API graph slice exposes source-ordered connection reads and
 an explicit create/update/delete lifecycle for Activity connections within one

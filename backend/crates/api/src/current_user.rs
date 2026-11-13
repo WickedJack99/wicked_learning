@@ -1,5 +1,7 @@
 use axum::{Json, extract::State};
 use axum_login::AuthSession;
+use std::collections::BTreeMap;
+
 use serde::Serialize;
 use uuid::Uuid;
 use wicked_learning_application::current_user::CurrentUserQuery;
@@ -13,6 +15,7 @@ pub struct CurrentUserResponse {
     pub appearance: LearnerAppearance,
     pub capabilities: Vec<String>,
     pub email: String,
+    pub settings_access: BTreeMap<String, bool>,
     pub subject_id: Uuid,
     pub roles: Vec<String>,
 }
@@ -37,11 +40,78 @@ pub async fn show(
         capabilities: current_user
             .principal
             .capabilities
-            .into_iter()
+            .iter()
             .filter(|capability| !capability.starts_with("role_permission:"))
+            .cloned()
             .collect(),
         email: subject.normalized_email().to_owned(),
+        settings_access: settings_access(&current_user.principal),
         subject_id: current_user.principal.subject_id,
         roles: current_user.principal.roles,
     }))
+}
+
+/// Source-Settings visibility projection. Scopes stay server-side and each
+/// selected API route still performs its full authorization check.
+fn settings_access(
+    principal: &wicked_learning_domain::identity_access::AuthorizedPrincipal,
+) -> BTreeMap<String, bool> {
+    [
+        "ai",
+        "assets",
+        "companion",
+        "competence_topics",
+        "content_api",
+        "group_members",
+        "groups",
+        "journal_feedback",
+        "journal_settings",
+        "languages",
+        "learner_support_signals",
+        "learning_concepts",
+        "organization_moderation",
+        "platform_feedback",
+        "presentation",
+        "roles",
+        "sounds",
+        "users",
+        "world_activities",
+        "world_map_access",
+        "world_maps",
+        "world_nodes",
+    ]
+    .into_iter()
+    .map(|resource| {
+        (
+            resource.to_owned(),
+            principal.has_permission(resource, "ro"),
+        )
+    })
+    .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+    use wicked_learning_domain::identity_access::AuthorizedPrincipal;
+
+    use super::settings_access;
+
+    #[test]
+    fn projects_settings_visibility_without_leaking_scope() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::nil(),
+            roles: vec!["world_author".to_owned()],
+            capabilities: vec![
+                "role_permission:world_maps:ru:assigned".to_owned(),
+                "role_permission:world_nodes:ro:own".to_owned(),
+            ],
+        };
+
+        let access = settings_access(&principal);
+
+        assert_eq!(access.get("world_maps"), Some(&true));
+        assert_eq!(access.get("world_nodes"), Some(&true));
+        assert_eq!(access.get("world_activities"), Some(&false));
+    }
 }

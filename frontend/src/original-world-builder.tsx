@@ -54,6 +54,15 @@ import { OriginalNpcDialogueEditor } from './original-npc-dialogue-editor';
 import { OriginalSourceCatalogDialog } from './original-source-catalog';
 import { PortalScene } from './original-portal-activity';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
+import { type OriginalAppearance } from './original-appearance';
+import {
+    SettingsNestedWorkspace,
+    SettingsSectionNavigation,
+    type SettingsNavigationItem,
+} from './extracted-settings-configuration-shell';
+import { settingsSections } from './extracted-settings-navigation';
+import { SettingsSidebarNavigation } from './extracted-settings-sidebar-navigation';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -169,6 +178,17 @@ type SupportedActivityType =
     | 'shared_task'
     | 'message_prompt'
     | 'message_wall';
+
+type WorldBuilderSection = 'graph';
+
+const worldBuilderSections = [
+    {
+        description: 'See maps and portal routes as a connected graph.',
+        icon: GitBranch,
+        key: 'graph',
+        label: 'Graph',
+    },
+] satisfies SettingsNavigationItem<WorldBuilderSection>[];
 type ObstacleForm = {
     allowedToolIds: string[];
     backgroundDark: string;
@@ -373,16 +393,18 @@ type StartRouteForm = {
 };
 
 /**
- * Source-adapted from the Laravel `AdminWorldIndex` and activity-graph
- * surfaces. It deliberately consumes the three scoped Rust reads separately:
- * the world graph selects a map, the map read selects a node, and the node
- * read renders its activity graph. Each source mutation keeps its own typed
- * endpoint and refresh boundary while the remaining forms migrate separately.
+ * The world graph uses the Rust API seams. Its Settings workspace shell is
+ * lifted from the Laravel React source; only navigation and data-loading
+ * boundaries are adapted to the standalone runtime.
  */
 export function OriginalWorldBuilderPage({
+    appearance,
     isAuthenticated,
+    settingsAccess,
 }: {
+    appearance: OriginalAppearance;
     isAuthenticated: boolean;
+    settingsAccess: Record<string, boolean>;
 }) {
     if (!isAuthenticated) {
         return <Navigate replace to="/login" />;
@@ -390,14 +412,38 @@ export function OriginalWorldBuilderPage({
 
     return (
         <ReactFlowProvider>
-            <WorldBuilderContent />
+            <WorldBuilderContent
+                appearance={appearance}
+                settingsAccess={settingsAccess}
+            />
         </ReactFlowProvider>
     );
 }
 
-function WorldBuilderContent() {
+function WorldBuilderContent({
+    appearance,
+    settingsAccess,
+}: {
+    appearance: OriginalAppearance;
+    settingsAccess: Record<string, boolean>;
+}) {
     const location = useLocation();
     const navigate = useNavigate();
+    const t = usePlatformTranslation();
+    const accessCapabilities = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(settingsAccess).map(([key, read]) => [
+                    key,
+                    { delete: false, read, update: false },
+                ]),
+            ),
+        [settingsAccess],
+    );
+    const navigationSections = useMemo(
+        () => settingsSections(t, accessCapabilities),
+        [accessCapabilities, t],
+    );
     const query = useMemo(
         () => new URLSearchParams(location.search),
         [location.search],
@@ -576,8 +622,38 @@ function WorldBuilderContent() {
     }
 
     return (
-        <main className="min-h-svh bg-slate-100 px-4 py-4 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-            <header className="mx-auto mb-4 flex max-w-[1600px] items-start justify-between gap-4">
+        <main
+            className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100"
+            data-wl-id="settings.world-builder"
+            style={settingsWorkspaceStyle(appearance)}
+        >
+            <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                <header className="flex h-auto shrink-0 flex-col gap-3 border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between">
+                    <h1 className="shrink-0 text-2xl leading-none font-semibold text-white dark:text-white">
+                        {t('settings.title', 'Settings')}
+                    </h1>
+                </header>
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+                    <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
+                        <SettingsSidebarNavigation
+                            activePanel="admin-world-builder"
+                            sections={navigationSections}
+                        />
+                    </aside>
+                    <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
+                        <SettingsNestedWorkspace
+                            contentClassName="p-0 sm:p-0"
+                            sidebar={
+                                <SettingsSectionNavigation
+                                    activeSection="graph"
+                                    ariaLabel="World builder sections"
+                                    items={worldBuilderSections}
+                                    onChange={() => undefined}
+                                />
+                            }
+                        >
+                <div className="h-full min-h-0 overflow-auto bg-slate-100 px-4 py-4 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+            <header className="mx-auto mb-4 flex max-w-[1600px] flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
                 <div>
                     <Link
                         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
@@ -593,10 +669,10 @@ function WorldBuilderContent() {
                         {worldGraph.world.title}
                     </h1>
                 </div>
-                <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
+                <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 2xl:block dark:text-slate-300">
                     {worldGraph.world.description}
                 </p>
-                <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                <div className="flex flex-wrap gap-2 2xl:shrink-0 2xl:justify-end">
                     <button
                         className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
                         data-wl-id="authoring.source-catalog.open"
@@ -808,8 +884,34 @@ function WorldBuilderContent() {
                     page={reviewQueue}
                 />
             ) : null}
+                </div>
+                        </SettingsNestedWorkspace>
+                    </div>
+                </div>
+            </div>
         </main>
     );
+}
+
+function settingsWorkspaceStyle(
+    appearance: OriginalAppearance,
+): React.CSSProperties {
+    const dark = appearance === 'dark';
+    return {
+        '--settings-accent': dark ? '#2dd4bf' : '#0f766e',
+        '--settings-active-background': dark
+            ? 'rgb(45 212 191 / 10%)'
+            : 'rgb(15 118 110 / 10%)',
+        '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0',
+        '--settings-content-background': dark ? '#0b1117' : '#f1f5f9',
+        '--settings-muted-text': dark ? '#94a3b8' : '#64748b',
+        '--settings-nested-sidebar-background': dark
+            ? 'rgb(5 8 22 / 96%)'
+            : 'rgb(248 250 252 / 96%)',
+        '--settings-sidebar-background': dark
+            ? 'rgb(5 8 22 / 96%)'
+            : 'rgb(248 250 252 / 96%)',
+    } as React.CSSProperties;
 }
 
 function EditWorldDetailsDialog({

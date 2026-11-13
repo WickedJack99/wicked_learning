@@ -8742,7 +8742,7 @@ components:
     CurrentUser:
       type: object
       additionalProperties: false
-      required: [appearance, capabilities, email, subject_id, roles]
+      required: [appearance, capabilities, email, settings_access, subject_id, roles]
       properties:
         appearance:
           type: string
@@ -8758,6 +8758,10 @@ components:
           items:
             type: string
             enum: [access_links_manage, journal_feedback_policy_manage, journal_feedback_review, journal_feedback_view, learner_messages_moderate, learning_groups_manage, organization_icons_moderate, platform_feedback_review, platform_feedback_view]
+        settings_access:
+          type: object
+          additionalProperties: { type: boolean }
+          description: Server-derived read visibility for the source Settings navigation. It contains no permission scopes and does not authorize any request.
         subject_id:
           type: string
           format: uuid

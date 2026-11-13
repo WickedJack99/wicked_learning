@@ -6823,6 +6823,10 @@ export interface components {
             email: string;
             /** @description Server-owned application capabilities granted through the current subject's roles; never credentials or identity data. */
             capabilities: ("access_links_manage" | "journal_feedback_policy_manage" | "journal_feedback_review" | "journal_feedback_view" | "learner_messages_moderate" | "learning_groups_manage" | "organization_icons_moderate" | "platform_feedback_review" | "platform_feedback_view")[];
+            /** @description Server-derived read visibility for the source Settings navigation. It contains no permission scopes and does not authorize any request. */
+            settings_access: {
+                [key: string]: boolean;
+            };
             /**
              * Format: uuid
              * @description Opaque Rust-owned identity subject identifier.

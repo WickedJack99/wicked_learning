@@ -4902,6 +4902,19 @@ advertised v1 paths, blocks unresolved placeholders and obtains the existing
 same-origin CSRF token only for documented mutations; its response pane reflects
 the exact server result rather than treating a browser as a bearer-token client.
 
+**Frontend-discoverability extension:** A direct standalone route is not
+evidence that its Laravel frontend surface has been migrated. A completed
+authoring slice must retain its source Settings navigation/discoverability path
+and prove it in an authorized browser. The browser may receive only a
+server-derived availability boolean for that entry; scope details remain
+server-owned and every route repeats authorization.
+
+**Extraction extension:** Retained Laravel React Settings modules are copied
+into the standalone package with their component structure, markup and styles
+intact when the separate package roots would otherwise load a second React
+runtime. Only framework seams (Inertia navigation/page props and Laravel
+requests) may be adapted. A source-inspired replacement is not a lifted UI.
+
 **Template-test extension:** Rust now preserves Laravel's explicit saved-agent
 test boundary. A principal with `ai.ru` submits one bounded prompt with CSRF;
 Rust loads the selected template and provider configuration server-side, decrypts
