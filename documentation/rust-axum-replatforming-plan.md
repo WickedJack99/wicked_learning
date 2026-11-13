@@ -366,14 +366,14 @@ source-shaped summary counts and at most twelve anonymous unresolved
 shared-task review aggregates for the caller's already-scoped learners. The
 aggregate deliberately excludes learner writing and identities; the later
 three-section source UI lift now consumes it without adding a new staff-data
-authority. The standalone Support Signals and Learner Messages pages retain
-the extracted source Settings shell and the same source Learning Support
-section navigator, so moving between those child workspaces does not discard
-the parent source hierarchy. The Support Signals child retains its Collective
-Overview chart, Individual Support reader/manual-node access, and Peer Support
-queue. On a narrow viewport that source section navigator becomes a compact
-selector so the active nested view remains inside the Settings viewport. Only
-Inertia's
+authority. The standalone Support Signals, Learner Messages and Platform
+Feedback pages retain the extracted source Settings shell and the same source
+Learning Support section navigator, so moving between those child workspaces
+does not discard the parent source hierarchy. The Support Signals child
+retains its Collective Overview chart, Individual Support reader/manual-node
+access, and Peer Support queue. On a narrow viewport that source section
+navigator becomes a compact selector so the active nested view remains inside
+the Settings viewport. Only Inertia's
 page data/router post seams are replaced with the typed Rust read,
 CSRF-protected manual-unlock command and React URL state. It deliberately
 excludes journal text, private reflections, confidence and rankings;
@@ -887,7 +887,7 @@ private or identifier-based links will resolve in a deployed cutover.
 | `/settings?panel=admin-access&access=roles` | Same path | Available | The source-adapted Roles panel uses `GET`/`POST`/`PATCH`/`DELETE /admin/roles` to preserve the source-shaped role catalogue, hierarchy and complete resource/level/scope permission matrix. Server-owned update/delete flags preserve read-only behavior; source `roles` levels authorize read, create/update and deletion, and system roles cannot be deleted. |
 | `/feedback` | Same path | Available | Signed-in learners can use the source-adapted deliberate platform-feedback form. Rust accepts only the source category values and a bounded 10–4000-character message, then records it separately from private journal, activity and competence data. |
 | `/settings?panel=admin-learning-support&support=learner-messages` | Same path | Available | The capability-gated source Learner Messages workspace uses the lifted Settings top bar, primary/sidebar and account navigation, shared source Learning Support section navigator, nested topic navigation and Needs attention digest. Its typed Rust endpoints preserve the bounded six-message/three-response pages, source filters, private-support reply restriction and staff hide/restore/delete operations for private-support and peer messages. |
-| `/settings?panel=admin-learning-support&support=platform-feedback` | Same path | Available | The source-adapted Platform Feedback review queue is available only to application principals with its separate view/review capabilities (initially the migrated platform-administrator role). It pages deliberately shared messages with unreviewed entries first, shows only the needed author identity projection, and preserves the source’s sole action: mark a message reviewed. |
+| `/settings?panel=admin-learning-support&support=platform-feedback` | Same path | Available | The source-adapted Platform Feedback review queue retains the shared source Learning Support navigator and is available only to application principals with its separate view/review capabilities (initially the migrated platform-administrator role). It pages deliberately shared messages with unreviewed entries first, shows only the needed author identity projection, and preserves the source’s sole action: mark a message reviewed. |
 | `/settings?panel=admin-learning-support&support=competence-topics`, `/settings?panel=admin-learning-support&support=learning-concepts` | Same paths | Available | The source-adapted Competence Topics and Concept Library workspaces preserve the original section navigation, statistics, complete-catalog forms and bounded Concept Library pagination. Rust keeps separate `competence_topics` and `learning_concepts` authorization server-owned; changing either catalog never rewrites existing activity or learner-evidence snapshots. |
 | `/organizations`, `/organizations/{slug}`, organization membership, join-request, message and icon routes | Rust application database / typed React contract | Available | The source-shaped directory, leader-owned text/deletion and icon upload, membership, join approval, governance transitions, member chat and member icon reporting are migrated with contract, database and local browser evidence. Due random leadership rotates through the documented idempotent backend scheduler command, never on a browser read. The source-shaped moderator queue can view a reported-icon snapshot, dismiss a report, or remove the organization’s current icon through its separate capability. |
 | `/learning/groups/*` | Floating World control and `/settings?panel=admin-access&access=groups` | Available | The source-derived member group-chat control and bounded platform-administrator group workspace are implemented through typed Rust contracts. |

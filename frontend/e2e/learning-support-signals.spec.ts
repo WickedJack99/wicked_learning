@@ -61,6 +61,36 @@ test('a local support worker can discover the source-shaped support signal secti
     ).toBeVisible();
 
     await page.goto(
+        '/settings?panel=admin-learning-support&support=platform-feedback',
+    );
+    const platformFeedbackNavigation = page.getByRole('tablist', {
+        name: 'Learning support sections',
+    });
+    await expect(
+        platformFeedbackNavigation.getByRole('tab', {
+            name: 'Platform Feedback',
+        }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(
+        page.getByRole('heading', { name: 'Shared feedback' }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const platformFeedbackHeadingBounds = await page
+        .getByRole('heading', { name: 'Shared feedback' })
+        .boundingBox();
+    expect(platformFeedbackHeadingBounds).not.toBeNull();
+    expect(platformFeedbackHeadingBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(
+        platformFeedbackHeadingBounds!.x + platformFeedbackHeadingBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(platformFeedbackHeadingBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(
+        platformFeedbackHeadingBounds!.y + platformFeedbackHeadingBounds!.height,
+    ).toBeLessThanOrEqual(844);
+
+    await page.setViewportSize({ width: 1280, height: 844 });
+
+    await page.goto(
         '/settings?panel=admin-learning-support&support=support-signals',
     );
     await expect(

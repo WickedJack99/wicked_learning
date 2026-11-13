@@ -888,6 +888,8 @@ export function App() {
                         canReview={currentUser.capabilities.includes(
                             'platform_feedback_review',
                         )}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
                     />
                 </Suspense>
             );

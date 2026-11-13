@@ -4,11 +4,12 @@ import {
     ChevronRight,
     MessageSquareText,
 } from 'lucide-react';
-import { type CSSProperties, useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { LearningSupportSettingsShell } from './extracted-learning-support-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type ReviewPage = components['schemas']['AdminPlatformFeedbackPage'];
@@ -17,9 +18,13 @@ type ReviewPage = components['schemas']['AdminPlatformFeedbackPage'];
 export function OriginalPlatformFeedbackReviewPage({
     appearance,
     canReview,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
     canReview: boolean;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -111,32 +116,16 @@ export function OriginalPlatformFeedbackReviewPage({
     }
 
     return (
-        <main
-            className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
-            style={settingsStyle(appearance)}
+        <LearningSupportSettingsShell
+            activeSection="platform-feedback"
+            appearance={appearance}
+            onSignedOut={onSignedOut}
+            settingsAccess={settingsAccess}
         >
-            <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
-                <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
-                    <div>
-                        <Link
-                            className="mb-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] transition hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]"
-                            to="/home"
-                        >
-                            <ChevronLeft className="size-4" /> Learning desk
-                        </Link>
-                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                            Settings
-                        </p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                            Learning Support
-                        </h1>
-                    </div>
-                </header>
-                <section className="min-h-0 flex-1 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]">
-                    <div
-                        className="flex h-full min-h-0 flex-col"
-                        data-wl-id="settings.learning-support.platform-feedback"
-                    >
+            <section
+                className="flex h-full min-h-0 flex-col"
+                data-wl-id="settings.learning-support.platform-feedback"
+            >
                         <header className="shrink-0 border-b border-[var(--settings-border-color)] px-4 py-4 sm:px-5">
                             <div className="flex items-start gap-3">
                                 <MessageSquareText
@@ -279,10 +268,8 @@ export function OriginalPlatformFeedbackReviewPage({
                                 </button>
                             </footer>
                         ) : null}
-                    </div>
-                </section>
-            </div>
-        </main>
+            </section>
+        </LearningSupportSettingsShell>
     );
 }
 
@@ -295,18 +282,4 @@ function formatDate(value: string): string {
         dateStyle: 'medium',
         timeStyle: 'short',
     }).format(new Date(value));
-}
-
-function settingsStyle(appearance: OriginalAppearance): CSSProperties {
-    const dark = appearance === 'dark';
-    return {
-        '--settings-accent': dark ? '#2dd4bf' : '#0f766e',
-        '--settings-active-background': dark
-            ? 'rgba(45, 212, 191, 0.12)'
-            : '#ccfbf1',
-        '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0',
-        '--settings-content-background': dark ? '#0b1117' : '#f1f5f9',
-        '--settings-muted-text': dark ? '#94a3b8' : '#64748b',
-        '--settings-panel-background': dark ? '#111820' : '#ffffff',
-    } as CSSProperties;
 }
