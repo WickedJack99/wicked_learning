@@ -1142,7 +1142,15 @@ scope. It projects activities, transitions, the eligible preferred start and
 ordered starts, portal targets, and the source's exit-portal candidates from
 every map in the same World; it also returns message topics, reusable
 items/tools/sounds, source records and active concept/topic options from
-dedicated authoring facts. It remains distinct from learner route playback.
+dedicated authoring facts. The reusable item and tool catalog now also has its
+own source-compatible authoring boundary: authorized `assets.ro` principals can
+list the complete catalogue, while `assets.ru` principals can create and update
+its exact source fields through `/api/v1/admin/assets/items` and
+`/api/v1/admin/assets/tools`. The commands preserve source title/slug rules,
+tool display configuration and media-reference lifecycle protection; their
+source-derived two-pane Settings workspace remains unavailable until its React
+lift is complete rather than being replaced with a new administration UI. It
+remains distinct from learner route playback.
 The source World Builder review queue is now available at `GET
 /api/v1/admin/world-builder/review-queue`: it preserves the source four-card
 default, twelve-item maximum and map/node/activity ordering, while applying the

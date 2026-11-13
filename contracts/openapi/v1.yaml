@@ -2537,6 +2537,78 @@ paths:
         '413': { description: The upload exceeds five MiB. }
         '422': { description: The uploaded bytes are not an accepted image format. }
         '503': { description: Media storage or the application database is unavailable. }
+  /admin/assets/items:
+    get:
+      operationId: getAdminCatalogItems
+      summary: List reusable inventory items for the authorized asset administrator.
+      responses:
+        '200': { description: The reusable item catalog., content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogItemListResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot view reusable items. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminCatalogItem
+      summary: Create and immediately publish a reusable inventory item.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogItemRequest' } } } }
+      responses:
+        '201': { description: The created reusable item., content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogItemResponse' } } } }
+        '400': { description: The item fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage reusable items. }
+        '409': { description: The item title or explicit slug already exists. }
+        '503': { description: The application database is unavailable. }
+  /admin/assets/items/{item_id}:
+    patch:
+      operationId: updateAdminCatalogItem
+      summary: Update one reusable inventory item without changing its catalog identity.
+      parameters: [ { name: item_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogItemRequest' } } } }
+      responses:
+        '200': { description: The saved reusable item., content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogItemResponse' } } } }
+        '400': { description: The item fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The item is unknown or the identity cannot manage reusable items. }
+        '409': { description: The item title or explicit slug already exists. }
+        '503': { description: The application database is unavailable. }
+  /admin/assets/tools:
+    get:
+      operationId: getAdminCatalogTools
+      summary: List reusable learner-interaction tools for the authorized asset administrator.
+      responses:
+        '200': { description: The reusable tool catalog., content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogToolListResponse' } } } }
+        '401': { description: The browser has no authenticated session. }
+        '404': { description: The identity cannot view reusable tools. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createAdminCatalogTool
+      summary: Create and immediately publish a reusable learner-interaction tool.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogToolRequest' } } } }
+      responses:
+        '201': { description: The created reusable tool., content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogToolResponse' } } } }
+        '400': { description: The tool fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The identity cannot manage reusable tools. }
+        '409': { description: The tool title or explicit slug already exists. }
+        '503': { description: The application database is unavailable. }
+  /admin/assets/tools/{tool_id}:
+    patch:
+      operationId: updateAdminCatalogTool
+      summary: Update one reusable learner-interaction tool without changing its catalog identity.
+      parameters: [ { name: tool_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogToolRequest' } } } }
+      responses:
+        '200': { description: The saved reusable tool., content: { application/json: { schema: { $ref: '#/components/schemas/AdminCatalogToolResponse' } } } }
+        '400': { description: The tool fields are invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The tool is unknown or the identity cannot manage reusable tools. }
+        '409': { description: The tool title or explicit slug already exists. }
+        '503': { description: The application database is unavailable. }
   /admin/public-presentation:
     get:
       operationId: getAdminPublicPresentation
@@ -12223,6 +12295,55 @@ components:
         created_at: { type: string, format: date-time }
         image_width_percent: { type: number }
         updated_at: { type: string, format: date-time }
+    AdminCatalogItemRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        image_dark: { type: [string, 'null'], maxLength: 2048 }
+        image_light: { type: [string, 'null'], maxLength: 2048 }
+    AdminCatalogItemListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, maxItems: 10000, items: { $ref: '#/components/schemas/AdminEditableItem' } }
+    AdminCatalogItemResponse:
+      type: object
+      additionalProperties: false
+      required: [item]
+      properties:
+        item: { $ref: '#/components/schemas/AdminEditableItem' }
+    AdminCatalogToolRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        image_dark: { type: [string, 'null'], maxLength: 2048 }
+        image_light: { type: [string, 'null'], maxLength: 2048 }
+        animation_dark: { type: [string, 'null'], maxLength: 2048 }
+        animation_light: { type: [string, 'null'], maxLength: 2048 }
+        animation_duration_seconds: { type: [number, 'null'], minimum: 0, maximum: 600 }
+        animation_width_percent: { type: [number, 'null'], minimum: 1, maximum: 100 }
+        image_width_percent: { type: [number, 'null'], minimum: 1, maximum: 100 }
+    AdminCatalogToolListResponse:
+      type: object
+      additionalProperties: false
+      required: [tools]
+      properties:
+        tools: { type: array, maxItems: 10000, items: { $ref: '#/components/schemas/AdminEditableTool' } }
+    AdminCatalogToolResponse:
+      type: object
+      additionalProperties: false
+      required: [tool]
+      properties:
+        tool: { $ref: '#/components/schemas/AdminEditableTool' }
     AdminEditableNode:
       type: object
       additionalProperties: false

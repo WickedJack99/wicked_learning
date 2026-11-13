@@ -15,6 +15,7 @@ mod admin_activity_source_references;
 mod admin_activity_templates;
 mod admin_ai_content_authoring;
 mod admin_ai_settings;
+mod admin_asset_catalog;
 mod admin_dialogue_typing_sound_set;
 mod admin_learning_companion;
 mod admin_learning_companion_dialogue;
@@ -951,6 +952,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/v1/admin/activity-templates", get(admin_activity_templates::index))
         .route("/api/v1/admin/media-assets", get(admin_media_assets::index).post(admin_media_assets::upload).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
+        .route("/api/v1/admin/assets/items", get(admin_asset_catalog::list_items).post(admin_asset_catalog::create_item))
+        .route("/api/v1/admin/assets/items/{item_id}", patch(admin_asset_catalog::update_item))
+        .route("/api/v1/admin/assets/tools", get(admin_asset_catalog::list_tools).post(admin_asset_catalog::create_tool))
+        .route("/api/v1/admin/assets/tools/{tool_id}", patch(admin_asset_catalog::update_tool))
         .route("/api/v1/admin/media-assets/{asset_id}", patch(admin_media_assets::update_metadata).delete(admin_media_assets::delete))
         .route("/api/v1/admin/media-assets/{asset_id}/replace", post(admin_media_assets::replace).layer(DefaultBodyLimit::max(image_upload::MAX_IMAGE_BYTES + 16 * 1024)))
         .route("/api/v1/admin/media-assets/{asset_id}/content", get(admin_media_assets::content))

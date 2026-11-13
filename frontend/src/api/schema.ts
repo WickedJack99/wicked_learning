@@ -1900,6 +1900,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/assets/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List reusable inventory items for the authorized asset administrator. */
+        get: operations["getAdminCatalogItems"];
+        put?: never;
+        /** Create and immediately publish a reusable inventory item. */
+        post: operations["createAdminCatalogItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assets/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update one reusable inventory item without changing its catalog identity. */
+        patch: operations["updateAdminCatalogItem"];
+        trace?: never;
+    };
+    "/admin/assets/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List reusable learner-interaction tools for the authorized asset administrator. */
+        get: operations["getAdminCatalogTools"];
+        put?: never;
+        /** Create and immediately publish a reusable learner-interaction tool. */
+        post: operations["createAdminCatalogTool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assets/tools/{tool_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update one reusable learner-interaction tool without changing its catalog identity. */
+        patch: operations["updateAdminCatalogTool"];
+        trace?: never;
+    };
     "/admin/public-presentation": {
         parameters: {
             query?: never;
@@ -8870,6 +8940,37 @@ export interface components {
             image_width_percent: number;
             /** Format: date-time */
             updated_at: string;
+        };
+        AdminCatalogItemRequest: {
+            title: string;
+            slug?: string | null;
+            description?: string | null;
+            image_dark?: string | null;
+            image_light?: string | null;
+        };
+        AdminCatalogItemListResponse: {
+            items: components["schemas"]["AdminEditableItem"][];
+        };
+        AdminCatalogItemResponse: {
+            item: components["schemas"]["AdminEditableItem"];
+        };
+        AdminCatalogToolRequest: {
+            title: string;
+            slug?: string | null;
+            description?: string | null;
+            image_dark?: string | null;
+            image_light?: string | null;
+            animation_dark?: string | null;
+            animation_light?: string | null;
+            animation_duration_seconds?: number | null;
+            animation_width_percent?: number | null;
+            image_width_percent?: number | null;
+        };
+        AdminCatalogToolListResponse: {
+            tools: components["schemas"]["AdminEditableTool"][];
+        };
+        AdminCatalogToolResponse: {
+            tool: components["schemas"]["AdminEditableTool"];
         };
         AdminEditableNode: {
             activity_graph: components["schemas"]["AdminActivityGraph"];
@@ -16529,6 +16630,368 @@ export interface operations {
                 content?: never;
             };
             /** @description Media storage or the application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminCatalogItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reusable item catalog. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogItemListResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot view reusable items. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminCatalogItem: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCatalogItemRequest"];
+            };
+        };
+        responses: {
+            /** @description The created reusable item. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogItemResponse"];
+                };
+            };
+            /** @description The item fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot manage reusable items. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The item title or explicit slug already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminCatalogItem: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCatalogItemRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved reusable item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogItemResponse"];
+                };
+            };
+            /** @description The item fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The item is unknown or the identity cannot manage reusable items. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The item title or explicit slug already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminCatalogTools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reusable tool catalog. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogToolListResponse"];
+                };
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot view reusable tools. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createAdminCatalogTool: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCatalogToolRequest"];
+            };
+        };
+        responses: {
+            /** @description The created reusable tool. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogToolResponse"];
+                };
+            };
+            /** @description The tool fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity cannot manage reusable tools. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The tool title or explicit slug already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminCatalogTool: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                tool_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCatalogToolRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved reusable tool. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogToolResponse"];
+                };
+            };
+            /** @description The tool fields are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The tool is unknown or the identity cannot manage reusable tools. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The tool title or explicit slug already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
