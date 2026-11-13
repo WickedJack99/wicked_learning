@@ -37,6 +37,10 @@ use wicked_learning_application::{
         AdminWorldOpenPracticeCommand, AdminWorldOpenPracticeError, CreatedOpenPracticeActivity,
         OpenPracticeActivityForm,
     },
+    admin_world_portal::{
+        AdminWorldPortalCommand, AdminWorldPortalError, CreatedPortalActivity, PortalActivityForm,
+        PortalAssetForm, PortalMode,
+    },
     admin_world_question::{
         AdminWorldQuestionCommand, AdminWorldQuestionError, CreatedQuestionActivity,
         QuestionActivityForm, QuestionOptionForm,
@@ -69,6 +73,7 @@ use wicked_learning_persistence::{
     admin_world_message::PostgresAdminWorldMessageRepository,
     admin_world_obstacle::PostgresAdminWorldObstacleRepository,
     admin_world_open_practice::PostgresAdminWorldOpenPracticeRepository,
+    admin_world_portal::PostgresAdminWorldPortalRepository,
     admin_world_question::{PostgresAdminWorldQuestionRepository, config as question_config},
     admin_world_reflection::PostgresAdminWorldReflectionRepository,
     admin_world_shared_task::{
@@ -242,6 +247,30 @@ pub struct CreateActivityRequest {
     obstacle_success_animation: Option<String>,
     obstacle_success_text: Option<String>,
     obstacle_typing_speed: Option<f64>,
+    portal_mode: Option<String>,
+    portal_background_dark: Option<String>,
+    portal_background_light: Option<String>,
+    portal_background_mirrored: Option<bool>,
+    portal_assets: Option<Vec<ContentApiPortalAssetRequest>>,
+    portal_duration_seconds: Option<f64>,
+    portal_foreground_dark: Option<String>,
+    portal_foreground_light: Option<String>,
+    portal_foreground_mirrored: Option<bool>,
+    portal_foreground_width: Option<f64>,
+    portal_foreground_x: Option<f64>,
+    portal_foreground_y: Option<f64>,
+    portal_show_on_arrival: Option<bool>,
+    portal_swirl_enabled: Option<bool>,
+    portal_bubble_text: Option<String>,
+    portal_bubble_typing_speed: Option<f64>,
+    portal_bubble_color_dark: Option<String>,
+    portal_bubble_color_light: Option<String>,
+    portal_bubble_border_color_dark: Option<String>,
+    portal_bubble_border_color_light: Option<String>,
+    portal_bubble_text_color_dark: Option<String>,
+    portal_bubble_text_color_light: Option<String>,
+    portal_wait_for_enter: Option<bool>,
+    target_portal_activity_id: Option<String>,
     message_topic_id: Option<String>,
     message_topic_title: Option<String>,
     message_audience: Option<String>,
@@ -287,6 +316,20 @@ struct ContentApiItemObstacleSlotRequest {
     x: Option<f64>,
     y: Option<f64>,
     width: Option<f64>,
+}
+
+#[derive(Deserialize)]
+struct ContentApiPortalAssetRequest {
+    id: Option<String>,
+    image_dark: Option<String>,
+    image_light: Option<String>,
+    label: Option<String>,
+    layer: Option<String>,
+    mirrored: Option<bool>,
+    opacity: Option<f64>,
+    width: Option<f64>,
+    x: Option<f64>,
+    y: Option<f64>,
 }
 
 /// Lists only maps already visible in the caller's existing scoped World
@@ -595,6 +638,15 @@ pub async fn create_activity(
                 .map_err(map_obstacle_error)?
                 .map(|created| serialize_created_obstacle(map_asset_id, created, &form))
         }
+        "portal" => {
+            let form = content_api_portal_form(&request)?;
+            let repository = PostgresAdminWorldPortalRepository::new(&state.application_database);
+            AdminWorldPortalCommand::new(&repository)
+                .create(&principal, node_id, &form)
+                .await
+                .map_err(map_portal_error)?
+                .map(|created| serialize_created_portal(map_asset_id, created, &form))
+        }
         "message_prompt" | "message_wall" => {
             let form = content_api_message_form(&request)?;
             let repository = PostgresAdminWorldMessageRepository::new(&state.application_database);
@@ -681,6 +733,7 @@ fn is_supported_content_api_activity_type(activity_type: &str) -> bool {
             | "tool_grant"
             | "item_obstacle"
             | "obstacle"
+            | "portal"
             | "message_prompt"
             | "message_wall"
     )
@@ -755,6 +808,14 @@ fn map_obstacle_error(error: AdminWorldObstacleError) -> ApiError {
         AdminWorldObstacleError::InvalidActivity => ApiError::invalid_request(),
         AdminWorldObstacleError::Conflict => ApiError::conflict(),
         AdminWorldObstacleError::Unavailable => ApiError::service_unavailable(),
+    }
+}
+
+fn map_portal_error(error: AdminWorldPortalError) -> ApiError {
+    match error {
+        AdminWorldPortalError::InvalidActivity => ApiError::invalid_request(),
+        AdminWorldPortalError::Conflict => ApiError::conflict(),
+        AdminWorldPortalError::Unavailable => ApiError::service_unavailable(),
     }
 }
 
@@ -1076,6 +1137,108 @@ fn content_api_obstacle_form(
         request.obstacle_success_animation.as_deref(),
         request.obstacle_success_text.as_deref(),
         request.obstacle_typing_speed.unwrap_or(24.0),
+    )
+    .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
+    .ok_or_else(ApiError::invalid_request)
+}
+
+fn content_api_portal_form(
+    request: &CreateActivityRequest,
+) -> Result<PortalActivityForm, ApiError> {
+    let mode = PortalMode::parse(request.portal_mode.as_deref().unwrap_or("output"))
+        .ok_or_else(ApiError::invalid_request)?;
+    let assets = request
+        .portal_assets
+        .as_ref()
+        .map(|assets| {
+            assets
+                .iter()
+                .enumerate()
+                .map(|(index, asset)| {
+                    let generated_id = format!("portal-asset-{}", index + 1);
+                    let generated_label = format!("Asset {}", index + 1);
+                    PortalAssetForm::parse(
+                        asset.id.as_deref().unwrap_or(&generated_id),
+                        asset.image_dark.as_deref().unwrap_or_default(),
+                        asset.image_light.as_deref().unwrap_or_default(),
+                        asset.label.as_deref().unwrap_or(&generated_label),
+                        asset.layer.as_deref().unwrap_or("above-background"),
+                        asset.mirrored.unwrap_or(false),
+                        asset.opacity.unwrap_or(100.0),
+                        asset.width.unwrap_or(28.0),
+                        asset.x.unwrap_or(50.0),
+                        asset.y.unwrap_or(50.0),
+                    )
+                    .ok_or_else(ApiError::invalid_request)
+                })
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .transpose()?
+        .unwrap_or_default();
+    let target_portal_activity_id = request
+        .target_portal_activity_id
+        .as_deref()
+        .filter(|id| !id.is_empty())
+        .map(|id| Uuid::parse_str(id).map_err(|_| ApiError::invalid_request()))
+        .transpose()?;
+    PortalActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        mode,
+        request
+            .portal_background_dark
+            .as_deref()
+            .unwrap_or_default(),
+        request
+            .portal_background_light
+            .as_deref()
+            .unwrap_or_default(),
+        request.portal_background_mirrored.unwrap_or(false),
+        assets,
+        request.portal_duration_seconds.unwrap_or(1.5),
+        request
+            .portal_foreground_dark
+            .as_deref()
+            .unwrap_or_default(),
+        request
+            .portal_foreground_light
+            .as_deref()
+            .unwrap_or_default(),
+        request.portal_foreground_mirrored.unwrap_or(false),
+        request.portal_foreground_width.unwrap_or(28.0),
+        request.portal_foreground_x.unwrap_or(50.0),
+        request.portal_foreground_y.unwrap_or(50.0),
+        request.portal_show_on_arrival.unwrap_or(true),
+        request.portal_swirl_enabled.unwrap_or(true),
+        request.portal_bubble_text.as_deref().unwrap_or_default(),
+        request.portal_bubble_typing_speed.unwrap_or(24.0),
+        request
+            .portal_bubble_color_dark
+            .as_deref()
+            .unwrap_or("#0f172a"),
+        request
+            .portal_bubble_color_light
+            .as_deref()
+            .unwrap_or("#ffffff"),
+        request
+            .portal_bubble_border_color_dark
+            .as_deref()
+            .unwrap_or("#2dd4bf"),
+        request
+            .portal_bubble_border_color_light
+            .as_deref()
+            .unwrap_or("#0891b2"),
+        request
+            .portal_bubble_text_color_dark
+            .as_deref()
+            .unwrap_or("#f8fafc"),
+        request
+            .portal_bubble_text_color_light
+            .as_deref()
+            .unwrap_or("#0f172a"),
+        request.portal_wait_for_enter.unwrap_or(false),
+        target_portal_activity_id,
     )
     .map(|form| form.with_graph_position(request.graph_position_x, request.graph_position_y))
     .ok_or_else(ApiError::invalid_request)
@@ -1416,6 +1579,18 @@ fn serialize_created_obstacle(
         "config": created.config, "position": { "x": form.graph_position_x, "y": form.graph_position_y } })
 }
 
+fn serialize_created_portal(
+    map_asset_id: Uuid,
+    created: CreatedPortalActivity,
+    form: &PortalActivityForm,
+) -> Value {
+    json!({
+        "id": created.activity_id, "mapAssetId": map_asset_id, "slug": created.slug,
+        "type": "portal", "title": form.title, "introduction": form.introduction,
+        "config": created.config, "position": { "x": form.graph_position_x, "y": form.graph_position_y },
+    })
+}
+
 fn serialize_created_message(
     map_asset_id: Uuid,
     created: CreatedMessageActivity,
@@ -1517,6 +1692,12 @@ fn document() -> Value {
                 "outputs": [{ "id": "completed", "label": "Completed" }]
             },
             {
+                "key": "portal", "label": "Portal",
+                "description": "A map or node travel activity. Entry portals must end their path.",
+                "inputs": [{ "id": "in", "label": "In" }],
+                "outputs": [{ "id": "travel", "label": "Travel" }]
+            },
+            {
                 "key": "message_prompt", "label": "Message prompt",
                 "description": "A topic-bound peer or support message prompt.",
                 "inputs": [{ "id": "in", "label": "In" }],
@@ -1544,7 +1725,7 @@ fn document() -> Value {
             operation("map-assets.index", "GET", "/api/content/v1/maps/{map}/map-assets", "List MapAssets", "Returns MapAssets and their linked activity counts for one editable map.", Value::Null, json!({ "data": [{ "id": "opaque-map-asset-id", "title": "Alternator", "activityCount": 2 }] })),
             operation("map-assets.store", "POST", "/api/content/v1/maps/{map}/map-assets", "Create a MapAsset", "Creates the learner-facing MapAsset and its internal content node as one authoring operation.", json!({ "title": "Alternator", "description": "Converts mechanical energy into electrical energy.", "image_url": Value::Null, "text": "Alternator", "position_x": 50, "position_y": 50, "position_z": 0, "width": 14, "opacity": 1, "locked": false, "interaction_mode": "focusable", "interaction_config": {}, "visual_config": {}, "sound_config": {} }), json!({ "data": { "id": "opaque-map-asset-id", "mapId": "opaque-map-id", "title": "Alternator", "activityCount": 0 } })),
             operation("activities.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activities", "List MapAsset Activities", "Returns the Activities that form the routes of one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-activity-id", "type": "reflection", "title": "Explain the energy conversion" }] })),
-            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "message_prompt", "title": "Leave a repair note", "message_topic_title": "Relay cabinet notes", "message_prompt_text": "What will help the next learner?", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "message_prompt", "title": "Leave a repair note" } })),
+            operation("activities.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activities", "Create a MapAsset Activity", "Creates a Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, or Message Wall Activity through its matching scoped World Builder command.", json!({ "type": "portal", "title": "Enter the relay archive", "portal_mode": "output", "portal_bubble_text": "Follow the signal to the archive.", "graph_position_x": 120, "graph_position_y": 80 }), json!({ "data": { "id": "opaque-activity-id", "type": "portal", "title": "Enter the relay archive" } })),
         ],
         "errors": {
             "401": "No authenticated administration session.",
@@ -1588,11 +1769,12 @@ mod tests {
 
     use super::{
         content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
-        content_api_obstacle_form, content_api_shared_task_form, content_api_tool_grant_form,
-        document, is_supported_content_api_activity_type, require_content_permission,
-        serialize_activity, serialize_created_item_grant, serialize_created_item_obstacle,
-        serialize_created_map_asset, serialize_created_markdown, serialize_created_message,
-        serialize_created_obstacle, serialize_created_open_practice, serialize_created_question,
+        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
+        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
+        require_content_permission, serialize_activity, serialize_created_item_grant,
+        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
+        serialize_created_message, serialize_created_obstacle, serialize_created_open_practice,
+        serialize_created_portal, serialize_created_question,
         serialize_created_reflective_activity, serialize_created_shared_task,
         serialize_created_tool_grant, serialize_map_assets,
     };
@@ -1619,8 +1801,9 @@ mod tests {
         assert_eq!(document["activityTypes"][7]["key"], "tool_grant");
         assert_eq!(document["activityTypes"][8]["key"], "item_obstacle");
         assert_eq!(document["activityTypes"][9]["key"], "obstacle");
-        assert_eq!(document["activityTypes"][10]["key"], "message_prompt");
-        assert_eq!(document["activityTypes"][11]["key"], "message_wall");
+        assert_eq!(document["activityTypes"][10]["key"], "portal");
+        assert_eq!(document["activityTypes"][11]["key"], "message_prompt");
+        assert_eq!(document["activityTypes"][12]["key"], "message_wall");
     }
 
     #[test]
@@ -1646,9 +1829,10 @@ mod tests {
         assert!(is_supported_content_api_activity_type("tool_grant"));
         assert!(is_supported_content_api_activity_type("item_obstacle"));
         assert!(is_supported_content_api_activity_type("obstacle"));
+        assert!(is_supported_content_api_activity_type("portal"));
         assert!(is_supported_content_api_activity_type("message_prompt"));
         assert!(is_supported_content_api_activity_type("message_wall"));
-        assert!(!is_supported_content_api_activity_type("portal"));
+        assert!(!is_supported_content_api_activity_type("npc_dialogue"));
     }
 
     #[test]
@@ -2112,6 +2296,50 @@ mod tests {
             &form.with_graph_position(Some(120), None),
         );
         assert_eq!(created["config"]["allowedToolIds"][0], "circuit-probe");
+        assert_eq!(created["position"], json!({ "x": 120, "y": null }));
+    }
+
+    #[test]
+    fn portal_creates_preserve_source_defaults_target_and_graph_position() {
+        let target_portal_activity_id = Uuid::new_v4();
+        let request = serde_json::from_value(json!({
+            "type": "portal",
+            "title": "Enter the relay archive",
+            "target_portal_activity_id": target_portal_activity_id,
+            "portal_assets": [{ "image_dark": "/media/archive.png" }],
+        }))
+        .expect("valid partial Portal Content API request");
+        let Ok(form) = content_api_portal_form(&request) else {
+            panic!("source defaults are valid");
+        };
+        assert_eq!(form.mode.as_str(), "output");
+        assert_eq!(form.assets[0].id, "portal-asset-1");
+        assert_eq!(form.assets[0].label, "Asset 1");
+        assert_eq!(
+            form.target_portal_activity_id,
+            Some(target_portal_activity_id)
+        );
+        assert_eq!(form.duration_seconds, 1.5);
+
+        let created = serialize_created_portal(
+            Uuid::new_v4(),
+            wicked_learning_application::admin_world_portal::CreatedPortalActivity {
+                activity_id: Uuid::new_v4(),
+                config: json!({
+                    "portalMode": "output",
+                    "portalAssets": [{ "id": "portal-asset-1", "imageDark": "/media/archive.png" }],
+                    "portalDurationSeconds": 1.5,
+                }),
+                slug: "enter-the-relay-archive".to_owned(),
+            },
+            &form.with_graph_position(Some(120), None),
+        );
+        assert_eq!(created["type"], "portal");
+        assert_eq!(created["config"]["portalMode"], "output");
+        assert_eq!(
+            created["config"]["portalAssets"][0]["imageDark"],
+            "/media/archive.png"
+        );
         assert_eq!(created["position"], json!({ "x": 120, "y": null }));
     }
 

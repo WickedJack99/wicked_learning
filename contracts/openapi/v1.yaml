@@ -148,8 +148,8 @@ paths:
         '503': { description: The application database is unavailable. }
     post:
       operationId: createContentApiActivity
-      summary: Create a Reflection, Review, Open Practice, Markdown, or Question activity for an editable MapAsset.
-      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, Open Practice, Markdown, and Question are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
+      summary: Create a source-shaped activity for an editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Only activity types with matching scoped World Builder command adapters are supported; other types are rejected until their exact adapters exist.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -159,7 +159,7 @@ paths:
             schema: { $ref: '#/components/schemas/CreateContentApiActivityRequest' }
       responses:
         '201':
-          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Message Prompt, or Message Wall activity.
+          description: The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, or Message Wall activity.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContentApiActivityResponse' }
@@ -7007,7 +7007,7 @@ components:
       additionalProperties: false
       required: [type, title]
       properties:
-        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant, item_obstacle, obstacle, message_prompt, message_wall] }
+        type: { type: string, enum: [reflection, review, open_practice, markdown, question, shared_task, item_grant, tool_grant, item_obstacle, obstacle, portal, message_prompt, message_wall] }
         title: { type: string, minLength: 1, maxLength: 120 }
         slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
         introduction: { type: [string, 'null'], maxLength: 1000 }
@@ -7133,6 +7133,33 @@ components:
         obstacle_success_animation: { type: [string, 'null'], enum: [none, zoom, shake, rotate, null] }
         obstacle_success_text: { type: [string, 'null'], maxLength: 2000 }
         obstacle_typing_speed: { type: [number, 'null'], minimum: 1, maximum: 250 }
+        portal_mode: { type: [string, 'null'], enum: [input, output, 'null'] }
+        portal_background_dark: { type: [string, 'null'], maxLength: 2048 }
+        portal_background_light: { type: [string, 'null'], maxLength: 2048 }
+        portal_background_mirrored: { type: [boolean, 'null'] }
+        portal_assets:
+          type: [array, 'null']
+          maxItems: 20
+          items: { $ref: '#/components/schemas/ContentApiPortalAsset' }
+        portal_duration_seconds: { type: [number, 'null'], minimum: 0.5, maximum: 60 }
+        portal_foreground_dark: { type: [string, 'null'], maxLength: 2048 }
+        portal_foreground_light: { type: [string, 'null'], maxLength: 2048 }
+        portal_foreground_mirrored: { type: [boolean, 'null'] }
+        portal_foreground_width: { type: [number, 'null'], minimum: 1, maximum: 100 }
+        portal_foreground_x: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        portal_foreground_y: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        portal_show_on_arrival: { type: [boolean, 'null'] }
+        portal_swirl_enabled: { type: [boolean, 'null'] }
+        portal_bubble_text: { type: [string, 'null'], maxLength: 2000 }
+        portal_bubble_typing_speed: { type: [number, 'null'], minimum: 1, maximum: 500 }
+        portal_bubble_color_dark: { type: [string, 'null'], maxLength: 64 }
+        portal_bubble_color_light: { type: [string, 'null'], maxLength: 64 }
+        portal_bubble_border_color_dark: { type: [string, 'null'], maxLength: 64 }
+        portal_bubble_border_color_light: { type: [string, 'null'], maxLength: 64 }
+        portal_bubble_text_color_dark: { type: [string, 'null'], maxLength: 64 }
+        portal_bubble_text_color_light: { type: [string, 'null'], maxLength: 64 }
+        portal_wait_for_enter: { type: [boolean, 'null'] }
+        target_portal_activity_id: { type: [string, 'null'], format: uuid }
         message_topic_id: { type: [string, 'null'], format: uuid }
         message_topic_title: { type: [string, 'null'], maxLength: 120 }
         message_audience: { type: [string, 'null'], enum: [peers, support, null] }
@@ -7179,6 +7206,20 @@ components:
         x: { type: [number, 'null'], minimum: 0, maximum: 100 }
         y: { type: [number, 'null'], minimum: 0, maximum: 100 }
         width: { type: [number, 'null'], minimum: 1, maximum: 100 }
+    ContentApiPortalAsset:
+      type: object
+      additionalProperties: false
+      properties:
+        id: { type: [string, 'null'], maxLength: 120 }
+        image_dark: { type: [string, 'null'], maxLength: 2048 }
+        image_light: { type: [string, 'null'], maxLength: 2048 }
+        label: { type: [string, 'null'], maxLength: 120 }
+        layer: { type: [string, 'null'], enum: [behind-background, above-background, above-foreground, front, 'null'] }
+        mirrored: { type: [boolean, 'null'] }
+        opacity: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        width: { type: [number, 'null'], minimum: 1, maximum: 160 }
+        x: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        y: { type: [number, 'null'], minimum: 0, maximum: 100 }
     CreateRegistrationTokenRequest:
       type: object
       additionalProperties: false

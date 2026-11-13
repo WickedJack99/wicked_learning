@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use serde_json::Value;
 use uuid::Uuid;
 use wicked_learning_domain::identity_access::AuthorizedPrincipal;
 
@@ -121,6 +122,8 @@ pub struct PortalActivityForm {
     pub bubble_text_color_light: String,
     pub wait_for_enter: bool,
     pub target_portal_activity_id: Option<Uuid>,
+    pub graph_position_x: Option<i32>,
+    pub graph_position_y: Option<i32>,
 }
 
 impl PortalActivityForm {
@@ -232,7 +235,15 @@ impl PortalActivityForm {
             target_portal_activity_id: (mode == PortalMode::Output)
                 .then_some(target_portal_activity_id)
                 .flatten(),
+            graph_position_x: None,
+            graph_position_y: None,
         })
+    }
+
+    pub fn with_graph_position(mut self, x: Option<i32>, y: Option<i32>) -> Self {
+        self.graph_position_x = x;
+        self.graph_position_y = y;
+        self
     }
 }
 
@@ -255,13 +266,20 @@ pub struct UpdatedPortalActivity {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct CreatedPortalActivity {
+    pub activity_id: Uuid,
+    pub config: Value,
+    pub slug: String,
+}
+
 pub trait AdminWorldPortalRepository {
     fn create_portal(
         &self,
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &PortalActivityForm,
-    ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldPortalError>> + Send;
+    ) -> impl Future<Output = Result<Option<CreatedPortalActivity>, AdminWorldPortalError>> + Send;
 
     fn update_portal(
         &self,
@@ -288,7 +306,7 @@ impl<'repository, Repository: AdminWorldPortalRepository>
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &PortalActivityForm,
-    ) -> Result<Option<Uuid>, AdminWorldPortalError> {
+    ) -> Result<Option<CreatedPortalActivity>, AdminWorldPortalError> {
         if !principal.has_permission("world_activities", "ru") {
             return Ok(None);
         }
@@ -328,7 +346,7 @@ mod tests {
 
     use super::{
         AdminWorldPortalCommand, AdminWorldPortalError, AdminWorldPortalRepository,
-        PortalActivityForm, PortalMode, UpdatedPortalActivity,
+        CreatedPortalActivity, PortalActivityForm, PortalMode, UpdatedPortalActivity,
     };
 
     struct RecordingRepository {
@@ -341,7 +359,8 @@ mod tests {
             _principal: &AuthorizedPrincipal,
             _node_id: Uuid,
             _form: &PortalActivityForm,
-        ) -> impl Future<Output = Result<Option<Uuid>, AdminWorldPortalError>> + Send {
+        ) -> impl Future<Output = Result<Option<CreatedPortalActivity>, AdminWorldPortalError>> + Send
+        {
             self.called.store(true, Ordering::SeqCst);
             async { Ok(None) }
         }
@@ -395,6 +414,10 @@ mod tests {
     #[test]
     fn preserves_source_portal_bounds_and_defaults() {
         assert_eq!(form().mode, PortalMode::Output);
+        assert_eq!(
+            form().with_graph_position(Some(120), None).graph_position_x,
+            Some(120)
+        );
         assert!(
             PortalActivityForm::parse(
                 "Portal",

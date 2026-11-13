@@ -100,8 +100,8 @@ export interface paths {
         get: operations["getContentApiMapAssetActivities"];
         put?: never;
         /**
-         * Create a Reflection, Review, Open Practice, Markdown, or Question activity for an editable MapAsset.
-         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Reflection, Review, Open Practice, Markdown, and Question are supported through their matching typed World Builder commands; other types are rejected until their exact scoped adapters exist.
+         * Create a source-shaped activity for an editable MapAsset.
+         * @description Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. Only activity types with matching scoped World Builder command adapters are supported; other types are rejected until their exact adapters exist.
          */
         post: operations["createContentApiActivity"];
         delete?: never;
@@ -5445,7 +5445,7 @@ export interface components {
         };
         CreateContentApiActivityRequest: {
             /** @enum {string} */
-            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle" | "message_prompt" | "message_wall";
+            type: "reflection" | "review" | "open_practice" | "markdown" | "question" | "shared_task" | "item_grant" | "tool_grant" | "item_obstacle" | "obstacle" | "portal" | "message_prompt" | "message_wall";
             title: string;
             slug?: string | null;
             introduction?: string | null;
@@ -5560,6 +5560,32 @@ export interface components {
             obstacle_success_animation?: "none" | "zoom" | "shake" | "rotate" | null;
             obstacle_success_text?: string | null;
             obstacle_typing_speed?: number | null;
+            /** @enum {string|null} */
+            portal_mode?: "input" | "output" | "null" | null;
+            portal_background_dark?: string | null;
+            portal_background_light?: string | null;
+            portal_background_mirrored?: boolean | null;
+            portal_assets?: components["schemas"]["ContentApiPortalAsset"][] | null;
+            portal_duration_seconds?: number | null;
+            portal_foreground_dark?: string | null;
+            portal_foreground_light?: string | null;
+            portal_foreground_mirrored?: boolean | null;
+            portal_foreground_width?: number | null;
+            portal_foreground_x?: number | null;
+            portal_foreground_y?: number | null;
+            portal_show_on_arrival?: boolean | null;
+            portal_swirl_enabled?: boolean | null;
+            portal_bubble_text?: string | null;
+            portal_bubble_typing_speed?: number | null;
+            portal_bubble_color_dark?: string | null;
+            portal_bubble_color_light?: string | null;
+            portal_bubble_border_color_dark?: string | null;
+            portal_bubble_border_color_light?: string | null;
+            portal_bubble_text_color_dark?: string | null;
+            portal_bubble_text_color_light?: string | null;
+            portal_wait_for_enter?: boolean | null;
+            /** Format: uuid */
+            target_portal_activity_id?: string | null;
             /** Format: uuid */
             message_topic_id?: string | null;
             message_topic_title?: string | null;
@@ -5604,6 +5630,19 @@ export interface components {
             x?: number | null;
             y?: number | null;
             width?: number | null;
+        };
+        ContentApiPortalAsset: {
+            id?: string | null;
+            image_dark?: string | null;
+            image_light?: string | null;
+            label?: string | null;
+            /** @enum {string|null} */
+            layer?: "behind-background" | "above-background" | "above-foreground" | "front" | "null" | null;
+            mirrored?: boolean | null;
+            opacity?: number | null;
+            width?: number | null;
+            x?: number | null;
+            y?: number | null;
         };
         CreateRegistrationTokenRequest: {
             /** Format: date-time */
@@ -10486,7 +10525,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Message Prompt, or Message Wall activity. */
+            /** @description The created source-shaped Reflection, Review, Open Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, or Message Wall activity. */
             201: {
                 headers: {
                     [name: string]: unknown;

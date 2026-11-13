@@ -3,8 +3,8 @@ use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_portal::{
-        AdminWorldPortalError, AdminWorldPortalRepository as Port, PortalActivityForm,
-        PortalAssetForm, UpdatedPortalActivity,
+        AdminWorldPortalError, AdminWorldPortalRepository as Port, CreatedPortalActivity,
+        PortalActivityForm, PortalAssetForm, UpdatedPortalActivity,
     },
     admin_world_reflection::generated_slug,
 };
@@ -32,7 +32,9 @@ impl Port for PostgresAdminWorldPortalRepository<'_> {
         principal: &AuthorizedPrincipal,
         node_id: Uuid,
         form: &PortalActivityForm,
-    ) -> impl std::future::Future<Output = Result<Option<Uuid>, AdminWorldPortalError>> + Send {
+    ) -> impl std::future::Future<
+        Output = Result<Option<CreatedPortalActivity>, AdminWorldPortalError>,
+    > + Send {
         async move {
             create(self.pool, principal, node_id, form)
                 .await
@@ -119,7 +121,7 @@ async fn create(
     principal: &AuthorizedPrincipal,
     node_id: Uuid,
     form: &PortalActivityForm,
-) -> Result<Option<Uuid>, MutationError> {
+) -> Result<Option<CreatedPortalActivity>, MutationError> {
     let mut transaction = pool.begin().await?;
     let Some(node) = lock_editable_node(&mut transaction, principal, node_id).await? else {
         return Ok(None);
@@ -147,16 +149,18 @@ async fn create(
     let activity_id = Uuid::new_v4();
     let config = portal_config(form);
     sqlx::query(
-        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'portal', $7, $8, 'needs_review')",
+        "INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'portal', $7, $8, $9, $10, 'needs_review')",
     )
     .bind(activity_id)
     .bind(route_id)
-    .bind(slug)
+    .bind(&slug)
     .bind(&form.title)
     .bind(form.introduction.clone().unwrap_or_default())
     .bind(position)
     .bind(&config)
     .bind(&form.introduction)
+    .bind(form.graph_position_x.map(f64::from))
+    .bind(form.graph_position_y.map(f64::from))
     .execute(&mut *transaction)
     .await?;
     synchronize_portal_link(
@@ -169,7 +173,11 @@ async fn create(
     .await?;
     synchronize_media_references(&mut transaction, activity_id, &config).await?;
     transaction.commit().await?;
-    Ok(Some(activity_id))
+    Ok(Some(CreatedPortalActivity {
+        activity_id,
+        config,
+        slug,
+    }))
 }
 
 async fn update(

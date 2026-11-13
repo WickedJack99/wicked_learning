@@ -1665,11 +1665,11 @@ atomic MapAsset, compatibility-node, and draft-route command, carrying the
 source API's explicit node title and description. Content API permission never
 widens map scope or lets a request nominate a World. MapAsset Activity listing
 uses the distinct scoped World Activity policy; Reflection, Review, Open
-Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Message Prompt, and Message Wall are the only Activity
+Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle, Obstacle, Portal, Message Prompt, and Message Wall are the only Activity
 types currently creatable through the API, preserving their existing typed
 commands, Markdown's managed-media references, Question's bounded answer
 options, Shared Task's bounded collaboration configuration, Item Grant's
-scoped catalog resolution, Tool Grant's scoped tool resolution, Item Obstacle's scoped item/sound resolution, Obstacle's scoped tool resolution, Message's map-scoped topic resolution, and optional graph coordinates. Other Activity types
+scoped catalog resolution, Tool Grant's scoped tool resolution, Item Obstacle's scoped item/sound resolution, Obstacle's scoped tool resolution, Portal's same-World input-target resolution and transactional link/media-reference write, Message's map-scoped topic resolution, and optional graph coordinates. Other Activity types
 remain absent from the advertised contract until their exact scoped adapters are
 implemented.
 
