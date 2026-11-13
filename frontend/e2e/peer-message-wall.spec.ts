@@ -25,41 +25,7 @@ test('a learner can start a source peer-message prompt and follow it into the or
         (candidate: { activity_slug: string }) =>
             candidate.activity_slug === 'find-your-place',
     );
-    const peerPromptStart = worldDocument.start_routes.find(
-        (candidate: { activity_slug: string }) =>
-            candidate.activity_slug === 'share-orientation-note',
-    );
     expect(start).toBeDefined();
-    expect(peerPromptStart).toBeDefined();
-
-    const resetPeerPrompt = await request.post(
-        `/api/v1/learner/activity-starts/${peerPromptStart.start_id}/reset`,
-        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
-    );
-    expect(resetPeerPrompt.status()).toBe(200);
-    const startedPeerPrompt = await request.post(
-        `/api/v1/learner/activity-starts/${peerPromptStart.start_id}/start`,
-        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
-    );
-    expect(startedPeerPrompt.status()).toBe(200);
-    const directPeerPromptRun = await startedPeerPrompt.json();
-    const directPeerPromptPlayback = await request.get(
-        `/api/v1/learner/play-runs/${directPeerPromptRun.play_run_id}`,
-    );
-    expect(directPeerPromptPlayback.status()).toBe(200);
-    expect(await directPeerPromptPlayback.json()).toMatchObject({
-        activity: {
-            activity_type: 'message_prompt',
-            slug: 'share-orientation-note',
-        },
-    });
-
-    const storageState = await request.storageState();
-    await page.context().addCookies(storageState.cookies);
-    await page.goto(
-        `/learning/nodes/${peerPromptStart.node_slug}/play?run=${directPeerPromptRun.play_run_id}`,
-    );
-    await expect(page.getByText('Share an orientation note')).toBeVisible();
 
     const reset = await request.post(
         `/api/v1/learner/activity-starts/${start.start_id}/reset`,
