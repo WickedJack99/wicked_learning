@@ -24,6 +24,7 @@ import type { components } from './api/schema';
 import { OriginalMarkdownRenderer } from './original-markdown';
 import { OriginalLearnerHeader } from './original-learner-header';
 import { OriginalPaginationControls } from './original-paginated-items';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type TopicDirectory = components['schemas']['LearnerTopicDirectory'];
 type TopicHeader = components['schemas']['LearnerTopicDetailHeader'];
@@ -1244,6 +1245,7 @@ export function TopicPathCard({
     onStart: (path: TopicPath) => void;
     starting: boolean;
 }) {
+    const t = usePlatformTranslation();
     const inProgress = path.progress?.status === 'in_progress';
     return (
         <article className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-accent)_8%,var(--learner-panel-background))]">
@@ -1261,11 +1263,15 @@ export function TopicPathCard({
             <span className="min-w-0 flex-1">
                 <span className="block font-medium">{path.label}</span>
                 <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
-                    {intentLabel(path.learning_intent)}
+                    {platformIntentLabel(path.learning_intent, t)}
                 </span>
                 {path.time_guide_minutes ? (
                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
-                        Suggested time: {path.time_guide_minutes} minutes
+                        {t(
+                            'learning.activity.time_guide',
+                            'Suggested time: :minutes minutes',
+                            { minutes: path.time_guide_minutes },
+                        )}
                     </span>
                 ) : null}
                 {path.route_description ? (
@@ -1297,8 +1303,8 @@ export function TopicPathCard({
                     {starting
                         ? 'Opening…'
                         : inProgress
-                          ? 'Continue'
-                          : 'Enter route'}
+                          ? t('paths.action.continue', 'Continue route')
+                          : t('paths.action.enter', 'Enter route')}
                     <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
                 </button>
             </span>
@@ -1594,6 +1600,27 @@ function intentLabel(value: string): string {
             transfer: 'Transfer',
         }[value] ?? value
     );
+}
+
+function platformIntentLabel(
+    value: string,
+    t: (key: string, fallback?: string) => string,
+): string {
+    const copy: Record<string, [string, string]> = {
+        apply: ['activities.focus.apply', 'Apply an idea'],
+        explain: [
+            'activities.focus.explain',
+            'Explain an idea in your own words',
+        ],
+        participate: ['activities.focus.participate', 'Participate'],
+        reflect: ['activities.focus.reflect', 'Reflect'],
+        retrieve: ['activities.focus.retrieve', 'Retrieve an idea'],
+        review: ['activities.focus.review', 'Review / revisit'],
+        transfer: ['activities.focus.transfer', 'Try an idea in a new context'],
+    };
+    const translated = copy[value];
+
+    return translated ? t(...translated) : value;
 }
 function pulseLabel(value: string | null): string {
     return (
