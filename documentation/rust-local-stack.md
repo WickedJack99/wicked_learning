@@ -65,8 +65,13 @@ foundation endpoint. The local proof of concept exposes password
 `POST /api/v1/session/login` and `POST /api/v1/session/logout`, with a small
 React sign-in/sign-out proof: both require the token's `X-CSRF-Token` header
 and the configured `PUBLIC_ORIGIN`. Login accepts only active, email-verified
-Rust identities and shares a small client-IP rate-limit burst with invitation
-registration. The API can privately start and confirm an authenticated TOTP
+Rust identities, shares a small client-IP rate-limit burst with invitation
+registration, and atomically keeps a five-attempt one-minute per-account login
+window in the identity database. The window stores only a
+`LOGIN_RATE_LIMIT_KEY`-keyed email digest, expires automatically and is cleared
+by a correct password. The example key is deliberately predictable only for
+disposable local development; every shared deployment needs a distinct stable
+Base64-encoded 32-byte key. The API can privately start and confirm an authenticated TOTP
 enrollment, retaining only encrypted secrets and Argon2id recovery-code
 verifiers, but the original React two-factor control remains absent until the
 login challenge and complete account-management contract arrive. Verification,

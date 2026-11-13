@@ -18,6 +18,7 @@ services:
       APPLICATION_DATABASE_URL: postgresql://wicked_application:${APPLICATION_DATABASE_PASSWORD:-wicked-local-development-only}@application-db:5432/wicked_application
       CSRF_COOKIE_KEY: ${CSRF_COOKIE_KEY:-wicked-local-development-only-csrf-cookie-key-replace-before-a-shared-deployment-0000}
       IDENTITY_DATABASE_URL: postgresql://wicked_identity:${IDENTITY_DATABASE_PASSWORD:-wicked-local-development-only}@identity-db:5432/wicked_identity
+      LOGIN_RATE_LIMIT_KEY: ${LOGIN_RATE_LIMIT_KEY:-AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@wicked-learning.local}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Wicked Learning}
       MEDIA_ROOT: /var/lib/wicked-learning/media

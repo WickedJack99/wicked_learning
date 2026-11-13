@@ -17,6 +17,7 @@ pub struct Config {
     pub csrf_cookie_key: String,
     pub email: EmailConfig,
     pub identity_database_url: String,
+    pub login_rate_limit_key: [u8; 32],
     pub listen_address: SocketAddr,
     pub media_root: PathBuf,
     pub public_origin: String,
@@ -65,6 +66,8 @@ pub enum ConfigError {
     InvalidTotpEncryptionKey,
     #[error("AI_CREDENTIAL_ENCRYPTION_KEY must be a Base64-encoded 32-byte key")]
     InvalidAiCredentialEncryptionKey,
+    #[error("LOGIN_RATE_LIMIT_KEY must be a Base64-encoded 32-byte key")]
+    InvalidLoginRateLimitKey,
     #[error("PUBLIC_ORIGIN must be an absolute HTTP or HTTPS origin")]
     InvalidPublicOrigin,
     #[error("MAIL_FROM_ADDRESS must be a valid email address")]
@@ -130,6 +133,7 @@ impl Config {
             csrf_cookie_key: csrf_cookie_key()?,
             email: email_config()?,
             identity_database_url: required("IDENTITY_DATABASE_URL")?,
+            login_rate_limit_key: login_rate_limit_key()?,
             listen_address: env::var("LISTEN_ADDRESS")
                 .unwrap_or_else(|_| "0.0.0.0:3000".to_owned())
                 .parse()
@@ -242,6 +246,18 @@ fn ai_credential_encryption_key() -> Result<[u8; 32], ConfigError> {
     validate_ai_credential_encryption_key(required("AI_CREDENTIAL_ENCRYPTION_KEY")?)
 }
 
+fn login_rate_limit_key() -> Result<[u8; 32], ConfigError> {
+    validate_login_rate_limit_key(required("LOGIN_RATE_LIMIT_KEY")?)
+}
+
+fn validate_login_rate_limit_key(value: String) -> Result<[u8; 32], ConfigError> {
+    STANDARD
+        .decode(value)
+        .map_err(|_| ConfigError::InvalidLoginRateLimitKey)?
+        .try_into()
+        .map_err(|_| ConfigError::InvalidLoginRateLimitKey)
+}
+
 fn validate_totp_encryption_key(value: String) -> Result<[u8; 32], ConfigError> {
     let decoded = STANDARD
         .decode(value)
@@ -269,7 +285,7 @@ mod tests {
     use super::{
         ConfigError, normalize_email, normalize_public_origin,
         validate_ai_credential_encryption_key, validate_csrf_cookie_key,
-        validate_totp_encryption_key,
+        validate_login_rate_limit_key, validate_totp_encryption_key,
     };
 
     #[test]
@@ -329,6 +345,24 @@ mod tests {
         assert!(matches!(
             validate_ai_credential_encryption_key("not-base64".to_owned()),
             Err(ConfigError::InvalidAiCredentialEncryptionKey)
+        ));
+    }
+
+    #[test]
+    fn login_rate_limit_key_requires_exactly_thirty_two_base64_encoded_bytes() {
+        assert!(
+            validate_login_rate_limit_key(
+                "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=".to_owned()
+            )
+            .is_ok()
+        );
+        assert!(matches!(
+            validate_login_rate_limit_key("not-base64".to_owned()),
+            Err(ConfigError::InvalidLoginRateLimitKey)
+        ));
+        assert!(matches!(
+            validate_login_rate_limit_key("AQ==".to_owned()),
+            Err(ConfigError::InvalidLoginRateLimitKey)
         ));
     }
 }

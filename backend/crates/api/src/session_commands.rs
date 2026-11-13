@@ -17,6 +17,7 @@ use crate::{
     AppState, csrf,
     error::ApiError,
     identity::{IdentityBackend, PasswordCredentials},
+    login_rate_limit,
     session_status::SessionStatusResponse,
 };
 
@@ -138,14 +139,32 @@ pub async fn login(
         return Err(ApiError::invalid_credentials());
     }
 
+    if !login_rate_limit::claim_password_login_attempt(
+        &state.identity_database,
+        &state.login_rate_limit_key,
+        &normalized_email,
+    )
+    .await
+    .map_err(|_| ApiError::service_unavailable())?
+    {
+        return Err(ApiError::too_many_requests());
+    }
+
     let subject = auth_session
         .authenticate(PasswordCredentials {
-            normalized_email,
+            normalized_email: normalized_email.clone(),
             password: request.password,
         })
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .ok_or_else(ApiError::invalid_credentials)?;
+    login_rate_limit::clear_password_login_attempts(
+        &state.identity_database,
+        &state.login_rate_limit_key,
+        &normalized_email,
+    )
+    .await
+    .map_err(|_| ApiError::service_unavailable())?;
     if auth_session
         .backend
         .requires_two_factor(subject.subject_id())

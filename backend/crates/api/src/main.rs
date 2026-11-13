@@ -211,6 +211,7 @@ pub(crate) struct AppState {
     application_database: PgPool,
     csrf_cookie_key: String,
     identity_database: PgPool,
+    login_rate_limit_key: [u8; 32],
     media_store: MediaStore,
     email_delivery: email_delivery::EmailDelivery,
     public_origin: String,
@@ -305,6 +306,7 @@ async fn main() -> ExitCode {
         application_database,
         csrf_cookie_key: configuration.csrf_cookie_key,
         identity_database,
+        login_rate_limit_key: configuration.login_rate_limit_key,
         media_store,
         email_delivery,
         public_origin: configuration.public_origin,
@@ -1733,6 +1735,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -1781,6 +1784,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -1894,6 +1898,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -1939,6 +1944,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -1984,6 +1990,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2029,6 +2036,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2069,6 +2077,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2114,6 +2123,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2153,6 +2163,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2191,6 +2202,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2236,6 +2248,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2272,6 +2285,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2310,6 +2324,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2348,6 +2363,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2663,6 +2679,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2708,6 +2725,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2755,6 +2773,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
@@ -2819,6 +2838,7 @@ mod tests {
             identity_database: PgPoolOptions::new()
                 .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
                 .expect("a syntactically valid test connection URL"),
+            login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
