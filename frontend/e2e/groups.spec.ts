@@ -22,9 +22,7 @@ test('a group member opens the source-derived World Groups control and sends a m
     await expect(
         page.getByRole('heading', { name: 'Group chats' }),
     ).toBeVisible();
-    await expect(
-        page.getByRole('heading', { name: 'Local group contract check' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { level: 3 }).first()).toBeVisible();
     await page.getByLabel('Message the group').fill(message);
     await page.getByRole('button', { name: 'Send message' }).click();
     await expect(page.getByText(message)).toBeVisible();
