@@ -305,6 +305,29 @@ export interface paths {
         patch: operations["updateContentApiQuestionActivity"];
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/shared-task": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace a source-compatible Shared Task Activity form.
+         * @description Requires content_api update permission, the existing World Activity update scope, a same-origin CSRF token, and the current updated_at value. Rust proves that the addressed activity is Shared Task within the URL's MapAsset before delegating to the typed World Builder command.
+         */
+        patch: operations["updateContentApiSharedTaskActivity"];
+        trace?: never;
+    };
     "/content/v1/map-assets/{map_asset_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -6036,6 +6059,10 @@ export interface components {
             updated_at: string;
         };
         UpdateContentApiQuestionActivityRequest: components["schemas"]["QuestionActivityForm"] & {
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateContentApiSharedTaskActivityRequest: components["schemas"]["SharedTaskActivityForm"] & {
             /** Format: date-time */
             updated_at: string;
         };
@@ -12094,6 +12121,78 @@ export interface operations {
                 content?: never;
             };
             /** @description The Question Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied updated_at value is stale. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiSharedTaskActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContentApiSharedTaskActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated Shared Task Activity identity and fresh concurrency timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityUpdateResponse"];
+                };
+            };
+            /** @description The complete Shared Task form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Activity update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Shared Task Activity is unavailable in the caller's scoped MapAsset. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -53,7 +53,7 @@ pub struct UpdateSharedTaskResponse {
     pub updated_at: String,
 }
 
-fn form(request: SharedTaskRequest) -> Result<SharedTaskActivityForm, ApiError> {
+pub(crate) fn form(request: SharedTaskRequest) -> Result<SharedTaskActivityForm, ApiError> {
     SharedTaskActivityForm::parse(
         &request.title,
         request.slug.as_deref(),

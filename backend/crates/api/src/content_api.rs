@@ -112,6 +112,7 @@ use crate::{
         form as markdown_form,
     },
     admin_world_question::{QuestionActivityRequest, form as question_form},
+    admin_world_shared_task::{SharedTaskRequest, form as shared_task_form},
     csrf,
     error::ApiError,
     identity::IdentityBackend,
@@ -431,6 +432,13 @@ pub struct UpdateMarkdownActivityRequest {
 pub struct UpdateQuestionActivityRequest {
     #[serde(flatten)]
     form: QuestionActivityRequest,
+    updated_at: String,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateSharedTaskActivityRequest {
+    #[serde(flatten)]
+    form: SharedTaskRequest,
     updated_at: String,
 }
 
@@ -1195,6 +1203,40 @@ pub async fn update_question_activity(
         .map_err(map_question_error)?
         .ok_or_else(ApiError::not_found)?;
 
+    Ok(Json(json!({
+        "data": { "id": updated.activity_id, "updatedAt": updated.updated_at },
+    })))
+}
+
+pub async fn update_shared_task_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateSharedTaskActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let form = shared_task_form(request.form)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id, "shared_task")
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let repository = PostgresAdminWorldSharedTaskRepository::new(&state.application_database);
+    let updated = AdminWorldSharedTaskCommand::new(&repository)
+        .update(&principal, activity_id, &form, &request.updated_at)
+        .await
+        .map_err(map_shared_task_error)?
+        .ok_or_else(ApiError::not_found)?;
     Ok(Json(json!({
         "data": { "id": updated.activity_id, "updatedAt": updated.updated_at },
     })))
@@ -2355,7 +2397,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.11",
+        "version": "1.12",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -2467,7 +2509,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.11", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.12", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -2484,6 +2526,7 @@ fn document() -> Value {
             operation("activities.open-practice.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/open-practice", "Replace an Open Practice Activity", "Replaces the complete source Open Practice form only after proving its type and MapAsset membership.", json!({ "title": "Choose a useful next step", "slug": Value::Null, "introduction": "Apply the idea in your own work.", "next_step": "Try one nearby example, then name what changed.", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.markdown.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/markdown", "Replace a Markdown Activity", "Replaces the complete source Markdown page graph only after proving its type and MapAsset membership.", json!({ "title": "Read the engine briefing", "slug": Value::Null, "introduction": "Follow the briefing pages.", "markdown_pages": [{ "id": "briefing", "title": "Briefing", "body": "# Engine briefing", "position": { "x": 140, "y": 80 }, "visual": { "page_color_dark": "#0f172a", "page_color_light": "#ffffff", "border_color_dark": "#2dd4bf", "border_color_light": "#0891b2", "heading_color_dark": "#67e8f9", "heading_color_light": "#0e7490", "text_color_dark": "#f8fafc", "text_color_light": "#0f172a" } }], "markdown_transitions": [{ "id": "start-briefing", "from": "start", "to": "briefing" }, { "id": "briefing-end", "from": "briefing", "to": "end" }], "markdown_graph_layout": {}, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.question.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/question", "Replace a Question Activity", "Replaces the complete source Question form only after proving its type and MapAsset membership.", json!({ "title": "Check the energy flow", "slug": Value::Null, "introduction": "Choose the explanation that fits.", "prompt": "Where does the current go?", "feedback_correct": "Yes.", "feedback_incorrect": "Look again at the circuit.", "explanation": "The circuit closes at the load.", "allow_multiple": false, "options": [{ "label": "A", "body": "Through the load.", "is_correct": true, "key": Value::Null, "outcome_key": "", "feedback": "", "weights": {} }, { "label": "B", "body": "Out of the system.", "is_correct": false, "key": Value::Null, "outcome_key": "", "feedback": "", "weights": {} }], "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.shared-task.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/shared-task", "Replace a Shared Task Activity", "Replaces the complete source Shared Task form only after proving its type and MapAsset membership.", json!({ "title": "Compare observations", "slug": Value::Null, "introduction": "Contribute one useful observation.", "task_kind": "reflection", "show_contributions": true, "prompt": "What did you notice?", "instructions": "Use one concrete detail.", "input_label": "Your observation", "project_goal": "", "project_deliverable": "", "project_steps": [], "peer_review_enabled": false, "peer_review_prompt": "Review this contribution.", "threshold": 3, "minimum_length": 20, "repeat_policy": "once_per_user", "validation_mode": "minimum_length", "cycle_mode": "none", "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -2556,8 +2599,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.11");
-        assert_eq!(operations.len(), 21);
+        assert_eq!(document["version"], "1.12");
+        assert_eq!(operations.len(), 22);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -2574,10 +2617,11 @@ mod tests {
         assert_eq!(operations[14]["id"], "activities.open-practice.update");
         assert_eq!(operations[15]["id"], "activities.markdown.update");
         assert_eq!(operations[16]["id"], "activities.question.update");
-        assert_eq!(operations[17]["id"], "activity-transitions.index");
-        assert_eq!(operations[18]["id"], "activity-transitions.store");
-        assert_eq!(operations[19]["id"], "activity-transitions.update");
-        assert_eq!(operations[20]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[17]["id"], "activities.shared-task.update");
+        assert_eq!(operations[18]["id"], "activity-transitions.index");
+        assert_eq!(operations[19]["id"], "activity-transitions.store");
+        assert_eq!(operations[20]["id"], "activity-transitions.update");
+        assert_eq!(operations[21]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");

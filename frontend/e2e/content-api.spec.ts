@@ -1281,6 +1281,42 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(obstacleTitle);
     await expect(console.locator('pre')).toContainText(portalOutputTitle);
 
+    const listedActivities = JSON.parse((await console.locator('pre').textContent()) ?? '{}') as {
+        data: Array<{ id: string; updatedAt: string }>;
+    };
+    const initialSharedTask = listedActivities.data.find((activity) => activity.id === sharedTask.data.id);
+    if (!initialSharedTask) {
+        throw new Error('the created Shared Task Activity was not returned by its scoped list');
+    }
+    await console.getByLabel('Operation').selectOption('activities.shared-task.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${sharedTask.data.id}/shared-task`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: `${sharedTaskTitle} updated`,
+        slug: null,
+        introduction: 'Gather one useful observation with other learners.',
+        task_kind: 'reflection',
+        show_contributions: true,
+        prompt: 'What did you notice while working through this place?',
+        instructions: 'Use one concrete detail another learner can build on.',
+        input_label: 'Your reflection',
+        project_goal: 'Build a shared record of useful observations.',
+        project_deliverable: 'One clear evidence-based contribution.',
+        project_steps: ['Observe', 'Explain'],
+        peer_review_enabled: true,
+        peer_review_prompt: 'What does this contribution help you notice?',
+        threshold: 3,
+        minimum_length: 20,
+        repeat_policy: 'once_per_user',
+        validation_mode: 'minimum_length',
+        cycle_mode: 'none',
+        updated_at: initialSharedTask.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(sharedTask.data.id);
+
     await console
         .getByLabel('Operation')
         .selectOption('activity-transitions.store');

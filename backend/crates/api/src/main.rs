@@ -626,6 +626,10 @@ fn router(state: AppState) -> Router {
             patch(content_api::update_question_activity),
         )
         .route(
+            "/api/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/shared-task",
+            patch(content_api::update_shared_task_activity),
+        )
+        .route(
             "/api/content/v1/map-assets/{map_asset_id}/activity-transitions",
             get(content_api::activity_transitions).post(content_api::create_activity_transition),
         )
