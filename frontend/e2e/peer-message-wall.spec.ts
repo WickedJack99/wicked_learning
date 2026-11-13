@@ -18,6 +18,48 @@ test('a learner can start a source peer-message prompt and follow it into the or
 
     const csrf = await request.get('/api/v1/security/csrf');
     const { token } = await csrf.json();
+    const requestHeaders = {
+        Origin: publicOrigin,
+        'X-CSRF-Token': token,
+    };
+    const testMessagePrefix = 'I noticed the route is tied to a place on the map (';
+    const removePriorTestMessages = async () => {
+        const topics = await request.get('/api/v1/learning-support/topics');
+        expect(topics.status()).toBe(200);
+        const peerTopic = (await topics.json()).find(
+            (topic: { title: string }) => topic.title === 'Orientation notes',
+        );
+        if (!peerTopic) {
+            return;
+        }
+
+        for (let pageNumber = 1; ; pageNumber += 1) {
+            const messages = await request.get(
+                `/api/v1/learning-support/topics/${peerTopic.id}/messages?filter=all&page=${pageNumber}&per_page=12`,
+            );
+            if (messages.status() === 404) {
+                break;
+            }
+            expect(messages.status()).toBe(200);
+            const document = await messages.json() as {
+                messages: Array<{ body: string; id: string }>;
+                pagination: { last_page: number };
+            };
+            for (const message of document.messages.filter((candidate) =>
+                candidate.body.startsWith(testMessagePrefix),
+            )) {
+                const deleted = await request.delete(
+                    `/api/v1/learning-support/messages/${message.id}`,
+                    { headers: requestHeaders },
+                );
+                expect(deleted.status()).toBe(204);
+            }
+            if (pageNumber >= document.pagination.last_page) {
+                break;
+            }
+        }
+    };
+    await removePriorTestMessages();
     const world = await request.get('/api/v1/learner/world');
     expect(world.status()).toBe(200);
     const worldDocument = await world.json();
@@ -29,12 +71,12 @@ test('a learner can start a source peer-message prompt and follow it into the or
 
     const reset = await request.post(
         `/api/v1/learner/activity-starts/${start.start_id}/reset`,
-        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+        { headers: requestHeaders },
     );
     expect(reset.status()).toBe(200);
     const started = await request.post(
         `/api/v1/learner/activity-starts/${start.start_id}/start`,
-        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token } },
+        { headers: requestHeaders },
     );
     expect(started.status()).toBe(200);
     const run = await started.json();
@@ -42,19 +84,19 @@ test('a learner can start a source peer-message prompt and follow it into the or
 
     for (const activitySlug of ['find-your-place', 'name-a-landmark']) {
         const completed = await request.post(`${base}/${activitySlug}/complete`, {
-            headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+            headers: requestHeaders,
             data: {},
         });
         expect(completed.status()).toBe(200);
     }
     const support = await request.post(`${base}/ask-learning-support/support-request`, {
-        headers: { Origin: publicOrigin, 'X-CSRF-Token': token },
+        headers: requestHeaders,
         data: { body: 'Please help me notice the map orientation.' },
     });
     expect(support.status()).toBe(200);
     const completedSupport = await request.post(
         `${base}/ask-learning-support/complete`,
-        { headers: { Origin: publicOrigin, 'X-CSRF-Token': token }, data: {} },
+        { headers: requestHeaders, data: {} },
     );
     expect(completedSupport.status()).toBe(200);
 
@@ -147,4 +189,5 @@ test('a learner can start a source peer-message prompt and follow it into the or
     await expect(
         moderationCard.getByText('Hidden from learners'),
     ).not.toBeVisible();
+    await removePriorTestMessages();
 });

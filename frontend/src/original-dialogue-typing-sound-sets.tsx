@@ -127,7 +127,11 @@ export function OriginalDialogueTypingSoundSetsPage() {
                     params: { header: { 'X-CSRF-Token': token } },
                 });
                 if (!response.ok || !data) throw new Error('create');
-                setSets((current) => sortSets([...current, data.set]));
+                setSets((current) => {
+                    const nextSets = sortSets([...current, data.set]);
+                    setSetPage(Math.floor(nextSets.findIndex((set) => set.id === data.set.id) / pageSize));
+                    return nextSets;
+                });
                 setSelectedId(data.set.id);
                 setNotice('Dialogue typing sound set created.');
             }

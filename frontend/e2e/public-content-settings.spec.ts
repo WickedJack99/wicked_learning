@@ -17,11 +17,11 @@ test('a local administrator edits the source-adapted public information and sour
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/world$/);
 
-    const originalPagesResponse = await page.request.get('/api/v1/admin/public-information-pages');
+    const originalPresentationResponse = await page.request.get('/api/v1/admin/public-presentation');
     const originalLinksResponse = await page.request.get('/api/v1/admin/public-source-links');
-    expect(originalPagesResponse.ok()).toBeTruthy();
+    expect(originalPresentationResponse.ok()).toBeTruthy();
     expect(originalLinksResponse.ok()).toBeTruthy();
-    const originalPages = await originalPagesResponse.json();
+    const originalPresentation = await originalPresentationResponse.json();
     const originalLinks = await originalLinksResponse.json();
 
     try {
@@ -29,18 +29,28 @@ test('a local administrator edits the source-adapted public information and sour
         await expect(page.getByRole('heading', { name: 'Public presentation' })).toBeVisible();
 
         await page.getByRole('button', { name: 'Information pages' }).click();
-        const aboutMarkdown = page.getByLabel(/markdown$/).first();
-        await aboutMarkdown.fill('# Edited locally\n\nThis is public development content.');
+        const informationSlug = `local-development-${Date.now()}`;
+        await page.getByRole('button', { name: 'Add page' }).click();
+        const informationPage = page
+            .locator('[data-wl-id="settings.public-presentation.information-pages"] article')
+            .last();
+        await informationPage.getByLabel('Title').fill('Local development content');
+        await informationPage.getByLabel('Slug').fill(informationSlug);
+        await informationPage
+            .getByLabel('Markdown body')
+            .fill('# Edited locally\n\nThis is public development content.');
         const savedPage = page.waitForResponse((response) =>
             response.request().method() === 'PATCH' &&
-            response.url().endsWith('/api/v1/admin/public-information-pages/about'),
+            response.url().endsWith('/api/v1/admin/public-presentation'),
         );
-        await page.getByRole('button', { name: 'Save changes' }).click();
+        const saveChanges = page.getByRole('button', { name: 'Save changes' });
+        await expect(saveChanges).toBeEnabled();
+        await saveChanges.click();
         expect((await savedPage).ok()).toBeTruthy();
 
         const anonymous = await browser.newContext();
         const anonymousPage = await anonymous.newPage();
-        await anonymousPage.goto('/about');
+        await anonymousPage.goto(`/info/${informationSlug}`);
         await expect(anonymousPage.getByText('This is public development content.')).toBeVisible();
         await anonymous.close();
 
@@ -67,26 +77,23 @@ test('a local administrator edits the source-adapted public information and sour
         const csrf = await page.request.get('/api/v1/security/csrf');
         expect(csrf.ok()).toBeTruthy();
         const { token } = await csrf.json() as { token: string };
-        const restoreStatus = await page.evaluate(async ({ csrfToken, links, pages }) => {
+        const restoreStatus = await page.evaluate(async ({ csrfToken, links, presentation }) => {
             const headers = { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken };
-            const restoredPages = await Promise.all(pages.map(async (page: { body: string; slug: string }) => {
-                const response = await fetch(`/api/v1/admin/public-information-pages/${page.slug}`, {
-                    body: JSON.stringify({ body: page.body }),
-                    credentials: 'same-origin',
-                    headers,
-                    method: 'PATCH',
-                });
-                return response.status;
-            }));
+            const presentationResponse = await fetch('/api/v1/admin/public-presentation', {
+                body: JSON.stringify(presentation),
+                credentials: 'same-origin',
+                headers,
+                method: 'PATCH',
+            });
             const sourceResponse = await fetch('/api/v1/admin/public-source-links', {
                 body: JSON.stringify(links),
                 credentials: 'same-origin',
                 headers,
                 method: 'PATCH',
             });
-            return { pages: restoredPages, source: sourceResponse.status };
-        }, { csrfToken: token, links: originalLinks, pages: originalPages });
-        expect(restoreStatus.pages).toEqual(originalPages.map(() => 200));
+            return { presentation: presentationResponse.status, source: sourceResponse.status };
+        }, { csrfToken: token, links: originalLinks, presentation: originalPresentation });
+        expect(restoreStatus.presentation).toBe(200);
         expect(restoreStatus.source).toBe(200);
     }
 });

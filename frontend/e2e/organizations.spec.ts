@@ -1,4 +1,4 @@
-import { expect, test } from './authenticated';
+import { expect, installE2eAdminSession, test } from './authenticated';
 import type { APIRequestContext } from '@playwright/test';
 
 const origin = new URL(
@@ -19,6 +19,13 @@ async function login(
         headers: { Origin: origin, 'X-CSRF-Token': token },
     });
     expect(result.status()).toBe(200);
+    return token;
+}
+
+async function csrfToken(request: APIRequestContext): Promise<string> {
+    const csrf = await request.get(api('/api/v1/security/csrf'));
+    expect(csrf.status()).toBe(200);
+    const { token } = await csrf.json();
     return token;
 }
 
@@ -57,7 +64,9 @@ test('organizations preserve the source membership, leadership and chat workflow
     const marker = String(Date.now());
     const second = await playwright.request.newContext({ baseURL: origin });
     try {
-        const firstCsrf = await login(request, firstEmail!, firstPassword!);
+        await installE2eAdminSession(page.context());
+        request = page.context().request;
+        const firstCsrf = await csrfToken(request);
         const organization = await createOrganization(request, firstCsrf, marker);
         const uploaded = await request.post(
             api(`/api/v1/organizations/${organization.slug}/icon`),

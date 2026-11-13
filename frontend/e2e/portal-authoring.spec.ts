@@ -79,6 +79,9 @@ test('a local world author can connect source-shaped Portal activities', async (
     await page.getByRole('button', { name: `Delete ${entryTitle}` }).click();
     await page.getByRole('dialog', { name: 'Delete activity?' }).getByRole('button', { name: 'Delete', exact: true }).click();
     await page.goto(`/settings?panel=admin-world-builder&map=${exit.mapId}&node=${exit.id}`);
-    await page.getByRole('button', { name: `Delete ${exitTitle}` }).click();
+    await page.getByRole('button', { name: 'Fit View' }).click();
+    await page
+        .getByRole('button', { name: `Delete ${exitTitle}` })
+        .dispatchEvent('click');
     await page.getByRole('dialog', { name: 'Delete activity?' }).getByRole('button', { name: 'Delete', exact: true }).click();
 });

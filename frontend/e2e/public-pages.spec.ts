@@ -1,5 +1,53 @@
 import { expect, test } from './authenticated';
 
+function journalTheme() {
+    const mode = {
+        accent: '#14b8a6',
+        accent_opacity: 100,
+        accent_text: '#042f2e',
+        accent_text_opacity: 100,
+        background_assets: [],
+        background_image: '',
+        background_overlay: '#0f172a',
+        background_overlay_opacity: 82,
+        background_position_x: 50,
+        background_position_y: 50,
+        background_zoom: 100,
+        body_text: '#cbd5e1',
+        body_text_opacity: 100,
+        button_background: '#134e4a',
+        button_background_opacity: 100,
+        button_border: '#2dd4bf',
+        button_border_opacity: 100,
+        button_text: '#f0fdfa',
+        button_text_opacity: 100,
+        content_background: '#0f172a',
+        content_background_opacity: 100,
+        header_background: '#042f2e',
+        header_background_opacity: 100,
+        heading_text: '#f8fafc',
+        heading_text_opacity: 100,
+        input_background: '#1e293b',
+        input_background_opacity: 100,
+        muted_text: '#94a3b8',
+        muted_text_opacity: 100,
+        panel_background: '#111827',
+        panel_background_opacity: 100,
+        panel_border: '#334155',
+        panel_border_opacity: 100,
+        selected_background: '#134e4a',
+        selected_background_opacity: 100,
+        selected_border: '#2dd4bf',
+        selected_border_opacity: 100,
+        selected_text: '#f0fdfa',
+        selected_text_opacity: 100,
+        sidebar_background: '#0f172a',
+        sidebar_background_opacity: 100,
+    };
+
+    return { dark: mode, light: mode };
+}
+
 test('the root renders the public welcome screen and offers exploration', async ({
     page,
 }) => {
@@ -627,7 +675,7 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
         page.getByRole('heading', { name: 'Saved place' }),
     ).toBeVisible();
     await expect(
-        page.getByRole('heading', { name: 'The First Path', exact: true }),
+        page.getByText('The First Path', { exact: true }),
     ).toBeVisible();
     await expect(
         page.getByRole('link', { name: 'Go to node' }),
@@ -672,6 +720,7 @@ test('the original journal overlay reads only its private paginated contract', a
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
+                allow_expert_access_requests: false,
                 check_ins: [
                     {
                         id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d69',
@@ -687,6 +736,7 @@ test('the original journal overlay reads only its private paginated contract', a
                         node_title: 'A private place',
                     },
                 ],
+                feedback_domains: [],
                 pages: [
                     {
                         id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d99',
@@ -740,6 +790,7 @@ test('the original journal overlay reads only its private paginated contract', a
                         node_title: 'A private place',
                     },
                 ],
+                theme: journalTheme(),
             }),
         });
     });
@@ -859,7 +910,7 @@ test('the original journal overlay reads only its private paginated contract', a
     await page.getByRole('button', { name: 'Journal' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(
-        page.getByRole('region', { name: 'Recent learning check-ins' }),
+        page.getByLabel('Recent learning check-ins'),
     ).toBeVisible();
     await expect(page.getByText('Still forming')).toBeVisible();
     await expect(
@@ -875,14 +926,14 @@ test('the original journal overlay reads only its private paginated contract', a
     await page.goto('/world');
     await page.getByRole('button', { name: 'Journal' }).click();
     await expect(
-        page.getByRole('region', { name: 'Revisit invitations' }),
+        page.locator('section[aria-label="Revisit invitations"]'),
     ).toBeVisible();
     await expect(
         page.getByText('Return to the first question', { exact: true }),
     ).toBeVisible();
-    const invitationRegion = page.getByRole('region', {
-        name: 'Revisit invitations',
-    });
+    const invitationRegion = page.locator(
+        'section[aria-label="Revisit invitations"]',
+    );
     const desktopInvitationBounds = await invitationRegion.boundingBox();
     expect(desktopInvitationBounds).not.toBeNull();
     expect(desktopInvitationBounds?.width).toBeGreaterThan(0);
@@ -2424,6 +2475,10 @@ test('the source Learning Desk revisit section opens an opaque private revisit r
     );
 
     await page.goto('/home');
+
+    await page
+        .getByRole('button', { name: 'Return when useful' })
+        .click();
 
     await expect(
         page.getByRole('heading', { name: 'Return when useful' }),

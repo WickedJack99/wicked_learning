@@ -35,6 +35,13 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     const media = (await uploaded.json()) as {
         asset: { id: string; url: string };
     };
+    await expect(
+        page.locator(`img[src="${media.asset.url}"]`).first(),
+    ).toBeVisible();
+    await page
+        .getByRole('button')
+        .filter({ has: page.locator(`img[src="${media.asset.url}"]`) })
+        .click();
     const mediaName = `Obstacle visual ${Date.now()}`;
     await page.getByLabel('Visual name').fill(mediaName);
     const savedMetadata = page.waitForResponse(
@@ -120,6 +127,7 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     await expect(
         page.getByRole('heading', { name: 'Select existing visual' }),
     ).toBeVisible();
+    await page.getByLabel('Search reusable visuals').fill(mediaName);
     await page.getByRole('button', { name: mediaName }).click();
     await expect(activityForm.getByLabel('Dark background')).toHaveValue(
         media.asset.url,
@@ -208,6 +216,7 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     await expect(
         page.getByRole('heading', { name: 'Select existing visual' }),
     ).toBeVisible();
+    await page.getByLabel('Search reusable visuals').fill(mediaName);
     await page.getByRole('button', { name: mediaName }).click();
     await expect(grantForm.getByLabel('Dark background')).toHaveValue(
         media.asset.url,
@@ -283,6 +292,7 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     await expect(
         page.getByRole('heading', { name: 'Select existing visual' }),
     ).toBeVisible();
+    await page.getByLabel('Search reusable visuals').fill(mediaName);
     await page.getByRole('button', { name: mediaName }).click();
     await expect(itemGrantForm.getByLabel('Dark background')).toHaveValue(
         media.asset.url,
@@ -360,6 +370,7 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     await expect(
         page.getByRole('heading', { name: 'Select existing visual' }),
     ).toBeVisible();
+    await page.getByLabel('Search reusable visuals').fill(mediaName);
     await page.getByRole('button', { name: mediaName }).click();
     await expect(itemObstacleForm.getByLabel('Dark background')).toHaveValue(
         media.asset.url,

@@ -1,4 +1,4 @@
-import { expect, test } from './authenticated';
+import { expect, installE2eAdminSession, test } from './authenticated';
 
 const publicOrigin = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8081',
@@ -15,6 +15,13 @@ async function login(request: Parameters<typeof advanceToSharedTask>[0], email: 
         data: { email, password },
     });
     expect(response.status()).toBe(200);
+    return { csrf: token, request };
+}
+
+async function authenticatedSession(request: Parameters<typeof advanceToSharedTask>[0]): Promise<Session> {
+    const csrf = await request.get('/api/v1/security/csrf');
+    expect(csrf.status()).toBe(200);
+    const { token } = await csrf.json();
     return { csrf: token, request };
 }
 
@@ -86,7 +93,9 @@ test('the source-shaped Shared Task preserves anonymous contributions, review an
     const secondRequest = await playwright.request.newContext({ baseURL: publicOrigin });
     const marker = String(Date.now());
     try {
-        const first = await login(request, firstEmail!, firstPassword!);
+        await installE2eAdminSession(page.context());
+        request = page.context().request;
+        const first = await authenticatedSession(request);
         const second = await login(secondRequest, secondEmail!, secondPassword!);
         const firstRun = await advanceToSharedTask(first, `first-${marker}`);
         const secondRun = await advanceToSharedTask(second, `second-${marker}`);

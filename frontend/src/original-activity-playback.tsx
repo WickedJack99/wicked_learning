@@ -559,7 +559,7 @@ export function OriginalOpenPracticePage({
 
     return (
         <main
-            className="flex min-h-svh flex-col bg-[#0b1117] p-3 text-slate-100 sm:p-4 md:p-6"
+            className="flex min-h-svh flex-col bg-[#0b1117] p-3 pb-28 text-slate-100 sm:p-4 sm:pb-28 md:p-6"
             data-wl-id={
                 translatedActivity
                     ? `learner.activity.${translatedActivity.activity_type}`

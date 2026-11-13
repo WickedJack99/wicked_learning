@@ -41,7 +41,12 @@ test('a language administrator maintains a safe disabled translation catalog thr
     const languages = await json('/api/v1/admin/languages', 'GET');
     expect(languages.status).toBe(200);
     const existing = (languages.body as { languages: Language[] }).languages;
-    const code = ['zz', 'xy', 'qx', 'zy', 'xx'].find((candidate) => !existing.some((language) => language.code === candidate));
+    const code = Array.from({ length: 26 * 26 }, (_, index) => {
+        const first = String.fromCharCode(97 + Math.floor(index / 26));
+        const second = String.fromCharCode(97 + (index % 26));
+
+        return `${first}${second}`;
+    }).find((candidate) => !existing.some((language) => language.code === candidate));
     expect(code).toBeTruthy();
 
     const created = await json('/api/v1/admin/languages', 'POST', {
