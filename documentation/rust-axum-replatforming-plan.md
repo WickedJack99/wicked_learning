@@ -1735,6 +1735,22 @@ the machine contract, generated TypeScript client and console advertise those
 operations only after that complete boundary is present. It does not infer or
 automatically wire learning paths.
 
+### Local backup and isolated restore-drill slice — 13 November 2026
+
+The Rust local stack now has explicit operational evidence for its two
+PostgreSQL databases and managed media volume. `scripts/rust-local-backup.sh`
+creates a private custom-format dump of each database, copies the managed media
+volume, records checksums and records only non-sensitive verification counts.
+`scripts/rust-local-restore-drill.sh` refuses incomplete or altered backups,
+then restores one only into a newly named temporary Compose project. It applies
+forward migrations, restores media, probes the Rust readiness endpoint and
+compares the restored principal, subject and media-file counts before removing
+only that project on success. A failed drill leaves its uniquely named project
+intact for inspection rather than risking the running local stack. The current
+proof completed against the disposable local Compose data; this is not a
+production backup policy, production restore authorization, or a substitute
+for encryption, recovery objectives and named operational ownership.
+
 ### 7. Complete the replacement deliberately
 
 1. Verify every endpoint, scheduled/background process, mail flow, protected

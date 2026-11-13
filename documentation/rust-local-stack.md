@@ -153,6 +153,39 @@ and keeps only their short-lived authenticated session state under ignored
 `frontend/test-results`. This keeps durable learner workflow evidence isolated
 without placing more passwords or credentials in the repository.
 
+## Local backup and isolated restore drill
+
+The local Rust stack has two PostgreSQL databases and a managed media volume;
+all three are required for a recoverable snapshot. The scripts below operate
+only on services selected by the repository's `compose.rust.yaml`. They do not
+accept database URLs, remote hosts, or production deployment targets.
+
+Create a private backup directory (the scripts set restrictive permissions for
+new files and refuse to overwrite an existing destination):
+
+```bash
+bash scripts/rust-local-backup.sh /private/path/wicked-learning-rust-backup
+```
+
+The backup contains custom-format application and identity PostgreSQL dumps,
+a copy of the managed media volume, SHA-256 checksums, and non-sensitive row
+counts for restore verification. It contains local account and application
+data, so keep it outside the repository and encrypted at rest before using it
+beyond this disposable local environment.
+
+Verify recovery without touching the running stack:
+
+```bash
+bash scripts/rust-local-restore-drill.sh /private/path/wicked-learning-rust-backup
+```
+
+The drill starts a uniquely named temporary Compose project, restores both
+databases, applies forward migrations, restores managed media, verifies the
+Rust readiness endpoint and recorded counts, then removes only that temporary
+project and its volumes. If a drill fails, its isolated project is deliberately
+retained for inspection; the command prints its name. Neither script is a
+production backup policy or authorization to restore production data.
+
 ## Local invitation registration
 
 The lifted `/register` page requires a one-use invitation. Issue one to a
