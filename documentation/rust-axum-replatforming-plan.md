@@ -365,8 +365,12 @@ context and active manual node overrides. It now also carries the
 source-shaped summary counts and at most twelve anonymous unresolved
 shared-task review aggregates for the caller's already-scoped learners. The
 aggregate deliberately excludes learner writing and identities; the later
-three-section source UI lift may consume it without adding a new staff-data
-authority. It deliberately excludes journal text, private reflections,
+three-section source UI lift now consumes it without adding a new staff-data
+authority. The standalone page retains the extracted source Settings shell and
+the source Collective Overview chart, Individual Support reader/manual-node
+access, and Peer Support queue; only Inertia's page data/router post seams are
+replaced with the typed Rust read, CSRF-protected manual-unlock command and
+React URL state. It deliberately excludes journal text, private reflections,
 confidence and rankings; peer-message resolution remains in the dedicated
 moderation workspace above.
 

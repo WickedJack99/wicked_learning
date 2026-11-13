@@ -59,6 +59,27 @@ type SettingsSectionNavigationProps<T extends string> = {
     onChange: (section: T) => void;
 };
 
+type SettingsPanelHeaderProps = {
+    action?: ReactNode;
+    className?: string;
+    constrainActionToContent?: boolean;
+    danger?: boolean;
+    description?: ReactNode;
+    eyebrow?: ReactNode;
+    icon?: LucideIcon;
+    item?: SettingsNavigationItem<string>;
+    title: ReactNode;
+};
+
+type SettingsSectionWorkspaceProps<T extends string> = {
+    activeItem: SettingsNavigationItem<T>;
+    ariaLabel: string;
+    children: ReactNode;
+    contentClassName?: string;
+    items: SettingsNavigationItem<T>[];
+    onChange: (section: T) => void;
+};
+
 export function SettingsSectionButton<T extends string>({
     active,
     buttonRef,
@@ -154,6 +175,45 @@ export function SettingsConfigurationLayout({
     );
 }
 
+export function SettingsPanelHeader({
+    action,
+    className,
+    constrainActionToContent = false,
+    danger = false,
+    description,
+    eyebrow,
+    icon: Icon,
+    item,
+    title,
+}: SettingsPanelHeaderProps) {
+    const HeaderIcon = item?.icon ?? Icon;
+    const headerEyebrow = eyebrow ?? item?.label;
+    const headerDanger = danger || item?.danger === true;
+    const content = (
+        <>
+            <div className="min-w-0">
+                {headerEyebrow ? (
+                    <div className={classNames('mb-3 flex items-center gap-3', headerDanger ? 'text-red-500 dark:text-red-200' : 'text-[var(--settings-accent)]')}>
+                        {HeaderIcon ? <HeaderIcon className="size-5" /> : null}
+                        <p className="text-xs font-medium tracking-[0.18em] uppercase">{headerEyebrow}</p>
+                    </div>
+                ) : null}
+                <h2 className="text-2xl font-semibold tracking-normal text-foreground">{title}</h2>
+                {description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">{description}</p> : null}
+            </div>
+            {action ? <div className="shrink-0">{action}</div> : null}
+        </>
+    );
+    if (constrainActionToContent) {
+        return <header className={classNames('border-b border-[var(--settings-border-color)] pb-5', className)}><div className="flex w-full flex-col gap-4 sm:flex-row sm:items-start sm:justify-between lg:max-w-[45%]">{content}</div></header>;
+    }
+    return <header className={classNames('flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between', className)}>{content}</header>;
+}
+
+export function SettingsItemPanelHeader<T extends string>({ item, ...props }: Omit<SettingsPanelHeaderProps, 'item'> & { item: SettingsNavigationItem<T> }) {
+    return <SettingsPanelHeader {...props} item={item} />;
+}
+
 export function SettingsNestedWorkspace({
     action,
     children,
@@ -211,6 +271,11 @@ export function SettingsNestedWorkspace({
             </div>
         </SettingsConfigurationLayout>
     );
+}
+
+/** Extracted from the source configuration shell for third-level Settings panels. */
+export function SettingsSectionWorkspace<T extends string>({ activeItem, ariaLabel, children, contentClassName, items, onChange }: SettingsSectionWorkspaceProps<T>) {
+    return <SettingsConfigurationLayout className="h-full gap-0" contentClassName="flex min-h-0 flex-col bg-[var(--settings-content-background)]" sidebar={<aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0"><SettingsSectionNavigation activeSection={activeItem.key} ariaLabel={ariaLabel} items={items} onChange={onChange} /></aside>}><div className={classNames('min-h-0 flex-1 overflow-y-auto p-4 sm:p-5', contentClassName)}>{children}</div></SettingsConfigurationLayout>;
 }
 
 export function SettingsSectionNavigation<T extends string>({

@@ -1,37 +1,213 @@
-import { ChevronLeft, HeartHandshake, Signal, Users } from 'lucide-react';
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import {
+    HandHelping,
+    HeartHandshake,
+    Signal,
+    Sparkles,
+    Users,
+} from 'lucide-react';
+import {
+    type CSSProperties,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
 import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    SettingsItemPanelHeader,
+    SettingsSectionWorkspace,
+    type SettingsNavigationItem,
+} from './extracted-settings-configuration-shell';
+import { settingsSections } from './extracted-settings-navigation';
+import {
+    SettingsSidebarNavigation,
+    SettingsTopBar,
+} from './extracted-settings-sidebar-navigation';
+import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Signals = components['schemas']['AdminSupportSignals'];
+type SupportSignalsView = 'collective' | 'individual' | 'peer-support';
 
-export function OriginalLearningSupportSignalsPage({ appearance }: { appearance: OriginalAppearance }) {
+/**
+ * Lifted from `resources/js/features/settings/support-signals-panel.tsx`.
+ * Laravel's Inertia router and numeric database IDs are the only seams
+ * adapted here: the standalone version receives the same source-shaped
+ * presentation model from Rust and uses the common typed API client.
+ */
+export function OriginalLearningSupportSignalsPage({
+    appearance,
+    onSignedOut,
+    settingsAccess,
+}: {
+    appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
+}) {
+    const t = usePlatformTranslation();
     const [signals, setSignals] = useState<Signals | null>(null);
-    const [selected, setSelected] = useState(0);
     const [error, setError] = useState('');
-    const load = useCallback(async () => {
+    const [settingsMenuQuery, setSettingsMenuQuery] = useState('');
+    const accessCapabilities = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(settingsAccess).map(([key, read]) => [
+                    key,
+                    { delete: false, read, update: false },
+                ]),
+            ),
+        [settingsAccess],
+    );
+    const navigationSections = useMemo(
+        () => settingsSections(t, accessCapabilities, true, settingsMenuQuery),
+        [accessCapabilities, settingsMenuQuery, t],
+    );
+    const load = useCallback(async (): Promise<void> => {
         try {
-            const { data, response } = await apiClient.GET('/admin/learning-support/signals');
-            if (!response.ok || !data) throw new Error('unavailable');
-            setSignals(data); setError('');
-        } catch { setError('Support signals are temporarily unavailable.'); }
+            const { data, response } = await apiClient.GET(
+                '/admin/learning-support/signals',
+            );
+            if (!response.ok || !data) throw new Error('signals unavailable');
+            setSignals(data);
+            setError('');
+        } catch {
+            setError('Support signals are temporarily unavailable.');
+        }
     }, []);
+
     useEffect(() => { void load(); }, [load]);
-    const learner = signals?.learners[selected] ?? null;
-    return <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={style(appearance)}><div className="mx-auto w-full max-w-[92rem]"><header className="flex items-start justify-between gap-4 pb-5"><div><Link className="mb-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]" to="/home"><ChevronLeft className="size-4" /> Learning desk</Link><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Settings</p><h1 className="mt-2 text-3xl font-semibold">Learning Support</h1></div><Link className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm text-[var(--settings-muted-text)] hover:text-[var(--settings-accent)]" to="/settings?panel=admin-learning-support">Peer support</Link></header>{error ? <p role="alert">{error}</p> : !signals ? <p className="text-sm text-[var(--settings-muted-text)]">Loading support signals…</p> : <section className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]"><aside className="border border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3"><p className="px-3 py-2 text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">Individual support</p>{signals.learners.map((item, index) => <button className={`block w-full rounded-md px-3 py-3 text-left text-sm ${index === selected ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)]'}`} key={item.subject_id} onClick={() => setSelected(index)} type="button"><span className="block font-medium">{item.name}</span><span className="block truncate text-xs">{item.username ?? item.email}</span></button>)}</aside><div className="grid gap-5"><section className="border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-5"><div className="flex items-center gap-2 text-[var(--settings-accent)]"><Users className="size-4" /><h2 className="font-semibold">Collective overview</h2></div><p className="mt-2 text-sm text-[var(--settings-muted-text)]">Anonymous 30-day activity signals show whether the learning space is alive without exposing daily learner histories.</p><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">{signals.activity_overview_30_days.slice(-5).map((bucket) => <div className="border border-[var(--settings-border-color)] p-3" key={bucket.date}><p className="text-xs text-[var(--settings-muted-text)]">{bucket.date}</p><p className="mt-1 text-lg font-semibold">{bucket.active_learners}</p><p className="text-xs text-[var(--settings-muted-text)]">active learners</p></div>)}</div></section>{learner ? <section className="border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-5"><div className="flex items-center gap-2 text-[var(--settings-accent)]"><HeartHandshake className="size-4" /><h2 className="font-semibold">{learner.name}</h2></div><p className="mt-1 text-sm text-[var(--settings-muted-text)]">{learner.username ?? learner.email}</p><div className="mt-4 grid gap-2">{learner.support_notes.map((note) => <p className="border-l-2 border-[var(--settings-accent)] pl-3 text-sm" key={note.text}>{note.text}</p>)}</div><ManualLearnerAccess learner={learner} onChanged={load} signals={signals} /><div className="mt-5"><div className="flex items-center gap-2"><Signal className="size-4 text-[var(--settings-accent)]" /><h3 className="font-semibold">Topic signals</h3></div>{learner.topics.length ? <ul className="mt-3 grid gap-2">{learner.topics.map((topic) => <li className="border border-[var(--settings-border-color)] p-3" key={topic.slug}><span className="font-medium">{topic.name}</span><span className="ml-2 text-xs text-[var(--settings-muted-text)]">{topic.evidence_types.join(', ')}</span></li>)}</ul> : <p className="mt-3 text-sm text-[var(--settings-muted-text)]">No competence signals have been recorded yet. This is a starting point, not a deficit.</p>}</div></section> : <section className="border border-[var(--settings-border-color)] p-6 text-sm text-[var(--settings-muted-text)]">No learners are visible through your support scope.</section>}</div></section>}</div></main>;
+
+    const sectionItem: SettingsNavigationItem<string> = {
+        description: 'Review collective, individual and peer support signals.',
+        icon: HeartHandshake,
+        key: 'support-signals',
+        label: 'Support Signals',
+    };
+
+    return (
+        <main className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100" data-wl-id="settings.learning-support.signals" style={settingsStyle(appearance)}>
+            <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                <SettingsTopBar menuQuery={settingsMenuQuery} onSearchChange={setSettingsMenuQuery} />
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+                    <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
+                        <SettingsSidebarNavigation activePanel="admin-learning-support" sections={navigationSections} />
+                        <SettingsCornerNavigation onSignedOut={onSignedOut} />
+                    </aside>
+                    <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
+                        {error ? <div className="p-5"><p className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p></div> : !signals ? <p className="p-5 text-sm text-[var(--settings-muted-text)]">Loading support signals…</p> : <SupportSignalsPanel onManualUnlockChanged={load} sectionItem={sectionItem} settings={toSourceSettings(signals)} />}
+                    </div>
+                </div>
+            </div>
+        </main>
+    );
 }
 
-function ManualLearnerAccess({ learner, onChanged, signals }: { learner: components['schemas']['AdminSupportLearner']; onChanged: () => Promise<void>; signals: Signals }) {
-    const options = signals.manual_unlock_targets.flatMap((map) => map.nodes.map((node) => ({ map, node })));
-    const [nodeId, setNodeId] = useState('');
-    const [pending, setPending] = useState<string | null>(null);
-    const selectedNodeId = options.some(({ node }) => node.id === nodeId) ? nodeId : (options[0]?.node.id ?? '');
-    if (!signals.can_grant_manual_unlocks) return null;
-    const setAccess = async (targetNodeId: string, enabled: boolean) => { setPending(`${targetNodeId}:${enabled}`); try { const token = await getCsrfToken(); const { response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/manual-unlocks', { body: { enabled, learner_subject_id: learner.subject_id }, params: { header: { 'X-CSRF-Token': token }, path: { node_id: targetNodeId } } }); if (!response.ok) throw new Error('unavailable'); await onChanged(); } finally { setPending(null); } };
-    return <section className="mt-5 grid gap-3 border-t border-[var(--settings-border-color)] pt-5" data-wl-id="support.manual-node-access"><div><h3 className="font-semibold">Open a locked node</h3><p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">Make one locked node available to this learner without changing its authored rules.</p></div>{options.length ? <div className="flex flex-wrap items-end gap-3"><label className="grid min-w-64 flex-1 gap-1.5 text-sm"><span className="font-medium">Node</span><select className="h-10 border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3" onChange={(event) => setNodeId(event.currentTarget.value)} value={selectedNodeId}>{signals.manual_unlock_targets.map((map) => <optgroup key={map.id} label={map.title}>{map.nodes.map((node) => <option key={node.id} value={node.id}>{node.title}</option>)}</optgroup>)}</select></label><button className="h-10 border border-[var(--settings-accent)] px-4 text-sm font-medium text-[var(--settings-accent)] disabled:opacity-50" disabled={!selectedNodeId || pending !== null} onClick={() => void setAccess(selectedNodeId, true)} type="button">{pending === `${selectedNodeId}:true` ? 'Opening…' : 'Open for learner'}</button></div> : <p className="text-sm text-[var(--settings-muted-text)]">There are no locked nodes on maps you can edit.</p>}{learner.manual_unlocks.length ? <div className="grid gap-2"><p className="text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">Currently open for this learner</p>{learner.manual_unlocks.map((unlock) => <div className="flex flex-wrap items-center justify-between gap-3 border border-[var(--settings-border-color)] px-3 py-2" key={unlock.node_id}><div><p className="text-sm font-medium">{unlock.node_title}</p><p className="text-xs text-[var(--settings-muted-text)]">{unlock.map_title}</p></div><button className="text-sm underline disabled:opacity-50" disabled={pending !== null} onClick={() => void setAccess(unlock.node_id, false)} type="button">{pending === `${unlock.node_id}:false` ? 'Closing…' : 'Close access'}</button></div>)}</div> : null}</section>;
+type SupportSignalsSettings = {
+    activityOverview30Days: Signals['activity_overview_30_days'];
+    canGrantManualUnlocks: boolean;
+    learners: SupportLearner[];
+    manualUnlockTargets: Signals['manual_unlock_targets'];
+    monthKey: string;
+    peerSupport: PeerSupportItem[];
+    summary: { learners: number; learnersWithSignals: number; topicsWithMonthlyActivity: number };
+};
+
+type PeerSupportItem = {
+    activityId: string; activityTitle: string; contextHref: string; contributorCount: number;
+    latestReviewAt: string | null; mapId: string; mapTitle: string; nodeId: string;
+    nodeTitle: string; unresolvedReviewCount: number;
+};
+
+type SupportLearner = {
+    email: string;
+    groups: { id: string; name: string; studyTopic: string | null | undefined }[];
+    id: string;
+    lastActivityAt: string | null | undefined;
+    manualUnlocks: { grantedAt: string; mapTitle: string; nodeId: string; nodeTitle: string }[];
+    name: string;
+    signals: { text: string; tone: string }[];
+    topics: { evidenceTypes: string[]; monthlyContribution: number; name: string; slug: string; totalContribution: number }[];
+    username: string | null | undefined;
+};
+
+const supportSignalSections = [
+    { description: 'See anonymous activity across the visible learner scope.', icon: Users, key: 'collective', label: 'Collective Overview' },
+    { description: 'Review learner-specific evidence patterns as support prompts.', icon: HeartHandshake, key: 'individual', label: 'Individual Support' },
+    { description: 'Spot shared-task exchanges waiting for a learner-confirmed resolution.', icon: HandHelping, key: 'peer-support', label: 'Peer Support' },
+] satisfies SettingsNavigationItem<SupportSignalsView>[];
+
+const supportSignalDescriptions = {
+    collective: 'Anonymous 30-day activity signals show whether the learning space is alive without exposing daily learner histories.',
+    individual: 'Use learner-specific evidence patterns as conversation starters for support. They are not rankings and should not be used to compare learners.',
+    'peer-support': 'Use private resolution signals to notice shared-task exchanges that may benefit from a gentle support conversation.',
+} satisfies Record<SupportSignalsView, string>;
+
+function SupportSignalsPanel({ onManualUnlockChanged, sectionItem: _sectionItem, settings }: { onManualUnlockChanged: () => Promise<void>; sectionItem: SettingsNavigationItem<string>; settings: SupportSignalsSettings }) {
+    const [activeView, setActiveView] = useState<SupportSignalsView>(() => readSupportSignalsViewFromUrl());
+    const [selectedLearnerId, setSelectedLearnerId] = useState<string | null>(() => settings.learners[0]?.id ?? null);
+    const selectedLearner = useMemo(() => settings.learners.find((learner) => learner.id === selectedLearnerId) ?? settings.learners[0] ?? null, [selectedLearnerId, settings.learners]);
+    useEffect(() => {
+        if (selectedLearnerId !== null && settings.learners.some((learner) => learner.id === selectedLearnerId)) return;
+        setSelectedLearnerId(settings.learners[0]?.id ?? null);
+    }, [selectedLearnerId, settings.learners]);
+    const activeSection = supportSignalSections.find((section) => section.key === activeView) ?? supportSignalSections[0];
+    function selectView(view: SupportSignalsView): void { setActiveView(view); writeSupportSignalsViewToUrl(view); }
+    return (
+        <SettingsSectionWorkspace activeItem={activeSection} ariaLabel="Support signals sections" items={supportSignalSections} onChange={selectView}>
+            <div className="grid gap-5" data-wl-id="support.signals.workspace">
+                <SettingsItemPanelHeader description={supportSignalDescriptions[activeView]} item={activeSection} title={activeSection.label} />
+                {activeView === 'individual' ? <IndividualSupportView monthKey={settings.monthKey} onManualUnlockChanged={onManualUnlockChanged} onSelectLearner={setSelectedLearnerId} selectedLearner={selectedLearner} settings={settings} /> : null}
+                {activeView === 'collective' ? <CollectiveOverviewView settings={settings} /> : null}
+                {activeView === 'peer-support' ? <PeerSupportView items={settings.peerSupport} /> : null}
+            </div>
+        </SettingsSectionWorkspace>
+    );
 }
 
-function style(appearance: OriginalAppearance): CSSProperties { const dark = appearance === 'dark'; return { '--settings-accent': dark ? '#2dd4bf' : '#0f766e', '--settings-active-background': dark ? 'rgb(45 212 191 / 10%)' : 'rgb(15 118 110 / 10%)', '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0', '--settings-content-background': dark ? '#0b1117' : '#f1f5f9', '--settings-muted-text': dark ? '#94a3b8' : '#64748b', '--settings-nested-sidebar-background': dark ? 'rgb(5 8 22 / 96%)' : 'rgb(248 250 252 / 96%)', '--settings-panel-background': dark ? '#111820' : '#ffffff' } as CSSProperties; }
+function IndividualSupportView({ monthKey, onManualUnlockChanged, onSelectLearner, selectedLearner, settings }: { monthKey: string; onManualUnlockChanged: () => Promise<void>; onSelectLearner: (id: string) => void; selectedLearner: SupportLearner | null; settings: SupportSignalsSettings }) {
+    return <><SupportSummary settings={settings} />{settings.learners.length > 0 ? <div className="grid min-h-[28rem] overflow-hidden border-t border-[var(--settings-border-color)] lg:grid-cols-[18rem_minmax(0,1fr)]"><LearnerList learners={settings.learners} onSelect={onSelectLearner} selectedLearnerId={selectedLearner?.id ?? null} /><LearnerDetails learner={selectedLearner} monthKey={monthKey} onManualUnlockChanged={onManualUnlockChanged} settings={settings} /></div> : <EmptySupportSignals />}</>;
+}
+
+function CollectiveOverviewView({ settings }: { settings: SupportSignalsSettings }) { return <><CollectiveSummary settings={settings} /><ActivityOverview buckets={settings.activityOverview30Days} /></>; }
+
+function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
+    const t = usePlatformTranslation();
+    return <section className="grid max-w-5xl gap-4"><div className="border-b border-[var(--settings-border-color)] pb-4"><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Anonymous support queue</p><h3 className="mt-2 text-lg font-semibold text-[var(--settings-primary-text)]">Shared-task exchanges to revisit</h3><p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">These activity-level signals show accepted peer feedback for visible learners where no contributor has marked a response helpful yet. They do not expose learner writing or reviewer identities.</p></div>{items.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{items.map((item) => <article className="grid gap-3 border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4" key={item.activityId}><div><p className="text-sm font-semibold text-[var(--settings-primary-text)]">{item.activityTitle}</p><p className="mt-1 text-sm text-[var(--settings-muted-text)]">{item.mapTitle} · {item.nodeTitle}</p></div><Link aria-label={`${t('settings.learning_support.peer_support.open_context', 'Open map context')}: ${item.activityTitle}`} className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--settings-accent)] hover:underline" to={item.contextHref}>{t('settings.learning_support.peer_support.open_context', 'Open map context')}</Link><div className="grid grid-cols-2 gap-3 border-t border-[var(--settings-border-color)] pt-3 text-sm"><div><p className="font-semibold text-[var(--settings-accent)]">{item.unresolvedReviewCount}</p><p className="mt-1 text-[var(--settings-muted-text)]">{item.unresolvedReviewCount === 1 ? 'review waiting' : 'reviews waiting'}</p></div><div><p className="font-semibold text-[var(--settings-primary-text)]">{item.contributorCount}</p><p className="mt-1 text-[var(--settings-muted-text)]">{item.contributorCount === 1 ? 'contributor' : 'contributors'}</p></div></div><p className="text-sm text-[var(--settings-muted-text)]">Latest review: {formatDateTime(item.latestReviewAt)}</p></article>)}</div> : <section className="grid min-h-[18rem] place-items-center border-t border-[var(--settings-border-color)] p-6 text-center"><div className="max-w-md"><HandHelping className="mx-auto size-6 text-[var(--settings-accent)]" /><h3 className="mt-3 font-semibold text-[var(--settings-primary-text)]">No peer support follow-up is waiting</h3><p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">Shared-task feedback appears here only when a contributor has opted in to sharing and has not yet marked a received response helpful.</p></div></section>}</section>;
+}
+
+function SupportSummary({ settings }: { settings: SupportSignalsSettings }) { return <SummaryItems items={[{ label: 'Scoped learners', value: settings.summary.learners }, { label: 'Learners with signals', value: settings.summary.learnersWithSignals }, { label: 'Monthly topic signals', value: settings.summary.topicsWithMonthlyActivity }]} />; }
+function CollectiveSummary({ settings }: { settings: SupportSignalsSettings }) { const activeDays = settings.activityOverview30Days.filter((bucket) => bucket.active_learners > 0).length; const activeLearners = Math.max(0, ...settings.activityOverview30Days.map((bucket) => bucket.active_learners)); const topicSignals = settings.activityOverview30Days.reduce((sum, bucket) => sum + bucket.evidence_events, 0); return <SummaryItems items={[{ label: 'Active days', value: activeDays }, { label: 'Learners per day max', value: activeLearners }, { label: 'Topic signals', value: topicSignals }]} />; }
+function SummaryItems({ items }: { items: { label: string; value: number }[] }) { return <section className="grid max-w-4xl gap-5 border-b border-[var(--settings-border-color)] pb-4 sm:grid-cols-3">{items.map((item) => <div className="border-l border-[var(--settings-accent-color)] pl-4" key={item.label}><p className="text-2xl font-semibold text-[var(--settings-primary-text)]">{item.value}</p><p className="mt-1 text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">{item.label}</p></div>)}</section>; }
+
+function ActivityOverview({ buckets }: { buckets: Signals['activity_overview_30_days'] }) {
+    const maxActiveLearners = Math.max(1, ...buckets.map((bucket) => bucket.active_learners)); const chartWidth = 760; const chartHeight = 240; const chartMargin = { bottom: 44, left: 54, right: 18, top: 18 }; const drawableWidth = chartWidth - chartMargin.left - chartMargin.right; const drawableHeight = chartHeight - chartMargin.top - chartMargin.bottom; const xAxisY = chartHeight - chartMargin.bottom; const yTickValues = createUserAxisTicks(maxActiveLearners); const xTickIndexes = createDateAxisTickIndexes(buckets.length); const chartPoints = buckets.map((bucket, index) => { const x = buckets.length <= 1 ? chartMargin.left + drawableWidth / 2 : chartMargin.left + (index / (buckets.length - 1)) * drawableWidth; const y = chartMargin.top + (1 - bucket.active_learners / maxActiveLearners) * drawableHeight; return { bucket, x, y }; }); const linePath = chartPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' '); const areaPath = chartPoints.length > 0 ? `${linePath} L ${chartPoints[chartPoints.length - 1].x} ${xAxisY} L ${chartPoints[0].x} ${xAxisY} Z` : '';
+    return <section className="grid max-w-5xl gap-4 border-b border-[var(--settings-border-color)] pb-5"><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Anonymous activity overview</p><h3 className="mt-2 text-lg font-semibold text-[var(--settings-primary-text)]">Last 30 days</h3><p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">This anonymized diagram shows the total number of scoped learners with at least one competence signal per day. Names are intentionally not shown in this overview.</p></div><div className="grid gap-2"><svg aria-label="Anonymous active learners during the last 30 days" className="h-64 w-full max-w-5xl overflow-visible" role="img" viewBox={`0 0 ${chartWidth} ${chartHeight}`}><title>Anonymous active learners during the last 30 days</title>{yTickValues.map((value) => { const y = chartMargin.top + (1 - value / maxActiveLearners) * drawableHeight; return <g key={value}><line className="stroke-[var(--settings-border-color)]" strokeDasharray="4 8" strokeWidth="1" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={y} y2={y} /><text className="fill-[var(--settings-muted-text)] text-xs" dominantBaseline="middle" textAnchor="end" x={chartMargin.left - 10} y={y}>{value}</text></g>; })}<line className="stroke-[var(--settings-muted-text)]" strokeWidth="1.5" x1={chartMargin.left} x2={chartMargin.left} y1={chartMargin.top} y2={xAxisY} /><line className="stroke-[var(--settings-muted-text)]" strokeWidth="1.5" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={xAxisY} y2={xAxisY} />{areaPath ? <path className="fill-[var(--settings-accent)] opacity-10" d={areaPath} /> : null}{linePath ? <path className="fill-none stroke-[var(--settings-accent)]" d={linePath} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" /> : null}{xTickIndexes.map((index) => { const point = chartPoints[index]; if (!point) return null; return <g key={point.bucket.date}><line className="stroke-[var(--settings-muted-text)]" strokeWidth="1" x1={point.x} x2={point.x} y1={xAxisY} y2={xAxisY + 6} /><text className="fill-[var(--settings-muted-text)] text-xs" textAnchor="middle" x={point.x} y={xAxisY + 20}>{formatDate(point.bucket.date)}</text></g>; })}{chartPoints.map(({ bucket, x, y }) => <g key={bucket.date}><circle className={`fill-[var(--settings-accent)] ${bucket.active_learners > 0 ? 'opacity-90' : 'opacity-30'}`} cx={x} cy={y} r={bucket.active_learners > 0 ? 3.5 : 2.5} /><title>{`${formatDate(bucket.date)}: ${bucket.active_learners} active learners, ${bucket.evidence_events} evidence events`}</title></g>)}<text className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase" textAnchor="middle" transform={`rotate(-90 ${14} ${chartHeight / 2})`} x={14} y={chartHeight / 2}>Users per day</text><text className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase" textAnchor="middle" x={chartMargin.left + drawableWidth / 2} y={chartHeight - 6}>Time</text></svg></div></section>;
+}
+
+function LearnerList({ learners, onSelect, selectedLearnerId }: { learners: SupportLearner[]; onSelect: (id: string) => void; selectedLearnerId: string | null }) { return <aside className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] py-3 lg:border-r lg:border-b-0 lg:pr-3"><div className="grid gap-2">{learners.map((learner) => <button className={`relative grid gap-1 px-3 py-3 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${selectedLearnerId === learner.id ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]'}`} key={learner.id} onClick={() => onSelect(learner.id)} type="button"><span aria-hidden="true" className={`absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity ${selectedLearnerId === learner.id ? 'opacity-100' : 'opacity-0'}`} /><span className="font-medium text-[var(--settings-primary-text)]">{learner.name}</span><span className="text-xs leading-5">{learner.groups.length > 0 ? learner.groups.map((group) => group.name).join(', ') : 'No group assigned'}</span></button>)}</div></aside>; }
+
+function LearnerDetails({ learner, monthKey, onManualUnlockChanged, settings }: { learner: SupportLearner | null; monthKey: string; onManualUnlockChanged: () => Promise<void>; settings: SupportSignalsSettings }) { if (!learner) return <EmptySupportSignals />; return <section className="min-h-0 overflow-y-auto py-5 lg:pl-5"><div className="grid max-w-5xl gap-6"><header className="border-b border-[var(--settings-border-color)] pb-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Learner support</p><h3 className="mt-2 text-2xl font-semibold text-[var(--settings-primary-text)]">{learner.name}</h3><p className="mt-1 text-sm text-[var(--settings-muted-text)]">{learner.username ?? learner.email}</p></div><div className="text-right text-sm text-[var(--settings-muted-text)]"><p className="font-medium text-[var(--settings-primary-text)]">Last activity</p><p>{formatDateTime(learner.lastActivityAt)}</p><p className="mt-2 font-medium text-[var(--settings-primary-text)]">Current month</p><p>{monthKey}</p></div></div>{learner.groups.length > 0 ? <div className="mt-4 flex flex-wrap gap-2">{learner.groups.map((group) => <span className="border border-[var(--settings-border-color)] px-2.5 py-1 text-xs text-[var(--settings-muted-text)]" key={group.id}>{group.studyTopic ? `${group.name}: ${group.studyTopic}` : group.name}</span>)}</div> : null}</header><SupportNotes signals={learner.signals} /><ManualLearnerAccess canManage={settings.canGrantManualUnlocks} learner={learner} onChanged={onManualUnlockChanged} targets={settings.manualUnlockTargets} /><TopicSignals topics={learner.topics} /></div></section>; }
+
+function ManualLearnerAccess({ canManage, learner, onChanged, targets }: { canManage: boolean; learner: SupportLearner; onChanged: () => Promise<void>; targets: Signals['manual_unlock_targets'] }) {
+    const options = targets.flatMap((map) => map.nodes.map((node) => ({ id: node.id }))); const [selectedNodeId, setSelectedNodeId] = useState(''); const [pendingAction, setPendingAction] = useState<string | null>(null); const [actionError, setActionError] = useState(''); const selectedValue = options.some((option) => option.id === selectedNodeId) ? selectedNodeId : (options[0]?.id ?? ''); if (!canManage) return null;
+    async function setManualUnlock(nodeId: string, enabled: boolean): Promise<void> { const actionKey = `${nodeId}:${enabled ? 'open' : 'close'}`; setPendingAction(actionKey); setActionError(''); try { const csrfToken = await getCsrfToken(); const { response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/manual-unlocks', { body: { enabled, learner_subject_id: learner.id }, params: { header: { 'X-CSRF-Token': csrfToken }, path: { node_id: nodeId } } }); if (!response.ok) throw new Error('manual unlock unavailable'); await onChanged(); } catch { setActionError('This learner access change could not be saved yet.'); } finally { setPendingAction(null); } }
+    return <section className="grid gap-3 border-b border-[var(--settings-border-color)] pb-5" data-wl-id="support.signals.manual-node-access"><div><h4 className="font-semibold text-[var(--settings-primary-text)]">Open a locked node</h4><p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">Make one locked node available to this learner without changing its authored rules.</p></div>{options.length > 0 ? <div className="flex flex-wrap items-end gap-3"><label className="grid min-w-64 flex-1 gap-1.5 text-sm text-[var(--settings-muted-text)]"><span className="font-medium text-[var(--settings-primary-text)]">Node</span><select className="h-10 border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 text-[var(--settings-primary-text)] focus:border-[var(--settings-accent)] focus:outline-none" onChange={(event) => setSelectedNodeId(event.target.value)} value={selectedValue}>{targets.map((map) => <optgroup key={map.id} label={map.title}>{map.nodes.map((node) => <option key={node.id} value={node.id}>{node.title}</option>)}</optgroup>)}</select></label><button className="h-10 border border-[var(--settings-accent)] px-4 text-sm font-medium text-[var(--settings-accent)] transition hover:bg-[var(--settings-active-background)] disabled:cursor-not-allowed disabled:opacity-50" disabled={selectedValue === '' || pendingAction !== null} onClick={() => void setManualUnlock(selectedValue, true)} type="button">{pendingAction === `${selectedValue}:open` ? 'Opening…' : 'Open for learner'}</button></div> : <p className="text-sm text-[var(--settings-muted-text)]">There are no locked nodes on maps you can edit.</p>}{actionError ? <p className="text-sm text-red-600 dark:text-red-200" role="alert">{actionError}</p> : null}{learner.manualUnlocks.length > 0 ? <div className="grid gap-2"><p className="text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">Currently open for this learner</p>{learner.manualUnlocks.map((unlock) => <div className="flex flex-wrap items-center justify-between gap-3 border border-[var(--settings-border-color)] px-3 py-2" key={unlock.nodeId}><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--settings-primary-text)]">{unlock.nodeTitle}</p><p className="text-xs text-[var(--settings-muted-text)]">{unlock.mapTitle}</p></div><button className="text-sm text-[var(--settings-muted-text)] underline decoration-[var(--settings-border-color)] underline-offset-4 transition hover:text-[var(--settings-primary-text)] disabled:cursor-not-allowed disabled:opacity-50" disabled={pendingAction !== null} onClick={() => void setManualUnlock(unlock.nodeId, false)} type="button">{pendingAction === `${unlock.nodeId}:close` ? 'Closing…' : 'Close access'}</button></div>)}</div> : null}</section>;
+}
+
+function SupportNotes({ signals }: { signals: SupportLearner['signals'] }) { return <section className="grid gap-3 border-b border-[var(--settings-border-color)] pb-5"><div className="flex items-center gap-2 text-[var(--settings-accent)]"><Signal className="size-4" /><h4 className="font-semibold text-[var(--settings-primary-text)]">Support prompts</h4></div><div className="grid gap-2">{signals.map((signal, index) => <p className={`border-l px-3 py-2 text-sm leading-6 ${signal.tone === 'attention' ? 'border-amber-400 text-amber-200' : 'border-[var(--settings-accent-color)] text-[var(--settings-muted-text)]'}`} key={`${signal.text}-${index}`}>{signal.text}</p>)}</div></section>; }
+function TopicSignals({ topics }: { topics: SupportLearner['topics'] }) { if (topics.length === 0) return <section className="grid gap-2 py-4 text-sm text-[var(--settings-muted-text)]"><Sparkles className="size-5 text-[var(--settings-accent)]" /><p>No topic evidence profile is available yet. The useful next step is to help the learner find an activity that fits their current path.</p></section>; return <section className="grid gap-3"><div className="grid grid-cols-[minmax(0,1fr)_8rem_8rem] gap-4 border-b border-[var(--settings-border-color)] pb-2 text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase"><span>Topic</span><span className="text-right">Contribution</span><span className="text-right">This month</span></div>{topics.map((topic) => <div className="grid grid-cols-[minmax(0,1fr)_8rem_8rem] gap-4 border-b border-[var(--settings-border-color)] py-3 text-sm" key={topic.slug}><div className="min-w-0"><p className="truncate font-medium text-[var(--settings-primary-text)]">{topic.name}</p><p className="mt-1 text-xs text-[var(--settings-muted-text)]">{topic.slug}</p></div><p className="text-right font-medium text-[var(--settings-primary-text)]">{formatContribution(topic.totalContribution)}</p><p className="text-right font-medium text-[var(--settings-accent)]">{formatContribution(topic.monthlyContribution)}</p></div>)}</section>; }
+function EmptySupportSignals() { return <section className="grid min-h-[18rem] place-items-center border-t border-[var(--settings-border-color)] p-6 text-center"><div className="max-w-md"><Users className="mx-auto size-6 text-[var(--settings-accent)]" /><h3 className="mt-3 font-semibold text-[var(--settings-primary-text)]">No support signals yet</h3><p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">Evidence events appear here after learners complete activities with configured topics.</p></div></section>; }
+
+function toSourceSettings(signals: Signals): SupportSignalsSettings { return { activityOverview30Days: signals.activity_overview_30_days, canGrantManualUnlocks: signals.can_grant_manual_unlocks, learners: signals.learners.map((learner) => ({ email: learner.email, groups: learner.groups.map((group) => ({ id: group.id, name: group.name, studyTopic: group.study_topic })), id: learner.subject_id, lastActivityAt: learner.last_activity_at, manualUnlocks: learner.manual_unlocks.map((unlock) => ({ grantedAt: unlock.granted_at, mapTitle: unlock.map_title, nodeId: unlock.node_id, nodeTitle: unlock.node_title })), name: learner.name, signals: learner.support_notes, topics: learner.topics.map((topic) => ({ evidenceTypes: topic.evidence_types, monthlyContribution: topic.monthly_contribution, name: topic.name, slug: topic.slug, totalContribution: topic.total_contribution })), username: learner.username })), manualUnlockTargets: signals.manual_unlock_targets, monthKey: signals.month_key, peerSupport: signals.peer_support.map((item) => ({ activityId: item.activity_id, activityTitle: item.activity_title, contextHref: item.context_href, contributorCount: item.contributor_count, latestReviewAt: item.latest_review_at, mapId: item.map_id, mapTitle: item.map_title, nodeId: item.node_id, nodeTitle: item.node_title, unresolvedReviewCount: item.unresolved_review_count })), summary: { learners: signals.summary.learners, learnersWithSignals: signals.summary.learners_with_signals, topicsWithMonthlyActivity: signals.summary.topics_with_monthly_activity } }; }
+function readSupportSignalsViewFromUrl(): SupportSignalsView { const value = new URL(window.location.href).searchParams.get('signals'); return value === 'collective' || value === 'individual' || value === 'peer-support' ? value : 'collective'; }
+function writeSupportSignalsViewToUrl(view: SupportSignalsView): void { const url = new URL(window.location.href); url.searchParams.set('panel', 'admin-learning-support'); url.searchParams.set('support', 'support-signals'); url.searchParams.set('signals', view); window.history.pushState({ supportSignalsView: view }, '', url); }
+function createUserAxisTicks(maxValue: number): number[] { if (maxValue <= 1) return [0, 1]; const step = Math.max(1, Math.ceil(maxValue / 4)); const ticks = new Set<number>(); for (let value = 0; value <= maxValue; value += step) ticks.add(value); ticks.add(maxValue); return [...ticks].sort((left, right) => left - right); }
+function createDateAxisTickIndexes(length: number): number[] { if (length <= 0) return []; if (length <= 7) return Array.from({ length }, (_, index) => index); const lastIndex = length - 1; const step = Math.max(1, Math.round(lastIndex / 4)); const indexes = new Set<number>(); for (let index = 0; index <= lastIndex; index += step) indexes.add(index); indexes.add(lastIndex); return [...indexes].sort((left, right) => left - right); }
+function formatContribution(value: number): string { return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value); }
+function formatDate(value: string): string { return new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short' }).format(new Date(`${value}T00:00:00`)); }
+function formatDateTime(value: string | null | undefined): string { if (!value) return 'No activity yet'; return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
+function settingsStyle(appearance: OriginalAppearance): CSSProperties { const dark = appearance === 'dark'; return { '--settings-accent': dark ? '#2dd4bf' : '#0f766e', '--settings-accent-color': dark ? '#2dd4bf' : '#0f766e', '--settings-active-background': dark ? 'rgb(45 212 191 / 10%)' : 'rgb(15 118 110 / 10%)', '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0', '--settings-content-background': dark ? '#0b1117' : '#f1f5f9', '--settings-input-background': dark ? 'rgb(2 6 23 / 38%)' : '#ffffff', '--settings-muted-text': dark ? '#94a3b8' : '#64748b', '--settings-nested-sidebar-background': dark ? 'rgb(5 8 22 / 96%)' : 'rgb(248 250 252 / 96%)', '--settings-panel-background': dark ? '#111820' : '#ffffff', '--settings-primary-text': dark ? '#f8fafc' : '#0f172a', '--settings-sidebar-background': dark ? 'rgb(5 8 22 / 96%)' : 'rgb(248 250 252 / 96%)' } as CSSProperties; }

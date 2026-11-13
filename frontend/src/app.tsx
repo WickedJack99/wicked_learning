@@ -1012,6 +1012,8 @@ export function App() {
                 <Suspense fallback={null}>
                     <OriginalLearningSupportSignalsPage
                         appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
                     />
                 </Suspense>
             );
