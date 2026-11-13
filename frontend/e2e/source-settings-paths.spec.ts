@@ -36,6 +36,25 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await expect(page).toHaveURL(
         /\/settings\?panel=admin-world-builder&worldSection=graph$/,
     );
+    await worldBuilderSections.getByRole('tab', { name: 'Structural' }).click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-world-builder&worldSection=structural$/,
+    );
+    await expect(page.getByText('World maps', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Configure map' }).click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-world-builder&worldSection=structural&map=[0-9a-f-]+&worldView=configure$/,
+    );
+    await expect(
+        page.getByRole('button', { name: 'Edit map details' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Duplicate map' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Duplicate authored map' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+
+    await page.goto('/settings?panel=admin-world-builder&worldSection=graph');
     const quickNavigation = page.getByRole('navigation', {
         name: 'Settings quick navigation',
     });

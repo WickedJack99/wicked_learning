@@ -4922,6 +4922,10 @@ The source World Builder Review queue is a URL-selected Settings section, not
 a standalone substitute modal: it consumes the existing bounded scoped Rust
 review-queue projection and opens an item only through the existing authored
 map/node graph selection.
+The source Structural section likewise retains its map list, selected-map
+summary, map-configuration entry and MapAsset list. It uses the graph's
+already-scoped map/node summaries and opens only the pre-existing scoped map
+and activity editors; switching Settings sections never broadens map access.
 
 **Template-test extension:** Rust now preserves Laravel's explicit saved-agent
 test boundary. A principal with `ai.ru` submits one bounded prompt with CSRF;

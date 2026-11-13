@@ -24,15 +24,24 @@ import {
     GitBranch,
     LockKeyhole,
     Map as MapIcon,
+    Network,
     Pencil,
     Plus,
     RefreshCw,
     Route,
+    SlidersHorizontal,
     Sparkles,
     Trash2,
     X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    type ReactNode,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
@@ -183,7 +192,8 @@ type SupportedActivityType =
     | 'message_prompt'
     | 'message_wall';
 
-type WorldBuilderSection = 'graph' | 'review';
+type WorldBuilderSection = 'graph' | 'review' | 'structural';
+type WorldBuilderMapView = 'configure' | 'nodes';
 
 const worldBuilderSections = [
     {
@@ -197,6 +207,12 @@ const worldBuilderSections = [
         icon: Sparkles,
         key: 'review',
         label: 'Review queue',
+    },
+    {
+        description: 'Choose maps and open map or MapAsset configuration.',
+        icon: Network,
+        key: 'structural',
+        label: 'Structural',
     },
 ] satisfies SettingsNavigationItem<WorldBuilderSection>[];
 type ObstacleForm = {
@@ -465,7 +481,13 @@ function WorldBuilderContent({
         [location.search],
     );
     const worldBuilderSection: WorldBuilderSection =
-        query.get('worldSection') === 'review' ? 'review' : 'graph';
+        query.get('worldSection') === 'review'
+            ? 'review'
+            : query.get('worldSection') === 'structural'
+              ? 'structural'
+              : 'graph';
+    const worldBuilderMapView: WorldBuilderMapView =
+        query.get('worldView') === 'configure' ? 'configure' : 'nodes';
     const selectedMapId = query.get('map');
     const selectedNodeId = query.get('node');
     const [worldGraph, setWorldGraph] = useState<WorldGraph | null>(null);
@@ -521,6 +543,45 @@ function WorldBuilderContent({
             next.delete('map');
             next.delete('node');
             next.delete('worldView');
+            navigate(`/settings?${next.toString()}`);
+        },
+        [location.search, navigate],
+    );
+
+    const selectStructuralMap = useCallback(
+        (mapId: string) => {
+            const next = new URLSearchParams(location.search);
+            next.set('panel', 'admin-world-builder');
+            next.set('worldSection', 'structural');
+            next.set('map', mapId);
+            next.delete('node');
+            next.delete('worldView');
+            navigate(`/settings?${next.toString()}`);
+        },
+        [location.search, navigate],
+    );
+
+    const selectStructuralMapView = useCallback(
+        (mapId: string) => {
+            const next = new URLSearchParams(location.search);
+            next.set('panel', 'admin-world-builder');
+            next.set('worldSection', 'structural');
+            next.set('map', mapId);
+            next.set('worldView', 'configure');
+            next.delete('node');
+            navigate(`/settings?${next.toString()}`);
+        },
+        [location.search, navigate],
+    );
+
+    const selectStructuralNode = useCallback(
+        (mapId: string, nodeId: string) => {
+            const next = new URLSearchParams(location.search);
+            next.set('panel', 'admin-world-builder');
+            next.set('worldSection', 'structural');
+            next.set('map', mapId);
+            next.set('node', nodeId);
+            next.set('worldView', 'nodes');
             navigate(`/settings?${next.toString()}`);
         },
         [location.search, navigate],
@@ -697,6 +758,79 @@ function WorldBuilderContent({
                             )
                         }
                         page={reviewQueue}
+                    />
+                ) : worldBuilderSection === 'structural' ? (
+                    <WorldMapManagementWorkspace
+                        activeView={worldBuilderMapView}
+                        detail={
+                            editableNode && selectedMapId
+                                ? {
+                                      activeView: 'nodes',
+                                      content: (
+                                          <ActivityGraph
+                                              document={editableNode}
+                                              onReload={() =>
+                                                  setNodeReload(
+                                                      (current) => current + 1,
+                                                  )
+                                              }
+                                              onSelectMap={() =>
+                                                  selectStructuralMap(
+                                                      selectedMapId,
+                                                  )
+                                              }
+                                              worldGraph={worldGraph!}
+                                          />
+                                      ),
+                                  }
+                                : editableMap &&
+                                    selectedMapId &&
+                                    worldBuilderMapView === 'configure'
+                                  ? {
+                                        activeView: 'configure',
+                                        content: (
+                                            <div className="h-full overflow-y-auto p-5">
+                                                <MapDetails
+                                                    document={editableMap}
+                                                    onDeleted={() => {
+                                                        setEditableMap(null);
+                                                        setEditableNode(null);
+                                                        setPortal(null);
+                                                        navigate(
+                                                            '/settings?panel=admin-world-builder&worldSection=structural',
+                                                        );
+                                                        void loadWorld();
+                                                    }}
+                                                    onDuplicate={() =>
+                                                        setDuplicateMapOpen(
+                                                            true,
+                                                        )
+                                                    }
+                                                    onSelectNode={(nodeId) =>
+                                                        selectStructuralNode(
+                                                            selectedMapId,
+                                                            nodeId,
+                                                        )
+                                                    }
+                                                    onUpdated={() => {
+                                                        setMapReload(
+                                                            (current) =>
+                                                                current + 1,
+                                                        );
+                                                        void loadWorld();
+                                                    }}
+                                                />
+                                            </div>
+                                        ),
+                                    }
+                                  : null
+                        }
+                        maps={worldGraph!.maps}
+                        onSelectMap={selectStructuralMap}
+                        onSelectMapConfiguration={selectStructuralMapView}
+                        onSelectNode={selectStructuralNode}
+                        selectedMapId={selectedMapId}
+                        selectedNodeId={selectedNodeId}
                     />
                 ) : (
                 <div className="h-full min-h-0 overflow-auto bg-slate-100 px-4 py-4 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
@@ -903,17 +1037,6 @@ function WorldBuilderContent({
                     world={worldGraph!.world}
                 />
             ) : null}
-            {duplicateMapOpen && editableMap ? (
-                <DuplicateMapDialog
-                    map={editableMap.editable_map.map}
-                    onClose={() => setDuplicateMapOpen(false)}
-                    onCreated={(mapId) => {
-                        setDuplicateMapOpen(false);
-                        void loadWorld();
-                        selectMap(mapId);
-                    }}
-                />
-            ) : null}
             {sourceCatalogOpen ? (
                 <OriginalSourceCatalogDialog
                     onClose={() => setSourceCatalogOpen(false)}
@@ -922,6 +1045,21 @@ function WorldBuilderContent({
                 </div>
                 )}
                         </SettingsNestedWorkspace>
+                        {duplicateMapOpen && editableMap ? (
+                            <DuplicateMapDialog
+                                map={editableMap.editable_map.map}
+                                onClose={() => setDuplicateMapOpen(false)}
+                                onCreated={(mapId) => {
+                                    setDuplicateMapOpen(false);
+                                    void loadWorld();
+                                    if (worldBuilderSection === 'structural') {
+                                        selectStructuralMap(mapId);
+                                        return;
+                                    }
+                                    selectMap(mapId);
+                                }}
+                            />
+                        ) : null}
                     </div>
                 </div>
             </div>
@@ -1671,6 +1809,254 @@ function WorldBuilderReviewQueueWorkspace({
                             </button>
                         </footer>
             ) : null}
+        </section>
+    );
+}
+
+/**
+ * Extracted from resources/js/features/settings/world-map-management-panel.tsx.
+ * React Router callbacks replace only the source Inertia links; selected-map
+ * data and every editor continue to come from the existing scoped Rust routes.
+ */
+function WorldMapManagementWorkspace({
+    activeView,
+    detail,
+    maps,
+    onSelectMap,
+    onSelectMapConfiguration,
+    onSelectNode,
+    selectedMapId,
+    selectedNodeId,
+}: {
+    activeView: WorldBuilderMapView;
+    detail: { activeView: WorldBuilderMapView; content: ReactNode } | null;
+    maps: MapSummary[];
+    onSelectMap: (mapId: string) => void;
+    onSelectMapConfiguration: (mapId: string) => void;
+    onSelectNode: (mapId: string, nodeId: string) => void;
+    selectedMapId: string | null;
+    selectedNodeId: string | null;
+}) {
+    const selectedMap =
+        maps.find((map) => map.id === selectedMapId) ?? maps[0] ?? null;
+    const showDetailContent =
+        detail?.activeView === 'configure' || Boolean(selectedMapId && detail);
+
+    return (
+        <section className="grid h-full min-h-0 gap-0 overflow-hidden lg:grid-cols-[18rem_18rem_minmax(0,1fr)]">
+            <div className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
+                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                    World maps
+                </p>
+                <div className="mt-3 grid gap-2">
+                    {maps.map((map) => {
+                        const selected = selectedMap?.id === map.id;
+
+                        return (
+                            <button
+                                aria-current={selected ? 'page' : undefined}
+                                className={[
+                                    'relative rounded-lg px-3 py-3 text-left text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
+                                    selected
+                                        ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
+                                        : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
+                                ].join(' ')}
+                                key={map.id}
+                                onClick={() => onSelectMap(map.id)}
+                                type="button"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={[
+                                        'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                        selected ? 'opacity-100' : 'opacity-0',
+                                    ].join(' ')}
+                                />
+                                <span className="block font-semibold">
+                                    {map.title}
+                                </span>
+                                <span className="mt-1 block text-xs opacity-80">
+                                    {map.node_count} tile
+                                    {map.node_count === 1 ? '' : 's'}
+                                </span>
+                                {map.review_count > 0 ? (
+                                    <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200">
+                                        {map.review_count}{' '}
+                                        {map.review_count === 1
+                                            ? 'activity needs'
+                                            : 'activities need'}{' '}
+                                        review
+                                    </span>
+                                ) : null}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] lg:border-r lg:border-b-0">
+                {selectedMap ? (
+                    <>
+                        <div className="shrink-0 border-b border-[var(--settings-border-color)] px-4 py-4">
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                Selected map
+                            </p>
+                            <h2 className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">
+                                {selectedMap.title}
+                            </h2>
+                            <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
+                                {selectedMap.description ||
+                                    'No map description yet.'}
+                            </p>
+                        </div>
+
+                        <nav className="min-h-0 flex-1 overflow-y-auto p-3">
+                            <button
+                                aria-current={
+                                    activeView === 'configure'
+                                        ? 'page'
+                                        : undefined
+                                }
+                                className={[
+                                    'relative mb-2 flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
+                                    activeView === 'configure'
+                                        ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
+                                        : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
+                                ].join(' ')}
+                                onClick={() =>
+                                    onSelectMapConfiguration(selectedMap.id)
+                                }
+                                type="button"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={[
+                                        'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                        activeView === 'configure'
+                                            ? 'opacity-100'
+                                            : 'opacity-0',
+                                    ].join(' ')}
+                                />
+                                <SlidersHorizontal className="mt-0.5 size-4 shrink-0" />
+                                <span className="min-w-0">
+                                    <span className="block font-semibold">
+                                        Map configuration
+                                    </span>
+                                    <span className="mt-1 block text-xs opacity-80">
+                                        Details, visuals and access.
+                                    </span>
+                                </span>
+                            </button>
+
+                            <p className="px-3 pt-3 pb-2 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                MapAssets
+                            </p>
+                            <div className="grid gap-2">
+                                {selectedMap.nodes.map((node) => {
+                                    const selected =
+                                        activeView === 'nodes' &&
+                                        node.id === selectedNodeId;
+
+                                    return (
+                                        <button
+                                            aria-current={
+                                                selected ? 'page' : undefined
+                                            }
+                                            className={[
+                                                'relative flex items-start gap-3 rounded-lg px-3 py-3 text-left text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
+                                                selected
+                                                    ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
+                                                    : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
+                                            ].join(' ')}
+                                            key={node.id}
+                                            onClick={() =>
+                                                onSelectNode(
+                                                    selectedMap.id,
+                                                    node.id,
+                                                )
+                                            }
+                                            type="button"
+                                        >
+                                            <span
+                                                aria-hidden="true"
+                                                className={[
+                                                    'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                                    selected
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0',
+                                                ].join(' ')}
+                                            />
+                                            <GitBranch className="mt-0.5 size-4 shrink-0" />
+                                            <span className="min-w-0">
+                                                <span className="block truncate font-semibold">
+                                                    {node.title}
+                                                </span>
+                                                <span className="mt-1 line-clamp-2 text-xs opacity-80">
+                                                    {node.description || node.slug}
+                                                </span>
+                                                {node.activity_review_count > 0 ? (
+                                                    <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200">
+                                                        {
+                                                            node.activity_review_count
+                                                        }{' '}
+                                                        {node.activity_review_count ===
+                                                        1
+                                                            ? 'activity needs'
+                                                            : 'activities need'}{' '}
+                                                        review
+                                                    </span>
+                                                ) : null}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                                {selectedMap.nodes.length === 0 ? (
+                                    <p className="border border-dashed border-[var(--settings-border-color)] p-3 text-sm text-[var(--settings-muted-text)]">
+                                        No nodes yet.
+                                    </p>
+                                ) : null}
+                            </div>
+                        </nav>
+                    </>
+                ) : (
+                    <p className="m-4 border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
+                        Create a map before configuring map or MapAsset access.
+                    </p>
+                )}
+            </div>
+
+            <div className="min-h-0 min-w-0 overflow-hidden bg-[var(--settings-panel-background)]">
+                {selectedMap && showDetailContent && detail ? (
+                    detail.content
+                ) : selectedMap ? (
+                    <div className="grid h-full min-h-0 place-items-center overflow-hidden p-5 text-center">
+                        <div className="max-w-xl">
+                            <GitBranch className="mx-auto size-8 text-[var(--settings-accent)]" />
+                            <h2 className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">
+                                {selectedMap.title}
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
+                                Select a MapAsset to edit its activities, or
+                                open the map configuration for details, visuals
+                                and access.
+                            </p>
+                            <button
+                                className="mt-5 rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium text-[var(--settings-accent)] transition hover:bg-[var(--settings-active-background)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                                onClick={() =>
+                                    onSelectMapConfiguration(selectedMap.id)
+                                }
+                                type="button"
+                            >
+                                Configure map
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="m-4 border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)] sm:m-5">
+                        Create a map before configuring map or MapAsset access.
+                    </p>
+                )}
+            </div>
         </section>
     );
 }
