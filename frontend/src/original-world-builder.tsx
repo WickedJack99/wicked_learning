@@ -160,8 +160,7 @@ type SupportedActivityType =
     | 'question'
     | 'shared_task'
     | 'message_prompt'
-    | 'message_wall'
-    | 'npc_dialogue';
+    | 'message_wall';
 type ObstacleForm = {
     allowedToolIds: string[];
     backgroundDark: string;
@@ -9825,7 +9824,6 @@ function isSupportedActivityType(type: string): type is SupportedActivityType {
         type === 'obstacle' ||
         type === 'question' ||
         type === 'shared_task' || type === 'message_prompt' || type === 'message_wall'
-        || type === 'npc_dialogue'
     );
 }
 

@@ -77,6 +77,21 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
 
     await page.getByRole('button', { name: 'Activity graph' }).click();
     await expect(page.getByText(title, { exact: true })).toBeVisible();
+    const activityCard = page.locator(`[data-id="${activityId}"]`);
+    await expect(activityCard).toBeVisible();
+    await expect(
+        activityCard.getByRole('button', {
+            name: `Save ${title} as a reusable template`,
+        }),
+    ).toHaveCount(0);
+    expect(
+        await browserJsonRequest(
+            page,
+            `/api/v1/admin/world-builder/activities/${activityId}/templates`,
+            'POST',
+            { name: `Unavailable dialogue template ${Date.now()}` },
+        ),
+    ).toBe(422);
     const nodeDocument = await page.request.get(`/api/v1/admin/world-builder/nodes/${target.nodeId}`);
     const activityDocument = (await nodeDocument.json()) as {
         activity_graph: { activities: Array<{ id: string; connectors: { outputs: Array<{ id: string }> } }> };

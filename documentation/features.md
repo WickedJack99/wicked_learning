@@ -924,7 +924,9 @@ configuration.
 Reusable activity-template snapshots and their immutable revisions retain the
 same object-shaped Learning Companion configuration as the source activity.
 This preserves an authored template's stored context without adding a separate
-Companion editor to the template workflow.
+Companion editor to the template workflow. NPC dialogue activities remain
+outside this reusable-template boundary because their dedicated dialogue graph
+is authored and restored through its own workflow.
 
 Map configuration keeps its existing section menus but switches nested authoring
 navigation to compact horizontal controls below wide-desktop layouts. Detail and

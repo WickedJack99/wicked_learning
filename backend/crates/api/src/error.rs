@@ -194,6 +194,14 @@ impl ApiError {
         }
     }
 
+    pub fn activity_template_rejected() -> Self {
+        Self {
+            code: "activity_template_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "NPC dialogue activities cannot be saved as reusable templates.",
+        }
+    }
+
     pub fn companion_turn_rejected() -> Self {
         Self {
             code: "companion_turn_rejected",

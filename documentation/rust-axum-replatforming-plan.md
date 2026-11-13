@@ -743,14 +743,14 @@ NPC-dialogue, tool-grant, item-grant, item-obstacle and base-obstacle start card
 signed-in learner. Each lifted original start/reset control calls a Rust command with its
 authored start UUID; the browser then navigates to the matching server-owned
 play run. Anonymous visitors receive no start control. A disabled imitation of
-the original controls is not acceptable. The route intentionally does not yet
-support node-drawer obstacle/item use, node-drawer NPC tool grants, group data, audio configuration,
-or the full serializer state consumed by Laravel's
-`LearningWorldSerializer` and its `WorldMap`, `NodeDetailDrawer` and
-`ActivityPanel` components. The original `NodeDetailDrawer` geometry, close
-control, scroll ownership and touch-swipe behavior, plus the supported
-start-card presentation, are lifted onto the interim route. It must therefore
-not be described as a completed World migration.
+the original controls is not acceptable. The route now also retains the source
+equipped-tool interaction, member-only Groups control, map-asset interaction
+sounds and the supported NPC-dialogue tool-grant path. The original
+`NodeDetailDrawer` geometry, close control, scroll ownership and touch-swipe
+behavior, plus the supported start-card presentation, are lifted onto the
+standalone route. It must therefore still not be described as a completed World
+migration: source controls remain absent until their complete Rust contract and
+authorization evidence exist.
 
 Before treating the route as visually or functionally migrated, define the
 corresponding Rust read contract from that serializer, preserve its bounded and
@@ -1608,7 +1608,9 @@ restore keep the same object and their existing media-reference traversal.
 Malformed legacy snapshot values fall back safely to an empty object. This
 keeps established rollback and reuse workflows from silently discarding a
 learner-context override without creating a configuration editor, applying a
-template's value to a new activity or invoking a provider.
+template's value to a new activity or invoking a provider. NPC dialogue
+activities remain outside reusable activity templates, as in Laravel, because
+their dedicated dialogue graph is its own authoring boundary.
 
 **Gate:** representative export/import and media lifecycle tests pass on fresh
 data; no Laravel-specific storage or serializer path is in the active
@@ -1682,9 +1684,9 @@ Practice, Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle
 types currently creatable through the API, preserving their existing typed
 commands, Markdown's managed-media references, Question's bounded answer
 options, Shared Task's bounded collaboration configuration, Item Grant's
-scoped catalog resolution, Tool Grant's scoped tool resolution, Item Obstacle's scoped item/sound resolution, Obstacle's scoped tool resolution, Portal's same-World input-target resolution and transactional link/media-reference write, NPC dialogue's default end-node scaffold, Message's map-scoped topic resolution, and optional graph coordinates. Other Activity types
-remain absent from the advertised contract until their exact scoped adapters are
-implemented. The contract also now publishes the source-compatible strict
+scoped catalog resolution, Tool Grant's scoped tool resolution, Item Obstacle's scoped item/sound resolution, Obstacle's scoped tool resolution, Portal's same-World input-target resolution and transactional link/media-reference write, NPC dialogue's default end-node scaffold, Message's map-scoped topic resolution, and optional graph coordinates. Those fourteen entries are the complete source
+`ActivityTypeRegistry` set, so the contract does not advertise a partially
+migrated source Activity type. The contract also now publishes the source-compatible strict
 ContentPlan draft schema for the five source-supported plan activity types.
 The scoped Rust authoring endpoints generate and persist one reviewable draft
 for an editable map, and let only its creator save an edited draft after the

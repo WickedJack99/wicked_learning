@@ -51,7 +51,7 @@ impl Port for PostgresAdminActivityTemplatesRepository<'_> {
         async move {
             create_from_activity(self.pool, principal, activity_id, name)
                 .await
-                .map_err(unavailable)
+                .map_err(mutation_error)
         }
     }
     fn details(
@@ -92,7 +92,7 @@ impl Port for PostgresAdminActivityTemplatesRepository<'_> {
         async move {
             update_from_activity(self.pool, principal, template_id, activity_id)
                 .await
-                .map_err(unavailable)
+                .map_err(mutation_error)
         }
     }
     fn share(
@@ -166,6 +166,24 @@ impl Port for PostgresAdminActivityTemplatesRepository<'_> {
 fn unavailable(error: sqlx::Error) -> AdminActivityTemplatesError {
     tracing::error!(%error, "could not manage reusable activity templates");
     AdminActivityTemplatesError::Unavailable
+}
+
+enum ActivityTemplateMutationError {
+    Invalid,
+    Database(sqlx::Error),
+}
+
+impl From<sqlx::Error> for ActivityTemplateMutationError {
+    fn from(error: sqlx::Error) -> Self {
+        Self::Database(error)
+    }
+}
+
+fn mutation_error(error: ActivityTemplateMutationError) -> AdminActivityTemplatesError {
+    match error {
+        ActivityTemplateMutationError::Invalid => AdminActivityTemplatesError::Invalid,
+        ActivityTemplateMutationError::Database(error) => unavailable(error),
+    }
 }
 
 #[derive(FromRow)]
@@ -331,7 +349,11 @@ async fn scoped_activity(
         || (permission_scope_allows(scope, "own") && activity.map_creator_id == Some(principal_id))
         || (permission_scope_allows(scope, "assigned") && direct)
         || direct;
-    Ok((allowed && activity.activity_type != "npc_dialogue").then_some(activity))
+    Ok(allowed.then_some(activity))
+}
+
+fn supports_reusable_activity_template(activity_type: &str) -> bool {
+    activity_type != "npc_dialogue"
 }
 fn activity_snapshot(activity: &ScopedActivity) -> Value {
     json!({ "companionConfig": activity.companion_config, "config": activity.config, "introduction": activity.introduction, "question": if activity.activity_type == "question" { activity.config.clone() } else { Value::Null }, "title": activity.title, "type": activity.activity_type })
@@ -440,7 +462,7 @@ async fn create_from_activity(
     principal: &AuthorizedPrincipal,
     activity_id: Uuid,
     name: &ActivityTemplateName,
-) -> Result<Option<AdminActivityTemplateSummary>, sqlx::Error> {
+) -> Result<Option<AdminActivityTemplateSummary>, ActivityTemplateMutationError> {
     let mut tx = pool.begin().await?;
     let Some(principal_id) = principal_id(&mut tx, principal).await? else {
         return Ok(None);
@@ -448,6 +470,9 @@ async fn create_from_activity(
     let Some(activity) = scoped_activity(&mut tx, principal, activity_id).await? else {
         return Ok(None);
     };
+    if !supports_reusable_activity_template(&activity.activity_type) {
+        return Err(ActivityTemplateMutationError::Invalid);
+    }
     let snapshot = activity_snapshot(&activity);
     let id = Uuid::new_v4();
     sqlx::query("INSERT INTO learning_activity_templates (id, created_by_principal_id, name, activity_type, snapshot) VALUES ($1, $2, $3, $4, $5)").bind(id).bind(principal_id).bind(&name.0).bind(&activity.activity_type).bind(&snapshot).execute(&mut *tx).await?;
@@ -531,7 +556,7 @@ async fn update_from_activity(
     principal: &AuthorizedPrincipal,
     template_id: Uuid,
     activity_id: Uuid,
-) -> Result<Option<AdminActivityTemplateSummary>, sqlx::Error> {
+) -> Result<Option<AdminActivityTemplateSummary>, ActivityTemplateMutationError> {
     let mut tx = pool.begin().await?;
     let Some(principal_id) = principal_id(&mut tx, principal).await? else {
         return Ok(None);
@@ -542,6 +567,9 @@ async fn update_from_activity(
     let Some(activity) = scoped_activity(&mut tx, principal, activity_id).await? else {
         return Ok(None);
     };
+    if !supports_reusable_activity_template(&activity.activity_type) {
+        return Err(ActivityTemplateMutationError::Invalid);
+    }
     record(&mut tx, &template, principal_id).await?;
     template.snapshot = activity_snapshot(&activity);
     template.activity_type = activity.activity_type;
@@ -782,5 +810,11 @@ mod tests {
             activity_snapshot(&activity)["companionConfig"],
             json!({"welcome_message": "A saved companion context."})
         );
+    }
+
+    #[test]
+    fn excludes_npc_dialogues_from_reusable_activity_templates() {
+        assert!(!supports_reusable_activity_template("npc_dialogue"));
+        assert!(supports_reusable_activity_template("open_practice"));
     }
 }

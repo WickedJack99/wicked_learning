@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use wicked_learning_application::admin_activity_templates::{
     ActivityTemplateName, ActivityTemplatePageRequest, ActivityTemplateRevisionPageRequest,
-    AdminActivityTemplatesCommand,
+    AdminActivityTemplatesCommand, AdminActivityTemplatesError,
 };
 use wicked_learning_domain::world_content::{
     AdminActivityTemplateDetails, AdminActivityTemplatePage, AdminActivityTemplateRevisionDetails,
@@ -56,6 +56,13 @@ fn repo(state: &AppState) -> PostgresAdminActivityTemplatesRepository<'_> {
 fn id(value: String) -> Result<Uuid, ApiError> {
     Uuid::parse_str(&value).map_err(|_| ApiError::not_found())
 }
+
+fn map_error(error: AdminActivityTemplatesError) -> ApiError {
+    match error {
+        AdminActivityTemplatesError::Invalid => ApiError::activity_template_rejected(),
+        AdminActivityTemplatesError::Unavailable => ApiError::service_unavailable(),
+    }
+}
 async fn actor(
     state: &AppState,
     session: AuthSession<IdentityBackend>,
@@ -98,7 +105,7 @@ pub async fn create(
     let template = AdminActivityTemplatesCommand::new(&repo(&state))
         .create_from_activity(&principal, id(activity_id)?, &name)
         .await
-        .map_err(|_| ApiError::service_unavailable())?
+        .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok((StatusCode::CREATED, Json(TemplateResponse { template })))
 }
@@ -145,7 +152,7 @@ pub async fn update_from_activity(
     let template = AdminActivityTemplatesCommand::new(&repo(&state))
         .update_from_activity(&principal, id(template_id)?, id(activity_id)?)
         .await
-        .map_err(|_| ApiError::service_unavailable())?
+        .map_err(map_error)?
         .ok_or_else(ApiError::not_found)?;
     Ok(Json(TemplateResponse { template }))
 }

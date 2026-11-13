@@ -147,9 +147,10 @@ docker compose --env-file .env.rust -f compose.rust.yaml cp \
 Use the token from that file in the local registration screen, then delete the
 local and container copies yourself when they are no longer needed. To record
 a non-secret operator note, add `-e REGISTRATION_TOKEN_NOTE='purpose'` to the
-`docker compose exec` command. Expiry selection, role grants, token
-listing/revocation and the source administrator UI remain later identity-access
-work.
+`docker compose exec` command. The source-adapted Users workspace owns expiry
+selection, hierarchy-checked role grants, token listing and revocation. The CLI
+remains a private local operator/bootstrap path rather than a replacement for
+that administrator workflow.
 
 ## Coolify-shaped deployment
 

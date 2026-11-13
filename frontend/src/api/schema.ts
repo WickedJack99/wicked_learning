@@ -19175,6 +19175,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description NPC dialogue activities cannot be saved as reusable templates. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The application database is unavailable. */
             503: {
                 headers: {
@@ -19382,6 +19389,13 @@ export interface operations {
             };
             /** @description The template or activity is unavailable to this author. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description NPC dialogue activities cannot be saved as reusable templates. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
