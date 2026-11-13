@@ -62,6 +62,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const mapTitle = `Content API browser map ${suffix}`;
     const assetTitle = `Content API browser MapAsset ${suffix}`;
     const activityTitle = `Content API browser practice ${suffix}`;
+    const dialogueTitle = `Content API browser dialogue ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -132,6 +133,19 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(activity.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(activity.data).toMatchObject({ type: 'open_practice', title: activityTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'npc_dialogue',
+        title: dialogueTitle,
+        introduction: 'Ask the guide one question about this place.',
+        graph_position_x: 180,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const dialogue = await createdResponse(console);
+    expect(dialogue.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(dialogue.data).toMatchObject({ type: 'npc_dialogue', title: dialogueTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -139,4 +153,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await console.getByRole('button', { name: 'Send request' }).click();
     await expect(console.getByText('HTTP 200')).toBeVisible();
     await expect(console.locator('pre')).toContainText(activityTitle);
+    await expect(console.locator('pre')).toContainText(dialogueTitle);
 });
