@@ -2605,10 +2605,14 @@ and would not match the source's persisted setting. Seeding unimplemented
 languages would expose a misleading control. Keeping locale in identity data
 would violate the accepted database boundary. These are rejected.
 
-**Limits and follow-up:** This slice stores and validates the selected locale;
-it does not yet switch platform or activity copy. Translation-catalogue
-migration, locale administration and any content fallback policy require their
-own source-backed contracts and verification.
+**Current implementation:** The later translation-catalogue slice now supplies
+the source-backed contracts this decision anticipated. An enabled selected
+locale loads its bounded fixed platform-copy catalog through an owner-scoped
+learner endpoint, while an active owned play run can load only its filtered
+activity copy. Language administrators can manage locale activation and
+import/export the catalog. Those reads cannot alter graph structure, answer
+correctness, media, scoring or access policy; fixed-copy consumers continue to
+be lifted surface by surface.
 
 ## ADR-064: Platform feedback is deliberate shared application data
 
