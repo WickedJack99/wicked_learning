@@ -38,6 +38,7 @@
     "common.configuration.light": "Light configuration",
     "common.configuration.mode": "Configuration mode",
     "common.loading": "Loading...",
+    "common.saving": "Saving…",
     "common.log_out": "Log out",
     "common.untitled": "Untitled"
 }

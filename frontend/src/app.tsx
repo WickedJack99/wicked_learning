@@ -114,6 +114,12 @@ const OriginalPublicPalettePage = lazy(async () => {
     return { default: module.OriginalPublicPalettePage };
 });
 
+const OriginalAdminLanguagesPage = lazy(async () => {
+    const module = await import('./original-admin-languages');
+
+    return { default: module.OriginalAdminLanguagesPage };
+});
+
 const OriginalGroupManagementPage = lazy(async () => {
     const module = await import('./original-group-management');
 
@@ -764,6 +770,19 @@ export function App() {
             return (
                 <Suspense fallback={null}>
                     <OriginalPublicPresentationPage appearance={appearance} />
+                </Suspense>
+            );
+        }
+
+        if (
+            new URLSearchParams(location.search).get('panel') ===
+                'admin-presentation-localization' &&
+            new URLSearchParams(location.search).get('presentation') ===
+                'languages'
+        ) {
+            return (
+                <Suspense fallback={null}>
+                    <OriginalAdminLanguagesPage appearance={appearance} />
                 </Suspense>
             );
         }
