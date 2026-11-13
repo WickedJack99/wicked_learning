@@ -822,6 +822,10 @@ fn router(state: AppState) -> Router {
             patch(admin_ai_content_authoring::update),
         )
         .route(
+            "/api/v1/admin/ai-content-plans/{run_id}/apply",
+            post(admin_ai_content_authoring::apply),
+        )
+        .route(
             "/api/v1/admin/world-builder/maps/{map_id}/nodes",
             post(admin_world_node::create),
         )
@@ -1832,6 +1836,45 @@ mod tests {
                 .to_bytes(),
             "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
         );
+    }
+
+    #[tokio::test]
+    async fn applying_a_content_plan_requires_an_authenticated_session() {
+        let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(
+                        "/api/v1/admin/ai-content-plans/00000000-0000-4000-8000-000000000001/apply",
+                    )
+                    .body(Body::empty())
+                    .expect("a valid ContentPlan apply request"),
+            )
+            .await
+            .expect("ContentPlan apply response");
+
+        assert_eq!(response.status(), 401);
     }
 
     #[tokio::test]

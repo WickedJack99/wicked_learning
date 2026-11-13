@@ -11,7 +11,7 @@ use wicked_learning_application::admin_ai_content_authoring::{
     ContentPlanBrief, validate_content_plan,
 };
 use wicked_learning_persistence::admin_ai_content_authoring::{
-    ContentAuthoringRun, PostgresContentAuthoringRepository,
+    ContentAuthoringApplyError, ContentAuthoringRun, PostgresContentAuthoringRepository,
 };
 
 use crate::{
@@ -129,6 +129,34 @@ pub async fn update(
     Ok(Json(json!({ "data": serialize_run(run) })))
 }
 
+/// Applies one owner-reviewed draft exactly once. The persistence boundary
+/// revalidates the persisted plan and creates its MapAsset, node, route and
+/// typed activities in a single transaction.
+pub async fn apply(
+    State(state): State<AppState>,
+    Path(run_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    let run_id = Uuid::parse_str(&run_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    if !principal.has_permission("ai", "ru") {
+        return Err(ApiError::forbidden());
+    }
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresContentAuthoringRepository::new(&state.application_database);
+    let run = repository
+        .apply_draft(&principal, run_id)
+        .await
+        .map_err(apply_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({ "data": serialize_run(run) })),
+    ))
+}
+
 fn serialize_run(run: ContentAuthoringRun) -> Value {
     json!({
         "id": run.id,
@@ -140,10 +168,22 @@ fn serialize_run(run: ContentAuthoringRun) -> Value {
         "provider": run.provider,
         "model": run.model,
         "usage": { "inputTokens": run.input_tokens, "outputTokens": run.output_tokens, "totalTokens": run.total_tokens },
-        "mapAsset": Value::Null,
+        "mapAsset": run.map_asset.map(|asset| json!({
+            "id": asset.id,
+            "title": asset.title,
+            "activityCount": asset.activity_count,
+        })),
         "createdAt": run.created_at,
         "appliedAt": run.applied_at,
     })
+}
+
+fn apply_error(error: ContentAuthoringApplyError) -> ApiError {
+    match error {
+        ContentAuthoringApplyError::Conflict => ApiError::conflict(),
+        ContentAuthoringApplyError::Rejected => ApiError::content_plan_rejected(),
+        ContentAuthoringApplyError::Unavailable => ApiError::service_unavailable(),
+    }
 }
 
 #[cfg(test)]
@@ -152,7 +192,9 @@ mod tests {
     use uuid::Uuid;
 
     use super::{GenerateContentPlanRequest, serialize_run};
-    use wicked_learning_persistence::admin_ai_content_authoring::ContentAuthoringRun;
+    use wicked_learning_persistence::admin_ai_content_authoring::{
+        AppliedContentPlanMapAsset, ContentAuthoringRun,
+    };
 
     #[test]
     fn accepts_the_source_brief_shape_with_uuid_source_records() {
@@ -181,11 +223,40 @@ mod tests {
             input_tokens: Some(1),
             output_tokens: Some(2),
             total_tokens: Some(3),
+            map_asset: None,
             created_at: "2026-11-13T00:00:00.000000Z".into(),
             applied_at: None,
         });
         assert_eq!(value["id"], json!(id));
         assert_eq!(value["mapAsset"], Value::Null);
         assert!(value.get("prompt").is_none());
+    }
+
+    #[test]
+    fn serializes_the_applied_map_asset_only_after_atomic_application() {
+        let asset_id = Uuid::new_v4();
+        let value = serialize_run(ContentAuthoringRun {
+            id: Uuid::new_v4(),
+            status: "applied".into(),
+            contract_version: "1.0:1.5".into(),
+            plan: json!({}),
+            source_records: vec![],
+            warnings: vec![],
+            provider: "openai".into(),
+            model: "test".into(),
+            input_tokens: None,
+            output_tokens: None,
+            total_tokens: None,
+            map_asset: Some(AppliedContentPlanMapAsset {
+                id: asset_id,
+                title: "Energy converter".into(),
+                activity_count: 2,
+            }),
+            created_at: "2026-11-13T00:00:00.000000Z".into(),
+            applied_at: Some("2026-11-13T01:00:00.000000Z".into()),
+        });
+
+        assert_eq!(value["mapAsset"]["id"], json!(asset_id));
+        assert_eq!(value["mapAsset"]["activityCount"], 2);
     }
 }

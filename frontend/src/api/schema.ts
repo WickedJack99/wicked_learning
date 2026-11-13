@@ -1358,6 +1358,26 @@ export interface paths {
         patch: operations["updateAdminContentPlan"];
         trace?: never;
     };
+    "/admin/ai-content-plans/{run_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Atomically apply one owner-reviewed ContentPlan draft.
+         * @description Requires the original draft author, AI update permission, current World Map and Activity update scopes, and a same-origin CSRF token. Rust revalidates the persisted plan and creates the MapAsset, compatibility node, route, typed Activities, start and linear transitions in one transaction. An applied draft cannot be applied again.
+         */
+        post: operations["applyAdminContentPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/nodes": {
         parameters: {
             query?: never;
@@ -9794,6 +9814,12 @@ export interface components {
             outputTokens: number | null;
             totalTokens: number | null;
         };
+        AppliedAdminContentPlanMapAsset: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            activityCount: number;
+        };
         AdminContentPlanRun: {
             /** Format: uuid */
             id: string;
@@ -9806,11 +9832,11 @@ export interface components {
             provider: string;
             model: string;
             usage: components["schemas"]["AdminContentPlanUsage"];
-            mapAsset: null;
+            mapAsset: null | components["schemas"]["AppliedAdminContentPlanMapAsset"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
-            appliedAt: null;
+            appliedAt: string | null;
         };
         AdminContentPlanRunResponse: {
             data: components["schemas"]["AdminContentPlanRun"];
@@ -14551,6 +14577,73 @@ export interface operations {
                 content?: never;
             };
             /** @description The edited draft does not satisfy its strict ContentPlan contract. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    applyAdminContentPlan: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The draft was applied atomically and now identifies its created MapAsset. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContentPlanRunResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The caller lacks AI update permission or the same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The draft is not owned by the caller or its map is unavailable in current scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The draft has already been applied. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The persisted draft no longer satisfies the strict ContentPlan contract. */
             422: {
                 headers: {
                     [name: string]: unknown;

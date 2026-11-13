@@ -1714,6 +1714,34 @@ paths:
         '404': { description: The draft is not owned by the caller, is not editable, or its map is unavailable in scope. }
         '422': { description: The edited draft does not satisfy its strict ContentPlan contract. }
         '503': { description: The application database is unavailable. }
+  /admin/ai-content-plans/{run_id}/apply:
+    post:
+      operationId: applyAdminContentPlan
+      summary: Atomically apply one owner-reviewed ContentPlan draft.
+      description: >-
+        Requires the original draft author, AI update permission, current World
+        Map and Activity update scopes, and a same-origin CSRF token. Rust
+        revalidates the persisted plan and creates the MapAsset, compatibility
+        node, route, typed Activities, start and linear transitions in one
+        transaction. An applied draft cannot be applied again.
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '201':
+          description: The draft was applied atomically and now identifies its created MapAsset.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminContentPlanRunResponse' }
+        '401': { description: Authentication is required. }
+        '403': { description: The caller lacks AI update permission or the same-origin CSRF check failed. }
+        '404': { description: The draft is not owned by the caller or its map is unavailable in current scope. }
+        '409': { description: The draft has already been applied. }
+        '422': { description: The persisted draft no longer satisfies the strict ContentPlan contract. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/maps/{map_id}/nodes:
     post:
       operationId: createAdminWorldBuilderNode
@@ -13349,6 +13377,14 @@ components:
         inputTokens: { type: [integer, 'null'], minimum: 0 }
         outputTokens: { type: [integer, 'null'], minimum: 0 }
         totalTokens: { type: [integer, 'null'], minimum: 0 }
+    AppliedAdminContentPlanMapAsset:
+      type: object
+      additionalProperties: false
+      required: [id, title, activityCount]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        activityCount: { type: integer, minimum: 1, maximum: 3 }
     AdminContentPlanRun:
       type: object
       additionalProperties: false
@@ -13363,9 +13399,12 @@ components:
         provider: { type: string }
         model: { type: string }
         usage: { $ref: '#/components/schemas/AdminContentPlanUsage' }
-        mapAsset: { type: ['null'] }
+        mapAsset:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/AppliedAdminContentPlanMapAsset'
         createdAt: { type: string, format: date-time }
-        appliedAt: { type: ['null'], format: date-time }
+        appliedAt: { type: [string, 'null'], format: date-time }
     AdminContentPlanRunResponse:
       type: object
       additionalProperties: false

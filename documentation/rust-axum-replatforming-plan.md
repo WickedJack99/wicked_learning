@@ -1677,11 +1677,16 @@ The scoped Rust authoring endpoints generate and persist one reviewable draft
 for an editable map, and let only its creator save an edited draft after the
 same schema, selected-source and current map-scope checks. Provider execution
 uses the existing encrypted server-only Responses boundary; no prompt, key or
-unselected context is serialized back to the browser. Neither endpoint creates
-content. Applying a draft remains unadvertised until its revalidation and
-single-transaction MapAsset/Activity/route writer are migrated. Source
-attributions use opaque Rust source-record UUIDs; Laravel's numeric record
-identities are not a greenfield compatibility target.
+unselected context is serialized back to the browser. The owner may explicitly
+apply a draft once through a CSRF-protected endpoint. Rust locks the draft and
+map, revalidates the stored plan and original source scope, then creates its
+MapAsset, compatibility node, route, five supported typed Activity forms, route
+start and linear transitions in one transaction before marking the run applied.
+Markdown media references are synchronized in that transaction; any failure
+rolls all writes back. Source attributions use opaque Rust source-record UUIDs;
+Laravel's numeric record identities are not a greenfield compatibility target.
+The browser authoring dialog remains unexposed while the backend-first
+authoring migration continues.
 
 ### 7. Complete the replacement deliberately
 

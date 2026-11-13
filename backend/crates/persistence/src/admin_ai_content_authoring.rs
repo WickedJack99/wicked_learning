@@ -1,10 +1,11 @@
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use sqlx::{FromRow, PgPool, Postgres, Transaction, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::admin_ai_content_authoring::{
     CONTENT_PLAN_CONTRACT_VERSION, ContentPlanBrief, ContentPlanValidationError,
     validate_content_plan,
 };
+use wicked_learning_application::admin_world_reflection::generated_slug;
 use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
 
 const CONTENT_API_CONTRACT_VERSION: &str = "1.0";
@@ -52,8 +53,16 @@ pub struct ContentAuthoringRun {
     pub input_tokens: Option<i64>,
     pub output_tokens: Option<i64>,
     pub total_tokens: Option<i64>,
+    pub map_asset: Option<AppliedContentPlanMapAsset>,
     pub created_at: String,
     pub applied_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppliedContentPlanMapAsset {
+    pub id: Uuid,
+    pub title: String,
+    pub activity_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -65,6 +74,13 @@ pub struct EditableContentAuthoringRun {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ContentAuthoringPersistenceError;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContentAuthoringApplyError {
+    Conflict,
+    Rejected,
+    Unavailable,
+}
 
 pub struct PostgresContentAuthoringRepository<'pool> {
     pool: &'pool PgPool,
@@ -116,6 +132,17 @@ impl<'pool> PostgresContentAuthoringRepository<'pool> {
         update_draft(self.pool, principal, run_id, plan)
             .await
             .map_err(unavailable)
+    }
+
+    /// Applies a human-reviewed draft in one transaction. This deliberately
+    /// composes the established MapAsset/node/route and typed-activity storage
+    /// invariants instead of issuing several independently committed commands.
+    pub async fn apply_draft(
+        &self,
+        principal: &AuthorizedPrincipal,
+        run_id: Uuid,
+    ) -> Result<Option<ContentAuthoringRun>, ContentAuthoringApplyError> {
+        apply_draft(self.pool, principal, run_id).await
     }
 }
 
@@ -380,6 +407,468 @@ async fn update_draft(
     .await?;
     transaction.commit().await?;
     Ok(Some(run(row)))
+}
+
+async fn apply_draft(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    run_id: Uuid,
+) -> Result<Option<ContentAuthoringRun>, ContentAuthoringApplyError> {
+    if !principal.has_permission("ai", "ru")
+        || !principal.has_permission("world_maps", "ru")
+        || !principal.has_permission("world_activities", "ru")
+    {
+        return Ok(None);
+    }
+    let mut transaction = pool
+        .begin()
+        .await
+        .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    let Some(principal_id) = principal_id_tx(&mut transaction, principal)
+        .await
+        .map_err(|_| ContentAuthoringApplyError::Unavailable)?
+    else {
+        return Ok(None);
+    };
+    let Some(current) = sqlx::query_as::<_, RunRow>(&format!(
+        "SELECT {RUN_COLUMNS} FROM ai_content_authoring_runs WHERE id = $1 FOR UPDATE"
+    ))
+    .bind(run_id)
+    .fetch_optional(&mut *transaction)
+    .await
+    .map_err(|_| ContentAuthoringApplyError::Unavailable)?
+    else {
+        return Ok(None);
+    };
+    if current.created_by_principal_id != principal_id {
+        return Ok(None);
+    }
+    if current.status != "draft" {
+        return Err(ContentAuthoringApplyError::Conflict);
+    }
+    let Some(map) = map_tx(&mut transaction, current.learning_map_id)
+        .await
+        .map_err(|_| ContentAuthoringApplyError::Unavailable)?
+    else {
+        return Ok(None);
+    };
+    if !can_edit_map_tx(&mut transaction, principal, principal_id, &map)
+        .await
+        .map_err(|_| ContentAuthoringApplyError::Unavailable)?
+        || !can_edit_activity_tx(&mut transaction, principal, principal_id, &map)
+            .await
+            .map_err(|_| ContentAuthoringApplyError::Unavailable)?
+    {
+        return Ok(None);
+    }
+    let (allowed_activity_types, selected_source_record_ids) =
+        context_limits(&current.context).map_err(|_| ContentAuthoringApplyError::Rejected)?;
+    validate_content_plan(
+        current.plan.clone(),
+        &allowed_activity_types,
+        Some(&selected_source_record_ids),
+    )
+    .map_err(|_| ContentAuthoringApplyError::Rejected)?;
+    let route_length = current
+        .context
+        .pointer("/brief/routeLength")
+        .and_then(Value::as_u64)
+        .and_then(|length| usize::try_from(length).ok())
+        .ok_or(ContentAuthoringApplyError::Rejected)?;
+    let activities = current
+        .plan
+        .get("activities")
+        .and_then(Value::as_array)
+        .filter(|activities| activities.len() == route_length)
+        .ok_or(ContentAuthoringApplyError::Rejected)?;
+    let asset_plan = current
+        .plan
+        .get("mapAsset")
+        .and_then(Value::as_object)
+        .ok_or(ContentAuthoringApplyError::Rejected)?;
+    let asset_title = required_plan_text(asset_plan, "title")?;
+    let asset_description = nullable_plan_text(asset_plan, "description").unwrap_or_default();
+    let asset_text = nullable_plan_text(asset_plan, "label").unwrap_or(asset_title);
+    let position_q: i32 = sqlx::query_scalar(
+        "SELECT COALESCE(MAX(position_q), -1) + 1 FROM learning_nodes WHERE map_id = $1 AND position_r = 0",
+    )
+    .bind(map.id)
+    .fetch_one(&mut *transaction)
+    .await
+    .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    let asset_id = Uuid::new_v4();
+    let node_id = Uuid::new_v4();
+    let route_id = Uuid::new_v4();
+    let asset_slug = unique_map_slug(&mut transaction, map.id, "map-asset", "learning_map_assets")
+        .await
+        .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    let node_slug = unique_map_slug(&mut transaction, map.id, "map-asset", "learning_nodes")
+        .await
+        .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    sqlx::query("INSERT INTO learning_map_assets (id, map_id, slug, title, description, image_url, text, position_x, position_y, position_z, interaction_mode, published_at, width, opacity, locked, visual_config, interaction_config, sound_config) VALUES ($1, $2, $3, $4, $5, NULL, $6, 50, 50, 0, 'focusable', NULL, 14, 1, FALSE, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb)")
+        .bind(asset_id).bind(map.id).bind(asset_slug).bind(asset_title).bind(asset_description).bind(asset_text)
+        .execute(&mut *transaction).await.map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, description, position_q, position_r, state, visual_config, published_at) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'available', '{}'::jsonb, NULL)")
+        .bind(node_id).bind(map.id).bind(asset_id).bind(node_slug).bind(asset_title).bind(asset_description).bind(position_q)
+        .execute(&mut *transaction).await.map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    sqlx::query("INSERT INTO learning_routes (id, map_asset_id, slug, title, description, position, published_at) VALUES ($1, $2, 'map-asset', $3, $4, 0, NULL)")
+        .bind(route_id).bind(asset_id).bind(asset_title).bind(asset_description)
+        .execute(&mut *transaction).await.map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+
+    let source_records = current
+        .context
+        .get("selectedSourceRecords")
+        .and_then(Value::as_array)
+        .cloned()
+        .ok_or(ContentAuthoringApplyError::Rejected)?;
+    let mut activity_ids = Vec::with_capacity(activities.len());
+    for (index, activity) in activities.iter().enumerate() {
+        let activity = activity
+            .as_object()
+            .ok_or(ContentAuthoringApplyError::Rejected)?;
+        let activity_type = required_plan_text(activity, "type")?;
+        let title = required_plan_text(activity, "title")?;
+        let introduction = nullable_plan_text(activity, "introduction");
+        let activity_config =
+            applied_activity_config(activity, &source_records, asset_id, &mut transaction).await?;
+        let activity_id = Uuid::new_v4();
+        let slug = unique_activity_slug(&mut transaction, asset_id, generated_slug(title))
+            .await
+            .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+        sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, description, position, published_at, activity_type, activity_config, introduction, graph_position_x, graph_position_y, ai_review_status) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10, 80, 'needs_review')")
+            .bind(activity_id).bind(route_id).bind(slug).bind(title).bind(introduction.unwrap_or_default()).bind(index as i16).bind(activity_type).bind(Json(&activity_config)).bind(introduction).bind(120 + (index as i32 * 260))
+            .execute(&mut *transaction).await.map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+        if activity_type == "markdown" {
+            synchronize_markdown_media_references(&mut transaction, activity_id, &activity_config)
+                .await
+                .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+        }
+        activity_ids.push(activity_id);
+    }
+    let Some(first_activity_id) = activity_ids.first() else {
+        return Err(ContentAuthoringApplyError::Rejected);
+    };
+    sqlx::query("INSERT INTO learning_activity_starts (node_id, activity_id, sort_order) VALUES ($1, $2, 0)")
+        .bind(node_id).bind(first_activity_id).execute(&mut *transaction).await.map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    for (index, activity_id) in activity_ids.iter().enumerate() {
+        sqlx::query("INSERT INTO learning_activity_transitions (from_activity_id, to_activity_id, from_connector, to_connector, trigger) VALUES ($1, $2, 'completed', 'in', 'completed')")
+            .bind(activity_id).bind(activity_ids.get(index + 1).copied()).execute(&mut *transaction).await.map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    }
+    let row = sqlx::query_as::<_, RunRow>(&format!(
+        "UPDATE ai_content_authoring_runs SET status = 'applied', applied_by_principal_id = $2, learning_map_asset_id = $3, applied_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING {RUN_COLUMNS}"
+    ))
+    .bind(run_id).bind(principal_id).bind(asset_id).fetch_one(&mut *transaction).await
+    .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    transaction
+        .commit()
+        .await
+        .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    let mut run = run(row);
+    run.map_asset = Some(AppliedContentPlanMapAsset {
+        id: asset_id,
+        title: asset_title.to_owned(),
+        activity_count: activity_ids.len(),
+    });
+    Ok(Some(run))
+}
+
+fn required_plan_text<'value>(
+    value: &'value Map<String, Value>,
+    key: &str,
+) -> Result<&'value str, ContentAuthoringApplyError> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|text| !text.trim().is_empty())
+        .ok_or(ContentAuthoringApplyError::Rejected)
+}
+
+fn nullable_plan_text<'value>(value: &'value Map<String, Value>, key: &str) -> Option<&'value str> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|text| !text.is_empty())
+}
+
+async fn applied_activity_config(
+    activity: &Map<String, Value>,
+    source_records: &[Value],
+    map_asset_id: Uuid,
+    transaction: &mut Transaction<'_, Postgres>,
+) -> Result<Value, ContentAuthoringApplyError> {
+    let activity_type = required_plan_text(activity, "type")?;
+    let topics = activity
+        .get("competenceTopics")
+        .and_then(Value::as_array)
+        .ok_or(ContentAuthoringApplyError::Rejected)?;
+    let topic_values = topics
+        .iter()
+        .map(|topic| {
+            let topic = topic
+                .as_str()
+                .filter(|topic| !topic.trim().is_empty())
+                .ok_or(ContentAuthoringApplyError::Rejected)?;
+            Ok((topic, generated_slug(topic)))
+        })
+        .collect::<Result<Vec<_>, ContentAuthoringApplyError>>()?;
+    for (topic, slug) in &topic_values {
+        sqlx::query("INSERT INTO competence_topic_definitions (slug, name, description, growth_threshold, emittance_threshold, aura_threshold, is_active) VALUES ($1, $2, NULL, 20, 20, 10, TRUE) ON CONFLICT (slug) DO NOTHING")
+            .bind(slug).bind(topic).execute(&mut **transaction).await
+            .map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+    }
+    let mut config = Map::new();
+    config.insert(
+        "competenceTopics".to_owned(),
+        json!(
+            topic_values
+                .iter()
+                .map(|(topic, slug)| json!({ "topic": topic, "slug": slug, "weight": 1 }))
+                .collect::<Vec<_>>()
+        ),
+    );
+    config.insert(
+        "learningIntent".to_owned(),
+        activity
+            .get("learningIntent")
+            .cloned()
+            .ok_or(ContentAuthoringApplyError::Rejected)?,
+    );
+    let references = source_references(activity, source_records)?;
+    if !references.is_empty() {
+        config.insert("sourceReferences".to_owned(), Value::Array(references));
+    }
+    match activity_type {
+        "markdown" => {
+            let title = required_plan_text(activity, "title")?;
+            let body = nullable_plan_text(activity, "body")
+                .filter(|body| !body.trim().is_empty())
+                .ok_or(ContentAuthoringApplyError::Rejected)?;
+            config.insert(
+                "markdownGraphLayout".to_owned(),
+                json!({
+                    "start": { "x": -160, "y": 80 },
+                    "end": { "x": 520, "y": 80 },
+                }),
+            );
+            config.insert(
+                "markdownPages".to_owned(),
+                json!([{
+                    "id": "page-1", "title": title, "body": body,
+                    "position": { "x": 120, "y": 80 },
+                    "visual": markdown_visual(),
+                }]),
+            );
+            config.insert(
+                "markdownTransitions".to_owned(),
+                json!([
+                    { "id": "edge-start", "from": "start", "to": "page-1" },
+                    { "id": "edge-end", "from": "page-1", "to": "end" },
+                ]),
+            );
+        }
+        "reflection" => {
+            config.insert(
+                "prompt".to_owned(),
+                json!(required_plan_text(activity, "prompt")?),
+            );
+            config.insert(
+                "note".to_owned(),
+                json!(nullable_plan_text(activity, "note").unwrap_or_default()),
+            );
+            config.insert("topic".to_owned(), json!(""));
+            config.insert("subtopic".to_owned(), json!(""));
+        }
+        "message_prompt" => {
+            let topic_title = required_plan_text(activity, "topic")?;
+            let topic_id: Uuid = sqlx::query_scalar("INSERT INTO learning_message_topics (id, map_asset_id, slug, title) VALUES ($1, $2, $3, $4) ON CONFLICT (map_asset_id, slug) DO UPDATE SET updated_at = NOW() RETURNING id")
+                .bind(Uuid::new_v4()).bind(map_asset_id).bind(generated_slug(topic_title)).bind(topic_title)
+                .fetch_one(&mut **transaction).await.map_err(|_| ContentAuthoringApplyError::Unavailable)?;
+            config.insert("messageTopicId".to_owned(), json!(topic_id));
+            config.insert("messageAudience".to_owned(), json!("peers"));
+            config.insert("messageAllowResponses".to_owned(), json!(false));
+            config.insert("messageResponsePrompt".to_owned(), json!(""));
+            config.insert(
+                "messagePrompt".to_owned(),
+                json!(required_plan_text(activity, "prompt")?),
+            );
+            config.insert(
+                "messageInputLabel".to_owned(),
+                json!(nullable_plan_text(activity, "inputLabel").unwrap_or("Your message")),
+            );
+            config.insert("messageUi".to_owned(), message_ui());
+        }
+        "shared_task" => {
+            config.insert("taskKind".to_owned(), json!("text"));
+            config.insert("showContributions".to_owned(), json!(false));
+            config.insert(
+                "prompt".to_owned(),
+                json!(required_plan_text(activity, "prompt")?),
+            );
+            config.insert(
+                "instructions".to_owned(),
+                json!(nullable_plan_text(activity, "note").unwrap_or_default()),
+            );
+            config.insert(
+                "inputLabel".to_owned(),
+                json!(nullable_plan_text(activity, "inputLabel").unwrap_or("Your contribution")),
+            );
+            config.insert("projectGoal".to_owned(), json!(""));
+            config.insert("projectDeliverable".to_owned(), json!(""));
+            config.insert("projectSteps".to_owned(), json!([]));
+            config.insert("peerReviewEnabled".to_owned(), json!(false));
+            config.insert(
+                "peerReviewPrompt".to_owned(),
+                json!("What does this contribution help you notice, question, or extend?"),
+            );
+            config.insert("threshold".to_owned(), json!(3));
+            config.insert("minimumLength".to_owned(), json!(20));
+            config.insert("repeatPolicy".to_owned(), json!("once_per_user"));
+            config.insert("validationMode".to_owned(), json!("minimum_length"));
+            config.insert("cycleMode".to_owned(), json!("none"));
+        }
+        "open_practice" => {
+            config.insert(
+                "nextStep".to_owned(),
+                json!(required_plan_text(activity, "prompt")?),
+            );
+        }
+        _ => return Err(ContentAuthoringApplyError::Rejected),
+    }
+    Ok(Value::Object(config))
+}
+
+fn source_references(
+    activity: &Map<String, Value>,
+    source_records: &[Value],
+) -> Result<Vec<Value>, ContentAuthoringApplyError> {
+    let selected_ids = activity
+        .get("sourceRecordIds")
+        .and_then(Value::as_array)
+        .ok_or(ContentAuthoringApplyError::Rejected)?;
+    selected_ids
+        .iter()
+        .map(|id| {
+            let id = id.as_str().ok_or(ContentAuthoringApplyError::Rejected)?;
+            let record = source_records
+                .iter()
+                .find(|record| record.get("id").and_then(Value::as_str) == Some(id))
+                .and_then(Value::as_object)
+                .ok_or(ContentAuthoringApplyError::Rejected)?;
+            let mut snapshot = record.clone();
+            snapshot.remove("id");
+            Ok(Value::Object(snapshot))
+        })
+        .collect()
+}
+
+fn markdown_visual() -> Value {
+    json!({
+        "pageColorDark": "#0f172a", "pageColorLight": "#ffffff",
+        "borderColorDark": "#2dd4bf", "borderColorLight": "#0891b2",
+        "headingColorDark": "#67e8f9", "headingColorLight": "#0e7490",
+        "textColorDark": "#f8fafc", "textColorLight": "#0f172a",
+    })
+}
+
+fn message_ui() -> Value {
+    json!({
+        "surfaceColorDark": "#071018", "surfaceColorLight": "#e6f5f2",
+        "cardColorDark": "#13262d", "cardColorLight": "#ffffff",
+        "cardBorderColorDark": "#2dd4bf", "cardBorderColorLight": "#0f766e",
+        "textColorDark": "#f1f5f9", "textColorLight": "#0f172a",
+        "accentColorDark": "#5eead4", "accentColorLight": "#0f766e",
+    })
+}
+
+async fn synchronize_markdown_media_references(
+    transaction: &mut Transaction<'_, Postgres>,
+    activity_id: Uuid,
+    config: &Value,
+) -> Result<(), sqlx::Error> {
+    const PREFIX: &str = "/api/v1/admin/media-assets/";
+    const MAX_REFERENCES: usize = 24;
+    let Some(pages) = config.get("markdownPages").and_then(Value::as_array) else {
+        return Ok(());
+    };
+    let mut references = Vec::new();
+    for (index, page) in pages.iter().enumerate() {
+        let Some(body) = page.get("body").and_then(Value::as_str) else {
+            continue;
+        };
+        let mut remaining = body;
+        while let Some(prefix_index) = remaining.find(PREFIX) {
+            let after_prefix = &remaining[prefix_index + PREFIX.len()..];
+            let Some(asset_id) = after_prefix
+                .get(..36)
+                .and_then(|value| Uuid::parse_str(value).ok())
+            else {
+                remaining = &after_prefix[after_prefix.len().min(1)..];
+                continue;
+            };
+            let suffix = &after_prefix[36..];
+            if let Some(next) = suffix.strip_prefix("/content") {
+                references.push((asset_id, format!("markdownPages[{index}].body")));
+                if references.len() == MAX_REFERENCES {
+                    break;
+                }
+                remaining = next;
+            } else {
+                remaining = suffix;
+            }
+        }
+        if references.len() == MAX_REFERENCES {
+            break;
+        }
+    }
+    for (asset_id, field_key) in references {
+        sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT id, 'activity', $2, $3 FROM reusable_media_assets WHERE id = $1 ON CONFLICT DO NOTHING")
+            .bind(asset_id).bind(activity_id).bind(field_key).execute(&mut **transaction).await?;
+    }
+    Ok(())
+}
+
+async fn unique_map_slug(
+    transaction: &mut Transaction<'_, Postgres>,
+    map_id: Uuid,
+    base: &str,
+    table: &str,
+) -> Result<String, sqlx::Error> {
+    let mut candidate = base.to_owned();
+    for suffix in 2..=10_000 {
+        let query =
+            format!("SELECT EXISTS (SELECT 1 FROM {table} WHERE map_id = $1 AND slug = $2)");
+        let exists: bool = sqlx::query_scalar(&query)
+            .bind(map_id)
+            .bind(&candidate)
+            .fetch_one(&mut **transaction)
+            .await?;
+        if !exists {
+            return Ok(candidate);
+        }
+        candidate = format!("{base}-{suffix}");
+    }
+    Err(sqlx::Error::Protocol(
+        "could not allocate a unique ContentPlan map slug".into(),
+    ))
+}
+
+async fn unique_activity_slug(
+    transaction: &mut Transaction<'_, Postgres>,
+    map_asset_id: Uuid,
+    base: String,
+) -> Result<String, sqlx::Error> {
+    let mut candidate = base.clone();
+    for suffix in 2..=10_000 {
+        let exists: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE routes.map_asset_id = $1 AND activities.slug = $2)")
+            .bind(map_asset_id).bind(&candidate).fetch_one(&mut **transaction).await?;
+        if !exists {
+            return Ok(candidate);
+        }
+        candidate = format!("{base}-{suffix}");
+    }
+    Err(sqlx::Error::Protocol(
+        "could not allocate a unique ContentPlan activity slug".into(),
+    ))
 }
 
 async fn principal_id(
@@ -652,6 +1141,7 @@ fn run(row: RunRow) -> ContentAuthoringRun {
         input_tokens: row.input_tokens,
         output_tokens: row.output_tokens,
         total_tokens: row.total_tokens,
+        map_asset: None,
         created_at: row.created_at,
         applied_at: row.applied_at,
     }
@@ -666,7 +1156,7 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::{context_limits, prompt};
+    use super::{context_limits, prompt, source_references};
     use wicked_learning_application::admin_ai_content_authoring::ContentPlanBrief;
 
     #[test]
@@ -696,5 +1186,23 @@ mod tests {
         let (types, sources) = context_limits(&json!({"brief":{"activityTypes":["markdown","reflection"]},"selectedSourceRecords":[{"id":source}]})).expect("limits");
         assert_eq!(types, ["markdown", "reflection"]);
         assert_eq!(sources, [source]);
+    }
+
+    #[test]
+    fn applying_a_plan_copies_only_selected_source_snapshots_without_internal_ids() {
+        let source = Uuid::new_v4();
+        let references = source_references(
+            json!({"sourceRecordIds":[source]})
+                .as_object()
+                .expect("activity object"),
+            &[json!({
+                "id": source, "title": "Energy field guide", "url": "https://example.test/energy",
+                "publisher": "Example Press", "concepts": ["Energy"]
+            })],
+        )
+        .expect("selected source snapshot");
+
+        assert_eq!(references[0]["title"], "Energy field guide");
+        assert!(references[0].get("id").is_none());
     }
 }
