@@ -61,6 +61,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const suffix = Date.now();
     const mapTitle = `Content API browser map ${suffix}`;
     const assetTitle = `Content API browser MapAsset ${suffix}`;
+    const portalTargetAssetTitle = `Content API browser portal target ${suffix}`;
     const activityTitle = `Content API browser practice ${suffix}`;
     const dialogueTitle = `Content API browser dialogue ${suffix}`;
     const messageTitle = `Content API browser message ${suffix}`;
@@ -74,6 +75,8 @@ test('a content API author creates a MapAsset Activity through the documented co
     const toolGrantTitle = `Content API browser tool grant ${suffix}`;
     const itemObstacleTitle = `Content API browser item obstacle ${suffix}`;
     const obstacleTitle = `Content API browser obstacle ${suffix}`;
+    const portalInputTitle = `Content API browser portal arrival ${suffix}`;
+    const portalOutputTitle = `Content API browser portal departure ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -125,6 +128,27 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.getByText('HTTP 201')).toBeVisible();
     const mapAsset = await createdResponse(console);
     expect(mapAsset.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: portalTargetAssetTitle,
+        description: 'A disposable destination for Content API Portal verification.',
+        image_url: null,
+        text: portalTargetAssetTitle,
+        position_x: 70,
+        position_y: 50,
+        position_z: 0,
+        width: 14,
+        opacity: 1,
+        locked: false,
+        interaction_mode: 'focusable',
+        interaction_config: {},
+        visual_config: {},
+        sound_config: {},
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const portalTargetMapAsset = await createdResponse(console);
+    expect(portalTargetMapAsset.data.id).toMatch(/^[0-9a-f-]{36}$/i);
 
     await console.getByLabel('Operation').selectOption('activities.store');
     await console.getByLabel('Request path').fill(
@@ -413,6 +437,58 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(obstacle.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(obstacle.data).toMatchObject({ type: 'obstacle', title: obstacleTitle });
 
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${portalTargetMapAsset.data.id}/activities`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'portal',
+        title: portalInputTitle,
+        introduction: 'Arrive at this MapAsset through a same-World portal.',
+        portal_mode: 'input',
+        portal_bubble_text: 'You have arrived at a new place to inspect.',
+        portal_bubble_typing_speed: 24,
+        graph_position_x: 120,
+        graph_position_y: 140,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const portalInput = await createdResponse(console);
+    expect(portalInput.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(portalInput.data).toMatchObject({ type: 'portal', title: portalInputTitle });
+
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'portal',
+        title: portalOutputTitle,
+        introduction: 'Travel to the related MapAsset after this encounter.',
+        portal_mode: 'output',
+        portal_duration_seconds: 1.5,
+        portal_foreground_width: 28,
+        portal_foreground_x: 50,
+        portal_foreground_y: 50,
+        portal_show_on_arrival: true,
+        portal_swirl_enabled: true,
+        portal_bubble_text: 'Enter the next place when you are ready.',
+        portal_bubble_typing_speed: 24,
+        portal_bubble_color_dark: '#0f172a',
+        portal_bubble_color_light: '#ffffff',
+        portal_bubble_border_color_dark: '#2dd4bf',
+        portal_bubble_border_color_light: '#0891b2',
+        portal_bubble_text_color_dark: '#f8fafc',
+        portal_bubble_text_color_light: '#0f172a',
+        portal_wait_for_enter: false,
+        target_portal_activity_id: portalInput.data.id,
+        graph_position_x: 900,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const portalOutput = await createdResponse(console);
+    expect(portalOutput.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(portalOutput.data).toMatchObject({ type: 'portal', title: portalOutputTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -432,4 +508,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(toolGrantTitle);
     await expect(console.locator('pre')).toContainText(itemObstacleTitle);
     await expect(console.locator('pre')).toContainText(obstacleTitle);
+    await expect(console.locator('pre')).toContainText(portalOutputTitle);
 });
