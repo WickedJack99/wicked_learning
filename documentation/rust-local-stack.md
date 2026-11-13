@@ -73,13 +73,14 @@ by a correct password. The example key is deliberately predictable only for
 disposable local development; every shared deployment needs a distinct stable
 Base64-encoded 32-byte key. Authenticated password updates and factor changes
 also enqueue credential-free source-shaped access-history records through the
-identity outbox. The API can privately start and confirm an authenticated TOTP
-enrollment, retaining only encrypted secrets and Argon2id recovery-code
-verifiers, but the original React two-factor control remains absent until the
-login challenge and complete account-management contract arrive. Verification,
-recovery-code use, MFA/passkeys, comprehensive security-event policy and the
-full authorization matrix remain separate required work; this is not a user
-cutover.
+identity outbox. The source-adapted React security controls and typed Rust API
+now cover TOTP enrollment and confirmation, authenticator/recovery-code login
+challenges, recovery-code viewing and replacement, factor disablement, and the
+corresponding passkey enrollment, confirmation, login and removal lifecycles.
+TOTP secrets remain encrypted and recovery codes retain Argon2id verifiers.
+The comprehensive production security-event policy, shared client-IP limiter,
+independent security review and production authorization/cutover gate remain
+separate required work; this local stack is not a user cutover.
 
 The local HTTP stack intentionally does not mark session or CSRF cookies
 `Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser

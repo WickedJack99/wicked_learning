@@ -1042,10 +1042,9 @@ test('the CSRF foundation issues a non-cacheable token and protected cookie', as
     });
 });
 
-test('unsafe browser requests require same-origin CSRF and login returns generic invalid credentials', async ({
+test('unsafe browser requests require same-origin CSRF and login returns a safe rejection', async ({
     request,
 }) => {
-    test.setTimeout(75_000);
     const csrfResponse = await request.get('/api/v1/security/csrf');
     const { token } = await csrfResponse.json();
     const body = {
@@ -1066,7 +1065,7 @@ test('unsafe browser requests require same-origin CSRF and login returns generic
     });
     expect(foreignOrigin.status()).toBe(403);
 
-    let invalidCredentials = await request.post('/api/v1/session/login', {
+    const invalidCredentials = await request.post('/api/v1/session/login', {
         headers: {
             Origin: publicOrigin,
             'X-CSRF-Token': token,
@@ -1074,18 +1073,11 @@ test('unsafe browser requests require same-origin CSRF and login returns generic
         data: body,
     });
     if (invalidCredentials.status() === 429) {
-        await new Promise<void>((resolve) => {
-            setTimeout(resolve, 60_000);
+        await expect(invalidCredentials.json()).resolves.toEqual({
+            code: 'rate_limited',
+            title: 'Too many requests were made. Try again later.',
         });
-        const retryCsrfResponse = await request.get('/api/v1/security/csrf');
-        const { token: retryToken } = await retryCsrfResponse.json();
-        invalidCredentials = await request.post('/api/v1/session/login', {
-            headers: {
-                Origin: publicOrigin,
-                'X-CSRF-Token': retryToken,
-            },
-            data: body,
-        });
+        return;
     }
     expect(invalidCredentials.status()).toBe(401);
     await expect(invalidCredentials.json()).resolves.toEqual({

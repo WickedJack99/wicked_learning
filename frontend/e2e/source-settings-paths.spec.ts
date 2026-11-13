@@ -101,8 +101,16 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
         page.getByRole('heading', { name: 'Color palette' }),
     ).toBeVisible();
 
+    const confirmationStatus = page.waitForResponse(
+        (response) =>
+            response.url().endsWith('/api/v1/account/password/confirmation') &&
+            response.request().method() === 'GET',
+    );
     await page.goto('/settings/security');
-    if (new URL(page.url()).pathname === '/confirm-password') {
+    const confirmation = await confirmationStatus;
+    expect(confirmation.status()).toBe(200);
+    const { confirmed } = (await confirmation.json()) as { confirmed: boolean };
+    if (!confirmed) {
         await expect(page).toHaveURL(
             /\/confirm-password\?next=%2Fsettings%2Fsecurity$/,
         );
