@@ -1698,7 +1698,9 @@ uses only its advertised operations, blocks unresolved path placeholders, and
 obtains the existing same-origin CSRF token only for documented mutations.
 The response pane exposes the exact server status and JSON body; it never turns
 the console into a bearer-token client or a substitute for the contract's map
-and activity scope checks.
+and activity scope checks. The local browser proof creates a disposable map,
+MapAsset and Open Practice Activity through that console, then reads the
+Activity back through the documented scoped route.
 
 ### 7. Complete the replacement deliberately
 
