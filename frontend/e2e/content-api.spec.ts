@@ -1450,6 +1450,44 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.getByText('HTTP 200')).toBeVisible();
     await expect(console.locator('pre')).toContainText(updatedItemObstacleTitle);
 
+    const initialObstacle = listedActivities.data.find((activity) => activity.id === obstacle.data.id);
+    if (!initialObstacle) {
+        throw new Error('the created Base Obstacle Activity was not returned by its scoped list');
+    }
+    const updatedObstacleTitle = `${obstacleTitle} updated`;
+    await console.getByLabel('Operation').selectOption('activities.obstacle.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${obstacle.data.id}/obstacle`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedObstacleTitle, slug: null,
+        introduction: 'Use the configured tool to make a careful next observation.',
+        allowed_tool_ids: ['10000000-0000-4000-8000-000000000001'],
+        background_dark: null, background_light: null, background_mirrored: false,
+        bubble_border_color_dark: '#2dd4bf', bubble_border_color_light: '#0891b2',
+        bubble_color_dark: '#0f172a', bubble_color_light: '#ffffff',
+        bubble_opacity_dark: 92, bubble_opacity_light: 94,
+        obstacle_image_dark: null, obstacle_image_light: null, obstacle_image_mirrored: false,
+        persist_after_solved: true, prompt_text: 'Which detail does the tool help you notice?',
+        obstacle_x: 50, obstacle_y: 50, obstacle_width: 28,
+        revisit_background_dark: null, revisit_background_light: null, revisit_background_mirrored: false,
+        revisit_image_dark: null, revisit_image_light: null, revisit_image_mirrored: false,
+        revisit_text: null, success_animation: 'zoom',
+        success_text: 'The obstacle has opened a useful next direction.', typing_speed: 24,
+        updated_at: initialObstacle.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(obstacle.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
+    );
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedObstacleTitle);
+
     await console
         .getByLabel('Operation')
         .selectOption('activity-transitions.store');

@@ -581,6 +581,24 @@ paths:
         '404': { description: The Item Obstacle Activity is unavailable in the caller's scoped MapAsset. }
         '409': { description: The supplied updated_at value is stale. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/obstacle:
+    servers: [ { url: /api } ]
+    parameters:
+      - { name: map_asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateContentApiObstacleActivity
+      summary: Replace a source-compatible Base Obstacle Activity form.
+      parameters: [ { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminObstacleActivityRequest' } } } }
+      responses:
+        '200': { description: The updated Base Obstacle Activity identity and fresh concurrency timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/ContentApiActivityUpdateResponse' } } } }
+        '400': { description: The complete Base Obstacle form is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The Base Obstacle Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
     servers:
       - url: /api

@@ -1146,7 +1146,7 @@ does not change map visuals, access or MapAssets. It can replace or delete a
 single scoped MapAsset only through the existing World Builder command and its
 map scope; replacement preserves the linked compatibility node's creation
 metadata. It can also replace scoped Reflection, Review, Open Practice,
-Markdown, Question, Shared Task, Item Grant, Tool Grant and Item Obstacle Activities only through their complete
+Markdown, Question, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle Activities only through their complete
 source form and current concurrency timestamp; the API proves that each typed
 Activity belongs to the addressed MapAsset before using its distinct typed World Builder command. Their configured catalog UUIDs are resolved server-side by that command. The standalone Settings API surface loads that live contract for its
 interactive console and readable documentation, refusing paths outside the

@@ -388,6 +388,26 @@ export interface paths {
         patch: operations["updateContentApiItemObstacleActivity"];
         trace?: never;
     };
+    "/content/v1/map-assets/{map_asset_id}/activities/{activity_id}/obstacle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace a source-compatible Base Obstacle Activity form. */
+        patch: operations["updateContentApiObstacleActivity"];
+        trace?: never;
+    };
     "/content/v1/map-assets/{map_asset_id}/activity-transitions": {
         parameters: {
             query?: never;
@@ -12508,6 +12528,78 @@ export interface operations {
                 content?: never;
             };
             /** @description The Item Obstacle Activity is unavailable in the caller's scoped MapAsset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied updated_at value is stale. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateContentApiObstacleActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_asset_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminObstacleActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated Base Obstacle Activity identity and fresh concurrency timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiActivityUpdateResponse"];
+                };
+            };
+            /** @description The complete Base Obstacle form is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Activity update permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Base Obstacle Activity is unavailable in the caller's scoped MapAsset. */
             404: {
                 headers: {
                     [name: string]: unknown;

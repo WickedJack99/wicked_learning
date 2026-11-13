@@ -511,6 +511,42 @@ pub struct UpdateItemObstacleActivityRequest {
 }
 
 #[derive(Deserialize)]
+pub struct UpdateObstacleActivityRequest {
+    title: String,
+    slug: NullableString,
+    introduction: NullableString,
+    allowed_tool_ids: Vec<String>,
+    background_dark: NullableString,
+    background_light: NullableString,
+    background_mirrored: bool,
+    bubble_border_color_dark: NullableString,
+    bubble_border_color_light: NullableString,
+    bubble_color_dark: NullableString,
+    bubble_color_light: NullableString,
+    bubble_opacity_dark: f64,
+    bubble_opacity_light: f64,
+    obstacle_image_dark: NullableString,
+    obstacle_image_light: NullableString,
+    obstacle_image_mirrored: bool,
+    persist_after_solved: bool,
+    prompt_text: NullableString,
+    obstacle_x: f64,
+    obstacle_y: f64,
+    obstacle_width: f64,
+    revisit_background_dark: NullableString,
+    revisit_background_light: NullableString,
+    revisit_background_mirrored: bool,
+    revisit_image_dark: NullableString,
+    revisit_image_light: NullableString,
+    revisit_image_mirrored: bool,
+    revisit_text: NullableString,
+    success_animation: NullableString,
+    success_text: NullableString,
+    typing_speed: f64,
+    updated_at: String,
+}
+
+#[derive(Deserialize)]
 struct ContentApiQuestionOptionRequest {
     label: String,
     body: String,
@@ -1498,6 +1534,74 @@ pub async fn update_item_obstacle_activity(
     ))
 }
 
+pub async fn update_obstacle_activity(
+    State(state): State<AppState>,
+    Path((map_asset_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateObstacleActivityRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let map_asset_id = Uuid::parse_str(&map_asset_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let allowed_tool_ids = parse_content_api_uuids(request.allowed_tool_ids)?;
+    let form = ObstacleActivityForm::parse(
+        &request.title,
+        request.slug.as_deref(),
+        request.introduction.as_deref(),
+        allowed_tool_ids,
+        request.background_dark.as_deref(),
+        request.background_light.as_deref(),
+        request.background_mirrored,
+        request.bubble_border_color_dark.as_deref(),
+        request.bubble_border_color_light.as_deref(),
+        request.bubble_color_dark.as_deref(),
+        request.bubble_color_light.as_deref(),
+        request.bubble_opacity_dark,
+        request.bubble_opacity_light,
+        request.obstacle_image_dark.as_deref(),
+        request.obstacle_image_light.as_deref(),
+        request.obstacle_image_mirrored,
+        request.persist_after_solved,
+        request.prompt_text.as_deref(),
+        request.obstacle_x,
+        request.obstacle_y,
+        request.obstacle_width,
+        request.revisit_background_dark.as_deref(),
+        request.revisit_background_light.as_deref(),
+        request.revisit_background_mirrored,
+        request.revisit_image_dark.as_deref(),
+        request.revisit_image_light.as_deref(),
+        request.revisit_image_mirrored,
+        request.revisit_text.as_deref(),
+        request.success_animation.as_deref(),
+        request.success_text.as_deref(),
+        request.typing_speed,
+    )
+    .ok_or_else(ApiError::invalid_request)?;
+    OffsetDateTime::parse(&request.updated_at, &Rfc3339)
+        .map_err(|_| ApiError::invalid_request())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    require_content_permission(&principal, "ru")?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let activity_repository =
+        PostgresContentApiActivityRepository::new(&state.application_database);
+    ContentApiActivityScopeQuery::new(&activity_repository)
+        .execute(&principal, map_asset_id, activity_id, "obstacle")
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    let repository = PostgresAdminWorldObstacleRepository::new(&state.application_database);
+    let updated = AdminWorldObstacleCommand::new(&repository)
+        .update(&principal, activity_id, &form, &request.updated_at)
+        .await
+        .map_err(map_obstacle_error)?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(
+        json!({ "data": { "id": updated.activity_id, "updatedAt": updated.updated_at } }),
+    ))
+}
+
 /// Connects two activities through the same scoped, idempotent World Builder
 /// transition command. A Content API caller names only activities in the
 /// selected MapAsset; the command rechecks that relationship in its write
@@ -2186,6 +2290,16 @@ fn content_api_obstacle_form(
     .ok_or_else(ApiError::invalid_request)
 }
 
+fn parse_content_api_uuids(values: Vec<String>) -> Result<Vec<Uuid>, ApiError> {
+    if values.len() > 100 {
+        return Err(ApiError::invalid_request());
+    }
+    values
+        .into_iter()
+        .map(|value| Uuid::parse_str(&value).map_err(|_| ApiError::invalid_request()))
+        .collect()
+}
+
 fn content_api_portal_form(
     request: &CreateActivityRequest,
 ) -> Result<PortalActivityForm, ApiError> {
@@ -2688,7 +2802,7 @@ fn serialize_created_message(
 fn document() -> Value {
     json!({
         "name": "Wicked Learning Content API",
-        "version": "1.15",
+        "version": "1.16",
         "basePath": "/api/content/v1",
         "authentication": {
             "type": "session",
@@ -2800,7 +2914,7 @@ fn document() -> Value {
         ],
         "contentPlan": content_plan_document(),
         "operations": [
-            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.15", "operations": [] } })),
+            operation("contract.show", "GET", "/api/content/v1/contract", "Read the machine contract", "Returns this versioned document for API consoles and AI context.", Value::Null, json!({ "data": { "version": "1.16", "operations": [] } })),
             operation("maps.index", "GET", "/api/content/v1/maps", "List editable maps", "Returns only maps within the administrator's editable scope.", Value::Null, json!({ "data": [] })),
             operation("maps.store", "POST", "/api/content/v1/maps", "Create a map", "Creates a new map in the current learning world.", json!({ "title": "Engine Bay", "slug": "engine-bay", "description": "An exploratory map of connected vehicle systems." }), json!({ "data": { "id": "opaque-map-id", "slug": "engine-bay", "title": "Engine Bay" } })),
             operation("maps.show", "GET", "/api/content/v1/maps/{map}", "Read a map's editable details", "Returns the complete source Map Details projection, including its optimistic-concurrency timestamp.", Value::Null, json!({ "data": { "id": "opaque-map-id", "title": "Engine Bay", "description": "An exploratory map of connected vehicle systems.", "topicId": Value::Null, "mapAssetsLocked": false, "updatedAt": "2026-11-13T12:00:00.000000Z" } })),
@@ -2821,6 +2935,7 @@ fn document() -> Value {
             operation("activities.item-grant.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/item-grant", "Replace an Item Grant Activity", "Replaces the complete source Item Grant form only after proving its type and MapAsset membership.", json!({ "title": "Collect inspection tags", "slug": Value::Null, "introduction": "Collect the configured item after making an observation.", "background_dark": Value::Null, "background_light": Value::Null, "background_mirrored": false, "items": [{ "item_id": "20000000-0000-4000-8000-000000000001", "quantity": 1 }], "probability_percent": 100, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.tool-grant.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/tool-grant", "Replace a Tool Grant Activity", "Replaces the complete source Tool Grant form only after proving its type and MapAsset membership.", json!({ "title": "Receive the circuit probe", "slug": Value::Null, "introduction": "Use this configured tool at the next interaction.", "background_dark": Value::Null, "background_light": Value::Null, "background_mirrored": false, "bubble_border_color_dark": "#2dd4bf", "bubble_border_color_light": "#0891b2", "bubble_color_dark": "#0f172a", "bubble_color_light": "#ffffff", "bubble_opacity_dark": 92, "bubble_opacity_light": 94, "fade_duration_seconds": 0.4, "slide_direction": "left", "slide_duration_seconds": 0.6, "text": "Use this tool when the next place invites careful inspection.", "tool_id": "10000000-0000-4000-8000-000000000001", "tool_mirrored": false, "tool_x": 50, "tool_y": 50, "typing_speed": 24, "updated_at": "2026-11-13T12:00:00.000000Z" }), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activities.item-obstacle.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/item-obstacle", "Replace an Item Obstacle Activity", "Replaces the complete source Item Obstacle form only after proving its type and MapAsset membership.", serde_json::from_str(r#"{"title":"Unlock the inspection panel","slug":null,"introduction":"Use the configured item in its matching slot.","background_dark":null,"background_light":null,"background_mirrored":false,"met_background_dark":null,"met_background_light":null,"met_background_mirrored":false,"overlay_dark":null,"overlay_light":null,"overlay_mirrored":false,"overlay_x":50,"overlay_y":50,"overlay_width":30,"slots":[{"item_id":"20000000-0000-4000-8000-000000000001","x":50,"y":50,"width":10}],"consume_on_each_entry":false,"lock_minutes":0,"sound_not_met_enabled":false,"sound_not_met_id":null,"sound_met_enabled":false,"sound_met_id":null,"sound_transition_enabled":false,"sound_transition_id":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#).expect("valid Item Obstacle Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
+            operation("activities.obstacle.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activities/{activity}/obstacle", "Replace a Base Obstacle Activity", "Replaces the complete source Base Obstacle form only after proving its type and MapAsset membership.", serde_json::from_str(r#"{"title":"Open the service panel","slug":null,"introduction":"Use the configured tool to inspect the panel.","allowed_tool_ids":["10000000-0000-4000-8000-000000000001"],"background_dark":null,"background_light":null,"background_mirrored":false,"bubble_border_color_dark":null,"bubble_border_color_light":null,"bubble_color_dark":null,"bubble_color_light":null,"bubble_opacity_dark":92,"bubble_opacity_light":94,"obstacle_image_dark":null,"obstacle_image_light":null,"obstacle_image_mirrored":false,"persist_after_solved":true,"prompt_text":null,"obstacle_x":50,"obstacle_y":50,"obstacle_width":28,"revisit_background_dark":null,"revisit_background_light":null,"revisit_background_mirrored":false,"revisit_image_dark":null,"revisit_image_light":null,"revisit_image_mirrored":false,"revisit_text":null,"success_animation":"zoom","success_text":null,"typing_speed":24,"updated_at":"2026-11-13T12:00:00.000000Z"}"#).expect("valid Base Obstacle Content API example"), json!({ "data": { "id": "opaque-activity-id", "updatedAt": "2026-11-13T12:05:00.000000Z" } })),
             operation("activity-transitions.index", "GET", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "List MapAsset Activity Connections", "Returns source-ordered graph edges for one editable MapAsset.", Value::Null, json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.store", "POST", "/api/content/v1/map-assets/{mapAsset}/activity-transitions", "Connect MapAsset Activities", "Connects activities within one editable MapAsset through the scoped, idempotent World Builder graph command.", json!({ "from_activity_id": "opaque-source-activity-id", "to_activity_id": "opaque-target-activity-id", "from_connector": "completed", "to_connector": "in", "label": "Continue" }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
             operation("activity-transitions.update", "PATCH", "/api/content/v1/map-assets/{mapAsset}/activity-transitions/{transition}", "Update a MapAsset Activity Connection", "Changes a connection's source-compatible label and outcome value only after proving it belongs to the addressed MapAsset.", json!({ "label": "Continue", "trigger_value": Value::Null }), json!({ "data": [{ "id": "opaque-transition-id", "fromActivityId": "opaque-source-activity-id", "toActivityId": "opaque-target-activity-id", "fromConnector": "completed", "toConnector": "in", "trigger": "completed", "triggerValue": Value::Null, "label": "Continue" }] })),
@@ -2875,18 +2990,18 @@ mod tests {
     use super::{
         UpdateItemGrantActivityRequest, UpdateItemObstacleActivityRequest,
         UpdateMapAssetSurfaceRequest, UpdateMapRequest, UpdateMarkdownActivityRequest,
-        UpdateOpenPracticeActivityRequest, UpdateQuestionActivityRequest,
-        UpdateReflectiveActivityRequest, UpdateToolGrantActivityRequest,
-        content_api_item_grant_form, content_api_item_obstacle_form, content_api_message_form,
-        content_api_obstacle_form, content_api_portal_form, content_api_shared_task_form,
-        content_api_tool_grant_form, document, is_supported_content_api_activity_type,
-        require_content_permission, serialize_activity, serialize_activity_transition,
-        serialize_created_item_grant, serialize_created_item_obstacle, serialize_created_map_asset,
-        serialize_created_markdown, serialize_created_message, serialize_created_npc_dialogue,
-        serialize_created_obstacle, serialize_created_open_practice, serialize_created_portal,
-        serialize_created_question, serialize_created_reflective_activity,
-        serialize_created_shared_task, serialize_created_tool_grant, serialize_map_assets,
-        update_map_asset_surface_form,
+        UpdateObstacleActivityRequest, UpdateOpenPracticeActivityRequest,
+        UpdateQuestionActivityRequest, UpdateReflectiveActivityRequest,
+        UpdateToolGrantActivityRequest, content_api_item_grant_form,
+        content_api_item_obstacle_form, content_api_message_form, content_api_obstacle_form,
+        content_api_portal_form, content_api_shared_task_form, content_api_tool_grant_form,
+        document, is_supported_content_api_activity_type, require_content_permission,
+        serialize_activity, serialize_activity_transition, serialize_created_item_grant,
+        serialize_created_item_obstacle, serialize_created_map_asset, serialize_created_markdown,
+        serialize_created_message, serialize_created_npc_dialogue, serialize_created_obstacle,
+        serialize_created_open_practice, serialize_created_portal, serialize_created_question,
+        serialize_created_reflective_activity, serialize_created_shared_task,
+        serialize_created_tool_grant, serialize_map_assets, update_map_asset_surface_form,
     };
 
     #[test]
@@ -2895,8 +3010,8 @@ mod tests {
         let operations = document["operations"].as_array().expect("operations array");
 
         assert_eq!(document["basePath"], "/api/content/v1");
-        assert_eq!(document["version"], "1.15");
-        assert_eq!(operations.len(), 25);
+        assert_eq!(document["version"], "1.16");
+        assert_eq!(operations.len(), 26);
         assert_eq!(operations[0]["id"], "contract.show");
         assert_eq!(operations[2]["id"], "maps.store");
         assert_eq!(operations[3]["id"], "maps.show");
@@ -2917,10 +3032,11 @@ mod tests {
         assert_eq!(operations[18]["id"], "activities.item-grant.update");
         assert_eq!(operations[19]["id"], "activities.tool-grant.update");
         assert_eq!(operations[20]["id"], "activities.item-obstacle.update");
-        assert_eq!(operations[21]["id"], "activity-transitions.index");
-        assert_eq!(operations[22]["id"], "activity-transitions.store");
-        assert_eq!(operations[23]["id"], "activity-transitions.update");
-        assert_eq!(operations[24]["id"], "activity-transitions.destroy");
+        assert_eq!(operations[21]["id"], "activities.obstacle.update");
+        assert_eq!(operations[22]["id"], "activity-transitions.index");
+        assert_eq!(operations[23]["id"], "activity-transitions.store");
+        assert_eq!(operations[24]["id"], "activity-transitions.update");
+        assert_eq!(operations[25]["id"], "activity-transitions.destroy");
         assert_eq!(document["activityTypes"][0]["key"], "reflection");
         assert_eq!(document["activityTypes"][1]["key"], "review");
         assert_eq!(document["activityTypes"][3]["key"], "markdown");
@@ -3063,6 +3179,18 @@ mod tests {
         .is_ok());
         assert!(serde_json::from_str::<UpdateItemObstacleActivityRequest>(
             r#"{"title":"Unlock the inspection panel","slug":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn obstacle_updates_require_the_complete_source_form() {
+        assert!(serde_json::from_str::<UpdateObstacleActivityRequest>(
+            r#"{"title":"Open the service panel","slug":null,"introduction":null,"allowed_tool_ids":["10000000-0000-4000-8000-000000000001"],"background_dark":null,"background_light":null,"background_mirrored":false,"bubble_border_color_dark":null,"bubble_border_color_light":null,"bubble_color_dark":null,"bubble_color_light":null,"bubble_opacity_dark":92,"bubble_opacity_light":94,"obstacle_image_dark":null,"obstacle_image_light":null,"obstacle_image_mirrored":false,"persist_after_solved":true,"prompt_text":null,"obstacle_x":50,"obstacle_y":50,"obstacle_width":28,"revisit_background_dark":null,"revisit_background_light":null,"revisit_background_mirrored":false,"revisit_image_dark":null,"revisit_image_light":null,"revisit_image_mirrored":false,"revisit_text":null,"success_animation":"zoom","success_text":null,"typing_speed":24,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
+        )
+        .is_ok());
+        assert!(serde_json::from_str::<UpdateObstacleActivityRequest>(
+            r#"{"title":"Open the service panel","slug":null,"updated_at":"2026-11-13T12:00:00.000000Z"}"#,
         )
         .is_err());
     }
