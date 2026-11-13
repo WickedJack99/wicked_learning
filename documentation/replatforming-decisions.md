@@ -4878,6 +4878,13 @@ advertised v1 paths, blocks unresolved placeholders and obtains the existing
 same-origin CSRF token only for documented mutations; its response pane reflects
 the exact server result rather than treating a browser as a bearer-token client.
 
+**Template-test extension:** Rust now preserves Laravel's explicit saved-agent
+test boundary. A principal with `ai.ru` submits one bounded prompt with CSRF;
+Rust loads the selected template and provider configuration server-side, decrypts
+the provider key only for the outbound request, and returns only response text,
+provider/model metadata and usage. The test does not create content or persist
+a provider response, and configuration/provider failures remain sanitized.
+
 **Limits:** This foundation does not issue bearer tokens, make Content API
 permission a substitute for World Builder scope, or expose MapAsset/activity
 operations before they are implemented. Reflection, Review, Open Practice,

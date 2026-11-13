@@ -1114,8 +1114,10 @@ cover normal, action, grab, text and denied states.
 ### AI And Content Authoring
 
 Admins can store encrypted provider credentials and reusable agent templates,
-including a content-authoring purpose. Provider failures are surfaced through
-sanitized, reviewable authoring states.
+including a content-authoring purpose. They can run an explicit bounded test
+against a saved template only through the server-owned provider credential; the
+response contains text and usage metadata, never a plaintext or encrypted key.
+Provider failures are surfaced through sanitized, reviewable authoring states.
 
 From a map's MapAsset surface, an admin can ask an enabled content-authoring
 template for a draft. The brief contains a learning goal, optional audience and

@@ -13,6 +13,7 @@ pub mod admin_activity_source_references;
 pub mod admin_activity_templates;
 pub mod admin_ai_content_authoring;
 pub mod admin_ai_settings;
+pub mod admin_ai_template_test;
 pub mod admin_asset_catalog;
 pub mod admin_dialogue_typing_sound_set;
 pub mod admin_learning_companion;

@@ -5806,6 +5806,28 @@ paths:
         '401': { description: Authentication is required. }
         '404': { description: The current principal cannot read AI settings. }
         '503': { description: The application database is unavailable. }
+  /admin/ai/templates/{template_id}/test:
+    parameters:
+      - { name: template_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: testAdminAiTemplate
+      summary: Run one explicit test against a saved AI agent template.
+      description: Requires AI update permission and same-origin CSRF. The server decrypts the saved provider credential only for this request; no credential material is returned or persisted as a content change.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TestAdminAiTemplateRequest' }
+      responses:
+        '200': { description: The provider response and bounded usage metadata., content: { application/json: { schema: { $ref: '#/components/schemas/TestAdminAiTemplateResponse' } } } }
+        '400': { description: The test prompt is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and AI update permission are required. }
+        '404': { description: The template is unavailable to the current principal. }
+        '422': { description: The saved provider configuration or provider response could not be used safely. }
+        '503': { description: The application database is unavailable. }
   /admin/learning-companion:
     get:
       operationId: getAdminLearningCompanionSettings
@@ -11920,6 +11942,30 @@ components:
       required: [agent_template]
       properties:
         agent_template: { $ref: '#/components/schemas/AdminAiAgentTemplate' }
+    TestAdminAiTemplateRequest:
+      type: object
+      additionalProperties: false
+      required: [prompt]
+      properties:
+        prompt: { type: string, minLength: 1, maxLength: 12000 }
+    TestAdminAiTemplateResponse:
+      type: object
+      additionalProperties: false
+      required: [text, model, provider, responseId, requestId, usage]
+      properties:
+        text: { type: string }
+        model: { type: string, minLength: 1, maxLength: 120 }
+        provider: { type: string, enum: [openai, compatible] }
+        responseId: { type: [string, 'null'] }
+        requestId: { type: [string, 'null'] }
+        usage:
+          type: object
+          additionalProperties: false
+          required: [inputTokens, outputTokens, totalTokens]
+          properties:
+            inputTokens: { type: [integer, 'null'], minimum: 0 }
+            outputTokens: { type: [integer, 'null'], minimum: 0 }
+            totalTokens: { type: [integer, 'null'], minimum: 0 }
     SaveAdminRoleRequest:
       type: object
       additionalProperties: false

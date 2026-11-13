@@ -17,6 +17,7 @@ mod admin_activity_source_references;
 mod admin_activity_templates;
 mod admin_ai_content_authoring;
 mod admin_ai_settings;
+mod admin_ai_template_test;
 mod admin_asset_catalog;
 mod admin_dialogue_typing_sound_set;
 mod admin_learning_companion;
@@ -740,6 +741,10 @@ fn router(state: AppState) -> Router {
             get(admin_learning_taxonomy::index),
         )
         .route("/api/v1/admin/ai/settings", get(admin_ai_settings::index))
+        .route(
+            "/api/v1/admin/ai/templates/{template_id}/test",
+            post(admin_ai_template_test::create),
+        )
         .route(
             "/api/v1/admin/learning-companion",
             get(admin_learning_companion::show).patch(admin_learning_companion::update),
@@ -1992,6 +1997,44 @@ mod tests {
             )
             .await
             .expect("ContentPlan apply response");
+
+        assert_eq!(response.status(), 401);
+    }
+
+    #[tokio::test]
+    async fn testing_a_saved_ai_template_requires_an_authenticated_session() {
+        let state = AppState {
+            ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
+                *b"test-ai-credential-key-000000000",
+            ),
+            application_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            csrf_cookie_key:
+                "test-csrf-cookie-key-material-must-be-at-least-sixty-four-bytes-long-0000"
+                    .to_owned(),
+            identity_database: PgPoolOptions::new()
+                .connect_lazy("postgres://unavailable:unavailable@localhost/unavailable")
+                .expect("a syntactically valid test connection URL"),
+            media_store: super::MediaStore::in_memory(),
+            public_origin: "http://localhost:8081".to_owned(),
+            session_cookie_secure: false,
+            totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
+            email_delivery: test_email_delivery(),
+            webauthn: test_webauthn(),
+        };
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/admin/ai/templates/00000000-0000-4000-8000-000000000001/test")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"prompt":"Test this template."}"#))
+                    .expect("a valid saved-template test request"),
+            )
+            .await
+            .expect("saved-template test response");
 
         assert_eq!(response.status(), 401);
     }

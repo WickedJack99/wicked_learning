@@ -4752,6 +4752,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/ai/templates/{template_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run one explicit test against a saved AI agent template.
+         * @description Requires AI update permission and same-origin CSRF. The server decrypts the saved provider credential only for this request; no credential material is returned or persisted as a content change.
+         */
+        post: operations["testAdminAiTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/learning-companion": {
         parameters: {
             query?: never;
@@ -8804,6 +8826,22 @@ export interface components {
         };
         AdminAiTemplateResponse: {
             agent_template: components["schemas"]["AdminAiAgentTemplate"];
+        };
+        TestAdminAiTemplateRequest: {
+            prompt: string;
+        };
+        TestAdminAiTemplateResponse: {
+            text: string;
+            model: string;
+            /** @enum {string} */
+            provider: "openai" | "compatible";
+            responseId: string | null;
+            requestId: string | null;
+            usage: {
+                inputTokens: number | null;
+                outputTokens: number | null;
+                totalTokens: number | null;
+            };
         };
         SaveAdminRoleRequest: {
             description?: string | null;
@@ -28298,6 +28336,77 @@ export interface operations {
             };
             /** @description The current principal cannot read AI settings. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    testAdminAiTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestAdminAiTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description The provider response and bounded usage metadata. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestAdminAiTemplateResponse"];
+                };
+            };
+            /** @description The test prompt is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and AI update permission are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is unavailable to the current principal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The saved provider configuration or provider response could not be used safely. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

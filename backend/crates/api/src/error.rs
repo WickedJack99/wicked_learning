@@ -194,6 +194,14 @@ impl ApiError {
         }
     }
 
+    pub fn ai_template_test_rejected() -> Self {
+        Self {
+            code: "ai_template_test_rejected",
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            title: "The AI template test could not be completed safely.",
+        }
+    }
+
     pub fn activity_template_rejected() -> Self {
         Self {
             code: "activity_template_rejected",

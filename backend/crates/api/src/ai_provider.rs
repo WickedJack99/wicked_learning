@@ -14,6 +14,7 @@ use wicked_learning_persistence::admin_activity_ai_review::{
 use wicked_learning_persistence::admin_ai_content_authoring::{
     ContentAuthoringExecution, ContentAuthoringProviderOutput,
 };
+use wicked_learning_persistence::admin_ai_template_test::AiTemplateTestExecution;
 use wicked_learning_persistence::learner_companion::CompanionTurnExecution;
 
 use crate::ai_credential_crypto::AiCredentialCipher;
@@ -31,6 +32,17 @@ pub struct AiProviderContentPlanOutput {
     pub output: ContentAuthoringProviderOutput,
 }
 
+pub struct AiProviderTemplateTestOutput {
+    pub text: String,
+    pub model: String,
+    pub provider: String,
+    pub response_id: Option<String>,
+    pub request_id: Option<String>,
+    pub input_tokens: Option<i64>,
+    pub output_tokens: Option<i64>,
+    pub total_tokens: Option<i64>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AiProviderError {
     Configuration,
@@ -39,6 +51,71 @@ pub enum AiProviderError {
 }
 
 impl AiProvider {
+    pub async fn test_template(
+        execution: AiTemplateTestExecution,
+        cipher: &AiCredentialCipher,
+    ) -> Result<AiProviderTemplateTestOutput, AiProviderError> {
+        let provider = execution
+            .provider
+            .as_deref()
+            .filter(|value| matches!(*value, "openai" | "compatible"))
+            .ok_or(AiProviderError::Configuration)?;
+        if !execution.provider_enabled {
+            return Err(AiProviderError::Configuration);
+        }
+        let encrypted_api_key = execution
+            .encrypted_api_key
+            .as_deref()
+            .filter(|value| !value.is_empty())
+            .ok_or(AiProviderError::Credential)?;
+        let api_key_nonce = execution
+            .api_key_nonce
+            .as_deref()
+            .filter(|value| !value.is_empty())
+            .ok_or(AiProviderError::Credential)?;
+        let model = execution
+            .model
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or(AiProviderError::Configuration)?;
+        let client = provider_client(
+            provider,
+            execution.base_url.as_deref(),
+            execution.organization.as_deref(),
+            encrypted_api_key,
+            api_key_nonce,
+            cipher,
+        )?;
+        let request = template_test_response_request(&execution, model)?;
+        let response = client
+            .responses()
+            .create(request)
+            .await
+            .map_err(|_| AiProviderError::Response)?;
+        if response.status != Status::Completed {
+            return Err(AiProviderError::Response);
+        }
+        let text = response_text(&response);
+
+        Ok(AiProviderTemplateTestOutput {
+            text,
+            model: model.to_owned(),
+            provider: provider.to_owned(),
+            response_id: Some(response.id),
+            request_id: None,
+            input_tokens: response
+                .usage
+                .as_ref()
+                .map(|usage| i64::from(usage.input_tokens)),
+            output_tokens: response
+                .usage
+                .as_ref()
+                .map(|usage| i64::from(usage.output_tokens)),
+            total_tokens: response.usage.map(|usage| i64::from(usage.total_tokens)),
+        })
+    }
+
     pub async fn companion_turn(
         execution: CompanionTurnExecution,
         cipher: &AiCredentialCipher,
@@ -226,6 +303,39 @@ fn response_request(
     serde_json::from_value(request).map_err(|_| AiProviderError::Configuration)
 }
 
+fn template_test_response_request(
+    execution: &AiTemplateTestExecution,
+    model: &str,
+) -> Result<async_openai::types::responses::CreateResponse, AiProviderError> {
+    let instructions = [
+        execution.system_prompt.as_deref(),
+        execution.task_prompt.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .map(str::trim)
+    .filter(|value| !value.is_empty())
+    .collect::<Vec<_>>()
+    .join("\n\n");
+    let mut request = json!({
+        "model": model,
+        "input": execution.prompt,
+    });
+    if !instructions.is_empty() {
+        request["instructions"] = json!(instructions);
+    }
+    if let Some(maximum) = execution.max_output_tokens.filter(|value| *value > 0) {
+        request["max_output_tokens"] = json!(maximum);
+    }
+    if let Some(temperature) = execution.temperature {
+        request["temperature"] = json!(temperature);
+    }
+    if let Some(effort) = execution.reasoning_effort.as_deref() {
+        request["reasoning"] = json!({"effort": effort});
+    }
+    serde_json::from_value(request).map_err(|_| AiProviderError::Configuration)
+}
+
 fn content_plan_response_request(
     execution: &ContentAuthoringExecution,
 ) -> Result<async_openai::types::responses::CreateResponse, AiProviderError> {
@@ -293,15 +403,50 @@ fn companion_response_request(
 
 #[cfg(test)]
 mod tests {
-    use super::{companion_response_request, content_plan_response_request, response_request};
+    use super::{
+        companion_response_request, content_plan_response_request, response_request,
+        template_test_response_request,
+    };
     use serde_json::json;
     use uuid::Uuid;
     use wicked_learning_application::learner_companion_turn::LearnerCompanionAssistanceLevel;
     use wicked_learning_persistence::{
         admin_activity_ai_review::ActivityReviewExecution,
         admin_ai_content_authoring::ContentAuthoringExecution,
-        learner_companion::CompanionTurnExecution,
+        admin_ai_template_test::AiTemplateTestExecution, learner_companion::CompanionTurnExecution,
     };
+
+    #[test]
+    fn template_test_request_uses_the_saved_agent_controls_and_prompt() {
+        let request = template_test_response_request(
+            &AiTemplateTestExecution {
+                provider: Some("openai".into()),
+                provider_enabled: true,
+                base_url: None,
+                organization: None,
+                encrypted_api_key: Some(vec![1]),
+                api_key_nonce: Some(vec![2; 12]),
+                model: Some("test-model".into()),
+                system_prompt: Some("System boundary".into()),
+                task_prompt: Some("Task boundary".into()),
+                temperature: Some(0.4),
+                reasoning_effort: None,
+                max_output_tokens: Some(700),
+                prompt: "A bounded test prompt".into(),
+            },
+            "test-model",
+        )
+        .expect("request");
+        let request = serde_json::to_value(request).expect("serialize request");
+
+        assert_eq!(request["input"], json!("A bounded test prompt"));
+        assert_eq!(
+            request["instructions"],
+            json!("System boundary\n\nTask boundary")
+        );
+        assert!((request["temperature"].as_f64().expect("temperature") - 0.4).abs() < 0.000_001);
+        assert_eq!(request["max_output_tokens"], json!(700));
+    }
 
     #[test]
     fn response_request_keeps_the_named_strict_contract_and_server_prompt() {
