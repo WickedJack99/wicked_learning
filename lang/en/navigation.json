@@ -7,6 +7,9 @@
     "navigation.primary.organizations": "Organizations",
     "navigation.primary.settings": "Settings",
     "navigation.primary.log_out": "Log out",
+    "navigation.skip_to_content": "Skip to content",
+    "navigation.open_user_menu": "Open user menu",
+    "navigation.sign_out.unavailable": "Sign out is temporarily unavailable.",
     "navigation.activity.continue": "Continue activity",
     "navigation.activity.return": "Return to :title"
 }

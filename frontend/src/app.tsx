@@ -42,6 +42,7 @@ import {
     type PublicPresentation,
 } from './public-presentation';
 import { PublicWorldPage } from './public-world';
+import { platformTranslationChangedEvent } from './original-platform-translation';
 
 type CurrentUserState =
     | { kind: 'loading' }
@@ -216,6 +217,12 @@ export function App() {
     useEffect(() => {
         void loadCurrentUser().then(setCurrentUser);
     }, [location.pathname]);
+
+    useEffect(() => {
+        if (currentUser.kind === 'loaded') {
+            window.dispatchEvent(new Event(platformTranslationChangedEvent));
+        }
+    }, [currentUser.kind]);
 
     useEffect(() => {
         if (

@@ -31,7 +31,10 @@ test('a learner can read only the current active activity translation', async ({
         { headers },
     );
     expect(reset.status()).toBe(200);
-    const run = (await reset.json()) as { play_run_id: string };
+    const run = (await reset.json()) as {
+        node_slug: string;
+        play_run_id: string;
+    };
     const playback = await page.request.get(
         `/api/v1/learner/play-runs/${run.play_run_id}`,
     );
@@ -50,4 +53,25 @@ test('a learner can read only the current active activity translation', async ({
         `/api/v1/learner/play-runs/${run.play_run_id}/activities/not-the-active-activity/translation`,
     );
     expect(stale.status()).toBe(404);
+
+    await page.route(
+        `**/api/v1/learner/play-runs/${run.play_run_id}/activities/${active.activity.slug}/translation`,
+        (route) =>
+            route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    translation: {
+                        introduction: 'Translated activity orientation',
+                        title: 'Translated active activity',
+                    },
+                }),
+            }),
+    );
+    await page.goto(
+        `/learning/nodes/${encodeURIComponent(run.node_slug)}/play?run=${encodeURIComponent(run.play_run_id)}`,
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Translated active activity' }),
+    ).toBeVisible();
+    await expect(page.getByText('Translated activity orientation')).toBeVisible();
 });

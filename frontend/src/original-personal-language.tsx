@@ -14,6 +14,7 @@ import { Link } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalPersonalSettingsNavigation } from './original-personal-settings-navigation';
+import { platformTranslationChangedEvent } from './original-platform-translation';
 
 type LanguagePreference = {
     available_languages: { code: string; name: string; native_name: string }[];
@@ -59,6 +60,7 @@ export function OriginalPersonalLanguagePage({
             if (!response.ok || !data) throw new Error();
             setPreference(data);
             setSavedLocale(data.locale);
+            window.dispatchEvent(new Event(platformTranslationChangedEvent));
         } catch {
             setError('Language preferences could not be saved.');
         } finally {

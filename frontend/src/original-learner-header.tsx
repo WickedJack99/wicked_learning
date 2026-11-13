@@ -5,15 +5,7 @@ import { Link, useLocation } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalJournalOverlay } from './original-journal';
 import { OriginalPlatformFeedbackPrompt } from './original-platform-feedback-prompt';
-
-const primaryItems = [
-    { href: '/home', id: 'learning-desk', label: 'Learning desk' },
-    { href: '/paths', id: 'paths', label: 'Paths' },
-    { href: '/topics', id: 'topics', label: 'Topics' },
-    { href: '/competence', id: 'competence', label: 'Competence map' },
-    { href: '/bookmarks', id: 'bookmarks', label: 'Bookmarks' },
-    { href: '/world', id: 'current-map', label: 'Current map' },
-] as const;
+import { usePlatformTranslation } from './original-platform-translation';
 
 /**
  * Source-adapted from the shared learner navigation header. Only Rust routes
@@ -28,9 +20,34 @@ export function OriginalLearnerHeader({
     userEmail: string;
 }) {
     const location = useLocation();
+    const t = usePlatformTranslation();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
+    const primaryItems = [
+        {
+            href: '/home',
+            id: 'learning-desk',
+            label: t('navigation.primary.learning_desk', 'Learning desk'),
+        },
+        { href: '/paths', id: 'paths', label: t('home.learning_desk.navigation.paths', 'Paths') },
+        { href: '/topics', id: 'topics', label: t('home.learning_desk.navigation.topics', 'Topics') },
+        {
+            href: '/competence',
+            id: 'competence',
+            label: t('home.learning_desk.navigation.competence', 'Competence map'),
+        },
+        {
+            href: '/bookmarks',
+            id: 'bookmarks',
+            label: t('navigation.primary.bookmarks', 'Bookmarks'),
+        },
+        {
+            href: '/world',
+            id: 'current-map',
+            label: t('navigation.primary.current_map', 'Current map'),
+        },
+    ] as const;
 
     async function signOut(): Promise<void> {
         setSignOutError(null);
@@ -48,7 +65,12 @@ export function OriginalLearnerHeader({
             setIsUserMenuOpen(false);
             onSignedOut();
         } catch {
-            setSignOutError('Sign out is temporarily unavailable.');
+            setSignOutError(
+                t(
+                    'navigation.sign_out.unavailable',
+                    'Sign out is temporarily unavailable.',
+                ),
+            );
         }
     }
 
@@ -61,7 +83,7 @@ export function OriginalLearnerHeader({
                 className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-[80] focus:rounded-md focus:bg-[var(--learner-panel-background)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:ring-2 focus:ring-[var(--learner-action-accent)] focus:outline-none"
                 href="#learner-main-content"
             >
-                Skip to content
+                {t('navigation.skip_to_content', 'Skip to content')}
             </a>
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:px-6 lg:px-8 xl:flex-nowrap">
                 <Link
@@ -100,7 +122,7 @@ export function OriginalLearnerHeader({
                     <button
                         aria-controls="learning-journal-panel"
                         aria-expanded={isJournalOpen}
-                        aria-label="Journal"
+                        aria-label={t('navigation.primary.journal', 'Journal')}
                         className="grid size-10 place-items-center rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] transition hover:bg-white/10 hover:text-[var(--learner-heading-text)]"
                         onClick={() => setIsJournalOpen((open) => !open)}
                         type="button"
@@ -110,7 +132,7 @@ export function OriginalLearnerHeader({
                     <button
                         aria-expanded={isUserMenuOpen}
                         aria-haspopup="menu"
-                        aria-label="Open user menu"
+                        aria-label={t('navigation.open_user_menu', 'Open user menu')}
                         className="flex h-10 items-center gap-2 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2.5 transition hover:bg-white/10"
                         onClick={() => setIsUserMenuOpen((open) => !open)}
                         type="button"
@@ -123,8 +145,8 @@ export function OriginalLearnerHeader({
                         <div className="absolute top-12 right-0 z-[80] w-60 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-1 shadow-2xl" role="menu">
                             <div className="flex items-center gap-2 px-2 py-2 text-left text-sm"><span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{userEmail.slice(0, 1).toUpperCase()}</span><span className="min-w-0 truncate font-medium">{userEmail}</span></div>
                             <div aria-hidden="true" className="my-1 h-px bg-[var(--learner-border-color)]" />
-                            <Link className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => setIsUserMenuOpen(false)} role="menuitem" to="/settings"><Settings className="mr-2 size-4" />Settings</Link>
-                            <button className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => void signOut()} role="menuitem" type="button"><LogOut className="mr-2 size-4" />Log out</button>
+                            <Link className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => setIsUserMenuOpen(false)} role="menuitem" to="/settings"><Settings className="mr-2 size-4" />{t('navigation.primary.settings', 'Settings')}</Link>
+                            <button className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => void signOut()} role="menuitem" type="button"><LogOut className="mr-2 size-4" />{t('navigation.primary.log_out', 'Log out')}</button>
                             {signOutError ? <p className="px-2 text-sm text-red-300" role="alert">{signOutError}</p> : null}
                         </div>
                     ) : null}

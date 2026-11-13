@@ -11,6 +11,10 @@ import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    applyActivityTranslation,
+    type LearnerActivityTranslation,
+} from './original-activity-translation';
 import type { OriginalAppearance } from './original-appearance';
 import { OriginalLearningCheckIn } from './original-learning-check-in';
 import { OriginalActivityAmbientSound } from './original-activity-ambient-sound';
@@ -27,6 +31,7 @@ import { OriginalLearningSupportRequest } from './original-learning-support-requ
 import { OriginalToolGrantActivity } from './original-tool-grant-activity';
 import { OriginalToolBelt } from './original-tool-belt';
 import { OriginalLearningCompanionLauncher } from './original-learning-companion';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerActivityStart = components['schemas']['LearnerActivityStart'];
 type LearnerPlaybackDocument = components['schemas']['LearnerPlaybackDocument'];
@@ -300,6 +305,9 @@ export function OriginalOpenPracticePage({
         string | null
     >(null);
     const [restarting, setRestarting] = useState(false);
+    const [activityTranslation, setActivityTranslation] =
+        useState<LearnerActivityTranslation>(null);
+    const activityTranslationRequest = useRef(0);
     const headingRef = useRef<HTMLHeadingElement>(null);
     const showConclusionButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -311,10 +319,13 @@ export function OriginalOpenPracticePage({
 
     const load = async (): Promise<void> => {
         if (!playRunId) {
+            activityTranslationRequest.current += 1;
             setState({ kind: 'unavailable' });
             return;
         }
         setState({ kind: 'loading' });
+        activityTranslationRequest.current += 1;
+        setActivityTranslation(null);
         try {
             const { data, response } = await apiClient.GET(
                 '/learner/play-runs/{play_run_id}',
@@ -327,6 +338,10 @@ export function OriginalOpenPracticePage({
                 setInventory(data.items ?? []);
                 setSelectedTool(null);
                 setState({ kind: 'loaded', document: data });
+                void loadActivityTranslation(
+                    data.play_run_id,
+                    data.activity.slug,
+                );
             } else {
                 setInventory([]);
                 setSelectedTool(null);
@@ -338,6 +353,32 @@ export function OriginalOpenPracticePage({
             setState({ kind: 'unavailable' });
         }
     };
+
+    async function loadActivityTranslation(
+        activePlayRunId: string,
+        activitySlug: string,
+    ): Promise<void> {
+        const request = ++activityTranslationRequest.current;
+        try {
+            const { data, response } = await apiClient.GET(
+                '/learner/play-runs/{play_run_id}/activities/{activity_slug}/translation',
+                {
+                    params: {
+                        path: {
+                            activity_slug: activitySlug,
+                            play_run_id: activePlayRunId,
+                        },
+                    },
+                },
+            );
+            if (response.ok && data && request === activityTranslationRequest.current) {
+                setActivityTranslation(data.translation);
+            }
+        } catch {
+            // Source copy remains valid when the active run changes before its
+            // scoped translation response arrives.
+        }
+    }
 
     useEffect(() => {
         void load();
@@ -459,7 +500,13 @@ export function OriginalOpenPracticePage({
                 return;
             }
             presentCheckIn(
-                state.document,
+                {
+                    ...state.document,
+                    activity: applyActivityTranslation(
+                        state.document.activity,
+                        activityTranslation,
+                    ),
+                },
                 data.status,
                 transitionLabel ?? state.document.activity.completion.label,
             );
@@ -505,12 +552,17 @@ export function OriginalOpenPracticePage({
         }
     }
 
+    const translatedActivity = state.kind === 'loaded'
+        ? applyActivityTranslation(state.document.activity, activityTranslation)
+        : null;
+    const t = usePlatformTranslation();
+
     return (
         <main
             className="flex min-h-svh flex-col bg-[#0b1117] p-3 text-slate-100 sm:p-4 md:p-6"
             data-wl-id={
-                state.kind === 'loaded'
-                    ? `learner.activity.${state.document.activity.activity_type}`
+                translatedActivity
+                    ? `learner.activity.${translatedActivity.activity_type}`
                     : 'learner.activity.playback'
             }
             id="learner-main-content"
@@ -520,7 +572,7 @@ export function OriginalOpenPracticePage({
             <section className="mx-auto grid w-full max-w-6xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] md:grid-rows-1">
                 {state.kind === 'loading' ? (
                     <p aria-live="polite" className="text-sm text-slate-300">
-                        Loading activity…
+                        {t('common.loading', 'Loading...')}
                     </p>
                 ) : null}
                 {state.kind === 'unavailable' ? (
@@ -529,23 +581,26 @@ export function OriginalOpenPracticePage({
                             role="alert"
                             className="text-sm leading-6 text-[var(--learner-muted-text)]"
                         >
-                            This activity is no longer available.
+                            {t(
+                                'learning.activity.unavailable',
+                                'This activity is no longer available.',
+                            )}
                         </p>
                         <Link
                             className="mt-4 inline-flex text-sm font-medium text-[var(--learner-action-accent)] underline-offset-4 hover:underline"
                             to={`/world?focused=${encodeURIComponent(nodeSlug)}`}
                         >
-                            Return to the map
+                            {t('learning.activity.back_to_map', 'Return to the map')}
                         </Link>
                     </div>
                 ) : null}
-                {state.kind === 'loaded' ? (
+                {state.kind === 'loaded' && translatedActivity ? (
                     <PlaybackContext context={state.document.context} />
                 ) : null}
-                {state.kind === 'loaded' ? (
+                {state.kind === 'loaded' && translatedActivity ? (
                     <section className="relative flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
                         <OriginalActivityAmbientSound
-                            activity={state.document.activity}
+                            activity={translatedActivity}
                         />
                         <div className="flex items-start gap-3">
                             <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)] text-[var(--learner-action-accent)]">
@@ -553,92 +608,87 @@ export function OriginalOpenPracticePage({
                             </span>
                             <div className="min-w-0">
                                 <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
-                                    {state.document.activity.activity_type ===
+                                    {translatedActivity.activity_type ===
                                     'question'
-                                        ? 'Question'
-                                        : state.document.activity
+                                        ? t('learning.activity.type.question', 'Question')
+                                        : translatedActivity
                                                 .activity_type === 'review'
-                                          ? 'Review'
-                                          : state.document.activity
+                                          ? t('learning.activity.type.review', 'Review')
+                                          : translatedActivity
                                                   .activity_type ===
                                               'reflection'
-                                            ? 'Reflection'
-                                            : state.document.activity
+                                            ? t('learning.activity.type.reflection', 'Reflection')
+                                            : translatedActivity
                                                     .activity_type ===
                                                 'tool_grant'
-                                              ? 'Tool grant'
-                                              : state.document.activity
+                                              ? t('learning.activity.type.tool_grant', 'Tool grant')
+                                              : translatedActivity
                                                       .activity_type ===
                                                   'item_grant'
-                                                ? 'Item grant'
-                                                : state.document.activity
+                                                ? t('learning.activity.type.item_grant', 'Item grant')
+                                                : translatedActivity
                                                         .activity_type ===
                                                     'item_obstacle'
-                                                  ? 'Item obstacle'
-                                                  : state.document.activity
+                                                  ? t('learning.activity.type.item_obstacle', 'Item obstacle')
+                                                  : translatedActivity
                                                           .activity_type ===
                                                       'obstacle'
-                                                    ? 'Obstacle'
-                                                    : state.document.activity
+                                                    ? t('learning.activity.type.obstacle', 'Obstacle')
+                                                    : translatedActivity
                                                             .activity_type ===
                                                         'markdown'
-                                                      ? 'Reading'
-                                                      : state.document.activity
+                                                      ? t('learning.activity.type.markdown', 'Reading')
+                                                      : translatedActivity
                                                               .activity_type ===
                                                           'message_prompt'
                                                         ? (
-                                                              state.document
-                                                                  .activity
+                                                              translatedActivity
                                                                   .config as {
                                                                   messageAudience?: unknown;
                                                               }
                                                           ).messageAudience ===
                                                           'peers'
-                                                            ? 'Learner messages'
-                                                            : 'Learning Support'
-                                                        : state.document
-                                                                .activity
+                                                            ? t('activities.messages.topic', 'Learner messages')
+                                                            : t('learning.support.title', 'Learning Support')
+                                                        : translatedActivity
                                                                 .activity_type ===
                                                             'message_wall'
-                                                          ? 'Peer notes'
-                                                          : state.document
-                                                                  .activity
+                                                          ? t('learning.activity.type.message_wall', 'Peer notes')
+                                                          : translatedActivity
                                                                   .activity_type ===
                                                               'npc_dialogue'
-                                                            ? 'Dialogue'
-                                                            : state.document
-                                                                    .activity
+                                                            ? t('learning.activity.type.npc_dialogue', 'Dialogue')
+                                                            : translatedActivity
                                                                     .activity_type ===
                                                                 'shared_task'
-                                                              ? 'Shared task'
-                                                              : state.document
-                                                                      .activity
+                                                              ? t('learning.activity.type.shared_task', 'Shared task')
+                                                              : translatedActivity
                                                                       .activity_type ===
                                                                   'portal'
-                                                                ? 'Portal'
-                                                                : 'Open practice'}
+                                                                ? t('learning.activity.type.portal', 'Portal')
+                                                                : t('learning.activity.type.open_practice', 'Open practice')}
                                 </p>
                                 <h3
                                     className="mt-1 scroll-mt-4 rounded-sm text-base font-semibold text-[var(--learner-heading-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-page-background)]"
                                     ref={headingRef}
                                     tabIndex={-1}
                                 >
-                                    {state.document.activity.title}
+                                    {translatedActivity.title}
                                 </h3>
-                                {state.document.activity.description ? (
+                                {translatedActivity.description ? (
                                     <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                        {state.document.activity.description}
+                                        {translatedActivity.description}
                                     </p>
                                 ) : null}
                                 <PlaybackEvidenceContext
-                                    checkIn={state.document.activity.check_in}
+                                    checkIn={translatedActivity.check_in}
                                 />
                             </div>
                         </div>
-                        {state.document.activity.activity_type ===
+                        {translatedActivity.activity_type ===
                         'question' ? (
                             <QuestionActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 key={`${state.document.play_run_id}:${state.document.activity.slug}`}
                                 playRunId={state.document.play_run_id}
                                 onComplete={(result, confidenceAfterFeedback) =>
@@ -648,122 +698,125 @@ export function OriginalOpenPracticePage({
                                     )
                                 }
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                               'reflection' ||
-                          state.document.activity.activity_type === 'review' ? (
+                          translatedActivity.activity_type === 'review' ? (
                             <ReflectionActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 onSaved={(status) => {
                                     presentCheckIn(
-                                        state.document,
+                                        {
+                                            ...state.document,
+                                            activity: translatedActivity,
+                                        },
                                         status,
-                                        state.document.activity.completion
+                                        translatedActivity.completion
                                             .label,
                                     );
                                 }}
                                 playRunId={state.document.play_run_id}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'tool_grant' ? (
                             <OriginalToolGrantActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 onComplete={complete}
                                 playRunId={state.document.play_run_id}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'item_grant' ? (
                             <OriginalItemGrantActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 onComplete={complete}
                                 playRunId={state.document.play_run_id}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'item_obstacle' ? (
                             <OriginalItemObstacleActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 inventory={inventory}
                                 onComplete={complete}
                                 onInventoryChange={setInventory}
                                 playRunId={state.document.play_run_id}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'obstacle' ? (
                             <OriginalObstacleActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 onComplete={complete}
                                 onSelectTool={setSelectedTool}
                                 playRunId={state.document.play_run_id}
                                 selectedTool={selectedTool}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'markdown' ? (
                             <OriginalMarkdownActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 onComplete={complete}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'message_prompt' ? (
                             (
-                                state.document.activity.config as {
+                                translatedActivity.config as {
                                     messageAudience?: unknown;
                                 }
                             ).messageAudience === 'peers' ? (
                                 <OriginalPeerMessagePrompt
-                                    activity={state.document.activity}
+                                    activity={translatedActivity}
                                     appearance={appearance}
                                     onComplete={complete}
                                     playRunId={state.document.play_run_id}
                                 />
                             ) : (
                                 <OriginalLearningSupportRequest
-                                    activity={state.document.activity}
+                                    activity={translatedActivity}
                                     appearance={appearance}
                                     onComplete={complete}
                                     playRunId={state.document.play_run_id}
                                 />
                             )
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'message_wall' ? (
                             <OriginalPeerMessageWall
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 onComplete={complete}
                                 playRunId={state.document.play_run_id}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'npc_dialogue' ? (
                             <OriginalNpcDialogueActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 onComplete={complete}
                                 onRefresh={load}
                                 playRunId={state.document.play_run_id}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'shared_task' ? (
                             <OriginalSharedTaskActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 onComplete={complete}
                                 playRunId={state.document.play_run_id}
                             />
-                        ) : state.document.activity.activity_type ===
+                        ) : translatedActivity.activity_type ===
                           'portal' ? (
                             <OriginalPortalActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 appearance={appearance}
                                 onComplete={complete}
                                 onTravel={(result) => {
                                     setPendingCheckIn({
-                                        activity: state.document.activity,
+                                        activity: translatedActivity,
                                         portalTravel: result,
                                         status: 'completed',
                                         transitionLabel:
-                                            state.document.activity.completion
+                                            translatedActivity.completion
                                                 .label,
                                     });
                                 }}
@@ -771,7 +824,7 @@ export function OriginalOpenPracticePage({
                             />
                         ) : (
                             <OpenPracticeActivity
-                                activity={state.document.activity}
+                                activity={translatedActivity}
                                 completing={completing}
                                 onComplete={() => void complete()}
                             />
@@ -787,8 +840,8 @@ export function OriginalOpenPracticePage({
                                 >
                                     <RotateCcw className="size-4" />
                                     {restarting
-                                        ? 'Starting again…'
-                                        : 'From beginning'}
+                                        ? t('learning.activity.starting_again', 'Starting again…')
+                                        : t('learning.activity.from_beginning', 'From beginning')}
                                 </button>
                             </div>
                         ) : null}
@@ -830,26 +883,26 @@ export function OriginalOpenPracticePage({
                     </section>
                 ) : null}
             </section>
-            {state.kind === 'loaded' ? (
+            {state.kind === 'loaded' && translatedActivity ? (
                 <OriginalToolBelt
                     appearance={appearance}
                     draggableItems={
-                        state.document.activity.activity_type ===
+                        translatedActivity.activity_type ===
                         'item_obstacle'
                     }
                     items={inventory}
                     onSelectTool={setSelectedTool}
                     selectedTool={selectedTool}
                     showTools={
-                        state.document.activity.activity_type === 'obstacle'
+                        translatedActivity.activity_type === 'obstacle'
                     }
                     tools={state.document.tools ?? []}
                 />
             ) : null}
-            {state.kind === 'loaded' ? (
+            {state.kind === 'loaded' && translatedActivity ? (
                 <OriginalLearningCompanionLauncher
                     scope={{
-                        activityId: state.document.activity.id,
+                        activityId: translatedActivity.id,
                         mapSlug: state.document.context.map_slug,
                         surface: 'activity',
                     }}
