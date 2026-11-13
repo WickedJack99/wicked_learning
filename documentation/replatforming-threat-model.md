@@ -70,12 +70,13 @@ endpoint is enabled, even in a non-production user pilot:
 
 The local browser suite calls the running Compose stack and verifies the
 source-derived public, identity, authoring, learner, collaboration, media and
-AI capability boundaries, including security headers, CSRF/origin checks and
-login-rate-limit protections. The Rust suite verifies the corresponding domain,
-database and API behavior. The local backup script and isolated restore drill
-were exercised against the disposable Compose data on 13 November 2026; both
-database dumps, media restoration, forward migration, readiness and recorded
-counts succeeded without touching the running stack.
+AI capability boundaries, including security headers, CSRF/origin checks,
+login-rate-limit protections, normal-session expiry refresh, logout and
+disabled-account session rejection. The Rust suite verifies the corresponding
+domain, database and API behavior. The local backup script and isolated
+restore drill were exercised against the disposable Compose data on
+13 November 2026; both database dumps, media restoration, forward migration,
+readiness and recorded counts succeeded without touching the running stack.
 
 This document is reviewed whenever a protected route, media lifecycle route,
 import/export route or AI capability is proposed.
