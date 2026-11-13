@@ -3611,13 +3611,15 @@ minutes (400 days), while the Rust platform already has a maintained,
 identity-database-backed session store.
 
 **Decision:** The typed password-login contract accepts an optional `remember`
-boolean, defaulting to false. A normal password login remains a browser-session
-cookie. A remembered password login stores the already server-side, opaque
-session for a fixed 400-day deadline and sends the same HTTP-only, same-site
-session cookie with that deadline. The intent survives the source two-factor
-challenge and takes effect only after a successful factor proof. Logout deletes
-the session, and the existing password-verifier binding invalidates remembered
-sessions when a password is changed or reset.
+boolean, defaulting to false. A normal password login uses the source's
+120-minute sliding inactivity deadline and persists across a browser restart,
+matching Laravel's default `expire_on_close=false` session configuration. A
+remembered password login stores the already server-side, opaque session for a
+fixed 400-day deadline and sends the same HTTP-only, same-site session cookie
+with that deadline. The intent survives the source two-factor challenge and
+takes effect only after a successful factor proof. Logout deletes the session,
+and the existing password-verifier binding invalidates remembered sessions when
+a password is changed or reset.
 
 **Why:** `tower-sessions` and its PostgreSQL store already manage opaque session
 identifiers, expiry and cookie attributes. Extending that maintained facility
@@ -3634,10 +3636,13 @@ checkbox. A sliding expiry would also differ from Laravel's fixed recaller
 cookie lifetime. These alternatives are rejected.
 
 **Implementation status:** The lifted original login form restores the
-checkbox, label, tab order and typed request field. The normal and two-factor
-password journeys use the same server-owned expiry policy; passkey, temporary
-access and registration sessions remain browser sessions unless a source
-control explicitly requests otherwise.
+checkbox, label, tab order and typed request field. The session layer explicitly
+saves authenticated requests so the normal two-hour inactivity deadline slides
+with real use; the middleware re-applies the fixed remembered deadline before a
+later session write can replace it. The normal and two-factor password journeys
+use the same server-owned expiry policy; passkey, temporary access and
+registration sessions receive the normal source inactivity policy unless a
+source control explicitly requests otherwise.
 
 **Limits and follow-up:** Laravel can create a fresh web session from its
 separate recaller cookie after a web-session expiry. Rust retains an equivalent

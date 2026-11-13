@@ -25,6 +25,8 @@ const MAX_EMAIL_BYTES: usize = 320;
 const MAX_PASSWORD_BYTES: usize = 1_024;
 pub const MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS: i64 = 15 * 60;
 pub const PENDING_TWO_FACTOR_LOGIN_KEY: &str = "wicked_pending_two_factor_login";
+/// Laravel's default web-session lifetime is 120 minutes of inactivity.
+pub const NORMAL_SESSION_IDLE_DURATION_MINUTES: i64 = 120;
 /// Laravel's `SessionGuard` keeps its recaller cookie for 576,000 minutes.
 pub const REMEMBERED_SESSION_DURATION_MINUTES: i64 = 576_000;
 const REMEMBERED_SESSION_DEADLINE_KEY: &str = "wicked_remembered_session_deadline";
@@ -40,6 +42,10 @@ pub struct PendingTwoFactorLogin {
 
 fn remembered_session_expiry(now: OffsetDateTime) -> Expiry {
     Expiry::AtDateTime(now.saturating_add(Duration::minutes(REMEMBERED_SESSION_DURATION_MINUTES)))
+}
+
+pub fn normal_session_expiry() -> Expiry {
+    Expiry::OnInactivity(Duration::minutes(NORMAL_SESSION_IDLE_DURATION_MINUTES))
 }
 
 async fn set_login_session_expiry(
@@ -61,7 +67,7 @@ async fn set_login_session_expiry(
             .remove::<i64>(REMEMBERED_SESSION_DEADLINE_KEY)
             .await
             .map_err(|_| ApiError::service_unavailable())?;
-        session.set_expiry(Some(Expiry::OnSessionEnd));
+        session.set_expiry(Some(normal_session_expiry()));
     }
 
     Ok(())
@@ -69,9 +75,9 @@ async fn set_login_session_expiry(
 
 /// Reapply the fixed remembered-session expiry before a handler can modify a
 /// persisted session. `tower-sessions` intentionally starts every request with
-/// its layer default, so retaining the stored deadline prevents a later
-/// confirmation or ceremony write from downgrading a remembered browser to a
-/// session-only cookie.
+/// its normal 120-minute inactivity default, so retaining the stored deadline
+/// prevents a later confirmation or ceremony write from changing a remembered
+/// browser into a sliding session.
 pub async fn restore_remembered_session_expiry(
     Extension(session): Extension<tower_sessions::Session>,
     request: Request,
@@ -381,9 +387,10 @@ mod tests {
     use uuid::Uuid;
 
     use super::{
-        MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS, PendingTwoFactorLogin,
-        REMEMBERED_SESSION_DURATION_MINUTES, TwoFactorChallenge, TwoFactorChallengeRequest,
-        parse_two_factor_challenge, pending_two_factor_login_is_fresh, remembered_session_expiry,
+        MAX_PENDING_TWO_FACTOR_LOGIN_AGE_SECONDS, NORMAL_SESSION_IDLE_DURATION_MINUTES,
+        PendingTwoFactorLogin, REMEMBERED_SESSION_DURATION_MINUTES, TwoFactorChallenge,
+        TwoFactorChallengeRequest, normal_session_expiry, parse_two_factor_challenge,
+        pending_two_factor_login_is_fresh, remembered_session_expiry,
     };
 
     #[test]
@@ -418,6 +425,14 @@ mod tests {
         assert_eq!(
             deadline - now,
             Duration::minutes(REMEMBERED_SESSION_DURATION_MINUTES)
+        );
+    }
+
+    #[test]
+    fn normal_sessions_use_the_source_two_hour_inactivity_window() {
+        assert_eq!(
+            normal_session_expiry(),
+            Expiry::OnInactivity(Duration::minutes(NORMAL_SESSION_IDLE_DURATION_MINUTES))
         );
     }
 

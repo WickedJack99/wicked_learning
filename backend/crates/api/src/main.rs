@@ -484,7 +484,9 @@ fn router(state: AppState) -> Router {
     let session_store = PostgresStore::new(state.identity_database.clone());
     let session_layer = SessionManagerLayer::new(session_store)
         .with_name("wicked_learning_session")
-        .with_secure(state.session_cookie_secure);
+        .with_secure(state.session_cookie_secure)
+        .with_expiry(session_commands::normal_session_expiry())
+        .with_always_save(true);
     let auth_layer = AuthManagerLayerBuilder::new(identity_backend, session_layer).build();
     let csrf_layer = csrf::layer(&state.csrf_cookie_key, state.session_cookie_secure);
     let mut login_rate_limit = GovernorConfigBuilder::default();
