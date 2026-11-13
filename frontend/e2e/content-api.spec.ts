@@ -67,6 +67,7 @@ test('a content API author creates a MapAsset Activity through the documented co
     const messageWallTitle = `Content API browser message wall ${suffix}`;
     const reflectionTitle = `Content API browser reflection ${suffix}`;
     const reviewTitle = `Content API browser review ${suffix}`;
+    const markdownTitle = `Content API browser briefing ${suffix}`;
     test.skip(!email || !password, 'requires the disposable local administrator');
 
     await page.goto('/login');
@@ -212,6 +213,40 @@ test('a content API author creates a MapAsset Activity through the documented co
     expect(review.data.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(review.data).toMatchObject({ type: 'review', title: reviewTitle });
 
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'markdown',
+        title: markdownTitle,
+        introduction: 'Read a short source-shaped briefing before exploring further.',
+        markdown_pages: [{
+            id: 'briefing',
+            title: 'A browser-created briefing',
+            body: '# Notice the connections\n\nChoose one detail worth revisiting.',
+            position: { x: 140, y: 80 },
+            visual: {
+                page_color_dark: '#0f172a',
+                page_color_light: '#ffffff',
+                border_color_dark: '#2dd4bf',
+                border_color_light: '#0891b2',
+                heading_color_dark: '#67e8f9',
+                heading_color_light: '#0e7490',
+                text_color_dark: '#f8fafc',
+                text_color_light: '#0f172a',
+            },
+        }],
+        markdown_transitions: [
+            { id: 'start-briefing', from: 'start', to: 'briefing' },
+            { id: 'briefing-end', from: 'briefing', to: 'end' },
+        ],
+        markdown_graph_layout: {},
+        graph_position_x: 480,
+        graph_position_y: 80,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const markdown = await createdResponse(console);
+    expect(markdown.data.id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(markdown.data).toMatchObject({ type: 'markdown', title: markdownTitle });
+
     await console.getByLabel('Operation').selectOption('activities.index');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/map-assets/${mapAsset.data.id}/activities`,
@@ -224,4 +259,5 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(messageWallTitle);
     await expect(console.locator('pre')).toContainText(reflectionTitle);
     await expect(console.locator('pre')).toContainText(reviewTitle);
+    await expect(console.locator('pre')).toContainText(markdownTitle);
 });
