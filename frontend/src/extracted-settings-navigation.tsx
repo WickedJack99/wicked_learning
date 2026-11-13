@@ -101,6 +101,53 @@ export const adminSettings: SettingsListItem[] = [
             'learning_concepts',
             'platform_feedback',
         ],
+        children: [
+            {
+                label: 'Support Signals',
+                labelKey:
+                    'settings.navigation.learning_support.support_signals',
+                href: '/settings?panel=admin-learning-support&support=support-signals',
+                resources: ['learner_support_signals'],
+            },
+            {
+                label: 'Feedback',
+                labelKey: 'settings.navigation.learning_support.admin_panel',
+                href: '/settings?panel=admin-learning-support&support=feedback-requests',
+                resources: ['journal_feedback'],
+            },
+            {
+                label: 'Platform Feedback',
+                labelKey:
+                    'settings.navigation.learning_support.platform_feedback',
+                href: '/settings?panel=admin-learning-support&support=platform-feedback',
+                resources: ['platform_feedback'],
+            },
+            {
+                label: 'Organization Icons',
+                labelKey: 'settings.navigation.organization_icons',
+                href: '/settings?panel=admin-learning-support&support=organization-icons',
+                resources: ['organization_moderation'],
+            },
+            {
+                label: 'Competence Topics',
+                labelKey: 'settings.navigation.competence_topics',
+                href: '/settings?panel=admin-learning-support&support=competence-topics',
+                resources: ['competence_topics'],
+            },
+            {
+                label: 'Journal',
+                labelKey: 'settings.navigation.journal',
+                href: '/settings?panel=admin-learning-support&support=journal',
+                resources: ['journal_settings'],
+            },
+            {
+                label: 'Concept Library',
+                labelKey:
+                    'settings.navigation.learning_support.concept_library',
+                href: '/settings?panel=admin-learning-support&support=learning-concepts',
+                resources: ['learning_concepts'],
+            },
+        ],
     },
     {
         key: 'admin-world-builder',
@@ -116,6 +163,20 @@ export const adminSettings: SettingsListItem[] = [
             'world_activities',
             'world_map_access',
         ],
+        children: [
+            {
+                label: 'Graph',
+                labelKey: 'settings.navigation.world_builder.graph',
+                href: '/settings?panel=admin-world-builder&worldSection=graph',
+                resources: ['world_maps', 'world_nodes', 'world_activities'],
+            },
+            {
+                label: 'Structural',
+                labelKey: 'settings.navigation.world_builder.structural',
+                href: '/settings?panel=admin-world-builder&worldSection=structural',
+                resources: ['world_maps', 'world_nodes', 'world_activities'],
+            },
+        ],
     },
     {
         key: 'admin-assets-world-objects',
@@ -127,6 +188,38 @@ export const adminSettings: SettingsListItem[] = [
         icon: Database,
         panel: 'admin-assets-world-objects',
         resources: ['assets', 'sounds', 'presentation'],
+        children: [
+            {
+                label: 'Visuals',
+                labelKey: 'settings.navigation.visuals',
+                href: '/settings?panel=admin-assets-world-objects&asset=visuals',
+                resources: ['assets'],
+            },
+            {
+                label: 'Sounds',
+                labelKey: 'settings.navigation.sounds',
+                href: '/settings?panel=admin-assets-world-objects&asset=sounds',
+                resources: ['sounds'],
+            },
+            {
+                label: 'Cursor images',
+                labelKey: 'settings.navigation.cursor_images',
+                href: '/settings?panel=admin-assets-world-objects&asset=cursors',
+                resources: ['presentation'],
+            },
+            {
+                label: 'Tools',
+                labelKey: 'settings.assets.sections.tools',
+                href: '/settings?panel=admin-assets-world-objects&asset=tools',
+                resources: ['assets'],
+            },
+            {
+                label: 'Items',
+                labelKey: 'settings.assets.sections.items',
+                href: '/settings?panel=admin-assets-world-objects&asset=items',
+                resources: ['assets'],
+            },
+        ],
     },
     {
         key: 'admin-access',
@@ -138,6 +231,26 @@ export const adminSettings: SettingsListItem[] = [
         icon: Shield,
         panel: 'admin-access',
         resources: ['users', 'roles', 'groups', 'group_members'],
+        children: [
+            {
+                label: 'User management',
+                labelKey: 'settings.navigation.user_management',
+                href: '/settings?panel=admin-access&access=users',
+                resources: ['users'],
+            },
+            {
+                label: 'Role management',
+                labelKey: 'settings.navigation.role_management',
+                href: '/settings?panel=admin-access&access=roles',
+                resources: ['roles'],
+            },
+            {
+                label: 'Groups',
+                labelKey: 'settings.navigation.groups',
+                href: '/settings?panel=admin-access&access=groups',
+                resources: ['groups', 'group_members'],
+            },
+        ],
     },
     {
         key: 'admin-learning-companion',
@@ -159,6 +272,26 @@ export const adminSettings: SettingsListItem[] = [
         icon: Bot,
         panel: 'admin-ai-integrations',
         resources: ['ai'],
+        children: [
+            {
+                label: 'Provider keys',
+                labelKey: 'settings.ai.sections.providers',
+                href: '/settings?panel=admin-ai-integrations&ai=providers',
+                resources: ['ai'],
+            },
+            {
+                label: 'Agent templates',
+                labelKey: 'settings.ai.sections.templates',
+                href: '/settings?panel=admin-ai-integrations&ai=templates',
+                resources: ['ai'],
+            },
+            {
+                label: 'Guardrails',
+                labelKey: 'settings.ai.sections.guardrails',
+                href: '/settings?panel=admin-ai-integrations&ai=guardrails',
+                resources: ['ai'],
+            },
+        ],
     },
     {
         key: 'admin-translations',
@@ -169,6 +302,14 @@ export const adminSettings: SettingsListItem[] = [
         icon: Languages,
         panel: 'admin-translations',
         resources: ['languages'],
+        children: [
+            {
+                label: 'Languages',
+                labelKey: 'settings.navigation.languages',
+                href: '/settings?panel=admin-translations',
+                resources: ['languages'],
+            },
+        ],
     },
     {
         key: 'admin-color-palettes',
@@ -180,6 +321,14 @@ export const adminSettings: SettingsListItem[] = [
         icon: Palette,
         panel: 'admin-color-palettes',
         resources: ['presentation', 'journal_settings', 'world_maps'],
+        children: [
+            {
+                label: 'Color palette',
+                labelKey: 'settings.navigation.color_palette',
+                href: '/settings?panel=admin-color-palettes',
+                resources: ['presentation', 'journal_settings', 'world_maps'],
+            },
+        ],
     },
     {
         key: 'admin-public-pages',
@@ -191,6 +340,14 @@ export const adminSettings: SettingsListItem[] = [
         icon: Sparkles,
         panel: 'admin-public-pages',
         resources: ['presentation'],
+        children: [
+            {
+                label: 'Public pages',
+                labelKey: 'settings.navigation.public_pages',
+                href: '/settings?panel=admin-public-pages',
+                resources: ['presentation'],
+            },
+        ],
     },
     {
         key: 'admin-api',
@@ -202,6 +359,20 @@ export const adminSettings: SettingsListItem[] = [
         icon: Braces,
         panel: 'admin-api',
         resources: ['content_api'],
+        children: [
+            {
+                label: 'API Console',
+                labelKey: 'settings.api.console.title',
+                href: '/settings?panel=admin-api&api=console',
+                resources: ['content_api'],
+            },
+            {
+                label: 'API Documentation',
+                labelKey: 'settings.api.documentation.title',
+                href: '/settings?panel=admin-api&api=documentation',
+                resources: ['content_api'],
+            },
+        ],
     },
 ];
 

@@ -4918,6 +4918,10 @@ The World Builder shell also retains the source Settings corner navigation
 (desk, current map, bookmarks, logout, source and legal destinations), with
 React Router and the existing CSRF-protected Rust session logout as its only
 standalone seams. Its desktop and narrow layouts remain browser-covered.
+The copied Settings navigation retains every source child destination and its
+resource visibility gate, so the source search continues to discover completed
+subsections (such as guardrails, structural maps and asset catalogues) without
+inventing a separate standalone navigation model.
 The source World Builder Review queue is a URL-selected Settings section, not
 a standalone substitute modal: it consumes the existing bounded scoped Rust
 review-queue projection and opens an item only through the existing authored

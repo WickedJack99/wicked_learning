@@ -72,6 +72,13 @@ test('a local administrator can open lifted workspaces at the current Laravel Se
     await expect(
         settingsNavigation.getByRole('button', { name: 'World Builder' }),
     ).toBeHidden();
+    await page.getByLabel('Search settings').fill('Guardrails');
+    await expect(
+        settingsNavigation.getByRole('button', { name: 'AI' }),
+    ).toBeVisible();
+    await expect(
+        settingsNavigation.getByRole('button', { name: 'World Builder' }),
+    ).toBeHidden();
     await page.getByLabel('Search settings').fill('');
     await settingsNavigation
         .getByRole('button', { name: 'Assets & World Objects' })
