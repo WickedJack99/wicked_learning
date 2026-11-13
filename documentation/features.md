@@ -20,6 +20,12 @@ Visitors can open the welcome, About, Imprint, Data Protection and source-code
 pages before logging in. Public and authentication surfaces support configurable
 light and dark presentation values.
 
+Authenticated `/settings/about`, `/settings/imprint` and
+`/settings/data-protection` routes retain the source settings article surface.
+They read the same published content; a principal with presentation permission
+may edit the fixed Markdown document there, while other signed-in readers stay
+read-only.
+
 Registration requires a valid registration token. Authenticated users can edit
 their profile and language, choose appearance and sound preferences, manage
 passwords, passkeys and two-factor authentication, and review notifications.

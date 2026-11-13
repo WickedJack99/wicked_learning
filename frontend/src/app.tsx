@@ -22,6 +22,10 @@ import { OriginalPersonalProfilePage } from './original-personal-profile';
 import { OriginalPersonalDeleteAccountPage } from './original-personal-delete-account';
 import { OriginalPersonalSoundPage } from './original-personal-sound';
 import { OriginalPersonalSecurityPage } from './original-personal-security';
+import {
+    OriginalSettingsInformationPage,
+    type InformationPageSlug,
+} from './original-settings-information';
 import { OriginalPlatformFeedbackPage } from './original-platform-feedback';
 import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
@@ -1025,6 +1029,28 @@ export function App() {
                     appearance={appearance}
                 />
             </Suspense>
+        );
+    }
+
+    const settingsInformationMatch = location.pathname.match(
+        /^\/settings\/(about|imprint|data-protection)$/,
+    );
+    if (settingsInformationMatch) {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+        if (currentUser.kind === 'anonymous') {
+            return <Navigate replace to="/login" />;
+        }
+
+        return (
+            <OriginalSettingsInformationPage
+                appearance={appearance}
+                slug={settingsInformationMatch[1] as InformationPageSlug}
+            />
         );
     }
 
