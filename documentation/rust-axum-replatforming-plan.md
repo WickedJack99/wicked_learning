@@ -1712,7 +1712,10 @@ The response pane exposes the exact server status and JSON body; it never turns
 the console into a bearer-token client or a substitute for the contract's map
 and activity scope checks. The local browser proof creates a disposable map,
 MapAsset and Open Practice Activity through that console, then reads the
-Activity back through the documented scoped route.
+Activity back through the documented scoped route. The OpenAPI contract and
+generated TypeScript client now mirror all seven advertised operations,
+including the map list/create pair; no live console operation is outside the
+typed API surface.
 
 ### 7. Complete the replacement deliberately
 

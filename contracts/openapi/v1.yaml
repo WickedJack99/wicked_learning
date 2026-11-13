@@ -61,6 +61,50 @@ paths:
         '401': { description: No authenticated administration session. }
         '403': { description: The current role lacks content_api read permission. }
         '503': { description: The application database is unavailable. }
+  /content/v1/maps:
+    servers:
+      - url: /api
+    get:
+      operationId: getContentApiMaps
+      summary: List source-compatible maps in the caller's editable scope.
+      description: Requires content_api read permission and preserves the existing World Builder map scope; the Content API permission does not reveal additional maps.
+      responses:
+        '200':
+          description: The editable maps, without their nested MapAssets or activity graphs.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ContentApiMap' }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The current role lacks content_api read permission or the existing World Builder scope. }
+        '503': { description: The application database is unavailable. }
+    post:
+      operationId: createContentApiMap
+      summary: Create a source-compatible map in the server-selected authoring World.
+      description: Requires content_api update permission, the existing World Builder map-create scope, and a same-origin CSRF token. The browser cannot nominate the World.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContentApiMapRequest' }
+      responses:
+        '201':
+          description: The newly created map's source-compatible summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiMapResponse' }
+        '400': { description: The title, optional slug, or optional description is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Builder map-create permission. }
+        '503': { description: The application database is unavailable. }
   /content/v1/maps/{map_id}/map-assets:
     servers:
       - url: /api
@@ -7193,6 +7237,29 @@ components:
         pattern: '^[a-z0-9-]+$'
         maxLength: 80
   schemas:
+    CreateContentApiMapRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: [string, 'null'], maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        description: { type: [string, 'null'], maxLength: 1000 }
+    ContentApiMap:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, description]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, maxLength: 140, pattern: '^[a-z0-9-]+$' }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+    ContentApiMapResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/ContentApiMap' }
     CreateContentApiMapAssetRequest:
       type: object
       additionalProperties: false

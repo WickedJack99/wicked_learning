@@ -84,6 +84,11 @@ test('a content API author creates a MapAsset Activity through the documented co
     const map = await createdResponse(console);
     expect(map.data.id).toMatch(/^[0-9a-f-]{36}$/i);
 
+    await console.getByLabel('Operation').selectOption('maps.index');
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(mapTitle);
+
     await console.getByLabel('Operation').selectOption('map-assets.store');
     await console.getByLabel('Request path').fill(
         `/api/content/v1/maps/${map.data.id}/map-assets`,

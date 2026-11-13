@@ -58,6 +58,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/content/v1/maps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List source-compatible maps in the caller's editable scope.
+         * @description Requires content_api read permission and preserves the existing World Builder map scope; the Content API permission does not reveal additional maps.
+         */
+        get: operations["getContentApiMaps"];
+        put?: never;
+        /**
+         * Create a source-compatible map in the server-selected authoring World.
+         * @description Requires content_api update permission, the existing World Builder map-create scope, and a same-origin CSRF token. The browser cannot nominate the World.
+         */
+        post: operations["createContentApiMap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/content/v1/maps/{map_id}/map-assets": {
         parameters: {
             query?: never;
@@ -5628,6 +5652,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateContentApiMapRequest: {
+            title: string;
+            slug?: string | null;
+            description?: string | null;
+        };
+        ContentApiMap: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            description: string | null;
+        };
+        ContentApiMapResponse: {
+            data: components["schemas"]["ContentApiMap"];
+        };
         CreateContentApiMapAssetRequest: {
             title: string;
             description?: string | null;
@@ -10749,6 +10788,104 @@ export interface operations {
                 content?: never;
             };
             /** @description The current role lacks content_api read permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getContentApiMaps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The editable maps, without their nested MapAssets or activity graphs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ContentApiMap"][];
+                    };
+                };
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current role lacks content_api read permission or the existing World Builder scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createContentApiMap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContentApiMapRequest"];
+            };
+        };
+        responses: {
+            /** @description The newly created map's source-compatible summary. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentApiMapResponse"];
+                };
+            };
+            /** @description The title */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No authenticated administration session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF check failed or the current role lacks content_api or World Builder map-create permission. */
             403: {
                 headers: {
                     [name: string]: unknown;
