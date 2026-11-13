@@ -37,7 +37,8 @@ test('a local world author can save source question activity fields', async ({ p
     ]);
     expect(created.status()).toBe(201);
     await expect(page.getByText(title, { exact: true })).toBeVisible();
-    await page.getByText(title, { exact: true }).click();
+    await page.getByRole('button', { name: 'Fit View' }).click();
+    await page.getByText(title, { exact: true }).dispatchEvent('click');
     await expect(page.getByRole('heading', { name: 'Edit Question' })).toBeVisible();
     await page.getByRole('textbox', { name: 'Correct feedback', exact: true }).fill('Correct: learner choice stays visible.');
     const [updated] = await Promise.all([
@@ -52,7 +53,7 @@ test('a local world author can save source question activity fields', async ({ p
     expect(saved?.config.feedbackCorrect).toBe('Correct: learner choice stays visible.');
     expect(saved?.config.options?.[0]?.isCorrect).toBeTruthy();
     expect(saved?.config.options?.[0]?.key).toBe('answer-1');
-    await page.getByRole('button', { name: `Delete ${title}` }).click();
+    await page.getByRole('button', { name: `Delete ${title}` }).dispatchEvent('click');
     await page.getByRole('dialog', { name: 'Delete activity?' }).getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 });

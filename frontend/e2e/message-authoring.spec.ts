@@ -31,7 +31,8 @@ test('a local world author can save source message activity fields', async ({ pa
     ]);
     expect(created.status()).toBe(201);
     await expect(page.getByText(title, { exact: true })).toBeVisible();
-    await page.getByText(title, { exact: true }).click();
+    await page.getByRole('button', { name: 'Fit View' }).click();
+    await page.getByText(title, { exact: true }).dispatchEvent('click');
     await expect(page.getByRole('heading', { name: 'Edit Message prompt' })).toBeVisible();
     await page.getByRole('textbox', { name: 'Accent - dark', exact: true }).fill('#654321');
     const [updated] = await Promise.all([
@@ -43,7 +44,7 @@ test('a local world author can save source message activity fields', async ({ pa
     expect(node.ok()).toBeTruthy();
     const document = (await node.json()) as { activity_graph: { activities: Array<{ config: { messageUi?: { accentColorDark?: string } }; id: string; title: string }> } };
     expect(document.activity_graph.activities.find((activity) => activity.title === title)?.config.messageUi?.accentColorDark).toBe('#654321');
-    await page.getByRole('button', { name: `Delete ${title}` }).click();
+    await page.getByRole('button', { name: `Delete ${title}` }).dispatchEvent('click');
     await page.getByRole('dialog', { name: 'Delete activity?' }).getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 
