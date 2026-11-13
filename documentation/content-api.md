@@ -58,6 +58,7 @@ prompt. IDs returned by the API are opaque and should be reused exactly.
 | `GET`  | `/map-assets/{mapAsset}/activities` | List a MapAsset's Activities                    |
 | `POST` | `/map-assets/{mapAsset}/activities` | Create a validated Activity                     |
 | `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/reflection` | Replace one complete Reflection Activity form |
+| `PATCH` | `/map-assets/{mapAsset}/activities/{activity}/review` | Replace one complete Review Activity form |
 | `GET`  | `/map-assets/{mapAsset}/activity-transitions` | List source-ordered Activity connections |
 | `POST` | `/map-assets/{mapAsset}/activity-transitions` | Connect two Activities through the scoped graph writer |
 | `PATCH` | `/map-assets/{mapAsset}/activity-transitions/{transition}` | Update a scoped Activity connection's presentation |
@@ -76,9 +77,10 @@ the command's map scope; a transition update or deletion additionally proves
 that the addressed transition belongs to the URL's MapAsset before delegation.
 Map deletion retains the established scoped cascade/reference cleanup. Bulk
 import and automatic graph wiring are not exposed. Activity reads include each
-record's `updatedAt` timestamp. Reflection replacement requires that timestamp,
-the full source form, and a URL whose MapAsset and Activity are proven to belong
-together; other Activity types remain behind their own typed adapters.
+record's `updatedAt` timestamp. Reflection and Review replacement each require
+that timestamp, the full source form, and a URL whose MapAsset and typed
+Activity are proven to belong together; other Activity types remain behind their
+own typed adapters.
 
 ## Settings Console
 

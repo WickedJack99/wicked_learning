@@ -339,7 +339,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/UpdateContentApiReflectionActivityRequest' }
+            schema: { $ref: '#/components/schemas/UpdateContentApiReflectiveActivityRequest' }
       responses:
         '200':
           description: The updated Reflection Activity identity and fresh concurrency timestamp.
@@ -350,6 +350,41 @@ paths:
         '401': { description: No authenticated administration session. }
         '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
         '404': { description: The Reflection Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/review:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: activity_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateContentApiReviewActivity
+      summary: Replace a source-compatible Review Activity form.
+      description: Requires content_api update permission, the existing World Activity update scope, a same-origin CSRF token, and the current updated_at value. Rust proves that the addressed activity is a Review within the URL's MapAsset before delegating to the distinct typed World Builder command.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateContentApiReflectiveActivityRequest' }
+      responses:
+        '200':
+          description: The updated Review Activity identity and fresh concurrency timestamp.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityUpdateResponse' }
+        '400': { description: The complete Review form is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The Review Activity is unavailable in the caller's scoped MapAsset. }
         '409': { description: The supplied updated_at value is stale. }
         '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
@@ -7612,7 +7647,7 @@ components:
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/ContentApiActivity' }
-    UpdateContentApiReflectionActivityRequest:
+    UpdateContentApiReflectiveActivityRequest:
       type: object
       additionalProperties: false
       required: [title, slug, introduction, prompt, note, topic, subtopic, updated_at]

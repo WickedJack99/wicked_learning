@@ -4833,13 +4833,13 @@ machine contract and console advertise these operations only after the route,
 generated client and browser lifecycle proof exist; `content_api` never widens
 the selected map's World Builder scope.
 
-**Reflection extension:** Activity reads now return their source `updatedAt`
-value, and the first type-specific activity replacement endpoint accepts only
-the complete Reflection form plus that current timestamp. It separately proves
-the requested type and MapAsset membership before the existing typed Reflection
+**Reflective-activity extension:** Activity reads now return their source
+`updatedAt` value, and the Reflection and Review replacement endpoints each
+accept only their complete shared source form plus that current timestamp. Each
+separately proves the requested type and MapAsset membership before its typed
 command rechecks authoring scope and persists the update. This is intentionally
-not a generic activity patch: Review and every other Activity type remain
-behind their own source-shaped adapters.
+not a generic activity patch: every remaining Activity type stays behind its
+own source-shaped adapter.
 
 **Extension:** The contract also exposes Laravel's strict v1.5 ContentPlan
 draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and
