@@ -39,6 +39,13 @@ test('a local administrator can use the source-derived learning taxonomy workspa
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add concept' })).toBeVisible();
 
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=learning-concepts',
+    );
+    await expect(
+        page.locator('[data-wl-id="admin.learning-taxonomy.learning-concepts"]'),
+    ).toBeVisible();
+
     await page.setViewportSize({ width: 390, height: 844 });
     const saveConcepts = page.getByRole('button', { name: 'Save concepts' });
     await expect(saveConcepts).toBeVisible();

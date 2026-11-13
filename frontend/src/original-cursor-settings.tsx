@@ -119,7 +119,7 @@ export function OriginalCursorSettingsPage({ appearance }: { appearance: Origina
         <div className="mx-auto w-full max-w-5xl">
             <header className="flex flex-wrap items-start justify-between gap-4 pb-5">
                 <div>
-                    <Link className="mb-4 inline-flex rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)]" to="/settings?panel=admin-assets">Assets &amp; World Objects</Link>
+                    <Link className="mb-4 inline-flex rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)]" to="/settings?panel=admin-assets-world-objects&asset=visuals">Assets &amp; World Objects</Link>
                     <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Assets &amp; World Objects</p>
                     <h1 className="mt-2 text-3xl font-semibold">Cursor images</h1>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">Configure reusable cursor image assets for normal, action, grab, text and denied states.</p>

@@ -1069,7 +1069,7 @@ Admins can manage reusable images, animations, sounds, tools, items and cursor
 images. Image inputs reuse existing media paths instead of forcing duplicate
 uploads. Sound records include category, icon, volume, looping and optional
 duration metadata, and the browser player supports concurrent sound layers.
-The Rust sound library at `/settings?panel=admin-assets&asset=sounds` retains
+The Rust sound library at `/settings?panel=admin-assets-world-objects&asset=sounds` retains
 the source two-pane search, metadata, upload, preview and deletion workflow.
 New audio is accepted only as one bounded AAC, FLAC, M4A, MP3, OGG, WAV or WebM
 upload, stored under an opaque MediaStore key and attached through a normalized
@@ -1085,7 +1085,7 @@ authoring configuration contains only a sound UUID; Rust resolves a published
 sound URL for a visible learner map, and playback respects the learner's mute
 and effects-volume preferences.
 Admins with sound-library access can also manage source-shaped dialogue typing
-sets at `/settings?panel=admin-assets&asset=dialogue-sounds`: create a complete
+sets at `/settings?panel=admin-assets-world-objects&asset=dialogue-sounds`: create a complete
 WAV set, replace all letters or one letter, add tags, and choose the default
 set. Set creation and full replacement require exactly one file for each letter
 from `a.wav` through `z.wav`. Each new WAV is staged as managed media, then the

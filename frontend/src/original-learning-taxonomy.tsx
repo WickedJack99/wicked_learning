@@ -27,14 +27,20 @@ const secondaryButtonClass =
  */
 export function OriginalLearningTaxonomyPage({
     appearance,
+    initialSection = 'competence-topics',
 }: {
     appearance: OriginalAppearance;
+    initialSection?: Section;
 }) {
     const [taxonomy, setTaxonomy] = useState<LearningTaxonomy | null>(null);
     const [loading, setLoading] = useState(true);
     const [forbidden, setForbidden] = useState(false);
     const [error, setError] = useState('');
-    const [section, setSection] = useState<Section>('competence-topics');
+    const [section, setSection] = useState<Section>(initialSection);
+
+    useEffect(() => {
+        setSection(initialSection);
+    }, [initialSection]);
 
     function load(): void {
         setLoading(true);

@@ -624,21 +624,24 @@ export function App() {
     }
 
     if (location.pathname === '/settings') {
+        const settingsQuery = new URLSearchParams(location.search);
+        const settingsPanel = settingsQuery.get('panel');
+        const assetSection = settingsQuery.get('asset');
+        const presentationSection = settingsQuery.get('presentation');
+        const supportSection = settingsQuery.get('support');
+        const assetsPanel =
+            settingsPanel === 'admin-assets-world-objects' ||
+            settingsPanel === 'admin-assets';
         const usersPanel =
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-access' &&
-            new URLSearchParams(location.search).get('access') === 'users';
+            settingsPanel === 'admin-access' &&
+            settingsQuery.get('access') === 'users';
         const rolesPanel =
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-access' &&
-            new URLSearchParams(location.search).get('access') === 'roles';
+            settingsPanel === 'admin-access' &&
+            settingsQuery.get('access') === 'roles';
         const groupPanel =
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-access' &&
-            new URLSearchParams(location.search).get('access') === 'groups';
-        const supportPanel =
-            new URLSearchParams(location.search).get('panel') ===
-            'admin-learning-support';
+            settingsPanel === 'admin-access' &&
+            settingsQuery.get('access') === 'groups';
+        const supportPanel = settingsPanel === 'admin-learning-support';
         if (
             currentUser.kind === 'loading' ||
             currentUser.kind === 'unavailable'
@@ -651,15 +654,13 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') ===
-            'admin-world-builder'
+            settingsPanel === 'admin-world-builder'
         ) {
             return <OriginalWorldBuilderPage isAuthenticated />;
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') ===
-            'admin-ai-integrations'
+            settingsPanel === 'admin-ai-integrations'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -669,7 +670,7 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') === 'admin-api'
+            settingsPanel === 'admin-api'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -679,8 +680,7 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') ===
-            'admin-learning-companion'
+            settingsPanel === 'admin-learning-companion'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -692,9 +692,7 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-assets' &&
-            new URLSearchParams(location.search).get('asset') === 'items'
+            assetsPanel && assetSection === 'items'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -703,9 +701,7 @@ export function App() {
             );
         }
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-assets' &&
-            new URLSearchParams(location.search).get('asset') === 'tools'
+            assetsPanel && assetSection === 'tools'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -714,9 +710,7 @@ export function App() {
             );
         }
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-assets' &&
-            new URLSearchParams(location.search).get('asset') === 'cursors'
+            assetsPanel && assetSection === 'cursors'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -725,9 +719,7 @@ export function App() {
             );
         }
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-assets' &&
-            new URLSearchParams(location.search).get('asset') === 'sounds'
+            assetsPanel && assetSection === 'sounds'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -736,10 +728,7 @@ export function App() {
             );
         }
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-assets' &&
-            new URLSearchParams(location.search).get('asset') ===
-                'dialogue-sounds'
+            assetsPanel && assetSection === 'dialogue-sounds'
         ) {
             return (
                 <Suspense fallback={null}>
@@ -748,7 +737,7 @@ export function App() {
             );
         }
         if (
-            new URLSearchParams(location.search).get('panel') === 'admin-assets'
+            assetsPanel
         ) {
             return (
                 <Suspense fallback={null}>
@@ -758,10 +747,9 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-presentation-localization' &&
-            new URLSearchParams(location.search).get('presentation') ===
-                'palette'
+            settingsPanel === 'admin-color-palettes' ||
+            (settingsPanel === 'admin-presentation-localization' &&
+                presentationSection === 'palette')
         ) {
             return (
                 <Suspense fallback={null}>
@@ -771,10 +759,9 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-presentation-localization' &&
-            new URLSearchParams(location.search).get('presentation') ===
-                'public'
+            settingsPanel === 'admin-public-pages' ||
+            (settingsPanel === 'admin-presentation-localization' &&
+                presentationSection === 'public')
         ) {
             return (
                 <Suspense fallback={null}>
@@ -784,10 +771,9 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-presentation-localization' &&
-            new URLSearchParams(location.search).get('presentation') ===
-                'languages'
+            settingsPanel === 'admin-translations' ||
+            (settingsPanel === 'admin-presentation-localization' &&
+                presentationSection === 'languages')
         ) {
             return (
                 <Suspense fallback={null}>
@@ -824,9 +810,8 @@ export function App() {
         }
 
         const accessLinksPanel =
-            new URLSearchParams(location.search).get('panel') ===
-                'admin-access' &&
-            new URLSearchParams(location.search).get('access') === 'links';
+            settingsPanel === 'admin-access' &&
+            settingsQuery.get('access') === 'links';
         if (accessLinksPanel) {
             if (!currentUser.capabilities.includes('access_links_manage')) {
                 return <Navigate replace to="/home" />;
@@ -840,19 +825,27 @@ export function App() {
 
         if (
             supportPanel &&
-            new URLSearchParams(location.search).get('support') === 'taxonomy'
+            supportSection === 'taxonomy' ||
+            supportSection === 'competence-topics' ||
+            supportSection === 'learning-concepts'
         ) {
             return (
                 <Suspense fallback={null}>
-                    <OriginalLearningTaxonomyPage appearance={appearance} />
+                    <OriginalLearningTaxonomyPage
+                        appearance={appearance}
+                        initialSection={
+                            supportSection === 'learning-concepts'
+                                ? 'learning-concepts'
+                                : 'competence-topics'
+                        }
+                    />
                 </Suspense>
             );
         }
 
         if (
             supportPanel &&
-            new URLSearchParams(location.search).get('support') ===
-                'platform-feedback'
+            supportSection === 'platform-feedback'
         ) {
             if (!currentUser.capabilities.includes('platform_feedback_view')) {
                 return <Navigate replace to="/home" />;
@@ -872,8 +865,7 @@ export function App() {
 
         if (
             supportPanel &&
-            new URLSearchParams(location.search).get('support') ===
-                'organization-icons'
+            supportSection === 'organization-icons'
         ) {
             if (
                 !currentUser.capabilities.includes(
@@ -893,8 +885,7 @@ export function App() {
 
         if (
             supportPanel &&
-            new URLSearchParams(location.search).get('support') ===
-                'feedback-requests'
+            supportSection === 'feedback-requests'
         ) {
             const canViewJournalFeedback = currentUser.capabilities.includes(
                 'journal_feedback_view',
@@ -923,7 +914,7 @@ export function App() {
 
         if (
             supportPanel &&
-            new URLSearchParams(location.search).get('support') === 'journal'
+            supportSection === 'journal'
         ) {
             if (
                 !currentUser.capabilities.includes(
@@ -1016,8 +1007,7 @@ export function App() {
         }
 
         if (
-            new URLSearchParams(location.search).get('support') ===
-            'support-signals'
+            supportSection === 'support-signals'
         ) {
             return (
                 <Suspense fallback={null}>
