@@ -34,6 +34,7 @@ test('a local author selects a reusable route visual and its reference cleans up
     expect(uploaded.status()).toBe(201);
     const media = (await uploaded.json()) as { asset: { id: string } };
     const mediaName = `Route visual ${Date.now()}`;
+    await expect(page.getByLabel('Visual name')).toHaveValue('Uploaded visual');
     await page.getByLabel('Visual name').fill(mediaName);
     const savedMetadata = page.waitForResponse(
         (response) =>
@@ -41,7 +42,11 @@ test('a local author selects a reusable route visual and its reference cleans up
             response.url().includes(`/api/v1/admin/media-assets/${media.asset.id}`),
     );
     await page.getByRole('button', { name: 'Save details' }).click();
-    expect((await savedMetadata).status()).toBe(200);
+    const savedAsset = await savedMetadata;
+    expect(savedAsset.status()).toBe(200);
+    await expect(savedAsset.json()).resolves.toMatchObject({
+        asset: { display_name: mediaName, id: media.asset.id },
+    });
 
     const graphResponse = await page.request.get('/api/v1/admin/world-builder');
     expect(graphResponse.ok()).toBeTruthy();

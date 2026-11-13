@@ -44,6 +44,17 @@ test('a local author can open the guarded source-derived activity review dialog'
     expect(createdResponse.status()).toBe(201);
     const { activity_id: activityId } = await createdResponse.json() as { activity_id: string };
 
+    const csrfResponse = await page.request.get('/api/v1/security/csrf');
+    const { token } = await csrfResponse.json() as { token: string };
+    const headers = {
+        Origin: new URL(page.url()).origin,
+        'X-CSRF-Token': token,
+    };
+    const positionedResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activityId}/graph-position`,
+        { data: { position: { x: 2_000, y: 2_000 } }, headers },
+    );
+    expect(positionedResponse.status()).toBe(200);
     const nodeResponse = await page.request.get(`/api/v1/admin/world-builder/nodes/${target.nodeId}`);
     expect(nodeResponse.ok()).toBeTruthy();
     const node = await nodeResponse.json() as {
@@ -52,8 +63,6 @@ test('a local author can open the guarded source-derived activity review dialog'
     };
     const activity = node.activity_graph.activities.find((candidate) => candidate.id === activityId);
     if (!activity) throw new Error('the newly created activity was not returned by the node graph');
-    const csrfResponse = await page.request.get('/api/v1/security/csrf');
-    const { token } = await csrfResponse.json() as { token: string };
     const metadataResponse = await page.request.patch(
         `/api/v1/admin/world-builder/activities/${activityId}/learning-design`,
         {
@@ -62,7 +71,7 @@ test('a local author can open the guarded source-derived activity review dialog'
                 competence_topics: [{ topic: 'Systems Thinking', weight: 1 }],
                 updated_at: activity.updated_at,
             },
-            headers: { 'X-CSRF-Token': token },
+            headers,
         },
     );
     expect(metadataResponse.status()).toBe(200);
@@ -83,7 +92,7 @@ test('a local author can open the guarded source-derived activity review dialog'
                 }],
                 updated_at: metadata.updated_at,
             },
-            headers: { 'X-CSRF-Token': token },
+            headers,
         },
     );
     expect(sourcesResponse.status()).toBe(200);
@@ -96,7 +105,7 @@ test('a local author can open the guarded source-derived activity review dialog'
                 evidence_concepts: ['Agency'],
                 updated_at: sources.updated_at,
             },
-            headers: { 'X-CSRF-Token': token },
+            headers,
         },
     );
     expect(evidenceContextResponse.status()).toBe(200);
@@ -114,7 +123,7 @@ test('a local author can open the guarded source-derived activity review dialog'
                 independent_check_feedback: null,
                 updated_at: evidenceContext.updated_at,
             },
-            headers: { 'X-CSRF-Token': token },
+            headers,
         },
     );
     expect(feedbackGuidanceResponse.status()).toBe(200);
@@ -126,7 +135,7 @@ test('a local author can open the guarded source-derived activity review dialog'
                 prompt: 'Choose the kind of continuation that supports your next step.',
                 updated_at: feedbackGuidance.updated_at,
             },
-            headers: { 'X-CSRF-Token': token },
+            headers,
         },
     );
     expect(completionChoiceResponse.status()).toBe(200);
@@ -141,7 +150,7 @@ test('a local author can open the guarded source-derived activity review dialog'
                 sound_id: sound.id,
                 updated_at: completionChoice.updated_at,
             },
-            headers: { 'X-CSRF-Token': token },
+            headers,
         },
     );
     expect(ambientSoundResponse.status()).toBe(200);
@@ -152,22 +161,22 @@ test('a local author can open the guarded source-derived activity review dialog'
     await card.getByRole('button', { name: 'Sources' }).click();
     const sourcesDialog = page.locator('[data-wl-id="authoring.activity-source-references"]');
     await expect(sourcesDialog).toBeVisible();
-    await expect(sourcesDialog.getByDisplayValue('Source-reference test')).toBeVisible();
+    await expect(sourcesDialog.getByLabel('Title')).toHaveValue('Source-reference test');
     await sourcesDialog.getByRole('button', { name: 'Close source references' }).click();
     await card.getByRole('button', { name: 'Learner orientation' }).click();
     const evidenceDialog = page.locator('[data-wl-id="authoring.activity-evidence-context"]');
     await expect(evidenceDialog).toBeVisible();
-    await expect(evidenceDialog.getByDisplayValue('Notice the next useful choice.')).toBeVisible();
+    await expect(evidenceDialog.getByLabel('What this activity invites')).toHaveValue('Notice the next useful choice.');
     await evidenceDialog.getByRole('button', { name: 'Close learner orientation' }).click();
     await card.getByRole('button', { name: 'Feedback guidance' }).click();
     const feedbackDialog = page.locator('[data-wl-id="authoring.activity-feedback-guidance"]');
     await expect(feedbackDialog).toBeVisible();
-    await expect(feedbackDialog.getByDisplayValue('Make the learner’s reasoning visible.')).toBeVisible();
+    await expect(feedbackDialog.getByLabel('Purpose')).toHaveValue('Make the learner’s reasoning visible.');
     await feedbackDialog.getByRole('button', { name: 'Close feedback guidance' }).click();
     await card.getByRole('button', { name: 'Choice context' }).click();
     const choiceDialog = page.locator('[data-wl-id="authoring.activity-completion-choice"]');
     await expect(choiceDialog).toBeVisible();
-    await expect(choiceDialog.getByDisplayValue('Choose the kind of continuation that supports your next step.')).toBeVisible();
+    await expect(choiceDialog.getByRole('textbox', { name: 'Choice context' })).toHaveValue('Choose the kind of continuation that supports your next step.');
     await choiceDialog.getByRole('button', { name: 'Close choice context' }).click();
     await card.getByRole('button', { name: 'Scene ambience' }).click();
     const ambienceDialog = page.locator('[data-wl-id="authoring.activity-ambient-sound"]');

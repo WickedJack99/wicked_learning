@@ -99,7 +99,7 @@ async fn update(
         }));
     }
     record_activity_version(&mut transaction, activity_id, principal).await?;
-    let updated_at: String = sqlx::query_scalar("UPDATE learning_activities SET activity_config = $2, ai_review_status = 'needs_review', ai_reviewed_at = NULL, ai_review = NULL, updated_at = NOW() WHERE id = $1 RETURNING to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\")").bind(activity_id).bind(config).fetch_one(&mut *transaction).await?;
+    let updated_at: String = sqlx::query_scalar("UPDATE learning_activities SET activity_config = $2, ai_review_status = 'needs_review', ai_reviewed_at = NULL, ai_review = NULL, updated_at = NOW() WHERE id = $1 RETURNING to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')").bind(activity_id).bind(config).fetch_one(&mut *transaction).await?;
     transaction.commit().await?;
     Ok(Some(UpdatedActivityFeedbackGuidance {
         activity_id,
