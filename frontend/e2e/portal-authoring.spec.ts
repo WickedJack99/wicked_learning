@@ -76,6 +76,19 @@ test('a local world author can connect source-shaped Portal activities', async (
     expect(saved?.config.portalBubbleText).toContain('archive is ready');
     expect(saved?.portal_link?.target_activity?.id).toBe(exitId);
 
+    await page
+        .getByRole('button', {
+            name: `Use ${entryTitle} as a template`,
+        })
+        .click();
+    await expect(
+        page.getByRole('heading', { name: 'Copy Portal template' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Travel target')).toHaveValue(exitId);
+    await page.getByLabel('Copy into MapAsset').selectOption(exit.id);
+    await expect(page.getByLabel('Travel target')).toHaveValue('');
+    await page.getByRole('button', { name: 'Close activity form' }).click();
+
     await page.getByRole('button', { name: `Delete ${entryTitle}` }).click();
     await page.getByRole('dialog', { name: 'Delete activity?' }).getByRole('button', { name: 'Delete', exact: true }).click();
     await page.goto(`/settings?panel=admin-world-builder&map=${exit.mapId}&node=${exit.id}`);

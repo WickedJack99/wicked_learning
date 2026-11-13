@@ -5472,7 +5472,7 @@ function ActivityGraph({
     );
     const [editor, setEditor] = useState<{
         activity?: Activity;
-        template?: { snapshot: { [key: string]: unknown }; title: string };
+        template?: ActivityCopyTemplate;
         type: SupportedActivityType;
     } | null>(null);
     const [npcDialogueActivity, setNpcDialogueActivity] = useState<
@@ -6895,7 +6895,7 @@ function ActivityAuthorDialog({
     onClose: () => void;
     onSaved: () => void;
     sounds: EditableSound[];
-    template?: { snapshot: { [key: string]: unknown }; title: string };
+    template?: ActivityCopyTemplate;
     type: SupportedActivityType;
     tools: EditableTool[];
     copyTargets: ActivityCopyTarget[];
@@ -9012,10 +9012,13 @@ type ActivityFormSource = Pick<
     'config' | 'introduction' | 'slug' | 'title'
 >;
 
-function activityCopyTemplate(activity: Activity): {
+type ActivityCopyTemplate = {
     snapshot: { [key: string]: unknown };
     title: string;
-} {
+    portalTargetId?: string;
+};
+
+function activityCopyTemplate(activity: Activity): ActivityCopyTemplate {
     return {
         snapshot: {
             config: activity.config,
@@ -9024,12 +9027,13 @@ function activityCopyTemplate(activity: Activity): {
             title: activity.title,
         },
         title: activity.title,
+        portalTargetId: activity.portal_link?.target_activity?.id,
     };
 }
 
 function activityAuthorFormFromTemplate(
     type: SupportedActivityType,
-    template: { snapshot: { [key: string]: unknown }; title: string },
+    template: ActivityCopyTemplate,
     items: EditableItem[],
     tools: EditableTool[],
     sounds: EditableSound[],
@@ -9061,6 +9065,7 @@ function activityAuthorFormFromTemplate(
             tools,
             sounds,
         ),
+        portalTargetId: template.portalTargetId ?? '',
         slug: '',
         title: `${title} (copy)`,
     };

@@ -1439,9 +1439,12 @@ the disposable Rust stack. Reusable-media availability and replacement stay in
 the dedicated media-lifecycle slice rather than being replaced by an invented
 template-media control. The per-activity source `Create editable copy` action
 is also lifted: it opens the same typed draft with its `title (copy)` default
-and destination MapAsset chooser, and clears message-topic and portal-target
-references before a copy is saved elsewhere. Its browser proof creates and
-removes a direct copy and checks the dialog at desktop and narrow viewports.
+and destination MapAsset chooser. A same-MapAsset Portal copy retains its
+authored exit target; moving any copy elsewhere clears message-topic and
+portal-target references before it is saved outside the source context. Its
+browser proof creates and removes a direct copy, verifies the Portal target
+preservation/clearing boundary, and checks the dialog at desktop and narrow
+viewports.
 Its first source-adapted reusable-visual-library
 vertical slice is now available at `/settings?panel=admin-assets-world-objects`: `assets.ro`
 lists a bounded searchable/tag-filtered catalog, `assets.ru` may upload a
