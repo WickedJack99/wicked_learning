@@ -78,7 +78,7 @@ pub struct UpdateQuestionActivityResponse {
     pub updated_at: String,
 }
 
-fn form(request: QuestionActivityRequest) -> Result<QuestionActivityForm, ApiError> {
+pub(crate) fn form(request: QuestionActivityRequest) -> Result<QuestionActivityForm, ApiError> {
     let options = request
         .options
         .into_iter()

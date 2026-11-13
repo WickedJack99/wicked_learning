@@ -1145,10 +1145,10 @@ commands; replacement requires the current source concurrency timestamp and
 does not change map visuals, access or MapAssets. It can replace or delete a
 single scoped MapAsset only through the existing World Builder command and its
 map scope; replacement preserves the linked compatibility node's creation
-metadata. It can also replace scoped Reflection, Review, Open Practice and
-Markdown Activities only through their complete source form and current
-concurrency timestamp; the API proves that each typed Activity belongs to the
-addressed MapAsset before using its distinct typed World Builder command. The standalone Settings API surface loads that live contract for its
+metadata. It can also replace scoped Reflection, Review, Open Practice,
+Markdown and Question Activities only through their complete source form and
+current concurrency timestamp; the API proves that each typed Activity belongs
+to the addressed MapAsset before using its distinct typed World Builder command. The standalone Settings API surface loads that live contract for its
 interactive console and readable documentation, refusing paths outside the
 advertised API namespace and using the signed-in session plus CSRF protection
 for mutations. It is an administration API rather than a public token API. See

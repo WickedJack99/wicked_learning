@@ -702,6 +702,128 @@ test('a content API author can replace a scoped Markdown Activity page graph thr
     await expect(console.getByText('HTTP 204')).toBeVisible();
 });
 
+test('a content API author can replace a scoped Question Activity through the documented console', async ({
+    page,
+}) => {
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    const suffix = Date.now();
+    const mapTitle = `Content API Question map ${suffix}`;
+    const assetTitle = `Content API Question MapAsset ${suffix}`;
+    const questionTitle = `Content API Question ${suffix}`;
+    const updatedTitle = `${questionTitle} updated`;
+    test.skip(!email || !password, 'requires the disposable local administrator');
+
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill(email!);
+    await page.getByLabel('Password').fill(password!);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/world$/);
+
+    await page.goto('/settings?panel=admin-api&api=console');
+    const console = page.locator('[data-wl-id="settings.content-api.console"]');
+    await expect(console).toBeVisible();
+
+    await console.getByLabel('Operation').selectOption('maps.store');
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: mapTitle,
+        description: 'A disposable map for Question replacement evidence.',
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const map = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('map-assets.store');
+    await console.getByLabel('Request path').fill(`/api/content/v1/maps/${map.data.id}/map-assets`);
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: assetTitle,
+        description: 'A disposable MapAsset for Question replacement evidence.',
+        image_url: null,
+        text: assetTitle,
+        position_x: 50,
+        position_y: 50,
+        position_z: 0,
+        width: 14,
+        opacity: 1,
+        locked: false,
+        interaction_mode: 'focusable',
+        interaction_config: {},
+        visual_config: {},
+        sound_config: {},
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const mapAsset = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('activities.store');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        type: 'question',
+        title: questionTitle,
+        introduction: 'Choose the explanation that fits.',
+        question_prompt: 'Which part receives the electrical current?',
+        question_feedback_correct: 'Yes — the current flows through the load.',
+        question_feedback_incorrect: 'Look again at the circuit.',
+        question_explanation: 'A closed circuit routes current through the load.',
+        question_allow_multiple: false,
+        question_options: [
+            { label: 'A', body: 'The load', is_correct: true, outcome_key: 'correct', feedback: 'That is right.' },
+            { label: 'B', body: 'Outside the system', is_correct: false, outcome_key: 'incorrect', feedback: 'The circuit remains closed.' },
+        ],
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 201')).toBeVisible();
+    const question = await createdResponse(console);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    const activities = JSON.parse((await console.locator('pre').textContent()) ?? '{}') as {
+        data: Array<{ id: string; updatedAt: string }>;
+    };
+    const initial = activities.data.find((activity) => activity.id === question.data.id);
+    if (!initial) {
+        throw new Error('the created Question Activity was not returned by its scoped list');
+    }
+    expect(initial.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    await console.getByLabel('Operation').selectOption('activities.question.update');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activities/${question.data.id}/question`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        title: updatedTitle,
+        slug: null,
+        introduction: 'Choose the revised explanation that fits.',
+        prompt: 'Which circuit component receives the current?',
+        feedback_correct: 'Yes — the current passes through the selected load.',
+        feedback_incorrect: 'Trace the complete circuit before choosing.',
+        explanation: 'A closed circuit routes electrical current through its load.',
+        allow_multiple: false,
+        options: [
+            { label: 'A', body: 'The selected load', is_correct: true, key: null, outcome_key: 'correct', feedback: 'That is right.', weights: { recall: 0.5 } },
+            { label: 'B', body: 'Outside the circuit', is_correct: false, key: null, outcome_key: 'incorrect', feedback: 'The circuit remains closed.', weights: {} },
+        ],
+        updated_at: initial.updatedAt,
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(question.data.id);
+
+    await console.getByLabel('Operation').selectOption('activities.index');
+    await console.getByLabel('Request path').fill(`/api/content/v1/map-assets/${mapAsset.data.id}/activities`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    await expect(console.locator('pre')).toContainText(updatedTitle);
+    await expect(console.locator('pre')).toContainText('The selected load');
+
+    await console.getByLabel('Operation').selectOption('maps.destroy');
+    await console.getByLabel('Request path').fill(`/api/content/v1/maps/${map.data.id}`);
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 204')).toBeVisible();
+});
+
 test('a content API author creates a MapAsset Activity through the documented console flow', async ({
     page,
 }) => {

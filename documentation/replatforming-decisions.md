@@ -4834,13 +4834,14 @@ generated client and browser lifecycle proof exist; `content_api` never widens
 the selected map's World Builder scope.
 
 **Reflective-activity extension:** Activity reads now return their source
-`updatedAt` value, and the Reflection, Review, Open Practice and Markdown
-replacement endpoints each accept only their complete source form plus that
-current timestamp. Each separately proves the requested type and MapAsset
+`updatedAt` value, and the Reflection, Review, Open Practice, Markdown and
+Question replacement endpoints each accept only their complete source form plus
+that current timestamp. Each separately proves the requested type and MapAsset
 membership before its typed command rechecks authoring scope and persists the
-update. Markdown keeps its complete page graph and managed-media references
-inside the existing typed command. This is intentionally not a generic activity
-patch: every remaining Activity type stays behind its own source-shaped adapter.
+update. Markdown keeps its complete page graph and managed-media references,
+and Question keeps its answer configuration, inside the existing typed commands.
+This is intentionally not a generic activity patch: every remaining Activity
+type stays behind its own source-shaped adapter.
 
 **Extension:** The contract also exposes Laravel's strict v1.5 ContentPlan
 draft schema, bounded to Markdown, Reflection, Message Prompt, Shared Task and

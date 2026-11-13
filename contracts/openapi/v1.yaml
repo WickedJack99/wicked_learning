@@ -457,6 +457,41 @@ paths:
         '404': { description: The Markdown Activity is unavailable in the caller's scoped MapAsset. }
         '409': { description: The supplied updated_at value is stale. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activities/{activity_id}/question:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: activity_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateContentApiQuestionActivity
+      summary: Replace a source-compatible Question Activity form.
+      description: Requires content_api update permission, the existing World Activity update scope, a same-origin CSRF token, and the current updated_at value. Rust proves that the addressed activity is Question within the URL's MapAsset before delegating to the typed World Builder command, which owns its bounded answer configuration.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateContentApiQuestionActivityRequest' }
+      responses:
+        '200':
+          description: The updated Question Activity identity and fresh concurrency timestamp.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityUpdateResponse' }
+        '400': { description: The complete Question form is invalid. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api or World Activity update permission. }
+        '404': { description: The Question Activity is unavailable in the caller's scoped MapAsset. }
+        '409': { description: The supplied updated_at value is stale. }
+        '503': { description: The application database is unavailable. }
   /content/v1/map-assets/{map_asset_id}/activity-transitions:
     servers:
       - url: /api
@@ -7743,6 +7778,13 @@ components:
     UpdateContentApiMarkdownActivityRequest:
       allOf:
         - $ref: '#/components/schemas/MarkdownActivityForm'
+        - type: object
+          required: [updated_at]
+          properties:
+            updated_at: { type: string, format: date-time }
+    UpdateContentApiQuestionActivityRequest:
+      allOf:
+        - $ref: '#/components/schemas/QuestionActivityForm'
         - type: object
           required: [updated_at]
           properties:
