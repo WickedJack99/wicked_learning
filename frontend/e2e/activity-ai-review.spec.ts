@@ -44,6 +44,20 @@ test('a local author can open the guarded source-derived activity review dialog'
     expect(createdResponse.status()).toBe(201);
     const { activity_id: activityId } = await createdResponse.json() as { activity_id: string };
 
+    const unpositionedNodeResponse = await page.request.get(`/api/v1/admin/world-builder/nodes/${target.nodeId}`);
+    expect(unpositionedNodeResponse.ok()).toBeTruthy();
+    const unpositionedNode = await unpositionedNodeResponse.json() as {
+        activity_graph: {
+            activities: Array<{ position: { x: number | null; y: number | null } }>;
+        };
+    };
+    const graphPosition = Math.max(
+        0,
+        ...unpositionedNode.activity_graph.activities.flatMap((candidate) => [
+            candidate.position.x ?? 0,
+            candidate.position.y ?? 0,
+        ]),
+    ) + 1_000;
     const csrfResponse = await page.request.get('/api/v1/security/csrf');
     const { token } = await csrfResponse.json() as { token: string };
     const headers = {
@@ -52,7 +66,7 @@ test('a local author can open the guarded source-derived activity review dialog'
     };
     const positionedResponse = await page.request.patch(
         `/api/v1/admin/world-builder/activities/${activityId}/graph-position`,
-        { data: { position: { x: 2_000, y: 2_000 } }, headers },
+        { data: { position: { x: graphPosition, y: graphPosition } }, headers },
     );
     expect(positionedResponse.status()).toBe(200);
     const nodeResponse = await page.request.get(`/api/v1/admin/world-builder/nodes/${target.nodeId}`);

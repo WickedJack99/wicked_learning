@@ -36,6 +36,7 @@ test('a local author can save, revise, restore and copy a reusable activity temp
             activities: Array<{
                 activity_type: string;
                 id: string;
+                position: { x: number | null; y: number | null };
                 title: string;
             }>;
         };
@@ -49,6 +50,27 @@ test('a local author can save, revise, restore and copy a reusable activity temp
             'the disposable World Builder has no Open practice activity',
         );
     }
+    const graphPosition = Math.max(
+        0,
+        ...node.activity_graph.activities.flatMap((candidate) => [
+            candidate.position.x ?? 0,
+            candidate.position.y ?? 0,
+        ]),
+    ) + 1_000;
+    const csrfResponse = await page.request.get('/api/v1/security/csrf');
+    expect(csrfResponse.ok()).toBeTruthy();
+    const { token } = (await csrfResponse.json()) as { token: string };
+    const positionedResponse = await page.request.patch(
+        `/api/v1/admin/world-builder/activities/${activity.id}/graph-position`,
+        {
+            data: { position: { x: graphPosition, y: graphPosition } },
+            headers: {
+                Origin: new URL(page.url()).origin,
+                'X-CSRF-Token': token,
+            },
+        },
+    );
+    expect(positionedResponse.status()).toBe(200);
 
     await page.goto(
         `/settings?panel=admin-world-builder&map=${map.id}&node=${map.nodes[0].id}`,
