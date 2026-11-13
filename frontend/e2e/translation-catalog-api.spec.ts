@@ -53,6 +53,7 @@ test('a language administrator maintains a safe disabled translation catalog thr
     expect(created.body).toMatchObject({ code, is_enabled: false });
 
     const updated = await json(`/api/v1/admin/languages/${code}`, 'PATCH', {
+        is_enabled: false,
         name: 'Browser translation language revised',
         native_name: 'Browser translation language revised',
     });
