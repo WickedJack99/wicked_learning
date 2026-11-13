@@ -24,6 +24,7 @@ import {
     GitBranch,
     LockKeyhole,
     Map as MapIcon,
+    Pencil,
     Plus,
     RefreshCw,
     Route,
@@ -56,6 +57,11 @@ import { PublicMapAssetVisual } from './public-map-asset-visual';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
+type ActivityCopyTarget = {
+    id: string;
+    title: string;
+    nodes: Array<{ id: string; title: string }>;
+};
 type PortalLink = components['schemas']['AdminPortalLink'];
 type EditableMap = components['schemas']['AdminEditableMap'];
 type EditableNode = components['schemas']['AdminEditableNode'];
@@ -131,6 +137,8 @@ type ActivityNodeData = {
     activity: Activity;
     onAmbientSound: (activity: Activity) => void;
     canReview: boolean;
+    onDuplicate: (activity: Activity) => void;
+    onEdit: (activity: Activity) => void;
     onDelete: (activity: Activity) => void;
     onEvidenceContext: (activity: Activity) => void;
     onCompletionChoice: (activity: Activity) => void;
@@ -677,6 +685,7 @@ function WorldBuilderContent() {
                             onSelectMap={() =>
                                 selectedMapId && selectMap(selectedMapId)
                             }
+                            worldGraph={worldGraph}
                         />
                     ) : editableMap && selectedMapId ? (
                         <MapAssetSurface
@@ -5318,10 +5327,12 @@ function ActivityGraph({
     document,
     onReload,
     onSelectMap,
+    worldGraph,
 }: {
     document: EditableNode;
     onReload: () => void;
     onSelectMap: () => void;
+    worldGraph: WorldGraph | null;
 }) {
     const graph = document.activity_graph;
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
@@ -5365,6 +5376,22 @@ function ActivityGraph({
                     activity,
                     onAmbientSound: setAmbientSoundActivity,
                     canReview: graph.can_manage_ai_review,
+                    onDuplicate: (candidate) => {
+                        if (isSupportedActivityType(candidate.activity_type)) {
+                            setEditor({
+                                template: activityCopyTemplate(candidate),
+                                type: candidate.activity_type,
+                            });
+                        }
+                    },
+                    onEdit: (candidate) => {
+                        if (isSupportedActivityType(candidate.activity_type)) {
+                            setEditor({
+                                activity: candidate,
+                                type: candidate.activity_type,
+                            });
+                        }
+                    },
                     onDelete: setPendingDelete,
                     onEvidenceContext: setEvidenceContextActivity,
                     onCompletionChoice: setCompletionChoiceActivity,
@@ -5454,6 +5481,34 @@ function ActivityGraph({
     const [selectedTransition, setSelectedTransition] =
         useState<ActivityTransition | null>(null);
     const [connectionError, setConnectionError] = useState<string | null>(null);
+    const copyTargets = useMemo<ActivityCopyTarget[]>(() => {
+        const maps = (worldGraph?.maps ?? [])
+            .filter((map) => map.nodes.length > 0)
+            .map((map) => ({
+                id: map.id,
+                nodes: map.nodes.map((node) => ({
+                    id: node.id,
+                    title: node.title,
+                })),
+                title: map.title,
+            }));
+        const includesCurrentNode = maps.some((map) =>
+            map.nodes.some((node) => node.id === graph.node.id),
+        );
+
+        return includesCurrentNode
+            ? maps
+            : [
+                  {
+                      id: graph.map.id,
+                      nodes: [
+                          { id: graph.node.id, title: graph.node.title },
+                      ],
+                      title: graph.map.title,
+                  },
+                  ...maps,
+              ];
+    }, [graph.map, graph.node, worldGraph]);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -5877,6 +5932,7 @@ function ActivityGraph({
                     }}
                     template={editor.template}
                     type={editor.type}
+                    copyTargets={copyTargets}
                 />
             ) : null}
             {pendingDelete ? (
@@ -6126,6 +6182,31 @@ function ActivityGraphCard({
             ) : null}
             {activity.activity_type !== 'npc_dialogue' ? (
                 <div className="mt-1 flex flex-wrap gap-1">
+                    <button
+                        aria-label={`Edit ${activity.title}`}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onEdit(activity);
+                        }}
+                        type="button"
+                    >
+                        <Pencil className="size-3" />
+                        Edit
+                    </button>
+                    <button
+                        aria-label={`Use ${activity.title} as a template`}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onDuplicate(activity);
+                        }}
+                        title="Create editable copy"
+                        type="button"
+                    >
+                        <Copy className="size-3" />
+                        Create editable copy
+                    </button>
                     <button
                         aria-label={`Save ${activity.title} as a reusable template`}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
@@ -6804,6 +6885,7 @@ function ActivityAuthorDialog({
     template,
     type,
     tools,
+    copyTargets,
 }: {
     activity?: Activity;
     items: EditableItem[];
@@ -6816,6 +6898,7 @@ function ActivityAuthorDialog({
     template?: { snapshot: { [key: string]: unknown }; title: string };
     type: SupportedActivityType;
     tools: EditableTool[];
+    copyTargets: ActivityCopyTarget[];
 }) {
     const [form, setForm] = useState(() => {
         const initial = template
@@ -6832,7 +6915,9 @@ function ActivityAuthorDialog({
     });
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [targetNodeId, setTargetNodeId] = useState(nodeId);
     const isEditing = activity !== undefined;
+    const createNodeId = template ? targetNodeId : nodeId;
     const typeLabel =
         type === 'open_practice'
             ? 'Open practice'
@@ -7038,19 +7123,19 @@ function ActivityAuthorDialog({
             if (type === 'markdown' && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/markdown', { body: { ...markdown, introduction: optionalValue(form.introduction), slug: optionalValue(form.slug), updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'markdown') {
-                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/markdown-activities', { body: markdown, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/markdown-activities', { body: markdown, params: { header: { 'X-CSRF-Token': token }, path: { node_id: createNodeId } } }));
             } else if (type === 'portal' && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/portal', { body: { ...portal, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'portal') {
-                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/portal-activities', { body: portal, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/portal-activities', { body: portal, params: { header: { 'X-CSRF-Token': token }, path: { node_id: createNodeId } } }));
             } else if (type === 'question' && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/question', { body: { ...question, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'question') {
-                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/question-activities', { body: question, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/question-activities', { body: question, params: { header: { 'X-CSRF-Token': token }, path: { node_id: createNodeId } } }));
             } else if ((type === 'message_prompt' || type === 'message_wall') && activity) {
                 ({ response } = await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/message', { body: { ...message, updated_at: activity.updated_at }, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: activity.id } } }));
             } else if (type === 'message_prompt' || type === 'message_wall') {
-                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/message-activities', { body: message, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } }));
+                ({ response } = await apiClient.POST('/admin/world-builder/nodes/{node_id}/message-activities', { body: message, params: { header: { 'X-CSRF-Token': token }, path: { node_id: createNodeId } } }));
             } else if (type === 'shared_task' && activity) {
                 ({ response } = await apiClient.PATCH(
                     '/admin/world-builder/activities/{activity_id}/shared-task',
@@ -7059,7 +7144,7 @@ function ActivityAuthorDialog({
             } else if (type === 'shared_task') {
                 ({ response } = await apiClient.POST(
                     '/admin/world-builder/nodes/{node_id}/shared-task-activities',
-                    { body: sharedTask, params: { header: { 'X-CSRF-Token': token }, path: { node_id: nodeId } } },
+                    { body: sharedTask, params: { header: { 'X-CSRF-Token': token }, path: { node_id: createNodeId } } },
                 ));
             } else if (type === 'open_practice') {
                 if (activity) {
@@ -7087,7 +7172,7 @@ function ActivityAuthorDialog({
                             },
                             params: {
                                 header: { 'X-CSRF-Token': token },
-                                path: { node_id: nodeId },
+                                path: { node_id: createNodeId },
                             },
                         },
                     ));
@@ -7123,7 +7208,7 @@ function ActivityAuthorDialog({
                         },
                         params: {
                             header: { 'X-CSRF-Token': token },
-                            path: { node_id: nodeId },
+                            path: { node_id: createNodeId },
                         },
                     },
                 ));
@@ -7158,7 +7243,7 @@ function ActivityAuthorDialog({
                         },
                         params: {
                             header: { 'X-CSRF-Token': token },
-                            path: { node_id: nodeId },
+                            path: { node_id: createNodeId },
                         },
                     },
                 ));
@@ -7201,7 +7286,7 @@ function ActivityAuthorDialog({
                         },
                         params: {
                             header: { 'X-CSRF-Token': token },
-                            path: { node_id: nodeId },
+                            path: { node_id: createNodeId },
                         },
                     },
                 ));
@@ -7227,7 +7312,7 @@ function ActivityAuthorDialog({
                         body: { ...common, ...completeObstacle },
                         params: {
                             header: { 'X-CSRF-Token': token },
-                            path: { node_id: nodeId },
+                            path: { node_id: createNodeId },
                         },
                     },
                 ));
@@ -7253,7 +7338,7 @@ function ActivityAuthorDialog({
                         body: { ...common, ...completeItemObstacle },
                         params: {
                             header: { 'X-CSRF-Token': token },
-                            path: { node_id: nodeId },
+                            path: { node_id: createNodeId },
                         },
                     },
                 ));
@@ -7279,7 +7364,7 @@ function ActivityAuthorDialog({
                         body: { ...common, ...completeToolGrant },
                         params: {
                             header: { 'X-CSRF-Token': token },
-                            path: { node_id: nodeId },
+                            path: { node_id: createNodeId },
                         },
                     },
                 ));
@@ -7344,6 +7429,45 @@ function ActivityAuthorDialog({
                     <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
                         {error}
                     </p>
+                ) : null}
+
+                {template && copyTargets.length > 0 ? (
+                    <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+                        <label className="grid gap-2 text-sm font-medium">
+                            Copy into MapAsset
+                            <select
+                                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-slate-950"
+                                onChange={(event) => {
+                                    const nextTargetNodeId = event.target.value;
+                                    setTargetNodeId(nextTargetNodeId);
+                                    if (nextTargetNodeId !== nodeId) {
+                                        setForm((current) => ({
+                                            ...current,
+                                            messageTopicId: '',
+                                            messageTopicTitle: '',
+                                            portalTargetId: '',
+                                        }));
+                                    }
+                                }}
+                                value={targetNodeId}
+                            >
+                                {copyTargets.map((map) => (
+                                    <optgroup key={map.id} label={map.title}>
+                                        {map.nodes.map((node) => (
+                                            <option key={node.id} value={node.id}>
+                                                {node.title}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                ))}
+                            </select>
+                        </label>
+                        <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            Choose the destination MapAsset. Moving a copy clears
+                            its message topic and portal destination so they do
+                            not point at the source context by accident.
+                        </p>
+                    </div>
                 ) : null}
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -8887,6 +9011,21 @@ type ActivityFormSource = Pick<
     Activity,
     'config' | 'introduction' | 'slug' | 'title'
 >;
+
+function activityCopyTemplate(activity: Activity): {
+    snapshot: { [key: string]: unknown };
+    title: string;
+} {
+    return {
+        snapshot: {
+            config: activity.config,
+            introduction: activity.introduction,
+            slug: activity.slug,
+            title: activity.title,
+        },
+        title: activity.title,
+    };
+}
 
 function activityAuthorFormFromTemplate(
     type: SupportedActivityType,

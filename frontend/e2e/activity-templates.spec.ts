@@ -78,6 +78,76 @@ test('a local author can save, revise, restore and copy a reusable activity temp
     const activityCard = page.locator(`[data-id="${activity.id}"]`);
     await expect(activityCard).toBeVisible();
 
+    const copyButton = activityCard.getByRole('button', {
+        name: `Use ${activity.title} as a template`,
+    });
+    await expect(copyButton).toBeVisible();
+    const copyButtonBox = await copyButton.boundingBox();
+    expect(copyButtonBox).not.toBeNull();
+    expect(copyButtonBox!.width).toBeGreaterThan(0);
+    await copyButton.click();
+    await expect(
+        page.getByRole('heading', { name: 'Copy Open practice template' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveValue(
+        `${activity.title} (copy)`,
+    );
+    await expect(page.getByLabel('Copy into MapAsset')).toHaveValue(
+        map.nodes[0].id,
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    const copyDialog = page.getByRole('dialog', {
+        name: 'Copy Open practice template',
+    });
+    const copyDialogBox = await copyDialog.boundingBox();
+    expect(copyDialogBox).not.toBeNull();
+    expect(copyDialogBox!.x).toBeGreaterThanOrEqual(0);
+    expect(copyDialogBox!.y).toBeGreaterThanOrEqual(0);
+    expect(copyDialogBox!.x + copyDialogBox!.width).toBeLessThanOrEqual(390);
+    expect(copyDialogBox!.y + copyDialogBox!.height).toBeLessThanOrEqual(844);
+    const createActivity = page.getByRole('button', {
+        name: 'Create activity',
+    });
+    await createActivity.scrollIntoViewIfNeeded();
+    const createActivityBox = await createActivity.boundingBox();
+    expect(createActivityBox).not.toBeNull();
+    expect(createActivityBox!.x).toBeGreaterThanOrEqual(0);
+    expect(createActivityBox!.y).toBeGreaterThanOrEqual(0);
+    expect(
+        createActivityBox!.x + createActivityBox!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(
+        createActivityBox!.y + createActivityBox!.height,
+    ).toBeLessThanOrEqual(844);
+    const copied = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response
+                .url()
+                .includes(
+                    `/api/v1/admin/world-builder/nodes/${map.nodes[0].id}/open-practice-activities`,
+                ),
+    );
+    await createActivity.click();
+    const copiedResponse = await copied;
+    expect(copiedResponse.status()).toBe(201);
+    const copiedActivity = (await copiedResponse.json()) as {
+        activity_id: string;
+    };
+    const deleteCsrfResponse = await page.request.get('/api/v1/security/csrf');
+    expect(deleteCsrfResponse.ok()).toBeTruthy();
+    const deleteCsrf = (await deleteCsrfResponse.json()) as { token: string };
+    const deletedCopy = await page.request.delete(
+        `/api/v1/admin/world-builder/activities/${copiedActivity.activity_id}`,
+        {
+            headers: {
+                Origin: new URL(page.url()).origin,
+                'X-CSRF-Token': deleteCsrf.token,
+            },
+        },
+    );
+    expect(deletedCopy.status()).toBe(204);
+
     const templateName = `Template ${Date.now()}`;
     await activityCard
         .getByRole('button', {

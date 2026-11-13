@@ -118,7 +118,10 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     );
     if (!activity) throw new Error('the disposable Obstacle activity is missing');
 
-    await page.locator(`[data-id="${activity.id}"]`).click();
+    await page
+        .locator(`[data-id="${activity.id}"]`)
+        .getByRole('button', { name: `Edit ${activityTitle}` })
+        .click();
     await expect(
         page.getByRole('heading', { name: 'Edit Obstacle' }),
     ).toBeVisible();
@@ -207,7 +210,10 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     );
     if (!grant) throw new Error('the disposable Tool grant activity is missing');
 
-    await page.locator(`[data-id="${grant.id}"]`).click();
+    await page
+        .locator(`[data-id="${grant.id}"]`)
+        .getByRole('button', { name: `Edit ${grantTitle}` })
+        .click();
     await expect(
         page.getByRole('heading', { name: 'Edit Tool grant' }),
     ).toBeVisible();
@@ -278,7 +284,10 @@ test('a local author selects reusable activity visuals and map cleanup removes t
     );
     if (!itemGrant) throw new Error('the disposable Item grant activity is missing');
 
-    await page.locator(`[data-id="${itemGrant.id}"]`).click();
+    await page
+        .locator(`[data-id="${itemGrant.id}"]`)
+        .getByRole('button', { name: `Edit ${itemGrantTitle}` })
+        .click();
     await expect(
         page.getByRole('heading', { name: 'Edit Item grant' }),
     ).toBeVisible();
@@ -356,7 +365,10 @@ test('a local author selects reusable activity visuals and map cleanup removes t
         throw new Error('the disposable Item obstacle activity is missing');
     }
 
-    await page.locator(`[data-id="${itemObstacle.id}"]`).click();
+    await page
+        .locator(`[data-id="${itemObstacle.id}"]`)
+        .getByRole('button', { name: `Edit ${itemObstacleTitle}` })
+        .click();
     await expect(
         page.getByRole('heading', { name: 'Edit Item obstacle' }),
     ).toBeVisible();
