@@ -2541,6 +2541,31 @@ test('admin users can create and connect activity graph nodes', function () {
     expect($activity->transitions()->exists())->toBeFalse();
 });
 
+test('admin users can create an activity through a MapAsset node', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $mapAsset = LearningMapAsset::query()
+        ->whereHas('node', fn ($query) => $query->where('slug', 'field-notes'))
+        ->with('node')
+        ->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $mapAsset->node), [
+            'title' => 'Notice the MapAsset context',
+            'type' => 'open_practice',
+            'introduction' => 'Use the visible place as the starting point.',
+            'open_practice_next_step' => 'Write down one connection to revisit.',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $mapAsset->node));
+
+    expect(LearningActivity::query()
+        ->where('learning_node_id', $mapAsset->node->id)
+        ->where('slug', 'notice-the-mapasset-context')
+        ->exists())->toBeTrue();
+});
+
 test('admin users can create an explicit review activity', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

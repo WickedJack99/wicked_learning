@@ -61,7 +61,10 @@ import {
     type SettingsNavigationItem,
 } from './extracted-settings-configuration-shell';
 import { settingsSections } from './extracted-settings-navigation';
-import { SettingsSidebarNavigation } from './extracted-settings-sidebar-navigation';
+import {
+    SettingsSidebarNavigation,
+    SettingsTopBar,
+} from './extracted-settings-sidebar-navigation';
 import { usePlatformTranslation } from './original-platform-translation';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
@@ -430,6 +433,7 @@ function WorldBuilderContent({
     const location = useLocation();
     const navigate = useNavigate();
     const t = usePlatformTranslation();
+    const [settingsMenuQuery, setSettingsMenuQuery] = useState('');
     const accessCapabilities = useMemo(
         () =>
             Object.fromEntries(
@@ -441,8 +445,8 @@ function WorldBuilderContent({
         [settingsAccess],
     );
     const navigationSections = useMemo(
-        () => settingsSections(t, accessCapabilities),
-        [accessCapabilities, t],
+        () => settingsSections(t, accessCapabilities, true, settingsMenuQuery),
+        [accessCapabilities, settingsMenuQuery, t],
     );
     const query = useMemo(
         () => new URLSearchParams(location.search),
@@ -628,11 +632,10 @@ function WorldBuilderContent({
             style={settingsWorkspaceStyle(appearance)}
         >
             <div className="flex h-full min-h-0 flex-col overflow-hidden">
-                <header className="flex h-auto shrink-0 flex-col gap-3 border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between">
-                    <h1 className="shrink-0 text-2xl leading-none font-semibold text-white dark:text-white">
-                        {t('settings.title', 'Settings')}
-                    </h1>
-                </header>
+                <SettingsTopBar
+                    menuQuery={settingsMenuQuery}
+                    onSearchChange={setSettingsMenuQuery}
+                />
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
                     <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
                         <SettingsSidebarNavigation
