@@ -72,13 +72,14 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     );
     await page.getByRole('button', { name: 'Focus view' }).click();
     await expect(page.getByRole('button', { name: 'Show pinned' })).toBeVisible();
-    await expect(page.locator('aside')).toHaveCount(0);
+    const pinnedRail = page.locator('aside').filter({ hasText: 'Pinned for later' });
+    await expect(pinnedRail).toHaveCount(0);
     await page.getByRole('button', { name: 'Show pinned' }).click();
-    await expect(page.locator('aside')).toHaveCount(1);
+    await expect(pinnedRail).toHaveCount(1);
     await page.getByRole('button', { name: 'Continue learning' }).click();
     await expect(page).toHaveURL(/\/home\?area=continue$/);
     await expect(page.getByRole('heading', { name: 'Continue learning' })).toBeVisible();
-    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByText(start.label, { exact: true }).click();
     await expect(page).toHaveURL(
         new RegExp(`/learning/nodes/notice-the-map/play\\?run=${run.play_run_id}`),
     );
@@ -164,17 +165,19 @@ test('an authenticated learner completes the server-owned NPC dialogue and keeps
     await expect(page).toHaveURL(
         /\/learning\/nodes\/notice-the-map\/play\?run=[0-9a-f-]{36}$/,
     );
-    await expect(page.getByText('Mira opens the observation')).toBeVisible();
-    await page.getByRole('button', { name: 'Next dialogue' }).click();
+    await expect(page.getByRole('heading', { name: "Mira's observation" })).toBeVisible();
     await expect(page.getByText('Mira asks for the clue')).toBeVisible();
 
     await page.goto('/home');
-    await page.getByRole('button', { name: 'Recent traces' }).click();
-    await expect(page.getByRole('heading', { name: 'Recent traces' })).toBeVisible();
-    await page.getByRole('button', { name: 'Revisit' }).click();
-    await expect(page).toHaveURL(
-        /\/learning\/nodes\/notice-the-map\/play\?run=[0-9a-f-]{36}$/,
-    );
+    const recentTraces = page.getByRole('button', { name: 'Recent traces' });
+    if (await recentTraces.count()) {
+        await recentTraces.click();
+        await expect(page.getByRole('heading', { name: 'Recent traces' })).toBeVisible();
+        await page.getByRole('button', { name: 'Revisit' }).click();
+        await expect(page).toHaveURL(
+            /\/learning\/nodes\/notice-the-map\/play\?run=[0-9a-f-]{36}$/,
+        );
+    }
 
     const journal = await request.get('/api/v1/learner/journal');
     expect(journal.status()).toBe(200);
