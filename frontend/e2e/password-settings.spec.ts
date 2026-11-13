@@ -18,6 +18,10 @@ test('a disposable local identity updates its password in the source-derived sec
     await expect(page).toHaveURL(/\/world$/);
 
     await page.goto('/settings?panel=personal&personal=security');
+    await expect(page).toHaveURL(/\/confirm-password\?next=/);
+    await page.getByLabel('Password').fill(currentPassword!);
+    await page.getByRole('button', { name: 'Confirm password' }).click();
+    await expect(page).toHaveURL(/\/settings\?panel=personal&personal=security$/);
     await expect(
         page.getByRole('heading', { name: 'Update password' }),
     ).toBeVisible();

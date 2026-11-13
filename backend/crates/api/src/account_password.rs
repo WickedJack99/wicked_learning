@@ -1,10 +1,11 @@
 use axum::{Json, extract::State, http::HeaderMap};
 use axum_login::AuthSession;
 use serde::Deserialize;
-use sqlx::PgPool;
+use sqlx::{Postgres, Transaction};
+use tracing::warn;
 
 use crate::{
-    AppState, csrf, error::ApiError, identity::IdentityBackend, passwords,
+    AppState, csrf, error::ApiError, identity::IdentityBackend, passwords, security_access_audit,
     session_status::SessionStatusResponse,
 };
 
@@ -46,8 +47,13 @@ pub async fn update(
 
     let password_hash =
         passwords::hash(&request.password).map_err(|_| ApiError::password_update_rejected())?;
+    let mut transaction = state
+        .identity_database
+        .begin()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
     let password_replaced = replace_password_hash(
-        &state.identity_database,
+        &mut transaction,
         subject.subject_id(),
         subject.password_verifier(),
         &password_hash,
@@ -56,6 +62,21 @@ pub async fn update(
     .map_err(|_| ApiError::service_unavailable())?;
     if !password_replaced {
         return Err(ApiError::password_update_rejected());
+    }
+    security_access_audit::queue_password_change(&mut transaction, subject.subject_id())
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    transaction
+        .commit()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    if let Err(error) = security_access_audit::deliver_pending(
+        &state.identity_database,
+        &state.application_database,
+    )
+    .await
+    {
+        warn!(%error, subject_id = %subject.subject_id(), "password change audit delivery will be retried");
     }
     let refreshed_subject = subject.with_replaced_password_hash(password_hash);
     auth_session
@@ -78,7 +99,7 @@ fn is_valid_request(request: &UpdatePasswordRequest) -> bool {
 }
 
 async fn replace_password_hash(
-    identity_database: &PgPool,
+    transaction: &mut Transaction<'_, Postgres>,
     subject_id: uuid::Uuid,
     expected_password_hash: &str,
     password_hash: &str,
@@ -89,7 +110,7 @@ async fn replace_password_hash(
     .bind(subject_id)
     .bind(expected_password_hash)
     .bind(password_hash)
-    .execute(identity_database)
+    .execute(&mut **transaction)
     .await?;
     Ok(result.rows_affected() == 1)
 }

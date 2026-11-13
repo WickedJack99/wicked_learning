@@ -37,6 +37,30 @@ pub async fn queue_two_factor_change(
     Ok(())
 }
 
+/// Adds the source-visible password-change history entry to the same identity
+/// transaction that replaces the verifier. No password, verifier or other
+/// credential material crosses the identity/application boundary.
+pub async fn queue_password_change(
+    transaction: &mut Transaction<'_, Postgres>,
+    subject_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    let (action, changes) = password_change_event();
+    sqlx::query(
+        "INSERT INTO identity_security_access_audit_outbox \
+         (id, action, actor_subject_id, target_subject_id, changes) \
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(action)
+    .bind(subject_id)
+    .bind(subject_id)
+    .bind(changes)
+    .execute(&mut **transaction)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn queue_passkey_change(
     transaction: &mut Transaction<'_, Postgres>,
     subject_id: Uuid,
@@ -89,6 +113,18 @@ fn two_factor_event(enabled: bool) -> (&'static str, Value) {
     });
 
     (action, changes)
+}
+
+fn password_change_event() -> (&'static str, Value) {
+    (
+        "password_updated",
+        json!({
+            "credential": {
+                "before": "Password stored",
+                "after": "Password updated",
+            }
+        }),
+    )
 }
 
 /// Moves a bounded batch of committed identity events into the existing
@@ -145,7 +181,7 @@ pub async fn deliver_pending(
 
 #[cfg(test)]
 mod tests {
-    use super::two_factor_event;
+    use super::{password_change_event, two_factor_event};
 
     #[test]
     fn source_factor_history_has_no_secret_material() {
@@ -174,5 +210,16 @@ mod tests {
         assert!(!enabled.to_string().contains("recovery"));
         assert!(!disabled.to_string().contains("credential"));
         assert!(!disabled.to_string().contains("recovery"));
+    }
+
+    #[test]
+    fn source_password_history_has_no_credential_material() {
+        let (action, changes) = password_change_event();
+
+        assert_eq!(action, "password_updated");
+        assert_eq!(changes["credential"]["before"], "Password stored");
+        assert_eq!(changes["credential"]["after"], "Password updated");
+        assert!(!changes.to_string().contains("verifier"));
+        assert!(!changes.to_string().contains("password_hash"));
     }
 }

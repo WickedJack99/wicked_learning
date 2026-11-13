@@ -71,12 +71,15 @@ window in the identity database. The window stores only a
 `LOGIN_RATE_LIMIT_KEY`-keyed email digest, expires automatically and is cleared
 by a correct password. The example key is deliberately predictable only for
 disposable local development; every shared deployment needs a distinct stable
-Base64-encoded 32-byte key. The API can privately start and confirm an authenticated TOTP
+Base64-encoded 32-byte key. Authenticated password updates and factor changes
+also enqueue credential-free source-shaped access-history records through the
+identity outbox. The API can privately start and confirm an authenticated TOTP
 enrollment, retaining only encrypted secrets and Argon2id recovery-code
 verifiers, but the original React two-factor control remains absent until the
 login challenge and complete account-management contract arrive. Verification,
-recovery-code use, MFA/passkeys, audit records and the full authorization
-matrix remain separate required work; this is not a user cutover.
+recovery-code use, MFA/passkeys, comprehensive security-event policy and the
+full authorization matrix remain separate required work; this is not a user
+cutover.
 
 The local HTTP stack intentionally does not mark session or CSRF cookies
 `Secure`; an HTTPS deployment does. Set `PUBLIC_ORIGIN` to the exact browser

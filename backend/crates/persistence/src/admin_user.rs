@@ -485,6 +485,7 @@ fn access_changes(
 fn access_change_items(changes: &Value) -> Vec<AdminAccessChangeItem> {
     let labels = [
         ("banned_until", "Ban until"),
+        ("credential", "Credential"),
         ("login_disabled", "Login disabled"),
         ("roles", "Roles"),
     ];
@@ -499,6 +500,28 @@ fn access_change_items(changes: &Value) -> Vec<AdminAccessChangeItem> {
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::access_change_items;
+
+    #[test]
+    fn access_history_projects_the_source_password_change() {
+        let changes = access_change_items(&json!({
+            "credential": {
+                "before": "Password stored",
+                "after": "Password updated",
+            }
+        }));
+
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].label, "Credential");
+        assert_eq!(changes[0].before, "Password stored");
+        assert_eq!(changes[0].after, "Password updated");
+    }
 }
 
 fn access_change_value(value: Option<&Value>) -> String {

@@ -266,11 +266,11 @@ minute using `tower_governor`; Nginx overwrites the trusted `X-Real-IP` header.
 It also atomically applies a five-attempt, one-minute per-account window in the
 identity database. The window is represented only by a `LOGIN_RATE_LIMIT_KEY`-
 keyed email digest and expires automatically; a correct password clears it.
-This is a bounded identity proof, not a user cutover: audit records,
-verification/recovery, MFA/passkeys and the full authorization matrix remain
-required before a user pilot, and the process-local IP limiter must become a
-shared/gateway control before multi-replica operation. SameSite is defense in
-depth, not a substitute for CSRF or origin enforcement.
+This is a bounded identity proof, not a user cutover: a comprehensive audited
+security-event policy, verification/recovery, MFA/passkeys and the full
+authorization matrix remain required before a user pilot, and the process-local
+IP limiter must become a shared/gateway control before multi-replica operation.
+SameSite is defense in depth, not a substitute for CSRF or origin enforcement.
 
 ## ADR-012: Fresh public exploration model
 
@@ -3449,26 +3449,27 @@ disable/replacement and recovery-code lifecycle remain unavailable until their
 complete contracts are implemented. The later passkey slice must add its source
 confirmation alternative to this reusable session-bound boundary.
 
-## ADR-087: Security-factor audit delivery uses an identity outbox
+## ADR-087: Security-change audit delivery uses an identity outbox
 
 **Status:** Accepted — 7 November 2026
 
-**Problem:** Source two-factor lifecycle changes appear in the administrator's
-application-owned access history. Rust commits factor secrets and verifiers in
-the identity database, while that history remains correctly application-owned;
-a direct best-effort second write could silently lose an audit record whenever
-the application database is unavailable.
+**Problem:** Source password and factor changes appear in the administrator's
+application-owned access history. Rust commits password verifiers, factor
+secrets and public credentials in the identity database, while that history
+remains correctly application-owned; a direct best-effort second write could
+silently lose an audit record whenever the application database is unavailable.
 
-**Decision:** The same identity transaction that confirms or disables a TOTP
-factor writes a credential-free outbox record with a stable UUID, source action
-and before/after security-factor labels. The account owner remains both actor
-and target, as in the source audit. A local bounded delivery worker moves
-pending records to `application_access_change_events`. It uses the outbox UUID
-as the application event ID and `ON CONFLICT DO NOTHING`, then marks the
-identity record delivered only after application commit. Startup and a
-thirty-second retry loop recover from either database being temporarily
-unavailable. The application event never includes TOTP secrets, recovery codes,
-verifiers, session values or credential metadata.
+**Decision:** The same identity transaction that replaces an authenticated
+password verifier or confirms/disables a TOTP factor writes a credential-free
+outbox record with a stable UUID, source action and before/after labels. The
+account owner remains both actor and target, as in the source audit. A local
+bounded delivery worker moves pending records to
+`application_access_change_events`. It uses the outbox UUID as the application
+event ID and `ON CONFLICT DO NOTHING`, then marks the identity record delivered
+only after application commit. Startup and a thirty-second retry loop recover
+from either database being temporarily unavailable. The application event never
+includes passwords, TOTP secrets, recovery codes, verifiers, session values or
+credential metadata.
 
 **Why:** This preserves the source visible audit trail without blurring the
 two-database ownership boundary. Idempotent delivery handles a process crash
@@ -3480,9 +3481,10 @@ separate PostgreSQL databases. Writing directly to application data after a
 factor mutation risks a permanent missing event. Storing the history in
 identity data violates the accepted boundary. These alternatives are rejected.
 
-**Limits and follow-up:** Passkey registration/deletion now enqueue the same
-kind of non-secret events under ADR-088. The outbox is for security-factor
-history only; it is not a generic event bus.
+**Limits and follow-up:** Passkey registration/deletion enqueue the same kind
+of non-secret events under ADR-088. Password recovery deliberately preserves
+the source's absence of a visible access-history event. The outbox is for
+source-visible account-security history only; it is not a generic event bus.
 
 ## ADR-088: Passkeys use server-held WebAuthn ceremonies and identity-owned public credentials
 
