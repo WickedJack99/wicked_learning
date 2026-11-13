@@ -509,4 +509,36 @@ test('a content API author creates a MapAsset Activity through the documented co
     await expect(console.locator('pre')).toContainText(itemObstacleTitle);
     await expect(console.locator('pre')).toContainText(obstacleTitle);
     await expect(console.locator('pre')).toContainText(portalOutputTitle);
+
+    await console
+        .getByLabel('Operation')
+        .selectOption('activity-transitions.store');
+    await console.getByLabel('Request path').fill(
+        `/api/content/v1/map-assets/${mapAsset.data.id}/activity-transitions`,
+    );
+    await console.getByLabel('JSON request body').fill(JSON.stringify({
+        from_activity_id: activity.data.id,
+        to_activity_id: dialogue.data.id,
+        from_connector: 'completed',
+        to_connector: 'in',
+        label: 'Continue to the dialogue',
+    }));
+    await console.getByRole('button', { name: 'Send request' }).click();
+    await expect(console.getByText('HTTP 200')).toBeVisible();
+    const transitionResponse = JSON.parse(
+        (await console.locator('pre').textContent()) ?? '{}',
+    ) as {
+        data: Array<{
+            fromActivityId: string;
+            label: string | null;
+            toActivityId: string | null;
+        }>;
+    };
+    expect(transitionResponse.data).toContainEqual(
+        expect.objectContaining({
+            fromActivityId: activity.data.id,
+            label: 'Continue to the dialogue',
+            toActivityId: dialogue.data.id,
+        }),
+    );
 });

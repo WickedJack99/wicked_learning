@@ -212,6 +212,36 @@ paths:
         '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
         '404': { description: The MapAsset is unavailable in the caller's World Activity scope. }
         '503': { description: The application database is unavailable. }
+  /content/v1/map-assets/{map_asset_id}/activity-transitions:
+    servers:
+      - url: /api
+    parameters:
+      - name: map_asset_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: createContentApiActivityTransition
+      summary: Connect source-shaped activities in one editable MapAsset.
+      description: Requires content_api update permission, the existing World Activity update scope, and a same-origin CSRF token. The idempotent World Builder transition command verifies that both activity IDs belong to the addressed MapAsset and records source activity history.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContentApiActivityTransitionRequest' }
+      responses:
+        '200':
+          description: The source-ordered MapAsset transitions after the idempotent connection save.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentApiActivityTransitionsResponse' }
+        '400': { description: The transition fields are invalid, including a non-terminal entry portal. }
+        '401': { description: No authenticated administration session. }
+        '403': { description: The CSRF check failed or the current role lacks content_api update permission. }
+        '404': { description: The MapAsset or a referenced activity is unavailable in the caller's World Activity scope. }
+        '503': { description: The application database is unavailable. }
   /session:
     get:
       operationId: getSessionStatus
@@ -7338,6 +7368,37 @@ components:
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/ContentApiActivity' }
+    ContentApiActivityTransition:
+      type: object
+      additionalProperties: false
+      required: [id, fromActivityId, toActivityId, fromConnector, toConnector, trigger, triggerValue, label]
+      properties:
+        id: { type: string, format: uuid }
+        fromActivityId: { type: string, format: uuid }
+        toActivityId: { type: [string, 'null'], format: uuid }
+        fromConnector: { type: string }
+        toConnector: { type: string }
+        trigger: { type: string }
+        triggerValue: { type: [string, 'null'] }
+        label: { type: [string, 'null'] }
+    ContentApiActivityTransitionsResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ContentApiActivityTransition' }
+    CreateContentApiActivityTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [from_activity_id, from_connector, to_connector]
+      properties:
+        from_activity_id: { type: string, format: uuid }
+        to_activity_id: { type: [string, 'null'], format: uuid }
+        from_connector: { type: string, minLength: 1, maxLength: 80 }
+        to_connector: { type: string, minLength: 1, maxLength: 80 }
+        label: { type: [string, 'null'], maxLength: 120 }
     CreateContentApiActivityRequest:
       type: object
       additionalProperties: false
