@@ -825,9 +825,9 @@ export function App() {
 
         if (
             supportPanel &&
-            supportSection === 'taxonomy' ||
-            supportSection === 'competence-topics' ||
-            supportSection === 'learning-concepts'
+            (supportSection === 'taxonomy' ||
+                supportSection === 'competence-topics' ||
+                supportSection === 'learning-concepts')
         ) {
             return (
                 <Suspense fallback={null}>
