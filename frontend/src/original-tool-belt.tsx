@@ -4,6 +4,7 @@ import type { CSSProperties, DragEvent, MouseEvent, ReactNode } from 'react';
 
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerItem = components['schemas']['LearnerItem'];
 type LearnerTool = components['schemas']['LearnerTool'];
@@ -33,6 +34,7 @@ export function OriginalToolBelt({
     showTools?: boolean;
     tools: LearnerTool[];
 }) {
+    const t = usePlatformTranslation();
     const [overlay, setOverlay] = useState<OverlayMode>(null);
     const sideActionRef = useRef<HTMLElement | null>(null);
     const overlayTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -81,17 +83,17 @@ export function OriginalToolBelt({
 
     return (
         <aside
-            aria-label="Player actions"
+            aria-label={t('world.tool_belt.actions', 'Player actions')}
             className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-col items-center gap-3 md:top-1/2 md:right-5 md:bottom-auto md:left-auto md:translate-x-0 md:-translate-y-1/2 md:flex-row"
             data-wl-id="learner.world.tool-belt"
             ref={sideActionRef}
         >
             {overlay === 'inventory' ? (
                 <SideOverlay
-                    eyebrow="Inventory"
+                    eyebrow={t('world.tool_belt.inventory.eyebrow', 'Inventory')}
                     id="learning-inventory-panel"
                     onClose={closeOverlay}
-                    title="Items"
+                    title={t('world.tool_belt.inventory.title', 'Items')}
                 >
                     <ItemGrid
                         draggableItems={draggableItems}
@@ -102,10 +104,10 @@ export function OriginalToolBelt({
             ) : null}
             {showTools && overlay === 'tools' ? (
                 <SideOverlay
-                    eyebrow="Tools"
+                    eyebrow={t('world.tool_belt.tools.eyebrow', 'Tools')}
                     id="learning-tools-panel"
                     onClose={closeOverlay}
-                    title="Select a tool"
+                    title={t('world.tool_belt.tools.title', 'Select a tool')}
                 >
                     <ToolGrid
                         mode={appearance}
@@ -129,7 +131,7 @@ export function OriginalToolBelt({
                     ariaControls="learning-inventory-panel"
                     ariaExpanded={overlay === 'inventory'}
                     isActive={overlay === 'inventory'}
-                    label="Open inventory"
+                    label={t('world.tool_belt.inventory.open', 'Open inventory')}
                     onClick={(event) =>
                         toggleOverlay('inventory', event.currentTarget)
                     }
@@ -141,7 +143,7 @@ export function OriginalToolBelt({
                         ariaControls="learning-tools-panel"
                         ariaExpanded={overlay === 'tools'}
                         isActive={overlay === 'tools' || Boolean(selectedTool)}
-                        label="Open tools"
+                        label={t('world.tool_belt.tools.open', 'Open tools')}
                         onClick={(event) => {
                             if (selectedTool) {
                                 onSelectTool(null);
@@ -176,8 +178,16 @@ function ItemGrid({
     items: LearnerItem[];
     mode: OriginalAppearance;
 }) {
+    const t = usePlatformTranslation();
     if (items.length === 0) {
-        return <EmptyOverlayState>No items acquired yet.</EmptyOverlayState>;
+        return (
+            <EmptyOverlayState>
+                {t(
+                    'world.tool_belt.inventory.empty',
+                    'No items acquired yet.',
+                )}
+            </EmptyOverlayState>
+        );
     }
 
     return (
@@ -268,8 +278,13 @@ function ToolGrid({
     selectedTool: LearnerTool | null;
     tools: LearnerTool[];
 }) {
+    const t = usePlatformTranslation();
     if (tools.length === 0) {
-        return <EmptyOverlayState>No tools acquired yet.</EmptyOverlayState>;
+        return (
+            <EmptyOverlayState>
+                {t('world.tool_belt.tools.empty', 'No tools acquired yet.')}
+            </EmptyOverlayState>
+        );
     }
 
     return (
@@ -366,6 +381,7 @@ function SideOverlay({
     onClose: () => void;
     title: string;
 }) {
+    const t = usePlatformTranslation();
     const panelRef = useRef<HTMLDivElement | null>(null);
     const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -444,7 +460,7 @@ function SideOverlay({
                     }}
                     type="button"
                 >
-                    Close
+                    {t('common.close', 'Close')}
                 </button>
             </div>
             {children}

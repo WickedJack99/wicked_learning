@@ -683,10 +683,29 @@ test('the lifted tool belt and its panel remain inside desktop and narrow World 
             }),
         });
     });
+    await page.route('**/api/v1/learner/platform-translations**', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'common.close': 'Close localized panel',
+                    'world.tool_belt.actions': 'Localized player actions',
+                    'world.tool_belt.tools.open': 'Open localized tools',
+                    'world.tool_belt.tools.title': 'Select a localized tool',
+                },
+            }),
+        });
+    });
 
     await page.goto('/world');
-    await page.getByRole('button', { name: 'Open tools' }).click();
-    const desktopPanel = page.getByRole('dialog', { name: 'Select a tool' });
+    await expect(
+        page.getByRole('complementary', { name: 'Localized player actions' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Open localized tools' }).click();
+    const desktopPanel = page.getByRole('dialog', {
+        name: 'Select a localized tool',
+    });
     await expect(desktopPanel).toBeVisible();
     const desktopBox = await desktopPanel.boundingBox();
     expect(desktopBox).not.toBeNull();
@@ -697,8 +716,8 @@ test('the lifted tool belt and its panel remain inside desktop and narrow World 
     expect(desktopBox.y + desktopBox.height).toBeLessThanOrEqual(720);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole('button', { name: 'Close' }).click();
-    await page.getByRole('button', { name: 'Open tools' }).click();
+    await page.getByRole('button', { name: 'Close localized panel' }).click();
+    await page.getByRole('button', { name: 'Open localized tools' }).click();
     const narrowBox = await desktopPanel.boundingBox();
     expect(narrowBox).not.toBeNull();
     if (!narrowBox) return;
