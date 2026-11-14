@@ -725,7 +725,11 @@ export function App() {
         if (settingsPanel === 'admin-api') {
             return (
                 <Suspense fallback={null}>
-                    <OriginalContentApiPage />
+                    <OriginalContentApiPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }

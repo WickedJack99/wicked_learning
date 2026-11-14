@@ -1,5 +1,4 @@
 import {
-    BookOpenText,
     Braces,
     Check,
     Clipboard,
@@ -7,10 +6,12 @@ import {
     TerminalSquare,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import type { ReactNode } from 'react';
+import { useLocation } from 'react-router';
 
 import { getCsrfToken } from './api/client';
+import { ContentApiSettingsShell } from './extracted-content-api-navigation';
+import type { OriginalAppearance } from './original-appearance';
 
 type ContentApiMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST';
 
@@ -55,23 +56,13 @@ type ConsoleResponse = {
 
 type Section = 'console' | 'documentation';
 
-const contentApiStyle = {
-    '--settings-accent': '#0f766e',
-    '--settings-border-color': '#cbd5e1',
-    '--settings-content-background': '#ffffff',
-    '--settings-input-background': '#ffffff',
-    '--settings-input-border-color': '#cbd5e1',
-    '--settings-muted-text': '#475569',
-} as CSSProperties;
-
 /**
  * Source-adapted Content API console. The live Rust contract is the only
  * operation catalogue; this component cannot invent a path or bypass session
  * and CSRF checks.
  */
-export function OriginalContentApiPage() {
+export function OriginalContentApiPage({ appearance, onSignedOut, settingsAccess }: { appearance: OriginalAppearance; onSignedOut: () => void; settingsAccess: Record<string, boolean> }) {
     const location = useLocation();
-    const navigate = useNavigate();
     const [contract, setContract] = useState<ContentApiContract | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [section, setSection] = useState<Section>(() => sectionFromSearch(location.search));
@@ -121,13 +112,6 @@ export function OriginalContentApiPage() {
         setResponse(null);
     }
 
-    function changeSection(next: Section): void {
-        const query = new URLSearchParams(location.search);
-        query.set('panel', 'admin-api');
-        query.set('api', next);
-        navigate(`/settings?${query.toString()}`);
-    }
-
     async function send(): Promise<void> {
         if (!selectedOperation) {
             return;
@@ -175,19 +159,13 @@ export function OriginalContentApiPage() {
     }
 
     return (
-        <main className="min-h-svh bg-slate-100 px-4 py-5 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100" data-wl-id="settings.content-api" style={contentApiStyle}>
-            <div className="mx-auto w-full max-w-[92rem]">
-                <header className="mb-5">
-                    <Link className="text-sm text-[var(--settings-accent)]" to="/home">Settings</Link>
+        <ContentApiSettingsShell activeSection={section} appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}>
+            <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-5" data-wl-id="settings.content-api">
+                <header className="mb-5 border-b border-[var(--settings-border-color)] pb-5">
                     <p className="mt-4 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p>
                     <h1 className="mt-2 text-3xl font-semibold">Content API</h1>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">Interactive, session-scoped access to the versioned authoring contract. The console offers only Rust-advertised operations and does not replace map scope or explicit approval.</p>
                 </header>
-
-                <nav aria-label="Content API sections" className="mb-5 flex flex-wrap gap-2 border-b border-slate-300 pb-3 dark:border-slate-700" data-wl-id="settings.content-api.sections">
-                    <SectionButton active={section === 'console'} icon={<TerminalSquare className="size-4" />} label="API Console" onClick={() => changeSection('console')} />
-                    <SectionButton active={section === 'documentation'} icon={<BookOpenText className="size-4" />} label="API Documentation" onClick={() => changeSection('documentation')} />
-                </nav>
 
                 {error ? <Message kind="error">{error}</Message> : null}
                 {!contract && !error ? <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-950 dark:text-slate-300">Loading the Content API contract…</p> : null}
@@ -221,7 +199,7 @@ export function OriginalContentApiPage() {
                 ) : null}
                 {contract && section === 'documentation' ? <Documentation contract={contract} copied={copied} onCopy={() => void copyContract()} /> : null}
             </div>
-        </main>
+        </ContentApiSettingsShell>
     );
 }
 
@@ -240,10 +218,6 @@ function Documentation({ contract, copied, onCopy }: { contract: ContentApiContr
 
 function ResponsePane({ response }: { response: ConsoleResponse | null }) {
     return <section className="min-h-[24rem] p-5"><div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-sm font-semibold">Response</h3>{response ? <div className="flex gap-2 text-xs text-[var(--settings-muted-text)]"><span className={response.ok ? 'font-semibold text-emerald-700 dark:text-emerald-300' : 'font-semibold text-red-700 dark:text-red-300'}>HTTP {response.status}</span><span>{response.durationMs} ms</span></div> : null}</div><pre className="min-h-72 overflow-auto border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-5 whitespace-pre-wrap text-slate-800 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">{response ? JSON.stringify(response.body, null, 2) : 'Send a request to inspect its status and JSON body.'}</pre></section>;
-}
-
-function SectionButton({ active, icon, label, onClick }: { active: boolean; icon: ReactNode; label: string; onClick: () => void }) {
-    return <button className={`inline-flex items-center gap-2 rounded px-3 py-2 text-sm ${active ? 'bg-[var(--settings-accent)] text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800'}`} onClick={onClick} type="button">{icon}{label}</button>;
 }
 
 function MethodBadge({ method }: { method: ContentApiMethod }) {

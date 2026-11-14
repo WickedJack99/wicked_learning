@@ -1761,7 +1761,8 @@ application. The browser remains a typed client and refreshes its map only
 after the server reports the apply transaction successful.
 
 The standalone Settings API surface now also lifts the source API Console and
-API Documentation views. It loads the live Rust Content API contract first,
+API Documentation views inside the shared source Settings and Content API
+navigator across desktop and narrow layouts. It loads the live Rust Content API contract first,
 uses only its advertised operations, blocks unresolved path placeholders, and
 obtains the existing same-origin CSRF token only for documented mutations.
 The response pane exposes the exact server status and JSON body; it never turns

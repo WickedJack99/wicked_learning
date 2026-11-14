@@ -27,6 +27,11 @@ test('a content API author can inspect the live contract and send a documented r
     const console = page.locator('[data-wl-id="settings.content-api.console"]');
     await expect(console).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Content API' })).toBeVisible();
+    await expect(
+        page
+            .getByRole('tablist', { name: 'Content API sections' })
+            .getByRole('tab', { name: 'API Console' }),
+    ).toHaveAttribute('aria-selected', 'true');
     await expect(console.getByLabel('Operation')).toHaveValue('maps.index');
     await expect(console.getByLabel('Request path')).toHaveValue('/api/content/v1/maps');
 
@@ -41,7 +46,7 @@ test('a content API author can inspect the live contract and send a documented r
         ),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'API Documentation' }).click();
+    await page.getByRole('tab', { name: 'API Documentation' }).click();
     const documentation = page.locator('[data-wl-id="settings.content-api.documentation"]');
     await expect(documentation).toBeVisible();
     await expect(documentation.getByText('AI ContentPlan v1.5')).toBeVisible();
