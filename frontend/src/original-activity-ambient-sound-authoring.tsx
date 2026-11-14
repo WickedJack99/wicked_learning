@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Activity = components['schemas']['AdminEditableActivity'];
 type EditableSound = components['schemas']['AdminEditableSound'];
@@ -23,6 +24,7 @@ export function OriginalActivityAmbientSoundDialog({
     onSaved: () => void;
     sounds: EditableSound[];
 }) {
+    const t = usePlatformTranslation();
     const configured = configuredAmbientSound(activity);
     const [enabled, setEnabled] = useState(configured.enabled);
     const [soundId, setSoundId] = useState<string | null>(configured.soundId);
@@ -56,7 +58,7 @@ export function OriginalActivityAmbientSoundDialog({
             );
             if (response.status === 409) {
                 setError(
-                    'This activity changed while you were editing scene ambience. Reload it and try again.',
+                    t('settings.activity_ambient_sound.conflict_error', 'This activity changed while you were editing scene ambience. Reload it and try again.'),
                 );
                 return;
             }
@@ -66,7 +68,7 @@ export function OriginalActivityAmbientSoundDialog({
             onSaved();
         } catch {
             setError(
-                'Scene ambience could not be saved. Check your connection and try again.',
+                t('settings.activity_ambient_sound.save_error', 'Scene ambience could not be saved. Check your connection and try again.'),
             );
         } finally {
             setSaving(false);
@@ -87,21 +89,20 @@ export function OriginalActivityAmbientSoundDialog({
                 <header className="flex items-start justify-between gap-4">
                     <div>
                         <p className="inline-flex items-center gap-2 text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                            <Music2 className="size-4" /> Reusable sound
+                            <Music2 className="size-4" /> {t('settings.activity_ambient_sound.reusable_sound', 'Reusable sound')}
                         </p>
                         <h2
                             className="mt-1 text-xl font-semibold"
                             id="activity-ambient-sound-title"
                         >
-                            Scene ambience
+                            {t('settings.activity_ambient_sound.title', 'Scene ambience')}
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Play one reusable sound while this activity is open.
-                            It stops automatically when the learner continues.
+                            {t('settings.activity_ambient_sound.description', 'Play one reusable sound while this activity is open. It stops automatically when the learner continues.')}
                         </p>
                     </div>
                     <button
-                        aria-label="Close scene ambience"
+                        aria-label={t('settings.activity_ambient_sound.close', 'Close scene ambience')}
                         className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
                         disabled={saving}
                         onClick={onClose}
@@ -118,14 +119,14 @@ export function OriginalActivityAmbientSoundDialog({
                         onChange={(event) => setEnabled(event.currentTarget.checked)}
                         type="checkbox"
                     />
-                    Enable scene ambience
+                    {t('settings.activity_ambient_sound.enable', 'Enable scene ambience')}
                 </label>
 
                 <section className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
                     <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
                         {selectedSound
                             ? selectedSound.name
-                            : 'No reusable sound selected'}
+                            : t('settings.activity_ambient_sound.none_selected', 'No reusable sound selected')}
                     </span>
                     <button
                         className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-white disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10"
@@ -133,10 +134,10 @@ export function OriginalActivityAmbientSoundDialog({
                         onClick={() => setIsPickerOpen(true)}
                         type="button"
                     >
-                        <Search className="size-4" /> Select sound
+                        <Search className="size-4" /> {t('settings.activity_ambient_sound.select', 'Select sound')}
                     </button>
                     <button
-                        aria-label="Clear selected scene ambience"
+                        aria-label={t('settings.activity_ambient_sound.clear', 'Clear selected scene ambience')}
                         className="rounded-md p-2 text-slate-600 hover:bg-white disabled:opacity-50 dark:text-slate-300 dark:hover:bg-white/10"
                         disabled={!selectedSound || saving}
                         onClick={() => {
@@ -151,7 +152,7 @@ export function OriginalActivityAmbientSoundDialog({
 
                 {sounds.length === 0 ? (
                     <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                        No reusable sounds are available yet.
+                        {t('settings.activity_ambient_sound.empty', 'No reusable sounds are available yet.')}
                     </p>
                 ) : null}
                 {error ? (
@@ -169,7 +170,7 @@ export function OriginalActivityAmbientSoundDialog({
                         onClick={onClose}
                         type="button"
                     >
-                        Cancel
+                        {t('settings.activity_ambient_sound.cancel', 'Cancel')}
                     </button>
                     <button
                         className="inline-flex items-center gap-1 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60"
@@ -177,7 +178,7 @@ export function OriginalActivityAmbientSoundDialog({
                         type="submit"
                     >
                         <Save className="size-4" />
-                        {saving ? 'Saving…' : 'Save scene ambience'}
+                        {saving ? t('settings.activity_ambient_sound.saving', 'Saving…') : t('settings.activity_ambient_sound.save', 'Save scene ambience')}
                     </button>
                 </footer>
             </form>
