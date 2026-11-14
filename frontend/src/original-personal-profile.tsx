@@ -133,7 +133,26 @@ export function OriginalPersonalProfilePage({
     }
 
     return (
-        <OriginalPersonalSettingsShell activeSection="profile" appearance={appearance}>
+        <OriginalPersonalSettingsShell
+            activeSection="profile"
+            appearance={appearance}
+            footerAction={
+                <div className="w-full lg:max-w-[45%]">
+                    <button
+                        className="inline-flex w-full items-center justify-center rounded-md bg-[var(--settings-accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+                        data-test="update-profile-button"
+                        disabled={saving || uploading || !changed}
+                        form="personal-profile-form"
+                        type="submit"
+                    >
+                        <Save className="mr-2 size-4" />
+                        {saving
+                            ? t('common.saving', 'Saving...')
+                            : t('common.save', 'Save')}
+                    </button>
+                </div>
+            }
+        >
             <section className="grid gap-5">
                 <header className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
@@ -161,6 +180,7 @@ export function OriginalPersonalProfilePage({
                 ) : (
                     <form
                         className="grid w-full min-w-0 gap-5 lg:max-w-[45%]"
+                        id="personal-profile-form"
                         onSubmit={(event) => void submit(event)}
                     >
                         <ProfileImageField
@@ -237,15 +257,6 @@ export function OriginalPersonalProfilePage({
                             type="email"
                             value={profile.email}
                         />
-                        <button
-                            className="inline-flex w-fit items-center rounded-md bg-[var(--settings-accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
-                            data-test="update-profile-button"
-                            disabled={saving || uploading || !changed}
-                            type="submit"
-                        >
-                            <Save className="mr-2 size-4" />
-                            {t('settings.personal.profile.save', 'Save profile')}
-                        </button>
                     </form>
                 )}
                 {message ? (

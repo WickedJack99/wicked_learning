@@ -38,7 +38,7 @@ test('a disposable local identity updates source-shaped profile details', async 
     await expect(
         page.locator('img[src^="/api/v1/profile-images/"]'),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Save profile' }).click();
+    await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByRole('status')).toHaveText('Profile updated.');
     const savedProfile = await page.request.get('/api/v1/account/profile');
     await expect(savedProfile.json()).resolves.toMatchObject({

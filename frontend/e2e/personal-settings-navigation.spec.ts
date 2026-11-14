@@ -13,16 +13,33 @@ test('Personal settings restores the source section navigation', async ({ page }
             }),
         });
     });
+    let profile = {
+        email: 'learner@example.test',
+        name: 'Learner',
+        profile_image_id: null,
+        profile_image_url: null,
+        username: null,
+    };
     await page.route('**/api/v1/account/profile', async (route) => {
+        if (route.request().method() === 'PATCH') {
+            const body = route.request().postDataJSON() as {
+                email: string;
+                name: string;
+                profile_image_id: string | null;
+                username: string | null;
+            };
+            profile = {
+                email: body.email,
+                name: body.name,
+                profile_image_id: body.profile_image_id,
+                profile_image_url: null,
+                username: body.username,
+            };
+        }
+
         await route.fulfill({
             contentType: 'application/json',
-            body: JSON.stringify({
-                email: 'learner@example.test',
-                name: 'Learner',
-                profile_image_id: null,
-                profile_image_url: null,
-                username: null,
-            }),
+            body: JSON.stringify(profile),
         });
     });
     await page.route('**/api/v1/account/password/confirmation', async (route) => {
@@ -125,6 +142,17 @@ test('Personal settings restores the source section navigation', async ({ page }
         'placeholder',
         'Your full learner name',
     );
+    await expect(
+        page.locator('footer').getByRole('button', { name: 'Save' }),
+    ).toBeVisible();
+    await expect(
+        page
+            .locator('#personal-profile-form')
+            .getByRole('button', { name: 'Save' }),
+    ).toHaveCount(0);
+    await page.getByLabel('Learner name').fill('Footer save learner');
+    await page.locator('footer').getByRole('button', { name: 'Save' }).click();
+    await expect.poll(() => profile.name).toBe('Footer save learner');
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByLabel('Settings area')).toBeVisible();

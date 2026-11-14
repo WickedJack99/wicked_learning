@@ -25,10 +25,12 @@ export function OriginalPersonalSettingsShell({
     activeSection,
     appearance,
     children,
+    footerAction,
 }: {
     activeSection: PersonalSettingsSection;
     appearance: OriginalAppearance;
     children: ReactNode;
+    footerAction?: ReactNode;
 }) {
     const { currentUser, setCurrentUser } = useCurrentUser();
     const t = usePlatformTranslation();
@@ -88,6 +90,7 @@ export function OriginalPersonalSettingsShell({
                     </aside>
                     <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
                         <SettingsNestedWorkspace
+                            footerAction={footerAction}
                             sidebar={
                                 <OriginalPersonalSettingsNavigation
                                     activeSection={activeSection}
