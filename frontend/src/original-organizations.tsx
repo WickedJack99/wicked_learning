@@ -96,7 +96,105 @@ function OrganizationIndex({ isAuthenticationLoading, isAuthenticated, onSignedO
 
     return <main className="min-h-svh bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]"><OriginalLearnerHeader onSignedOut={onSignedOut} userEmail={userEmail} /><div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 pb-24">
         <AccentHeading action={<button className={actionButton} onClick={() => setIsCreating((open) => !open)} type="button"><Plus className="size-4" />New organization</button>} description="Browse public learner organizations, request to join, or create a space for your own project community." eyebrow="Community" title="Organizations" />
-        {isCreating ? <form className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#111820]" onSubmit={(event) => void createOrganization(event)}><div className="flex items-center gap-3"><Users className="size-5 text-[var(--learner-action-accent)]" /><h2 className="text-lg font-semibold">Create organization</h2></div><div className="grid gap-4 md:grid-cols-2"><Field label="Name"><input className={field} onChange={(event) => setForm({ ...form, name: event.target.value })} value={form.name} /></Field><Field label="Slogan"><input className={field} maxLength={180} onChange={(event) => setForm({ ...form, slogan: event.target.value })} value={form.slogan} /></Field></div><Field label="Description"><textarea className={`${field} min-h-28`} onChange={(event) => setForm({ ...form, description: event.target.value })} value={form.description} /></Field><fieldset className="grid gap-2"><legend className="text-sm font-medium">Organization type</legend><div className="grid gap-3 md:grid-cols-3">{governanceOptions.map((option) => { const Icon = option.icon; const selected = form.governance_type === option.value; return <label className={['grid cursor-pointer gap-2 rounded-lg border p-3 text-sm transition', selected ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)]' : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--learner-action-accent)_42%,transparent)] dark:border-white/10 dark:bg-white/5'].join(' ')} key={option.value}><input checked={selected} className="sr-only" name="governance_type" onChange={() => setForm({ ...form, governance_type: option.value })} type="radio" /><span className="flex items-center gap-2 font-semibold"><Icon className="size-4 text-[var(--learner-action-accent)]" />{option.label}</span><span className="text-xs leading-5 text-slate-500 dark:text-slate-400">{option.description}</span></label>; })}</div></fieldset><div className="flex gap-2"><button className={actionButton} disabled={saving || !form.name.trim()} type="submit"><Save className="size-4" />{saving ? 'Creating…' : 'Create'}</button><button className={secondaryButton} onClick={() => setIsCreating(false)} type="button">Cancel</button></div></form> : null}
+        {isCreating ? (
+            <form
+                className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#111820]"
+                onSubmit={(event) => void createOrganization(event)}
+            >
+                <div className="flex items-center gap-3">
+                    <Users className="size-5 text-[var(--learner-action-accent)]" />
+                    <h2 className="text-lg font-semibold">Create organization</h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Name">
+                        <input
+                            className={field}
+                            onChange={(event) =>
+                                setForm({ ...form, name: event.target.value })
+                            }
+                            value={form.name}
+                        />
+                    </Field>
+                    <Field label="Slogan">
+                        <input
+                            className={field}
+                            maxLength={180}
+                            onChange={(event) =>
+                                setForm({ ...form, slogan: event.target.value })
+                            }
+                            value={form.slogan}
+                        />
+                    </Field>
+                </div>
+                <Field label="Description">
+                    <textarea
+                        className={`${field} min-h-28`}
+                        onChange={(event) =>
+                            setForm({ ...form, description: event.target.value })
+                        }
+                        value={form.description}
+                    />
+                </Field>
+                <fieldset className="grid gap-2">
+                    <legend className="text-sm font-medium">Organization type</legend>
+                    <div className="grid gap-3 md:grid-cols-3">
+                        {governanceOptions.map((option) => {
+                            const Icon = option.icon;
+                            const selected = form.governance_type === option.value;
+
+                            return (
+                                <label
+                                    className={[
+                                        'grid cursor-pointer gap-2 rounded-lg border p-3 text-sm transition',
+                                        selected
+                                            ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)]'
+                                            : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--learner-action-accent)_42%,transparent)] dark:border-white/10 dark:bg-white/5',
+                                    ].join(' ')}
+                                    key={option.value}
+                                >
+                                    <input
+                                        checked={selected}
+                                        className="sr-only"
+                                        name="governance_type"
+                                        onChange={() =>
+                                            setForm({
+                                                ...form,
+                                                governance_type: option.value,
+                                            })
+                                        }
+                                        type="radio"
+                                    />
+                                    <span className="flex items-center gap-2 font-semibold">
+                                        <Icon className="size-4 text-[var(--learner-action-accent)]" />
+                                        {option.label}
+                                    </span>
+                                    <span className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                        {option.description}
+                                    </span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </fieldset>
+                <div className="flex gap-2">
+                    <button
+                        className={actionButton}
+                        disabled={saving}
+                        type="submit"
+                    >
+                        <Save className="size-4" />
+                        Create
+                    </button>
+                    <button
+                        className={secondaryButton}
+                        onClick={() => setIsCreating(false)}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        ) : null}
         <form className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#111820]" onSubmit={(event) => { event.preventDefault(); visit(1, directorySearch.trim()); }}><div className="min-w-0 flex-1"><label className="mb-2 block text-sm font-medium" htmlFor="organization-directory-search">Find an organization</label><input className={field} id="organization-directory-search" onChange={(event) => setDirectorySearch(event.target.value)} placeholder="Search names, slogans, or descriptions" type="search" value={directorySearch} /></div><button className={actionButton} type="submit"><Search className="size-4" />Search</button>{search ? <button className={secondaryButton} onClick={() => { setDirectorySearch(''); visit(1, ''); }} type="button">Clear</button> : null}</form>
         <section className="grid gap-3">{directory?.organizations.length === 0 ? <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500 dark:border-white/10 dark:bg-[#111820] dark:text-slate-400">{search ? 'No organizations match that search.' : 'No organizations exist yet.'}</p> : null}{directory?.organizations.map((organization) => <article className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[5rem_minmax(0,1fr)_max-content] md:items-center dark:border-white/10 dark:bg-[#111820]" key={organization.id}><OrganizationIcon iconUrl={organization.icon_url} name={organization.name} /><div className="min-w-0"><h2 className="text-lg font-semibold">{organization.name}</h2><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{organization.slogan || 'No slogan yet.'}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{organization.member_count} members · {governanceLabel(organization.governance_type)}</p></div><button className={actionButton} onClick={() => navigate(`/organizations/${encodeURIComponent(organization.slug)}`)} type="button">View <ArrowRight className="size-4" /></button></article>)}{directory ? <Pagination pagination={directory.pagination} onPageChange={(next) => visit(next)} /> : null}</section>
         {error ? <p className="text-sm text-red-500" role="alert">{error}</p> : null}

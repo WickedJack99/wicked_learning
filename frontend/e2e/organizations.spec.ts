@@ -35,6 +35,98 @@ async function createOrganization(
     return (await created.json()).organization;
 }
 
+test('organization creation preserves the source submit-and-validate flow', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                appearance: 'light',
+                avatar_url: null,
+                capabilities: [],
+                email: 'learner@example.test',
+                name: 'Learner',
+                roles: ['learner'],
+                settings_access: {},
+                subject_id: '00000000-0000-0000-0000-000000000001',
+                username: null,
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ locale: 'en', translations: {} }),
+        });
+    });
+    await page.route('**/api/v1/learner/feedback-prompt-preference', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ status: 'declined' }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route('**/api/v1/organizations', async (route) => {
+        if (route.request().method() === 'POST') {
+            await route.fulfill({
+                contentType: 'application/json',
+                status: 400,
+                body: JSON.stringify({
+                    code: 'invalid_request',
+                    title: 'The request is not valid.',
+                }),
+            });
+            return;
+        }
+
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                organizations: [],
+                pagination: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 12,
+                    total: 0,
+                },
+            }),
+        });
+    });
+
+    await page.goto('/organizations');
+
+    await expect(
+        page.getByRole('heading', { name: 'Organizations' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'New organization' }).click();
+
+    const create = page.waitForRequest((request) =>
+        request.url().endsWith('/api/v1/organizations') &&
+        request.method() === 'POST',
+    );
+    const createButton = page.getByRole('button', { name: 'Create' });
+    await expect(createButton).toBeEnabled();
+    await createButton.click();
+
+    expect((await create).postDataJSON()).toMatchObject({ name: '' });
+    await expect(
+        page.getByText(
+            'The organization could not be created. Check its name and your organization limit.',
+        ),
+    ).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+        page.getByRole('heading', { name: 'Create organization' }),
+    ).toBeVisible();
+});
+
 test('organizations preserve the source membership, leadership and chat workflow', async ({
     page,
     playwright,
