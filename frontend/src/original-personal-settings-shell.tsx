@@ -115,6 +115,16 @@ export function personalSettingsStyle(
         '--settings-active-background': dark
             ? 'rgb(45 212 191 / 10%)'
             : 'rgb(15 118 110 / 10%)',
+        '--settings-appearance-switch-active-background': dark
+            ? '#111820'
+            : '#ffffff',
+        '--settings-appearance-switch-active-text': dark ? '#5eead4' : '#0f766e',
+        '--settings-appearance-switch-background': dark
+            ? 'rgba(255,255,255,0.06)'
+            : '#f1f5f9',
+        '--settings-appearance-switch-inactive-text': dark
+            ? '#94a3b8'
+            : '#64748b',
         '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0',
         '--settings-content-background': dark ? '#0b1117' : '#f1f5f9',
         '--settings-input-background': dark ? 'rgb(2 6 23 / 38%)' : '#ffffff',
