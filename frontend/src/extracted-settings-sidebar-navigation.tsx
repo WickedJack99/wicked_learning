@@ -358,7 +358,11 @@ export function SettingsTopBar({
                                 </p>
                                 {total > 0 ? (
                                     <span className="rounded-md bg-[var(--settings-active-background)] px-2 py-1 text-xs font-medium">
-                                        {total} {t('settings.notifications.pending', 'open')}
+                                        {t(
+                                            'settings.notifications.pending',
+                                            ':count open',
+                                            { count: total },
+                                        )}
                                     </span>
                                 ) : null}
                             </div>

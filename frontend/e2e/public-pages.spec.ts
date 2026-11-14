@@ -603,6 +603,17 @@ test('the source Settings shell retains the authenticated account control', asyn
 test('the source Settings notifications menu preserves dismissal and focus behavior', async ({
     page,
 }) => {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'settings.notifications.pending': ':count awaiting review',
+                },
+            }),
+        });
+    });
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -637,7 +648,7 @@ test('the source Settings notifications menu preserves dismissal and focus behav
     const trigger = page.getByRole('button', { name: 'Notifications' });
     const menu = page.getByRole('menu', { name: 'Notifications' });
     await trigger.click();
-    await expect(menu).toContainText('3 open');
+    await expect(menu).toContainText('3 awaiting review');
     await expect(menu).toContainText('Feedback requests');
     await expect(menu).toContainText('Reported organization icons');
 
