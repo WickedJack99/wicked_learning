@@ -24,6 +24,14 @@ test('World Builder localizes source-shaped graph map cards without changing the
                     'settings.world_builder.graph.tile_count_one': 'Localized :count tile',
                     'settings.world_builder.graph.tile_count_many': 'Localized :count tiles',
                     'settings.world_builder.activity_graph.portal': 'Localized portal fallback',
+                    'settings.world_builder.graph_inspector.empty.title': 'Localized graph inspector',
+                    'settings.world_builder.graph_inspector.empty.description': 'Localized graph-inspector guidance.',
+                    'settings.world_builder.graph_inspector.portal.eyebrow': 'Localized portal link',
+                    'settings.world_builder.graph_inspector.portal.unnamed': 'Localized unnamed portal',
+                    'settings.world_builder.graph_inspector.portal.empty_description': 'Localized portal guidance.',
+                    'settings.world_builder.graph_inspector.portal.source': 'Localized source',
+                    'settings.world_builder.graph_inspector.portal.target': 'Localized target',
+                    'settings.world_builder.graph_inspector.portal.open_source_activity_graph': 'Open localized source activity graph',
                     'settings.world_builder.review.current': 'Localized reviews current',
                     'settings.world_builder.review.waiting_many': 'Localized :count activities awaiting review',
                 },
@@ -53,8 +61,19 @@ test('World Builder localizes source-shaped graph map cards without changing the
                     {
                         id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9e',
                         label: null,
+                        description: null,
                         source_map_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b',
+                        source_node: {
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9f',
+                            title: 'Mocked source node',
+                        },
+                        source_activity: null,
                         target_map_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c',
+                        target_node: {
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4da0',
+                            title: 'Mocked target node',
+                        },
+                        target_activity: null,
                     },
                 ],
                 world: {
@@ -78,12 +97,26 @@ test('World Builder localizes source-shaped graph map cards without changing the
     await expect(page.getByText('Localized 1 tile')).toBeVisible();
     await expect(page.getByText('Localized reviews current')).toBeVisible();
     await expect(page.getByText('Localized portal fallback')).toBeVisible();
+    await expect(page.getByText('Localized graph inspector')).toBeVisible();
+    await expect(
+        page.getByText('Localized graph-inspector guidance.'),
+    ).toBeVisible();
+
+    await page.locator('.react-flow__edge').first().dispatchEvent('click');
+    await expect(page.getByText('Localized portal link')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Localized unnamed portal' })).toBeVisible();
+    await expect(page.getByText('Localized portal guidance.')).toBeVisible();
+    await expect(page.getByText('Localized source', { exact: true })).toBeVisible();
+    await expect(page.getByText('Localized target', { exact: true })).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Open localized source activity graph' }),
+    ).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
-    const reviewedCard = page.getByText('Mocked reviewed map').locator('..');
-    await reviewedCard.scrollIntoViewIfNeeded();
-    await expect(reviewedCard).toBeVisible();
-    const bounds = await reviewedCard.boundingBox();
+    const inspector = page.getByText('Localized portal link').locator('..');
+    await inspector.scrollIntoViewIfNeeded();
+    await expect(inspector).toBeVisible();
+    const bounds = await inspector.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);

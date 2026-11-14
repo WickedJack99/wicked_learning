@@ -12083,27 +12083,40 @@ function PortalDetails({
     portal: PortalLink;
     onSelectNode: (mapId: string, nodeId: string) => void;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div>
             <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                Portal link
+                {t(
+                    'settings.world_builder.graph_inspector.portal.eyebrow',
+                    'Portal link',
+                )}
             </p>
             <h2 className="mt-2 text-xl font-semibold">
-                {portal.label ?? 'Unnamed portal'}
+                {portal.label ??
+                    t(
+                        'settings.world_builder.graph_inspector.portal.unnamed',
+                        'Unnamed portal',
+                    )}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {portal.description ?? 'No portal description yet.'}
+                {portal.description ??
+                    t(
+                        'settings.world_builder.graph_inspector.portal.empty_description',
+                        'No portal description yet.',
+                    )}
             </p>
             <div className="mt-5 grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
                 <PortalEndpoint
                     activity={portal.source_activity}
-                    direction="From"
+                    direction="source"
                     title={portal.source_node.title}
                 />
                 <Route className="mx-auto size-4 text-slate-400" />
                 <PortalEndpoint
                     activity={portal.target_activity}
-                    direction="To"
+                    direction="target"
                     title={portal.target_node.title}
                 />
             </div>
@@ -12114,7 +12127,11 @@ function PortalDetails({
                 }
                 type="button"
             >
-                Open source activity graph <GitBranch className="size-4" />
+                {t(
+                    'settings.world_builder.graph_inspector.portal.open_source_activity_graph',
+                    'Open source activity graph',
+                )}{' '}
+                <GitBranch className="size-4" />
             </button>
         </div>
     );
@@ -12126,13 +12143,18 @@ function PortalEndpoint({
     title,
 }: {
     activity: PortalLink['source_activity'];
-    direction: string;
+    direction: 'source' | 'target';
     title: string;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div>
             <p className="text-xs font-medium text-slate-500 uppercase dark:text-slate-400">
-                {direction}
+                {t(
+                    `settings.world_builder.graph_inspector.portal.${direction}`,
+                    direction === 'source' ? 'From' : 'To',
+                )}
             </p>
             <p className="mt-1 text-sm font-semibold">{title}</p>
             {activity ? (
@@ -12144,13 +12166,22 @@ function PortalEndpoint({
     );
 }
 function EmptyDetails() {
+    const t = usePlatformTranslation();
+
     return (
         <div className="flex min-h-72 flex-col items-center justify-center text-center">
             <GitBranch className="mb-4 size-10 text-teal-700 dark:text-teal-300" />
-            <h2 className="text-lg font-semibold">Select a map or portal</h2>
+            <h2 className="text-lg font-semibold">
+                {t(
+                    'settings.world_builder.graph_inspector.empty.title',
+                    'Select a map or portal',
+                )}
+            </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Click a world-map card to inspect its MapAssets, or a portal
-                link to see the connected activity graph.
+                {t(
+                    'settings.world_builder.graph_inspector.empty.description',
+                    'Click a world-map card to inspect its MapAssets, or a portal link to see the connected activity graph.',
+                )}
             </p>
         </div>
     );
