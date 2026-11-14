@@ -372,6 +372,11 @@ opaque arrival-run creation.
 Open-practice default next-step guidance and continuation copy now resolve
 through the catalog while Rust retains route-run completion authority.
 
+Shared Task progress, contribution, project-brief, peer-review, follow-up and
+revision copy now also resolves through the catalog while Rust retains
+contribution eligibility, anonymous review state, private checklist state and
+completion authority.
+
 The source World Builder's map Access permissions control is now lifted for
 principals with its distinct `world_map_access` update scope. Its typed Rust
 command replaces only the complete map viewer-group list after validating
