@@ -67,6 +67,8 @@ test('Personal settings restores the source section navigation', async ({ page }
             body: JSON.stringify({
                 locale: 'en',
                 translations: {
+                    'common.appearance.dark': 'Night',
+                    'common.appearance.light': 'Day',
                     'settings.personal.sound.effects': 'Effects level',
                     'settings.personal.sound.mute': 'Disable all sounds',
                     'settings.personal.sound.save': 'Store audio choices',
@@ -148,6 +150,11 @@ test('Personal settings restores the source section navigation', async ({ page }
                     .getByRole('navigation', { name: 'Settings navigation' })
                     .getByRole('button', { name: 'Personal' }),
             ).toBeVisible();
+
+            if (section === 'appearance') {
+                await expect(page.getByRole('button', { name: 'Day' })).toBeVisible();
+                await expect(page.getByRole('button', { name: 'Night' })).toBeVisible();
+            }
         });
     }
 
