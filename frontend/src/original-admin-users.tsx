@@ -4,6 +4,7 @@ import { Link, Navigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { AccessManagementSettingsShell } from './extracted-access-management-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type AdminUsers = components['schemas']['AdminUsers'];
@@ -23,10 +24,16 @@ type AccessForm = {
  */
 export function OriginalAdminUsersPage({
     appearance,
+    canViewLinks,
     currentSubjectId,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
+    canViewLinks: boolean;
     currentSubjectId: string;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const [data, setData] = useState<AdminUsers | null>(null);
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -243,7 +250,7 @@ export function OriginalAdminUsersPage({
     }
 
     return (
-        <main
+        <AccessManagementSettingsShell activeSection="users" appearance={appearance} canViewLinks={canViewLinks} onSignedOut={onSignedOut} settingsAccess={settingsAccess}><main
             className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
             style={settingsStyle(appearance)}
         >
@@ -596,7 +603,7 @@ export function OriginalAdminUsersPage({
                     />
                 </Modal>
             ) : null}
-        </main>
+        </main></AccessManagementSettingsShell>
     );
 }
 

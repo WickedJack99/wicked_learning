@@ -3,6 +3,7 @@ import { type CSSProperties, useEffect, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { AccessManagementSettingsShell } from './extracted-access-management-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type AdminData = components['schemas']['AccessLinkAdminData'];
@@ -11,8 +12,12 @@ type GrantOption = components['schemas']['AccessLinkGrantOption'];
 /** Source-adapted from `features/settings/access-links-panel.tsx`. */
 export function OriginalAccessLinksPage({
     appearance,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const [data, setData] = useState<AdminData | null>(null);
     const [page, setPage] = useState(1);
@@ -115,7 +120,7 @@ export function OriginalAccessLinksPage({
         }
     }
     return (
-        <main
+        <AccessManagementSettingsShell activeSection="links" appearance={appearance} canViewLinks onSignedOut={onSignedOut} settingsAccess={settingsAccess}><main
             className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
             style={settingsStyle(appearance)}
         >
@@ -375,7 +380,7 @@ export function OriginalAccessLinksPage({
                     </p>
                 ) : null}
             </div>
-        </main>
+        </main></AccessManagementSettingsShell>
     );
 }
 

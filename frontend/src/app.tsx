@@ -846,7 +846,12 @@ export function App() {
                 <Suspense fallback={null}>
                     <OriginalAdminUsersPage
                         appearance={appearance}
+                        canViewLinks={currentUser.capabilities.includes(
+                            'access_links_manage',
+                        )}
                         currentSubjectId={currentUser.subjectId}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
                     />
                 </Suspense>
             );
@@ -855,7 +860,14 @@ export function App() {
         if (rolesPanel) {
             return (
                 <Suspense fallback={null}>
-                    <OriginalAdminRolesPage appearance={appearance} />
+                    <OriginalAdminRolesPage
+                        appearance={appearance}
+                        canViewLinks={currentUser.capabilities.includes(
+                            'access_links_manage',
+                        )}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }
@@ -863,7 +875,14 @@ export function App() {
         if (groupPanel) {
             return (
                 <Suspense fallback={null}>
-                    <OriginalGroupManagementPage appearance={appearance} />
+                    <OriginalGroupManagementPage
+                        appearance={appearance}
+                        canViewLinks={currentUser.capabilities.includes(
+                            'access_links_manage',
+                        )}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }
@@ -877,7 +896,11 @@ export function App() {
             }
             return (
                 <Suspense fallback={null}>
-                    <OriginalAccessLinksPage appearance={appearance} />
+                    <OriginalAccessLinksPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }

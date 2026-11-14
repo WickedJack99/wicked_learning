@@ -4,6 +4,7 @@ import { Link, Navigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { AccessManagementSettingsShell } from './extracted-access-management-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type AdminRole = components['schemas']['AdminRole'];
@@ -24,8 +25,14 @@ type RoleForm = {
 /** Source-adapted from `RoleManagementPanel` in the Laravel settings page. */
 export function OriginalAdminRolesPage({
     appearance,
+    canViewLinks,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
+    canViewLinks: boolean;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const [data, setData] = useState<AdminRoles | null>(null);
     const [selectedRoleKey, setSelectedRoleKey] = useState<string | 'new'>(
@@ -192,7 +199,7 @@ export function OriginalAdminRolesPage({
     if (forbidden) return <Navigate replace to="/home" />;
 
     return (
-        <main
+        <AccessManagementSettingsShell activeSection="roles" appearance={appearance} canViewLinks={canViewLinks} onSignedOut={onSignedOut} settingsAccess={settingsAccess}><main
             className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
             style={settingsStyle(appearance)}
         >
@@ -509,7 +516,7 @@ export function OriginalAdminRolesPage({
                     ) : null}
                 </section>
             </div>
-        </main>
+        </main></AccessManagementSettingsShell>
     );
 }
 
