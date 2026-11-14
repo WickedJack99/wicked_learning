@@ -9672,7 +9672,7 @@ components:
     LearnerBookmarkPlace:
       type: object
       additionalProperties: false
-      required: [asset, description, map_slug, map_title, node_slug, state, title, visual_config]
+      required: [asset, description, map_slug, map_title, node_slug, state, title, topic, visual_config]
       properties:
         asset:
           oneOf:
@@ -9690,6 +9690,10 @@ components:
           type: string
           enum: [locked, hinted, available, recommended, completed]
         title: { type: string }
+        topic:
+          oneOf:
+            - $ref: '#/components/schemas/LearnerPathTopic'
+            - type: 'null'
         visual_config:
           type: object
           additionalProperties: true

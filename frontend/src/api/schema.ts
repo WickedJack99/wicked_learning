@@ -7345,6 +7345,7 @@ export interface components {
             /** @enum {string} */
             state: "locked" | "hinted" | "available" | "recommended" | "completed";
             title: string;
+            topic: components["schemas"]["LearnerPathTopic"] | null;
             visual_config: {
                 [key: string]: unknown;
             };

@@ -6,6 +6,7 @@ import { Link, Navigate } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
 import { resolveOriginalWorldTheme } from './original-world-theme';
 
@@ -351,6 +352,8 @@ function BookmarkPanel({
     onRemove: () => void;
     place: BookmarkPlace;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div className="flex h-full min-h-[44vh] flex-col gap-5 overflow-y-auto overscroll-contain p-5 md:p-7">
             <div className="flex items-start gap-4">
@@ -377,6 +380,15 @@ function BookmarkPanel({
                     <MapPin className="size-4" />
                     <span>{place.map_title}</span>
                 </div>
+                {place.topic ? (
+                    <Link
+                        className="mb-3 inline-flex text-sm text-violet-700 underline decoration-violet-300 underline-offset-4 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
+                        to={place.topic.href}
+                    >
+                        {t('bookmarks.panel.open_topic', 'Open topic')}:{' '}
+                        {place.topic.title}
+                    </Link>
+                ) : null}
                 <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                     {place.description || 'No summary has been added yet.'}
                 </p>

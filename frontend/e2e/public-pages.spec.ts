@@ -634,6 +634,11 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
                         node_slug: 'saved-place',
                         state: 'available',
                         title: 'Saved place',
+                        topic: {
+                            href: '/topics/map-orientation',
+                            slug: 'map-orientation',
+                            title: 'Map orientation',
+                        },
                         visual_config: {},
                     },
                 ],
@@ -663,9 +668,7 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
         },
     );
 
-    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/bookmarks');
-    await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(390);
     await page
         .getByRole('button', {
             name: 'Saved place, open bookmarked place',
@@ -677,9 +680,38 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
     await expect(
         page.getByText('The First Path', { exact: true }),
     ).toBeVisible();
+    const topicLink = page.getByRole('link', {
+        name: 'Open topic: Map orientation',
+    });
+    await expect(topicLink).toHaveAttribute('href', '/topics/map-orientation');
+    const desktopViewport = page.viewportSize();
+    expect(desktopViewport).not.toBeNull();
+    await expect
+        .poll(async () => (await topicLink.boundingBox())?.x ?? -1)
+        .toBeGreaterThanOrEqual(0);
+    await expect
+        .poll(async () => {
+            const bounds = await topicLink.boundingBox();
+
+            return (bounds?.x ?? 0) + (bounds?.width ?? Infinity);
+        })
+        .toBeLessThanOrEqual(desktopViewport!.width);
     await expect(
         page.getByRole('link', { name: 'Go to node' }),
     ).toHaveAttribute('href', '/world?map=first-path&focused=saved-place');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(390);
+    await expect
+        .poll(async () => (await topicLink.boundingBox())?.x ?? -1)
+        .toBeGreaterThanOrEqual(0);
+    await expect
+        .poll(async () => {
+            const bounds = await topicLink.boundingBox();
+
+            return (bounds?.x ?? 0) + (bounds?.width ?? Infinity);
+        })
+        .toBeLessThanOrEqual(390);
     const removeBookmarkButton = page.getByRole('button', {
         name: 'Remove bookmark',
     });

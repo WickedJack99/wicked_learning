@@ -187,6 +187,9 @@ pub struct LearnerBookmarkPlace {
     pub node_slug: String,
     pub state: String,
     pub title: String,
+    /// The published map topic is safe contextual navigation for a bookmarked
+    /// place. An unpublished or absent topic is deliberately omitted.
+    pub topic: Option<LearnerPathTopic>,
     pub visual_config: serde_json::Value,
 }
 

@@ -45,6 +45,8 @@ struct BookmarkPlaceRow {
     node_slug: String,
     state: String,
     title: String,
+    topic_slug: Option<String>,
+    topic_title: Option<String>,
     visual_config: Value,
 }
 
@@ -78,7 +80,7 @@ async fn load(
         return Ok(None);
     };
     let places = sqlx::query_as::<_, BookmarkPlaceRow>(
-        "SELECT assets.description AS asset_description, assets.image_url AS asset_image_url, assets.interaction_config AS asset_interaction_config, assets.interaction_mode AS asset_interaction_mode, assets.locked AS asset_locked, assets.opacity AS asset_opacity, assets.slug AS asset_slug, assets.sound_config AS asset_sound_config, assets.text AS asset_text, assets.title AS asset_title, assets.visual_config AS asset_visual_config, assets.width AS asset_width, assets.position_x AS asset_x, assets.position_y AS asset_y, assets.position_z AS asset_z, nodes.description, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.state, nodes.title, nodes.visual_config FROM learner_node_bookmarks AS bookmarks INNER JOIN learning_nodes AS nodes ON nodes.id = bookmarks.node_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id AND assets.published_at IS NOT NULL WHERE bookmarks.principal_id = $1 AND nodes.map_id = ANY($2) AND nodes.published_at IS NOT NULL AND nodes.state <> 'hidden' AND NOT (nodes.visual_config @> '{\"hideEmptySpace\": true}'::jsonb) ORDER BY bookmarks.created_at DESC, maps.slug ASC, nodes.slug ASC LIMIT 500",
+        "SELECT assets.description AS asset_description, assets.image_url AS asset_image_url, assets.interaction_config AS asset_interaction_config, assets.interaction_mode AS asset_interaction_mode, assets.locked AS asset_locked, assets.opacity AS asset_opacity, assets.slug AS asset_slug, assets.sound_config AS asset_sound_config, assets.text AS asset_text, assets.title AS asset_title, assets.visual_config AS asset_visual_config, assets.width AS asset_width, assets.position_x AS asset_x, assets.position_y AS asset_y, assets.position_z AS asset_z, nodes.description, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.state, nodes.title, topics.slug AS topic_slug, topics.title AS topic_title, nodes.visual_config FROM learner_node_bookmarks AS bookmarks INNER JOIN learning_nodes AS nodes ON nodes.id = bookmarks.node_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL LEFT JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id AND assets.published_at IS NOT NULL WHERE bookmarks.principal_id = $1 AND nodes.map_id = ANY($2) AND nodes.published_at IS NOT NULL AND nodes.state <> 'hidden' AND NOT (nodes.visual_config @> '{\"hideEmptySpace\": true}'::jsonb) ORDER BY bookmarks.created_at DESC, maps.slug ASC, nodes.slug ASC LIMIT 500",
     )
     .bind(principal_id)
     .bind(&visible_world.map_ids)
@@ -98,6 +100,13 @@ async fn load(
                 node_slug: row.node_slug,
                 state: row.state,
                 title: row.title,
+                topic: row.topic_slug.zip(row.topic_title).map(|(slug, title)| {
+                    wicked_learning_domain::learner_state::LearnerPathTopic {
+                        href: format!("/topics/{slug}"),
+                        slug,
+                        title,
+                    }
+                }),
                 visual_config: row.visual_config,
             })
             .collect(),
