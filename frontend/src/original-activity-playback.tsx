@@ -2382,12 +2382,17 @@ function OpenPracticeActivity({
     completing: boolean;
     onComplete: () => void;
 }) {
+    const t = usePlatformTranslation();
     const config = activity.config as Record<string, unknown>;
     const nextStep =
         typeof config.nextStep === 'string'
             ? config.nextStep
-            : 'Choose a useful next step, then continue when you are ready.';
-    const actionLabel = activity.completion.label?.trim() || 'Continue';
+            : t(
+                  'learning.open_practice.default_next_step',
+                  'Choose a useful next step, then continue when you are ready.',
+              );
+    const actionLabel =
+        activity.completion.label?.trim() || t('common.continue', 'Continue');
 
     return (
         <div className="flex flex-1 flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">

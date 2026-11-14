@@ -2460,9 +2460,12 @@ test('the signed-in explorer starts and completes an original open-practice rout
                             : 'Begin private orientation',
                         description: 'A server-authorized activity.',
                         activity_type: 'open_practice',
-                        config: {
-                            nextStep: 'Pause here, then continue when ready.',
-                        },
+                        config: secondActivity
+                            ? {}
+                            : {
+                                  nextStep:
+                                      'Pause here, then continue when ready.',
+                              },
                         completion: {
                             label: secondActivity
                                 ? null
@@ -2648,6 +2651,11 @@ test('the signed-in explorer starts and completes an original open-practice rout
     await page.getByRole('button', { name: 'Save note and continue' }).click();
     await expect(
         page.getByRole('heading', { name: 'Choose the next step' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText(
+            'Choose a useful next step, then continue when you are ready.',
+        ),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(

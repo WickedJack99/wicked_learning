@@ -369,6 +369,9 @@ Portal heading, destination, arrival and traversal copy now resolves through
 the catalog while Rust remains the authority for destination eligibility and
 opaque arrival-run creation.
 
+Open-practice default next-step guidance and continuation copy now resolve
+through the catalog while Rust retains route-run completion authority.
+
 The source World Builder's map Access permissions control is now lifted for
 principals with its distinct `world_map_access` update scope. Its typed Rust
 command replaces only the complete map viewer-group list after validating
