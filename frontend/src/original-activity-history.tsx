@@ -173,6 +173,7 @@ export function OriginalActivityHistoryDialog({
                         </p>
                     ) : details ? (
                         <HistoryDetails
+                            t={t}
                             restoring={restoringId === details.id}
                             version={details}
                             onBack={() => setDetails(null)}
@@ -275,11 +276,13 @@ function HistoryDetails({
     onBack,
     onRestore,
     restoring,
+    t,
     version,
 }: {
     onBack: () => void;
     onRestore: () => void;
     restoring: boolean;
+    t: Translate;
     version: ActivityVersionDetails;
 }) {
     const config = version.snapshot.config;
@@ -295,24 +298,24 @@ function HistoryDetails({
                 type="button"
             >
                 <ArrowLeft className="size-4" />
-                Back to history
+                {t('settings.activity_history.back', 'Back to history')}
             </button>
             <dl className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm sm:grid-cols-2 dark:border-white/10">
-                <SnapshotField label="Activity type" value={version.activity_type || 'Unknown'} />
-                <SnapshotField label="Slug" value={version.slug || 'Not set'} />
-                <SnapshotField className="sm:col-span-2" label="Introduction" value={version.introduction || 'Not set'} />
+                <SnapshotField label={t('settings.activity_history.activity_type', 'Activity type')} value={version.activity_type || t('settings.activity_history.unknown', 'Unknown')} />
+                <SnapshotField label={t('settings.activity_history.slug', 'Slug')} value={version.slug || t('settings.activity_history.not_set', 'Not set')} />
+                <SnapshotField className="sm:col-span-2" label={t('settings.activity_history.introduction', 'Introduction')} value={version.introduction || t('settings.activity_history.not_set', 'Not set')} />
             </dl>
             <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                <h3 className="text-sm font-medium">Type-specific settings</h3>
+                <h3 className="text-sm font-medium">{t('settings.activity_history.type_settings', 'Type-specific settings')}</h3>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     {config && typeof config === 'object'
-                        ? `${Object.keys(config).length} configured fields`
-                        : 'No type-specific settings were stored.'}
+                        ? t('settings.activity_history.configured_fields', ':count configured fields', { count: Object.keys(config).length })
+                        : t('settings.activity_history.no_type_settings', 'No type-specific settings were stored.')}
                 </p>
             </section>
             <dl className="grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <SnapshotField label="Route connections" value={String(transitions.length)} />
-                <SnapshotField label="Graph position" value={formatPosition(version.snapshot)} />
+                <SnapshotField label={t('settings.activity_history.route_connections', 'Route connections')} value={String(transitions.length)} />
+                <SnapshotField label={t('settings.activity_history.graph_position', 'Graph position')} value={formatPosition(version.snapshot, t)} />
             </dl>
             <button
                 className="inline-flex w-fit items-center gap-1 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
@@ -321,7 +324,7 @@ function HistoryDetails({
                 type="button"
             >
                 <RotateCcw className="size-4" />
-                {restoring ? 'Restoring…' : 'Restore this version'}
+                {restoring ? t('settings.activity_history.restoring', 'Restoring…') : t('settings.activity_history.restore', 'Restore this version')}
             </button>
         </div>
     );
@@ -356,10 +359,11 @@ function formatVersionDate(value: string): string {
           }).format(date);
 }
 
-function formatPosition(snapshot: Record<string, unknown>): string {
+type Translate = (key: string, fallback?: string, replacements?: Record<string, number | string>) => string;
+function formatPosition(snapshot: Record<string, unknown>, t: Translate): string {
     const x = snapshot.graphPositionX;
     const y = snapshot.graphPositionY;
     return typeof x === 'number' && typeof y === 'number'
         ? `${x}, ${y}`
-        : 'Not positioned';
+        : t('settings.activity_history.not_positioned', 'Not positioned');
 }
