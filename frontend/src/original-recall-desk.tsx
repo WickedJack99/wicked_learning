@@ -827,18 +827,42 @@ export function OriginalRecallDeskPage({
                         {currentRoutes.length && (hasTimeGuides || learningPurposeOptions.length) ? (
                             <div className="mt-4 grid gap-4 border-b border-[var(--learner-border-color)] pb-4 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.7fr)]">
                                 <p className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
-                                    Planning choices are optional and can be remembered for your account.
+                                    {t(
+                                        'home.learning_desk.planning.account_preference',
+                                        'Planning choices are optional and can be remembered for your account.',
+                                    )}
                                 </p>
                                 {hasTimeGuides ? (
                                     <fieldset>
                                         <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
-                                            Plan by suggested time
+                                            {t(
+                                                'home.learning_desk.time_budget.label',
+                                                'Plan by suggested time',
+                                            )}
                                         </legend>
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             {([
-                                                ['Any time', 'any'],
-                                                ['Up to 15 minutes', 15],
-                                                ['Up to 30 minutes', 30],
+                                                [
+                                                    t(
+                                                        'home.learning_desk.time_budget.any',
+                                                        'Any time',
+                                                    ),
+                                                    'any',
+                                                ],
+                                                [
+                                                    t(
+                                                        'home.learning_desk.time_budget.short',
+                                                        'Up to 15 minutes',
+                                                    ),
+                                                    15,
+                                                ],
+                                                [
+                                                    t(
+                                                        'home.learning_desk.time_budget.medium',
+                                                        'Up to 30 minutes',
+                                                    ),
+                                                    30,
+                                                ],
                                             ] as const).map(([label, value]) => (
                                                 <button
                                                     aria-pressed={activeTimeBudget === value}
@@ -852,14 +876,20 @@ export function OriginalRecallDeskPage({
                                             ))}
                                         </div>
                                         <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
-                                            This only narrows routes with an author-provided guide; it is not a deadline.
+                                            {t(
+                                                'home.learning_desk.time_budget.helper',
+                                                'This only narrows routes with an author-provided guide; it is not a deadline.',
+                                            )}
                                         </p>
                                     </fieldset>
                                 ) : null}
                                 {learningPurposeOptions.length ? (
                                     <fieldset>
                                         <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
-                                            Plan by learning purpose
+                                            {t(
+                                                'home.learning_desk.purpose_filter.label',
+                                                'Explore by learning purpose',
+                                            )}
                                         </legend>
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             <button
@@ -868,7 +898,10 @@ export function OriginalRecallDeskPage({
                                                 onClick={() => updatePurposeFilter('any')}
                                                 type="button"
                                             >
-                                                Any purpose
+                                                {t(
+                                                    'home.learning_desk.purpose_filter.any',
+                                                    'Any purpose',
+                                                )}
                                             </button>
                                             {learningPurposeOptions.map((purpose) => (
                                                 <button
@@ -883,7 +916,10 @@ export function OriginalRecallDeskPage({
                                             ))}
                                         </div>
                                         <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
-                                            This only narrows routes with an author-provided purpose; it is not a recommendation.
+                                            {t(
+                                                'home.learning_desk.purpose_filter.helper',
+                                                'Choose the kind of learning encounter that feels useful now. This only changes the view.',
+                                            )}
                                         </p>
                                     </fieldset>
                                 ) : null}
@@ -893,7 +929,10 @@ export function OriginalRecallDeskPage({
                                         onClick={clearPlanningChoices}
                                         type="button"
                                     >
-                                        Clear planning choices
+                                        {t(
+                                            'home.learning_desk.planning.clear',
+                                            'Clear planning choices',
+                                        )}
                                     </button>
                                 ) : null}
                                 {activeTimeBudget !== savedPlanningPreference.timeBudget || activePurposeFilter !== savedPlanningPreference.purposeFilter ? (
@@ -903,17 +942,31 @@ export function OriginalRecallDeskPage({
                                         onClick={() => void savePlanningChoices()}
                                         type="button"
                                     >
-                                        {planningPreferenceSaveState === 'saving' ? 'Remembering choices...' : 'Remember these choices'}
+                                        {planningPreferenceSaveState === 'saving'
+                                            ? t(
+                                                  'home.learning_desk.planning.saving',
+                                                  'Remembering choices...',
+                                              )
+                                            : t(
+                                                  'home.learning_desk.planning.save',
+                                                  'Remember these choices',
+                                              )}
                                     </button>
                                 ) : null}
                                 {planningPreferenceSaveState === 'saved' ? (
                                     <p aria-live="polite" className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
-                                        Planning choices remembered for your account.
+                                        {t(
+                                            'home.learning_desk.planning.saved',
+                                            'Planning choices remembered for your account.',
+                                        )}
                                     </p>
                                 ) : null}
                                 {planningPreferenceSaveState === 'error' ? (
                                     <p aria-live="polite" className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
-                                        Could not remember these choices. The current view still works.
+                                        {t(
+                                            'home.learning_desk.planning.error',
+                                            'Could not remember these choices. The current view still works.',
+                                        )}
                                     </p>
                                 ) : null}
                             </div>
@@ -924,29 +977,51 @@ export function OriginalRecallDeskPage({
                             </div>
                         ) : currentRoutes.length ? (
                             <div className="border-b border-[var(--learner-border-color)] py-7">
-                                <p className="font-medium">No current routes match these choices yet</p>
+                                <p className="font-medium">
+                                    {t(
+                                        'home.learning_desk.route_filter.empty_title',
+                                        'No current routes match these choices yet',
+                                    )}
+                                </p>
                                 <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                    Try another time or purpose, or show every current route again.
+                                    {t(
+                                        'home.learning_desk.route_filter.empty_body',
+                                        'Try another time or purpose, or show every current route again.',
+                                    )}
                                 </p>
                                 <button
                                     className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
                                     onClick={clearPlanningChoices}
                                     type="button"
                                 >
-                                    Show all routes
+                                    {t(
+                                        'home.learning_desk.time_budget.show_all',
+                                        'Show all routes',
+                                    )}
                                 </button>
                             </div>
                         ) : (
                             <div className="border-b border-[var(--learner-border-color)] py-7">
-                                <p className="font-medium">Nothing is currently in progress</p>
+                                <p className="font-medium">
+                                    {t(
+                                        'home.learning_desk.continue.empty_title',
+                                        'Nothing is currently in progress',
+                                    )}
+                                </p>
                                 <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                    Start a learning route and it will wait for you here.
+                                    {t(
+                                        'home.learning_desk.continue.empty_body',
+                                        'Start a learning route and it will wait for you here.',
+                                    )}
                                 </p>
                                 <Link
                                     className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
                                     to="/topics"
                                 >
-                                    Browse topics
+                                    {t(
+                                        'home.learning_desk.continue.empty_action',
+                                        'Browse topics',
+                                    )}
                                     <ArrowRight className="size-4" />
                                 </Link>
                             </div>

@@ -2819,6 +2819,99 @@ test('the source Learning Desk opens its private Support area from the URL', asy
     ).toBeVisible();
 });
 
+test('the source Learning Desk localizes planning controls for an active route', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'activities.focus.retrieve': 'Retrieve privately',
+                    'home.learning_desk.time_budget.label': 'Choose a time frame',
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                name: 'Learner Example',
+                roles: ['learner'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/recall-items', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ items: [] }),
+        });
+    });
+    await page.route('**/api/v1/learner/world', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                activity_progress: [],
+                available_routes: [],
+                bookmarked_nodes: [],
+                items: [],
+                route_progress: [],
+                start_routes: [
+                    {
+                        activity_slug: 'private-retrieval',
+                        desk: {
+                            current_activity_title: 'Retrieve a pattern',
+                            learning_areas: [],
+                            learning_intent: 'retrieve',
+                            time_guide_minutes: 15,
+                            topic: null,
+                        },
+                        label: 'Private retrieval route',
+                        map_slug: 'private-map',
+                        node_slug: 'private-node',
+                        progress: {
+                            last_completed_at: null,
+                            last_entered_at: '2026-11-12T10:00:00Z',
+                            status: 'in_progress',
+                        },
+                        start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    },
+                ],
+                tools: [],
+                world: {
+                    maps: [
+                        {
+                            assets: [{ image_url: null, slug: 'private-node' }],
+                            nodes: [
+                                {
+                                    asset_slug: 'private-node',
+                                    slug: 'private-node',
+                                    title: 'Private node',
+                                },
+                            ],
+                            slug: 'private-map',
+                            title: 'Private map',
+                        },
+                    ],
+                },
+            }),
+        });
+    });
+
+    await page.goto('/home?area=continue');
+
+    await expect(
+        page.getByText('Choose a time frame', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Retrieve privately' }),
+    ).toBeVisible();
+});
+
 test('the source Learning Desk revisit section opens an opaque private revisit run', async ({
     page,
 }) => {
