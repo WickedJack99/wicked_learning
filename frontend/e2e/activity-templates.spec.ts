@@ -85,6 +85,34 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Localized shared task',
                     'settings.world_builder.activity_graph.tool_grant':
                         'Localized tool grant',
+                    'settings.activity_feedback_guidance.evidence':
+                        'Localized learning evidence',
+                    'settings.activity_feedback_guidance.title':
+                        'Localized feedback guidance',
+                    'settings.activity_feedback_guidance.description':
+                        'Localized feedback guidance description.',
+                    'settings.activity_feedback_guidance.close':
+                        'Close localized feedback guidance',
+                    'settings.activity_feedback_guidance.purpose_label':
+                        'Localized purpose',
+                    'settings.activity_feedback_guidance.purpose_description':
+                        'Localized purpose description.',
+                    'settings.activity_feedback_guidance.evidence_label':
+                        'Localized evidence',
+                    'settings.activity_feedback_guidance.independent_evidence_description':
+                        'Localized independent evidence description.',
+                    'settings.activity_feedback_guidance.rubric_label':
+                        'Localized rubric cues',
+                    'settings.activity_feedback_guidance.independent_check_prompt_label':
+                        'Localized independent check',
+                    'settings.activity_feedback_guidance.independent_check_feedback_label':
+                        'Localized independent feedback',
+                    'settings.activity_feedback_guidance.cancel':
+                        'Localized cancel feedback guidance',
+                    'settings.activity_feedback_guidance.save':
+                        'Save localized feedback guidance',
+                    'settings.activity_feedback_guidance.conflict_error':
+                        'Localized feedback guidance conflict.',
                     'settings.activity_ai_review.unsafe_error':
                         'Localized unsafe review feedback.',
                     'settings.activity_ai_review.title':
@@ -227,7 +255,7 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                             ai_review_history: [],
                             ai_review_status: 'needs_review',
                             ai_reviewed_at: null,
-                            config: {},
+                            config: { learningIntent: 'explain' },
                             connectors: { inputs: [], outputs: [] },
                             id: activityId,
                             introduction: null,
@@ -349,6 +377,16 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
         });
     });
     await page.route(
+        `**/api/v1/admin/world-builder/activities/${activityId}/feedback-guidance`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                status: 409,
+                body: JSON.stringify({ code: 'conflict' }),
+            });
+        },
+    );
+    await page.route(
         `**/api/v1/admin/world-builder/activities/${activityId}/ai-review`,
         async (route) => {
             await route.fulfill({
@@ -382,6 +420,69 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     await expect(
         card.getByRole('button', { name: 'Localized feedback guidance' }),
     ).toBeVisible();
+    await card
+        .getByRole('button', { name: 'Localized feedback guidance' })
+        .click();
+    const feedbackDialog = page.locator(
+        '[data-wl-id="authoring.activity-feedback-guidance"]',
+    );
+    await expect(feedbackDialog).toBeVisible();
+    await expect(
+        feedbackDialog.getByText('Localized learning evidence', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        feedbackDialog.getByText('Localized feedback guidance', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        feedbackDialog.getByText('Localized feedback guidance description.', {
+            exact: true,
+        }),
+    ).toBeVisible();
+    await expect(feedbackDialog.getByLabel('Localized purpose')).toHaveValue(
+        '',
+    );
+    await expect(
+        feedbackDialog.getByText('Localized independent evidence description.', {
+            exact: true,
+        }),
+    ).toBeVisible();
+    await expect(
+        feedbackDialog.getByLabel('Localized independent check'),
+    ).toBeVisible();
+    await expect(
+        feedbackDialog.getByLabel('Localized independent feedback'),
+    ).toBeVisible();
+    await feedbackDialog
+        .getByRole('button', { name: 'Save localized feedback guidance' })
+        .click();
+    await expect(feedbackDialog.getByRole('alert')).toHaveText(
+        'Localized feedback guidance conflict.',
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    const feedbackPanelBounds = await feedbackDialog.boundingBox();
+    expect(feedbackPanelBounds).not.toBeNull();
+    expect(feedbackPanelBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(
+        feedbackPanelBounds!.x + feedbackPanelBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    const saveFeedbackGuidance = feedbackDialog.getByRole('button', {
+        name: 'Save localized feedback guidance',
+    });
+    await saveFeedbackGuidance.scrollIntoViewIfNeeded();
+    const saveFeedbackGuidanceBounds = await saveFeedbackGuidance.boundingBox();
+    expect(saveFeedbackGuidanceBounds).not.toBeNull();
+    expect(saveFeedbackGuidanceBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(saveFeedbackGuidanceBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(
+        saveFeedbackGuidanceBounds!.x + saveFeedbackGuidanceBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(
+        saveFeedbackGuidanceBounds!.y + saveFeedbackGuidanceBounds!.height,
+    ).toBeLessThanOrEqual(844);
+    await feedbackDialog
+        .getByLabel('Close localized feedback guidance')
+        .click();
+    await page.setViewportSize({ width: 1280, height: 900 });
     await expect(
         card.getByRole('button', { name: 'Localized sources' }),
     ).toBeVisible();
