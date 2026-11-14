@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type LearnerTool = components['schemas']['LearnerTool'];
@@ -32,6 +33,7 @@ export function OriginalToolGrantActivity({
     const [isBubbleHidden, setIsBubbleHidden] = useState(false);
     const skippedOwnedActivity = useRef<string | null>(null);
     const config = toolGrantConfig(activity.config);
+    const t = usePlatformTranslation();
     const configuredTool = config.tool;
     const alreadyOwnsConfiguredTool = config.alreadyOwned;
     const backgroundImage = themedAsset(
@@ -49,8 +51,13 @@ export function OriginalToolGrantActivity({
     const text =
         config.text ||
         (configuredTool
-            ? `You found ${configuredTool.title}.`
-            : 'A tool should be configured here.');
+            ? t('activities.tool_grant.discovered', 'You found :tool.', {
+                  tool: configuredTool.title,
+              })
+            : t(
+                  'activities.tool_grant.missing_configuration',
+                  'A tool should be configured here.',
+              ));
 
     useEffect(() => {
         if (
@@ -90,7 +97,12 @@ export function OriginalToolGrantActivity({
             setIsGranted(true);
             await onComplete();
         } catch {
-            setError('The tool could not be added right now.');
+            setError(
+                t(
+                    'activities.tool_grant.error',
+                    'The tool could not be added right now.',
+                ),
+            );
         } finally {
             setIsGranting(false);
         }
@@ -99,7 +111,10 @@ export function OriginalToolGrantActivity({
     if (alreadyOwnsConfiguredTool) {
         return (
             <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
-                This tool is already available. Continuing...
+                {t(
+                    'activities.tool_grant.already_available',
+                    'This tool is already available. Continuing...',
+                )}
             </div>
         );
     }
@@ -124,7 +139,13 @@ export function OriginalToolGrantActivity({
                 config={config}
                 imageUrl={toolImage}
                 mirrored={config.toolMirrored}
-                title={configuredTool?.title ?? 'Configured tool'}
+                title={
+                    configuredTool?.title ??
+                    t(
+                        'activities.tool_grant.configured_tool',
+                        'Configured tool',
+                    )
+                }
                 widthPercent={toolImageWidthPercent(configuredTool)}
             />
             <div className="relative z-20 mt-auto flex w-full flex-col gap-3 p-4">
@@ -136,14 +157,15 @@ export function OriginalToolGrantActivity({
                         <div className="mb-3 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 text-sm font-semibold">
                                 <MessageCircle className="size-4" />
-                                {configuredTool?.title ?? 'Tool'}
+                                {configuredTool?.title ??
+                                    t('activities.tool_grant.tool', 'Tool')}
                             </div>
                             <button
                                 className="rounded-md px-2 py-1 text-sm hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:hover:bg-white/10 dark:focus-visible:ring-teal-200"
                                 onClick={() => setIsBubbleHidden(true)}
                                 type="button"
                             >
-                                Hide
+                                {t('activities.tool_grant.hide', 'Hide')}
                             </button>
                         </div>
                         <TypingText speed={config.typingSpeed} text={text} />
@@ -155,12 +177,16 @@ export function OriginalToolGrantActivity({
                     </p>
                 ) : null}
                 <button
-                    className="inline-flex h-10 self-end items-center justify-center rounded-md bg-cyan-700 px-4 text-sm font-medium text-white transition hover:bg-cyan-800 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950 dark:hover:bg-teal-100 dark:focus-visible:ring-teal-200"
+                    className="inline-flex h-10 items-center justify-center self-end rounded-md bg-cyan-700 px-4 text-sm font-medium text-white transition hover:bg-cyan-800 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950 dark:hover:bg-teal-100 dark:focus-visible:ring-teal-200"
                     disabled={!configuredTool || isGranting || isGranted}
                     onClick={() => void grantTool()}
                     type="button"
                 >
-                    {isGranted ? 'Added' : isGranting ? 'Adding...' : 'Take tool'}
+                    {isGranted
+                        ? t('activities.tool_grant.added', 'Added')
+                        : isGranting
+                          ? t('activities.tool_grant.adding', 'Adding...')
+                          : t('activities.tool_grant.take', 'Take tool')}
                     <ArrowRight className="ml-2 size-4" />
                 </button>
             </div>
@@ -286,7 +312,10 @@ function toolGrantConfig(value: Record<string, unknown>): ToolGrantConfig {
         backgroundLight: stringOrNull(value.backgroundLight),
         backgroundMirrored: value.backgroundMirrored === true,
         bubbleBorderColorDark: stringOr(value.bubbleBorderColorDark, '#2dd4bf'),
-        bubbleBorderColorLight: stringOr(value.bubbleBorderColorLight, '#0891b2'),
+        bubbleBorderColorLight: stringOr(
+            value.bubbleBorderColorLight,
+            '#0891b2',
+        ),
         bubbleColorDark: stringOr(value.bubbleColorDark, '#0f172a'),
         bubbleColorLight: stringOr(value.bubbleColorLight, '#ffffff'),
         bubbleOpacityDark: numberOr(value.bubbleOpacityDark, 92),
@@ -306,7 +335,8 @@ function toolGrantConfig(value: Record<string, unknown>): ToolGrantConfig {
 function learnerTool(value: unknown): LearnerTool | null {
     if (!value || typeof value !== 'object') return null;
     const candidate = value as Partial<LearnerTool>;
-    return typeof candidate.slug === 'string' && typeof candidate.title === 'string'
+    return typeof candidate.slug === 'string' &&
+        typeof candidate.title === 'string'
         ? (candidate as LearnerTool)
         : null;
 }
@@ -338,11 +368,14 @@ function TypingText({ speed, text }: { speed: number; text: string }) {
             return;
         }
         let index = 0;
-        const timer = window.setInterval(() => {
-            index += 1;
-            setVisibleText(text.slice(0, index));
-            if (index >= text.length) window.clearInterval(timer);
-        }, Math.max(1, speed));
+        const timer = window.setInterval(
+            () => {
+                index += 1;
+                setVisibleText(text.slice(0, index));
+                if (index >= text.length) window.clearInterval(timer);
+            },
+            Math.max(1, speed),
+        );
         return () => window.clearInterval(timer);
     }, [speed, text]);
     return <p className="min-h-12 text-sm leading-6">{visibleText}</p>;

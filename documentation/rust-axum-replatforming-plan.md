@@ -377,6 +377,10 @@ revision copy now also resolves through the catalog while Rust retains
 contribution eligibility, anonymous review state, private checklist state and
 completion authority.
 
+Tool Grant availability, discovered-tool, prompt, action and error copy now
+resolve through the catalog while Rust retains active-run authorization, scoped
+tool resolution and completion authority.
+
 The source World Builder's map Access permissions control is now lifted for
 principals with its distinct `world_map_access` update scope. Its typed Rust
 command replaces only the complete map viewer-group list after validating
