@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type LearnerPortalTravelResult =
@@ -29,6 +30,7 @@ export function OriginalPortalActivity({
     onTravel: (result: LearnerPortalTravelResult) => void;
     playRunId: string;
 }) {
+    const t = usePlatformTranslation();
     const [isTravelling, setIsTravelling] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const skippedArrival = useRef<string | null>(null);
@@ -92,19 +94,21 @@ export function OriginalPortalActivity({
     if (isInputPortal && !showOnArrival) {
         return (
             <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
-                Continuing from this exit portal…
+                {t('learning.portal.continuing_from_exit', 'Continuing from this exit portal...')}
             </div>
         );
     }
 
     const heading = isInputPortal
-        ? 'Exit portal'
-        : destination?.label ?? 'Portal not linked yet';
-    const description = isInputPortal
-        ? 'This portal is configured as the exit point for paths that arrive here.'
+        ? t('learning.portal.exit', 'Exit portal')
         : destination
-          ? `Travel to ${destination.map_title} / ${destination.node_title}.`
-          : 'An admin can choose a target exit portal in this portal activity.';
+          ? destination.label ?? t('learning.portal.linked', 'Linked portal')
+          : t('learning.portal.not_linked', 'Portal not linked yet');
+    const description = isInputPortal
+        ? t('learning.portal.exit_description', 'This portal is configured as the exit point for paths that arrive here.')
+        : destination
+          ? t('learning.portal.travel_to', 'Travel to :map / :node.', { map: destination.map_title, node: destination.node_title })
+          : t('learning.portal.not_linked_description', 'An admin can choose a target exit portal in this portal activity.');
 
     return (
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
@@ -141,7 +145,7 @@ export function OriginalPortalActivity({
                                 }
                                 void travel();
                             }} type="button">
-                                {isInputPortal ? 'Continue' : 'Traverse'}<ArrowRight className="ml-2 size-4" />
+                                {isInputPortal ? t('common.continue', 'Continue') : t('learning.portal.traverse', 'Traverse')}<ArrowRight className="ml-2 size-4" />
                             </button>
                         </div>
                     </div>

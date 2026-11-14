@@ -365,6 +365,10 @@ NPC-dialogue's bounded source orientation, answer, reflection and navigation
 copy now resolves through the platform catalog; active node state, answer,
 reflection, configured tool grant, history and completion remain Rust-owned.
 
+Portal heading, destination, arrival and traversal copy now resolves through
+the catalog while Rust remains the authority for destination eligibility and
+opaque arrival-run creation.
+
 The source World Builder's map Access permissions control is now lifted for
 principals with its distinct `world_map_access` update scope. Its typed Rust
 command replaces only the complete map viewer-group list after validating

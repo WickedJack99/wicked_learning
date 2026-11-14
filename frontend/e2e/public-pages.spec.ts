@@ -4201,6 +4201,94 @@ test('the original NPC dialogue localizes its server-owned empty answer state', 
     await expect(page.getByRole('button', { name: 'Next locally' })).toBeDisabled();
 });
 
+test('the original portal localizes its server-owned destination and traversal', async ({ page }) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d89';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'learning.portal.linked': 'Linked locally',
+                    'learning.portal.travel_to': 'Travel locally to :map / :node.',
+                    'learning.portal.traverse': 'Traverse locally',
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                play_run_id: playRunId,
+                run_kind: 'route',
+                context: {
+                    node_slug: 'private-place',
+                    node_title: 'Private place',
+                    map_slug: 'private-path',
+                    map_title: 'A private path',
+                    route_label: 'Portal route',
+                },
+                activity: {
+                    slug: 'cross-the-threshold',
+                    title: 'Cross the threshold',
+                    description: 'A source-authored portal.',
+                    activity_type: 'portal',
+                    config: {},
+                    completion: { label: null, next_activity_slug: null },
+                    check_in: {
+                        choice_prompt: null,
+                        concepts: [],
+                        learning_areas: [],
+                        objective: null,
+                    },
+                    portal: {
+                        destination: {
+                            map_title: 'Server map',
+                            node_title: 'Server node',
+                            label: null,
+                            description: null,
+                            node_state: 'available',
+                        },
+                    },
+                },
+            }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/cross-the-threshold/portal/travel`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    node_slug: 'server-node',
+                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d90',
+                }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByText('Linked locally')).toBeVisible();
+    await expect(page.getByText('Travel locally to Server map / Server node.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Traverse locally' })).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await page.getByRole('button', { name: 'Traverse locally' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'A small pause after Cross the threshold' }),
+    ).toBeVisible();
+});
+
 test('the original item-grant surface rolls only the active configured items before completing', async ({
     page,
 }) => {
