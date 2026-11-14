@@ -123,7 +123,7 @@ export function OriginalLearningCompanionSettingsPage({
         }
         if (!response.ok || !data) {
             throw new Error(
-                'Learning Companion settings are temporarily unavailable.',
+                'settings.learning_companion.errors.unavailable',
             );
         }
         setSettings(data);
@@ -135,7 +135,7 @@ export function OriginalLearningCompanionSettingsPage({
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'Learning Companion settings are temporarily unavailable.',
+                    : 'settings.learning_companion.errors.unavailable',
             ),
         );
     }, [load]);
@@ -154,14 +154,14 @@ export function OriginalLearningCompanionSettingsPage({
                 },
             );
             if (!response.ok || !data)
-                throw new Error('The companion settings could not be saved.');
+                throw new Error('settings.learning_companion.errors.save');
             setSettings(data);
             setDraft(toSettingsRequest(data));
         } catch (reason) {
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The companion settings could not be saved.',
+                    : 'settings.learning_companion.errors.save',
             );
         } finally {
             setSaving(false);
@@ -186,7 +186,7 @@ export function OriginalLearningCompanionSettingsPage({
                         className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
                         role="alert"
                     >
-                        {error}
+                        {t(error, error)}
                     </p>
                 ) : null}
                 {!draft || !settings ? (
@@ -481,14 +481,14 @@ function DialogueWorkspace() {
                 },
             );
             if (!response.ok || !data)
-                throw new Error('The dialogue graphs could not be loaded.');
+                throw new Error('settings.learning_companion.dialogues.errors.load');
             setItems(data.items);
             setLastPage(data.pagination.last_page);
         } catch (reason) {
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The dialogue graphs could not be loaded.',
+                    : 'settings.learning_companion.dialogues.errors.load',
             );
         } finally {
             setLoading(false);
@@ -505,13 +505,13 @@ function DialogueWorkspace() {
                 { params: { path: { dialogue_id: id } } },
             );
             if (!response.ok || !data)
-                throw new Error('The dialogue graph could not be loaded.');
+                throw new Error('settings.learning_companion.dialogues.errors.load_one');
             setSelected(data);
         } catch (reason) {
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The dialogue graph could not be loaded.',
+                    : 'settings.learning_companion.dialogues.errors.load_one',
             );
         }
     };
@@ -532,7 +532,7 @@ function DialogueWorkspace() {
                 },
             );
             if (!response.ok || !data)
-                throw new Error('The dialogue graph could not be created.');
+                throw new Error('settings.learning_companion.dialogues.errors.create');
             setSelected(data);
             setEditorOpen(true);
             await load();
@@ -540,7 +540,7 @@ function DialogueWorkspace() {
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The dialogue graph could not be created.',
+                    : 'settings.learning_companion.dialogues.errors.create',
             );
         } finally {
             setSaving(false);
@@ -564,7 +564,7 @@ function DialogueWorkspace() {
             setSelected(null);
             await load();
         } catch {
-            setError('The dialogue graph could not be deleted.');
+            setError('settings.learning_companion.dialogues.errors.delete');
         } finally {
             setSaving(false);
         }
@@ -588,7 +588,7 @@ function DialogueWorkspace() {
                     className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
                     role="alert"
                 >
-                    {error}
+                    {t(error, error)}
                 </p>
             ) : null}
             <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
