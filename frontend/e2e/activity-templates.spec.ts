@@ -129,6 +129,12 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Localized speech bubble text',
                     'settings.world_builder.npc_dialogue.tool_grant':
                         'Localized tool grant',
+                    'settings.world_builder.npc_dialogue.scene.title':
+                        'Localized scene presentation',
+                    'settings.world_builder.npc_dialogue.scene_assets.title':
+                        'Localized extra assets',
+                    'settings.world_builder.npc_dialogue.scene_assets.empty':
+                        'Localized empty assets',
                     'settings.world_builder.npc_dialogue.start':
                         'Localized start',
                     'settings.world_builder.npc_dialogue.start_description':
@@ -418,6 +424,11 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
         page.getByLabel('Localized speech bubble text'),
     ).toBeVisible();
     await expect(page.getByLabel('Localized tool grant')).toBeVisible();
+    await expect(
+        page.getByText('Localized scene presentation'),
+    ).toBeVisible();
+    await expect(page.getByText('Localized extra assets')).toBeVisible();
+    await expect(page.getByText('Localized empty assets')).toBeVisible();
     await expect(
         page.getByRole('button', { name: 'Localized save node' }),
     ).toBeVisible();
