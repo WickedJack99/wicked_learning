@@ -2593,9 +2593,12 @@ test('the source Learning Desk search uses its authenticated result contract', a
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'home.learning_desk.eyebrow': 'Your study space',
+                    'home.learning_desk.focus.enter': 'Quiet view',
                     'home.learning_desk.search.action': 'Find it',
                     'home.learning_desk.search.label': 'Search a thought',
                     'home.learning_desk.search.placeholder': 'Start with an idea',
+                    'home.learning_desk.sections.connections': 'Idea links',
                 },
             }),
         });
@@ -2688,6 +2691,11 @@ test('the source Learning Desk search uses its authenticated result contract', a
     });
 
     await page.goto('/home');
+    await expect(page.getByText('Your study space')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Quiet view' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Idea links' })).toBeVisible();
     await expect(
         page.getByRole('button', { name: 'Find it' }),
     ).toBeVisible();

@@ -4,10 +4,12 @@ import type { CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
+import { useCurrentUser } from './current-user';
 import type { components } from './api/schema';
 import { OriginalLearningDeskSearch } from './original-learning-desk-search';
 import { OriginalPaginatedItems } from './original-paginated-items';
 import { OriginalLearnerHeader } from './original-learner-header';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerRecallItem = components['schemas']['LearnerRecallItem'];
 type LearnerRecallQueue = components['schemas']['LearnerRecallQueue'];
@@ -136,6 +138,12 @@ export function OriginalRecallDeskPage({
     userSubjectId: string;
 }) {
     const navigate = useNavigate();
+    const t = usePlatformTranslation();
+    const { currentUser } = useCurrentUser();
+    const firstName =
+        currentUser.kind === 'loaded'
+            ? currentUser.name.trim().split(/\s+/)[0]
+            : '';
     const shouldFocusAreaHeadingRef = useRef(false);
     const [queue, setQueue] = useState<LearnerRecallQueue | null>(null);
     const [world, setWorld] = useState<LearnerWorldSnapshot | null>(null);
@@ -293,13 +301,19 @@ export function OriginalRecallDeskPage({
     const hasActiveRouteFilter =
         activeTimeBudget !== 'any' || activePurposeFilter !== 'any';
     const areaLabels: Record<LearningDeskArea, string> = {
-        connections: 'Connections',
-        continue: 'Continue learning',
-        recent: 'Recent traces',
-        recall: 'Recall queue',
-        reflections: 'Recent reflections',
-        revisit: 'Return when useful',
-        support: 'Learning Support',
+        connections: t('home.learning_desk.sections.connections', 'Connections'),
+        continue: t(
+            'home.learning_desk.sections.continue',
+            'Continue learning',
+        ),
+        recent: t('home.learning_desk.sections.recent', 'Recent traces'),
+        recall: t('home.learning_desk.sections.recall', 'Recall queue'),
+        reflections: t(
+            'home.learning_desk.sections.reflections',
+            'Recent reflections',
+        ),
+        revisit: t('home.learning_desk.sections.revisit', 'Return when useful'),
+        support: t('home.learning_desk.sections.support', 'Learning Support'),
     };
     const availableAreas: LearningDeskArea[] = [
         'connections',
@@ -700,11 +714,16 @@ export function OriginalRecallDeskPage({
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                         <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
-                            Your learning desk
+                            {t('home.learning_desk.eyebrow', 'Your learning desk')}
                         </p>
-                        <h1 className="mt-3 text-3xl font-medium tracking-tight">What would you like to think about next?</h1>
+                        <h1 className="mt-3 text-3xl font-medium tracking-tight">
+                            {greeting(t)}, {firstName}.
+                        </h1>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                            Continue a route, return to a question you kept nearby, or revisit a place when it becomes useful.
+                            {t(
+                                'home.learning_desk.prompt',
+                                'What would you like to think about next?',
+                            )}
                         </p>
                     </div>
                     <button
@@ -714,18 +733,32 @@ export function OriginalRecallDeskPage({
                         type="button"
                     >
                         <Focus aria-hidden="true" className="size-4" />
-                        {focusView ? 'Show pinned' : 'Focus view'}
+                        {focusView
+                            ? t(
+                                  'home.learning_desk.focus.show_rail',
+                                  'Show pinned',
+                              )
+                            : t(
+                                  'home.learning_desk.focus.enter',
+                                  'Focus view',
+                              )}
                     </button>
                 </header>
 
                 <OriginalLearningDeskSearch />
 
                 <nav
-                    aria-label="Learning desk areas"
+                    aria-label={t(
+                        'home.learning_desk.sections.label',
+                        'Learning desk areas',
+                    )}
                     className="mt-8 shrink-0 border-y border-[var(--learner-border-color)] py-3"
                 >
                     <p className="text-xs font-semibold tracking-[0.18em] text-[var(--learner-muted-text)] uppercase">
-                        Learning desk areas
+                        {t(
+                            'home.learning_desk.sections.label',
+                            'Learning desk areas',
+                        )}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                         {availableAreas.map((area) => (
@@ -1752,6 +1785,22 @@ function learningPurposeLabel(
     }[purpose];
 }
 
+function greeting(
+    t: ReturnType<typeof usePlatformTranslation>,
+): string {
+    const hour = new Date().getHours();
+
+    if (hour < 12) {
+        return t('home.learning_desk.greeting.morning', 'Good morning');
+    }
+
+    if (hour < 18) {
+        return t('home.learning_desk.greeting.afternoon', 'Good afternoon');
+    }
+
+    return t('home.learning_desk.greeting.evening', 'Good evening');
+}
+
 function deskAreaFromUrl(): LearningDeskArea | null {
     const area = new URL(window.location.href).searchParams.get('area');
 
@@ -1760,7 +1809,8 @@ function deskAreaFromUrl(): LearningDeskArea | null {
         area === 'recent' ||
         area === 'recall' ||
         area === 'reflections' ||
-        area === 'revisit'
+        area === 'revisit' ||
+        area === 'support'
         ? area
         : null;
 }
