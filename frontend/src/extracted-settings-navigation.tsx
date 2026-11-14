@@ -204,6 +204,11 @@ export const adminSettings: SettingsListItem[] = [
                 resources: ['sounds'],
             },
             {
+                label: 'Dialogue typing',
+                href: '/settings?panel=admin-assets-world-objects&asset=dialogue-sounds',
+                resources: ['sounds'],
+            },
+            {
                 label: 'Cursor images',
                 labelKey: 'settings.navigation.cursor_images',
                 href: '/settings?panel=admin-assets-world-objects&asset=cursors',

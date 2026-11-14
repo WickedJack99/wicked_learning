@@ -4,6 +4,9 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    AssetsWorldObjectsSettingsShell,
+} from './extracted-assets-world-objects-navigation';
 import type { OriginalAppearance } from './original-appearance';
 import { ImageInput } from './original-public-presentation';
 
@@ -27,7 +30,15 @@ const cursorRoles: CursorRoleDefinition[] = [
 
 /** Source-adapted from `cursor-image-settings-panel.tsx`. The source keeps
  * named roles optional, so an administrator can remove or repurpose one. */
-export function OriginalCursorSettingsPage({ appearance }: { appearance: OriginalAppearance }) {
+export function OriginalCursorSettingsPage({
+    appearance,
+    onSignedOut,
+    settingsAccess,
+}: {
+    appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
+}) {
     const [saved, setSaved] = useState<Presentation | null>(null);
     const [draft, setDraft] = useState<Presentation | null>(null);
     const [busy, setBusy] = useState(false);
@@ -115,7 +126,7 @@ export function OriginalCursorSettingsPage({ appearance }: { appearance: Origina
         }
     }
 
-    return <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}>
+    return <AssetsWorldObjectsSettingsShell activeSection="cursors" appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}><main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}>
         <div className="mx-auto w-full max-w-5xl">
             <header className="flex flex-wrap items-start justify-between gap-4 pb-5">
                 <div>
@@ -132,7 +143,7 @@ export function OriginalCursorSettingsPage({ appearance }: { appearance: Origina
                 <div className="grid gap-4 pt-5">{activeRoles.map((role) => <CursorEditor cursor={draft.cursors[role] ?? emptyCursor()} key={role} role={role} activeRoles={activeRoles} onChange={(field, value) => update(role, field, value)} onDelete={() => removeCursorRole(role)} onRoleChange={(next) => changeCursorRole(role, next)} />)}</div>
             </section>}
         </div>
-    </main>;
+    </main></AssetsWorldObjectsSettingsShell>;
 }
 
 function CursorEditor({ activeRoles, cursor, onChange, onDelete, onRoleChange, role }: { activeRoles: CursorRole[]; cursor: Cursor; onChange: (key: keyof Cursor, value: number | string | null) => void; onDelete: () => void; onRoleChange: (role: CursorRole) => void; role: CursorRole }) {

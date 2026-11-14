@@ -20,6 +20,10 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    AssetsWorldObjectsSettingsShell,
+} from './extracted-assets-world-objects-navigation';
+import type { OriginalAppearance } from './original-appearance';
 
 type Sound = components['schemas']['AdminSound'];
 type SoundRequest = components['schemas']['AdminSoundRequest'];
@@ -71,7 +75,15 @@ function formFromSound(sound: Sound): SoundForm {
 /** Source-adapted from `settings/assets/sounds.tsx`: its two-pane sound list,
  * metadata form, upload control, preview controls and explicit destructive action
  * are retained while Inertia forms are replaced by the typed Rust contract. */
-export function OriginalSoundLibraryPage() {
+export function OriginalSoundLibraryPage({
+    appearance,
+    onSignedOut,
+    settingsAccess,
+}: {
+    appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
+}) {
     const [sounds, setSounds] = useState<Sound[]>([]);
     const [selectedId, setSelectedId] = useState<string | 'new'>('new');
     const [form, setForm] = useState<SoundForm>(blankForm);
@@ -405,7 +417,7 @@ export function OriginalSoundLibraryPage() {
     const SelectedIcon = selectedIcon;
 
     return (
-        <main
+        <AssetsWorldObjectsSettingsShell activeSection="sounds" appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}><main
             className="min-h-svh bg-slate-100 px-4 py-5 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
             data-wl-id="settings.assets.sounds"
         >
@@ -822,7 +834,7 @@ export function OriginalSoundLibraryPage() {
                     </section>
                 </section>
             </div>
-        </main>
+        </main></AssetsWorldObjectsSettingsShell>
     );
 }
 

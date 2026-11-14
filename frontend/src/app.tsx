@@ -658,7 +658,7 @@ export function App() {
                 profile: 'personal',
                 security: 'personal',
             }[rawSettingsPanel ?? ''] ?? rawSettingsPanel;
-        const assetSection = settingsQuery.get('asset');
+        const assetSection = settingsQuery.get('asset') ?? 'visuals';
         const presentationSection = settingsQuery.get('presentation');
         const supportSection = settingsQuery.get('support');
         const personalSection =
@@ -739,42 +739,68 @@ export function App() {
         if (assetsPanel && assetSection === 'items') {
             return (
                 <Suspense fallback={null}>
-                    <OriginalAssetCatalogPage kind="items" />
+                    <OriginalAssetCatalogPage
+                        appearance={appearance}
+                        kind="items"
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }
         if (assetsPanel && assetSection === 'tools') {
             return (
                 <Suspense fallback={null}>
-                    <OriginalAssetCatalogPage kind="tools" />
+                    <OriginalAssetCatalogPage
+                        appearance={appearance}
+                        kind="tools"
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }
         if (assetsPanel && assetSection === 'cursors') {
             return (
                 <Suspense fallback={null}>
-                    <OriginalCursorSettingsPage appearance={appearance} />
+                    <OriginalCursorSettingsPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }
         if (assetsPanel && assetSection === 'sounds') {
             return (
                 <Suspense fallback={null}>
-                    <OriginalSoundLibraryPage />
+                    <OriginalSoundLibraryPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }
         if (assetsPanel && assetSection === 'dialogue-sounds') {
             return (
                 <Suspense fallback={null}>
-                    <OriginalDialogueTypingSoundSetsPage />
+                    <OriginalDialogueTypingSoundSetsPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }
         if (assetsPanel) {
             return (
                 <Suspense fallback={null}>
-                    <OriginalMediaLibraryPage />
+                    <OriginalMediaLibraryPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }

@@ -4,6 +4,10 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    AssetsWorldObjectsSettingsShell,
+} from './extracted-assets-world-objects-navigation';
+import type { OriginalAppearance } from './original-appearance';
 
 type SoundSet = components['schemas']['AdminDialogueTypingSoundSet'];
 type Metadata = components['schemas']['AdminDialogueTypingSoundSetMetadataRequest'];
@@ -24,7 +28,15 @@ const pageSize = 6;
  * set selector, exact A–Z upload requirement, metadata editor and six-letter
  * paging are retained while Inertia requests use the typed Rust contract.
  */
-export function OriginalDialogueTypingSoundSetsPage() {
+export function OriginalDialogueTypingSoundSetsPage({
+    appearance,
+    onSignedOut,
+    settingsAccess,
+}: {
+    appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
+}) {
     const [sets, setSets] = useState<SoundSet[]>([]);
     const selectedFromUrl = useRef(readSelectedSetId()).current;
     const hasExplicitSelection = useRef(selectedFromUrl !== null);
@@ -210,7 +222,7 @@ export function OriginalDialogueTypingSoundSetsPage() {
         }
     }
 
-    return <main className="min-h-svh bg-slate-100 px-4 py-5 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100" data-wl-id="settings.assets.dialogue-typing-sounds">
+    return <AssetsWorldObjectsSettingsShell activeSection="dialogue-sounds" appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}><main className="min-h-svh bg-slate-100 px-4 py-5 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100" data-wl-id="settings.assets.dialogue-typing-sounds">
         <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] max-w-[92rem] flex-col gap-4">
             <Link className="inline-flex w-fit items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10" to="/settings?panel=admin-assets-world-objects&asset=sounds">Sound library</Link>
             <header className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Dialogue typing</p><h1 className="mt-1 text-3xl font-semibold">Letter sound sets</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">Give speech bubbles an optional voice-like rhythm. Each set contains one managed WAV file for every letter from A to Z.</p></div><button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-50" disabled={busy} onClick={startCreate} type="button"><Music className="size-4" />New set</button></header>
@@ -223,7 +235,7 @@ export function OriginalDialogueTypingSoundSetsPage() {
                     {selected ? <div className="min-h-0 flex-1"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3" data-wl-id="settings.assets.dialogue-typing-sounds.letters">{visibleLetters.map((letter) => <LetterRow key={letter} letter={letter} onReplace={replaceLetter} present={selected.letters.includes(letter)} />)}</div><Pagination current={letterPage} count={Math.ceil(letters.length / pageSize)} label="Letter pages" onChange={setLetterPage} /></div> : <div className="grid min-h-48 flex-1 place-items-center rounded-lg border border-dashed border-slate-300 p-6 text-center dark:border-white/20"><p className="max-w-md text-sm leading-6 text-slate-500">Choose the 26 files above to create a complete set. Runtime punctuation uses a random available letter sound; spaces stay quiet.</p></div>}</div></section>
             </section>
         </div>
-    </main>;
+    </main></AssetsWorldObjectsSettingsShell>;
 }
 
 function LetterRow({ letter, onReplace, present }: { letter: string; onReplace: (letter: string, file: File | undefined) => Promise<void>; present: boolean }) {

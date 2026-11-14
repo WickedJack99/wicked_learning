@@ -4,6 +4,10 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    AssetsWorldObjectsSettingsShell,
+} from './extracted-assets-world-objects-navigation';
+import type { OriginalAppearance } from './original-appearance';
 import { MediaPicker } from './original-world-builder';
 
 type Item = components['schemas']['AdminEditableItem'];
@@ -39,7 +43,17 @@ const toolForm = (tool: Tool): ToolForm => ({ ...itemForm(tool), animation_dark:
  * The source's searchable list, new-entry state and two-pane metadata editor
  * are kept; Rust replaces Inertia navigation with typed, same-origin commands.
  */
-export function OriginalAssetCatalogPage({ kind }: { kind: Kind }) {
+export function OriginalAssetCatalogPage({
+    appearance,
+    kind,
+    onSignedOut,
+    settingsAccess,
+}: {
+    appearance: OriginalAppearance;
+    kind: Kind;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
+}) {
     const [items, setItems] = useState<Item[]>([]);
     const [tools, setTools] = useState<Tool[]>([]);
     const [selectedId, setSelectedId] = useState<string | 'new'>('new');
@@ -82,7 +96,7 @@ export function OriginalAssetCatalogPage({ kind }: { kind: Kind }) {
         return catalog.filter((entry) => [entry.title, entry.slug, entry.description ?? ''].join(' ').toLowerCase().includes(needle));
     }, [catalog, search]);
 
-    return <main className="min-h-svh bg-slate-100 px-4 py-5 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100" data-wl-id={`settings.assets.${kind}`}>
+    return <AssetsWorldObjectsSettingsShell activeSection={kind} appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}><main className="min-h-svh bg-slate-100 px-4 py-5 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100" data-wl-id={`settings.assets.${kind}`}>
         <div className="mx-auto max-w-[92rem]">
             <Link className="inline-flex rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10" to="/settings?panel=admin-assets-world-objects&asset=visuals">Assets &amp; World Objects</Link>
             <header className="mt-4 flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-medium tracking-[.18em] text-teal-700 uppercase dark:text-teal-300">Administration</p><h1 className="mt-1 text-3xl font-semibold">{kind === 'items' ? 'Edit items' : 'Edit tools'}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">{kind === 'items' ? 'Consumable or collectible inventory objects.' : 'Inspectable tools and map interaction helpers.'}</p></div><nav aria-label="Reusable world objects" className="flex rounded-lg border border-slate-300 p-1 text-sm dark:border-white/20"><Link className={`rounded-md px-3 py-2 ${kind === 'items' ? 'bg-teal-700 text-white' : 'hover:bg-slate-200 dark:hover:bg-white/10'}`} to="/settings?panel=admin-assets-world-objects&asset=items">Items</Link><Link className={`rounded-md px-3 py-2 ${kind === 'tools' ? 'bg-teal-700 text-white' : 'hover:bg-slate-200 dark:hover:bg-white/10'}`} to="/settings?panel=admin-assets-world-objects&asset=tools">Tools</Link></nav></header>
@@ -94,7 +108,7 @@ export function OriginalAssetCatalogPage({ kind }: { kind: Kind }) {
             </section>
         </div>
         {picker ? <MediaPicker onClose={() => setPicker(null)} onSelect={(asset) => { window.dispatchEvent(new CustomEvent('wicked-learning-catalog-media', { detail: { field: picker, url: asset.url } })); setPicker(null); }} /> : null}
-    </main>;
+    </main></AssetsWorldObjectsSettingsShell>;
 }
 
 function ItemEditor({ busy, onPick, onSaved, selected, setBusy, setError }: { busy: boolean; onPick: (field: ImageField) => void; onSaved: (item: Item) => void; selected: Item | null; setBusy: (value: boolean) => void; setError: (value: string | null) => void }) {
