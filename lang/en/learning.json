@@ -55,6 +55,7 @@
     "learning.activity.travel.locked": ":title is still locked.",
     "learning.activity.travel.undiscovered": ":title has not been discovered yet.",
     "learning.activity.routes.title": "Other routes",
+    "learning.activity.routes.aria_label": "Activity routes",
     "learning.activity.routes.description": "Your current route remains saved. Choose another route to start or resume it.",
     "learning.activity.routes.available": "Available route",
     "learning.activity.type.default": "Learning activity",

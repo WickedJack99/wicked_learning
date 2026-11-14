@@ -2325,6 +2325,23 @@ test('the signed-in explorer starts and completes an original open-practice rout
             }),
         });
     });
+    await page.route('**/api/v1/learner/platform-translations**', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'common.next': 'Localized next',
+                    'common.previous': 'Localized previous',
+                    'learning.activity.routes.aria_label':
+                        'Localized route navigation',
+                    'learning.map.completed_count':
+                        'Localized completion :count',
+                    'learning.map.reset': 'Localized reset',
+                },
+            }),
+        });
+    });
     await page.route('**/api/v1/learner/world', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -2568,6 +2585,21 @@ test('the signed-in explorer starts and completes an original open-practice rout
     await expect(page.getByLabel('Saved place')).toBeVisible();
     await expect(page.getByLabel('Node completed')).toBeVisible();
     await expect(page.getByText('Begin private orientation')).toBeVisible();
+    await expect(
+        page.getByRole('navigation', {
+            name: 'Localized route navigation',
+        }),
+    ).toBeVisible();
+    await expect(page.getByText('Localized completion 1')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Localized reset' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Localized previous' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Localized next' }),
+    ).toBeVisible();
     await page
         .getByRole('button', { name: 'Begin private orientation' })
         .click();

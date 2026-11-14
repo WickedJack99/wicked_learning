@@ -66,6 +66,7 @@ export function OriginalRouteStartButtons({
     onReset: (start: LearnerActivityStart) => void;
     onStart: (start: LearnerActivityStart) => void;
 }) {
+    const t = usePlatformTranslation();
     const [page, setPage] = useState(1);
     const pageCount = Math.max(1, Math.ceil(starts.length / ROUTE_PAGE_SIZE));
     const currentPage = Math.min(page, pageCount);
@@ -96,7 +97,10 @@ export function OriginalRouteStartButtons({
             </div>
             {pageCount > 1 ? (
                 <nav
-                    aria-label="Activity routes"
+                    aria-label={t(
+                        'learning.activity.routes.aria_label',
+                        'Activity routes',
+                    )}
                     className="mt-2 flex items-center justify-between px-1 text-xs text-slate-500 dark:text-slate-400"
                 >
                     <button
@@ -107,7 +111,7 @@ export function OriginalRouteStartButtons({
                         }
                         type="button"
                     >
-                        Previous
+                        {t('common.previous', 'Previous')}
                     </button>
                     <span>{`${currentPage} / ${pageCount}`}</span>
                     <button
@@ -118,7 +122,7 @@ export function OriginalRouteStartButtons({
                         }
                         type="button"
                     >
-                        Next
+                        {t('common.next', 'Next')}
                     </button>
                 </nav>
             ) : null}
@@ -137,6 +141,7 @@ function RouteStartOption({
     onStart: () => void;
     start: LearnerActivityStart;
 }) {
+    const t = usePlatformTranslation();
     const image = appearance === 'light' ? start.image_light : start.image_dark;
     const buttonColor =
         appearance === 'light'
@@ -155,7 +160,7 @@ function RouteStartOption({
         boxShadow: `inset 0 0 0 2px ${routeBorderColor}`,
     };
     const frameStyle = { boxShadow: `inset 0 0 0 2px ${routeBorderColor}` };
-    const progressText = routeProgressText(start);
+    const progressText = routeProgressText(start, t);
 
     if (image) {
         return (
@@ -239,6 +244,7 @@ function RouteProgressActions({
     progressText: string | null;
     start: LearnerActivityStart;
 }) {
+    const t = usePlatformTranslation();
     if (!progressText && !start.progress) {
         return null;
     }
@@ -252,13 +258,16 @@ function RouteProgressActions({
                 type="button"
             >
                 <RotateCcw className="size-3" />
-                Reset
+                {t('learning.map.reset', 'Reset')}
             </button>
         </div>
     );
 }
 
-function routeProgressText(start: LearnerActivityStart): string | null {
+function routeProgressText(
+    start: LearnerActivityStart,
+    t: Translate,
+): string | null {
     const progress = start.progress;
     if (!progress) {
         return null;
@@ -267,9 +276,15 @@ function routeProgressText(start: LearnerActivityStart): string | null {
         const date = progress.last_completed_at
             ? ` · ${new Date(progress.last_completed_at).toLocaleDateString()}`
             : '';
-        return `Completed ${progress.completion_count}×${date}`;
+        return t(
+            'learning.map.completed_count',
+            'Completed :count×:date',
+            { count: progress.completion_count, date },
+        );
     }
-    return progress.status === 'in_progress' ? 'In progress' : null;
+    return progress.status === 'in_progress'
+        ? t('learning.map.in_progress', 'In progress')
+        : null;
 }
 
 /**
