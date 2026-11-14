@@ -85,6 +85,7 @@ test('Personal settings restores the source section navigation', async ({ page }
                     'settings.personal.language.current': 'Current locale',
                     'settings.personal.language.save': 'Store locale',
                     'settings.personal.feedback.reminders': 'Catalog feedback reminder',
+                    'settings.personal.delete_account.title': 'Remove my account',
                     'settings.personal.sound.effects': 'Effects level',
                     'settings.personal.sound.mute': 'Disable all sounds',
                     'settings.personal.sound.save': 'Store audio choices',
@@ -158,7 +159,7 @@ test('Personal settings restores the source section navigation', async ({ page }
         ['appearance', 'Visual mode'],
         ['language', 'Current locale'],
         ['feedback', 'Platform feedback'],
-        ['delete-account', 'Delete account'],
+        ['delete-account', 'Remove my account'],
     ]) {
         await test.step(section, async () => {
             await page.goto(`/settings?panel=personal&personal=${section}`);
