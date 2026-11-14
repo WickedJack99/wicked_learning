@@ -98,3 +98,97 @@ test('Personal Security requires the source recent-password confirmation', async
         page.getByRole('heading', { name: 'Confirm password' }),
     ).toBeVisible();
 });
+
+test('Personal Security keeps the source per-field password controls', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                appearance: 'light',
+                capabilities: [],
+                email: 'learner@example.test',
+                roles: ['learner'],
+                subject_id: '00000000-0000-0000-0000-000000000001',
+            }),
+        });
+    });
+    await page.route('**/api/v1/account/password/confirmation', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ confirmed: true }),
+        });
+    });
+    await page.route('**/api/v1/account/passkeys', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify([]),
+        });
+    });
+    await page.route('**/api/v1/account/two-factor', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ enabled: false }),
+        });
+    });
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'settings.personal.security.confirm_password':
+                        'Repeat fresh passphrase',
+                    'settings.personal.security.current_password':
+                        'Existing passphrase',
+                    'settings.personal.security.new_password':
+                        'Fresh passphrase',
+                    'settings.personal.security.save': 'Store passphrase',
+                    'settings.personal.security.title': 'Renew password',
+                },
+            }),
+        });
+    });
+
+    await page.goto('/settings?panel=personal&personal=security');
+
+    await expect(
+        page.getByRole('heading', { name: 'Renew password' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Existing passphrase', { exact: true })).toHaveAttribute(
+        'type',
+        'password',
+    );
+    await expect(page.getByLabel('Fresh passphrase', { exact: true })).toHaveAttribute(
+        'type',
+        'password',
+    );
+    await expect(
+        page.getByLabel('Repeat fresh passphrase', { exact: true }),
+    ).toHaveAttribute(
+        'type',
+        'password',
+    );
+    await expect(
+        page.getByRole('button', { name: 'Show password' }),
+    ).toHaveCount(3);
+    await expect(
+        page.getByRole('button', { name: 'Store passphrase' }),
+    ).toBeDisabled();
+
+    await page.getByRole('button', { name: 'Show password' }).nth(1).click();
+    await expect(page.getByLabel('Fresh passphrase', { exact: true })).toHaveAttribute(
+        'type',
+        'text',
+    );
+    await expect(page.getByLabel('Existing passphrase', { exact: true })).toHaveAttribute(
+        'type',
+        'password',
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+        page.getByRole('heading', { name: 'Renew password' }),
+    ).toBeVisible();
+});
