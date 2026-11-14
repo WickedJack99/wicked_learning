@@ -73,6 +73,8 @@
     "settings.learning_support.navigation.learning-concepts.description": "Maintain reusable vocabulary for evidence authoring.",
     "settings.learning_support.navigation.journal.label": "Journal",
     "settings.learning_support.navigation.journal.description": "Journal policy, background and interaction colors.",
+    "settings.learning_support.navigation.selector_label": "Learning support section",
+    "settings.learning_support.navigation.sections_label": "Learning support sections",
     "settings.learning_support.peer_support.open_context": "Open map context",
     "settings.learning_support.peer_support.eyebrow": "Anonymous support queue",
     "settings.learning_support.peer_support.title": "Shared-task exchanges to revisit",

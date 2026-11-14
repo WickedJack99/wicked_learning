@@ -119,9 +119,17 @@ export function LearningSupportWorkspace({
             sidebar={
                 <>
                     <label className="grid gap-2 px-1 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase lg:hidden">
-                        <span>Learning support section</span>
+                        <span>
+                            {t(
+                                'settings.learning_support.navigation.selector_label',
+                                'Learning support section',
+                            )}
+                        </span>
                         <select
-                            aria-label="Learning support section"
+                            aria-label={t(
+                                'settings.learning_support.navigation.selector_label',
+                                'Learning support section',
+                            )}
                             className="h-10 w-full border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 text-sm normal-case tracking-normal text-[var(--settings-primary-text)]"
                             onChange={(event) =>
                                 navigate(
@@ -140,7 +148,10 @@ export function LearningSupportWorkspace({
                     <div className="hidden lg:block">
                         <SettingsSectionNavigation
                             activeSection={resolvedSection ?? activeSection}
-                            ariaLabel="Learning support sections"
+                            ariaLabel={t(
+                                'settings.learning_support.navigation.sections_label',
+                                'Learning support sections',
+                            )}
                             items={visibleSections}
                             onChange={(section) =>
                                 navigate(

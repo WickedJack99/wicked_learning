@@ -57,6 +57,10 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
                             'Localized support navigator',
                         'settings.learning_support.navigation.support-signals.description':
                             'Localized support navigator guidance.',
+                        'settings.learning_support.navigation.selector_label':
+                            'Localized support selector',
+                        'settings.learning_support.navigation.sections_label':
+                            'Localized support sections',
                         'settings.learning_support.signals.individual.label':
                             'Localized individual support',
                         'settings.learning_support.individual.eyebrow':
@@ -215,6 +219,9 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
         page.getByRole('tab', { name: /Localized support navigator/ }),
     ).toBeVisible();
     await expect(
+        page.getByRole('tablist', { name: 'Localized support sections' }),
+    ).toBeVisible();
+    await expect(
         page.getByRole('heading', { name: 'Localized peer queue' }),
     ).toBeVisible();
     await expect(
@@ -292,6 +299,7 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
+    await expect(page.getByLabel('Localized support selector')).toBeVisible();
     const heading = page.getByRole('heading', {
         name: 'Localized individual support',
     });
