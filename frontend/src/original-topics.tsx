@@ -1024,40 +1024,175 @@ function CompetenceDetail({
                     </p>
                     <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
                         {competence.visual.evidence_ledger.map((entry) => (
-                            <button
-                                className="flex w-full items-start justify-between gap-4 py-3 text-left transition hover:text-[var(--learner-accent)] disabled:opacity-50"
-                                disabled={openingActivitySlug !== null}
-                                key={entry.id}
-                                onClick={() =>
-                                    void onOpenActivity(entry.activity_slug)
-                                }
-                                type="button"
-                            >
-                                <span className="min-w-0">
-                                    <span className="block truncate text-sm font-medium">
-                                        {entry.activity_title ||
-                                            'Learning moment'}
-                                    </span>
-                                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
-                                        {platformIntentLabel(
-                                            entry.evidence_type,
-                                            t,
-                                        )}
-                                        {entry.node_title
-                                            ? ` · ${entry.node_title}`
-                                            : ''}
-                                    </span>
-                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
-                                        {evidenceClaim(entry.evidence_claim)}
-                                    </span>
-                                </span>
-                                <time
-                                    className="shrink-0 text-xs text-[var(--learner-muted-text)]"
-                                    dateTime={entry.recorded_at}
+                            <div key={entry.id}>
+                                <button
+                                    className="flex w-full items-start justify-between gap-4 py-3 text-left transition hover:text-[var(--learner-accent)] disabled:opacity-50"
+                                    disabled={openingActivitySlug !== null}
+                                    onClick={() =>
+                                        void onOpenActivity(entry.activity_slug)
+                                    }
+                                    type="button"
                                 >
-                                    {formatDate(entry.recorded_at)}
-                                </time>
-                            </button>
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-sm font-medium">
+                                            {entry.activity_title ||
+                                                'Learning moment'}
+                                        </span>
+                                        <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                            {platformIntentLabel(
+                                                entry.evidence_type,
+                                                t,
+                                            )}
+                                            {entry.node_title
+                                                ? ` · ${entry.node_title}`
+                                                : ''}
+                                        </span>
+                                        {entry.objective ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                Objective: {entry.objective}
+                                            </span>
+                                        ) : null}
+                                        {entry.concepts.length ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                Concepts:{' '}
+                                                {entry.concepts.join(' · ')}
+                                            </span>
+                                        ) : null}
+                                        {entry.learning_purpose ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                Purpose: {entry.learning_purpose}
+                                            </span>
+                                        ) : null}
+                                        {entry.evidence_criterion ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                What to notice:{' '}
+                                                {entry.evidence_criterion}
+                                            </span>
+                                        ) : null}
+                                        {entry.evidence_rubric.length ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                Cues:{' '}
+                                                {entry.evidence_rubric.join(' · ')}
+                                            </span>
+                                        ) : null}
+                                        {entry.observed_cues.length ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                {t(
+                                                    'learning.reflection.observed_cues_label',
+                                                    'Noticed: ',
+                                                )}
+                                                {entry.observed_cues.join(' · ')}
+                                            </span>
+                                        ) : null}
+                                        <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
+                                            {evidenceClaim(entry.evidence_claim)}
+                                        </span>
+                                        {entry.independent_check ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                {t(
+                                                    'learning.reflection.independent_check_short',
+                                                    'Independent check',
+                                                )}
+                                            </span>
+                                        ) : null}
+                                        {entry.outcome ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                <span className="block">
+                                                    {t(
+                                                        'learning.review.outcome_signal',
+                                                        'Review signal',
+                                                    )}
+                                                    :{' '}
+                                                    {reviewOutcomeLabel(
+                                                        entry.outcome,
+                                                        t,
+                                                    )}
+                                                </span>
+                                                {reviewOutcomeDescription(
+                                                    entry.outcome,
+                                                    t,
+                                                ) ? (
+                                                    <span className="mt-1 block text-[var(--learner-muted-text)]">
+                                                        {reviewOutcomeDescription(
+                                                            entry.outcome,
+                                                            t,
+                                                        )}
+                                                    </span>
+                                                ) : null}
+                                            </span>
+                                        ) : null}
+                                        {entry.confidence ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                {entry.evidence_type ===
+                                                    'explain' ||
+                                                entry.evidence_type ===
+                                                    'transfer'
+                                                    ? t(
+                                                          'learning.calibration.before_response',
+                                                          'Before responding:',
+                                                      )
+                                                    : t(
+                                                          'learning.calibration.before_answer',
+                                                          'Before answering:',
+                                                      )}{' '}
+                                                {confidenceLabel(entry.confidence)}
+                                                {entry.attempt_number > 1
+                                                    ? ` · attempt ${entry.attempt_number}`
+                                                    : ''}
+                                            </span>
+                                        ) : null}
+                                        {entry.confidence_after_feedback ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                {t(
+                                                    'learning.calibration.after_guidance',
+                                                    'After guidance:',
+                                                )}{' '}
+                                                {confidenceLabel(
+                                                    entry.confidence_after_feedback,
+                                                )}
+                                            </span>
+                                        ) : null}
+                                        {entry.assistance_level ? (
+                                            <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                {assistanceLevelLabel(
+                                                    entry.assistance_level,
+                                                    t,
+                                                )}
+                                            </span>
+                                        ) : null}
+                                    </span>
+                                    <time
+                                        className="shrink-0 text-xs text-[var(--learner-muted-text)]"
+                                        dateTime={entry.recorded_at}
+                                    >
+                                        {formatDate(entry.recorded_at)}
+                                    </time>
+                                </button>
+                                {entry.sources.length ? (
+                                    <div className="border-t border-[var(--learner-border-color)] px-0 pt-2 pb-2 text-xs text-[var(--learner-muted-text)]">
+                                        <span className="mr-1">
+                                            {t(
+                                                'competence.evidence.sources',
+                                                'Sources',
+                                            )}
+                                            :
+                                        </span>
+                                        {entry.sources.map((source, index) => (
+                                            <span key={`${source.url}-${index}`}>
+                                                {index ? ', ' : null}
+                                                <a
+                                                    className="text-[var(--learner-action-accent)] underline decoration-[var(--learner-action-accent)]/30 underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
+                                                    href={source.url}
+                                                    rel="noreferrer"
+                                                    target="_blank"
+                                                >
+                                                    {source.title}
+                                                </a>
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : null}
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -1484,7 +1619,7 @@ export function TopicPathCard({
                     {starting
                         ? 'Opening…'
                         : inProgress
-                          ? t('paths.action.continue', 'Continue route')
+                          ? t('topics.detail.paths.continue', 'Continue')
                           : t('paths.action.enter', 'Enter route')}
                     <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
                 </button>
@@ -1866,6 +2001,81 @@ function evidenceClaim(value: string): string {
             transfer_attempt: 'A transfer attempt was recorded.',
         }[value] ?? 'A learning encounter was recorded.'
     );
+}
+function confidenceLabel(value: string): string {
+    return (
+        {
+            exploring: 'exploring',
+            leaning: 'I have a hunch',
+            settled: 'settled',
+        }[value] ?? value
+    );
+}
+function assistanceLevelLabel(
+    level: string,
+    t: (key: string, fallback?: string) => string,
+): string {
+    return t(
+        `learning.evidence.assistance_${level}`,
+        {
+            independent: 'Support context: independent',
+            supported: 'Support context: supported',
+            'ai-off': 'Support context: AI off',
+            hints: 'Support context: hints used',
+            'post-attempt': 'Support context: post-attempt help',
+        }[level] ?? `Support context: ${level}`,
+    );
+}
+function reviewOutcomeLabel(
+    outcome: string,
+    t: (key: string, fallback?: string) => string,
+): string {
+    const copy: Record<string, [string, string]> = {
+        clearer: ['learning.review.outcome_clearer', 'Clearer now'],
+        connected: ['learning.review.outcome_connected', 'More connected'],
+        open: ['learning.review.outcome_open', 'Still open'],
+        correct: ['learning.review.outcome_correct', 'Useful clue found'],
+        incorrect: [
+            'learning.review.outcome_incorrect',
+            'Adjust the hypothesis',
+        ],
+    };
+    const [key, fallback] = copy[outcome] ?? [
+        'learning.review.outcome_unknown',
+        'Review completed',
+    ];
+
+    return t(key, fallback);
+}
+function reviewOutcomeDescription(
+    outcome: string,
+    t: (key: string, fallback?: string) => string,
+): string | null {
+    const copy: Record<string, [string, string]> = {
+        clearer: [
+            'learning.review.outcome_clearer_description',
+            'The idea feels easier to explain or use now.',
+        ],
+        connected: [
+            'learning.review.outcome_connected_description',
+            'A relationship or context is more visible now.',
+        ],
+        open: [
+            'learning.review.outcome_open_description',
+            'The idea may need more time, another example, or a different route.',
+        ],
+        correct: [
+            'learning.review.outcome_correct_description',
+            'The answer matched the configured response.',
+        ],
+        incorrect: [
+            'learning.review.outcome_incorrect_description',
+            'The answer gives you a reason to adjust the hypothesis.',
+        ],
+    };
+    const result = copy[outcome];
+
+    return result ? t(...result) : null;
 }
 function formatDate(value: string): string {
     const date = new Date(value);

@@ -307,6 +307,137 @@ test('the topic trail consumes its source competence catalog copy', async ({
     ).toBeVisible();
 });
 
+test('the topic trail preserves localized evidence detail and sources', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                roles: ['learner'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/platform-translations', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'competence.evidence.sources': 'Localized sources',
+                    'learning.calibration.after_guidance':
+                        'Localized after guidance:',
+                    'learning.calibration.before_answer':
+                        'Localized before answering:',
+                    'learning.evidence.assistance_supported':
+                        'Localized support context',
+                    'learning.reflection.independent_check_short':
+                        'Localized independent check',
+                    'learning.reflection.observed_cues_label':
+                        'Localized noticed: ',
+                    'learning.review.outcome_clearer': 'Localized clearer',
+                    'learning.review.outcome_clearer_description':
+                        'Localized outcome description.',
+                    'learning.review.outcome_signal':
+                        'Localized review signal',
+                },
+            }),
+        }),
+    );
+    await page.route('**/api/v1/learner/topics/example/trail', (route) =>
+        route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                competence: {
+                    name: 'Example competence',
+                    revisit: null,
+                    slug: 'example-competence',
+                    visual: {
+                        aura_ratio: 0.2,
+                        brightness_ratio: 0.4,
+                        description: 'A concrete evidence trail.',
+                        evidence_ledger: [
+                            {
+                                activity_slug: 'example-activity',
+                                activity_title: 'Example activity',
+                                assistance_level: 'supported',
+                                attempt_number: 2,
+                                concepts: ['A concept'],
+                                confidence: 'leaning',
+                                confidence_after_feedback: 'settled',
+                                evidence_claim: 'reflection',
+                                evidence_criterion: 'Notice the next step.',
+                                evidence_rubric: ['Specific cue'],
+                                evidence_type: 'reflect',
+                                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                                independent_check: true,
+                                learning_purpose: 'Practice a next step.',
+                                node_slug: 'example-node',
+                                node_title: 'Example node',
+                                objective: 'Orient with care.',
+                                observed_cues: ['Named a choice'],
+                                outcome: 'clearer',
+                                recorded_at: '2026-11-14T12:00:00Z',
+                                sources: [
+                                    {
+                                        anchor: null,
+                                        concepts: [],
+                                        excerpt: null,
+                                        published_at: null,
+                                        publisher: null,
+                                        rights: null,
+                                        title: 'Example source',
+                                        url: 'https://example.test/source',
+                                    },
+                                ],
+                            },
+                        ],
+                        evidence_types: ['reflect'],
+                        learning_periods: ['Nov 2026'],
+                        recent_description: 'A recent observation.',
+                        size_ratio: 0.3,
+                        size_tier: 'star',
+                    },
+                },
+                learning_areas: [],
+                learning_pulse: [],
+                reflection_narrative: null,
+                subtopic_competence: [],
+                topic: {
+                    area_title: 'Orientation',
+                    content: null,
+                    description: null,
+                    parent: null,
+                    slug: 'example',
+                    title: 'Example topic',
+                },
+            }),
+        }),
+    );
+
+    await page.goto('/topics/example');
+    await expect(page.getByText('Localized noticed: Named a choice')).toBeVisible();
+    await expect(page.getByText('Localized independent check')).toBeVisible();
+    await expect(page.getByText('Localized review signal')).toBeVisible();
+    await expect(page.getByText('Localized after guidance: settled')).toBeVisible();
+    await expect(page.getByText('Localized support context')).toBeVisible();
+    await expect(page.getByText('Localized sources:')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Example source' })).toHaveAttribute(
+        'href',
+        'https://example.test/source',
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const source = page.getByRole('link', { name: 'Example source' });
+    await source.scrollIntoViewIfNeeded();
+    const box = await source.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+});
+
 test('the topic routes filters consume their source catalog copy', async ({
     page,
 }) => {
