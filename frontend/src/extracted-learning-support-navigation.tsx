@@ -231,21 +231,17 @@ function visibleLearningSupportSections(
     const canRead = (resource: string): boolean => settingsAccess[resource] === true;
 
     return sections
-        .map((section) =>
-            section.key === 'learner-messages'
-                ? {
-                      ...section,
-                      description: t(
-                          'settings.learner_messages.description',
-                          section.description,
-                      ),
-                      label: t(
-                          'settings.learner_messages.eyebrow',
-                          section.label,
-                      ),
-                  }
-                : section,
-        )
+        .map((section) => ({
+            ...section,
+            description: t(
+                `settings.learning_support.navigation.${section.key}.description`,
+                section.description,
+            ),
+            label: t(
+                `settings.learning_support.navigation.${section.key}.label`,
+                section.label,
+            ),
+        }))
         .filter((section) =>
             section.key === 'journal'
                 ? canRead('journal_settings')

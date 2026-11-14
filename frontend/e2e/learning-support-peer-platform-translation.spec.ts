@@ -53,6 +53,10 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
                             'localized reviews waiting',
                         'settings.learning_support.peer_support.title':
                             'Localized peer queue',
+                        'settings.learning_support.navigation.support-signals.label':
+                            'Localized support navigator',
+                        'settings.learning_support.navigation.support-signals.description':
+                            'Localized support navigator guidance.',
                         'settings.learning_support.signals.individual.label':
                             'Localized individual support',
                         'settings.learning_support.individual.eyebrow':
@@ -207,6 +211,9 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
     );
 
     await expect(page.getByText('Localized queue')).toBeVisible();
+    await expect(
+        page.getByRole('tab', { name: /Localized support navigator/ }),
+    ).toBeVisible();
     await expect(
         page.getByRole('heading', { name: 'Localized peer queue' }),
     ).toBeVisible();
