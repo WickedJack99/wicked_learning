@@ -2416,7 +2416,10 @@ function DuplicateMapDialog({
     onClose: () => void;
     onCreated: (mapId: string) => void;
 }) {
-    const [title, setTitle] = useState(`${map.title} copy`);
+    const t = usePlatformTranslation();
+    const [title, setTitle] = useState(
+        `${map.title} ${t('settings.world_builder.duplicate.copy_suffix', 'copy')}`,
+    );
     const [slug, setSlug] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -2424,7 +2427,12 @@ function DuplicateMapDialog({
     const duplicate = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!title.trim()) {
-            setError('Add a title for the copied map.');
+            setError(
+                t(
+                    'settings.world_builder.duplicate.title_required',
+                    'Add a title for the copied map.',
+                ),
+            );
             return;
         }
         setError(null);
@@ -2444,15 +2452,24 @@ function DuplicateMapDialog({
             if (!response.ok || !data) {
                 setError(
                     response.status === 400
-                        ? 'Use a title and a lowercase unique slug within the shown limits.'
-                        : 'The map could not be duplicated. Refresh the World Builder and try again.',
+                        ? t(
+                              'settings.world_builder.duplicate.invalid',
+                              'Use a title and a lowercase unique slug within the shown limits.',
+                          )
+                        : t(
+                              'settings.world_builder.duplicate.error',
+                              'The map could not be duplicated. Refresh the World Builder and try again.',
+                          ),
                 );
                 return;
             }
             onCreated(data.map_id);
         } catch {
             setError(
-                'The map could not be duplicated. Check your connection and try again.',
+                t(
+                    'settings.world_builder.duplicate.network_error',
+                    'The map could not be duplicated. Check your connection and try again.',
+                ),
             );
         } finally {
             setSaving(false);
@@ -2471,11 +2488,16 @@ function DuplicateMapDialog({
                 onSubmit={(event) => void duplicate(event)}
             >
                 <h2 className="text-xl font-semibold" id="duplicate-map-title">
-                    Duplicate authored map
+                    {t(
+                        'settings.world_builder.duplicate.title',
+                        'Duplicate authored map',
+                    )}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Create a new map in this world with its authored activities,
-                    routes, MapAssets, and internal connections copied over.
+                    {t(
+                        'settings.world_builder.duplicate.description',
+                        'Create a new map in this world with its authored activities, routes, MapAssets, and internal connections copied over.',
+                    )}
                 </p>
                 {error ? (
                     <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
@@ -2484,20 +2506,27 @@ function DuplicateMapDialog({
                 ) : null}
                 <div className="mt-5 grid gap-4">
                     <ActivityTextField
-                        label="New map title"
+                        label={t(
+                            'settings.world_builder.duplicate.name',
+                            'New map title',
+                        )}
                         onChange={setTitle}
                         value={title}
                     />
                     <ActivityTextField
-                        label="Slug (optional)"
+                        label={t(
+                            'settings.world_builder.duplicate.slug',
+                            'Slug (optional)',
+                        )}
                         onChange={setSlug}
                         value={slug}
                     />
                 </div>
                 <p className="mt-4 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                    Learner history, map history, review runs, and editor groups
-                    are not copied. Activities return to authoring review;
-                    portals leaving this map retain their destination.
+                    {t(
+                        'settings.world_builder.duplicate.boundaries',
+                        'Learner history, map history, review runs, and editor groups are not copied. Activities return to authoring review; portals leaving this map retain their destination.',
+                    )}
                 </p>
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
                     <button
@@ -2506,7 +2535,7 @@ function DuplicateMapDialog({
                         onClick={onClose}
                         type="button"
                     >
-                        Cancel
+                        {t('settings.world_builder.duplicate.cancel', 'Cancel')}
                     </button>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950"
@@ -2514,7 +2543,15 @@ function DuplicateMapDialog({
                         type="submit"
                     >
                         <Copy className="mr-1 inline size-4" />
-                        {saving ? 'Duplicating…' : 'Duplicate map'}
+                        {saving
+                            ? t(
+                                  'settings.world_builder.duplicate.duplicating',
+                                  'Duplicating…',
+                              )
+                            : t(
+                                  'settings.world_builder.duplicate.submit',
+                                  'Duplicate map',
+                              )}
                     </button>
                 </div>
             </form>
@@ -5136,7 +5173,7 @@ function MapDetails({
                 type="button"
             >
                 <Copy className="mr-1 inline size-4" />
-                Duplicate map
+                {t('settings.world_builder.duplicate.open', 'Duplicate map')}
             </button>
             <a
                 className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-center text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
