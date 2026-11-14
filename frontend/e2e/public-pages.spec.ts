@@ -2718,6 +2718,95 @@ test('the source Learning Desk search uses its authenticated result contract', a
     await expect(page).toHaveURL(/\/topics\/map-orientation$/);
 });
 
+test('the source Learning Desk opens its private Support area from the URL', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                name: 'Learner Example',
+                roles: ['learner'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/recall-items', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ items: [] }),
+        });
+    });
+    await page.route('**/api/v1/learner/world', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                activity_progress: [],
+                available_routes: [],
+                bookmarked_nodes: [],
+                items: [],
+                route_progress: [],
+                start_routes: [],
+                tools: [],
+                world: { maps: [] },
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/journal?*', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                check_ins: [],
+                pages: [],
+                pagination: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 1,
+                    total: 0,
+                },
+                revisit_invitations: [],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/bookmarks', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                background_config: {},
+                grid_config: {},
+                places: [],
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/desk/support-responses', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify([
+                {
+                    body: 'Try returning to the map context first.',
+                    created_at: '2026-11-12T10:00:00Z',
+                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66',
+                    map_slug: 'learning-map',
+                    map_title: 'Learning map',
+                    node_slug: 'support-place',
+                    node_title: 'Support place',
+                    topic_title: 'Orientation',
+                },
+            ]),
+        });
+    });
+
+    await page.goto('/home?area=support');
+
+    await expect(
+        page.getByRole('heading', { name: 'Learning Support replies' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Try returning to the map context first.'),
+    ).toBeVisible();
+});
+
 test('the source Learning Desk revisit section opens an opaque private revisit run', async ({
     page,
 }) => {
