@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerItemGrantDisplay = components['schemas']['LearnerItemGrantDisplay'];
 type LearnerItemGrantResult = components['schemas']['LearnerItemGrantResult'];
@@ -31,6 +32,7 @@ export function OriginalItemGrantActivity({
     const [error, setError] = useState(false);
     const rolledGrantKey = useRef<string | null>(null);
     const config = itemGrantConfig(activity.config);
+    const t = usePlatformTranslation();
 
     useEffect(() => {
         const grantKey = `${activity.slug}:${playRunId}`;
@@ -75,7 +77,7 @@ export function OriginalItemGrantActivity({
     if (isLoading) {
         return (
             <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
-                Rolling for items...
+                {t('activities.item_grant.loading', 'Rolling for items...')}
             </div>
         );
     }
@@ -83,7 +85,10 @@ export function OriginalItemGrantActivity({
     if (error) {
         return (
             <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200">
-                The item grant could not be resolved right now.
+                {t(
+                    'activities.item_grant.error',
+                    'The item grant could not be resolved right now.',
+                )}
             </p>
         );
     }
@@ -120,7 +125,9 @@ export function OriginalItemGrantActivity({
             ) : null}
 
             <div className="relative z-10 grid max-w-xl place-items-center gap-5">
-                <h4 className="text-lg font-semibold">Item received:</h4>
+                <h4 className="text-lg font-semibold">
+                    {t('activities.item_grant.received', 'Item received:')}
+                </h4>
                 {grantedItems.length > 0 ? (
                     <div
                         className="mx-auto inline-grid justify-center gap-3"

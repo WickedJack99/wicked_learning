@@ -3933,6 +3933,22 @@ test('the original item-grant surface rolls only the active configured items bef
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88';
+    let releaseGrantResponse: () => void = () => {};
+    const grantResponseMayContinue = new Promise<void>((resolve) => {
+        releaseGrantResponse = resolve;
+    });
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'activities.item_grant.loading': 'Localized item roll',
+                    'activities.item_grant.received': 'Localized item received',
+                },
+            }),
+        });
+    });
     await page.route(
         `**/api/v1/learner/play-runs/${playRunId}`,
         async (route) => {
@@ -3986,6 +4002,7 @@ test('the original item-grant surface rolls only the active configured items bef
             expect(await route.request().headerValue('X-CSRF-Token')).toBe(
                 'test-csrf-token',
             );
+            await grantResponseMayContinue;
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
@@ -4021,7 +4038,9 @@ test('the original item-grant surface rolls only the active configured items bef
     await expect(
         page.getByRole('heading', { name: 'A useful key' }),
     ).toBeVisible();
-    await expect(page.getByText('Item received:')).toBeVisible();
+    await expect(page.getByText('Localized item roll')).toBeVisible();
+    releaseGrantResponse();
+    await expect(page.getByText('Localized item received')).toBeVisible();
     const continueButton = page.getByRole('button', { name: 'Continue' });
     await expect(continueButton).toBeVisible();
     const bounds = await continueButton.boundingBox();
