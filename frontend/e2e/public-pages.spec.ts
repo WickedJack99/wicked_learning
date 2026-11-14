@@ -1482,6 +1482,42 @@ test('the source competence empty state keeps its translated topic action', asyn
     ).toHaveAttribute('href', '/topics');
 });
 
+test('the source competence catalog localizes its desk, guide, pulse, and unseen-topic controls', async ({
+    page,
+}) => {
+    await mockCompetenceReader(page, {
+        'competence.guide.evidence_intro': 'Translated recent moments.',
+        'competence.navigation.back_to_desk': 'Return to study hub',
+        'competence.pulse.description': 'Translated pulse notes.',
+        'competence.pulse.revisit_activity': 'Open this moment again',
+        'competence.reading.unseen.description': 'A translated pending trace.',
+        'competence.reading.unseen.eyebrow': 'Awaiting a first trace',
+        'competence.reading.unseen.open_topic': 'Visit this topic',
+    });
+
+    await page.goto('/competence');
+
+    await expect(
+        page.getByRole('link', { name: 'Return to study hub' }),
+    ).toHaveAttribute('href', '/home');
+    await expect(page.getByText('Translated pulse notes.')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Open this moment again' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'How to read this map' }).click();
+    await expect(
+        page.getByText('Translated recent moments.'),
+    ).toBeVisible();
+
+    await page.goto('/competence?topic=unseen-area&from=map-orientation');
+
+    await expect(page.getByText('Awaiting a first trace')).toBeVisible();
+    await expect(page.getByText('A translated pending trace.')).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Visit this topic' }),
+    ).toHaveAttribute('href', '/topics/unseen-area');
+});
+
 test('the competence map preserves its source topic and origin query context', async ({
     page,
 }) => {
@@ -1502,7 +1538,16 @@ test('the competence map preserves its source topic and origin query context', a
     await expect(page).toHaveURL(/\/topics\/unseen-area$/);
 });
 
-async function mockCompetenceReader(page: import('@playwright/test').Page) {
+async function mockCompetenceReader(
+    page: import('@playwright/test').Page,
+    translations: Record<string, string> = {},
+) {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ locale: 'test', translations }),
+        });
+    });
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',

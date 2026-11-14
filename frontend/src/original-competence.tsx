@@ -133,6 +133,7 @@ function CompetenceStarMap({
     userEmail: string;
 }) {
     const navigate = useNavigate();
+    const t = usePlatformTranslation();
     const [searchParams] = useSearchParams();
     const initialTopicSlug = topicSlug(searchParams.get('topic'));
     const contextTopicSlug =
@@ -314,7 +315,10 @@ function CompetenceStarMap({
                             <ArrowLeft className="size-4" />
                             {contextTopic
                                 ? `Back to ${contextTopic.title}`
-                                : 'Learning desk'}
+                                : t(
+                                      'competence.navigation.back_to_desk',
+                                      'Learning desk',
+                                  )}
                         </Link>
                     </header>
 
@@ -444,7 +448,15 @@ function CompetenceStarMap({
                                             : '/topics'
                                     }
                                     topicLinkLabel={
-                                        selectedTopic ? 'Open topic' : 'Browse topics'
+                                        selectedTopic
+                                            ? t(
+                                                  'competence.reading.unseen.open_topic',
+                                                  'Open topic',
+                                              )
+                                            : t(
+                                                  'competence.reading.unseen.browse_topics',
+                                                  'Browse topics',
+                                              )
                                     }
                                     topicTitle={
                                         selectedTopic?.title ??
@@ -513,6 +525,7 @@ function EmptyMap() {
 
 function CompetenceMapGuide({ recentWindowDays }: { recentWindowDays: number }) {
     const [isOpen, setIsOpen] = useState(false);
+    const t = usePlatformTranslation();
 
     return (
         <div className="absolute top-4 right-4 z-10 flex w-[min(36rem,calc(100%-2rem))] flex-col items-end text-slate-100">
@@ -527,7 +540,12 @@ function CompetenceMapGuide({ recentWindowDays }: { recentWindowDays: number }) 
                     <GuideTerm term="Halo">A softer sense of recent presence, so a newly revisited area can be noticed.</GuideTerm>
                     <GuideTerm term="Paths">Topics you encountered together in a route.</GuideTerm>
                 </dl>
-                <p className="text-slate-400">Recent learning moments inform each light.</p>
+                <p className="text-slate-400">
+                    {t(
+                        'competence.guide.evidence_intro',
+                        'Recent learning moments informing this light.',
+                    )}
+                </p>
             </div>
         </div>
     );
@@ -550,11 +568,13 @@ function LearningPulseTimeline({
     reviewAttempts: CompetenceMap['review_attempts'];
     onTopicSelect: (slug: string) => void;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-full xl:min-h-0 xl:overflow-y-auto">
             <div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-200/10 text-cyan-200"><Heart className="size-4" /></span><div><p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Your learning pulse</p><h2 className="mt-1 text-sm font-semibold text-white">Moments along the way</h2></div></div>
-            <p className="mt-3 text-sm leading-6 text-slate-300">Your notes about how the activities felt, kept alongside your learning trail.</p>
-            {checkIns.length ? <ol className="mt-5 grid gap-4">{checkIns.map((checkIn) => <li className="relative border-l border-cyan-200/25 pl-4" key={`${checkIn.activity_slug}:${checkIn.recorded_at}`}><span className="absolute top-1.5 -left-[0.3rem] size-2 rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(165,243,252,0.8)]" /><time className="text-xs text-slate-500" dateTime={checkIn.recorded_at}>{formatDate(checkIn.recorded_at)}</time><p className="mt-1 text-sm font-medium text-slate-100">{checkInFeelingLabel(checkIn.feeling)}</p><p className="mt-1 text-xs leading-5 text-slate-400">{checkIn.activity_title} · {checkIn.node_title}</p>{checkIn.note ? <p className="mt-2 text-sm leading-5 text-slate-300">{checkIn.note}</p> : null}{checkIn.next_direction ? <p className="mt-2 text-xs text-cyan-200/80">Next direction: {directionLabel(checkIn.next_direction)}</p> : null}<button className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white disabled:opacity-50" disabled={openingActivitySlug !== null} onClick={() => void onOpenActivity(checkIn.activity_slug)} type="button">Revisit this activity</button>{checkIn.topics.length ? <div className="mt-2 flex flex-wrap gap-1.5">{checkIn.topics.map((topic) => <button className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-0.5 text-left text-xs text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/15" key={topic.slug} onClick={() => onTopicSelect(topic.slug)} type="button">{topic.name}</button>)}</div> : null}</li>)}</ol> : <p className="mt-5 rounded-lg border border-dashed border-cyan-200/20 px-3 py-4 text-sm leading-6 text-slate-400">After an activity, you can leave a small note here for your future self.</p>}
+            <p className="mt-3 text-sm leading-6 text-slate-300">{t('competence.pulse.description', 'Your notes about how the activities felt, kept alongside your learning trail.')}</p>
+            {checkIns.length ? <ol className="mt-5 grid gap-4">{checkIns.map((checkIn) => <li className="relative border-l border-cyan-200/25 pl-4" key={`${checkIn.activity_slug}:${checkIn.recorded_at}`}><span className="absolute top-1.5 -left-[0.3rem] size-2 rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(165,243,252,0.8)]" /><time className="text-xs text-slate-500" dateTime={checkIn.recorded_at}>{formatDate(checkIn.recorded_at)}</time><p className="mt-1 text-sm font-medium text-slate-100">{checkInFeelingLabel(checkIn.feeling)}</p><p className="mt-1 text-xs leading-5 text-slate-400">{checkIn.activity_title} · {checkIn.node_title}</p>{checkIn.note ? <p className="mt-2 text-sm leading-5 text-slate-300">{checkIn.note}</p> : null}{checkIn.next_direction ? <p className="mt-2 text-xs text-cyan-200/80">Next direction: {directionLabel(checkIn.next_direction)}</p> : null}<button className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white disabled:opacity-50" disabled={openingActivitySlug !== null} onClick={() => void onOpenActivity(checkIn.activity_slug)} type="button">{t('competence.pulse.revisit_activity', 'Revisit this activity')}</button>{checkIn.topics.length ? <div className="mt-2 flex flex-wrap gap-1.5">{checkIn.topics.map((topic) => <button className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-0.5 text-left text-xs text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/15" key={topic.slug} onClick={() => onTopicSelect(topic.slug)} type="button">{topic.name}</button>)}</div> : null}</li>)}</ol> : <p className="mt-5 rounded-lg border border-dashed border-cyan-200/20 px-3 py-4 text-sm leading-6 text-slate-400">After an activity, you can leave a small note here for your future self.</p>}
             {reviewAttempts.length ? <section className="mt-6 border-t border-cyan-200/10 pt-5"><p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Review history</p><h2 className="mt-1 text-sm font-semibold text-white">Returns you chose to make</h2><p className="mt-2 text-sm leading-6 text-slate-400">A bounded record of revisits, kept separate from the learning pulse and any private journal writing.</p><OriginalPaginatedItems className="mt-4 grid gap-3" items={reviewAttempts} pageSize={2} paginationLabel="Review history" paginationButtonClassName="inline-flex items-center gap-1 text-xs text-cyan-200 transition hover:text-white disabled:pointer-events-none disabled:opacity-40" paginationClassName="mt-3 flex items-center justify-between border-t border-cyan-200/15 pt-3" paginationTextClassName="text-xs text-slate-500" renderItem={(attempt) => <button className="w-full rounded-lg border border-cyan-200/10 bg-cyan-200/5 p-3 text-left transition hover:border-cyan-200/30 hover:bg-cyan-200/10 disabled:opacity-50" disabled={openingActivitySlug !== null} key={`${attempt.activity_slug}:${attempt.attempted_at}`} onClick={() => void onOpenActivity(attempt.activity_slug)} type="button"><div className="flex items-start justify-between gap-3"><span><span className="block text-sm font-medium text-slate-100">{attempt.activity_title}</span><span className="mt-1 block text-xs text-slate-400">{attempt.node_title}{attempt.outcome ? ` · ${outcomeLabel(attempt.outcome)}` : ''}</span></span><time className="shrink-0 text-xs text-slate-500" dateTime={attempt.attempted_at}>{formatDate(attempt.attempted_at)}</time></div><span className="mt-2 block text-xs text-cyan-100/75">{attempt.confidence ? `Before guidance: ${confidenceLabel(attempt.confidence)}` : 'Review completed'}{attempt.confidence_after_feedback ? ` · After guidance: ${confidenceLabel(attempt.confidence_after_feedback)}` : ''}{attempt.observed_cues.length ? ` · Noticed: ${attempt.observed_cues.join(', ')}` : ''}{attempt.attempt_number > 1 ? ` · attempt ${attempt.attempt_number}` : ''}</span></button>} /></section> : null}
         </aside>
     );
@@ -615,12 +635,13 @@ function CompetenceStar({ active, onActiveChange, onSelect, selected, topic, vis
 
 function CompetenceReading({ checkIns, onClose, onOpenActivity, openingActivitySlug, position, topic }: { checkIns: CompetenceMap['check_ins']; onClose: () => void; onOpenActivity: (activitySlug: string) => Promise<void>; openingActivitySlug: string | null; position: PositionedCompetenceTopic; topic: CompetenceTopic }) {
     const relatedCheckIns = checkIns.filter((checkIn) => checkIn.topics.some((relatedTopic) => relatedTopic.slug === topic.slug)).slice(0, 3);
+    const t = usePlatformTranslation();
 
     return (
         <aside aria-live="polite" className="absolute bottom-4 left-4 max-h-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur">
             <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Reading this light</p><h2 className="mt-1 text-sm font-semibold">{topic.name}</h2></div><button aria-label="Close competence reading" className="rounded-md px-2 py-1 text-sm leading-none text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={onClose} type="button">×</button></div>
             <p className="mt-2 text-sm leading-5 text-slate-300">{topic.visual.description}</p>
-            {topic.related_topic ? <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">Topic context</p><p className="mt-1 text-xs leading-5 text-slate-300">{topic.related_topic.title}</p><Link className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white" to={`/topics/${encodeURIComponent(topic.related_topic.slug)}`}>Open topic <ArrowRight className="size-3.5" /></Link></div> : null}
+            {topic.related_topic ? <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">{t('competence.reading.topic_context', 'Topic context')}</p><p className="mt-1 text-xs leading-5 text-slate-300">{topic.related_topic.title}</p><Link className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white" to={`/topics/${encodeURIComponent(topic.related_topic.slug)}`}>{t('competence.reading.open_topic', 'Open topic')} <ArrowRight className="size-3.5" /></Link></div> : null}
             <div className="mt-3 rounded-lg border border-cyan-200/10 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">Recent rhythm</p><p className="mt-1 text-xs leading-5 text-slate-300">{topic.visual.recent_description}</p></div>
             <div className="mt-3"><p className="text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">Learning trail</p><div className="mt-2 flex flex-wrap gap-1.5">{topic.visual.learning_periods.map((period) => <span className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-1 text-xs text-cyan-100" key={period}>{period}</span>)}</div><p className="mt-2 text-xs leading-5 text-slate-400">Each marker is a month in which this area appeared in your learning trail.</p></div>
             {relatedCheckIns.length ? <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2"><p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">Your notes about this light</p><div className="mt-2 grid gap-2">{relatedCheckIns.map((checkIn) => <div className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2" key={`${checkIn.activity_slug}:${checkIn.recorded_at}`}><p className="text-xs font-medium text-slate-200">{checkInFeelingLabel(checkIn.feeling)}</p><p className="mt-1 text-xs leading-5 text-slate-400">{checkIn.activity_title} · {formatDate(checkIn.recorded_at)}</p>{checkIn.note ? <p className="mt-2 text-xs leading-5 text-slate-300">{checkIn.note}</p> : null}</div>)}</div></div> : null}
@@ -648,16 +669,18 @@ function UnseenCompetenceReading({
     topicLinkLabel: string;
     topicTitle: string;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <aside aria-live="polite" className="absolute bottom-4 left-4 max-h-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">Not on your map yet</p>
+                    <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">{t('competence.reading.unseen.eyebrow', 'Not on your map yet')}</p>
                     <h2 className="mt-1 text-sm font-semibold">{topicTitle}</h2>
                 </div>
                 <button aria-label="Close competence reading" className="rounded-md px-2 py-1 text-sm leading-none text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={onClose} type="button">×</button>
             </div>
-            <p className="mt-2 text-sm leading-5 text-slate-300">There is no learning moment for this area on your trail yet. Explore an activity connected to it, and this map can begin reflecting what you notice over time.</p>
+            <p className="mt-2 text-sm leading-5 text-slate-300">{t('competence.reading.unseen.description', 'There is no learning moment for this area on your trail yet. Explore an activity connected to it, and this map can begin reflecting what you notice over time.')}</p>
             <div className="mt-3"><Link className="inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white" to={topicHref}>{topicLinkLabel}<ArrowRight className="size-3.5" /></Link></div>
         </aside>
     );
