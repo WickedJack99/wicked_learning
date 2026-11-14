@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { LearningDesignSuggestions } from './original-activity-learning-design';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Activity = components['schemas']['AdminEditableActivity'];
 type ReviewTemplate = components['schemas']['AdminActivityReviewTemplate'];
@@ -30,6 +31,7 @@ export function OriginalActivityAiReviewDialog({
     ) => void;
     onReviewed: () => void;
 }) {
+    const t = usePlatformTranslation();
     const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
     const [review, setReview] = useState<ReviewResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,12 @@ export function OriginalActivityAiReviewDialog({
     const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!templateId) {
-            setError('Choose an enabled activity review helper first.');
+            setError(
+                t(
+                    'settings.activity_ai_review.template_error',
+                    'Choose an enabled activity review helper first.',
+                ),
+            );
             return;
         }
         setError(null);
@@ -58,8 +65,14 @@ export function OriginalActivityAiReviewDialog({
             if (!response.ok || !data) {
                 setError(
                     response.status === 422
-                        ? 'The helper did not return a safe structured review. No activity changes were made.'
-                        : 'The review could not be completed. Check the selected helper configuration and try again.',
+                        ? t(
+                              'settings.activity_ai_review.unsafe_error',
+                              'The helper did not return a safe structured review. No activity changes were made.',
+                          )
+                        : t(
+                              'settings.activity_ai_review.review_error',
+                              'The review could not be completed. Check the selected helper configuration and try again.',
+                          ),
                 );
                 return;
             }
@@ -67,7 +80,10 @@ export function OriginalActivityAiReviewDialog({
             onReviewed();
         } catch {
             setError(
-                'The review could not be completed. Check your connection and try again.',
+                t(
+                    'settings.activity_ai_review.connection_error',
+                    'The review could not be completed. Check your connection and try again.',
+                ),
             );
         } finally {
             setReviewing(false);

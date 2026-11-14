@@ -5,7 +5,9 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
 }) => {
     const mapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01';
     const nodeId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d02';
+    const activityId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d05';
     const npcActivityId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d06';
+    const reviewTemplateId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d08';
 
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
@@ -83,6 +85,8 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Localized shared task',
                     'settings.world_builder.activity_graph.tool_grant':
                         'Localized tool grant',
+                    'settings.activity_ai_review.unsafe_error':
+                        'Localized unsafe review feedback.',
                     'settings.world_builder.activity_templates.copy_activity':
                         'Localized copy :activity',
                     'settings.world_builder.activity_templates.create_copy':
@@ -214,7 +218,7 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                             ai_reviewed_at: null,
                             config: {},
                             connectors: { inputs: [], outputs: [] },
-                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d05',
+                            id: activityId,
                             introduction: null,
                             portal_link: null,
                             position: { x: 0, y: 0 },
@@ -242,7 +246,14 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         },
                     ],
                     activity_types: [],
-                    ai_review_templates: [],
+                    ai_review_templates: [
+                        {
+                            id: reviewTemplateId,
+                            model: 'mocked-review-model',
+                            name: 'Mocked review helper',
+                            provider_label: 'Mocked review provider',
+                        },
+                    ],
                     can_manage_ai_review: true,
                     competence_topic_options: [],
                     evidence_concept_options: [],
@@ -320,11 +331,27 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
             }),
         });
     });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'mocked-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/admin/world-builder/activities/${activityId}/ai-review`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                status: 422,
+                body: JSON.stringify({ code: 'ai_review_rejected' }),
+            });
+        },
+    );
 
     await page.goto(
         `/settings?panel=admin-world-builder&map=${mapId}&node=${nodeId}`,
     );
-    const card = page.locator('[data-id="018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d05"]');
+    const card = page.locator(`[data-id="${activityId}"]`);
     await expect(
         page.getByText('Localized graph arrangement guidance'),
     ).toBeVisible();
@@ -350,6 +377,17 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     await expect(
         card.getByRole('button', { name: 'Localized review activity' }),
     ).toBeVisible();
+    await card.getByRole('button', { name: 'Localized review activity' }).click();
+    const reviewDialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
+    await expect(reviewDialog).toBeVisible();
+    await expect(reviewDialog.getByLabel('Review helper')).toHaveValue(
+        reviewTemplateId,
+    );
+    await reviewDialog.getByRole('button', { name: 'Review activity' }).click();
+    await expect(reviewDialog.getByRole('status')).toHaveText(
+        'Localized unsafe review feedback.',
+    );
+    await reviewDialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(
         card.getByRole('button', { name: 'Localized edit Mocked activity' }),
     ).toBeVisible();
