@@ -502,6 +502,54 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(page.getByRole('menu')).toContainText('learner@example.test');
 });
 
+test('the source Settings shell retains the authenticated account control', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                appearance: 'dark',
+                capabilities: [],
+                email: 'administrator@example.test',
+                roles: ['platform_administrator'],
+                settings_access: {
+                    world_activities: true,
+                    world_maps: true,
+                    world_nodes: true,
+                },
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        });
+    });
+    await page.route('**/api/v1/admin/settings/notifications', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                pending_feedback_requests: 0,
+                pending_organization_icon_reports: 0,
+                reported_organizations: [],
+            }),
+        });
+    });
+
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=support-signals',
+    );
+
+    const accountControl = page.getByLabel('Signed-in account');
+    await expect(accountControl).toBeVisible();
+    await expect(accountControl).toContainText('administrator@example.test');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const accountBounds = await accountControl.boundingBox();
+    expect(accountBounds).not.toBeNull();
+    expect(accountBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(
+        (accountBounds?.x ?? 0) + (accountBounds?.width ?? Infinity),
+    ).toBeLessThanOrEqual(390);
+});
+
 test('the lifted tool belt and its panel remain inside desktop and narrow World viewports', async ({
     page,
 }) => {

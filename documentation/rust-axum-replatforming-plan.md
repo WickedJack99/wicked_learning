@@ -369,7 +369,9 @@ three-section source UI lift now consumes it without adding a new staff-data
 authority. The Support Signals, Learner Messages, Platform Feedback, Journal
 Feedback, Organization Icons, Competence Topics, Concept Library and Journal
 settings workspaces all retain the extracted source Settings shell and the
-same source Learning Support section navigator, so moving between available
+same source Learning Support section navigator. The shared top bar consumes
+the app's single typed current-user projection for its source-shaped account
+control instead of issuing a separate identity read per workspace, so moving between available
 child workspaces does not discard the parent source hierarchy. The source
 Organization Icons queue, Competence Topics and Concept Library forms, and
 Journal policy/background editor continue using their existing typed Rust

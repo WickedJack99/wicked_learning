@@ -13,6 +13,7 @@
     "settings.activity.time_guide.optional": "Optional",
     "settings.scaffold": "This is a scaffolded settings panel. The next step can connect this area to real forms and policies.",
     "settings.title": "Settings",
+    "settings.account.signed_in": "Signed-in account",
     "settings.eyebrow": "Platform",
     "settings.back": "Settings",
     "settings.sections.personal": "Personal",

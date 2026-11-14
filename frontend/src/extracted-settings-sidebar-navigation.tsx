@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { apiClient } from './api/client';
+import { useCurrentUser } from './current-user';
 import type { components } from './api/schema';
 import type {
     SettingsListItem,
@@ -180,6 +181,7 @@ export function SettingsTopBar({
 }) {
     const t = usePlatformTranslation();
     const navigate = useNavigate();
+    const { currentUser } = useCurrentUser();
     const [notifications, setNotifications] =
         useState<components['schemas']['AdminSettingsNotifications']>({
             pending_feedback_requests: 0,
@@ -327,6 +329,26 @@ export function SettingsTopBar({
                 >
                     <HelpCircle className="size-4" />
                 </a>
+                {currentUser.kind === 'loaded' ? (
+                    <div
+                        aria-label={t(
+                            'settings.account.signed_in',
+                            'Signed-in account',
+                        )}
+                        className="settings-topbar-control flex h-10 min-w-0 items-center gap-2 rounded-lg border border-[var(--settings-border-color)] px-2 text-left"
+                        data-wl-id="settings.current-user"
+                    >
+                        <span
+                            aria-hidden="true"
+                            className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--settings-active-background)] text-xs font-medium text-[var(--settings-accent)]"
+                        >
+                            {currentUser.email.slice(0, 1).toUpperCase()}
+                        </span>
+                        <span className="hidden max-w-48 truncate text-sm font-medium sm:block">
+                            {currentUser.email}
+                        </span>
+                    </div>
+                ) : null}
             </div>
         </header>
     );

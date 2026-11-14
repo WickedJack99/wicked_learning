@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
+import { useCurrentUser } from './current-user';
 import { OriginalLoginPage } from './original-login';
 import {
     OriginalForgotPasswordPage,
@@ -48,20 +49,6 @@ import {
 } from './public-presentation';
 import { PublicWorldPage } from './public-world';
 import { platformTranslationChangedEvent } from './original-platform-translation';
-
-type CurrentUserState =
-    | { kind: 'loading' }
-    | { kind: 'anonymous' }
-    | {
-          kind: 'loaded';
-          appearance: OriginalAppearance;
-          capabilities: string[];
-          email: string;
-          roles: string[];
-          settingsAccess: Record<string, boolean>;
-          subjectId: string;
-      }
-    | { kind: 'unavailable' };
 
 type PublicPresentationState =
     | { kind: 'loading' }
@@ -224,15 +211,9 @@ const OriginalAccessLinkRedeemPage = lazy(async () => {
 export function App() {
     const location = useLocation();
     const [appearance, setAppearance] = useOriginalAppearance();
-    const [currentUser, setCurrentUser] = useState<CurrentUserState>({
-        kind: 'loading',
-    });
+    const { currentUser, setCurrentUser } = useCurrentUser();
     const [presentationState, setPresentationState] =
         useState<PublicPresentationState>({ kind: 'loading' });
-
-    useEffect(() => {
-        void loadCurrentUser().then(setCurrentUser);
-    }, [location.pathname]);
 
     useEffect(() => {
         if (currentUser.kind === 'loaded') {
@@ -1286,29 +1267,4 @@ function PublicPresentationStatus({
             </p>
         </main>
     );
-}
-async function loadCurrentUser(): Promise<CurrentUserState> {
-    try {
-        const { data, response } = await apiClient.GET('/me');
-        if (response.status === 401) {
-            return { kind: 'anonymous' };
-        }
-        if (!response.ok || !data) {
-            return { kind: 'unavailable' };
-        }
-
-        return {
-            kind: 'loaded',
-            // The fallback keeps older mocked contract responses harmless while
-            // live API responses always carry the documented preference.
-            appearance: data.appearance === 'dark' ? 'dark' : 'light',
-            capabilities: data.capabilities,
-            email: data.email,
-            roles: data.roles,
-            settingsAccess: data.settings_access,
-            subjectId: data.subject_id,
-        };
-    } catch {
-        return { kind: 'unavailable' };
-    }
 }
