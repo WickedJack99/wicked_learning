@@ -1260,6 +1260,7 @@ function AssignmentDialog({
 }
 
 function DialogueCard({ data }: { data: { node?: DialogueNode } }) {
+    const t = usePlatformTranslation();
     const node = data.node;
     if (!node) return null;
     return (
@@ -1282,12 +1283,13 @@ function DialogueCard({ data }: { data: { node?: DialogueNode } }) {
                 {node.message ??
                     node.prompt ??
                     node.instruction ??
-                    'No text yet.'}
+                    t('settings.learning_companion.graph.no_text', 'No text yet.')}
             </p>
         </div>
     );
 }
 function StartCard() {
+    const t = usePlatformTranslation();
     return (
         <div className="w-32 rounded-xl border border-slate-200 bg-white p-3 text-center shadow-lg dark:border-white/10 dark:bg-slate-900">
             <Handle
@@ -1295,7 +1297,7 @@ function StartCard() {
                 position={Position.Right}
                 type="source"
             />
-            <p className="text-sm font-semibold">Start</p>
+            <p className="text-sm font-semibold">{t('settings.learning_companion.graph.start', 'Start')}</p>
         </div>
     );
 }
@@ -1653,13 +1655,13 @@ function ConfirmDelete({
     onCancel: () => void;
     onConfirm: () => void;
 }) {
+    const t = usePlatformTranslation();
     return (
-        <Modal label="Delete companion dialogue node" onClose={onCancel}>
+        <Modal label={t('settings.learning_companion.node_delete.modal_label', 'Delete companion dialogue node')} onClose={onCancel}>
             <div>
-                <h2 className="text-xl font-semibold">Delete {title}?</h2>
+                <h2 className="text-xl font-semibold">{t('settings.learning_companion.node_delete.title', 'Delete :title?', { title })}</h2>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                    Its incoming and outgoing connections will be removed from
-                    this graph.
+                    {t('settings.learning_companion.node_delete.description', 'Its incoming and outgoing connections will be removed from this graph.')}
                 </p>
                 <div className="mt-5 flex justify-end gap-2">
                     <button
@@ -1667,14 +1669,14 @@ function ConfirmDelete({
                         onClick={onCancel}
                         type="button"
                     >
-                        Cancel
+                        {t('common.cancel', 'Cancel')}
                     </button>
                     <button
                         className="min-h-11 rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white"
                         onClick={onConfirm}
                         type="button"
                     >
-                        Delete
+                        {t('common.delete', 'Delete')}
                     </button>
                 </div>
             </div>
