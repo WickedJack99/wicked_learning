@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type ActivityVersionPage = components['schemas']['AdminActivityVersionPage'];
 type ActivityVersionSummary =
@@ -26,6 +27,7 @@ export function OriginalActivityHistoryDialog({
     onClose: () => void;
     onRestored: () => void;
 }) {
+    const t = usePlatformTranslation();
     const [history, setHistory] = useState<ActivityVersionPage | null>(null);
     const [details, setDetails] = useState<ActivityVersionDetails | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -53,12 +55,12 @@ export function OriginalActivityHistoryDialog({
                 }
                 setHistory(data);
             } catch {
-                setError('Activity history could not be loaded. Try again.');
+                setError(t('settings.activity_history.load_error', 'Activity history could not be loaded. Try again.'));
             } finally {
                 setLoading(false);
             }
         },
-        [activityId],
+        [activityId, t],
     );
 
     useEffect(() => {
@@ -85,7 +87,7 @@ export function OriginalActivityHistoryDialog({
             }
             setDetails(data.version);
         } catch {
-            setError('This activity version could not be inspected. Try again.');
+            setError(t('settings.activity_history.inspect_error', 'This activity version could not be inspected. Try again.'));
         } finally {
             setInspectingId(null);
         }
@@ -94,7 +96,7 @@ export function OriginalActivityHistoryDialog({
     const restore = async (version: ActivityVersionSummary) => {
         if (
             !window.confirm(
-                'Restore this activity version? The current configuration will be preserved in history and the restored activity will need review.',
+                t('settings.activity_history.restore_confirm', 'Restore this activity version? The current configuration will be preserved in history and the restored activity will need review.'),
             )
         ) {
             return;
@@ -120,7 +122,7 @@ export function OriginalActivityHistoryDialog({
             }
             onRestored();
         } catch {
-            setError('This activity version could not be restored. Try again.');
+            setError(t('settings.activity_history.restore_error', 'This activity version could not be restored. Try again.'));
         } finally {
             setRestoringId(null);
         }
