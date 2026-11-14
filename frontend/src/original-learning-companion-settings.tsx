@@ -1408,7 +1408,7 @@ function NodeDialog({
                         />
                     </Field>
                     {draft.type === 'choice' ? (
-                        <Field label="Prompt">
+                        <Field label={t('settings.learning_companion.node_editor.prompt', 'Prompt')}>
                             <textarea
                                 className={`${input} min-h-24`}
                                 maxLength={1200}
@@ -1420,7 +1420,7 @@ function NodeDialog({
                         </Field>
                     ) : draft.type === 'ai' ? (
                         <>
-                            <Field label="Authored instruction">
+                            <Field label={t('settings.learning_companion.node_editor.instruction', 'Authored instruction')}>
                                 <textarea
                                     className={`${input} min-h-24`}
                                     maxLength={1200}
@@ -1434,7 +1434,7 @@ function NodeDialog({
                                 />
                             </Field>
                             <SelectField
-                                label="Response mode"
+                                label={t('settings.learning_companion.node_editor.response_mode', 'Response mode')}
                                 onChange={(value) =>
                                     update(
                                         'response_mode',
@@ -1442,14 +1442,14 @@ function NodeDialog({
                                     )
                                 }
                                 options={[
-                                    ['message', 'Message'],
-                                    ['choice', 'Choice'],
+                                    ['message', t('settings.learning_companion.node_editor.types.message', 'Message')],
+                                    ['choice', t('settings.learning_companion.node_editor.types.choice', 'Choice')],
                                 ]}
                                 value={draft.response_mode ?? 'message'}
                             />
                         </>
                     ) : (
-                        <Field label="Message">
+                        <Field label={t('settings.learning_companion.node_editor.message', 'Message')}>
                             <textarea
                                 className={`${input} min-h-24`}
                                 maxLength={1200}
@@ -1462,11 +1462,11 @@ function NodeDialog({
                     )}
                     {draft.type === 'message' || draft.type === 'ai' ? (
                         <SelectField
-                            label="Continue to"
+                            label={t('settings.learning_companion.node_editor.continue_to', 'Continue to')}
                             onChange={(value) =>
                                 update('next', nullable(value) ?? undefined)
                             }
-                            options={[['', 'End this path'], ...targets]}
+                            options={[['', t('settings.learning_companion.node_editor.end_path', 'End this path')], ...targets]}
                             value={draft.next ?? ''}
                         />
                     ) : null}
@@ -1474,7 +1474,7 @@ function NodeDialog({
                 {draft.type === 'ai' ? (
                     <fieldset className="mt-5 grid gap-2 border-t border-slate-200 pt-4 dark:border-white/10">
                         <legend className="text-sm font-semibold">
-                            Allowed capabilities
+                            {t('settings.learning_companion.node_editor.allowed_capabilities', 'Allowed capabilities')}
                         </legend>
                         <div className="grid gap-2 sm:grid-cols-2">
                             {capabilities.map(([value, label]) => (
@@ -1506,7 +1506,7 @@ function NodeDialog({
                                         }
                                         type="checkbox"
                                     />
-                                    {label}
+                                    {t(`settings.learning_companion.identity.capabilities.${value}`, label)}
                                 </label>
                             ))}
                         </div>
