@@ -1542,7 +1542,7 @@ function NodeDialog({
                                     key={`${choice.key}-${index}`}
                                 >
                                     <input
-                                        aria-label={`Choice ${index + 1} label`}
+                                        aria-label={t('settings.learning_companion.node_editor.choice_label', 'Choice :number label', { number: index + 1 })}
                                         className={input}
                                         onChange={(event) =>
                                             updateChoice(index, {
@@ -1573,7 +1573,7 @@ function NodeDialog({
                                         value={choice.next ?? ''}
                                     />
                                     <button
-                                        aria-label={`Remove choice ${index + 1}`}
+                                        aria-label={t('settings.learning_companion.node_editor.remove_choice', 'Remove choice :number', { number: index + 1 })}
                                         className="rounded-md p-2 text-red-700 hover:bg-red-500/10 dark:text-red-300"
                                         onClick={() =>
                                             update(
@@ -1606,7 +1606,7 @@ function NodeDialog({
                                         value={choice.action ?? ''}
                                     />
                                     <input
-                                        aria-label={`Choice ${index + 1} key`}
+                                        aria-label={t('settings.learning_companion.node_editor.choice_key', 'Choice :number key', { number: index + 1 })}
                                         className={input}
                                         onChange={(event) =>
                                             updateChoice(index, {
