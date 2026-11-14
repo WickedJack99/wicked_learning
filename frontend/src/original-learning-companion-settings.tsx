@@ -768,6 +768,7 @@ function DialogueEditor({
     onClose: () => void;
     onSaved: (dialogue: DialogueResponse) => void;
 }) {
+    const t = usePlatformTranslation();
     const [name, setName] = useState(dialogue.name);
     const [graph, setGraph] = useState(graphOf(dialogue));
     const [busy, setBusy] = useState(false);
@@ -806,23 +807,22 @@ function DialogueEditor({
         }
     };
     return (
-        <Modal label="Companion dialogue graph editor" onClose={onClose}>
+        <Modal label={t('settings.learning_companion.dialogue_editor.modal_label', 'Companion dialogue graph editor')} onClose={onClose}>
             <div className="flex min-h-0 flex-1 flex-col gap-4">
                 <header className="flex items-start justify-between gap-4">
                     <div>
                         <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-200">
-                            Dialogue graph
+                            {t('settings.learning_companion.dialogue_editor.eyebrow', 'Dialogue graph')}
                         </p>
                         <h2 className="mt-1 text-xl font-semibold">
-                            Graph editor
+                            {t('settings.learning_companion.dialogue_editor.title', 'Graph editor')}
                         </h2>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Connect source-shaped nodes through their configured
-                            next step or choice target.
+                            {t('settings.learning_companion.dialogue_editor.description', 'Connect source-shaped nodes through their configured next step or choice target.')}
                         </p>
                     </div>
                     <button
-                        aria-label="Close graph editor"
+                        aria-label={t('settings.learning_companion.dialogue_editor.close', 'Close graph editor')}
                         className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
                         onClick={onClose}
                         type="button"
@@ -830,7 +830,7 @@ function DialogueEditor({
                         <X className="size-5" />
                     </button>
                 </header>
-                <Field label="Graph name">
+                <Field label={t('settings.learning_companion.dialogue_editor.graph_name', 'Graph name')}>
                     <input
                         className={input}
                         maxLength={120}
@@ -853,7 +853,7 @@ function DialogueEditor({
                         onClick={onClose}
                         type="button"
                     >
-                        Cancel
+                        {t('common.cancel', 'Cancel')}
                     </button>
                     <button
                         className="inline-flex min-h-11 items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-teal-300 dark:text-slate-950"
@@ -862,7 +862,7 @@ function DialogueEditor({
                         type="button"
                     >
                         <Save className="size-4" />
-                        {busy ? 'Saving…' : 'Save graph'}
+                        {busy ? t('settings.learning_companion.saving', 'Saving…') : t('settings.learning_companion.dialogue_editor.save', 'Save graph')}
                     </button>
                 </footer>
             </div>
@@ -877,6 +877,7 @@ function GraphEditor({
     graph: DialogueGraph;
     onChange: (graph: DialogueGraph) => void;
 }) {
+    const t = usePlatformTranslation();
     const [editing, setEditing] = useState<DialogueNode | null>(null);
     const [adding, setAdding] = useState(false);
     const [pending, setPending] = useState<DialogueNode | null>(null);
@@ -968,10 +969,9 @@ function GraphEditor({
         <div className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <h3 className="font-semibold">Conversation flow</h3>
+                    <h3 className="font-semibold">{t('settings.learning_companion.dialogue_editor.flow_title', 'Conversation flow')}</h3>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        The canvas reflects authored flow. Select a card to edit
-                        its content, capabilities and outgoing targets.
+                        {t('settings.learning_companion.dialogue_editor.flow_description', 'The canvas reflects authored flow. Select a card to edit its content, capabilities and outgoing targets.')}
                     </p>
                 </div>
                 <button
@@ -983,7 +983,7 @@ function GraphEditor({
                     type="button"
                 >
                     <Plus className="size-4" />
-                    Add node
+                    {t('settings.learning_companion.dialogue_editor.add_node', 'Add node')}
                 </button>
             </div>
             <div className="relative min-h-[25rem] flex-1 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-950">

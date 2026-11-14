@@ -37,6 +37,12 @@ test('the Learning Companion settings surfaces consume their fixed platform cata
                         'Localized search graphs',
                     'settings.learning_companion.dialogues.title':
                         'Localized dialogues workspace',
+                    'settings.learning_companion.dialogue_editor.flow_title':
+                        'Localized conversation flow',
+                    'settings.learning_companion.dialogue_editor.graph_name':
+                        'Localized graph name',
+                    'settings.learning_companion.dialogue_editor.title':
+                        'Localized graph editor',
                     'settings.learning_companion.navigation.dialogues.description':
                         'Localized reusable dialogue graphs.',
                     'settings.learning_companion.navigation.dialogues.label':
@@ -76,16 +82,49 @@ test('the Learning Companion settings surfaces consume their fixed platform cata
     await page.route(
         '**/api/v1/admin/learning-companion/dialogues**',
         async (route) => {
+            const url = new URL(route.request().url());
+            const dialogueId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b';
+            if (url.pathname.endsWith('/dialogues')) {
+                await route.fulfill({
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        items: [
+                            {
+                                assignments_count: 0,
+                                id: dialogueId,
+                                name: 'Source graph',
+                                updated_at: '2026-11-14T12:34:00Z',
+                            },
+                        ],
+                        pagination: {
+                            current_page: 1,
+                            last_page: 1,
+                            per_page: 6,
+                            total: 1,
+                        },
+                    }),
+                });
+                return;
+            }
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
-                    items: [],
-                    pagination: {
-                        current_page: 1,
-                        last_page: 1,
-                        per_page: 6,
-                        total: 0,
+                    assignments_count: 0,
+                    dialogue_graph: {
+                        nodes: [
+                            {
+                                id: 'welcome',
+                                message: 'Source authored message',
+                                title: 'Welcome',
+                                type: 'message',
+                            },
+                        ],
+                        start: 'welcome',
+                        version: 1,
                     },
+                    id: dialogueId,
+                    name: 'Source graph',
+                    updated_at: '2026-11-14T12:34:00Z',
                 }),
             });
         },
@@ -126,6 +165,17 @@ test('the Learning Companion settings surfaces consume their fixed platform cata
         'placeholder',
         'Localized search graphs',
     );
+    await page.getByRole('button', { name: 'Source graph' }).click();
+    await page.getByRole('button', { name: 'Open graph editor' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Localized graph editor' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Localized graph name')).toHaveValue(
+        'Source graph',
+    );
+    await expect(
+        page.getByText('Localized conversation flow'),
+    ).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
     const selector = page.getByLabel('Localized Learning Companion selector');
