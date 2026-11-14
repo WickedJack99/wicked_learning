@@ -196,6 +196,25 @@ joins, authorization scopes, pagination and bounded payloads stay visible.
 
 ## API and frontend contract
 
+### Mandatory source-first slice workflow
+
+Before selecting or implementing a replatforming slice, treat the Laravel
+application as the behavioral and presentation reference. For the proposed
+journey, inspect its route declaration, controller/action, authorization,
+validation, serializers/queries/actions, relevant models and migrations,
+source React/Inertia page and focused tests. Use this evidence to define one
+fresh Rust-owned schema/SQL migration set and a typed Rust contract; do not
+replay Laravel migrations or import legacy identifiers/data.
+
+Then lift and adapt the original React component tree and its URL/history,
+loading, error, navigation and accessibility behavior around the typed client.
+Do not replace an original control, navigation structure or visual hierarchy
+with substitute UI merely because its backend is incomplete. A route stays
+unavailable until its complete Rust contract exists. Verify the coherent slice
+with focused Rust/contract coverage, generated-client checks, production build,
+and browser checks at desktop and 390px; record the plan evidence, commit, and
+push the slice to `replatform-discovery` before beginning the next one.
+
 Design versioned JSON resources and commands by user task. Do not mechanically
 rename every current web route under `/api`.
 
