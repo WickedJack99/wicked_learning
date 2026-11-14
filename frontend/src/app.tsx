@@ -871,6 +871,8 @@ export function App() {
                                 ? 'learning-concepts'
                                 : 'competence-topics'
                         }
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
                     />
                 </Suspense>
             );
@@ -907,6 +909,8 @@ export function App() {
                 <Suspense fallback={null}>
                     <OriginalOrganizationIconModerationPage
                         appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
                     />
                 </Suspense>
             );
@@ -951,7 +955,11 @@ export function App() {
 
             return (
                 <Suspense fallback={null}>
-                    <OriginalJournalSettingsPage appearance={appearance} />
+                    <OriginalJournalSettingsPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }

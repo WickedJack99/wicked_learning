@@ -1,9 +1,9 @@
 import { Image, Images, Plus, Save, ShieldCheck, Trash2, Upload, X } from 'lucide-react';
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { LearningSupportSettingsShell } from './extracted-learning-support-navigation';
 import type { OriginalAppearance } from './original-appearance';
 import { journalThemeImageUrl, journalThemeStyle } from './original-journal-theme';
 
@@ -19,7 +19,15 @@ type Mode = 'dark' | 'light';
 /** Source-adapted from `pages/settings/journal.tsx`. The standalone route keeps
  * the original policy, background, asset, mode and preview workflow while its
  * saves go through the Rust-owned contract. */
-export function OriginalJournalSettingsPage({ appearance }: { appearance: OriginalAppearance }) {
+export function OriginalJournalSettingsPage({
+    appearance,
+    onSignedOut,
+    settingsAccess,
+}: {
+    appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
+}) {
     const [policy, setPolicy] = useState<JournalPolicy | null>(null);
     const [draft, setDraft] = useState<JournalPolicy | null>(null);
     const [section, setSection] = useState<Section>('policy');
@@ -72,14 +80,14 @@ export function OriginalJournalSettingsPage({ appearance }: { appearance: Origin
         }
     }
 
-    return <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}>
-        <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
-            <header className="flex shrink-0 flex-wrap items-start justify-between gap-4 pb-5">
-                <div><Link className="mb-4 inline-flex rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]" to="/settings?panel=admin-learning-support&support=feedback-requests">Learning Support</Link><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p><h1 className="mt-2 text-3xl font-semibold">Journal</h1></div>
+    return <LearningSupportSettingsShell activeSection="journal" appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}>
+        <section className="flex h-full min-h-0 flex-col" data-wl-id="settings.learning-support.journal">
+            <header className="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-[var(--settings-border-color)] px-4 py-4 sm:px-5">
+                <div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p><h1 className="mt-2 text-3xl font-semibold">Journal</h1></div>
                 <button className="inline-flex items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={!changed || busy || !draft} onClick={() => void save()} type="button"><Save className="size-4" />{busy ? 'Saving…' : 'Save changes'}</button>
             </header>
-            {error ? <p className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p> : null}
-            {!draft ? <p className="p-6 text-sm text-[var(--settings-muted-text)]">Loading Journal settings…</p> : <section className="min-h-0 flex-1 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]">
+            {error ? <p className="m-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p> : null}
+            {!draft ? <p className="p-6 text-sm text-[var(--settings-muted-text)]">Loading Journal settings…</p> : <section className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-panel-background)]">
                 <div className="grid h-full min-h-0 lg:grid-cols-[15rem_minmax(0,1fr)]">
                     <aside className="border-b border-[var(--settings-border-color)] p-3 lg:border-r lg:border-b-0"><SectionButton active={section === 'policy'} description="Expert access consent and Journal safeguards." icon={<ShieldCheck className="size-4" />} label="Policy" onClick={() => setSection('policy')} /><SectionButton active={section === 'background'} description="Book, parchment or other Journal backdrop." icon={<Image className="size-4" />} label="Background" onClick={() => setSection('background')} /></aside>
                     <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
@@ -89,8 +97,8 @@ export function OriginalJournalSettingsPage({ appearance }: { appearance: Origin
                     </div>
                 </div>
             </section>}
-        </div>
-    </main>;
+        </section>
+    </LearningSupportSettingsShell>;
 }
 
 function SectionButton({ active, description, icon, label, onClick }: { active: boolean; description: string; icon: ReactNode; label: string; onClick: () => void }) {
@@ -139,4 +147,3 @@ function JournalPreview({ mode, theme }: { mode: Mode; theme: JournalThemeMode }
 
 function newAsset(): BackgroundAsset { return { id: globalThis.crypto?.randomUUID?.() ?? `asset-${Date.now()}`, image: '', position_x: 50, position_y: 50, zoom: 100 }; }
 function capitalize(value: string): string { return `${value.charAt(0).toUpperCase()}${value.slice(1)}`; }
-function settingsStyle(appearance: OriginalAppearance): CSSProperties { const dark = appearance === 'dark'; return { '--settings-accent': dark ? '#2dd4bf' : '#0f766e', '--settings-active-background': dark ? 'rgba(45, 212, 191, 0.12)' : '#ccfbf1', '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0', '--settings-content-background': dark ? '#0b1117' : '#f1f5f9', '--settings-muted-text': dark ? '#94a3b8' : '#64748b', '--settings-panel-background': dark ? '#111820' : '#ffffff' } as CSSProperties; }

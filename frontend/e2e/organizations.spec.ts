@@ -137,7 +137,20 @@ test('organizations preserve the source membership, leadership and chat workflow
         await page.goto(
             new URL('/settings?panel=admin-learning-support&support=organization-icons', origin).toString(),
         );
+        await expect(
+            page.getByRole('tablist', { name: 'Learning support sections' }),
+        ).toBeVisible();
+        await expect(
+            page
+                .getByRole('tablist', { name: 'Learning support sections' })
+                .getByRole('tab', { name: 'Organization Icons' }),
+        ).toHaveAttribute('aria-selected', 'true');
         await expect(page.getByRole('heading', { name: 'Organization Icons' })).toBeVisible();
+        await page.setViewportSize({ width: 390, height: 844 });
+        await expect(
+            page.getByLabel('Learning support section', { exact: true }),
+        ).toHaveValue('organization-icons');
+        await page.setViewportSize({ width: 1280, height: 844 });
         const membershipLimit = page.getByLabel('Organization membership limit');
         await membershipLimit.fill('9');
         const savePolicy = page.getByRole('button', { name: 'Save' });

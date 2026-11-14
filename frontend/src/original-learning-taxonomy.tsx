@@ -1,9 +1,10 @@
-import { BookOpenText, Plus, Save, Sparkles, Trash2 } from 'lucide-react';
-import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { Plus, Save, Trash2 } from 'lucide-react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { LearningSupportSettingsShell } from './extracted-learning-support-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type LearningTaxonomy = components['schemas']['AdminLearningTaxonomy'];
@@ -28,9 +29,13 @@ const secondaryButtonClass =
 export function OriginalLearningTaxonomyPage({
     appearance,
     initialSection = 'competence-topics',
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
     initialSection?: Section;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const [taxonomy, setTaxonomy] = useState<LearningTaxonomy | null>(null);
     const [loading, setLoading] = useState(true);
@@ -75,46 +80,24 @@ export function OriginalLearningTaxonomyPage({
     }
 
     return (
-        <main
-            className={`min-h-svh bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100 ${appearance === 'dark' ? 'dark' : ''}`}
-            data-wl-id="admin.learning-taxonomy"
+        <LearningSupportSettingsShell
+            activeSection={initialSection}
+            appearance={appearance}
+            onSignedOut={onSignedOut}
+            settingsAccess={settingsAccess}
         >
-            <div className="mx-auto grid min-h-svh max-w-7xl lg:grid-cols-[16rem_minmax(0,1fr)]">
-                <aside className="border-b border-slate-200 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.015] lg:border-r lg:border-b-0">
-                    <p className="px-3 pt-2 text-xs font-semibold tracking-[0.18em] text-violet-700 uppercase dark:text-violet-300">
-                        Administration
-                    </p>
-                    <h1 className="px-3 pt-2 text-xl font-semibold">Learning support</h1>
-                    <nav aria-label="Learning support sections" className="mt-6 grid gap-1">
-                        {taxonomy?.can_manage_competence_topics ? (
-                            <SectionTab active={section === 'competence-topics'} icon={<Sparkles className="size-4" />} onClick={() => setSection('competence-topics')} title="Competence Topics">
-                                Define topics and star-map thresholds.
-                            </SectionTab>
-                        ) : null}
-                        {taxonomy?.can_manage_learning_concepts ? (
-                            <SectionTab active={section === 'learning-concepts'} icon={<BookOpenText className="size-4" />} onClick={() => setSection('learning-concepts')} title="Concept Library">
-                                Maintain reusable vocabulary for evidence authoring.
-                            </SectionTab>
-                        ) : null}
-                    </nav>
-                </aside>
-                <section className="min-w-0 p-5 sm:p-8 lg:p-10">
-                    {error ? <p className="mb-5 text-sm text-rose-700 dark:text-rose-300" role="alert">{error}</p> : null}
-                    {loading ? (
-                        <p className="py-10 text-sm text-slate-500 dark:text-slate-400">Loading administration…</p>
-                    ) : taxonomy && section === 'competence-topics' && taxonomy.can_manage_competence_topics ? (
-                        <CompetenceTopicsSection key={taxonomy.competence_topics.map((topic) => topic.slug).join(',')} topics={taxonomy.competence_topics} onSaved={load} />
-                    ) : taxonomy && section === 'learning-concepts' && taxonomy.can_manage_learning_concepts ? (
-                        <LearningConceptsSection key={taxonomy.learning_concepts.map((concept) => concept.slug).join(',')} concepts={taxonomy.learning_concepts} onSaved={load} />
-                    ) : null}
-                </section>
-            </div>
-        </main>
+            <section className="flex h-full min-h-0 flex-col overflow-y-auto p-5 sm:p-8 lg:p-10" data-wl-id="admin.learning-taxonomy">
+                {error ? <p className="mb-5 text-sm text-rose-700 dark:text-rose-300" role="alert">{error}</p> : null}
+                {loading ? (
+                    <p className="py-10 text-sm text-slate-500 dark:text-slate-400">Loading administration…</p>
+                ) : taxonomy && section === 'competence-topics' && taxonomy.can_manage_competence_topics ? (
+                    <CompetenceTopicsSection key={taxonomy.competence_topics.map((topic) => topic.slug).join(',')} topics={taxonomy.competence_topics} onSaved={load} />
+                ) : taxonomy && section === 'learning-concepts' && taxonomy.can_manage_learning_concepts ? (
+                    <LearningConceptsSection key={taxonomy.learning_concepts.map((concept) => concept.slug).join(',')} concepts={taxonomy.learning_concepts} onSaved={load} />
+                ) : null}
+            </section>
+        </LearningSupportSettingsShell>
     );
-}
-
-function SectionTab({ active, children, icon, onClick, title }: { active: boolean; children: string; icon: ReactNode; onClick: () => void; title: string }) {
-    return <button aria-current={active ? 'page' : undefined} className={`grid gap-1 rounded-lg px-3 py-3 text-left transition ${active ? 'bg-violet-100 text-violet-950 dark:bg-violet-500/20 dark:text-violet-100' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5'}`} onClick={onClick} type="button"><span className="flex items-center gap-2 text-sm font-semibold">{icon}{title}</span><span className="pl-6 text-xs leading-5 opacity-80">{children}</span></button>;
 }
 
 function CompetenceTopicsSection({ onSaved, topics }: { onSaved: () => void; topics: CompetenceTopic[] }) {

@@ -20,6 +20,15 @@ test('a local administrator can use the source-derived learning taxonomy workspa
     await expect(
         page.locator('[data-wl-id="admin.learning-taxonomy.competence-topics"]'),
     ).toBeVisible();
+    const learningSupportNavigation = page.getByRole('tablist', {
+        name: 'Learning support sections',
+    });
+    await expect(learningSupportNavigation).toBeVisible();
+    await expect(
+        learningSupportNavigation.getByRole('tab', {
+            name: 'Competence Topics',
+        }),
+    ).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('button', { name: 'Add topic' })).toBeVisible();
 
     const firstThreshold = page.getByLabel('Size threshold').first();
@@ -33,7 +42,10 @@ test('a local administrator can use the source-derived learning taxonomy workspa
     await page.getByRole('button', { name: 'Save topics' }).click();
     expect((await save).status()).toBe(204);
 
-    await page.getByRole('button', { name: 'Concept Library' }).click();
+    await learningSupportNavigation
+        .getByRole('tab', { name: 'Concept Library' })
+        .click();
+    await expect(page).toHaveURL(/support=learning-concepts/);
     await expect(
         page.locator('[data-wl-id="admin.learning-taxonomy.learning-concepts"]'),
     ).toBeVisible();
@@ -52,4 +64,7 @@ test('a local administrator can use the source-derived learning taxonomy workspa
     const box = await saveConcepts.boundingBox();
     expect(box).not.toBeNull();
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+    await expect(
+        page.getByLabel('Learning support section', { exact: true }),
+    ).toHaveValue('learning-concepts');
 });

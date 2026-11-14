@@ -87,6 +87,14 @@ test('a local support worker can discover the source-shaped support signal secti
             .getByRole('tab', { name: /^Feedback/ }),
     ).toHaveAttribute('aria-selected', 'true');
 
+    await page.goto('/settings?panel=admin-learning-support&support=journal');
+    await expect(
+        page
+            .getByRole('tablist', { name: 'Learning support sections' })
+            .getByRole('tab', { name: /^Journal\b/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('heading', { name: 'Journal' })).toBeVisible();
+
     await page.goto(
         '/settings?panel=admin-learning-support&support=platform-feedback',
     );

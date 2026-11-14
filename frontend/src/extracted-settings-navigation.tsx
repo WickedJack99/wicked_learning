@@ -95,10 +95,12 @@ export const adminSettings: SettingsListItem[] = [
         icon: NotebookPen,
         panel: 'admin-learning-support',
         resources: [
+            'competence_topics',
             'journal_settings',
             'journal_feedback',
             'learner_support_signals',
             'learning_concepts',
+            'organization_moderation',
             'platform_feedback',
         ],
         children: [

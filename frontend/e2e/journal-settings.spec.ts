@@ -21,6 +21,11 @@ test('a local administrator saves a Journal visual through the source-adapted se
 
     await page.goto('/settings?panel=admin-learning-support&support=journal');
     await expect(page.getByRole('heading', { name: 'Journal' })).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+        page.getByLabel('Learning support section', { exact: true }),
+    ).toHaveValue('journal');
+    await page.setViewportSize({ width: 1280, height: 844 });
     await page.getByRole('button', { name: 'Background' }).click();
     await page.getByRole('button', { name: 'Light', exact: true }).click();
     await expect(
