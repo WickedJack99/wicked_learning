@@ -543,6 +543,13 @@ test('the source Settings shell retains the authenticated account control', asyn
     const accountControl = page.getByLabel('Signed-in account');
     await expect(accountControl).toBeVisible();
     await expect(accountControl).toContainText('world_admin');
+    await expect
+        .poll(() =>
+            accountControl.evaluate(
+                (element) => getComputedStyle(element).backgroundColor,
+            ),
+        )
+        .toBe('rgba(45, 212, 191, 0.1)');
 
     await page.setViewportSize({ width: 390, height: 844 });
     const accountBounds = await accountControl.boundingBox();

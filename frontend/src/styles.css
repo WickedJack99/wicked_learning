@@ -11,6 +11,115 @@ body {
     cursor: var(--platform-cursor, default);
 }
 
+/*
+ * Source-derived Settings workspace treatment. The extracted Settings React
+ * components deliberately retain the source class names, so this is kept
+ * scoped to `.settings-surface` rather than changing the learner or public
+ * surfaces.
+ */
+html:has(.settings-surface),
+body:has(.settings-surface) {
+    overflow: hidden;
+}
+
+.settings-surface {
+    --settings-accent: #0f766e;
+    --settings-accent-foreground: #f8fafc;
+    --settings-active-background: rgb(15 118 110 / 10%);
+    --settings-border-color: #e2e8f0;
+    --settings-content-background: #f1f5f9;
+    --settings-input-background: #fff;
+    --settings-input-border-color: #cbd5e1;
+    --settings-control-border: color-mix(
+        in srgb,
+        var(--settings-input-border-color) 50%,
+        var(--settings-muted-text) 50%
+    );
+    --settings-muted-text: #64748b;
+    --settings-nested-sidebar-background: rgb(248 250 252 / 96%);
+    --settings-panel-background: #fff;
+    --settings-scrollbar-thumb: rgb(100 116 139 / 54%);
+    --settings-sidebar-background: rgb(255 255 255 / 90%);
+}
+
+.dark .settings-surface {
+    --settings-accent: #2dd4bf;
+    --settings-accent-foreground: #042f2e;
+    --settings-active-background: rgb(45 212 191 / 10%);
+    --settings-border-color: rgb(255 255 255 / 10%);
+    --settings-content-background: #0b1117;
+    --settings-input-background: rgb(2 6 23 / 38%);
+    --settings-input-border-color: rgb(255 255 255 / 42%);
+    --settings-muted-text: #94a3b8;
+    --settings-nested-sidebar-background: rgb(2 6 23 / 96%);
+    --settings-panel-background: #111820;
+    --settings-scrollbar-thumb: rgb(148 163 184 / 54%);
+    --settings-sidebar-background: rgb(17 24 32 / 95%);
+}
+
+.settings-surface,
+.settings-surface * {
+    scrollbar-color: var(--settings-scrollbar-thumb) transparent;
+    scrollbar-width: thin;
+}
+
+.settings-surface *::-webkit-scrollbar {
+    width: 0.65rem;
+    height: 0.65rem;
+}
+
+.settings-surface *::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.settings-surface *::-webkit-scrollbar-track,
+.settings-surface *::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.settings-surface *::-webkit-scrollbar-thumb {
+    border: 0.2rem solid transparent;
+    border-radius: 999px;
+    background: var(--settings-scrollbar-thumb);
+    background-clip: content-box;
+}
+
+.settings-surface
+    :is(
+        input:not([type='checkbox']):not([type='color']):not([type='radio']):not(
+                [type='range']
+            ):not([type='file']),
+        textarea,
+        select
+    ) {
+    border-color: var(--settings-control-border);
+    background-color: var(--settings-input-background);
+}
+
+.settings-surface
+    :is(
+        input:not([type='color']):not([type='range']):not([type='file']),
+        textarea,
+        select
+    ):focus-visible {
+    border-color: var(--settings-accent);
+}
+
+.settings-surface .settings-topbar-control {
+    border-color: var(--settings-border-color);
+    background-color: var(--settings-active-background);
+}
+
+/* Source Settings use borders and spacing—not rounded card groups—for hierarchy. */
+.settings-surface
+    :is(section, article, aside, div, form, label)[class*='rounded'][class*='border']:not(
+        .settings-topbar-control
+    ):not(.settings-floating-panel):not(.settings-rounded-control) {
+    border-radius: 0;
+}
+
 a,
 button,
 label,
