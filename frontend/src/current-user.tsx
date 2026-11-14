@@ -18,11 +18,14 @@ export type CurrentUserState =
     | {
           kind: 'loaded';
           appearance: OriginalAppearance;
+          avatarUrl: string | null;
           capabilities: string[];
           email: string;
+          name: string;
           roles: string[];
           settingsAccess: Record<string, boolean>;
           subjectId: string;
+          username: string | null;
       }
     | { kind: 'unavailable' };
 
@@ -79,11 +82,14 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
             // The fallback keeps older mocked contract responses harmless while
             // live API responses always carry the documented preference.
             appearance: data.appearance === 'dark' ? 'dark' : 'light',
+            avatarUrl: data.avatar_url ?? null,
             capabilities: data.capabilities,
             email: data.email,
+            name: data.name ?? data.email,
             roles: data.roles,
             settingsAccess: data.settings_access,
             subjectId: data.subject_id,
+            username: data.username ?? null,
         };
     } catch {
         return { kind: 'unavailable' };

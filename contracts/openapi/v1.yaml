@@ -8755,16 +8755,23 @@ components:
     CurrentUser:
       type: object
       additionalProperties: false
-      required: [appearance, capabilities, email, settings_access, subject_id, roles]
+      required: [appearance, avatar_url, capabilities, email, name, settings_access, subject_id, roles, username]
       properties:
         appearance:
           type: string
           enum: [dark, light]
           description: The authenticated learner's private visual preference.
+        avatar_url:
+          type: [string, 'null']
+          pattern: '^/api/v1/profile-images/[0-9a-f-]{36}$'
+          description: The current subject's optional owner-scoped profile image route.
         email:
           type: string
           format: email
           description: The authenticated subject's normalized sign-in address. It is never returned for another subject.
+        name:
+          type: string
+          description: The current subject's identity-owned display name.
         capabilities:
           type: array
           description: Server-owned application capabilities granted through the current subject's roles; never credentials or identity data.
@@ -8785,6 +8792,9 @@ components:
           items:
             type: string
             enum: [learner, learning_support, platform_administrator]
+        username:
+          type: [string, 'null']
+          description: The current subject's optional application-owned public username.
     AdminSettingsNotifications:
       type: object
       additionalProperties: false

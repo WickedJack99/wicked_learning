@@ -182,6 +182,10 @@ export function SettingsTopBar({
     const t = usePlatformTranslation();
     const navigate = useNavigate();
     const { currentUser } = useCurrentUser();
+    const accountName =
+        currentUser.kind === 'loaded'
+            ? currentUser.username || currentUser.name
+            : null;
     const [notifications, setNotifications] =
         useState<components['schemas']['AdminSettingsNotifications']>({
             pending_feedback_requests: 0,
@@ -338,14 +342,23 @@ export function SettingsTopBar({
                         className="settings-topbar-control flex h-10 min-w-0 items-center gap-2 rounded-lg border border-[var(--settings-border-color)] px-2 text-left"
                         data-wl-id="settings.current-user"
                     >
-                        <span
-                            aria-hidden="true"
-                            className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--settings-active-background)] text-xs font-medium text-[var(--settings-accent)]"
-                        >
-                            {currentUser.email.slice(0, 1).toUpperCase()}
-                        </span>
+                        {currentUser.avatarUrl ? (
+                            <img
+                                alt=""
+                                aria-hidden="true"
+                                className="size-8 shrink-0 rounded-full object-cover"
+                                src={currentUser.avatarUrl}
+                            />
+                        ) : (
+                            <span
+                                aria-hidden="true"
+                                className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--settings-active-background)] text-xs font-medium text-[var(--settings-accent)]"
+                            >
+                                {accountName?.slice(0, 1).toUpperCase()}
+                            </span>
+                        )}
                         <span className="hidden max-w-48 truncate text-sm font-medium sm:block">
-                            {currentUser.email}
+                            {accountName}
                         </span>
                     </div>
                 ) : null}

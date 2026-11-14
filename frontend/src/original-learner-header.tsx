@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
+import { useCurrentUser } from './current-user';
 import { OriginalJournalOverlay } from './original-journal';
 import { OriginalPlatformFeedbackPrompt } from './original-platform-feedback-prompt';
 import { usePlatformTranslation } from './original-platform-translation';
@@ -23,6 +24,13 @@ export function OriginalLearnerHeader({
 }) {
     const location = useLocation();
     const t = usePlatformTranslation();
+    const { currentUser } = useCurrentUser();
+    const accountName =
+        currentUser.kind === 'loaded'
+            ? currentUser.username || currentUser.name
+            : userEmail;
+    const avatarUrl =
+        currentUser.kind === 'loaded' ? currentUser.avatarUrl : null;
     const [isJournalOpen, setIsJournalOpen] = useState(() =>
         journalQueryIsOpen(location.search),
     );
@@ -172,13 +180,13 @@ export function OriginalLearnerHeader({
                         onClick={() => setIsUserMenuOpen((open) => !open)}
                         type="button"
                     >
-                        <span className="grid size-7 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{userEmail.slice(0, 1).toUpperCase()}</span>
-                        <span className="hidden max-w-32 truncate text-sm sm:block">{userEmail}</span>
+                        {avatarUrl ? <img alt="" aria-hidden="true" className="size-7 rounded-full object-cover" src={avatarUrl} /> : <span className="grid size-7 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{accountName.slice(0, 1).toUpperCase()}</span>}
+                        <span className="hidden max-w-32 truncate text-sm sm:block">{accountName}</span>
                         <ChevronDown className="hidden size-3.5 text-[var(--learner-muted-text)] sm:block" />
                     </button>
                     {isUserMenuOpen ? (
                         <div className="absolute top-12 right-0 z-[80] w-60 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-1 shadow-2xl" role="menu">
-                            <div className="flex items-center gap-2 px-2 py-2 text-left text-sm"><span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{userEmail.slice(0, 1).toUpperCase()}</span><span className="min-w-0 truncate font-medium">{userEmail}</span></div>
+                            <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">{avatarUrl ? <img alt="" aria-hidden="true" className="size-8 rounded-full object-cover" src={avatarUrl} /> : <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{accountName.slice(0, 1).toUpperCase()}</span>}<span className="min-w-0 truncate font-medium">{accountName}</span></div>
                             <div aria-hidden="true" className="my-1 h-px bg-[var(--learner-border-color)]" />
                             <Link className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => setIsUserMenuOpen(false)} role="menuitem" to="/settings"><Settings className="mr-2 size-4" />{t('navigation.primary.settings', 'Settings')}</Link>
                             <button className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => void signOut()} role="menuitem" type="button"><LogOut className="mr-2 size-4" />{t('navigation.primary.log_out', 'Log out')}</button>

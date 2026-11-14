@@ -6836,11 +6836,15 @@ export interface components {
              * @enum {string}
              */
             appearance: "dark" | "light";
+            /** @description The current subject's optional owner-scoped profile image route. */
+            avatar_url: string | null;
             /**
              * Format: email
              * @description The authenticated subject's normalized sign-in address. It is never returned for another subject.
              */
             email: string;
+            /** @description The current subject's identity-owned display name. */
+            name: string;
             /** @description Server-owned application capabilities granted through the current subject's roles; never credentials or identity data. */
             capabilities: ("access_links_manage" | "journal_feedback_policy_manage" | "journal_feedback_review" | "journal_feedback_view" | "learner_messages_moderate" | "learning_groups_manage" | "organization_icons_moderate" | "platform_feedback_review" | "platform_feedback_view")[];
             /** @description Server-derived read visibility for the source Settings navigation. It contains no permission scopes and does not authorize any request. */
@@ -6854,6 +6858,8 @@ export interface components {
             subject_id: string;
             /** @description Application roles, not credentials or profile data. */
             roles: ("learner" | "learning_support" | "platform_administrator")[];
+            /** @description The current subject's optional application-owned public username. */
+            username: string | null;
         };
         AdminSettingsNotifications: {
             pending_feedback_requests: number;

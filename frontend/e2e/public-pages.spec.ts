@@ -510,8 +510,10 @@ test('the source Settings shell retains the authenticated account control', asyn
             contentType: 'application/json',
             body: JSON.stringify({
                 appearance: 'dark',
+                avatar_url: null,
                 capabilities: [],
                 email: 'administrator@example.test',
+                name: 'Administrator',
                 roles: ['platform_administrator'],
                 settings_access: {
                     world_activities: true,
@@ -519,6 +521,7 @@ test('the source Settings shell retains the authenticated account control', asyn
                     world_nodes: true,
                 },
                 subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                username: 'world_admin',
             }),
         });
     });
@@ -539,7 +542,7 @@ test('the source Settings shell retains the authenticated account control', asyn
 
     const accountControl = page.getByLabel('Signed-in account');
     await expect(accountControl).toBeVisible();
-    await expect(accountControl).toContainText('administrator@example.test');
+    await expect(accountControl).toContainText('world_admin');
 
     await page.setViewportSize({ width: 390, height: 844 });
     const accountBounds = await accountControl.boundingBox();
@@ -645,9 +648,15 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
+                appearance: 'dark',
+                avatar_url: null,
+                capabilities: [],
                 email: 'learner@example.test',
+                name: 'Bookmark learner',
                 subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                 roles: ['learner'],
+                settings_access: {},
+                username: 'saved_places',
             }),
         });
     });
@@ -737,6 +746,10 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
     await expect(
         learnerNavigation.getByRole('link', { name: 'Bookmarks' }),
     ).toHaveAttribute('aria-current', 'page');
+    const userMenu = page.getByRole('button', { name: 'Open user menu' });
+    await userMenu.click();
+    await expect(page.getByRole('menu')).toContainText('saved_places');
+    await userMenu.click();
     await page
         .getByRole('button', {
             name: 'Saved place, open bookmarked place',
