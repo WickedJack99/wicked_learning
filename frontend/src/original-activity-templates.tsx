@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type ActivityTemplate = components['schemas']['AdminActivityTemplateSummary'];
 type ActivityTemplateDetails =
@@ -39,6 +40,7 @@ export function OriginalActivityTemplatesDialog({
     onClose: () => void;
     onUseTemplate: (template: ActivityTemplateDetails) => void;
 }) {
+    const t = usePlatformTranslation();
     const [page, setPage] = useState<ActivityTemplatePage | null>(null);
     const [search, setSearch] = useState('');
     const [templateName, setTemplateName] = useState(activity?.title ?? '');
@@ -74,14 +76,12 @@ export function OriginalActivityTemplatesDialog({
                 }
                 setPage(data);
             } catch {
-                setError(
-                    'The reusable activity templates could not be loaded.',
-                );
+                setError(t('settings.world_builder.activity_templates.load_error', 'The reusable activity templates could not be loaded.'));
             } finally {
                 setBusy(false);
             }
         },
-        [search],
+        [search, t],
     );
 
     useEffect(() => {
@@ -105,7 +105,7 @@ export function OriginalActivityTemplatesDialog({
             setRename(data.template.name);
             setHistory(null);
         } catch {
-            setError('The selected template could not be loaded.');
+            setError(t('settings.world_builder.activity_templates.selected_load_error', 'The selected template could not be loaded.'));
         } finally {
             setBusy(false);
         }
@@ -136,7 +136,7 @@ export function OriginalActivityTemplatesDialog({
             await load(1);
             await open(data.template);
         } catch {
-            setError('The activity could not be saved as a reusable template.');
+            setError(t('settings.world_builder.activity_templates.save_error', 'The activity could not be saved as a reusable template.'));
         } finally {
             setBusy(false);
         }
@@ -146,7 +146,7 @@ export function OriginalActivityTemplatesDialog({
         if (
             !activity ||
             !window.confirm(
-                `Update “${template.name}” from “${activity.title}”? The current template will be kept in history.`,
+                t('settings.world_builder.activity_templates.update_confirm', 'Update “:template” from “:activity”? The current template will be kept in history.', { activity: activity.title, template: template.name }),
             )
         ) {
             return;
@@ -173,9 +173,7 @@ export function OriginalActivityTemplatesDialog({
             await load(page?.pagination.page ?? 1);
             await open(data.template);
         } catch {
-            setError(
-                'The reusable template could not be updated from this activity.',
-            );
+            setError(t('settings.world_builder.activity_templates.update_error', 'The reusable template could not be updated from this activity.'));
         } finally {
             setBusy(false);
         }
@@ -205,7 +203,7 @@ export function OriginalActivityTemplatesDialog({
             setSelected({ ...selected, ...data.template });
             await load(page?.pagination.page ?? 1);
         } catch {
-            setError('The reusable template could not be renamed.');
+            setError(t('settings.world_builder.activity_templates.rename_error', 'The reusable template could not be renamed.'));
         } finally {
             setBusy(false);
         }
@@ -235,7 +233,7 @@ export function OriginalActivityTemplatesDialog({
             setSelected({ ...selected, ...data.template });
             await load(page?.pagination.page ?? 1);
         } catch {
-            setError('The template sharing setting could not be saved.');
+            setError(t('settings.world_builder.activity_templates.share_error', 'The template sharing setting could not be saved.'));
         } finally {
             setBusy(false);
         }
@@ -262,7 +260,7 @@ export function OriginalActivityTemplatesDialog({
             }
             setHistory(data);
         } catch {
-            setError('The template history could not be loaded.');
+            setError(t('settings.world_builder.activity_templates.history_load_error', 'The template history could not be loaded.'));
         } finally {
             setBusy(false);
         }
@@ -272,7 +270,7 @@ export function OriginalActivityTemplatesDialog({
         if (
             !selected ||
             !window.confirm(
-                `Restore this revision to “${selected.name}”? The current template will be preserved in history.`,
+                t('settings.world_builder.activity_templates.restore_confirm', 'Restore this revision to “:template”? The current template will be preserved in history.', { template: selected.name }),
             )
         ) {
             return;
@@ -300,7 +298,7 @@ export function OriginalActivityTemplatesDialog({
             await load(page?.pagination.page ?? 1);
             await loadHistory(history?.pagination.page ?? 1);
         } catch {
-            setError('The template revision could not be restored.');
+            setError(t('settings.world_builder.activity_templates.restore_error', 'The template revision could not be restored.'));
         } finally {
             setBusy(false);
         }
@@ -310,7 +308,7 @@ export function OriginalActivityTemplatesDialog({
         if (
             !selected ||
             !window.confirm(
-                'Delete this reusable template? Existing activities will not change.',
+                t('settings.world_builder.activity_templates.delete_confirm', 'Delete this reusable template? Existing activities will not change.'),
             )
         ) {
             return;
@@ -335,7 +333,7 @@ export function OriginalActivityTemplatesDialog({
             setHistory(null);
             await load(page?.pagination.page ?? 1);
         } catch {
-            setError('The reusable template could not be deleted.');
+            setError(t('settings.world_builder.activity_templates.delete_error', 'The reusable template could not be deleted.'));
         } finally {
             setBusy(false);
         }
