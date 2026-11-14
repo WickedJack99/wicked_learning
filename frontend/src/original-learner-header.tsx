@@ -1,4 +1,4 @@
-import { ChevronDown, LogOut, NotebookPen, Settings } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, NotebookPen, Settings } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 
@@ -26,6 +26,10 @@ export function OriginalLearnerHeader({
     const t = usePlatformTranslation();
     const { currentUser } = useCurrentUser();
     const accountName =
+        currentUser.kind === 'loaded'
+            ? currentUser.name
+            : userEmail;
+    const menuAccountName =
         currentUser.kind === 'loaded'
             ? currentUser.username || currentUser.name
             : userEmail;
@@ -154,6 +158,17 @@ export function OriginalLearnerHeader({
                     })}
                 </nav>
                 <div className="relative ml-auto flex shrink-0 items-center gap-2">
+                    <Link
+                        aria-label={t(
+                            'home.learning_desk.notifications',
+                            'Notifications',
+                        )}
+                        className="grid size-10 place-items-center rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] transition hover:bg-white/10 hover:text-[var(--learner-heading-text)]"
+                        data-wl-id="learner.navigation.notifications"
+                        to="/settings?panel=personal&personal=notifications"
+                    >
+                        <Bell className="size-4" />
+                    </Link>
                     <button
                         aria-controls="learning-journal-panel"
                         aria-expanded={isJournalOpen}
@@ -186,7 +201,7 @@ export function OriginalLearnerHeader({
                     </button>
                     {isUserMenuOpen ? (
                         <div className="absolute top-12 right-0 z-[80] w-60 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-1 shadow-2xl" role="menu">
-                            <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">{avatarUrl ? <img alt="" aria-hidden="true" className="size-8 rounded-full object-cover" src={avatarUrl} /> : <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{accountName.slice(0, 1).toUpperCase()}</span>}<span className="min-w-0 truncate font-medium">{accountName}</span></div>
+                            <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">{avatarUrl ? <img alt="" aria-hidden="true" className="size-8 rounded-full object-cover" src={avatarUrl} /> : <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{accountName.slice(0, 1).toUpperCase()}</span>}<span className="grid min-w-0"><span className="truncate font-medium">{menuAccountName}</span><span className="truncate text-xs text-[var(--learner-muted-text)]">{userEmail}</span></span></div>
                             <div aria-hidden="true" className="my-1 h-px bg-[var(--learner-border-color)]" />
                             <Link className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => setIsUserMenuOpen(false)} role="menuitem" to="/settings"><Settings className="mr-2 size-4" />{t('navigation.primary.settings', 'Settings')}</Link>
                             <button className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium transition hover:bg-white/10" onClick={() => void signOut()} role="menuitem" type="button"><LogOut className="mr-2 size-4" />{t('navigation.primary.log_out', 'Log out')}</button>

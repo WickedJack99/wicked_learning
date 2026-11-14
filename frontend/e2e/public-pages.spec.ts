@@ -477,9 +477,15 @@ test('the learner World exposes the original-style user menu for an authenticate
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
+                appearance: 'dark',
+                avatar_url: null,
+                capabilities: [],
                 email: 'learner@example.test',
+                name: 'World learner',
                 subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
                 roles: ['platform_administrator'],
+                settings_access: {},
+                username: 'world_learner',
             }),
         });
     });
@@ -492,6 +498,22 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(
         page.getByRole('button', { name: 'Open inventory' }),
     ).toBeVisible();
+    const notificationsLink = page.getByRole('link', {
+        name: 'Notifications',
+    });
+    await expect(notificationsLink).toHaveAttribute(
+        'href',
+        '/settings?panel=personal&personal=notifications',
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    const notificationsBounds = await notificationsLink.boundingBox();
+    expect(notificationsBounds).not.toBeNull();
+    expect(notificationsBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(
+        (notificationsBounds?.x ?? 0) +
+            (notificationsBounds?.width ?? Infinity),
+    ).toBeLessThanOrEqual(390);
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page.getByRole('button', { name: 'Open tools' }).click();
     await expect(
         page.getByRole('dialog', { name: 'Select a tool' }),
@@ -499,6 +521,7 @@ test('the learner World exposes the original-style user menu for an authenticate
     await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Open user menu' }).click();
     await expect(page.getByRole('menuitem', { name: 'Log out' })).toBeVisible();
+    await expect(page.getByRole('menu')).toContainText('world_learner');
     await expect(page.getByRole('menu')).toContainText('learner@example.test');
 });
 

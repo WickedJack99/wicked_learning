@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import {
     Bookmark,
+    Bell,
     CheckCircle2,
     ChevronDown,
     LockKeyhole,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { apiClient, getCsrfToken } from './api/client';
+import { useCurrentUser } from './current-user';
 import {
     imageAlphaMaskFor,
     useImageAlphaMasks,
@@ -530,6 +532,15 @@ function WorldNavigation({
     userEmail: string | null;
 }) {
     const location = useLocation();
+    const { currentUser } = useCurrentUser();
+    const accountName =
+        currentUser.kind === 'loaded' ? currentUser.name : userEmail;
+    const menuAccountName =
+        currentUser.kind === 'loaded'
+            ? currentUser.username || currentUser.name
+            : userEmail;
+    const avatarUrl =
+        currentUser.kind === 'loaded' ? currentUser.avatarUrl : null;
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
@@ -607,8 +618,18 @@ function WorldNavigation({
                         );
                     })}
                 </nav>
-                {isAuthenticated && userEmail ? (
+                {isAuthenticated && accountName ? (
                     <div className="relative ml-auto flex shrink-0 items-center gap-2">
+                        <Link
+                            aria-label="Notifications"
+                            className="grid size-10 place-items-center rounded-lg border bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)] hover:text-[var(--learner-heading-text)]"
+                            style={{
+                                borderColor: 'var(--learner-border-color)',
+                            }}
+                            to="/settings?panel=personal&personal=notifications"
+                        >
+                            <Bell className="size-4" />
+                        </Link>
                         <button
                             aria-controls="learning-journal-panel"
                             aria-expanded={isJournalOpen}
@@ -633,11 +654,9 @@ function WorldNavigation({
                             }}
                             type="button"
                         >
-                            <span className="grid size-7 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">
-                                {userEmail.slice(0, 1).toUpperCase()}
-                            </span>
+                            {avatarUrl ? <img alt="" aria-hidden="true" className="size-7 rounded-full object-cover" src={avatarUrl} /> : <span className="grid size-7 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{accountName.slice(0, 1).toUpperCase()}</span>}
                             <span className="hidden max-w-32 truncate text-sm sm:block">
-                                {userEmail}
+                                {accountName}
                             </span>
                             <ChevronDown className="hidden size-3.5 text-[var(--learner-muted-text)] sm:block" />
                         </button>
@@ -650,12 +669,8 @@ function WorldNavigation({
                                 }}
                             >
                                 <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
-                                    <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">
-                                        {userEmail.slice(0, 1).toUpperCase()}
-                                    </span>
-                                    <span className="min-w-0 truncate font-medium text-[var(--learner-heading-text)]">
-                                        {userEmail}
-                                    </span>
+                                    {avatarUrl ? <img alt="" aria-hidden="true" className="size-8 rounded-full object-cover" src={avatarUrl} /> : <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">{accountName.slice(0, 1).toUpperCase()}</span>}
+                                    <span className="grid min-w-0"><span className="truncate font-medium text-[var(--learner-heading-text)]">{menuAccountName}</span><span className="truncate text-xs text-[var(--learner-muted-text)]">{userEmail}</span></span>
                                 </div>
                                 <div
                                     aria-hidden="true"
