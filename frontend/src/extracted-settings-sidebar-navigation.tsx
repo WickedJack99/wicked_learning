@@ -7,7 +7,7 @@ import {
     Shield,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { apiClient } from './api/client';
@@ -193,6 +193,13 @@ export function SettingsTopBar({
             reported_organizations: [],
         });
     const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [notificationMenuPosition, setNotificationMenuPosition] = useState<{
+        left: number;
+        top: number;
+        width: number;
+    } | null>(null);
+    const notificationMenuRef = useRef<HTMLDivElement>(null);
+    const notificationTriggerRef = useRef<HTMLButtonElement>(null);
     const total =
         notifications.pending_feedback_requests +
         notifications.pending_organization_icon_reports;
@@ -211,6 +218,76 @@ export function SettingsTopBar({
             active = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (!notificationsOpen) {
+            return;
+        }
+
+        const closeForOutsidePointer = (event: PointerEvent) => {
+            const target = event.target;
+            if (!(target instanceof Node)) {
+                return;
+            }
+
+            if (
+                !notificationMenuRef.current?.contains(target) &&
+                !notificationTriggerRef.current?.contains(target)
+            ) {
+                setNotificationsOpen(false);
+            }
+        };
+        const closeForEscape = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            event.preventDefault();
+            setNotificationsOpen(false);
+            requestAnimationFrame(() => notificationTriggerRef.current?.focus());
+        };
+
+        document.addEventListener('pointerdown', closeForOutsidePointer);
+        document.addEventListener('keydown', closeForEscape);
+
+        return () => {
+            document.removeEventListener('pointerdown', closeForOutsidePointer);
+            document.removeEventListener('keydown', closeForEscape);
+        };
+    }, [notificationsOpen]);
+
+    useLayoutEffect(() => {
+        if (!notificationsOpen) {
+            return;
+        }
+
+        const positionMenu = () => {
+            const triggerBounds = notificationTriggerRef.current?.getBoundingClientRect();
+            if (!triggerBounds) {
+                return;
+            }
+
+            const viewportPadding = 16;
+            const width = Math.min(336, window.innerWidth - viewportPadding * 2);
+            setNotificationMenuPosition({
+                left: Math.min(
+                    Math.max(viewportPadding, triggerBounds.right - width),
+                    window.innerWidth - width - viewportPadding,
+                ),
+                top: triggerBounds.bottom + 23,
+                width,
+            });
+        };
+
+        positionMenu();
+        window.addEventListener('resize', positionMenu);
+        window.addEventListener('scroll', positionMenu, true);
+
+        return () => {
+            window.removeEventListener('resize', positionMenu);
+            window.removeEventListener('scroll', positionMenu, true);
+        };
+    }, [notificationsOpen]);
 
     const openNotificationTarget = (href: string) => {
         setNotificationsOpen(false);
@@ -244,10 +321,13 @@ export function SettingsTopBar({
 
                 <div className="relative">
                     <button
+                        aria-controls="settings-notifications-menu"
                         aria-expanded={notificationsOpen}
+                        aria-haspopup="menu"
                         aria-label={t('settings.notifications', 'Notifications')}
                         className="settings-topbar-control relative grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
                         onClick={() => setNotificationsOpen((open) => !open)}
+                        ref={notificationTriggerRef}
                         type="button"
                     >
                         <Bell className="size-4" />
@@ -258,9 +338,19 @@ export function SettingsTopBar({
                         ) : null}
                     </button>
                     {notificationsOpen ? (
-                        <section
+                        <div
                             aria-label={t('settings.notifications', 'Notifications')}
-                            className="settings-floating-panel absolute right-0 z-20 mt-2 w-[21rem] max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 shadow-lg"
+                            className="settings-floating-panel fixed z-20 w-[21rem] max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 shadow-lg"
+                            id="settings-notifications-menu"
+                            ref={notificationMenuRef}
+                            role="menu"
+                            style={{
+                                backgroundImage:
+                                    'linear-gradient(var(--settings-active-background), var(--settings-active-background))',
+                                left: notificationMenuPosition?.left,
+                                top: notificationMenuPosition?.top,
+                                width: notificationMenuPosition?.width,
+                            }}
                         >
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <p className="text-sm font-semibold">
@@ -320,7 +410,7 @@ export function SettingsTopBar({
                                     </div>
                                 </div>
                             ) : null}
-                        </section>
+                        </div>
                     ) : null}
                 </div>
 

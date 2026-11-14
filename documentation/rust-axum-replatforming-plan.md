@@ -917,7 +917,10 @@ password-confirmation route boundary; its typed password, TOTP and passkey
 flows remain separate rather than being forced into substitute chrome. Their
 existing typed Rust preference, identity and destructive commands remain
 unchanged; the browser check covers source keyboard navigation to the
-destructive panel as well as desktop and narrow Settings navigation.
+destructive panel as well as desktop and narrow Settings navigation. The
+source-shaped notification menu keeps its trigger-aligned, collision-bounded
+surface, outside/Escape dismissal and Escape focus return across those
+viewports.
 
 The older `/home` row's private-support note is superseded by the Learning
 Support slice above: learners can read their own visible private replies in

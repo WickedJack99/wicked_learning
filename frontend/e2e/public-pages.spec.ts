@@ -600,6 +600,65 @@ test('the source Settings shell retains the authenticated account control', asyn
     ).toBeLessThanOrEqual(390);
 });
 
+test('the source Settings notifications menu preserves dismissal and focus behavior', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                appearance: 'dark',
+                avatar_url: null,
+                capabilities: [],
+                email: 'administrator@example.test',
+                name: 'Administrator',
+                roles: ['platform_administrator'],
+                settings_access: {},
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                username: 'world_admin',
+            }),
+        });
+    });
+    await page.route('**/api/v1/admin/settings/notifications', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                pending_feedback_requests: 2,
+                pending_organization_icon_reports: 1,
+                reported_organizations: [
+                    { icon_url: null, name: 'Source-faithful organization' },
+                ],
+            }),
+        });
+    });
+
+    await page.goto('/settings?panel=personal&personal=account');
+
+    const trigger = page.getByRole('button', { name: 'Notifications' });
+    const menu = page.getByRole('menu', { name: 'Notifications' });
+    await trigger.click();
+    await expect(menu).toContainText('3 open');
+    await expect(menu).toContainText('Feedback requests');
+    await expect(menu).toContainText('Reported organization icons');
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await page.getByLabel('Search settings').click();
+    await expect(menu).toBeHidden();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await trigger.click();
+    const menuBounds = await menu.boundingBox();
+    expect(menuBounds).not.toBeNull();
+    expect(menuBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(
+        (menuBounds?.x ?? 0) + (menuBounds?.width ?? Infinity),
+    ).toBeLessThanOrEqual(390);
+});
+
 test('the lifted tool belt and its panel remain inside desktop and narrow World viewports', async ({
     page,
 }) => {
