@@ -1039,6 +1039,8 @@
     "settings.world_builder.navigation.review.description": "Open activities waiting for an authoring review.",
     "settings.world_builder.navigation.structural.label": "Structural",
     "settings.world_builder.navigation.structural.description": "Choose maps and open map or MapAsset configuration.",
+    "settings.world_builder.graph.tile_count_one": ":count tile",
+    "settings.world_builder.graph.tile_count_many": ":count tiles",
     "settings.world_builder.status.loading": "Loading World Builder…",
     "settings.world_builder.status.unavailable_account": "World Builder is unavailable for this account.",
     "settings.world_builder.status.temporarily_unavailable": "World Builder is temporarily unavailable.",

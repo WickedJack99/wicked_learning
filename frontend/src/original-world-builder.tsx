@@ -2727,6 +2727,7 @@ function WorldGraphCanvas({
     onPortal: (portal: PortalLink | null) => void;
     onSelectMap: (mapId: string) => void;
 }) {
+    const t = usePlatformTranslation();
     const initialNodes = useMemo<WorldMapNode[]>(
         () =>
             graph.maps.map((map, index) => ({
@@ -2743,12 +2744,15 @@ function WorldGraphCanvas({
                 id: link.id,
                 source: link.source_map_id,
                 target: link.target_map_id,
-                label: link.label ?? 'Portal',
+                label: link.label ?? t(
+                    'settings.world_builder.activity_graph.portal',
+                    'Portal',
+                ),
                 markerEnd: { type: MarkerType.ArrowClosed },
                 data: link,
                 style: { stroke: 'rgb(13 148 136)', strokeWidth: 2 },
             })),
-        [graph.portal_links],
+        [graph.portal_links, t],
     );
     const [nodes, , onNodesChange] = useNodesState<WorldMapNode>(initialNodes);
     const [edges, , onEdgesChange] =
@@ -2782,6 +2786,7 @@ function MapGraphCard({
     data: WorldMapNodeData;
     selected: boolean;
 }) {
+    const t = usePlatformTranslation();
     const { map } = data;
     return (
         <div
@@ -2794,14 +2799,35 @@ function MapGraphCard({
                 {map.title}
             </p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {map.node_count} tile{map.node_count === 1 ? '' : 's'}
+                {map.node_count === 1
+                    ? t(
+                          'settings.world_builder.graph.tile_count_one',
+                          ':count tile',
+                          { count: map.node_count },
+                      )
+                    : t(
+                          'settings.world_builder.graph.tile_count_many',
+                          ':count tiles',
+                          { count: map.node_count },
+                      )}
             </p>
             <p
                 className={`mt-3 rounded-md px-2 py-1 text-xs font-medium ${map.review_count > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-300/10 dark:text-amber-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-200'}`}
             >
                 {map.review_count > 0
-                    ? `${map.review_count} activity${map.review_count === 1 ? '' : 'ies'} awaiting review`
-                    : 'Activity reviews current'}
+                    ? t(
+                          map.review_count === 1
+                              ? 'settings.world_builder.review.waiting_one'
+                              : 'settings.world_builder.review.waiting_many',
+                          map.review_count === 1
+                              ? '1 activity awaiting AI review'
+                              : ':count activities awaiting AI review',
+                          { count: map.review_count },
+                      )
+                    : t(
+                          'settings.world_builder.review.current',
+                          'Activity reviews current',
+                      )}
             </p>
         </div>
     );
