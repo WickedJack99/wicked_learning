@@ -49,6 +49,10 @@ test('the Learning Companion settings surfaces consume their fixed platform cata
                         'Localized authored-page placeholder',
                     'settings.learning_companion.dialogue_assignment.title':
                         'Localized authored-page assignment',
+                    'settings.learning_companion.node_editor.add_title':
+                        'Localized add dialogue node',
+                    'settings.learning_companion.node_editor.id':
+                        'Localized node id',
                     'settings.learning_companion.navigation.dialogues.description':
                         'Localized reusable dialogue graphs.',
                     'settings.learning_companion.navigation.dialogues.label':
@@ -206,6 +210,11 @@ test('the Learning Companion settings surfaces consume their fixed platform cata
     await expect(
         page.getByText('Localized conversation flow'),
     ).toBeVisible();
+    await page.getByRole('button', { name: 'Add node' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Localized add dialogue node' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Localized node id')).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
     const selector = page.getByLabel('Localized Learning Companion selector');

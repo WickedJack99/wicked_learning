@@ -1314,6 +1314,7 @@ function NodeDialog({
     onDelete: () => void;
     onSave: (node: DialogueNode) => void;
 }) {
+    const t = usePlatformTranslation();
     const [draft, setDraft] = useState(node);
     const update = <K extends keyof DialogueNode>(
         key: K,
@@ -1339,8 +1340,8 @@ function NodeDialog({
         <Modal
             label={
                 editing
-                    ? 'Edit companion dialogue node'
-                    : 'Add companion dialogue node'
+                    ? t('settings.learning_companion.node_editor.edit_modal', 'Edit companion dialogue node')
+                    : t('settings.learning_companion.node_editor.add_modal', 'Add companion dialogue node')
             }
             onClose={onClose}
         >
@@ -1349,12 +1350,11 @@ function NodeDialog({
                     <div>
                         <h2 className="text-xl font-semibold">
                             {editing
-                                ? 'Edit dialogue node'
-                                : 'Add dialogue node'}
+                                ? t('settings.learning_companion.node_editor.edit_title', 'Edit dialogue node')
+                                : t('settings.learning_companion.node_editor.add_title', 'Add dialogue node')}
                         </h2>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Each node has a bounded type and source-defined
-                            flow.
+                            {t('settings.learning_companion.node_editor.description', 'Each node has a bounded type and source-defined flow.')}
                         </p>
                     </div>
                     {editing ? (
@@ -1364,23 +1364,23 @@ function NodeDialog({
                             type="button"
                         >
                             <Trash2 className="size-4" />
-                            Delete
+                            {t('common.delete', 'Delete')}
                         </button>
                     ) : null}
                 </header>
                 <div className="mt-5 grid gap-4 overflow-y-auto pr-1 sm:grid-cols-2">
                     <SelectField
-                        label="Node type"
+                        label={t('settings.learning_companion.node_editor.type', 'Node type')}
                         onChange={(value) => update('type', value as NodeType)}
                         options={[
-                            ['message', 'Message'],
-                            ['choice', 'Choice'],
+                            ['message', t('settings.learning_companion.node_editor.types.message', 'Message')],
+                            ['choice', t('settings.learning_companion.node_editor.types.choice', 'Choice')],
                             ['ai', 'AI'],
-                            ['end', 'End'],
+                            ['end', t('settings.learning_companion.node_editor.types.end', 'End')],
                         ]}
                         value={draft.type}
                     />
-                    <Field label="Node id">
+                    <Field label={t('settings.learning_companion.node_editor.id', 'Node id')}>
                         <input
                             className={input}
                             disabled={editing}
@@ -1397,7 +1397,7 @@ function NodeDialog({
                             value={draft.id}
                         />
                     </Field>
-                    <Field label="Title">
+                    <Field label={t('settings.learning_companion.node_editor.title', 'Title')}>
                         <input
                             className={input}
                             maxLength={120}
