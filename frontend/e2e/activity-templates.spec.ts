@@ -85,6 +85,32 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Localized shared task',
                     'settings.world_builder.activity_graph.tool_grant':
                         'Localized tool grant',
+                    'settings.activity_evidence_context.evidence':
+                        'Localized orientation evidence',
+                    'settings.activity_evidence_context.title':
+                        'Localized learner orientation',
+                    'settings.activity_evidence_context.description':
+                        'Localized orientation for :activity.',
+                    'settings.activity_evidence_context.close':
+                        'Close localized learner orientation',
+                    'settings.activity_evidence_context.objective_label':
+                        'Localized activity invitation',
+                    'settings.activity_evidence_context.concepts_title':
+                        'Localized concepts',
+                    'settings.activity_evidence_context.concepts_description':
+                        'Localized concepts guidance.',
+                    'settings.activity_evidence_context.concept_library':
+                        'Localized concept library',
+                    'settings.activity_evidence_context.choose_concept':
+                        'Choose localized concept',
+                    'settings.activity_evidence_context.add':
+                        'Add localized concept',
+                    'settings.activity_evidence_context.concepts_textarea':
+                        'Localized concepts, one per line',
+                    'settings.activity_evidence_context.save':
+                        'Save localized learner orientation',
+                    'settings.activity_evidence_context.conflict_error':
+                        'Localized learner orientation conflict.',
                     'settings.activity_feedback_guidance.evidence':
                         'Localized learning evidence',
                     'settings.activity_feedback_guidance.title':
@@ -255,7 +281,11 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                             ai_review_history: [],
                             ai_review_status: 'needs_review',
                             ai_reviewed_at: null,
-                            config: { learningIntent: 'explain' },
+                            config: {
+                                evidenceConcepts: ['Agency'],
+                                evidenceObjective: 'Notice the next useful choice.',
+                                learningIntent: 'explain',
+                            },
                             connectors: { inputs: [], outputs: [] },
                             id: activityId,
                             introduction: null,
@@ -295,7 +325,7 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                     ],
                     can_manage_ai_review: true,
                     competence_topic_options: [],
-                    evidence_concept_options: [],
+                    evidence_concept_options: ['Agency', 'Systems Thinking'],
                     map: { id: mapId, slug: 'mocked-map', title: 'Mocked map' },
                     message_topics: [],
                     node: {
@@ -377,6 +407,16 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
         });
     });
     await page.route(
+        `**/api/v1/admin/world-builder/activities/${activityId}/evidence-context`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                status: 409,
+                body: JSON.stringify({ code: 'conflict' }),
+            });
+        },
+    );
+    await page.route(
         `**/api/v1/admin/world-builder/activities/${activityId}/feedback-guidance`,
         async (route) => {
             await route.fulfill({
@@ -411,6 +451,75 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     await expect(
         card.getByRole('button', { name: 'Localized learner orientation' }),
     ).toBeVisible();
+    await card
+        .getByRole('button', { name: 'Localized learner orientation' })
+        .click();
+    const evidenceDialog = page.locator(
+        '[data-wl-id="authoring.activity-evidence-context"]',
+    );
+    await expect(evidenceDialog).toBeVisible();
+    await expect(
+        evidenceDialog.getByText('Localized orientation evidence', {
+            exact: true,
+        }),
+    ).toBeVisible();
+    await expect(
+        evidenceDialog.getByText('Localized learner orientation', {
+            exact: true,
+        }),
+    ).toBeVisible();
+    await expect(
+        evidenceDialog.getByText('Localized orientation for Mocked activity.', {
+            exact: true,
+        }),
+    ).toBeVisible();
+    await expect(
+        evidenceDialog.getByLabel('Localized activity invitation'),
+    ).toHaveValue('Notice the next useful choice.');
+    await expect(
+        evidenceDialog.getByText('Localized concepts guidance.', { exact: true }),
+    ).toBeVisible();
+    await evidenceDialog
+        .getByLabel('Localized concept library')
+        .selectOption({ label: 'Systems Thinking' });
+    await evidenceDialog
+        .getByRole('button', { name: 'Add localized concept' })
+        .click();
+    await expect(
+        evidenceDialog.getByLabel('Localized concepts, one per line'),
+    ).toHaveValue('Agency\nSystems Thinking');
+    await evidenceDialog
+        .getByRole('button', { name: 'Save localized learner orientation' })
+        .click();
+    await expect(evidenceDialog.getByRole('alert')).toHaveText(
+        'Localized learner orientation conflict.',
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    const evidencePanelBounds = await evidenceDialog.boundingBox();
+    expect(evidencePanelBounds).not.toBeNull();
+    expect(evidencePanelBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(
+        evidencePanelBounds!.x + evidencePanelBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    const saveLearnerOrientation = evidenceDialog.getByRole('button', {
+        name: 'Save localized learner orientation',
+    });
+    await saveLearnerOrientation.scrollIntoViewIfNeeded();
+    const saveLearnerOrientationBounds =
+        await saveLearnerOrientation.boundingBox();
+    expect(saveLearnerOrientationBounds).not.toBeNull();
+    expect(saveLearnerOrientationBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(saveLearnerOrientationBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(
+        saveLearnerOrientationBounds!.x + saveLearnerOrientationBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(
+        saveLearnerOrientationBounds!.y + saveLearnerOrientationBounds!.height,
+    ).toBeLessThanOrEqual(844);
+    await evidenceDialog
+        .getByLabel('Close localized learner orientation')
+        .click();
+    await page.setViewportSize({ width: 1280, height: 900 });
     await expect(
         card.getByRole('button', { name: 'Localized choice context' }),
     ).toBeVisible();
