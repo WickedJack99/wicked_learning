@@ -168,7 +168,7 @@ test('organization detail preserves source section and page query parameters', a
             body: JSON.stringify({
                 organization: {
                     can_moderate_messages: false,
-                    can_send_messages: false,
+                    can_send_messages: true,
                     description: null,
                     governance_type: 'monarchy',
                     icon_url: null,
@@ -215,6 +215,22 @@ test('organization detail preserves source section and page query parameters', a
             }),
         });
     });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route('**/api/v1/organizations/source-organization/messages', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            status: 400,
+            body: JSON.stringify({
+                code: 'invalid_request',
+                title: 'The request is not valid.',
+            }),
+        });
+    });
 
     await page.goto('/organizations/source-organization?section=members&members_page=2');
 
@@ -242,9 +258,23 @@ test('organization detail preserves source section and page query parameters', a
     await expect(
         page.getByRole('heading', { name: 'Leader controls' }),
     ).toBeVisible();
+    await page.goto('/organizations/source-organization?section=chat');
+    const send = page.waitForRequest((request) =>
+        request.url().endsWith('/api/v1/organizations/source-organization/messages') &&
+        request.method() === 'POST',
+    );
+    const sendButton = page.getByRole('button', { name: 'Send message' });
+    await expect(sendButton).toBeEnabled();
+    await sendButton.click();
+    expect((await send).postDataJSON()).toEqual({ body: '' });
+    await expect(
+        page.getByText(
+            'This organization action could not be completed. Please try again.',
+        ),
+    ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(
-        page.getByRole('heading', { name: 'Leader controls' }),
+        page.getByRole('heading', { name: 'Organization chat' }),
     ).toBeVisible();
 });
 

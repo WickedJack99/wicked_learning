@@ -336,7 +336,7 @@ function ChatPanel({
             </article>)}
         </div>
         {pagination ? <Pagination label="Organization chat messages" onPageChange={onPageChange} pagination={pagination} /> : null}
-        {canSend ? <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); onSend(); }}><input aria-label="Message the organization" className={field} onChange={(event) => onBodyChange(event.target.value)} placeholder="Write a message" value={value} /><button aria-label="Send message" className={actionButton} disabled={saving || !value.trim()} type="submit"><Send className="size-4" />Send</button></form> : null}
+        {canSend ? <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); onSend(); }}><input aria-label="Message the organization" className={field} onChange={(event) => onBodyChange(event.target.value)} placeholder="Write a message" value={value} /><button aria-label="Send message" className={actionButton} disabled={saving} type="submit"><Send className="size-4" />Send</button></form> : null}
     </section>;
 }
 
