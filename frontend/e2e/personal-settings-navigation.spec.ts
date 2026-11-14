@@ -40,10 +40,18 @@ test('Personal settings restores the source section navigation', async ({ page }
             }),
         });
     });
+    let feedbackPreference = { status: 'enabled' };
     await page.route('**/api/v1/learner/feedback-prompt-preference', async (route) => {
+        if (route.request().method() === 'PATCH') {
+            const { action } = route.request().postDataJSON() as { action: string };
+            feedbackPreference = {
+                status: action === 'decline' ? 'declined' : 'enabled',
+            };
+        }
+
         await route.fulfill({
             contentType: 'application/json',
-            body: JSON.stringify({ status: 'enabled' }),
+            body: JSON.stringify(feedbackPreference),
         });
     });
     let soundPreferences = {
@@ -71,6 +79,7 @@ test('Personal settings restores the source section navigation', async ({ page }
                     'common.appearance.light': 'Day',
                     'settings.personal.language.current': 'Current locale',
                     'settings.personal.language.save': 'Store locale',
+                    'settings.personal.feedback.reminders': 'Catalog feedback reminder',
                     'settings.personal.sound.effects': 'Effects level',
                     'settings.personal.sound.mute': 'Disable all sounds',
                     'settings.personal.sound.save': 'Store audio choices',
@@ -165,6 +174,16 @@ test('Personal settings restores the source section navigation', async ({ page }
             }
         });
     }
+
+    await page.goto('/settings?panel=personal&personal=feedback');
+    await expect(page.getByText('Catalog feedback reminder')).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Turn off invitations' })
+        .click();
+    await expect(
+        page.getByRole('button', { name: 'Turn invitations back on' }),
+    ).toBeVisible();
+    await expect(page.getByText('Catalog feedback reminder')).toBeVisible();
 
     await page.goto('/settings?panel=personal&personal=sound');
     await expect(page.getByRole('heading', { name: 'Audio choices' })).toBeVisible();
