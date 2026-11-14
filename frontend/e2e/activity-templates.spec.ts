@@ -8,6 +8,8 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     const activityId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d05';
     const npcActivityId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d06';
     const reviewTemplateId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d08';
+    const layoutVersionId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d09';
+    let mapSurfaceRequested = false;
 
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
@@ -184,6 +186,30 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Save localized metadata',
                     'settings.activity_learning_design.conflict_error':
                         'Localized metadata conflict.',
+                    'settings.map_layout_history.trigger':
+                        'Localized layout history',
+                    'settings.map_layout_history.title':
+                        'Localized layout history',
+                    'settings.map_layout_history.description':
+                        'Localized layout-history guidance.',
+                    'settings.map_layout_history.close':
+                        'Close localized layout history',
+                    'settings.map_layout_history.entry':
+                        'Localized placement snapshot',
+                    'settings.map_layout_history.node_count':
+                        ':count localized nodes',
+                    'settings.map_layout_history.preview':
+                        'Preview localized layout',
+                    'settings.map_layout_history.preview_title':
+                        'Localized layout preview',
+                    'settings.map_layout_history.preview_description':
+                        'Localized preview guidance.',
+                    'settings.map_layout_history.preview_items':
+                        'Localized saved positions',
+                    'settings.map_layout_history.position':
+                        'Localized position :q, :r',
+                    'settings.map_layout_history.current_position':
+                        'Localized current position :q, :r',
                     'settings.world_builder.activity_templates.copy_activity':
                         'Localized copy :activity',
                     'settings.world_builder.activity_templates.create_copy':
@@ -392,6 +418,123 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
             }),
         });
     });
+    await page.route(
+        `**/api/v1/admin/world-builder/maps/${mapId}`,
+        async (route) => {
+            if (!mapSurfaceRequested) {
+                await route.fulfill({
+                    contentType: 'application/json',
+                    status: 404,
+                    body: JSON.stringify({ code: 'not_found' }),
+                });
+
+                return;
+            }
+
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    can_delete_world_maps: false,
+                    can_manage_map_access: false,
+                    editable_map: {
+                        map: {
+                            access_roles: [],
+                            background_config: {},
+                            description: 'A mocked authoring map.',
+                            editing_group_ids: [],
+                            grid_config: {},
+                            id: mapId,
+                            map_assets: [],
+                            map_assets_locked: false,
+                            node_count: 1,
+                            nodes: [
+                                {
+                                    activity_review_count: 0,
+                                    description: 'A mocked authoring node.',
+                                    id: nodeId,
+                                    position: { q: 0, r: 0 },
+                                    slug: 'mocked-node',
+                                    state: 'available',
+                                    title: 'Mocked node',
+                                    unlock_diagnostics: [],
+                                    visual_config: {},
+                                },
+                            ],
+                            review_count: 0,
+                            slug: 'mocked-map',
+                            title: 'Mocked map',
+                            topic_id: null,
+                            updated_at: '2026-11-14T12:34:00Z',
+                        },
+                        world: {
+                            description: 'A mocked authoring world.',
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d04',
+                            slug: 'mocked-world',
+                            title: 'Mocked World',
+                            updated_at: '2026-11-14T12:34:00Z',
+                        },
+                    },
+                    access_groups: [],
+                    items: [],
+                    learning_groups: [],
+                    role_options: [],
+                    sounds: [],
+                    topic_options: [],
+                    tools: [],
+                }),
+            });
+        },
+    );
+    await page.route(
+        new RegExp(
+            `/api/v1/admin/world-builder/maps/${mapId}/layout-versions(?:\\?.*)?$`,
+        ),
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    items: [
+                        {
+                            created_at: '2026-11-14T12:30:00Z',
+                            id: layoutVersionId,
+                            node_count: 1,
+                            restorable: true,
+                        },
+                    ],
+                    last_page: 1,
+                    page: 1,
+                    per_page: 6,
+                    total: 1,
+                }),
+            });
+        },
+    );
+    await page.route(
+        new RegExp(
+            `/api/v1/admin/world-builder/maps/${mapId}/layout-versions/${layoutVersionId}/preview(?:\\?.*)?$`,
+        ),
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    created_at: '2026-11-14T12:30:00Z',
+                    items: [
+                        {
+                            current_position: { q: 0, r: 0 },
+                            node_id: nodeId,
+                            position: { q: 1, r: -1 },
+                            title: 'Mocked node',
+                        },
+                    ],
+                    last_page: 1,
+                    page: 1,
+                    per_page: 24,
+                    total: 1,
+                    version_id: layoutVersionId,
+                }),
+            });
+        },
+    );
     await page.route(
         `**/api/v1/admin/world-builder/activities/${npcActivityId}/npc-dialogue`,
         async (route) => {
@@ -910,6 +1053,65 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
     expect(bounds!.y).toBeGreaterThanOrEqual(0);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    mapSurfaceRequested = true;
+    await page.goto(`/settings?panel=admin-world-builder&map=${mapId}`);
+    await expect(
+        page.getByRole('button', { name: 'Localized layout history' }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Localized layout history' })
+        .click();
+    const layoutHistoryDialog = page.locator(
+        '[data-wl-id="authoring.world-builder.map-layout-history.dialog"]',
+    );
+    await expect(layoutHistoryDialog).toBeVisible();
+    await expect(
+        layoutHistoryDialog.getByRole('heading', {
+            name: 'Localized layout history',
+        }),
+    ).toBeVisible();
+    await expect(
+        layoutHistoryDialog.getByText('Localized layout-history guidance.'),
+    ).toBeVisible();
+    await expect(
+        layoutHistoryDialog.getByText('Localized placement snapshot'),
+    ).toBeVisible();
+    await expect(
+        layoutHistoryDialog.getByText('1 localized nodes'),
+    ).toBeVisible();
+    await layoutHistoryDialog
+        .getByRole('button', { name: 'Preview localized layout' })
+        .click();
+    await expect(
+        layoutHistoryDialog.getByRole('heading', {
+            name: 'Localized layout preview',
+        }),
+    ).toBeVisible();
+    await expect(
+        layoutHistoryDialog.getByRole('list', {
+            name: 'Localized saved positions',
+        }),
+    ).toContainText('Localized position 1, -1');
+    await expect(
+        layoutHistoryDialog.getByRole('list', {
+            name: 'Localized saved positions',
+        }),
+    ).toContainText('Localized current position 0, 0');
+    await page.setViewportSize({ width: 390, height: 844 });
+    const layoutHistoryBounds = await layoutHistoryDialog.boundingBox();
+    expect(layoutHistoryBounds).not.toBeNull();
+    expect(layoutHistoryBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(
+        layoutHistoryBounds!.x + layoutHistoryBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(layoutHistoryBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(
+        layoutHistoryBounds!.y + layoutHistoryBounds!.height,
+    ).toBeLessThanOrEqual(844);
+    await layoutHistoryDialog
+        .getByLabel('Close localized layout history')
+        .click();
 });
 
 test('a local author can save, revise, restore and copy a reusable activity template', async ({
