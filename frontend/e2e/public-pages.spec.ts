@@ -4060,6 +4060,15 @@ test('the original item-obstacle surface accepts only its dragged inventory item
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: { 'common.continue': 'Continue locally' },
+            }),
+        });
+    });
     await page.route(
         `**/api/v1/learner/play-runs/${playRunId}`,
         async (route) => {
@@ -4205,11 +4214,18 @@ test('the original item-obstacle surface accepts only its dragged inventory item
         },
     );
 
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
     await expect(
         page.getByRole('heading', { name: 'A blocked gate' }),
     ).toBeVisible();
+    const desktopSceneBounds = await page
+        .locator('[data-wl-id="learner.activity.item_obstacle"]')
+        .boundingBox();
+    expect(desktopSceneBounds?.width ?? 0).toBeGreaterThan(700);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
     await page.getByRole('button', { name: 'Open inventory' }).click();
     const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
     await page.getByTitle('Portal key').dispatchEvent('dragstart', {
@@ -4221,7 +4237,7 @@ test('the original item-obstacle surface accepts only its dragged inventory item
     await expect(
         page.getByRole('button', { name: 'Open inventory' }),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue locally' }).click();
     await expect(
         page.getByRole('heading', {
             name: 'A small pause after A blocked gate',
