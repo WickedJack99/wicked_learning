@@ -30,6 +30,10 @@ test('map export preflight uses fixed platform catalog copy and submits a CSRF-p
                 body: JSON.stringify({
                     locale: 'test',
                     translations: {
+                        'settings.world_builder.map.export':
+                            'Export localized map',
+                        'settings.world_builder.map.export_package':
+                            'Export localized map package',
                         'settings.world_builder.export_validation.open':
                             'Open localized map export validation',
                         'settings.world_builder.export_validation.eyebrow':
@@ -129,6 +133,25 @@ test('map export preflight uses fixed platform catalog copy and submits a CSRF-p
     });
 
     await page.goto(`/settings?panel=admin-world-builder&map=${mapId}`);
+    const jsonExport = page.getByRole('link', {
+        exact: true,
+        name: 'Export localized map',
+    });
+    const packageExport = page.getByRole('link', {
+        name: 'Export localized map package',
+    });
+    await expect(jsonExport).toBeVisible();
+    await expect(packageExport).toBeVisible();
+    await expect(jsonExport).toHaveAttribute(
+        'href',
+        `/api/v1/admin/world-builder/maps/${mapId}/export`,
+    );
+    await expect(jsonExport).toHaveAttribute('download', '');
+    await expect(packageExport).toHaveAttribute(
+        'href',
+        `/api/v1/admin/world-builder/maps/${mapId}/export-package`,
+    );
+    await expect(packageExport).toHaveAttribute('download', '');
     await page
         .getByRole('button', { name: 'Open localized map export validation' })
         .click();

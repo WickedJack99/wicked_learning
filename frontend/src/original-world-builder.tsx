@@ -5194,16 +5194,22 @@ function MapDetails({
             </button>
             <a
                 className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-center text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                data-wl-id="authoring.world-builder.map-export"
+                download
                 href={`/api/v1/admin/world-builder/maps/${map.id}/export`}
             >
-                Export map
+                {t('settings.world_builder.map.export', 'Export map')}
             </a>
             <a
                 className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-center text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
+                data-wl-id="authoring.world-builder.map-export-package"
                 download
                 href={`/api/v1/admin/world-builder/maps/${map.id}/export-package`}
             >
-                Export map package
+                {t(
+                    'settings.world_builder.map.export_package',
+                    'Export map with media',
+                )}
             </a>
             <button
                 className="mt-3 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
