@@ -87,6 +87,17 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Localized tool grant',
                     'settings.activity_ai_review.unsafe_error':
                         'Localized unsafe review feedback.',
+                    'settings.activity_ai_review.title':
+                        'Localized activity review',
+                    'settings.activity_ai_review.description':
+                        'Localized review-only guidance.',
+                    'settings.activity_ai_review.close':
+                        'Close localized activity review',
+                    'settings.activity_ai_review.helper_label':
+                        'Localized review helper',
+                    'settings.activity_ai_review.cancel': 'Localized cancel',
+                    'settings.activity_ai_review.submit':
+                        'Run localized activity review',
                     'settings.world_builder.activity_templates.copy_activity':
                         'Localized copy :activity',
                     'settings.world_builder.activity_templates.create_copy':
@@ -380,14 +391,36 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     await card.getByRole('button', { name: 'Localized review activity' }).click();
     const reviewDialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
     await expect(reviewDialog).toBeVisible();
-    await expect(reviewDialog.getByLabel('Review helper')).toHaveValue(
+    await expect(
+        reviewDialog.getByText('Localized activity review', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        reviewDialog.getByText('Localized review-only guidance.', { exact: true }),
+    ).toBeVisible();
+    await expect(reviewDialog.getByLabel('Localized review helper')).toHaveValue(
         reviewTemplateId,
     );
-    await reviewDialog.getByRole('button', { name: 'Review activity' }).click();
+    await reviewDialog
+        .getByRole('button', { name: 'Run localized activity review' })
+        .click();
     await expect(reviewDialog.getByRole('status')).toHaveText(
         'Localized unsafe review feedback.',
     );
-    await reviewDialog.getByRole('button', { name: 'Cancel' }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const reviewPanelBounds = await reviewDialog.locator('section').boundingBox();
+    expect(reviewPanelBounds).not.toBeNull();
+    expect(reviewPanelBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(
+        reviewPanelBounds!.x + reviewPanelBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(reviewPanelBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(
+        reviewPanelBounds!.y + reviewPanelBounds!.height,
+    ).toBeLessThanOrEqual(844);
+    await reviewDialog
+        .getByLabel('Close localized activity review')
+        .click();
+    await page.setViewportSize({ width: 1280, height: 900 });
     await expect(
         card.getByRole('button', { name: 'Localized edit Mocked activity' }),
     ).toBeVisible();

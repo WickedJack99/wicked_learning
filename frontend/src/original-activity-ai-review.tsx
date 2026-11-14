@@ -108,16 +108,19 @@ export function OriginalActivityAiReviewDialog({
                     <div>
                         <p className="inline-flex items-center gap-2 text-xs font-medium tracking-[0.18em] text-violet-700 uppercase dark:text-violet-300">
                             <Sparkles className="size-4" />
-                            Activity review
+                            {t('settings.activity_ai_review.title', 'Activity review')}
                         </p>
                         <h2 className="mt-1 text-xl font-semibold" id="activity-ai-review-title">
                             {activity.title}
                         </h2>
                         <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Review the learning design with a configured helper. This is not a learner grade, does not use learner data, and never changes the activity automatically.
+                            {t(
+                                'settings.activity_ai_review.description',
+                                'Review the learning design with a configured helper. This is not a learner grade, does not use learner data, and never changes the activity automatically.',
+                            )}
                         </p>
                     </div>
-                    <button aria-label="Close activity review" className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white" onClick={onClose} type="button"><X className="size-5" /></button>
+                    <button aria-label={t('settings.activity_ai_review.close', 'Close activity review')} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white" onClick={onClose} type="button"><X className="size-5" /></button>
                 </header>
 
                 {error ? <p aria-live="polite" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="status">{error}</p> : null}
@@ -136,17 +139,17 @@ export function OriginalActivityAiReviewDialog({
                     <form className="mt-6" onSubmit={(event) => void submit(event)}>
                         {templates.length > 0 ? (
                             <label className="block text-sm font-medium">
-                                Review helper
+                                {t('settings.activity_ai_review.helper_label', 'Review helper')}
                                 <select className="mt-2 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setTemplateId(event.target.value)} value={templateId}>
                                     {templates.map((template) => <option key={template.id} value={template.id}>{template.name}{template.provider_label ? ` · ${template.provider_label}` : ''}{template.model ? ` (${template.model})` : ''}</option>)}
                                 </select>
                             </label>
                         ) : (
-                            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">No enabled activity review helper is configured. Add one in AI settings first.</p>
+                            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{t('settings.activity_ai_review.no_helper', 'No enabled activity review helper is configured. Add one in AI settings first.')}</p>
                         )}
                         <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-                            <button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={reviewing} onClick={onClose} type="button">Cancel</button>
-                            <button className="inline-flex items-center gap-2 rounded-md bg-violet-700 px-3 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-60 dark:bg-violet-400 dark:text-slate-950" disabled={reviewing || templates.length === 0} type="submit"><Bot className="size-4" />{reviewing ? 'Reviewing…' : 'Review activity'}</button>
+                            <button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={reviewing} onClick={onClose} type="button">{t('settings.activity_ai_review.cancel', 'Cancel')}</button>
+                            <button className="inline-flex items-center gap-2 rounded-md bg-violet-700 px-3 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-60 dark:bg-violet-400 dark:text-slate-950" disabled={reviewing || templates.length === 0} type="submit"><Bot className="size-4" />{reviewing ? t('settings.activity_ai_review.reviewing', 'Reviewing…') : t('settings.activity_ai_review.submit', 'Review activity')}</button>
                         </div>
                     </form>
                 )}
@@ -156,22 +159,23 @@ export function OriginalActivityAiReviewDialog({
 }
 
 function ReviewResult({ learning, review, strengths, suggestions, onEditLearningDesign }: { learning: Record<string, unknown>; review: Record<string, unknown>; strengths: string[]; suggestions: string[]; onEditLearningDesign: (suggestions: LearningDesignSuggestions) => void }) {
+    const t = usePlatformTranslation();
     const metadataSuggestions = {
         suggestedLearningIntent: text(learning.suggestedLearningIntent),
         suggestedCompetenceTopics: stringList(learning.suggestedCompetenceTopics),
     };
     const hasMetadataSuggestions = metadataSuggestions.suggestedLearningIntent !== null || metadataSuggestions.suggestedCompetenceTopics.length > 0;
     return <div className="mt-6 grid gap-5" data-wl-id="authoring.activity-ai-review.result">
-        <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-3 text-sm leading-6 text-violet-950 dark:border-violet-300/25 dark:bg-violet-300/10 dark:text-violet-50">{text(review.summary) || 'The review was saved without a summary.'}</p>
-        <ReviewList heading="Strengths" items={strengths} />
-        <ReviewList heading="Optional suggestions" items={suggestions} />
-        <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><h3 className="font-semibold">Learning-design alignment</h3><div className="mt-3 grid gap-3 text-sm"><Signal label="Purpose" value={record(learning.purpose)} /><Signal label="Topics" value={record(learning.topics)} /></div>{hasMetadataSuggestions ? <div className="mt-4 rounded-md bg-slate-100 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200"><p>Suggested metadata is shown for consideration only. It is never applied by this review action.</p><button className="mt-3 inline-flex items-center gap-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm font-medium hover:bg-white dark:border-white/20 dark:hover:bg-white/10" data-wl-id="authoring.activity-ai-review.edit-metadata" onClick={() => onEditLearningDesign(metadataSuggestions)} type="button"><Sparkles className="size-3.5" />Edit metadata draft</button><p className="mt-2 text-xs leading-5 text-slate-500">This opens a draft. Nothing changes until a tutor reviews and saves it.</p></div> : null}</section>
-        <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><h3 className="font-semibold">Supportive learning environment</h3><div className="mt-3 grid gap-3 text-sm">{Object.entries(record(review.sdt)).map(([label, value]) => <Signal key={label} label={label} value={record(value)} />)}{Object.entries(record(review.feedbackGuidance)).map(([label, value]) => <Signal key={`feedback-${label}`} label={`Feedback: ${label}`} value={record(value)} />)}</div></section>
+        <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-3 text-sm leading-6 text-violet-950 dark:border-violet-300/25 dark:bg-violet-300/10 dark:text-violet-50">{text(review.summary) || t('settings.activity_ai_review.summary_empty', 'The review was saved without a summary.')}</p>
+        <ReviewList heading={t('settings.activity_ai_review.strengths', 'Strengths')} items={strengths} />
+        <ReviewList heading={t('settings.activity_ai_review.suggestions', 'Optional suggestions')} items={suggestions} />
+        <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><h3 className="font-semibold">{t('settings.activity_ai_review.learning_design_alignment', 'Learning-design alignment')}</h3><div className="mt-3 grid gap-3 text-sm"><Signal label={t('settings.activity_ai_review.purpose', 'Purpose')} value={record(learning.purpose)} /><Signal label={t('settings.activity_ai_review.topics', 'Topics')} value={record(learning.topics)} /></div>{hasMetadataSuggestions ? <div className="mt-4 rounded-md bg-slate-100 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200"><p>{t('settings.activity_ai_review.metadata_suggestions', 'Suggested metadata is shown for consideration only. It is never applied by this review action.')}</p><button className="mt-3 inline-flex items-center gap-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm font-medium hover:bg-white dark:border-white/20 dark:hover:bg-white/10" data-wl-id="authoring.activity-ai-review.edit-metadata" onClick={() => onEditLearningDesign(metadataSuggestions)} type="button"><Sparkles className="size-3.5" />{t('settings.activity_ai_review.edit_metadata', 'Edit metadata draft')}</button><p className="mt-2 text-xs leading-5 text-slate-500">{t('settings.activity_ai_review.metadata_draft', 'This opens a draft. Nothing changes until a tutor reviews and saves it.')}</p></div> : null}</section>
+        <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><h3 className="font-semibold">{t('settings.activity_ai_review.supportive_environment', 'Supportive learning environment')}</h3><div className="mt-3 grid gap-3 text-sm">{Object.entries(record(review.sdt)).map(([label, value]) => <Signal key={label} label={label} value={record(value)} />)}{Object.entries(record(review.feedbackGuidance)).map(([label, value]) => <Signal key={`feedback-${label}`} label={t('settings.activity_ai_review.feedback_label', 'Feedback: :label', { label })} value={record(value)} />)}</div></section>
     </div>;
 }
 
-function ReviewList({ heading, items }: { heading: string; items: string[] }) { return <section><h3 className="font-semibold">{heading}</h3>{items.length ? <ul className="mt-2 grid list-disc gap-1 pl-5 text-sm leading-6 text-slate-700 dark:text-slate-200">{items.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="mt-2 text-sm text-slate-500">None recorded.</p>}</section>; }
-function Signal({ label, value }: { label: string; value: Record<string, unknown> }) { return <div><p className="font-medium capitalize">{label} <span className="text-slate-500">· {text(value.signal) || 'unclear'}</span></p><p className="mt-1 leading-6 text-slate-600 dark:text-slate-300">{text(value.note) || 'No note was provided.'}</p></div>; }
+function ReviewList({ heading, items }: { heading: string; items: string[] }) { const t = usePlatformTranslation(); return <section><h3 className="font-semibold">{heading}</h3>{items.length ? <ul className="mt-2 grid list-disc gap-1 pl-5 text-sm leading-6 text-slate-700 dark:text-slate-200">{items.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="mt-2 text-sm text-slate-500">{t('settings.activity_ai_review.none_recorded', 'None recorded.')}</p>}</section>; }
+function Signal({ label, value }: { label: string; value: Record<string, unknown> }) { const t = usePlatformTranslation(); return <div><p className="font-medium capitalize">{label} <span className="text-slate-500">· {text(value.signal) || t('settings.activity_ai_review.unclear', 'unclear')}</span></p><p className="mt-1 leading-6 text-slate-600 dark:text-slate-300">{text(value.note) || t('settings.activity_ai_review.no_note', 'No note was provided.')}</p></div>; }
 function record(value: unknown): Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function text(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value : null; }
 function stringList(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
