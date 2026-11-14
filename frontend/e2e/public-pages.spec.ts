@@ -4403,6 +4403,15 @@ test('the original Markdown activity follows its authored pages before server-ow
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d55';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: { 'common.continue': 'Continue locally' },
+            }),
+        });
+    });
     await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -4473,11 +4482,20 @@ test('the original Markdown activity follows its authored pages before server-ow
         },
     );
 
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByRole('heading', { name: 'First page' })).toBeVisible();
+    const desktopPageBounds = await page
+        .locator('[data-wl-id="learner.activity.markdown"]')
+        .first()
+        .boundingBox();
+    expect(desktopPageBounds?.width ?? 0).toBeGreaterThan(700);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
     await expect(page.getByRole('heading', { name: 'First page' })).toBeVisible();
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('heading', { name: 'Second page' })).toBeVisible();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue locally' }).click();
     await expect(page.getByRole('heading', { name: 'A small pause after Read the map' })).toBeVisible();
 });
 

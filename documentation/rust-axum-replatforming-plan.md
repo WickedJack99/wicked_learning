@@ -349,6 +349,10 @@ The Item-obstacle player's fixed continuation, lock and validation-feedback
 copy now also resolves through the bounded platform catalog; its slot state,
 inventory mutation and continuation remain server-owned.
 
+Markdown playback's empty state, previous-page accessibility label and final
+continuation copy likewise use the catalog while its bounded page graph and
+completion remain server-owned.
+
 The source World Builder's map Access permissions control is now lifted for
 principals with its distinct `world_map_access` update scope. Its typed Rust
 command replaces only the complete map viewer-group list after validating

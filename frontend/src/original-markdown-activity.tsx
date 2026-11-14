@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { components } from './api/schema';
 import { OriginalMarkdownRenderer } from './original-markdown';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 
@@ -40,6 +41,7 @@ export function OriginalMarkdownActivity({
     onComplete: () => Promise<void>;
 }) {
     const config = activity.config as Record<string, unknown>;
+    const t = usePlatformTranslation();
     const pages = useMemo(
         () => markdownPages(config.markdownPages),
         [config.markdownPages],
@@ -108,9 +110,14 @@ export function OriginalMarkdownActivity({
         return (
             <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center dark:border-white/15 dark:bg-white/6">
                 <div>
-                    <p className="font-semibold">No markdown pages</p>
+                    <p className="font-semibold">
+                        {t('learning.markdown.empty.title', 'No markdown pages')}
+                    </p>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        Add pages in the activity editor to make this readable.
+                        {t(
+                            'learning.markdown.empty.body',
+                            'Add pages in the activity editor to make this readable.',
+                        )}
                     </p>
                 </div>
             </div>
@@ -146,7 +153,10 @@ export function OriginalMarkdownActivity({
             </article>
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
                 <button
-                    aria-label="Previous page"
+                    aria-label={t(
+                        'learning.markdown.previous_page',
+                        'Previous page',
+                    )}
                     className="inline-flex size-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-950 transition hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-50 dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                     disabled={history.length === 0 || completing}
                     onClick={goBack}
@@ -168,7 +178,8 @@ export function OriginalMarkdownActivity({
                         <ArrowRight className="size-4" />
                     ) : (
                         <>
-                            {activity.completion.label?.trim() || 'Continue'}
+                            {activity.completion.label?.trim() ||
+                                t('common.continue', 'Continue')}
                             <ArrowRight className="ml-2 size-4" />
                         </>
                     )}
