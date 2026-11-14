@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Compass, LoaderCircle, Route } from 'lucide-react';
+import { ArrowRight, Compass, LoaderCircle, Map as MapIcon, Route } from 'lucide-react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import {
     TopicPagination,
-    TopicPathCard,
     TopicSurface,
     topicSurfaceStyle,
-    type TopicPath,
 } from './original-topics';
 import { OriginalLearnerHeader } from './original-learner-header';
 import { usePlatformTranslation } from './original-platform-translation';
@@ -23,11 +21,12 @@ const learningIntents = [
     'review',
     'transfer',
 ] as const;
+type PathSummary = components['schemas']['LearnerPathSummary'];
 
 /**
  * Source-adapted from `pages/paths.tsx`. The server owns visibility,
- * filtering, pagination and opaque route-run creation. It uses the existing
- * lifted route card rather than inventing a second route-start interaction.
+ * filtering, pagination and opaque route-run creation. Its route cards retain
+ * the original Paths-specific orientation and progress hierarchy.
  */
 export function OriginalPathsPage({
     isAuthenticationLoading,
@@ -109,7 +108,7 @@ export function OriginalPathsPage({
         setSearchParams(next, { replace: true });
     }
 
-    async function startPath(path: TopicPath) {
+    async function startPath(path: PathSummary) {
         if (startingId) return;
         setStartingId(path.start_id);
         setStartError(null);
@@ -280,7 +279,7 @@ export function OriginalPathsPage({
                                 <>
                                     <div className="mt-6 grid min-h-[89rem] gap-4 md:min-h-[44rem] md:grid-cols-2">
                                         {paths.paths.map((path) => (
-                                            <TopicPathCard
+                                            <PathCard
                                                 key={path.start_id}
                                                 path={path}
                                                 onStart={startPath}
@@ -372,6 +371,137 @@ export function OriginalPathsPage({
     );
 }
 
+function PathCard({
+    path,
+    onStart,
+    starting,
+}: {
+    path: PathSummary;
+    onStart: (path: PathSummary) => void;
+    starting: boolean;
+}) {
+    const t = usePlatformTranslation();
+    const isInProgress = path.progress?.status === 'in_progress';
+    const wasExplored = path.progress?.status === 'completed';
+
+    return (
+        <article className="group flex min-h-56 flex-col border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_60%,transparent)] p-5 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,var(--learner-border-color))] hover:bg-[var(--learner-panel-background)]">
+            <div className="flex items-start gap-4">
+                <div className="grid size-12 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] text-[var(--learner-action-accent)]">
+                    {path.image_url ? (
+                        <img
+                            alt=""
+                            className="size-10 object-contain"
+                            src={path.image_url}
+                        />
+                    ) : (
+                        <MapIcon className="size-5" />
+                    )}
+                </div>
+                <div className="min-w-0">
+                    {path.topic ? (
+                        <Link
+                            className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-accent)] uppercase hover:text-[var(--learner-heading-text)]"
+                            to={path.topic.href}
+                        >
+                            {path.topic.title}
+                        </Link>
+                    ) : null}
+                    <h3 className="mt-2 text-sm font-semibold text-[var(--learner-heading-text)]">
+                        {path.label}
+                    </h3>
+                    <p className="mt-1 text-xs font-medium text-[var(--learner-action-accent)]">
+                        {intentLabel(path.learning_intent, t)}
+                    </p>
+                    {path.time_guide_minutes ? (
+                        <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
+                            {t(
+                                'learning.activity.time_guide',
+                                'Suggested time: :minutes minutes',
+                                { minutes: path.time_guide_minutes },
+                            )}
+                        </p>
+                    ) : null}
+                    {path.learning_areas.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--learner-muted-text)]">
+                            <span>Learning areas:</span>
+                            {path.learning_areas.map((area) => (
+                                <Link
+                                    className="text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
+                                    key={area.slug}
+                                    to={competenceTopicHref(
+                                        area.slug,
+                                        path.topic?.slug,
+                                    )}
+                                >
+                                    {area.name}
+                                </Link>
+                            ))}
+                        </div>
+                    ) : null}
+                    {path.route_description ? (
+                        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-body-text)]">
+                            {path.route_description}
+                        </p>
+                    ) : null}
+                    <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
+                        <Link
+                            className="underline decoration-[color-mix(in_srgb,var(--learner-muted-text)_60%,transparent)] underline-offset-2 transition hover:text-[var(--learner-action-accent)]"
+                            to={path.node_href}
+                        >
+                            {path.node_title}
+                        </Link>{' '}
+                        ·{' '}
+                        <Link
+                            className="underline decoration-[color-mix(in_srgb,var(--learner-muted-text)_60%,transparent)] underline-offset-2 transition hover:text-[var(--learner-action-accent)]"
+                            to={path.map_href}
+                        >
+                            {path.map_title}
+                        </Link>
+                    </p>
+                </div>
+            </div>
+            {path.description ? (
+                <p className="mt-5 line-clamp-3 text-sm leading-6 text-[var(--learner-body-text)]">
+                    {path.description}
+                </p>
+            ) : null}
+            <div className="mt-auto flex items-end justify-between gap-4 pt-6">
+                <div className="text-xs text-[var(--learner-muted-text)]">
+                    {isInProgress ? (
+                        <span className="font-medium text-[var(--learner-action-accent)]">
+                            {t('paths.status.in_progress', 'In progress')}
+                        </span>
+                    ) : wasExplored ? (
+                        <span>{t('paths.status.explored', 'Previously explored')}</span>
+                    ) : (
+                        <span>{t('paths.status.new', 'A new starting point')}</span>
+                    )}
+                    {isInProgress && path.progress?.current_activity_title ? (
+                        <span className="mt-1 block">
+                            {t('paths.status.current', 'Current step')}:{' '}
+                            {path.progress.current_activity_title}
+                        </span>
+                    ) : null}
+                </div>
+                <button
+                    className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[var(--learner-accent)] disabled:opacity-60"
+                    disabled={starting}
+                    onClick={() => onStart(path)}
+                    type="button"
+                >
+                    {starting
+                        ? 'Opening…'
+                        : isInProgress
+                          ? t('paths.action.continue', 'Continue route')
+                          : t('paths.action.enter', 'Enter route')}
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </button>
+            </div>
+        </article>
+    );
+}
+
 function PathsMessage({ message }: { message: string }) {
     return (
         <TopicSurface marker="learner.paths.status">
@@ -405,6 +535,17 @@ function learningIntent(
 
 function timeBudget(value: string | null): 15 | 30 | null {
     return value === '15' ? 15 : value === '30' ? 30 : null;
+}
+
+function competenceTopicHref(
+    topicSlug: string,
+    originTopicSlug?: string | null,
+): string {
+    const topicQuery = `topic=${encodeURIComponent(topicSlug)}`;
+
+    return originTopicSlug
+        ? `/competence?${topicQuery}&from=${encodeURIComponent(originTopicSlug)}`
+        : `/competence?${topicQuery}`;
 }
 
 function intentLabel(

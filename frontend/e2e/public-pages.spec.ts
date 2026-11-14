@@ -1382,6 +1382,94 @@ test('the authenticated Paths reader keeps the standalone source filters and rou
     );
 });
 
+test('the source Paths card keeps its learner orientation and progress details', async ({
+    page,
+}) => {
+    await mockTopicReader(page);
+    await page.route('**/api/v1/learner/paths**', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                pagination: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 6,
+                    total: 1,
+                },
+                paths: [
+                    {
+                        activity_title: 'Consider a direction',
+                        activity_type: 'question',
+                        description: 'Consider a useful next step.',
+                        image_url: 'https://example.test/route.png',
+                        label: 'Choose your next step',
+                        learning_areas: [
+                            { name: 'Map reading', slug: 'map-reading' },
+                        ],
+                        learning_intent: 'retrieve',
+                        map_href: '/world?map=first-path',
+                        map_title: 'The First Path',
+                        node_href:
+                            '/world?map=first-path&focused=choose-a-direction',
+                        node_slug: 'choose-a-direction',
+                        node_title: 'Choose a direction',
+                        progress: {
+                            current_activity_title: 'Consider a direction',
+                            last_entered_at: '2026-11-05T12:00:00Z',
+                            status: 'in_progress',
+                        },
+                        route_description: 'A short route for orientation.',
+                        start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                        time_guide_minutes: 15,
+                        topic: {
+                            href: '/topics/map-orientation',
+                            slug: 'map-orientation',
+                            title: 'Map orientation',
+                        },
+                    },
+                ],
+                selected_purpose: null,
+                selected_time_budget: null,
+                topic_context: null,
+            }),
+        });
+    });
+
+    await page.goto('/paths');
+
+    await expect(page.getByText('In progress')).toBeVisible();
+    await expect(page.getByText('Current step: Consider a direction')).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Map reading' }),
+    ).toHaveAttribute('href', '/competence?topic=map-reading&from=map-orientation');
+    await expect(
+        page.getByRole('link', { name: 'Choose a direction' }),
+    ).toHaveAttribute('href', '/world?map=first-path&focused=choose-a-direction');
+    await expect(
+        page.getByRole('link', { name: 'The First Path' }),
+    ).toHaveAttribute('href', '/world?map=first-path');
+    await page.getByRole('button', { name: 'Continue route' }).click();
+    await expect(page).toHaveURL(
+        /\/learning\/nodes\/choose-a-direction\/play\?run=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e$/,
+    );
+});
+
+test('the source Paths card stays usable at a narrow viewport', async ({ page }) => {
+    await mockTopicReader(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/paths');
+
+    const card = page.locator('article', { hasText: 'Choose your next step' });
+    await expect(card).toBeVisible();
+    await expect
+        .poll(async () => {
+            const box = await card.boundingBox();
+            return box ? box.x >= 0 && box.x + box.width <= 390 : false;
+        })
+        .toBe(true);
+    await expect(page.getByRole('button', { name: 'Enter route' })).toBeVisible();
+});
+
 test('the authenticated competence reader keeps the source star map and private learning pulse', async ({
     page,
 }) => {
