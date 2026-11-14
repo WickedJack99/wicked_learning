@@ -926,6 +926,7 @@ function ReflectionActivity({
     onSaved: (status: CompletionStatus) => void;
     playRunId: string;
 }) {
+    const t = usePlatformTranslation();
     const config = activity.config as {
         feedbackGuidance?: unknown;
         learningIntent?: unknown;
@@ -933,7 +934,13 @@ function ReflectionActivity({
         prompt?: unknown;
     };
     const guidance = asReflectionGuidance(config.feedbackGuidance);
-    const prompt = typeof config.prompt === 'string' ? config.prompt : '';
+    const prompt =
+        typeof config.prompt === 'string'
+            ? config.prompt
+            : t(
+                  'learning.reflection.default_prompt',
+                  'What feels clearer now?',
+              );
     const note = typeof config.note === 'string' ? config.note : '';
     const responseType =
         config.learningIntent === 'explain' ||
@@ -1074,7 +1081,10 @@ function ReflectionActivity({
             );
             if (!apiResponse.ok || !data) {
                 setError(
-                    'Your private reflection could not be saved. Try again.',
+                    t(
+                        'learning.reflection.save_error',
+                        'Your private reflection could not be saved. Try again.',
+                    ),
                 );
                 return;
             }
@@ -1088,7 +1098,12 @@ function ReflectionActivity({
             }
             await complete();
         } catch {
-            setError('Your private reflection could not be saved. Try again.');
+            setError(
+                t(
+                    'learning.reflection.save_error',
+                    'Your private reflection could not be saved. Try again.',
+                ),
+            );
         } finally {
             setSaving(false);
         }
@@ -1101,33 +1116,45 @@ function ReflectionActivity({
                     <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-cyan-700 dark:text-teal-200" />
                     <div>
                         <p className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-100">
-                            Response saved privately
+                            {t(
+                                'learning.reflection.response_saved',
+                                'Response saved privately',
+                            )}
                         </p>
                         <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
-                            Take a moment to compare your response with the
-                            observation guidance before you continue.
+                            {t(
+                                'learning.reflection.feedback_pause',
+                                'Take a moment to compare your response with the observation guidance before you continue.',
+                            )}
                         </p>
                     </div>
                 </div>
-                {guidance ? <ReflectionGuidance guidance={guidance} /> : null}
+                {guidance ? <ReflectionGuidance guidance={guidance} t={t} /> : null}
                 {independentCheckPrompt ? (
                     <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
-                            Independent check (optional)
+                            {t(
+                                'learning.reflection.independent_check_label',
+                                'Independent check (optional)',
+                            )}
                         </p>
                         <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
                             {independentCheckPrompt}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
-                            Try a fresh response without looking back. This
-                            stays private and is recorded separately; you can
-                            continue without it.
+                            {t(
+                                'learning.reflection.independent_check_helper',
+                                'Try a fresh response without looking back. This stays private and is recorded separately; you can continue without it.',
+                            )}
                         </p>
                         <label
                             className="mt-3 block text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
                             htmlFor="activity-independent-response"
                         >
-                            Fresh response
+                            {t(
+                                'learning.reflection.independent_check_response_label',
+                                'Fresh response',
+                            )}
                         </label>
                         <textarea
                             className="mt-2 min-h-24 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
@@ -1138,7 +1165,10 @@ function ReflectionActivity({
                                     event.currentTarget.value,
                                 )
                             }
-                            placeholder="Write what you can explain or apply on your own now."
+                            placeholder={t(
+                                'learning.reflection.independent_check_response_placeholder',
+                                'Write what you can explain or apply on your own now.',
+                            )}
                             value={independentResponse}
                         />
                         {isTransfer ? (
@@ -1147,7 +1177,10 @@ function ReflectionActivity({
                                     className="mt-3 block text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
                                     htmlFor="activity-independent-context"
                                 >
-                                    Changed context
+                                    {t(
+                                        'learning.reflection.independent_check_context_label',
+                                        'Changed context',
+                                    )}
                                 </label>
                                 <textarea
                                     className="mt-2 min-h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
@@ -1158,7 +1191,10 @@ function ReflectionActivity({
                                             event.currentTarget.value,
                                         )
                                     }
-                                    placeholder="Where would this idea work in a new situation?"
+                                    placeholder={t(
+                                        'learning.reflection.independent_check_context_placeholder',
+                                        'Where would this idea work in a new situation?',
+                                    )}
                                     value={independentResponseContext}
                                 />
                             </>
@@ -1176,8 +1212,14 @@ function ReflectionActivity({
                             type="button"
                         >
                             {independentResponseSaved
-                                ? 'Independent response saved'
-                                : 'Save independent response'}
+                                ? t(
+                                      'learning.reflection.independent_check_saved',
+                                      'Independent response saved',
+                                  )
+                                : t(
+                                      'learning.reflection.independent_check_save',
+                                      'Save independent response',
+                                  )}
                         </button>
                     </div>
                 ) : null}
@@ -1192,23 +1234,34 @@ function ReflectionActivity({
                             ref={independentComparisonRef}
                             tabIndex={-1}
                         >
-                            Compare your responses
+                            {t(
+                                'learning.reflection.independent_check_comparison_label',
+                                'Compare your responses',
+                            )}
                         </h3>
                         <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
-                            Notice what changed or stayed consistent. Both
-                            responses remain private.
+                            {t(
+                                'learning.reflection.independent_check_comparison_helper',
+                                'Notice what changed or stayed consistent. Both responses remain private.',
+                            )}
                         </p>
                         <div className="mt-3 grid gap-3 md:grid-cols-2">
                             <ReflectionResponseComparison
                                 context={responseContext}
                                 isTransfer={isTransfer}
-                                label="First response"
+                                label={t(
+                                    'learning.reflection.independent_check_first_response_label',
+                                    'First response',
+                                )}
                                 response={reflection}
                             />
                             <ReflectionResponseComparison
                                 context={independentResponseContext}
                                 isTransfer={isTransfer}
-                                label="Fresh response"
+                                label={t(
+                                    'learning.reflection.independent_check_fresh_response_label',
+                                    'Fresh response',
+                                )}
                                 response={independentResponse}
                             />
                         </div>
@@ -1218,7 +1271,10 @@ function ReflectionActivity({
                 guidance?.independentCheckFeedback ? (
                     <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
-                            After your independent check
+                            {t(
+                                'learning.reflection.independent_check_feedback_label',
+                                'After your independent check',
+                            )}
                         </p>
                         <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
                             {guidance.independentCheckFeedback}
@@ -1228,15 +1284,19 @@ function ReflectionActivity({
                 {responseType || isReview ? (
                     <fieldset className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <legend className="px-1 text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
-                            After comparing, how settled does this feel now?
-                            (optional)
+                            {t(
+                                'learning.reflection.confidence_after_feedback_prompt',
+                                'After comparing, how settled does this feel now? (optional)',
+                            )}
                         </legend>
                         <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
-                            This is a reflection on your understanding, not a
-                            grade.
+                            {t(
+                                'learning.reflection.confidence_after_feedback_helper',
+                                'This is a reflection on your understanding, not a grade.',
+                            )}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            {reflectionConfidenceOptions.map((option) => (
+                            {reflectionConfidenceOptions(t).map((option) => (
                                 <button
                                     aria-pressed={
                                         confidenceAfterFeedback === option.value
@@ -1260,7 +1320,10 @@ function ReflectionActivity({
                     </p>
                 ) : null}
                 <p className="text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
-                    This response stays in your private journal.
+                    {t(
+                        'learning.reflection.private_response_hint',
+                        'This response stays in your private journal.',
+                    )}
                 </p>
                 <button
                     className="mt-auto inline-flex h-9 items-center justify-center rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950 transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
@@ -1268,14 +1331,17 @@ function ReflectionActivity({
                     onClick={() =>
                         void complete().catch(() =>
                             setError(
-                                'The activity could not continue. Try again.',
+                                t(
+                                    'learning.reflection.continue_error',
+                                    'The activity could not continue. Try again.',
+                                ),
                             ),
                         )
                     }
                     ref={postResponseContinueRef}
                     type="button"
                 >
-                    Continue
+                    {t('learning.reflection.continue_after_feedback', 'Continue')}
                 </button>
             </div>
         );
@@ -1285,22 +1351,31 @@ function ReflectionActivity({
         <div className="flex flex-1 flex-col gap-4">
             <div className="flex items-center gap-2 text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200">
                 <RotateCcw className="size-3.5" />
-                {isReview ? 'Review / revisit' : 'Reflection'}
+                {isReview
+                    ? t('learning.reflection.review_kind', 'Review / revisit')
+                    : t('learning.reflection.kind', 'Reflection')}
             </div>
             {isReview ? (
                 <p className="rounded-lg border border-cyan-500/20 bg-cyan-50 p-3 text-xs leading-5 text-cyan-900 dark:border-teal-200/20 dark:bg-teal-100/8 dark:text-teal-100">
-                    Return to the idea and notice what feels clearer, more
-                    connected, or still open.
+                    {t(
+                        'learning.reflection.review_orientation',
+                        'Return to the idea and notice what feels clearer, more connected, or still open.',
+                    )}
                 </p>
             ) : null}
             {isReview && activity.review_context.length ? (
                 <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
                     <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
-                        Earlier notes from you
+                        {t(
+                            'learning.reflection.earlier_notes_title',
+                            'Earlier notes from you',
+                        )}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
-                        Look back if it helps. You can also write without
-                        comparing.
+                        {t(
+                            'learning.reflection.earlier_notes_helper',
+                            'Look back if it helps. You can also write without comparing.',
+                        )}
                     </p>
                     <div className="mt-2 grid gap-2">
                         {activity.review_context.map((entry) => (
@@ -1309,7 +1384,7 @@ function ReflectionActivity({
                                 key={entry.id}
                             >
                                 <summary className="cursor-pointer text-xs font-medium text-cyan-900 dark:text-teal-100">
-                                    {formatReviewDate(entry.created_at)} ·{' '}
+                                    {formatReviewDate(entry.created_at, t)} ·{' '}
                                     {entry.question}
                                 </summary>
                                 <p className="mt-2 text-xs leading-5 whitespace-pre-wrap text-cyan-950/80 dark:text-teal-50/80">
@@ -1323,12 +1398,18 @@ function ReflectionActivity({
             {responseType ? (
                 <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
                     <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
-                        Response focus
+                        {t('learning.reflection.response_focus', 'Response focus')}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
                         {isTransfer
-                            ? 'Name the changed context and explain how the idea worked there.'
-                            : 'Explain the idea in your own words and connect it to a reason or example.'}
+                            ? t(
+                                  'learning.reflection.transfer_helper',
+                                  'Name the changed context and explain how the idea worked there.',
+                              )
+                            : t(
+                                  'learning.reflection.explanation_helper',
+                                  'Explain the idea in your own words and connect it to a reason or example.',
+                              )}
                     </p>
                 </div>
             ) : null}
@@ -1338,11 +1419,13 @@ function ReflectionActivity({
             {responseType ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                        How settled does your starting understanding feel?
-                        (optional)
+                        {t(
+                            'learning.reflection.confidence_prompt',
+                            'How settled does your starting understanding feel? (optional)',
+                        )}
                     </legend>
                     <div className="mt-2 flex flex-wrap gap-2">
-                        {reflectionConfidenceOptions.map((option) => (
+                        {reflectionConfidenceOptions(t).map((option) => (
                             <button
                                 aria-pressed={confidence === option.value}
                                 className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300"
@@ -1361,7 +1444,12 @@ function ReflectionActivity({
                     className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200"
                     htmlFor="activity-reflection-response"
                 >
-                    Your explanation
+                    {t(
+                        isTransfer
+                            ? 'learning.reflection.response_label'
+                            : 'learning.reflection.explanation_label',
+                        isTransfer ? 'Your response' : 'Your explanation',
+                    )}
                 </label>
             ) : null}
             <textarea
@@ -1373,12 +1461,24 @@ function ReflectionActivity({
                 onChange={(event) => setReflection(event.currentTarget.value)}
                 placeholder={
                     isTransfer
-                        ? 'Explain how the idea worked in the changed context.'
+                        ? t(
+                              'learning.reflection.transfer_placeholder',
+                              'Explain how the idea worked in the changed context.',
+                          )
                         : responseType
-                          ? 'Write the idea in your own words.'
+                          ? t(
+                                'learning.reflection.explanation_placeholder',
+                                'Write the idea in your own words.',
+                            )
                           : isReview
-                            ? 'Write what feels clearer or still open.'
-                            : 'Write a short note for yourself.'
+                            ? t(
+                                  'learning.reflection.review_placeholder',
+                                  'Write what feels clearer or still open.',
+                              )
+                            : t(
+                                  'learning.reflection.placeholder',
+                                  'Write a short note for yourself.',
+                              )
                 }
                 value={reflection}
             />
@@ -1388,7 +1488,7 @@ function ReflectionActivity({
                         className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200"
                         htmlFor="activity-reflection-context"
                     >
-                        Changed context
+                        {t('learning.reflection.context_label', 'Changed context')}
                     </label>
                     <textarea
                         aria-describedby="activity-response-help"
@@ -1397,7 +1497,10 @@ function ReflectionActivity({
                         onChange={(event) =>
                             setResponseContext(event.currentTarget.value)
                         }
-                        placeholder="Where did you try the idea?"
+                        placeholder={t(
+                            'learning.reflection.context_placeholder',
+                            'Where did you try the idea?',
+                        )}
                         required
                         value={responseContext}
                     />
@@ -1406,15 +1509,24 @@ function ReflectionActivity({
             {(responseType || isReview) && guidance?.rubric.length ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                        What did you notice in your response? (optional)
+                        {t(
+                            'learning.reflection.observed_cues_prompt',
+                            'What did you notice in your response? (optional)',
+                        )}
                     </legend>
                     <p
                         className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400"
                         id="activity-response-help"
                     >
                         {isReview
-                            ? 'Select any cues that feel visible in your response. This records your observation, not a grade.'
-                            : 'Select any cues that feel visible in your explanation. This records your observation, not a grade.'}
+                            ? t(
+                                  'learning.reflection.observed_cues_review_helper',
+                                  'Select any cues that feel visible in your response. This records your observation, not a grade.',
+                              )
+                            : t(
+                                  'learning.reflection.observed_cues_helper',
+                                  'Select any cues that feel visible in your explanation. This records your observation, not a grade.',
+                              )}
                     </p>
                     <div className="mt-2 grid gap-2">
                         {guidance.rubric.map((cue) => {
@@ -1448,15 +1560,20 @@ function ReflectionActivity({
             {isReview ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                        After your response, how settled does this feel before
-                        comparing with the guidance? (optional)
+                        {t(
+                            'learning.review.confidence_prompt',
+                            'After your response, how settled does this feel before comparing with the guidance? (optional)',
+                        )}
                     </legend>
                     <div
-                        aria-label="After your response, how settled does this feel before comparing with the guidance? (optional)"
+                        aria-label={t(
+                            'learning.review.confidence_prompt',
+                            'After your response, how settled does this feel before comparing with the guidance? (optional)',
+                        )}
                         className="mt-2 flex flex-wrap gap-2"
                         role="group"
                     >
-                        {reflectionConfidenceOptions.map((option) => (
+                        {reflectionConfidenceOptions(t).map((option) => (
                             <button
                                 aria-pressed={confidence === option.value}
                                 className={`min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200 ${confidence === option.value ? 'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100' : ''}`}
@@ -1473,15 +1590,21 @@ function ReflectionActivity({
             {isReview ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                        What changed for you? (optional)
+                        {t(
+                            'learning.review.outcome_prompt',
+                            'What changed for you? (optional)',
+                        )}
                     </legend>
                     <div
-                        aria-label="What changed for you? (optional)"
+                        aria-label={t(
+                            'learning.review.outcome_prompt',
+                            'What changed for you? (optional)',
+                        )}
                         aria-describedby="activity-review-outcome-help"
                         className="mt-2 flex flex-wrap gap-2"
                         role="group"
                     >
-                        {reviewOutcomeOptions.map((option) => (
+                        {reviewOutcomeOptions(t).map((option) => (
                             <button
                                 aria-pressed={outcome === option.value}
                                 className={`min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200 ${outcome === option.value ? 'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100' : ''}`}
@@ -1498,8 +1621,11 @@ function ReflectionActivity({
                         id="activity-review-outcome-help"
                     >
                         {outcome
-                            ? reviewOutcomeDescription(outcome)
-                            : 'Choose only if one of these descriptions fits. No choice is required, and none is a grade.'}
+                            ? reviewOutcomeDescription(outcome, t)
+                            : t(
+                                  'learning.review.outcome_helper',
+                                  'Choose only if one of these descriptions fits. No choice is required, and none is a grade.',
+                              )}
                     </p>
                 </fieldset>
             ) : null}
@@ -1524,10 +1650,10 @@ function ReflectionActivity({
                 type="button"
             >
                 {saving
-                    ? 'Keeping reflection…'
+                    ? t('learning.reflection.saving', 'Keeping reflection…')
                     : isReview
-                      ? 'Save review note'
-                      : 'Keep reflection'}
+                      ? t('learning.reflection.save_review', 'Save review note')
+                      : t('learning.reflection.keep_reflection', 'Keep reflection')}
             </button>
         </div>
     );
@@ -1543,39 +1669,73 @@ type ReflectionGuidance = {
     rubric: string[];
 };
 
-const reflectionConfidenceOptions: Array<{
+type Translate = ReturnType<typeof usePlatformTranslation>;
+
+function reflectionConfidenceOptions(t: Translate): Array<{
     label: string;
     value: 'exploring' | 'leaning' | 'settled';
-}> = [
-    { label: 'Exploring', value: 'exploring' },
-    { label: 'I have a hunch', value: 'leaning' },
-    { label: 'Settled', value: 'settled' },
-];
+}> {
+    return [
+        {
+            label: t('learning.review.confidence_exploring', 'Exploring'),
+            value: 'exploring',
+        },
+        {
+            label: t('learning.review.confidence_leaning', 'I have a hunch'),
+            value: 'leaning',
+        },
+        {
+            label: t('learning.review.confidence_settled', 'Settled'),
+            value: 'settled',
+        },
+    ];
+}
 
-const reviewOutcomeOptions: Array<{
+function reviewOutcomeOptions(t: Translate): Array<{
     label: string;
     value: 'clearer' | 'connected' | 'open';
-}> = [
-    { label: 'Clearer now', value: 'clearer' },
-    { label: 'More connected', value: 'connected' },
-    { label: 'Still open', value: 'open' },
-];
+}> {
+    return [
+        {
+            label: t('learning.review.outcome_clearer', 'Clearer now'),
+            value: 'clearer',
+        },
+        {
+            label: t('learning.review.outcome_connected', 'More connected'),
+            value: 'connected',
+        },
+        {
+            label: t('learning.review.outcome_open', 'Still open'),
+            value: 'open',
+        },
+    ];
+}
 
 function reviewOutcomeDescription(
     outcome: 'clearer' | 'connected' | 'open',
+    t: Translate,
 ): string {
     return {
-        clearer: 'The idea feels easier to explain or use now.',
-        connected: 'A relationship or context is more visible now.',
-        open: 'The idea may need more time, another example, or a different route.',
+        clearer: t(
+            'learning.review.outcome_clearer_description',
+            'The idea feels easier to explain or use now.',
+        ),
+        connected: t(
+            'learning.review.outcome_connected_description',
+            'A relationship or context is more visible now.',
+        ),
+        open: t(
+            'learning.review.outcome_open_description',
+            'The idea may need more time, another example, or a different route.',
+        ),
     }[outcome];
 }
 
-function formatReviewDate(value: string): string {
+function formatReviewDate(value: string, t: Translate): string {
     const date = new Date(value);
 
     return Number.isNaN(date.getTime())
-        ? 'Earlier'
+        ? t('learning.reflection.earlier', 'Earlier')
         : date.toLocaleDateString(undefined, {
               day: 'numeric',
               month: 'short',
@@ -1647,12 +1807,12 @@ function ReflectionResponseComparison({
     );
 }
 
-function ReflectionGuidance({ guidance }: { guidance: ReflectionGuidance }) {
+function ReflectionGuidance({ guidance, t }: { guidance: ReflectionGuidance; t: Translate }) {
     const entries = [
-        ['Purpose', guidance.purpose],
-        ['What to notice', guidance.evidence],
-        ['Compare your response', guidance.responseFeedback],
-        ['A possible next action', guidance.nextAction],
+        [t('learning.reflection.feedback_purpose_label', 'Purpose'), guidance.purpose],
+        [t('learning.reflection.feedback_evidence_label', 'What to notice'), guidance.evidence],
+        [t('learning.reflection.feedback_response_label', 'Compare your response'), guidance.responseFeedback],
+        [t('learning.reflection.feedback_next_action_label', 'A possible next action'), guidance.nextAction],
     ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
     return (
@@ -1673,7 +1833,7 @@ function ReflectionGuidance({ guidance }: { guidance: ReflectionGuidance }) {
             {guidance.rubric.length ? (
                 <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                     <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
-                        Observable cues
+                        {t('learning.reflection.feedback_rubric_label', 'Observable cues')}
                     </p>
                     <ul className="mt-1 grid gap-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
                         {guidance.rubric.map((cue) => (

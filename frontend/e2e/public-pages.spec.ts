@@ -2943,6 +2943,18 @@ test('the original reflection surface sends private writing only to its active s
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'en',
+                translations: {
+                    'learning.reflection.keep_reflection': 'Keep private note',
+                    'learning.reflection.placeholder': 'Capture this in your own words.',
+                },
+            }),
+        });
+    });
     await page.route(
         `**/api/v1/learner/play-runs/${playRunId}`,
         async (route) => {
@@ -3017,10 +3029,20 @@ test('the original reflection surface sends private writing only to its active s
     );
 
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(
+        page.getByPlaceholder('Capture this in your own words.'),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const reflectionButtonBounds = await page
+        .getByRole('button', { name: 'Keep private note' })
+        .boundingBox();
+    expect(reflectionButtonBounds).not.toBeNull();
+    expect((reflectionButtonBounds?.x ?? -1) + (reflectionButtonBounds?.width ?? Infinity)).toBeLessThanOrEqual(390);
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page
         .getByRole('textbox', { name: '' })
         .fill('I want to compare the routes before choosing.');
-    await page.getByRole('button', { name: 'Keep reflection' }).click();
+    await page.getByRole('button', { name: 'Keep private note' }).click();
     await expect(
         page.getByRole('heading', {
             name: 'A small pause after Connect the direction',
