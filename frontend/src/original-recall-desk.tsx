@@ -496,7 +496,12 @@ export function OriginalRecallDeskPage({
                     : current,
             );
         } catch {
-            setError('That recall choice could not be updated. Try again.');
+            setError(
+                t(
+                    'home.learning_desk.recall.error',
+                    'That recall choice could not be updated. Try again.',
+                ),
+            );
         } finally {
             setRemovingItemId(null);
         }
@@ -531,7 +536,12 @@ export function OriginalRecallDeskPage({
                     : current,
             );
         } catch {
-            setError('That recall choice could not be updated. Try again.');
+            setError(
+                t(
+                    'home.learning_desk.recall.error',
+                    'That recall choice could not be updated. Try again.',
+                ),
+            );
         } finally {
             setPostponingItemId(null);
         }
@@ -622,7 +632,12 @@ export function OriginalRecallDeskPage({
                 ),
             );
         } catch {
-            setError('That return choice could not be updated. Try again.');
+            setError(
+                t(
+                    'home.learning_desk.revisit.error',
+                    'That choice could not be saved. Try again.',
+                ),
+            );
         } finally {
             setUpdatingRevisitId(null);
         }
@@ -792,17 +807,26 @@ export function OriginalRecallDeskPage({
                                 id="reflections-heading"
                                 tabIndex={-1}
                             >
-                                Recent reflections
+                                {t(
+                                    'home.learning_desk.reflections.title',
+                                    'Recent reflections',
+                                )}
                             </h2>
                         </div>
                         <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-2 text-xs leading-5 text-[var(--learner-muted-text)]">
-                            A quiet trail of what you noticed and where you chose to go next. Open an activity whenever the thread feels useful again.
+                            {t(
+                                'home.learning_desk.reflections.body',
+                                'A quiet trail of what you noticed and where you chose to go next. Open an activity whenever the thread feels useful again.',
+                            )}
                         </p>
                         <OriginalPaginatedItems
                             className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
                             items={recentCheckIns}
                             pageSize={1}
-                            paginationLabel="Recent reflections"
+                            paginationLabel={t(
+                                'home.learning_desk.reflections.pagination',
+                                'Recent reflections',
+                            )}
                             renderItem={(checkIn) => (
                                 <RecentReflectionRow
                                     checkIn={checkIn}
@@ -821,7 +845,10 @@ export function OriginalRecallDeskPage({
                     <section aria-labelledby="continue-heading" className="mt-8" id="continue-section">
                         <div className="flex items-center gap-5 pb-3">
                             <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="continue-heading" tabIndex={-1}>
-                                Continue learning
+                                {t(
+                                    'home.learning_desk.continue.title',
+                                    'Continue learning',
+                                )}
                             </h2>
                         </div>
                         {currentRoutes.length && (hasTimeGuides || learningPurposeOptions.length) ? (
@@ -1033,14 +1060,20 @@ export function OriginalRecallDeskPage({
                     <section aria-labelledby="recent-heading" className="mt-8" id="recent-section">
                         <div className="flex items-center gap-5 pb-3">
                             <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none" id="recent-heading" tabIndex={-1}>
-                                Recent traces
+                                {t(
+                                    'home.learning_desk.recent.title',
+                                    'Recent traces',
+                                )}
                             </h2>
                         </div>
                         <OriginalPaginatedItems
                             className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
                             items={recentRoutes}
                             pageSize={2}
-                            paginationLabel="Recent traces"
+                            paginationLabel={t(
+                                'home.learning_desk.recent.title',
+                                'Recent traces',
+                            )}
                             renderItem={(route) => (
                                 <RecentRouteRow key={route.start.start_id} onRevisit={continueRoute} opening={openingItemId === route.start.start_id} route={route} />
                             )}
@@ -1051,13 +1084,22 @@ export function OriginalRecallDeskPage({
                 {visibleArea === 'recall' && status === 'ready' && queue?.items.length ? (
                     <section aria-labelledby="recall-heading" className="mt-8">
                         <h2 className="sr-only" id="recall-heading">
-                            Recall queue
+                            {t('home.learning_desk.recall.title', 'Recall queue')}
                         </h2>
+                        <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
+                            {t(
+                                'home.learning_desk.recall.body',
+                                'Questions you chose to keep nearby for another look. There is no deadline; remove one whenever it no longer helps.',
+                            )}
+                        </p>
                         <OriginalPaginatedItems
                             className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
                             items={queue.items}
                             pageSize={2}
-                            paginationLabel="Recall questions"
+                            paginationLabel={t(
+                                'home.learning_desk.recall.pagination',
+                                'Recall questions',
+                            )}
                             renderItem={(item) => (
                                 <RecallItemRow
                                     item={item}
@@ -1090,17 +1132,26 @@ export function OriginalRecallDeskPage({
                                 id="support-heading"
                                 tabIndex={-1}
                             >
-                                Learning Support replies
+                                {t(
+                                    'home.learning_desk.support.title',
+                                    'Learning Support replies',
+                                )}
                             </h2>
                         </div>
                         <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
-                            Private replies to your support requests are kept here so you can return when the guidance is useful.
+                            {t(
+                                'home.learning_desk.support.body',
+                                'Private replies to your support requests are kept here so you can return when the guidance is useful.',
+                            )}
                         </p>
                         <OriginalPaginatedItems
                             className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
                             items={supportResponses}
                             pageSize={2}
-                            paginationLabel="Learning Support replies"
+                            paginationLabel={t(
+                                'home.learning_desk.support.pagination',
+                                'Learning Support replies',
+                            )}
                             renderItem={(response) => (
                                 <SupportResponseRow
                                     key={response.id}
@@ -1120,17 +1171,25 @@ export function OriginalRecallDeskPage({
                             className="text-xl font-medium tracking-tight"
                             id="revisit-heading"
                         >
-                            Return when useful
+                            {t(
+                                'home.learning_desk.revisit.title',
+                                'Return when useful',
+                            )}
                         </h2>
                         <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
-                            These are places you chose to return to after some
-                            time away.
+                            {t(
+                                'home.learning_desk.revisit.body',
+                                'These are places you chose to return to after some time away.',
+                            )}
                         </p>
                         <OriginalPaginatedItems
                             className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
                             items={revisitInvitations}
                             pageSize={2}
-                            paginationLabel="Revisit invitations"
+                            paginationLabel={t(
+                                'home.learning_desk.revisit.pagination',
+                                'Revisit invitations',
+                            )}
                             renderItem={(invitation) => (
                                 <RevisitInvitationRow
                                     invitation={invitation}
@@ -1269,9 +1328,10 @@ function RecentReflectionRow({
     onOpen: (checkIn: LearnerJournalCheckIn) => Promise<void>;
     opening: boolean;
 }) {
-    const feelingLabel = checkInFeelingLabel(checkIn.feeling);
+    const t = usePlatformTranslation();
+    const feelingLabel = checkInFeelingLabel(checkIn.feeling, t);
     const directionLabel = checkIn.next_direction
-        ? checkInDirectionLabel(checkIn.next_direction)
+        ? checkInDirectionLabel(checkIn.next_direction, t)
         : null;
 
     return (
@@ -1307,7 +1367,10 @@ function RecentReflectionRow({
                 ) : null}
                 {directionLabel ? (
                     <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
-                        Next direction:{' '}
+                        {t(
+                            'home.learning_desk.reflections.next_direction',
+                            'Next direction:',
+                        )}{' '}
                         <span className="text-[var(--learner-action-accent)]">
                             {directionLabel}
                         </span>
@@ -1316,7 +1379,10 @@ function RecentReflectionRow({
                 {checkIn.next_direction === 'related' && checkIn.topics.length ? (
                     <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                         <span className="text-[var(--learner-muted-text)]">
-                            Explore a connected learning area:
+                            {t(
+                                'home.learning_desk.reflections.related',
+                                'Explore a connected learning area:',
+                            )}
                         </span>
                         {checkIn.topics.map((topic) => (
                             <Link
@@ -1340,7 +1406,12 @@ function RecentReflectionRow({
                 onClick={() => void onOpen(checkIn)}
                 type="button"
             >
-                {opening ? 'Opening…' : 'Open activity'}
+                {opening
+                    ? t('learning.activity.opening', 'Opening…')
+                    : t(
+                          'home.learning_desk.reflections.open',
+                          'Open activity',
+                      )}
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </button>
         </article>
@@ -1896,29 +1967,60 @@ function confidenceName(
           : t('home.learning_desk.recall.confidence_settled', 'Settled');
 }
 
-function checkInFeelingLabel(value: LearnerJournalCheckIn['feeling']): string {
+function checkInFeelingLabel(
+    value: LearnerJournalCheckIn['feeling'],
+    t: ReturnType<typeof usePlatformTranslation>,
+): string {
+    const labels = {
+        clearer: [
+            'home.learning_desk.reflections.feeling_clearer',
+            'Something clicked',
+        ],
+        forming: [
+            'home.learning_desk.reflections.feeling_forming',
+            'Still taking shape',
+        ],
+        stretched: [
+            'home.learning_desk.reflections.feeling_stretched',
+            'It stretched me',
+        ],
+        stuck: [
+            'home.learning_desk.reflections.feeling_stuck',
+            'I got stuck',
+        ],
+    } as const;
+
     if (value === null) {
-        return 'A reflection';
+        return t('home.learning_desk.reflections.feeling_default', 'A reflection');
     }
 
-    return {
-        clearer: 'Something clicked',
-        forming: 'Still taking shape',
-        stretched: 'It stretched me',
-        stuck: 'I got stuck',
-    }[value];
+    const [key, fallback] = labels[value];
+
+    return t(key, fallback);
 }
 
 function checkInDirectionLabel(
     value: NonNullable<LearnerJournalCheckIn['next_direction']>,
+    t: ReturnType<typeof usePlatformTranslation>,
 ): string {
-    return (
-        {
-            revisit: 'Return to this place',
-            related: 'Look for something related',
-            settle: 'Let it settle',
-        }[value] ?? value
-    );
+    const labels = {
+        revisit: [
+            'learning.activity.check_in.direction.revisit.label',
+            'Return to this place',
+        ],
+        related: [
+            'learning.activity.check_in.direction.related.label',
+            'Look for something related',
+        ],
+        settle: [
+            'learning.activity.check_in.direction.settle.label',
+            'Let it settle',
+        ],
+    } as const;
+
+    const [key, fallback] = labels[value];
+
+    return t(key, fallback);
 }
 
 function competenceTopicHref(

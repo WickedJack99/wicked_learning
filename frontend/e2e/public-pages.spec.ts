@@ -3024,6 +3024,22 @@ test('the source Learning Desk search uses its authenticated result contract', a
 test('the source Learning Desk opens its private Support area from the URL', async ({
     page,
 }) => {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'home.learning_desk.support.body':
+                        'Localized private-support guidance.',
+                    'home.learning_desk.support.pagination':
+                        'Localized support replies',
+                    'home.learning_desk.support.title':
+                        'Localized Learning Support',
+                },
+            }),
+        });
+    });
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -3103,7 +3119,10 @@ test('the source Learning Desk opens its private Support area from the URL', asy
     await page.goto('/home?area=support');
 
     await expect(
-        page.getByRole('heading', { name: 'Learning Support replies' }),
+        page.getByRole('heading', { name: 'Localized Learning Support' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Localized private-support guidance.'),
     ).toBeVisible();
     await expect(
         page.getByText('Try returning to the map context first.'),
