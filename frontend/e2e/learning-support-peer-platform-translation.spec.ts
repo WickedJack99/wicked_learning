@@ -38,6 +38,38 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
                             'localized reviews waiting',
                         'settings.learning_support.peer_support.title':
                             'Localized peer queue',
+                        'settings.learning_support.signals.individual.label':
+                            'Localized individual support',
+                        'settings.learning_support.individual.eyebrow':
+                            'Localized learner support',
+                        'settings.learning_support.individual.last_activity':
+                            'Localized last activity',
+                        'settings.learning_support.individual.current_month':
+                            'Localized current month',
+                        'settings.learning_support.individual.no_group':
+                            'Localized no group',
+                        'settings.learning_support.signals.no_activity_yet':
+                            'Localized no activity',
+                        'settings.learning_support.manual.title':
+                            'Localized locked node',
+                        'settings.learning_support.manual.description':
+                            'Localized node guidance',
+                        'settings.learning_support.manual.node':
+                            'Localized node',
+                        'settings.learning_support.manual.open':
+                            'Localized open',
+                        'settings.learning_support.manual.currently_open':
+                            'Localized open nodes',
+                        'settings.learning_support.manual.close':
+                            'Localized close',
+                        'settings.learning_support.notes.title':
+                            'Localized support prompts',
+                        'settings.learning_support.topics.title':
+                            'Localized topic',
+                        'settings.learning_support.topics.contribution':
+                            'Localized contribution',
+                        'settings.learning_support.topics.this_month':
+                            'Localized this month',
                         'settings.learning_support.signals.collective.label':
                             'Localized collective overview',
                         'settings.learning_support.collective.active_days':
@@ -79,9 +111,54 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
                             evidence_events: 5,
                         },
                     ],
-                    can_grant_manual_unlocks: false,
-                    learners: [],
-                    manual_unlock_targets: [],
+                    can_grant_manual_unlocks: true,
+                    learners: [
+                        {
+                            email: 'learner@example.test',
+                            groups: [],
+                            last_activity_at: null,
+                            manual_unlocks: [
+                                {
+                                    granted_at: '2026-11-14T12:34:00Z',
+                                    map_title: 'Server-owned open map',
+                                    node_id:
+                                        '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4da0',
+                                    node_title: 'Server-owned open node',
+                                },
+                            ],
+                            name: 'Server-owned learner',
+                            subject_id:
+                                '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4da1',
+                            support_notes: [
+                                {
+                                    text: 'Server-owned support note',
+                                    tone: 'support',
+                                },
+                            ],
+                            topics: [
+                                {
+                                    evidence_types: ['reflection'],
+                                    monthly_contribution: 1,
+                                    name: 'Server-owned topic',
+                                    slug: 'server-topic',
+                                    total_contribution: 2,
+                                },
+                            ],
+                            username: null,
+                        },
+                    ],
+                    manual_unlock_targets: [
+                        {
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9e',
+                            nodes: [
+                                {
+                                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9f',
+                                    title: 'Server-owned node target',
+                                },
+                            ],
+                            title: 'Server-owned map target',
+                        },
+                    ],
                     month_key: '2026-11',
                     peer_support: [
                         {
@@ -151,10 +228,50 @@ test('the Learning Support signal workspace consumes fixed catalog copy without 
         page.getByRole('img', { name: 'Localized activity chart' }),
     ).toBeVisible();
 
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=support-signals&signals=individual',
+    );
+    await expect(
+        page.getByRole('heading', { name: 'Localized individual support' }),
+    ).toBeVisible();
+    await expect(page.getByText('Localized learner support')).toBeVisible();
+    await expect(page.getByText('Localized last activity')).toBeVisible();
+    await expect(page.getByText('Localized no activity')).toBeVisible();
+    await expect(page.getByText('Localized current month')).toBeVisible();
+    await expect(page.getByText('Localized no group')).toBeVisible();
+    await expect(page.getByText('Localized locked node')).toBeVisible();
+    await expect(page.getByText('Localized node guidance')).toBeVisible();
+    await expect(page.getByText('Localized node', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Localized open' })).toBeVisible();
+    await expect(page.getByText('Localized open nodes')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Localized close' })).toBeVisible();
+    await expect(page.getByText('Localized support prompts')).toBeVisible();
+    await expect(
+        page.getByText('Localized topic', { exact: true }),
+    ).toHaveText('Localized topic');
+    await expect(
+        page.getByText('Localized contribution', { exact: true }),
+    ).toHaveText('Localized contribution');
+    await expect(
+        page.getByText('Localized this month', { exact: true }),
+    ).toHaveText('Localized this month');
+    await expect(
+        page.getByRole('heading', { name: 'Server-owned learner' }),
+    ).toBeVisible();
+    await expect(page.getByText('Server-owned support note')).toBeVisible();
+    await expect(page.getByText('Server-owned topic')).toHaveText(
+        'Server-owned topic',
+    );
+    await expect(
+        page.getByRole('combobox', { name: 'Localized node' }),
+    ).toContainText('Server-owned node target');
+    await expect(page.getByText('Server-owned open map')).toBeVisible();
+    await expect(page.getByText('Server-owned open node')).toBeVisible();
+
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     const heading = page.getByRole('heading', {
-        name: 'Localized collective overview',
+        name: 'Localized individual support',
     });
     await expect(heading).toBeVisible();
     await expect
