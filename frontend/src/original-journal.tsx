@@ -22,6 +22,7 @@ import {
     journalThemeMode,
     journalThemeStyle,
 } from './original-journal-theme';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type JournalDocument = components['schemas']['LearnerJournalDocument'];
 type JournalPage = components['schemas']['LearnerJournalPage'];
@@ -760,6 +761,8 @@ function LearningTrail({
     onSeeMap: () => void;
     openingActivitySlug: string | null;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <section
             aria-label="Recent learning check-ins"
@@ -832,7 +835,10 @@ function LearningTrail({
                                 style={{ color: 'var(--journal-accent)' }}
                             >
                                 Next direction:{' '}
-                                {checkInDirectionLabel(checkIn.next_direction)}
+                                {checkInDirectionLabel(
+                                    checkIn.next_direction,
+                                    t,
+                                )}
                             </p>
                         ) : null}
                     </button>
@@ -856,6 +862,8 @@ function RevisitInvitations({
     ) => Promise<void>;
     updatingRevisitId: string | null;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <section
             aria-label="Revisit invitations"
@@ -910,29 +918,44 @@ function RevisitInvitations({
                                 className="mt-1 text-xs"
                                 style={{ color: 'var(--journal-muted-text)' }}
                             >
-                                You chose to return on{' '}
+                                {t(
+                                    'journal.revisit.chosen',
+                                    'You chose to return on',
+                                )}{' '}
                                 {formatCheckInDate(invitation.available_since)}
                             </p>
                             <p
                                 className="mt-1 text-xs"
                                 style={{ color: 'var(--journal-muted-text)' }}
                             >
-                                Ready since {formatCheckInDate(invitation.available_at)}
+                                {t('journal.revisit.ready', 'Ready since')}{' '}
+                                {formatCheckInDate(invitation.available_at)}
                             </p>
                             <p
                                 className="mt-1 text-xs"
                                 style={{ color: 'var(--journal-muted-text)' }}
                             >
                                 {invitation.revisit_reason === 'later'
-                                    ? 'You chose to wait longer before returning.'
-                                    : `Ready after ${invitation.available_after_days} days away.`}
+                                    ? t(
+                                          'journal.revisit.snoozed',
+                                          'You chose to wait longer before returning.',
+                                      )
+                                    : t(
+                                          'journal.revisit.due',
+                                          'Ready after :days days away.',
+                                          {
+                                              days: invitation.available_after_days,
+                                          },
+                                      )}
                             </p>
                         </button>
                         <div className="mt-2 flex flex-wrap gap-2">
                             <button
                                 className="text-xs font-semibold underline-offset-2 hover:underline disabled:opacity-50"
                                 disabled={updatingRevisitId !== null}
-                                onClick={() => void onOpen(invitation.check_in_id)}
+                                onClick={() =>
+                                    void onOpen(invitation.check_in_id)
+                                }
                                 style={{ color: 'var(--journal-accent)' }}
                                 type="button"
                             >
@@ -942,7 +965,10 @@ function RevisitInvitations({
                                 className="text-xs underline-offset-2 hover:underline disabled:opacity-50"
                                 disabled={updatingRevisitId !== null}
                                 onClick={() =>
-                                    void onUpdate(invitation.check_in_id, 'snooze')
+                                    void onUpdate(
+                                        invitation.check_in_id,
+                                        'snooze',
+                                    )
                                 }
                                 type="button"
                             >
@@ -952,7 +978,10 @@ function RevisitInvitations({
                                 className="text-xs underline-offset-2 hover:underline disabled:opacity-50"
                                 disabled={updatingRevisitId !== null}
                                 onClick={() =>
-                                    void onUpdate(invitation.check_in_id, 'dismiss')
+                                    void onUpdate(
+                                        invitation.check_in_id,
+                                        'dismiss',
+                                    )
                                 }
                                 type="button"
                             >
@@ -988,14 +1017,27 @@ function checkInFeelingLabel(value: string | null): string {
     );
 }
 
-function checkInDirectionLabel(value: string): string {
-    return (
-        {
-            revisit: 'Return to this place',
-            related: 'Look for something related',
-            settle: 'Let it settle',
-        }[value] ?? value
-    );
+function checkInDirectionLabel(
+    value: string,
+    t: ReturnType<typeof usePlatformTranslation>,
+): string {
+    const directions: Record<string, [string, string]> = {
+        related: [
+            'learning.activity.check_in.direction.related.label',
+            'Look for something related',
+        ],
+        revisit: [
+            'learning.activity.check_in.direction.revisit.label',
+            'Return to this place',
+        ],
+        settle: [
+            'learning.activity.check_in.direction.settle.label',
+            'Let it settle',
+        ],
+    };
+    const direction = directions[value];
+
+    return direction ? t(...direction) : value;
 }
 
 function JournalBackgroundImage({ source }: { source?: string }) {
@@ -1164,7 +1206,8 @@ function JournalPageEditor({
     const context = page.learning_context;
     return (
         <main
-            className="flex min-h-0 flex-col p-3 sm:p-4 md:p-6"
+            className="flex min-h-0 flex-col overflow-y-auto p-3 sm:p-4 md:p-6"
+            data-wl-id="learner.journal.editor"
             style={{ background: 'var(--journal-content-background)' }}
         >
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
@@ -1312,7 +1355,10 @@ function JournalPageEditor({
                     <textarea
                         className="size-full resize-none overflow-y-auto bg-transparent p-4 font-mono text-sm leading-6 outline-none"
                         onChange={(event) =>
-                            onDraftChange({ ...page, markdown: event.target.value })
+                            onDraftChange({
+                                ...page,
+                                markdown: event.target.value,
+                            })
                         }
                         placeholder="Write in Markdown..."
                         style={{ color: 'var(--journal-body-text)' }}
@@ -1323,7 +1369,9 @@ function JournalPageEditor({
                         <OriginalMarkdownRenderer
                             headingColor="var(--journal-heading-text)"
                             inheritColor
-                            markdown={page.markdown || '*This page is still empty.*'}
+                            markdown={
+                                page.markdown || '*This page is still empty.*'
+                            }
                             style={{ color: 'var(--journal-body-text)' }}
                         />
                     </div>
@@ -1358,6 +1406,7 @@ function JournalFeedbackPanel({
     onRequestFeedback: (page: JournalPage, domainKey: string) => Promise<void>;
     page: JournalPage;
 }) {
+    const t = usePlatformTranslation();
     const [selectedDomainKey, setSelectedDomainKey] = useState(
         domains[0]?.key ?? 'journal',
     );
@@ -1389,7 +1438,12 @@ function JournalFeedbackPanel({
                         className="font-semibold"
                         style={{ color: 'var(--journal-heading-text)' }}
                     >
-                        {feedbackPanelTitle({ allowExpertAccess, isDirty, page })}
+                        {feedbackPanelTitle({
+                            allowExpertAccess,
+                            isDirty,
+                            page,
+                            t,
+                        })}
                     </p>
                     {page.feedback_request ? (
                         <p
@@ -1438,7 +1492,11 @@ function JournalFeedbackPanel({
                         type="button"
                     >
                         <MessageSquareText className="size-4" />
-                        {feedbackButtonLabel({ isRequestingFeedback, page })}
+                        {feedbackButtonLabel({
+                            isRequestingFeedback,
+                            page,
+                            t,
+                        })}
                     </button>
                 </div>
             </div>
@@ -1460,6 +1518,8 @@ function FeedbackPanelBody({
     isDirty: boolean;
     page: JournalPage;
 }) {
+    const t = usePlatformTranslation();
+
     if (page.feedback_request?.feedback) {
         return (
             <p className="mt-3 leading-6 whitespace-pre-wrap">
@@ -1470,21 +1530,30 @@ function FeedbackPanelBody({
     if (page.feedback_request) {
         return (
             <p className="mt-2" style={{ color: 'var(--journal-muted-text)' }}>
-                Review request sent. This page is waiting for feedback.
+                {t(
+                    'journal.feedback.pending',
+                    'Review request sent. This page is waiting for feedback.',
+                )}
             </p>
         );
     }
     if (!allowExpertAccess) {
         return (
             <p className="mt-2" style={{ color: 'var(--journal-muted-text)' }}>
-                Review requests are turned off in journal settings.
+                {t(
+                    'journal.feedback.disabled',
+                    'Review requests are turned off in journal settings.',
+                )}
             </p>
         );
     }
     if (isDirty) {
         return (
             <p className="mt-2" style={{ color: 'var(--journal-muted-text)' }}>
-                Save your changes before requesting review so the reviewer sees the latest page.
+                {t(
+                    'journal.feedback.save_first',
+                    'Save your changes before requesting review so the reviewer sees the latest page.',
+                )}
             </p>
         );
     }
@@ -1495,29 +1564,43 @@ function feedbackPanelTitle({
     allowExpertAccess,
     isDirty,
     page,
+    t,
 }: {
     allowExpertAccess: boolean;
     isDirty: boolean;
     page: JournalPage;
+    t: ReturnType<typeof usePlatformTranslation>;
 }): string {
-    if (page.feedback_request?.feedback) return 'Page review';
-    if (page.feedback_request) return 'Review requested';
-    if (!allowExpertAccess) return 'Page review unavailable';
-    if (isDirty) return 'Save before review';
-    return 'You can request feedback for this page once.';
+    if (page.feedback_request?.feedback)
+        return t('journal.feedback.review', 'Page review');
+    if (page.feedback_request)
+        return t('journal.feedback.requested', 'Review requested');
+    if (!allowExpertAccess)
+        return t('journal.feedback.unavailable', 'Page review unavailable');
+    if (isDirty)
+        return t('journal.feedback.save_before_review', 'Save before review');
+    return t(
+        'journal.feedback.ready',
+        'You can request feedback for this page once.',
+    );
 }
 
 function feedbackButtonLabel({
     isRequestingFeedback,
     page,
+    t,
 }: {
     isRequestingFeedback: boolean;
     page: JournalPage;
+    t: ReturnType<typeof usePlatformTranslation>;
 }): string {
-    if (isRequestingFeedback) return 'Requesting...';
-    if (page.feedback_request?.responded_at) return 'Review received';
-    if (page.feedback_request) return 'Review requested';
-    return 'Request review';
+    if (isRequestingFeedback)
+        return t('journal.feedback.requesting', 'Requesting...');
+    if (page.feedback_request?.responded_at)
+        return t('journal.feedback.received', 'Review received');
+    if (page.feedback_request)
+        return t('journal.feedback.requested', 'Review requested');
+    return t('journal.feedback.request', 'Request review');
 }
 
 function JournalField({
