@@ -20,8 +20,10 @@ test('a local administrator can save encrypted provider metadata and a reusable 
     await expect(page).toHaveURL(/\/world$/);
     await page.goto('/settings?panel=admin-ai-integrations&ai=providers');
     await expect(
-        page.getByRole('heading', { name: 'AI support' }),
-    ).toBeVisible();
+        page
+            .getByRole('tablist', { name: 'AI settings sections' })
+            .getByRole('tab', { name: 'Provider keys' }),
+    ).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('button', { name: 'New' }).click();
     await page.getByLabel('Label').fill(providerLabel);
     await page.getByLabel('API key').fill('local-test-key-1234');

@@ -713,7 +713,11 @@ export function App() {
         if (settingsPanel === 'admin-ai-integrations') {
             return (
                 <Suspense fallback={null}>
-                    <OriginalAiSettingsPage appearance={appearance} />
+                    <OriginalAiSettingsPage
+                        appearance={appearance}
+                        onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                        settingsAccess={currentUser.settingsAccess}
+                    />
                 </Suspense>
             );
         }

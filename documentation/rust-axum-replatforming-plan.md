@@ -1186,7 +1186,9 @@ immutable review-run summaries when runs exist. This reader stores no learner
 data and does not invoke an AI provider or write authored content. AI provider
 credentials and reusable agent templates are now available at
 `/settings?panel=admin-ai-integrations`: the source Provider keys, Agent
-templates and Guardrails sections use typed Rust contracts and the source
+templates and Guardrails sections remain inside the shared lifted Settings and
+AI nested shell across desktop and narrow layouts, while using typed Rust
+contracts and the source
 `ai.ro`/`ai.ru`/`ai.rud` permission levels. Provider key plaintext is encrypted
 with purpose-separated server-side material and is never read back into the
 browser; deleting a provider detaches its templates. A saved-template test now

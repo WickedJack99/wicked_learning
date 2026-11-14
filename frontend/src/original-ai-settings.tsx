@@ -1,6 +1,4 @@
 import {
-    Bot,
-    KeyRound,
     Plus,
     Save,
     Send,
@@ -8,16 +6,18 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    AiSettingsShell,
+} from './extracted-ai-settings-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type Settings = components['schemas']['AdminAiSettings'];
 type Provider = components['schemas']['AdminAiProviderCredential'];
 type Template = components['schemas']['AdminAiAgentTemplate'];
-type Section = 'providers' | 'templates' | 'guardrails';
 type ProviderRequest = components['schemas']['SaveAdminAiProviderRequest'];
 type TemplateRequest = components['schemas']['SaveAdminAiTemplateRequest'];
 type TemplateTestResult = components['schemas']['TestAdminAiTemplateResponse'];
@@ -110,14 +110,20 @@ const numberOrNull = (value: string) =>
 
 /** Source-adapted from Laravel's `AiSettings`: provider keys, templates and guardrails. */
 export function OriginalAiSettingsPage({
-    appearance: _appearance,
+    appearance,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const location = useLocation();
-    const navigate = useNavigate();
-    const section = (new URLSearchParams(location.search).get('ai') ??
-        'providers') as Section;
+    const rawSection = new URLSearchParams(location.search).get('ai');
+    const section =
+        rawSection === 'templates' || rawSection === 'guardrails'
+            ? rawSection
+            : 'providers';
     const [data, setData] = useState<Settings | null>(null);
     const [forbidden, setForbidden] = useState(false);
     const [error, setError] = useState('');
@@ -144,12 +150,6 @@ export function OriginalAiSettingsPage({
             ) ?? null,
         [data, selectedTemplate],
     );
-    const setSection = (next: Section) => {
-        const params = new URLSearchParams(location.search);
-        params.set('panel', 'admin-ai-integrations');
-        params.set('ai', next);
-        navigate(`/settings?${params}`);
-    };
     const load = async () => {
         setError('');
         const { data: response, response: raw } =
@@ -312,48 +312,14 @@ export function OriginalAiSettingsPage({
         }
     };
     if (forbidden) return <Navigate replace to="/home" />;
-    const style = { '--settings-accent': '#4f46e5' } as React.CSSProperties;
     return (
-        <main
-            className="settings-surface min-h-svh bg-slate-50 px-4 py-5 text-slate-950 dark:bg-slate-950 dark:text-slate-100"
-            style={style}
+        <AiSettingsShell
+            activeSection={section}
+            appearance={appearance}
+            onSignedOut={onSignedOut}
+            settingsAccess={settingsAccess}
         >
-            <div className="mx-auto w-full max-w-[92rem]">
-                <header className="mb-5">
-                    <Link
-                        className="text-sm text-[var(--settings-accent)]"
-                        to="/home"
-                    >
-                        Settings
-                    </Link>
-                    <p className="mt-4 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                        Administration
-                    </p>
-                    <h1 className="mt-2 text-3xl font-semibold">AI support</h1>
-                    <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
-                        Provider keys, reusable agent behavior and guardrails.
-                        Saving a template does not invoke a provider or change
-                        learning content.
-                    </p>
-                </header>
-                <nav className="mb-5 flex gap-2 border-b border-slate-300 pb-3 dark:border-slate-700">
-                    {(
-                        [
-                            ['providers', KeyRound, 'Provider keys'],
-                            ['templates', Bot, 'Agent templates'],
-                            ['guardrails', ShieldCheck, 'Guardrails'],
-                        ] as const
-                    ).map(([key, Icon, label]) => (
-                        <button
-                            key={key}
-                            className={`inline-flex items-center gap-2 rounded px-3 py-2 text-sm ${section === key ? 'bg-[var(--settings-accent)] text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800'}`}
-                            onClick={() => setSection(key)}
-                        >
-                            <Icon className="size-4" />
-                            {label}
-                        </button>
-                    ))}
-                </nav>
+            <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-5">
                 {error && (
                     <p className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
                         {error}
@@ -432,7 +398,7 @@ export function OriginalAiSettingsPage({
                     </section>
                 )}
             </div>
-        </main>
+        </AiSettingsShell>
     );
 }
 
