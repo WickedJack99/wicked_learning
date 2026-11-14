@@ -2383,6 +2383,24 @@ test('the signed-in explorer starts and completes an original open-practice rout
                     'common.previous': 'Localized previous',
                     'learning.activity.routes.aria_label':
                         'Localized route navigation',
+                    'learning.activity.check_in.title':
+                        'Localized pause after :activity',
+                    'learning.activity.check_in.hide_label':
+                        'Hide localized conclusion',
+                    'learning.activity.check_in.connected_areas':
+                        'Localized learning areas',
+                    'learning.activity.check_in.note_label':
+                        'Localized note',
+                    'learning.activity.check_in.direction.related.label':
+                        'Choose local related direction',
+                    'learning.activity.check_in.save_note':
+                        'Store localized note',
+                    'learning.activity.check_in.continue_without_answer':
+                        'Continue locally without answering',
+                    'learning.activity.conclusion.learning_focus_title':
+                        'Localized learning focus',
+                    'learning.activity.conclusion.show':
+                        'Show localized conclusion',
                     'learning.map.completed_count':
                         'Localized completion :count',
                     'learning.map.reset': 'Localized reset',
@@ -2682,18 +2700,20 @@ test('the signed-in explorer starts and completes an original open-practice rout
         .click();
     await expect(
         page.getByRole('heading', {
-            name: 'A small pause after Begin private orientation',
+            name: 'Localized pause after Begin private orientation',
         }),
     ).toBeVisible();
-    await expect(page.getByText('Learning focus')).toBeVisible();
-    await page.getByRole('button', { name: 'Hide conclusion' }).click();
+    await expect(page.getByText('Localized learning focus')).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Hide localized conclusion' })
+        .click();
     await expect(
         page.getByRole('heading', {
-            name: 'A small pause after Begin private orientation',
+            name: 'Localized pause after Begin private orientation',
         }),
     ).not.toBeVisible();
     const showConclusionButton = page.getByRole('button', {
-        name: 'Show conclusion',
+        name: 'Show localized conclusion',
     });
     await expect(showConclusionButton).toBeFocused();
     const showConclusionBounds = await showConclusionButton.boundingBox();
@@ -2711,14 +2731,14 @@ test('the signed-in explorer starts and completes an original open-practice rout
     await showConclusionButton.click();
     await expect(
         page.getByRole('heading', {
-            name: 'A small pause after Begin private orientation',
+            name: 'Localized pause after Begin private orientation',
         }),
     ).toBeVisible();
     await page
-        .getByLabel('Add a note (optional)')
+        .getByLabel('Localized note')
         .fill('I will compare the next options.');
     const relatedDirection = page.getByRole('button', {
-        name: 'Look for something related',
+        name: 'Choose local related direction',
     });
     await expect
         .poll(async () => {
@@ -2728,7 +2748,7 @@ test('the signed-in explorer starts and completes an original open-practice rout
         })
         .toBeLessThanOrEqual(390);
     await relatedDirection.click();
-    await page.getByRole('button', { name: 'Save note and continue' }).click();
+    await page.getByRole('button', { name: 'Store localized note' }).click();
     await expect(
         page.getByRole('heading', { name: 'Choose the next step' }),
     ).toBeVisible();
@@ -2740,11 +2760,13 @@ test('the signed-in explorer starts and completes an original open-practice rout
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(
         page.getByRole('heading', {
-            name: 'A small pause after Choose the next step',
+            name: 'Localized pause after Choose the next step',
         }),
     ).toBeVisible();
     await page
-        .getByRole('button', { name: 'Continue without answering' })
+        .getByRole('button', {
+            name: 'Continue locally without answering',
+        })
         .click();
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });

@@ -892,7 +892,10 @@ export function OriginalOpenPracticePage({
                                 ref={showConclusionButtonRef}
                                 type="button"
                             >
-                                Show conclusion
+                                {t(
+                                    'learning.activity.conclusion.show',
+                                    'Show conclusion',
+                                )}
                             </button>
                         ) : null}
                     </section>

@@ -2,60 +2,12 @@ import { ArrowRight, EyeOff, Heart } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { components } from './api/schema';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackCheckIn = components['schemas']['LearnerPlaybackCheckIn'];
 
 type Feeling = 'clearer' | 'forming' | 'stretched' | 'stuck';
 type NextDirection = 'revisit' | 'related' | 'settle';
-
-const feelings: Array<{
-    description: string;
-    label: string;
-    value: Feeling;
-}> = [
-    {
-        description: 'A connection became easier to see.',
-        label: 'Something clicked',
-        value: 'clearer',
-    },
-    {
-        description: 'I want to let this settle for a while.',
-        label: 'Still taking shape',
-        value: 'forming',
-    },
-    {
-        description: 'It asked me to reach a little further.',
-        label: 'It stretched me',
-        value: 'stretched',
-    },
-    {
-        description: 'I may need another way in.',
-        label: 'I got stuck',
-        value: 'stuck',
-    },
-];
-
-const nextDirections: Array<{
-    description: string;
-    label: string;
-    value: NextDirection;
-}> = [
-    {
-        description: 'Try this place again when it feels useful.',
-        label: 'Return to this place',
-        value: 'revisit',
-    },
-    {
-        description: 'Follow a nearby learning area.',
-        label: 'Look for something related',
-        value: 'related',
-    },
-    {
-        description: 'Leave the idea here and come back later.',
-        label: 'Let it settle',
-        value: 'settle',
-    },
-];
 
 /**
  * Lifted from `features/world/learning-check-in.tsx`. Links into the source
@@ -79,6 +31,96 @@ export function OriginalLearningCheckIn({
     onHide: () => void;
     transitionLabel: string | null;
 }) {
+    const t = usePlatformTranslation();
+    const feelings: Array<{
+        description: string;
+        label: string;
+        value: Feeling;
+    }> = [
+        {
+            description: t(
+                'learning.activity.check_in.feeling.clearer.description',
+                'A connection became easier to see.',
+            ),
+            label: t(
+                'learning.activity.check_in.feeling.clearer.label',
+                'Something clicked',
+            ),
+            value: 'clearer',
+        },
+        {
+            description: t(
+                'learning.activity.check_in.feeling.forming.description',
+                'I want to let this settle for a while.',
+            ),
+            label: t(
+                'learning.activity.check_in.feeling.forming.label',
+                'Still taking shape',
+            ),
+            value: 'forming',
+        },
+        {
+            description: t(
+                'learning.activity.check_in.feeling.stretched.description',
+                'It asked me to reach a little further.',
+            ),
+            label: t(
+                'learning.activity.check_in.feeling.stretched.label',
+                'It stretched me',
+            ),
+            value: 'stretched',
+        },
+        {
+            description: t(
+                'learning.activity.check_in.feeling.stuck.description',
+                'I may need another way in.',
+            ),
+            label: t(
+                'learning.activity.check_in.feeling.stuck.label',
+                'I got stuck',
+            ),
+            value: 'stuck',
+        },
+    ];
+    const nextDirections: Array<{
+        description: string;
+        label: string;
+        value: NextDirection;
+    }> = [
+        {
+            description: t(
+                'learning.activity.check_in.direction.revisit.description',
+                'Try this place again when it feels useful.',
+            ),
+            label: t(
+                'learning.activity.check_in.direction.revisit.label',
+                'Return to this place',
+            ),
+            value: 'revisit',
+        },
+        {
+            description: t(
+                'learning.activity.check_in.direction.related.description',
+                'Follow a nearby learning area.',
+            ),
+            label: t(
+                'learning.activity.check_in.direction.related.label',
+                'Look for something related',
+            ),
+            value: 'related',
+        },
+        {
+            description: t(
+                'learning.activity.check_in.direction.settle.description',
+                'Leave the idea here and come back later.',
+            ),
+            label: t(
+                'learning.activity.check_in.direction.settle.label',
+                'Let it settle',
+            ),
+            value: 'settle',
+        },
+    ];
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [note, setNote] = useState('');
@@ -104,7 +146,10 @@ export function OriginalLearningCheckIn({
             setError(
                 requestError instanceof Error
                     ? requestError.message
-                    : 'Your check-in could not be saved.',
+                    : t(
+                          'learning.activity.check_in.save_error',
+                          'Your check-in could not be saved.',
+                      ),
             );
         } finally {
             setIsSaving(false);
@@ -129,39 +174,53 @@ export function OriginalLearningCheckIn({
                             ref={headingRef}
                             tabIndex={-1}
                         >
-                            A small pause after {activityTitle}
+                            {t(
+                                'learning.activity.check_in.title',
+                                'A small pause after :activity',
+                                { activity: activityTitle },
+                            )}
                         </h2>
                         <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
-                            How did this feel? Choose a phrase if one fits, or
-                            continue without answering.
+                            {t(
+                                'learning.activity.check_in.description',
+                                'How did this feel? Choose a phrase if one fits, or continue without answering.',
+                            )}
                         </p>
                     </div>
                 </div>
                 <button
-                    aria-label="Hide conclusion"
+                    aria-label={t(
+                        'learning.activity.check_in.hide_label',
+                        'Hide conclusion',
+                    )}
                     className="inline-flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-[var(--learner-body-text)] transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
                     onClick={onHide}
                     type="button"
                 >
                     <EyeOff className="size-4" />
-                    Hide
+                    {t('learning.activity.check_in.hide', 'Hide')}
                 </button>
             </div>
             {transitionLabel ? (
                 <p className="mt-3 rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-page-background)] px-3 py-2 text-sm leading-6 text-[var(--learner-body-text)]">
-                    <span className="font-medium">Next step:</span>{' '}
+                    <span className="font-medium">{t('learning.activity.conclusion.next_step', 'Next step')}:</span>{' '}
                     {transitionLabel}
                 </p>
             ) : null}
             {checkIn.objective || checkIn.concepts.length > 0 ? (
                 <div>
                     <p className="mt-4 text-sm leading-6 text-[var(--learner-body-text)]">
-                        This is the focus the activity invited. It remains
-                        context for reflection, not a grade.
+                        {t(
+                            'learning.activity.conclusion.learning_focus_description',
+                            'This is the focus the activity invited. It remains context for reflection, not a grade.',
+                        )}
                     </p>
                     <div className="mt-3 rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-page-background)] px-3 py-2">
                         <p className="text-xs font-medium text-[var(--learner-action-accent)]">
-                            Learning focus
+                            {t(
+                                'learning.activity.conclusion.learning_focus_title',
+                                'Learning focus',
+                            )}
                         </p>
                         {checkIn.objective ? (
                             <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
@@ -186,7 +245,10 @@ export function OriginalLearningCheckIn({
             {checkIn.learning_areas.length > 0 ? (
                 <div className="mt-4 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_25%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-panel-background)_70%,transparent)] px-3 py-2">
                     <p className="text-xs font-medium text-[var(--learner-action-accent)]">
-                        Connected learning areas
+                        {t(
+                            'learning.activity.check_in.connected_areas',
+                            'Connected learning areas',
+                        )}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                         {checkIn.learning_areas.map((area) => (
@@ -205,20 +267,29 @@ export function OriginalLearningCheckIn({
                     className="block text-xs font-medium text-[var(--learner-action-accent)]"
                     htmlFor="learning-check-in-note"
                 >
-                    Add a note (optional)
+                    {t(
+                        'learning.activity.check_in.note_label',
+                        'Add a note (optional)',
+                    )}
                 </label>
                 <textarea
                     className="mt-1 min-h-20 w-full resize-y rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-page-background)] px-3 py-2 text-sm leading-5 text-[var(--learner-body-text)] transition outline-none placeholder:text-[var(--learner-muted-text)] focus:border-[var(--learner-action-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)]"
                     id="learning-check-in-note"
                     maxLength={500}
                     onChange={(event) => setNote(event.target.value)}
-                    placeholder="What would be useful to remember later?"
+                    placeholder={t(
+                        'learning.activity.check_in.note_placeholder',
+                        'What would be useful to remember later?',
+                    )}
                     value={note}
                 />
             </div>
             <div className="mt-4">
                 <p className="text-xs font-medium text-[var(--learner-action-accent)]">
-                    Choose a direction for later (optional)
+                    {t(
+                        'learning.activity.check_in.direction_label',
+                        'Choose a direction for later (optional)',
+                    )}
                 </p>
                 {checkIn.choice_prompt ? (
                     <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
@@ -289,10 +360,19 @@ export function OriginalLearningCheckIn({
                 type="button"
             >
                 {note.trim()
-                    ? 'Save note and continue'
+                    ? t(
+                          'learning.activity.check_in.save_note',
+                          'Save note and continue',
+                      )
                     : nextDirection
-                      ? 'Save direction and continue'
-                      : 'Continue without answering'}
+                      ? t(
+                            'learning.activity.check_in.save_direction',
+                            'Save direction and continue',
+                        )
+                      : t(
+                            'learning.activity.check_in.continue_without_answer',
+                            'Continue without answering',
+                        )}
                 <ArrowRight className="ml-2 size-4" />
             </button>
         </section>
