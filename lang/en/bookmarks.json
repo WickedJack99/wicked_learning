@@ -1,3 +1,16 @@
 {
-    "bookmarks.panel.open_topic": "Open topic"
+    "bookmarks.loading": "Loading bookmarked places…",
+    "bookmarks.unavailable": "Bookmarked places are temporarily unavailable.",
+    "bookmarks.place.open": ":label, open bookmarked place",
+    "bookmarks.empty.title": "No bookmarks yet",
+    "bookmarks.empty.description": "Open a node on the world map and use the bookmark icon to add it to your personal map.",
+    "bookmarks.empty.world": "Open world map",
+    "bookmarks.panel.selected": "Selected bookmarked place",
+    "bookmarks.panel.eyebrow": "Bookmarked place",
+    "bookmarks.panel.close": "Close bookmark panel",
+    "bookmarks.panel.open_topic": "Open topic",
+    "bookmarks.panel.no_summary": "No summary has been added yet.",
+    "bookmarks.panel.locked": "This node is visible but currently locked. You can still use it for orientation.",
+    "bookmarks.panel.go_to": "Go to node",
+    "bookmarks.panel.remove": "Remove bookmark"
 }

@@ -667,8 +667,28 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
             });
         },
     );
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'bookmarks.panel.go_to': 'Continue at place',
+                    'bookmarks.panel.open_topic': 'Explore local topic',
+                    'bookmarks.panel.remove': 'Forget this place',
+                },
+            }),
+        });
+    });
 
     await page.goto('/bookmarks');
+    const learnerNavigation = page.getByRole('navigation', {
+        name: 'Learner navigation',
+    });
+    await expect(learnerNavigation).toBeVisible();
+    await expect(
+        learnerNavigation.getByRole('link', { name: 'Bookmarks' }),
+    ).toHaveAttribute('aria-current', 'page');
     await page
         .getByRole('button', {
             name: 'Saved place, open bookmarked place',
@@ -681,7 +701,7 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
         page.getByText('The First Path', { exact: true }),
     ).toBeVisible();
     const topicLink = page.getByRole('link', {
-        name: 'Open topic: Map orientation',
+        name: 'Explore local topic: Map orientation',
     });
     await expect(topicLink).toHaveAttribute('href', '/topics/map-orientation');
     const desktopViewport = page.viewportSize();
@@ -697,11 +717,28 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
         })
         .toBeLessThanOrEqual(desktopViewport!.width);
     await expect(
-        page.getByRole('link', { name: 'Go to node' }),
+        page.getByRole('link', { name: 'Continue at place' }),
     ).toHaveAttribute('href', '/world?map=first-path&focused=saved-place');
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(390);
+    const learnerNavigationItems = learnerNavigation.locator(
+        '[data-wl-id^="learner.navigation.item."]',
+    );
+    await expect(learnerNavigationItems).toHaveCount(6);
+    for (
+        let index = 0;
+        index < (await learnerNavigationItems.count());
+        index += 1
+    ) {
+        const bounds = await learnerNavigationItems.nth(index).boundingBox();
+
+        expect(bounds).not.toBeNull();
+        expect(bounds?.x).toBeGreaterThanOrEqual(0);
+        expect(
+            (bounds?.x ?? 0) + (bounds?.width ?? Infinity),
+        ).toBeLessThanOrEqual(390);
+    }
     await expect
         .poll(async () => (await topicLink.boundingBox())?.x ?? -1)
         .toBeGreaterThanOrEqual(0);
@@ -713,7 +750,7 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
         })
         .toBeLessThanOrEqual(390);
     const removeBookmarkButton = page.getByRole('button', {
-        name: 'Remove bookmark',
+        name: 'Forget this place',
     });
     await expect
         .poll(async () => {

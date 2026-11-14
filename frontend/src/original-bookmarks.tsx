@@ -6,6 +6,7 @@ import { Link, Navigate } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { OriginalLearnerHeader } from './original-learner-header';
 import { usePlatformTranslation } from './original-platform-translation';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
 import { resolveOriginalWorldTheme } from './original-world-theme';
@@ -27,11 +28,16 @@ export function OriginalBookmarksPage({
     appearance,
     isAuthenticationLoading,
     isAuthenticated,
+    onSignedOut,
+    userEmail,
 }: {
     appearance: OriginalAppearance;
     isAuthenticationLoading: boolean;
     isAuthenticated: boolean;
+    onSignedOut: () => void;
+    userEmail: string;
 }) {
+    const t = usePlatformTranslation();
     const [bookmarkState, setBookmarkState] = useState<BookmarkState>({
         kind: 'loading',
     });
@@ -80,16 +86,16 @@ export function OriginalBookmarksPage({
     );
 
     if (isAuthenticationLoading) {
-        return <BookmarksMessage message="Loading bookmarked places…" />;
+        return <BookmarksMessage message={t('bookmarks.loading', 'Loading bookmarked places…')} />;
     }
     if (!isAuthenticated) {
         return <Navigate replace to="/login" />;
     }
     if (bookmarkState.kind === 'loading') {
-        return <BookmarksMessage message="Loading bookmarked places…" />;
+        return <BookmarksMessage message={t('bookmarks.loading', 'Loading bookmarked places…')} />;
     }
     if (bookmarkState.kind === 'unavailable' || !bookmarkMap) {
-        return <BookmarksMessage message="Bookmarked places are temporarily unavailable." />;
+        return <BookmarksMessage message={t('bookmarks.unavailable', 'Bookmarked places are temporarily unavailable.')} />;
     }
 
     async function removeBookmark(place: BookmarkPlace): Promise<void> {
@@ -133,43 +139,55 @@ export function OriginalBookmarksPage({
     }
 
     return (
-        <main
+        <div
             className="relative min-h-svh overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
-            data-wl-id="learner.bookmarks.page"
-            id="learner-main-content"
             style={bookmarkMapStyle(bookmarkTheme!)}
-            tabIndex={-1}
         >
-            <section className="absolute inset-0 overflow-hidden">
-                {bookmarkMap.places.length > 0 ? (
-                    <BookmarkMapSurface
-                        appearance={appearance}
-                        bookmarkMap={bookmarkMap}
-                        onClearFocus={() => setSelectedPlaceKey(null)}
-                        onSelectPlace={(place) =>
-                            setSelectedPlaceKey(bookmarkPlaceKey(place))
-                        }
-                        selectedPlace={selectedPlace}
-                    />
-                ) : (
-                    <EmptyBookmarksState />
-                )}
-            </section>
-
-            <aside
-                aria-label="Selected bookmarked place"
-                className={`absolute inset-x-0 top-28 bottom-0 z-50 w-full border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out sm:top-16 md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100 ${selectedPlace ? 'translate-x-0' : 'pointer-events-none translate-x-full'}`}
-                style={bookmarkPanelStyle(bookmarkTheme!)}
+            <OriginalLearnerHeader
+                onSignedOut={onSignedOut}
+                position="fixed"
+                userEmail={userEmail}
+            />
+            <main
+                className="relative min-h-svh overflow-hidden"
+                data-wl-id="learner.bookmarks.page"
+                id="learner-main-content"
+                tabIndex={-1}
             >
-                {selectedPlace ? (
-                    <BookmarkPanel
-                        place={selectedPlace}
-                        onClose={() => setSelectedPlaceKey(null)}
-                        onRemove={() => void removeBookmark(selectedPlace)}
-                    />
-                ) : null}
-            </aside>
-        </main>
+                <section className="absolute inset-0 overflow-hidden">
+                    {bookmarkMap.places.length > 0 ? (
+                        <BookmarkMapSurface
+                            appearance={appearance}
+                            bookmarkMap={bookmarkMap}
+                            onClearFocus={() => setSelectedPlaceKey(null)}
+                            onSelectPlace={(place) =>
+                                setSelectedPlaceKey(bookmarkPlaceKey(place))
+                            }
+                            selectedPlace={selectedPlace}
+                        />
+                    ) : (
+                        <EmptyBookmarksState />
+                    )}
+                </section>
+
+                <aside
+                    aria-label={t(
+                        'bookmarks.panel.selected',
+                        'Selected bookmarked place',
+                    )}
+                    className={`absolute inset-x-0 top-28 bottom-0 z-50 w-full border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out sm:top-16 md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100 ${selectedPlace ? 'translate-x-0' : 'pointer-events-none translate-x-full'}`}
+                    style={bookmarkPanelStyle(bookmarkTheme!)}
+                >
+                    {selectedPlace ? (
+                        <BookmarkPanel
+                            place={selectedPlace}
+                            onClose={() => setSelectedPlaceKey(null)}
+                            onRemove={() => void removeBookmark(selectedPlace)}
+                        />
+                    ) : null}
+                </aside>
+            </main>
+        </div>
     );
 }
 
@@ -194,6 +212,7 @@ function BookmarkMapSurface({
     onSelectPlace: (place: BookmarkPlace) => void;
     selectedPlace: BookmarkPlace | null;
 }) {
+    const t = usePlatformTranslation();
     const background = resolveOriginalWorldTheme(
         bookmarkMap.background_config,
         appearance,
@@ -255,7 +274,11 @@ function BookmarkMapSurface({
 
                     return (
                         <button
-                            aria-label={`${label}, open bookmarked place`}
+                            aria-label={t(
+                                'bookmarks.place.open',
+                                ':label, open bookmarked place',
+                                { label },
+                            )}
                             className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:ring-2 focus-visible:ring-teal-200 focus-visible:outline-none"
                             key={bookmarkPlaceKey(place)}
                             onClick={(event) => {
@@ -321,22 +344,26 @@ function BookmarkMapSurface({
 }
 
 function EmptyBookmarksState() {
+    const t = usePlatformTranslation();
+
     return (
         <div className="grid h-full place-items-center px-6 text-center">
             <div className="max-w-sm rounded-lg border border-slate-200 bg-white/82 p-6 shadow-2xl backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
                 <Bookmark className="mx-auto mb-4 size-10 text-cyan-700 dark:text-teal-200" />
                 <h1 className="text-2xl font-semibold text-slate-950 dark:text-white">
-                    No bookmarks yet
+                    {t('bookmarks.empty.title', 'No bookmarks yet')}
                 </h1>
                 <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Open a node on the world map and use the bookmark icon to
-                    add it to your personal map.
+                    {t(
+                        'bookmarks.empty.description',
+                        'Open a node on the world map and use the bookmark icon to add it to your personal map.',
+                    )}
                 </p>
                 <Link
                     className="mt-5 inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-medium text-white shadow transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                     to="/world"
                 >
-                    Open world map
+                    {t('bookmarks.empty.world', 'Open world map')}
                 </Link>
             </div>
         </div>
@@ -359,14 +386,17 @@ function BookmarkPanel({
             <div className="flex items-start gap-4">
                 <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/78">
-                        Bookmarked place
+                        {t('bookmarks.panel.eyebrow', 'Bookmarked place')}
                     </p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-normal text-slate-950 dark:text-white">
                         {place.title}
                     </h2>
                 </div>
                 <button
-                    aria-label="Close bookmark panel"
+                    aria-label={t(
+                        'bookmarks.panel.close',
+                        'Close bookmark panel',
+                    )}
                     className="grid size-9 place-items-center rounded-md hover:bg-slate-100 dark:hover:bg-white/10"
                     onClick={onClose}
                     type="button"
@@ -390,12 +420,18 @@ function BookmarkPanel({
                     </Link>
                 ) : null}
                 <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    {place.description || 'No summary has been added yet.'}
+                    {place.description ||
+                        t(
+                            'bookmarks.panel.no_summary',
+                            'No summary has been added yet.',
+                        )}
                 </p>
                 {place.state === 'locked' ? (
                     <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        This node is visible but currently locked. You can still
-                        use it for orientation.
+                        {t(
+                            'bookmarks.panel.locked',
+                            'This node is visible but currently locked. You can still use it for orientation.',
+                        )}
                     </p>
                 ) : null}
             </div>
@@ -405,7 +441,7 @@ function BookmarkPanel({
                     className="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white/90 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-50 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
                     to={`/world?map=${encodeURIComponent(place.map_slug)}&focused=${encodeURIComponent(place.node_slug)}`}
                 >
-                    Go to node
+                    {t('bookmarks.panel.go_to', 'Go to node')}
                     <ArrowRight className="ml-2 size-4" />
                 </Link>
                 <button
@@ -414,7 +450,7 @@ function BookmarkPanel({
                     type="button"
                 >
                     <Bookmark className="mr-2 size-4 fill-current" />
-                    Remove bookmark
+                    {t('bookmarks.panel.remove', 'Remove bookmark')}
                 </button>
             </div>
         </div>
@@ -444,10 +480,26 @@ function stringConfig(
 function bookmarkMapStyle(
     config: Record<string, unknown>,
 ): CSSProperties {
+    const panelBackground =
+        stringConfig(config, 'sidePanelBackground') ?? '#111820';
+    const borderColor =
+        stringConfig(config, 'sidePanelBorderColor') ??
+        'rgba(255,255,255,0.1)';
+    const headingText = stringConfig(config, 'sidePanelTextColor') ?? '#e2e8f0';
+    const accent = stringConfig(config, 'accentColor') ?? '#2dd4bf';
+
     return {
         background: stringConfig(config, 'pageBackground') ?? '#0b1117',
-        color: stringConfig(config, 'sidePanelTextColor') ?? '#e2e8f0',
-    };
+        color: headingText,
+        '--learner-accent': accent,
+        '--learner-action-accent': accent,
+        '--learner-border-color': borderColor,
+        '--learner-header-background': panelBackground,
+        '--learner-heading-text': headingText,
+        '--learner-muted-text':
+            stringConfig(config, 'panelMutedTextColor') ?? headingText,
+        '--learner-panel-background': panelBackground,
+    } as CSSProperties;
 }
 
 function bookmarkPanelStyle(

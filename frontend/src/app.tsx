@@ -375,6 +375,10 @@ export function App() {
                     appearance={appearance}
                     isAuthenticationLoading={currentUser.kind === 'loading'}
                     isAuthenticated={currentUser.kind === 'loaded'}
+                    onSignedOut={() => setCurrentUser({ kind: 'anonymous' })}
+                    userEmail={
+                        currentUser.kind === 'loaded' ? currentUser.email : ''
+                    }
                 />
                 {currentUser.kind === 'loaded' ? (
                     <OriginalLearningCompanionLauncher

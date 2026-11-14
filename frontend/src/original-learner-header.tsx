@@ -14,9 +14,11 @@ import { usePlatformTranslation } from './original-platform-translation';
  */
 export function OriginalLearnerHeader({
     onSignedOut,
+    position = 'sticky',
     userEmail,
 }: {
     onSignedOut: () => void;
+    position?: 'fixed' | 'sticky';
     userEmail: string;
 }) {
     const location = useLocation();
@@ -101,7 +103,7 @@ export function OriginalLearnerHeader({
 
     return (
         <header
-            className="sticky top-0 z-40 border-b border-[var(--learner-border-color)] bg-[var(--learner-header-background,var(--learner-panel-background))] text-[var(--learner-heading-text)] backdrop-blur-xl"
+            className={`${position === 'fixed' ? 'fixed inset-x-0 top-0 z-[70]' : 'sticky top-0 z-40'} border-b border-[var(--learner-border-color)] bg-[var(--learner-header-background,var(--learner-panel-background))] text-[var(--learner-heading-text)] backdrop-blur-xl`}
             data-wl-id="learner.navigation.header"
         >
             <a
