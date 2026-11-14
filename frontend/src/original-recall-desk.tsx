@@ -1410,7 +1410,10 @@ function SupportResponseRow({
             <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span className="text-sm font-medium text-[var(--learner-heading-text)]">
-                        Private reply from Learning Support
+                        {t(
+                            'home.learning_desk.support.reply',
+                            'Private reply from Learning Support',
+                        )}
                     </span>
                     <time
                         className="text-xs text-[var(--learner-muted-text)]"
@@ -1430,7 +1433,7 @@ function SupportResponseRow({
                 className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] sm:justify-self-end"
                 to={`/world?map=${encodeURIComponent(response.map_slug)}&focused=${encodeURIComponent(response.node_slug)}`}
             >
-                Return to place
+                {t('home.learning_desk.support.open', 'Return to place')}
                 <ArrowRight className="size-4" />
             </Link>
         </article>
@@ -1438,13 +1441,15 @@ function SupportResponseRow({
 }
 
 function RouteLearningAreas({ start }: { start: LearnerActivityStart }) {
+    const t = usePlatformTranslation();
+
     if (!start.desk.learning_areas.length) {
         return null;
     }
 
     return (
         <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--learner-muted-text)]">
-            <span>Learning areas:</span>
+            <span>{t('learning.activity.related_areas', 'Related learning areas:')}</span>
             {start.desk.learning_areas.map((area) => (
                 <Link
                     className="text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
@@ -1465,10 +1470,12 @@ function LearningDeskRail({
     featured: LearnerBookmarkPlace | null;
     places: LearnerBookmarkPlace[];
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:border-t-0 lg:border-l lg:px-7">
             <p className="text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase">
-                Pinned for later
+                {t('home.learning_desk.rail.title', 'Pinned for later')}
             </p>
 
             {featured ? (
@@ -1476,16 +1483,24 @@ function LearningDeskRail({
             ) : (
                 <div className="mt-7 border-y border-[var(--learner-border-color)] py-6">
                     <Pin className="size-5 text-[var(--learner-action-accent)]" />
-                    <p className="mt-4 font-medium">Pin a place to your desk</p>
+                    <p className="mt-4 font-medium">
+                        {t(
+                            'home.learning_desk.rail.empty_title',
+                            'Pin a place to your desk',
+                        )}
+                    </p>
                     <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
-                        Your most recently visited bookmarked place will appear here.
+                        {t(
+                            'home.learning_desk.rail.empty_body',
+                            'Your most recently visited bookmarked place will appear here.',
+                        )}
                     </p>
                 </div>
             )}
 
             <div className="mt-8">
                 <p className="text-xs font-semibold tracking-[0.18em] text-[var(--learner-action-accent)] uppercase">
-                    Saved places
+                    {t('home.learning_desk.bookmarks.title', 'Saved places')}
                 </p>
                 <div className="mt-4 divide-y divide-[var(--learner-border-color)] border-y border-[var(--learner-border-color)]">
                     {places.length ? (
@@ -1508,7 +1523,7 @@ function LearningDeskRail({
                         ))
                     ) : (
                         <p className="py-5 text-sm text-[var(--learner-muted-text)]">
-                            No saved places yet.
+                            {t('home.learning_desk.bookmarks.empty', 'No saved places yet.')}
                         </p>
                     )}
                 </div>
@@ -1516,7 +1531,7 @@ function LearningDeskRail({
                     className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
                     to="/bookmarks"
                 >
-                    View all bookmarks
+                    {t('home.learning_desk.bookmarks.all', 'View all bookmarks')}
                     <ArrowRight className="size-4" />
                 </Link>
             </div>
@@ -1525,11 +1540,13 @@ function LearningDeskRail({
 }
 
 function PossibleConnections({ places }: { places: LearnerBookmarkPlace[] }) {
+    const t = usePlatformTranslation();
+
     return (
         <section aria-labelledby="connections-heading" className="mt-8" id="connections-section">
             <div className="flex items-center gap-5 pb-3">
                 <h2 className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase" id="connections-heading">
-                    Possible connections
+                    {t('home.learning_desk.connections.title', 'Possible connections')}
                 </h2>
             </div>
             {places.length ? (
@@ -1548,20 +1565,31 @@ function PossibleConnections({ places }: { places: LearnerBookmarkPlace[] }) {
                         ))}
                     </div>
                     <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                        Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.
+                        {t(
+                            'home.learning_desk.connections.saved_reason',
+                            'Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
+                        )}
                     </p>
                 </div>
             ) : (
                 <div className="border-b border-[var(--learner-border-color)] py-6">
-                    <p className="font-medium">Connections need a little context</p>
+                    <p className="font-medium">
+                        {t(
+                            'home.learning_desk.connections.empty_title',
+                            'Connections need a little context',
+                        )}
+                    </p>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                        Save interesting places and this area can reveal useful paths between them.
+                        {t(
+                            'home.learning_desk.connections.empty_body',
+                            'Save interesting places and this area can reveal useful paths between them.',
+                        )}
                     </p>
                     <Link
                         className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
                         to="/world"
                     >
-                        Open the map
+                        {t('home.learning_desk.connections.empty_action', 'Open the map')}
                         <ArrowRight className="size-4" />
                     </Link>
                 </div>
@@ -1571,6 +1599,8 @@ function PossibleConnections({ places }: { places: LearnerBookmarkPlace[] }) {
 }
 
 function FeaturedBookmark({ bookmark }: { bookmark: LearnerBookmarkPlace }) {
+    const t = usePlatformTranslation();
+
     return (
         <article className="mt-7 border-b border-[var(--learner-border-color)] pb-8">
             {bookmark.asset?.image_url ? (
@@ -1579,7 +1609,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearnerBookmarkPlace }) {
                 </div>
             ) : null}
             <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
-                Pinned place
+                {t('home.learning_desk.rail.featured', 'Pinned place')}
             </p>
             <h2 className="mt-3 text-sm font-semibold">{bookmark.title}</h2>
             <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
@@ -1594,7 +1624,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearnerBookmarkPlace }) {
                 className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)] hover:text-[var(--learner-heading-text)]"
                 to={bookmarkWorldHref(bookmark)}
             >
-                Open place
+                {t('home.learning_desk.rail.open', 'Open place')}
                 <ArrowRight className="size-4" />
             </Link>
         </article>

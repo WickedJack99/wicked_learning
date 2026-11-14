@@ -2606,6 +2606,7 @@ test('the source Learning Desk search uses its authenticated result contract', a
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'home.learning_desk.connections.title': 'Potential paths',
                     'home.learning_desk.eyebrow': 'Your study space',
                     'home.learning_desk.focus.enter': 'Quiet view',
                     'home.learning_desk.search.action': 'Find it',
@@ -2709,6 +2710,9 @@ test('the source Learning Desk search uses its authenticated result contract', a
         page.getByRole('button', { name: 'Quiet view' }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Idea links' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Potential paths' }),
+    ).toBeVisible();
     await expect(
         page.getByRole('button', { name: 'Find it' }),
     ).toBeVisible();
