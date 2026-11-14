@@ -195,26 +195,6 @@ type SupportedActivityType =
 type WorldBuilderSection = 'graph' | 'review' | 'structural';
 type WorldBuilderMapView = 'configure' | 'nodes';
 
-const worldBuilderSections = [
-    {
-        description: 'See maps and portal routes as a connected graph.',
-        icon: GitBranch,
-        key: 'graph',
-        label: 'Graph',
-    },
-    {
-        description: 'Open activities waiting for an authoring review.',
-        icon: Sparkles,
-        key: 'review',
-        label: 'Review queue',
-    },
-    {
-        description: 'Choose maps and open map or MapAsset configuration.',
-        icon: Network,
-        key: 'structural',
-        label: 'Structural',
-    },
-] satisfies SettingsNavigationItem<WorldBuilderSection>[];
 type ObstacleForm = {
     allowedToolIds: string[];
     backgroundDark: string;
@@ -475,6 +455,48 @@ function WorldBuilderContent({
     const navigationSections = useMemo(
         () => settingsSections(t, accessCapabilities, true, settingsMenuQuery),
         [accessCapabilities, settingsMenuQuery, t],
+    );
+    const worldBuilderSections = useMemo(
+        () =>
+            [
+                {
+                    description: t(
+                        'settings.world_builder.navigation.graph.description',
+                        'See maps and portal routes as a connected graph.',
+                    ),
+                    icon: GitBranch,
+                    key: 'graph',
+                    label: t(
+                        'settings.world_builder.navigation.graph.label',
+                        'Graph',
+                    ),
+                },
+                {
+                    description: t(
+                        'settings.world_builder.navigation.review.description',
+                        'Open activities waiting for an authoring review.',
+                    ),
+                    icon: Sparkles,
+                    key: 'review',
+                    label: t(
+                        'settings.world_builder.navigation.review.label',
+                        'Review queue',
+                    ),
+                },
+                {
+                    description: t(
+                        'settings.world_builder.navigation.structural.description',
+                        'Choose maps and open map or MapAsset configuration.',
+                    ),
+                    icon: Network,
+                    key: 'structural',
+                    label: t(
+                        'settings.world_builder.navigation.structural.label',
+                        'Structural',
+                    ),
+                },
+            ] satisfies SettingsNavigationItem<WorldBuilderSection>[],
+        [t],
     );
     const query = useMemo(
         () => new URLSearchParams(location.search),
@@ -758,7 +780,10 @@ function WorldBuilderContent({
                             sidebar={
                                 <SettingsSectionNavigation
                                     activeSection={resolvedWorldBuilderSection}
-                                    ariaLabel="World builder sections"
+                                    ariaLabel={t(
+                                        'settings.world_builder.navigation.aria_label',
+                                        'World builder sections',
+                                    )}
                                     items={visibleWorldBuilderSections}
                                     onChange={selectWorldBuilderSection}
                                 />

@@ -20,6 +20,13 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
                 locale: 'test',
                 translations: {
                     'settings.world_builder.header.eyebrow': 'Localized world editing',
+                    'settings.world_builder.navigation.aria_label': 'Localized world builder sections',
+                    'settings.world_builder.navigation.graph.label': 'Localized graph',
+                    'settings.world_builder.navigation.graph.description': 'Localized graph guidance.',
+                    'settings.world_builder.navigation.review.label': 'Localized review queue',
+                    'settings.world_builder.navigation.review.description': 'Localized review guidance.',
+                    'settings.world_builder.navigation.structural.label': 'Localized structural',
+                    'settings.world_builder.navigation.structural.description': 'Localized structural guidance.',
                     'settings.world_builder.source_catalog.concept_filter_label': 'Localized concept filter',
                     'settings.world_builder.source_catalog.description': 'Localized reusable citation guidance.',
                     'settings.world_builder.source_catalog.field_title': 'Localized citation title',
@@ -56,9 +63,47 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
             }),
         });
     });
+    await page.route('**/api/v1/admin/world-builder/review-queue**', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                items: [],
+                pagination: { current_page: 1, last_page: 1, per_page: 4, total: 0 },
+            }),
+        });
+    });
 
     await page.goto('/settings?panel=admin-world-builder');
     await expect(page.getByText('Localized world editing')).toBeVisible();
+    const sections = page.getByRole('tablist', {
+        name: 'Localized world builder sections',
+    });
+    await expect(sections.getByRole('tab', { name: 'Localized graph' })).toBeVisible();
+    await expect(sections.getByText('Localized graph guidance.')).toBeVisible();
+    await expect(sections.getByText('Localized review guidance.')).toBeVisible();
+    await expect(sections.getByText('Localized structural guidance.')).toBeVisible();
+    await sections.getByRole('tab', { name: 'Localized review queue' }).click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-world-builder&worldSection=review$/,
+    );
+    await sections.getByRole('tab', { name: 'Localized structural' }).click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-world-builder&worldSection=structural$/,
+    );
+    await sections.getByRole('tab', { name: 'Localized graph' }).click();
+    await expect(page).toHaveURL(
+        /\/settings\?panel=admin-world-builder&worldSection=graph$/,
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(sections.getByRole('tab', { name: 'Localized graph' })).toBeVisible();
+    const sectionBounds = await sections.boundingBox();
+    expect(sectionBounds).not.toBeNull();
+    expect(sectionBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(sectionBounds!.x + sectionBounds!.width).toBeLessThanOrEqual(390);
+    expect(sectionBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(sectionBounds!.y + sectionBounds!.height).toBeLessThanOrEqual(844);
+
     await page.getByRole('button', { name: 'Localized source catalog' }).click();
 
     const catalog = page.locator('[data-wl-id="authoring.source-catalog"]');
@@ -69,7 +114,6 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
     await expect(catalog.getByRole('heading', { name: 'Localized new citation' })).toBeVisible();
     await expect(catalog.getByLabel('Localized citation title')).toBeVisible();
 
-    await page.setViewportSize({ width: 390, height: 844 });
     await expect(catalog.getByLabel('Localized source search')).toBeVisible();
     const bounds = await catalog.boundingBox();
     expect(bounds).not.toBeNull();
