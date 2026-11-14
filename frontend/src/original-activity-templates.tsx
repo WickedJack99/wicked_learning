@@ -352,22 +352,32 @@ export function OriginalActivityTemplatesDialog({
                     <div>
                         <p className="inline-flex items-center gap-2 text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
                             <History className="size-4" />
-                            Reusable activities
+                            {t(
+                                'settings.world_builder.activity_templates.eyebrow',
+                                'Reusable activities',
+                            )}
                         </p>
                         <h2
                             className="mt-1 text-xl font-semibold"
                             id="activity-template-library-title"
                         >
-                            Activity template library
+                            {t(
+                                'settings.world_builder.activity_templates.title',
+                                'Activity template library',
+                            )}
                         </h2>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Templates create editable copies. Shared templates
-                            can be used by organization members, while only
-                            their creator can manage them.
+                            {t(
+                                'settings.world_builder.activity_templates.description',
+                                'Templates create editable copies. Shared templates can be used by organization members, while only their creator can manage them.',
+                            )}
                         </p>
                     </div>
                     <button
-                        aria-label="Close activity template library"
+                        aria-label={t(
+                            'settings.world_builder.activity_templates.close',
+                            'Close activity template library',
+                        )}
                         className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
                         onClick={onClose}
                         type="button"
@@ -386,9 +396,16 @@ export function OriginalActivityTemplatesDialog({
                 {activity && mode === 'save' ? (
                     <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50/60 p-3 dark:border-teal-300/30 dark:bg-teal-300/10">
                         <label className="block text-sm font-medium">
-                            Save “{activity.title}” as a reusable template
+                            {t(
+                                'settings.world_builder.activity_templates.save_activity',
+                                'Save “:activity” as a reusable template',
+                                { activity: activity.title },
+                            )}
                             <input
-                                aria-label="Template name"
+                                aria-label={t(
+                                    'settings.world_builder.activity_templates.name_label',
+                                    'Template name',
+                                )}
                                 className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 font-normal dark:border-white/20 dark:bg-slate-900"
                                 maxLength={120}
                                 onChange={(event) =>
@@ -404,15 +421,20 @@ export function OriginalActivityTemplatesDialog({
                             type="button"
                         >
                             <Save className="size-4" />
-                            Save reusable template
+                            {t(
+                                'settings.world_builder.activity_templates.save',
+                                'Save reusable template',
+                            )}
                         </button>
                     </div>
                 ) : null}
                 {activity && mode === 'update' ? (
                     <p className="mt-4 rounded-lg border border-teal-200 bg-teal-50/60 p-3 text-sm text-teal-950 dark:border-teal-300/30 dark:bg-teal-300/10 dark:text-teal-50">
-                        Choose one of your templates below to replace it with “
-                        {activity.title}”. Its current snapshot will be
-                        preserved in history.
+                        {t(
+                            'settings.world_builder.activity_templates.update_description',
+                            'Choose one of your templates below to replace it with “:activity”. Its current snapshot will be preserved in history.',
+                            { activity: activity.title },
+                        )}
                     </p>
                 ) : null}
                 <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]">
@@ -421,7 +443,10 @@ export function OriginalActivityTemplatesDialog({
                             <label className="flex min-w-48 flex-1 items-center gap-2 rounded-md border border-slate-300 px-2 dark:border-white/20">
                                 <Search className="size-4 text-slate-500" />
                                 <input
-                                    aria-label="Search reusable templates"
+                                    aria-label={t(
+                                        'settings.world_builder.activity_templates.search_label',
+                                        'Search reusable templates',
+                                    )}
                                     className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
                                     onChange={(event) =>
                                         setSearch(event.target.value)
@@ -434,13 +459,19 @@ export function OriginalActivityTemplatesDialog({
                                 onClick={() => void load()}
                                 type="button"
                             >
-                                Search
+                                {t(
+                                    'settings.world_builder.activity_templates.search',
+                                    'Search',
+                                )}
                             </button>
                         </div>
                         <div className="mt-3 grid gap-2">
                             {busy && !page ? (
                                 <p className="text-sm text-slate-500">
-                                    Loading templates…
+                                    {t(
+                                        'settings.world_builder.activity_templates.loading',
+                                        'Loading templates…',
+                                    )}
                                 </p>
                             ) : page?.items.length ? (
                                 page.items.map((template) => (
@@ -462,8 +493,20 @@ export function OriginalActivityTemplatesDialog({
                                                         ' ',
                                                     )}
                                                     {template.organization
-                                                        ? ` · Shared with ${template.organization.name}`
-                                                        : ' · Private'}
+                                                        ? ` · ${t(
+                                                              'settings.world_builder.activity_templates.shared_with',
+                                                              'Shared with :organization',
+                                                              {
+                                                                  organization:
+                                                                      template
+                                                                          .organization
+                                                                          .name,
+                                                              },
+                                                          )}`
+                                                        : ` · ${t(
+                                                              'settings.world_builder.activity_templates.private',
+                                                              'Private',
+                                                          )}`}
                                                 </p>
                                             </div>
                                             <div className="flex shrink-0 flex-wrap justify-end gap-1">
@@ -474,7 +517,10 @@ export function OriginalActivityTemplatesDialog({
                                                     }
                                                     type="button"
                                                 >
-                                                    Preview
+                                                    {t(
+                                                        'settings.world_builder.activity_templates.preview',
+                                                        'Preview',
+                                                    )}
                                                 </button>
                                                 {mode === 'update' &&
                                                 activity &&
@@ -490,7 +536,10 @@ export function OriginalActivityTemplatesDialog({
                                                         type="button"
                                                     >
                                                         <RefreshCw className="size-3.5" />
-                                                        Update
+                                                        {t(
+                                                            'settings.world_builder.activity_templates.update',
+                                                            'Update',
+                                                        )}
                                                     </button>
                                                 ) : null}
                                             </div>
@@ -499,19 +548,30 @@ export function OriginalActivityTemplatesDialog({
                                 ))
                             ) : (
                                 <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-white/20">
-                                    No saved activity template matches this
-                                    page.
+                                    {t(
+                                        'settings.world_builder.activity_templates.empty',
+                                        'No saved activity template matches this page.',
+                                    )}
                                 </p>
                             )}
                         </div>
                         {page ? (
                             <nav
-                                aria-label="Activity template pagination"
+                                aria-label={t(
+                                    'settings.world_builder.activity_templates.pagination_label',
+                                    'Activity template pagination',
+                                )}
                                 className="mt-4 flex items-center justify-between text-sm"
                             >
                                 <span className="text-slate-500">
-                                    Page {page.pagination.page} of{' '}
-                                    {page.pagination.last_page}
+                                    {t(
+                                        'settings.world_builder.activity_templates.pagination',
+                                        'Page :page of :last',
+                                        {
+                                            last: page.pagination.last_page,
+                                            page: page.pagination.page,
+                                        },
+                                    )}
                                 </span>
                                 <div className="flex gap-2">
                                     <button
@@ -524,7 +584,10 @@ export function OriginalActivityTemplatesDialog({
                                         }
                                         type="button"
                                     >
-                                        Previous
+                                        {t(
+                                            'settings.world_builder.activity_templates.previous',
+                                            'Previous',
+                                        )}
                                     </button>
                                     <button
                                         className="rounded border border-slate-300 px-2 py-1 disabled:opacity-50 dark:border-white/20"
@@ -538,7 +601,10 @@ export function OriginalActivityTemplatesDialog({
                                         }
                                         type="button"
                                     >
-                                        Next
+                                        {t(
+                                            'settings.world_builder.activity_templates.next',
+                                            'Next',
+                                        )}
                                     </button>
                                 </div>
                             </nav>
@@ -565,25 +631,34 @@ export function OriginalActivityTemplatesDialog({
                                         onClick={() => onUseTemplate(selected)}
                                         type="button"
                                     >
-                                        Create editable copy
+                                        {t(
+                                            'settings.world_builder.activity_templates.create_copy',
+                                            'Create editable copy',
+                                        )}
                                     </button>
                                 </div>
                                 {selected.media_references.length ? (
                                     <div className="mt-4 rounded-md border border-slate-200 p-3 text-sm dark:border-white/10">
                                         <h4 className="font-medium">
-                                            Reusable media
+                                            {t(
+                                                'settings.world_builder.activity_templates.media_title',
+                                                'Reusable media',
+                                            )}
                                         </h4>
                                         <p className="mt-1 text-xs leading-5 text-slate-500">
-                                            {
-                                                selected.media_references.filter(
-                                                    (reference) =>
-                                                        reference.available,
-                                                ).length
-                                            }{' '}
-                                            of{' '}
-                                            {selected.media_references.length}{' '}
-                                            referenced media files are available
-                                            in this workspace.
+                                            {t(
+                                                'settings.world_builder.activity_templates.media_availability',
+                                                ':available of :total referenced media files are available in this workspace.',
+                                                {
+                                                    available:
+                                                        selected.media_references.filter(
+                                                            (reference) =>
+                                                                reference.available,
+                                                        ).length,
+                                                    total: selected.media_references
+                                                        .length,
+                                                },
+                                            )}
                                         </p>
                                         <ul className="mt-2 grid gap-1 text-xs text-slate-600 dark:text-slate-300">
                                             {selected.media_references
@@ -602,10 +677,16 @@ export function OriginalActivityTemplatesDialog({
                                         {selected.media_references.length >
                                         6 ? (
                                             <p className="mt-2 text-xs text-slate-500">
-                                                {selected.media_references
-                                                    .length - 6}{' '}
-                                                more media references are
-                                                included.
+                                                {t(
+                                                    'settings.world_builder.activity_templates.media_more',
+                                                    ':count more media references are included.',
+                                                    {
+                                                        count:
+                                                            selected
+                                                                .media_references
+                                                                .length - 6,
+                                                    },
+                                                )}
                                             </p>
                                         ) : null}
                                     </div>
@@ -613,7 +694,10 @@ export function OriginalActivityTemplatesDialog({
                                 {selected.can_manage ? (
                                     <>
                                         <label className="mt-4 block text-sm font-medium">
-                                            Template name
+                                            {t(
+                                                'settings.world_builder.activity_templates.name_label',
+                                                'Template name',
+                                            )}
                                             <input
                                                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 font-normal dark:border-white/20 dark:bg-slate-900"
                                                 maxLength={120}
@@ -637,11 +721,17 @@ export function OriginalActivityTemplatesDialog({
                                                 type="button"
                                             >
                                                 <Pencil className="size-3.5" />
-                                                Rename
+                                                {t(
+                                                    'settings.world_builder.activity_templates.rename',
+                                                    'Rename',
+                                                )}
                                             </button>
                                         </div>
                                         <label className="mt-4 block text-sm font-medium">
-                                            Share with organization
+                                            {t(
+                                                'settings.world_builder.activity_templates.share_label',
+                                                'Share with organization',
+                                            )}
                                             <select
                                                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 font-normal dark:border-white/20 dark:bg-slate-900"
                                                 disabled={busy}
@@ -656,7 +746,10 @@ export function OriginalActivityTemplatesDialog({
                                                 }
                                             >
                                                 <option value="">
-                                                    Private
+                                                    {t(
+                                                        'settings.world_builder.activity_templates.private',
+                                                        'Private',
+                                                    )}
                                                 </option>
                                                 {page?.share_targets.map(
                                                     (organization) => (
@@ -678,13 +771,19 @@ export function OriginalActivityTemplatesDialog({
                                 ) : (
                                     <p className="mt-4 inline-flex items-center gap-1 text-sm text-slate-500">
                                         <Share2 className="size-4" />
-                                        This shared template is read-only.
+                                        {t(
+                                            'settings.world_builder.activity_templates.read_only',
+                                            'This shared template is read-only.',
+                                        )}
                                     </p>
                                 )}
                                 <div className="mt-5 border-t border-slate-200 pt-4 dark:border-white/10">
                                     <div className="flex items-center justify-between gap-2">
                                         <h4 className="text-sm font-medium">
-                                            Template history
+                                            {t(
+                                                'settings.world_builder.activity_templates.history_title',
+                                                'Template history',
+                                            )}
                                         </h4>
                                         <button
                                             className="inline-flex items-center gap-1 rounded px-2 py-1 text-sm text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
@@ -693,7 +792,10 @@ export function OriginalActivityTemplatesDialog({
                                             type="button"
                                         >
                                             <History className="size-3.5" />
-                                            Load history
+                                            {t(
+                                                'settings.world_builder.activity_templates.load_history',
+                                                'Load history',
+                                            )}
                                         </button>
                                     </div>
                                     {history?.items.length ? (
@@ -726,7 +828,10 @@ export function OriginalActivityTemplatesDialog({
                                                             type="button"
                                                         >
                                                             <RotateCcw className="size-3.5" />
-                                                            Restore
+                                                            {t(
+                                                                'settings.world_builder.activity_templates.restore',
+                                                                'Restore',
+                                                            )}
                                                         </button>
                                                     ) : null}
                                                 </div>
@@ -734,7 +839,10 @@ export function OriginalActivityTemplatesDialog({
                                         </div>
                                     ) : history ? (
                                         <p className="mt-2 text-sm text-slate-500">
-                                            No saved history yet.
+                                            {t(
+                                                'settings.world_builder.activity_templates.history_empty',
+                                                'No saved history yet.',
+                                            )}
                                         </p>
                                     ) : null}
                                 </div>
@@ -746,15 +854,19 @@ export function OriginalActivityTemplatesDialog({
                                         type="button"
                                     >
                                         <Trash2 className="size-4" />
-                                        Delete template
+                                        {t(
+                                            'settings.world_builder.activity_templates.delete',
+                                            'Delete template',
+                                        )}
                                     </button>
                                 ) : null}
                             </>
                         ) : (
                             <p className="text-sm text-slate-500">
-                                Preview a template to inspect it, create an
-                                editable copy, or manage its sharing and
-                                history.
+                                {t(
+                                    'settings.world_builder.activity_templates.selected_empty',
+                                    'Preview a template to inspect it, create an editable copy, or manage its sharing and history.',
+                                )}
                             </p>
                         )}
                     </div>

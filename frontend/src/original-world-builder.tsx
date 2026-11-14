@@ -6089,6 +6089,7 @@ function ActivityGraph({
     worldGraph: WorldGraph | null;
 }) {
     const graph = document.activity_graph;
+    const t = usePlatformTranslation();
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
     const [evidenceContextActivity, setEvidenceContextActivity] = useState<Activity | null>(null);
     const [completionChoiceActivity, setCompletionChoiceActivity] = useState<Activity | null>(null);
@@ -6515,7 +6516,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <BookmarkPlus className="size-3.5" />
-                            Activity templates
+                            {t(
+                                'settings.world_builder.activity_templates.open',
+                                'Activity templates',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6832,6 +6836,7 @@ function ActivityGraphCard({
     data: ActivityNodeData;
     selected: boolean;
 }) {
+    const t = usePlatformTranslation();
     const { activity } = data;
     return (
         <div
@@ -6949,43 +6954,73 @@ function ActivityGraphCard({
                         Edit
                     </button>
                     <button
-                        aria-label={`Use ${activity.title} as a template`}
+                        aria-label={t(
+                            'settings.world_builder.activity_templates.copy_activity',
+                            'Use :activity as a template',
+                            { activity: activity.title },
+                        )}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
                         onClick={(event) => {
                             event.stopPropagation();
                             data.onDuplicate(activity);
                         }}
-                        title="Create editable copy"
+                        title={t(
+                            'settings.world_builder.activity_templates.create_copy',
+                            'Create editable copy',
+                        )}
                         type="button"
                     >
                         <Copy className="size-3" />
-                        Create editable copy
+                        {t(
+                            'settings.world_builder.activity_templates.create_copy',
+                            'Create editable copy',
+                        )}
                     </button>
                     <button
-                        aria-label={`Save ${activity.title} as a reusable template`}
+                        aria-label={t(
+                            'settings.world_builder.activity_templates.save_activity_label',
+                            'Save :activity as a reusable template',
+                            { activity: activity.title },
+                        )}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
                         onClick={(event) => {
                             event.stopPropagation();
                             data.onSaveTemplate(activity);
                         }}
-                        title="Save reusable template"
+                        title={t(
+                            'settings.world_builder.activity_templates.save',
+                            'Save reusable template',
+                        )}
                         type="button"
                     >
                         <BookmarkPlus className="size-3" />
-                        Save template
+                        {t(
+                            'settings.world_builder.activity_templates.save_template',
+                            'Save template',
+                        )}
                     </button>
                     <button
-                        aria-label={`Update a saved template from ${activity.title}`}
+                        aria-label={t(
+                            'settings.world_builder.activity_templates.update_activity',
+                            'Update a saved template from :activity',
+                            { activity: activity.title },
+                        )}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
                         onClick={(event) => {
                             event.stopPropagation();
                             data.onUpdateTemplate(activity);
                         }}
-                        title="Update saved template"
+                        title={t(
+                            'settings.world_builder.activity_templates.update_template',
+                            'Update saved template',
+                        )}
                         type="button"
                     >
                         <RefreshCw className="size-3" />
-                        Update template
+                        {t(
+                            'settings.world_builder.activity_templates.update_template',
+                            'Update saved template',
+                        )}
                     </button>
                 </div>
             ) : null}

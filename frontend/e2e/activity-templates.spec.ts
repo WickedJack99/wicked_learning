@@ -1,5 +1,176 @@
 import { expect, test } from './authenticated';
 
+test('the reusable activity template library consumes fixed platform catalog copy', async ({
+    page,
+}) => {
+    const mapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01';
+    const nodeId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d02';
+
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                capabilities: [],
+                email: 'template-library-admin@example.test',
+                roles: ['administrator'],
+                settings_access: {
+                    world_activities: true,
+                    world_maps: true,
+                    world_nodes: true,
+                },
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d03',
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'settings.world_builder.activity_templates.description':
+                        'Localized reusable-template guidance.',
+                    'settings.world_builder.activity_templates.empty':
+                        'No localized reusable templates are saved.',
+                    'settings.world_builder.activity_templates.open':
+                        'Localized activity templates',
+                    'settings.world_builder.activity_templates.search_label':
+                        'Localized reusable-template search',
+                    'settings.world_builder.activity_templates.title':
+                        'Localized reusable-template library',
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/admin/world-builder', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                maps: [
+                    {
+                        access_roles: [],
+                        description: 'A mocked authoring map.',
+                        id: mapId,
+                        node_count: 1,
+                        nodes: [
+                            {
+                                activity_review_count: 0,
+                                description: 'A mocked authoring node.',
+                                id: nodeId,
+                                position: { q: 0, r: 0 },
+                                slug: 'mocked-node',
+                                state: 'available',
+                                title: 'Mocked node',
+                                unlock_diagnostics: [],
+                                visual_config: {},
+                            },
+                        ],
+                        review_count: 0,
+                        slug: 'mocked-map',
+                        title: 'Mocked map',
+                        updated_at: '2026-11-14T12:34:00Z',
+                    },
+                ],
+                portal_candidates: [],
+                portal_links: [],
+                world: {
+                    description: 'A mocked authoring world.',
+                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d04',
+                    slug: 'mocked-world',
+                    title: 'Mocked World',
+                    updated_at: '2026-11-14T12:34:00Z',
+                },
+            }),
+        });
+    });
+    await page.route(`**/api/v1/admin/world-builder/nodes/${nodeId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                activity_graph: {
+                    activities: [],
+                    activity_types: [],
+                    ai_review_templates: [],
+                    can_manage_ai_review: false,
+                    competence_topic_options: [],
+                    evidence_concept_options: [],
+                    map: { id: mapId, slug: 'mocked-map', title: 'Mocked map' },
+                    message_topics: [],
+                    node: {
+                        description: 'A mocked authoring node.',
+                        graph_layout: {},
+                        id: nodeId,
+                        slug: 'mocked-node',
+                        start_activity_id: null,
+                        start_routes: [],
+                        title: 'Mocked node',
+                    },
+                    portal_candidates: [],
+                    source_records: {
+                        items: [],
+                        pagination: {
+                            current_page: 1,
+                            last_page: 1,
+                            per_page: 12,
+                            total: 0,
+                        },
+                    },
+                    transitions: [],
+                    world: {
+                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d04',
+                        slug: 'mocked-world',
+                        title: 'Mocked World',
+                    },
+                },
+                items: [],
+                sounds: [],
+                tools: [],
+            }),
+        });
+    });
+    await page.route('**/api/v1/admin/activity-templates**', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                items: [],
+                pagination: { last_page: 1, page: 1, per_page: 8, total: 0 },
+                share_targets: [],
+            }),
+        });
+    });
+
+    await page.goto(
+        `/settings?panel=admin-world-builder&map=${mapId}&node=${nodeId}`,
+    );
+    await page
+        .getByRole('button', { name: 'Localized activity templates' })
+        .click();
+
+    const dialog = page.locator('[data-wl-id="authoring.activity-templates"]');
+    await expect(
+        dialog.getByRole('heading', {
+            name: 'Localized reusable-template library',
+        }),
+    ).toBeVisible();
+    await expect(
+        dialog.getByText('Localized reusable-template guidance.'),
+    ).toBeVisible();
+    await expect(
+        dialog.getByLabel('Localized reusable-template search'),
+    ).toBeVisible();
+    await expect(
+        dialog.getByText('No localized reusable templates are saved.'),
+    ).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+});
+
 test('a local author can save, revise, restore and copy a reusable activity template', async ({
     page,
 }) => {
