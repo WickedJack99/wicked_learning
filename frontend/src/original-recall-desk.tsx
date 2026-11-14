@@ -1222,16 +1222,24 @@ function ContinueRouteRow({
                 <RouteLearningAreas start={route.start} />
                 {desk.current_activity_title ? (
                     <p className="mt-2 truncate text-xs font-medium text-[var(--learner-action-accent)]">
-                        Current step: {desk.current_activity_title}
+                        {t('home.learning_desk.continue.next', 'Current step')}:{' '}
+                        {desk.current_activity_title}
                     </p>
                 ) : null}
                 {desk.time_guide_minutes ? (
                     <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
-                        Suggested time: {desk.time_guide_minutes} minutes
+                        {t(
+                            'learning.activity.time_guide',
+                            'Suggested time: :minutes minutes',
+                            { minutes: desk.time_guide_minutes },
+                        )}
                     </p>
                 ) : null}
                 <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
-                    Why here: this work is still in progress.
+                    {t(
+                        'home.learning_desk.reason.active_route',
+                        'Why here: this route is still in progress.',
+                    )}
                 </p>
             </div>
             <span className="flex items-center gap-4 sm:justify-self-end">
@@ -1242,7 +1250,10 @@ function ContinueRouteRow({
                     </span>
                 ) : null}
                 <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-accent)] disabled:opacity-50" disabled={opening} onClick={() => void onContinue(route.start)} type="button">
-                    {opening ? 'Opening…' : 'Continue'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                    {opening
+                        ? t('learning.activity.starting_again', 'Starting again…')
+                        : t('common.continue', 'Continue')}
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </button>
             </span>
         </article>
@@ -1380,12 +1391,20 @@ function RecentRouteRow({
                     </Link>
                 ) : null}
                 <RouteLearningAreas start={route.start} />
-                <p className="mt-2 text-xs text-[var(--learner-muted-text)]">Why here: you completed this route recently.</p>
+                <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
+                    {t(
+                        'home.learning_desk.reason.recently_completed',
+                        'Why here: you completed this route recently.',
+                    )}
+                </p>
             </div>
             <span className="flex items-center gap-4 sm:justify-self-end">
                 {completedAt ? <span className="hidden text-xs text-[var(--learner-muted-text)] xl:inline">{formatDeskDate(completedAt)}</span> : null}
                 <button className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] disabled:opacity-50" disabled={opening} onClick={() => void onRevisit(route.start)} type="button">
-                    {opening ? 'Opening…' : 'Revisit'}<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                    {opening
+                        ? t('learning.activity.starting_again', 'Starting again…')
+                        : t('home.learning_desk.recent.action', 'Revisit')}
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </button>
             </span>
         </article>
@@ -1411,7 +1430,7 @@ function SupportResponseRow({
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span className="text-sm font-medium text-[var(--learner-heading-text)]">
                         {t(
-                            'home.learning_desk.support.reply',
+                            'home.learning_desk.support.reply_label',
                             'Private reply from Learning Support',
                         )}
                     </span>

@@ -2834,6 +2834,7 @@ test('the source Learning Desk localizes planning controls for an active route',
                 locale: 'test',
                 translations: {
                     'activities.focus.retrieve': 'Retrieve privately',
+                    'home.learning_desk.continue.next': 'Now working on',
                     'home.learning_desk.time_budget.label': 'Choose a time frame',
                 },
             }),
@@ -2915,6 +2916,7 @@ test('the source Learning Desk localizes planning controls for an active route',
     await expect(
         page.getByRole('button', { name: 'Retrieve privately' }),
     ).toBeVisible();
+    await expect(page.getByText('Now working on: Retrieve a pattern')).toBeVisible();
 });
 
 test('the source Learning Desk revisit section opens an opaque private revisit run', async ({
