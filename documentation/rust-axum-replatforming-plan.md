@@ -908,6 +908,14 @@ private or identifier-based links will resolve in a deployed cutover.
 | Remaining authoring/settings/admin routes | — | Not available | These belong to later authoring and administration slices with their own authorization tests. |
 | `/protected-media/*`                                                      | —                             | Intentionally not carried | The Laravel raw map-media URL family is not a greenfield Rust endpoint. Its required behavior is replaced by managed reusable-asset upload, selection, normalized reference integrity, replacement, author preview/download, scoped learner delivery and public delivery only through active published references. The access-link preview, redemption and temporary-login contracts remain available at their source paths as recorded above. |
 
+The Personal Settings routes now share the lifted source Settings frame rather
+than rendering route-local substitute pages: its top bar, global Settings menu,
+quick navigation and responsive Personal section navigation remain present on
+Profile, Appearance, Language, Notifications, Feedback, Sound, Security and
+Delete Account. Their existing typed Rust preference, identity and destructive
+commands remain unchanged; the browser check covers source keyboard navigation
+to the destructive panel as well as desktop and narrow Settings navigation.
+
 The older `/home` row's private-support note is superseded by the Learning
 Support slice above: learners can read their own visible private replies in
 the lifted Desk area. Likewise, the otherwise unavailable Settings family now
