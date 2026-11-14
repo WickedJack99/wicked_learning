@@ -84,10 +84,6 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
     });
 
     await page.goto('/settings?panel=admin-world-builder');
-    await expect(
-        page.getByRole('link', { name: 'Localized settings return' }),
-    ).toHaveAttribute('href', '/settings');
-    await expect(page.getByText('Localized world editing')).toBeVisible();
     const sections = page.getByRole('tablist', {
         name: 'Localized world builder sections',
     });
@@ -118,6 +114,7 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
     expect(sectionBounds!.y).toBeGreaterThanOrEqual(0);
     expect(sectionBounds!.y + sectionBounds!.height).toBeLessThanOrEqual(844);
 
+    await page.locator('summary').filter({ hasText: 'World tools' }).click();
     await page.getByRole('button', { name: 'Localized source catalog' }).click();
 
     const catalog = page.locator('[data-wl-id="authoring.source-catalog"]');

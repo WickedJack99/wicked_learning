@@ -102,6 +102,34 @@ test('World Builder localizes source-shaped graph map cards without changing the
         page.getByText('Localized graph-inspector guidance.'),
     ).toBeVisible();
 
+    const graph = page.locator('[data-wl-id="authoring.world-builder.graph"]');
+    const mapCards = page.locator(
+        '[data-wl-id="authoring.world-builder.graph.map-card"]',
+    );
+    const reviewedMap = mapCards.filter({ hasText: 'Mocked reviewed map' });
+    const currentMap = mapCards.filter({ hasText: 'Mocked current map' });
+    await expect(reviewedMap).toBeVisible();
+    await expect(currentMap).toBeVisible();
+    await expect(
+        page.getByRole('status', { name: 'Preparing graph view…' }),
+    ).toBeHidden();
+    const graphBounds = await graph.boundingBox();
+    const reviewedMapBounds = await reviewedMap.boundingBox();
+    const currentMapBounds = await currentMap.boundingBox();
+    expect(graphBounds).not.toBeNull();
+    expect(reviewedMapBounds).not.toBeNull();
+    expect(currentMapBounds).not.toBeNull();
+    for (const mapBounds of [reviewedMapBounds!, currentMapBounds!]) {
+        expect(mapBounds.x).toBeGreaterThanOrEqual(graphBounds!.x);
+        expect(mapBounds.x + mapBounds.width).toBeLessThanOrEqual(
+            graphBounds!.x + graphBounds!.width,
+        );
+        expect(mapBounds.y).toBeGreaterThanOrEqual(graphBounds!.y);
+        expect(mapBounds.y + mapBounds.height).toBeLessThanOrEqual(
+            graphBounds!.y + graphBounds!.height,
+        );
+    }
+
     await page.locator('.react-flow__edge').first().dispatchEvent('click');
     await expect(page.getByText('Localized portal link')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Localized unnamed portal' })).toBeVisible();
@@ -113,6 +141,18 @@ test('World Builder localizes source-shaped graph map cards without changing the
     ).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
+    await graph.scrollIntoViewIfNeeded();
+    await expect(reviewedMap).toBeVisible();
+    const mobileGraphBounds = await graph.boundingBox();
+    const mobileMapBounds = await reviewedMap.boundingBox();
+    expect(mobileGraphBounds).not.toBeNull();
+    expect(mobileMapBounds).not.toBeNull();
+    expect(mobileMapBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(mobileMapBounds!.x + mobileMapBounds!.width).toBeLessThanOrEqual(390);
+    expect(mobileMapBounds!.y).toBeGreaterThanOrEqual(mobileGraphBounds!.y);
+    expect(mobileMapBounds!.y + mobileMapBounds!.height).toBeLessThanOrEqual(
+        mobileGraphBounds!.y + mobileGraphBounds!.height,
+    );
     const inspector = page.getByText('Localized portal link').locator('..');
     await inspector.scrollIntoViewIfNeeded();
     await expect(inspector).toBeVisible();

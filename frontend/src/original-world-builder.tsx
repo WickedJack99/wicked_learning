@@ -8,9 +8,16 @@ import {
     ReactFlow,
     ReactFlowProvider,
     useEdgesState,
+    useNodesInitialized,
     useNodesState,
 } from '@xyflow/react';
-import type { Connection, Edge, Node } from '@xyflow/react';
+import type {
+    Connection,
+    Edge,
+    FitViewOptions,
+    Node,
+    ReactFlowInstance,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
     ArrowLeft,
@@ -35,6 +42,7 @@ import {
     X,
 } from 'lucide-react';
 import {
+    type CSSProperties,
     type ReactNode,
     useCallback,
     useEffect,
@@ -155,6 +163,9 @@ type WorldMapNodeData = {
     map: MapSummary;
 };
 
+type GraphSide = 'bottom' | 'left' | 'right' | 'top';
+type GraphHandleLane = -2 | -1 | 0 | 1 | 2;
+
 type ActivityNodeData = {
     activity: Activity;
     onAmbientSound: (activity: Activity) => void;
@@ -172,7 +183,7 @@ type ActivityNodeData = {
     onUpdateTemplate: (activity: Activity) => void;
 };
 
-type WorldMapNode = Node<WorldMapNodeData, 'map'>;
+type WorldMapNode = Node<WorldMapNodeData, 'mapNode'>;
 type WorldPortalEdge = Edge<PortalLink>;
 type ActivityNode = Node<ActivityNodeData, 'activity'>;
 type SpecialNode = Node<{ kind: 'start' | 'end'; label: string }, 'special'>;
@@ -194,6 +205,20 @@ type SupportedActivityType =
 
 type WorldBuilderSection = 'graph' | 'review' | 'structural';
 type WorldBuilderMapView = 'configure' | 'nodes';
+
+const mapNodeSize = {
+    height: 150,
+    width: 224,
+};
+
+const graphHandleLanes: GraphHandleLane[] = [-2, -1, 0, 1, 2];
+const graphHandleLanePercent: Record<GraphHandleLane, number> = {
+    [-2]: 22,
+    [-1]: 36,
+    0: 50,
+    1: 64,
+    2: 78,
+};
 
 type ObstacleForm = {
     allowedToolIds: string[];
@@ -530,7 +555,6 @@ function WorldBuilderContent({
     const [editableNode, setEditableNode] = useState<EditableNode | null>(null);
     const [mapReload, setMapReload] = useState(0);
     const [nodeReload, setNodeReload] = useState(0);
-    const [portal, setPortal] = useState<PortalLink | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [createMapOpen, setCreateMapOpen] = useState(false);
     const [importMapOpen, setImportMapOpen] = useState(false);
@@ -781,12 +805,6 @@ function WorldBuilderContent({
         t,
     ]);
 
-    const reviewCount =
-        worldGraph?.maps.reduce(
-            (total, map) => total + map.review_count,
-            0,
-        ) ?? 0;
-
     if (resolvedWorldBuilderSection && error && !worldGraph && resolvedWorldBuilderSection !== 'review') {
         return <WorldBuilderStatus message={error} />;
     }
@@ -885,7 +903,6 @@ function WorldBuilderContent({
                                                     onDeleted={() => {
                                                         setEditableMap(null);
                                                         setEditableNode(null);
-                                                        setPortal(null);
                                                         navigate(
                                                             '/settings?panel=admin-world-builder&worldSection=structural',
                                                         );
@@ -923,202 +940,20 @@ function WorldBuilderContent({
                         selectedNodeId={selectedNodeId}
                     />
                 ) : (
-                <div className="h-full min-h-0 overflow-auto bg-slate-100 px-4 py-4 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-            <header className="mx-auto mb-4 flex max-w-[1600px] flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
-                <div>
-                    <Link
-                        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-                        to="/settings"
-                    >
-                        <ArrowLeft className="size-4" />
-                        {t(
-                            'settings.world_builder.header.back_to_settings',
-                            'Settings',
-                        )}
-                    </Link>
-                    <p className="mt-4 text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                        {t(
-                            'settings.world_builder.header.eyebrow',
-                            'World editing',
-                        )}
-                    </p>
-                    <h1 className="mt-1 text-2xl font-semibold">
-                        {worldGraph!.world.title}
-                    </h1>
-                </div>
-                <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 2xl:block dark:text-slate-300">
-                    {worldGraph!.world.description}
-                </p>
-                <div className="flex flex-wrap gap-2 2xl:shrink-0 2xl:justify-end">
-                    <button
-                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
-                        data-wl-id="authoring.source-catalog.open"
-                        onClick={() => setSourceCatalogOpen(true)}
-                        type="button"
-                    >
-                        {t(
-                            'settings.world_builder.source_catalog.title',
-                            'Source catalog',
-                        )}
-                    </button>
-                    <button
-                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
-                        data-wl-id="authoring.world-builder.world-details.open"
-                        onClick={() => setWorldDetailsOpen(true)}
-                        type="button"
-                    >
-                        {t('settings.world_details.open', 'Edit world details')}
-                    </button>
-                    <button
-                        className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100 dark:hover:bg-amber-300/20"
-                        onClick={() => {
-                            setReviewQueuePage(1);
-                            selectWorldBuilderSection('review');
-                        }}
-                        type="button"
-                    >
-                        {reviewCount > 0
-                            ? t(
-                                  'settings.world_builder.header.review_queue_count',
-                                  'Review queue (:count)',
-                                  { count: reviewCount },
-                              )
-                            : t(
-                                  'settings.world_builder.header.review_queue',
-                                  'Review queue',
-                              )}
-                    </button>
-                    <button
-                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
-                        data-wl-id="authoring.world-builder.map-import.open"
-                        onClick={() => setImportMapOpen(true)}
-                        type="button"
-                    >
-                        <FileJson className="mr-1 inline size-4" />
-                        {t(
-                            'settings.world_builder.import.open',
-                            'Import map',
-                        )}
-                    </button>
-                    <button
-                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
-                        data-wl-id="authoring.world-builder.world-import.open"
-                        onClick={() => setImportWorldOpen(true)}
-                        type="button"
-                    >
-                        <FileJson className="mr-1 inline size-4" />
-                        {t(
-                            'settings.world_builder.import.world_open',
-                            'Import world export',
-                        )}
-                    </button>
-                    <a
-                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
-                        data-wl-id="authoring.world-builder.world-export"
-                        download
-                        href="/api/v1/admin/world-builder/world/export"
-                    >
-                        <Download className="mr-1 inline size-4" />
-                        {t('settings.world_builder.world.export', 'Export world')}
-                    </a>
-                    <a
-                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
-                        data-wl-id="authoring.world-builder.world-export-package"
-                        download
-                        href="/api/v1/admin/world-builder/world/export-package"
-                    >
-                        <Download className="mr-1 inline size-4" />
-                        {t(
-                            'settings.world_builder.world.export_package',
-                            'Export world with media',
-                        )}
-                    </a>
-                    <button
-                        className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
-                        data-wl-id="authoring.world-builder.map-create.open"
-                        onClick={() => setCreateMapOpen(true)}
-                        type="button"
-                    >
-                        <Plus className="mr-1 inline size-4" />
-                        {t(
-                            'settings.world_builder.create_map.open',
-                            'Create map',
-                        )}
-                    </button>
-                </div>
-            </header>
-            {error ? (
-                <p className="mx-auto mb-3 max-w-[1600px] rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
-                    {error}
-                </p>
-            ) : null}
-            <div className="mx-auto grid max-w-[1600px] gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                <section className="min-h-[34rem] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
-                    {editableNode ? (
-                        <ActivityGraph
-                            document={editableNode}
-                            onReload={() =>
-                                setNodeReload((current) => current + 1)
-                            }
-                            onSelectMap={() =>
-                                selectedMapId && selectMap(selectedMapId)
-                            }
-                            worldGraph={worldGraph!}
-                        />
-                    ) : editableMap && selectedMapId ? (
-                        <MapAssetSurface
-                            document={editableMap}
-                            onOpenNode={(nodeId) =>
-                                selectNode(selectedMapId, nodeId)
-                            }
-                            onUpdated={() => {
-                                setMapReload((current) => current + 1);
-                                void loadWorld();
-                            }}
-                        />
-                    ) : (
-                        <WorldGraphCanvas
-                            graph={worldGraph!}
-                            onPortal={setPortal}
-                            onSelectMap={selectMap}
-                        />
-                    )}
-                </section>
-                <aside className="min-h-[20rem] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-950">
-                    {editableNode && selectedMapId ? (
-                        <NodeDetails
-                            document={editableNode}
-                            onBack={() => selectMap(selectedMapId)}
-                        />
-                    ) : editableMap && selectedMapId ? (
-                        <MapDetails
-                            document={editableMap}
-                            onDuplicate={() => setDuplicateMapOpen(true)}
-                            onUpdated={() => {
-                                setMapReload((current) => current + 1);
-                                void loadWorld();
-                            }}
-                            onDeleted={() => {
-                                setEditableMap(null);
-                                setEditableNode(null);
-                                setPortal(null);
-                                navigate('/settings?panel=admin-world-builder');
-                                void loadWorld();
-                            }}
-                            onSelectNode={(nodeId) =>
-                                selectNode(selectedMapId, nodeId)
-                            }
-                        />
-                    ) : portal ? (
-                        <PortalDetails
-                            portal={portal}
-                            onSelectNode={selectNode}
-                        />
-                    ) : (
-                        <EmptyDetails />
-                    )}
-                </aside>
-            </div>
+                    <WorldBuilderGraphWorkspace
+                        appearance={appearance}
+                        graph={worldGraph!}
+                        onCreateMap={() => setCreateMapOpen(true)}
+                        onEditWorld={() => setWorldDetailsOpen(true)}
+                        onImportMap={() => setImportMapOpen(true)}
+                        onImportWorld={() => setImportWorldOpen(true)}
+                        onOpenMap={selectMap}
+                        onOpenMapConfiguration={selectStructuralMapView}
+                        onOpenNode={selectNode}
+                        onOpenSourceCatalog={() => setSourceCatalogOpen(true)}
+                    />
+                )}
+                        </SettingsNestedWorkspace>
             {createMapOpen ? (
                 <CreateMapDialog
                     onClose={() => setCreateMapOpen(false)}
@@ -1163,9 +998,6 @@ function WorldBuilderContent({
                     onClose={() => setSourceCatalogOpen(false)}
                 />
             ) : null}
-                </div>
-                )}
-                        </SettingsNestedWorkspace>
                         {duplicateMapOpen && editableMap ? (
                             <DuplicateMapDialog
                                 map={editableMap.editable_map.map}
@@ -2777,65 +2609,393 @@ function UnavailableWorldBuilder() {
     );
 }
 
-function WorldGraphCanvas({
+function WorldBuilderGraphWorkspace({
+    appearance,
     graph,
-    onPortal,
-    onSelectMap,
+    onCreateMap,
+    onEditWorld,
+    onImportMap,
+    onImportWorld,
+    onOpenMap,
+    onOpenMapConfiguration,
+    onOpenNode,
+    onOpenSourceCatalog,
 }: {
+    appearance: OriginalAppearance;
     graph: WorldGraph;
-    onPortal: (portal: PortalLink | null) => void;
-    onSelectMap: (mapId: string) => void;
+    onCreateMap: () => void;
+    onEditWorld: () => void;
+    onImportMap: () => void;
+    onImportWorld: () => void;
+    onOpenMap: (mapId: string) => void;
+    onOpenMapConfiguration: (mapId: string) => void;
+    onOpenNode: (mapId: string, nodeId: string) => void;
+    onOpenSourceCatalog: () => void;
 }) {
     const t = usePlatformTranslation();
-    const initialNodes = useMemo<WorldMapNode[]>(
-        () =>
-            graph.maps.map((map, index) => ({
-                id: map.id,
-                type: 'map',
-                data: { map },
-                position: circlePosition(index, graph.maps.length),
-            })),
-        [graph.maps],
+    const initialNodes = useMemo(() => buildGraphNodes(graph.maps), [graph.maps]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<WorldMapNode>(initialNodes);
+    const nodesInitialized = useNodesInitialized();
+    const [highlightedEdgeId, setHighlightedEdgeId] = useState<string | null>(null);
+    const [selectedMap, setSelectedMap] = useState<MapSummary | null>(null);
+    const [selectedPortal, setSelectedPortal] = useState<PortalLink | null>(null);
+    const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<WorldMapNode, WorldPortalEdge> | null>(null);
+    const [isFittingGraph, setIsFittingGraph] = useState(true);
+    const graphViewportRef = useRef<HTMLDivElement>(null);
+    const fitRequestId = useRef(0);
+    const fitViewOptions = useMemo(
+        () => graphFitViewOptions(graph.maps.length),
+        [graph.maps.length],
     );
-    const initialEdges = useMemo<WorldPortalEdge[]>(
+    const edges = useMemo(
         () =>
-            graph.portal_links.map((link) => ({
-                id: link.id,
-                source: link.source_map_id,
-                target: link.target_map_id,
-                label: link.label ?? t(
-                    'settings.world_builder.activity_graph.portal',
-                    'Portal',
-                ),
-                markerEnd: { type: MarkerType.ArrowClosed },
-                data: link,
-                style: { stroke: 'rgb(13 148 136)', strokeWidth: 2 },
-            })),
-        [graph.portal_links, t],
+            buildGraphEdges(
+                graph.portal_links,
+                nodes,
+                highlightedEdgeId,
+                t('settings.world_builder.activity_graph.portal', 'Portal'),
+            ),
+        [graph.portal_links, highlightedEdgeId, nodes, t],
     );
-    const [nodes, , onNodesChange] = useNodesState<WorldMapNode>(initialNodes);
-    const [edges, , onEdgesChange] =
-        useEdgesState<WorldPortalEdge>(initialEdges);
 
-    useEffect(() => onPortal(null), [graph, onPortal]);
+    useEffect(() => {
+        setNodes(initialNodes);
+        setSelectedMap((current) =>
+            current
+                ? (graph.maps.find((map) => map.id === current.id) ?? null)
+                : null,
+        );
+        setSelectedPortal(null);
+        setIsFittingGraph(true);
+    }, [graph.maps, initialNodes, setNodes]);
+
+    useEffect(() => {
+        if (!nodesInitialized && initialNodes.length > 0) {
+            setIsFittingGraph(true);
+            return;
+        }
+
+        if (!flowInstance || initialNodes.length === 0) {
+            setIsFittingGraph(false);
+            return;
+        }
+
+        let frame: number | null = null;
+        const fitGraph = () => {
+            if (frame !== null) {
+                cancelAnimationFrame(frame);
+            }
+
+            setIsFittingGraph(true);
+            const requestId = fitRequestId.current + 1;
+            fitRequestId.current = requestId;
+            frame = requestAnimationFrame(() => {
+                void flowInstance.fitView(fitViewOptions).finally(() => {
+                    if (fitRequestId.current === requestId) {
+                        setIsFittingGraph(false);
+                    }
+                });
+            });
+        };
+        const resizeObserver = new ResizeObserver(fitGraph);
+        const graphViewport = graphViewportRef.current;
+
+        if (graphViewport) {
+            resizeObserver.observe(graphViewport);
+        }
+        fitGraph();
+
+        return () => {
+            if (frame !== null) {
+                cancelAnimationFrame(frame);
+            }
+            resizeObserver.disconnect();
+        };
+    }, [fitViewOptions, flowInstance, initialNodes, nodesInitialized]);
 
     return (
-        <ReactFlow<WorldMapNode, WorldPortalEdge>
-            edges={edges}
-            fitView
-            minZoom={0.12}
-            nodeTypes={{ map: MapGraphCard }}
-            nodes={nodes}
-            onEdgeClick={(_, edge) => onPortal(edge.data ?? null)}
-            onNodesChange={onNodesChange}
-            onNodeClick={(_, node) => onSelectMap(node.id)}
-            onEdgesChange={onEdgesChange}
-            proOptions={{ hideAttribution: true }}
+        <section
+            className="grid min-h-0 overflow-y-auto lg:h-full lg:overflow-hidden lg:grid-cols-[minmax(0,1fr)_360px]"
+            data-wl-id="authoring.world-builder.graph-workspace"
         >
-            <Background gap={20} />
-            <Controls />
-        </ReactFlow>
+            <div
+                className="relative min-h-72 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-content-background)] lg:min-h-0 lg:border-r lg:border-b-0"
+                data-wl-id="authoring.world-builder.graph"
+                ref={graphViewportRef}
+            >
+                <ReactFlow<WorldMapNode, WorldPortalEdge>
+                    className={isFittingGraph ? 'opacity-0 transition-opacity duration-150' : 'opacity-100 transition-opacity duration-150'}
+                    colorMode={appearance === 'dark' ? 'dark' : 'light'}
+                    edges={edges}
+                    fitView
+                    fitViewOptions={fitViewOptions}
+                    maxZoom={1.35}
+                    minZoom={0.12}
+                    nodeTypes={{ mapNode: MapGraphCard }}
+                    nodes={nodes}
+                    onEdgeClick={(_, edge) => {
+                        setSelectedPortal(edge.data ?? null);
+                        setSelectedMap(null);
+                    }}
+                    onEdgeMouseEnter={(_, edge) => setHighlightedEdgeId(edge.id)}
+                    onEdgeMouseLeave={() => setHighlightedEdgeId(null)}
+                    onInit={setFlowInstance}
+                    onNodeClick={(_, node) => {
+                        setSelectedMap(node.data.map);
+                        setSelectedPortal(null);
+                    }}
+                    onNodeDragStart={(_, node) => {
+                        setSelectedMap(node.data.map);
+                        setSelectedPortal(null);
+                    }}
+                    onNodesChange={onNodesChange}
+                    proOptions={{ hideAttribution: true }}
+                >
+                    <Background gap={24} />
+                    <Controls fitViewOptions={fitViewOptions} />
+                    <MiniMap pannable zoomable />
+                </ReactFlow>
+                {isFittingGraph && initialNodes.length > 0 ? (
+                    <GraphViewportLoadingOverlay />
+                ) : null}
+            </div>
+
+            <aside className="flex min-h-0 flex-col border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]">
+                <div className="min-h-0 flex-1 overflow-y-auto border-b border-[var(--settings-border-color)] p-5">
+                    {selectedPortal ? (
+                        <PortalDetails portal={selectedPortal} onSelectNode={onOpenNode} />
+                    ) : selectedMap ? (
+                        <GraphMapDetails
+                            map={selectedMap}
+                            onOpenMap={onOpenMap}
+                            onOpenMapConfiguration={onOpenMapConfiguration}
+                        />
+                    ) : (
+                        <EmptyDetails />
+                    )}
+                </div>
+
+                <div className="hidden shrink-0 border-b border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-5 lg:block">
+                    <WorldBuilderGraphActions
+                        onCreateMap={onCreateMap}
+                        onEditWorld={onEditWorld}
+                        onImportMap={onImportMap}
+                        onImportWorld={onImportWorld}
+                        onOpenSourceCatalog={onOpenSourceCatalog}
+                    />
+                </div>
+                <details className="shrink-0 border-b border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-4 lg:hidden">
+                    <summary className="cursor-pointer text-sm font-semibold text-[var(--settings-accent)]">
+                        <WorldBuilderGraphToolsLabel />
+                    </summary>
+                    <div className="pt-4">
+                        <WorldBuilderGraphActions
+                            onCreateMap={onCreateMap}
+                            onEditWorld={onEditWorld}
+                            onImportMap={onImportMap}
+                            onImportWorld={onImportWorld}
+                            onOpenSourceCatalog={onOpenSourceCatalog}
+                        />
+                    </div>
+                </details>
+            </aside>
+        </section>
     );
+}
+
+function WorldBuilderGraphToolsLabel() {
+    const t = usePlatformTranslation();
+
+    return t('settings.world_builder.graph_workspace.title', 'World tools');
+}
+
+function GraphViewportLoadingOverlay() {
+    const t = usePlatformTranslation();
+
+    return (
+        <div className="pointer-events-none absolute inset-0 z-50 grid place-items-center bg-[var(--settings-content-background)]">
+            <p className="text-sm text-[var(--settings-muted-text)]" role="status">
+                {t('settings.world_builder.graph_workspace.loading', 'Preparing graph view…')}
+            </p>
+        </div>
+    );
+}
+
+function WorldBuilderGraphActions({
+    onCreateMap,
+    onEditWorld,
+    onImportMap,
+    onImportWorld,
+    onOpenSourceCatalog,
+}: {
+    onCreateMap: () => void;
+    onEditWorld: () => void;
+    onImportMap: () => void;
+    onImportWorld: () => void;
+    onOpenSourceCatalog: () => void;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <>
+            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                {t('settings.world_builder.graph_workspace.prepare', 'Prepare')}
+            </p>
+            <h2 className="mt-2 text-lg font-semibold">
+                {t('settings.world_builder.graph_workspace.title', 'World tools')}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {t(
+                    'settings.world_builder.graph_workspace.description',
+                    'Create maps, maintain this world, and transfer reusable authoring work.',
+                )}
+            </p>
+            <div className="mt-4 grid gap-2">
+                <button
+                    className="rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-[var(--settings-accent-foreground)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_86%,white)]"
+                    data-wl-id="authoring.world-builder.map-create.open"
+                    onClick={onCreateMap}
+                    type="button"
+                >
+                    <Plus className="mr-1 inline size-4" />
+                    {t('settings.world_builder.create_map.open', 'Create map')}
+                </button>
+                <button
+                    className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium hover:bg-[var(--settings-active-background)]"
+                    data-wl-id="authoring.source-catalog.open"
+                    onClick={onOpenSourceCatalog}
+                    type="button"
+                >
+                    {t('settings.world_builder.source_catalog.title', 'Source catalog')}
+                </button>
+                <button
+                    className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium hover:bg-[var(--settings-active-background)]"
+                    data-wl-id="authoring.world-builder.world-details.open"
+                    onClick={onEditWorld}
+                    type="button"
+                >
+                    {t('settings.world_details.open', 'Edit world details')}
+                </button>
+                <button
+                    className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium hover:bg-[var(--settings-active-background)]"
+                    data-wl-id="authoring.world-builder.map-import.open"
+                    onClick={onImportMap}
+                    type="button"
+                >
+                    <FileJson className="mr-1 inline size-4" />
+                    {t('settings.world_builder.import.open', 'Import map')}
+                </button>
+                <button
+                    className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium hover:bg-[var(--settings-active-background)]"
+                    data-wl-id="authoring.world-builder.world-import.open"
+                    onClick={onImportWorld}
+                    type="button"
+                >
+                    <FileJson className="mr-1 inline size-4" />
+                    {t('settings.world_builder.import.world_open', 'Import world export')}
+                </button>
+                <a
+                    className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-center text-sm font-medium hover:bg-[var(--settings-active-background)]"
+                    data-wl-id="authoring.world-builder.world-export"
+                    download
+                    href="/api/v1/admin/world-builder/world/export"
+                >
+                    <Download className="mr-1 inline size-4" />
+                    {t('settings.world_builder.world.export', 'Export world')}
+                </a>
+                <a
+                    className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-center text-sm font-medium hover:bg-[var(--settings-active-background)]"
+                    data-wl-id="authoring.world-builder.world-export-package"
+                    download
+                    href="/api/v1/admin/world-builder/world/export-package"
+                >
+                    <Download className="mr-1 inline size-4" />
+                    {t('settings.world_builder.world.export_package', 'Export world with media')}
+                </a>
+            </div>
+            <div className="mt-5 border-t border-[var(--settings-border-color)] pt-4">
+                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                    {t('settings.world_builder.graph_workspace.portal_routes', 'Portal routes')}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.world_builder.graph_workspace.portal_routes_description',
+                        'Select a portal route in the graph to inspect its connected activities.',
+                    )}
+                </p>
+            </div>
+        </>
+    );
+}
+
+function GraphMapDetails({
+    map,
+    onOpenMap,
+    onOpenMapConfiguration,
+}: {
+    map: MapSummary;
+    onOpenMap: (mapId: string) => void;
+    onOpenMapConfiguration: (mapId: string) => void;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <div>
+            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                {t('settings.world_builder.map_details.eyebrow', 'Map')}
+            </p>
+            <h2 className="mt-2 text-xl font-semibold">{map.title}</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--settings-muted-text)]">
+                {map.description || t('settings.world_builder.map_details.no_description', 'No description yet.')}
+            </p>
+            <dl className="mt-5 grid gap-3 text-sm">
+                <Detail
+                    label={t('settings.world_builder.map_details.slug', 'Slug')}
+                    value={map.slug}
+                />
+                <Detail
+                    label={t('settings.world_builder.map_details.tiles', 'Tiles')}
+                    value={String(map.node_count)}
+                />
+            </dl>
+            <div className="mt-5 grid gap-2">
+                <button
+                    className="rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-[var(--settings-accent-foreground)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_86%,white)]"
+                    onClick={() => onOpenMap(map.id)}
+                    type="button"
+                >
+                    {t('settings.world_builder.graph_workspace.open_map', 'Open map authoring')}
+                </button>
+                <button
+                    className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium hover:bg-[var(--settings-active-background)]"
+                    onClick={() => onOpenMapConfiguration(map.id)}
+                    type="button"
+                >
+                    {t('settings.world_builder.graph_workspace.open_map_configuration', 'Open map configuration')}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function graphFitViewOptions(mapCount: number): FitViewOptions<WorldMapNode> {
+    if (mapCount <= 1) {
+        return { maxZoom: 0.9, minZoom: 0.12, padding: 0.36 };
+    }
+
+    if (mapCount <= 3) {
+        return { maxZoom: 0.78, minZoom: 0.12, padding: 0.3 };
+    }
+
+    if (mapCount <= 6) {
+        return { maxZoom: 0.66, minZoom: 0.12, padding: 0.24 };
+    }
+
+    if (mapCount <= 10) {
+        return { maxZoom: 0.54, minZoom: 0.12, padding: 0.2 };
+    }
+
+    return { maxZoom: 0.46, minZoom: 0.12, padding: 0.16 };
 }
 
 function MapGraphCard({
@@ -2847,32 +3007,25 @@ function MapGraphCard({
 }) {
     const t = usePlatformTranslation();
     const { map } = data;
+
     return (
         <div
-            className={`w-56 rounded-xl border bg-slate-50 p-4 text-left shadow-lg dark:border-white/10 dark:bg-slate-950 ${selected ? 'border-teal-500 ring-2 ring-teal-500/25' : 'border-slate-200'}`}
+            className={`relative w-56 rounded-xl border bg-slate-50 p-4 text-left shadow-lg transition dark:border-white/10 dark:bg-slate-950 ${selected ? 'border-[var(--settings-accent)] ring-2 ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)]' : 'border-slate-200'}`}
+            data-wl-id="authoring.world-builder.graph.map-card"
         >
-            <Handle position={Position.Left} type="target" />
-            <Handle position={Position.Right} type="source" />
-            <MapIcon className="size-5 text-teal-700 dark:text-teal-300" />
-            <p className="mt-3 text-sm font-semibold text-slate-950 dark:text-white">
+            <MapGraphHandles />
+            <span className="mb-3 flex size-9 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_16%,transparent)] text-[var(--settings-accent)]">
+                <MapIcon className="size-5" />
+            </span>
+            <span className="block text-sm font-semibold text-slate-950 dark:text-white">
                 {map.title}
-            </p>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            </span>
+            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
                 {map.node_count === 1
-                    ? t(
-                          'settings.world_builder.graph.tile_count_one',
-                          ':count tile',
-                          { count: map.node_count },
-                      )
-                    : t(
-                          'settings.world_builder.graph.tile_count_many',
-                          ':count tiles',
-                          { count: map.node_count },
-                      )}
-            </p>
-            <p
-                className={`mt-3 rounded-md px-2 py-1 text-xs font-medium ${map.review_count > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-300/10 dark:text-amber-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-200'}`}
-            >
+                    ? t('settings.world_builder.graph.tile_count_one', ':count tile', { count: map.node_count })
+                    : t('settings.world_builder.graph.tile_count_many', ':count tiles', { count: map.node_count })}
+            </span>
+            <span className={`mt-3 block rounded-md px-2 py-1 text-xs font-medium ${map.review_count > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-300/10 dark:text-amber-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-200'}`}>
                 {map.review_count > 0
                     ? t(
                           map.review_count === 1
@@ -2883,13 +3036,308 @@ function MapGraphCard({
                               : ':count activities awaiting AI review',
                           { count: map.review_count },
                       )
-                    : t(
-                          'settings.world_builder.review.current',
-                          'Activity reviews current',
-                      )}
-            </p>
+                    : t('settings.world_builder.review.current', 'Activity reviews current')}
+            </span>
         </div>
     );
+}
+
+function MapGraphHandles() {
+    return (
+        <>
+            {(['top', 'right', 'bottom', 'left'] as const).map((side) => (
+                <div key={side}>
+                    {graphHandleLanes.map((lane) => (
+                        <div key={`${side}-${lane}`}>
+                            <Handle
+                                className="!pointer-events-none !size-3 !border-0 !bg-transparent"
+                                id={handleId('source', side, lane)}
+                                isConnectable={false}
+                                position={handlePosition(side)}
+                                style={handleStyle(side, lane)}
+                                type="source"
+                            />
+                            <Handle
+                                className="!pointer-events-none !size-3 !border-0 !bg-transparent"
+                                id={handleId('target', side, lane)}
+                                isConnectable={false}
+                                position={handlePosition(side)}
+                                style={handleStyle(side, lane)}
+                                type="target"
+                            />
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
+    );
+}
+
+function buildGraphNodes(maps: MapSummary[]): WorldMapNode[] {
+    if (maps.length === 0) {
+        return [];
+    }
+
+    const radius = Math.max(220, maps.length * 86);
+
+    return maps.map((map, index) => {
+        const angle = (Math.PI * 2 * index) / maps.length - Math.PI / 2;
+
+        return {
+            data: { map },
+            id: map.id,
+            position: {
+                x: Math.cos(angle) * radius + radius,
+                y: Math.sin(angle) * radius + radius,
+            },
+            type: 'mapNode',
+        };
+    });
+}
+
+function buildGraphEdges(
+    portalLinks: PortalLink[],
+    nodes: WorldMapNode[],
+    highlightedEdgeId: string | null,
+    fallbackLabel: string,
+): WorldPortalEdge[] {
+    const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
+    const pairCounts = countPortalPairs(portalLinks);
+    const pairIndexes = new Map<string, number>();
+
+    return portalLinks.map((portal) => {
+        const source = portal.source_map_id;
+        const target = portal.target_map_id;
+        const active = portal.id === highlightedEdgeId;
+        const pairKey = [source, target].sort().join(':');
+        const pairIndex = pairIndexes.get(pairKey) ?? 0;
+        pairIndexes.set(pairKey, pairIndex + 1);
+        const route = chooseEdgeRoute(
+            nodeById.get(source),
+            nodeById.get(target),
+            pairIndex,
+            pairCounts.get(pairKey) ?? 1,
+        );
+
+        return {
+            animated: active,
+            data: portal,
+            id: portal.id,
+            label: active
+                ? portalActivityLabel(portal)
+                : (portal.label ?? fallbackLabel),
+            markerEnd: { type: MarkerType.ArrowClosed },
+            pathOptions: { borderRadius: 24, offset: route.offset },
+            source,
+            sourceHandle: handleId('source', route.sourceSide, route.sourceLane),
+            style: edgeStyle(active),
+            target,
+            targetHandle: handleId('target', route.targetSide, route.targetLane),
+            type: 'smoothstep',
+        };
+    });
+}
+
+function countPortalPairs(portalLinks: PortalLink[]): Map<string, number> {
+    const counts = new Map<string, number>();
+
+    for (const portal of portalLinks) {
+        const pairKey = [portal.source_map_id, portal.target_map_id]
+            .sort()
+            .join(':');
+        counts.set(pairKey, (counts.get(pairKey) ?? 0) + 1);
+    }
+
+    return counts;
+}
+
+function chooseEdgeRoute(
+    sourceNode: WorldMapNode | undefined,
+    targetNode: WorldMapNode | undefined,
+    pairIndex: number,
+    pairCount: number,
+): {
+    offset: number;
+    sourceLane: GraphHandleLane;
+    sourceSide: GraphSide;
+    targetLane: GraphHandleLane;
+    targetSide: GraphSide;
+} {
+    const lane = pairCount > 1 ? laneForPairIndex(pairIndex) : 0;
+
+    if (!sourceNode || !targetNode || sourceNode.id === targetNode.id) {
+        return {
+            offset: 72 + pairIndex * 24,
+            sourceLane: lane,
+            sourceSide: pairIndex % 2 === 0 ? 'right' : 'left',
+            targetLane: reverseLane(lane),
+            targetSide: pairIndex % 2 === 0 ? 'bottom' : 'top',
+        };
+    }
+
+    const sourceCenter = nodeCenter(sourceNode);
+    const targetCenter = nodeCenter(targetNode);
+    const deltaX = targetCenter.x - sourceCenter.x;
+    const deltaY = targetCenter.y - sourceCenter.y;
+
+    if (pairCount > 1) {
+        return parallelPairRoute(deltaX, deltaY, pairIndex);
+    }
+
+    const primarySide =
+        Math.abs(deltaX) >= Math.abs(deltaY)
+            ? deltaX >= 0
+                ? 'right'
+                : 'left'
+            : deltaY >= 0
+              ? 'bottom'
+              : 'top';
+
+    return {
+        offset: 32 + pairIndex * 18,
+        sourceLane: lane,
+        sourceSide: primarySide,
+        targetLane: reverseLane(lane),
+        targetSide: oppositeSide(primarySide),
+    };
+}
+
+function parallelPairRoute(
+    deltaX: number,
+    deltaY: number,
+    pairIndex: number,
+): {
+    offset: number;
+    sourceLane: GraphHandleLane;
+    sourceSide: GraphSide;
+    targetLane: GraphHandleLane;
+    targetSide: GraphSide;
+} {
+    const laneIndex = Math.floor(pairIndex / 2);
+    const offset = 56 + laneIndex * 28;
+    const lane = laneForPairIndex(pairIndex);
+
+    if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+        const side = pairIndex % 2 === 0 ? 'bottom' : 'top';
+
+        return {
+            offset,
+            sourceLane: lane,
+            sourceSide: side,
+            targetLane: reverseLane(lane),
+            targetSide: side,
+        };
+    }
+
+    const side = pairIndex % 2 === 0 ? 'right' : 'left';
+
+    return {
+        offset,
+        sourceLane: lane,
+        sourceSide: side,
+        targetLane: reverseLane(lane),
+        targetSide: side,
+    };
+}
+
+function handleId(
+    type: 'source' | 'target',
+    side: GraphSide,
+    lane: GraphHandleLane,
+): string {
+    return `${type}-${side}-${lane}`;
+}
+
+function handlePosition(side: GraphSide): Position {
+    if (side === 'left') {
+        return Position.Left;
+    }
+
+    if (side === 'right') {
+        return Position.Right;
+    }
+
+    if (side === 'bottom') {
+        return Position.Bottom;
+    }
+
+    return Position.Top;
+}
+
+function handleStyle(side: GraphSide, lane: GraphHandleLane): CSSProperties {
+    const position = `${graphHandleLanePercent[lane]}%`;
+
+    if (side === 'top') {
+        return { left: position, top: 0, transform: 'translate(-50%, -50%)' };
+    }
+
+    if (side === 'bottom') {
+        return {
+            bottom: 0,
+            left: position,
+            top: 'auto',
+            transform: 'translate(-50%, 50%)',
+        };
+    }
+
+    if (side === 'left') {
+        return { left: 0, top: position, transform: 'translate(-50%, -50%)' };
+    }
+
+    return {
+        left: 'auto',
+        right: 0,
+        top: position,
+        transform: 'translate(50%, -50%)',
+    };
+}
+
+function laneForPairIndex(pairIndex: number): GraphHandleLane {
+    const lanesBySpread: GraphHandleLane[] = [-1, 1, -2, 2, 0];
+
+    return lanesBySpread[pairIndex % lanesBySpread.length];
+}
+
+function reverseLane(lane: GraphHandleLane): GraphHandleLane {
+    return -lane as GraphHandleLane;
+}
+
+function nodeCenter(node: WorldMapNode): { x: number; y: number } {
+    return {
+        x: node.position.x + mapNodeSize.width / 2,
+        y: node.position.y + mapNodeSize.height / 2,
+    };
+}
+
+function oppositeSide(side: GraphSide): GraphSide {
+    if (side === 'left') {
+        return 'right';
+    }
+
+    if (side === 'right') {
+        return 'left';
+    }
+
+    if (side === 'bottom') {
+        return 'top';
+    }
+
+    return 'bottom';
+}
+
+function portalActivityLabel(portal: PortalLink): string {
+    return `${portal.source_activity?.title ?? portal.source_node.title} → ${
+        portal.target_activity?.title ?? portal.target_node.title
+    }`;
+}
+
+function edgeStyle(active: boolean): CSSProperties {
+    return {
+        stroke: active
+            ? 'var(--settings-accent)'
+            : 'color-mix(in srgb, var(--settings-accent) 42%, transparent)',
+        strokeWidth: active ? 4 : 2,
+    };
 }
 
 function MapAssetSurface({
@@ -12313,11 +12761,6 @@ function Detail({ label, value }: { label: string; value: string }) {
             <dd className="mt-1">{value}</dd>
         </div>
     );
-}
-function circlePosition(index: number, total: number) {
-    const radius = Math.max(220, total * 86);
-    const angle = (Math.PI * 2 * index) / Math.max(total, 1) - Math.PI / 2;
-    return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
 }
 function graphPosition(
     layout: Record<string, unknown>,
