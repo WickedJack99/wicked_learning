@@ -1,6 +1,6 @@
 import { expect, test } from './authenticated';
 
-test('the Learning Support peer queue consumes fixed catalog copy without translating the scoped signal data', async ({
+test('the Learning Support signal workspace consumes fixed catalog copy without translating the scoped signal data', async ({
     page,
 }) => {
     await page.route('**/api/v1/me', async (route) => {
@@ -38,6 +38,22 @@ test('the Learning Support peer queue consumes fixed catalog copy without transl
                             'localized reviews waiting',
                         'settings.learning_support.peer_support.title':
                             'Localized peer queue',
+                        'settings.learning_support.signals.collective.label':
+                            'Localized collective overview',
+                        'settings.learning_support.collective.active_days':
+                            'Localized active days',
+                        'settings.learning_support.collective.chart_label':
+                            'Localized activity chart',
+                        'settings.learning_support.collective.description':
+                            'Localized collective guidance.',
+                        'settings.learning_support.collective.eyebrow':
+                            'Localized collective activity',
+                        'settings.learning_support.collective.max_learners':
+                            'Localized learner maximum',
+                        'settings.learning_support.collective.title':
+                            'Localized thirty day view',
+                        'settings.learning_support.collective.topic_signals':
+                            'Localized topic signals',
                     },
                 }),
             });
@@ -49,7 +65,20 @@ test('the Learning Support peer queue consumes fixed catalog copy without transl
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
-                    activity_overview_30_days: [],
+                    activity_overview_30_days: [
+                        {
+                            active_learners: 1,
+                            contribution_recorded: 0,
+                            date: '2026-11-13',
+                            evidence_events: 2,
+                        },
+                        {
+                            active_learners: 3,
+                            contribution_recorded: 0,
+                            date: '2026-11-14',
+                            evidence_events: 5,
+                        },
+                    ],
                     can_grant_manual_unlocks: false,
                     learners: [],
                     manual_unlock_targets: [],
@@ -101,10 +130,31 @@ test('the Learning Support peer queue consumes fixed catalog copy without transl
         page.getByText(/^Localized latest review:/),
     ).toBeVisible();
 
+    await page.goto(
+        '/settings?panel=admin-learning-support&support=support-signals&signals=collective',
+    );
+    await expect(
+        page.getByRole('heading', {
+            name: 'Localized collective overview',
+        }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Localized thirty day view' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Localized collective guidance.'),
+    ).toBeVisible();
+    await expect(page.getByText('Localized active days')).toBeVisible();
+    await expect(page.getByText('Localized learner maximum')).toBeVisible();
+    await expect(page.getByText('Localized topic signals')).toBeVisible();
+    await expect(
+        page.getByRole('img', { name: 'Localized activity chart' }),
+    ).toBeVisible();
+
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     const heading = page.getByRole('heading', {
-        name: 'Localized peer queue',
+        name: 'Localized collective overview',
     });
     await expect(heading).toBeVisible();
     await expect

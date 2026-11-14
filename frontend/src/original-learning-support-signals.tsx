@@ -138,19 +138,68 @@ type SupportLearner = {
     username: string | null | undefined;
 };
 
-const supportSignalSections = [
-    { description: 'See anonymous activity across the visible learner scope.', icon: Users, key: 'collective', label: 'Collective Overview' },
-    { description: 'Review learner-specific evidence patterns as support prompts.', icon: HeartHandshake, key: 'individual', label: 'Individual Support' },
-    { description: 'Spot shared-task exchanges waiting for a learner-confirmed resolution.', icon: HandHelping, key: 'peer-support', label: 'Peer Support' },
-] satisfies SettingsNavigationItem<SupportSignalsView>[];
+type Translate = (key: string, fallback: string) => string;
 
-const supportSignalDescriptions = {
-    collective: 'Anonymous 30-day activity signals show whether the learning space is alive without exposing daily learner histories.',
-    individual: 'Use learner-specific evidence patterns as conversation starters for support. They are not rankings and should not be used to compare learners.',
-    'peer-support': 'Use private resolution signals to notice shared-task exchanges that may benefit from a gentle support conversation.',
-} satisfies Record<SupportSignalsView, string>;
+function supportSignalSections(t: Translate): SettingsNavigationItem<SupportSignalsView>[] {
+    return [
+        {
+            description: t(
+                'settings.learning_support.signals.collective.description',
+                'See anonymous activity across the visible learner scope.',
+            ),
+            icon: Users,
+            key: 'collective',
+            label: t(
+                'settings.learning_support.signals.collective.label',
+                'Collective Overview',
+            ),
+        },
+        {
+            description: t(
+                'settings.learning_support.signals.individual.description',
+                'Review learner-specific evidence patterns as support prompts.',
+            ),
+            icon: HeartHandshake,
+            key: 'individual',
+            label: t(
+                'settings.learning_support.signals.individual.label',
+                'Individual Support',
+            ),
+        },
+        {
+            description: t(
+                'settings.learning_support.signals.peer_support.description',
+                'Spot shared-task exchanges waiting for a learner-confirmed resolution.',
+            ),
+            icon: HandHelping,
+            key: 'peer-support',
+            label: t(
+                'settings.learning_support.signals.peer_support.label',
+                'Peer Support',
+            ),
+        },
+    ];
+}
+
+function supportSignalDescriptions(t: Translate): Record<SupportSignalsView, string> {
+    return {
+        collective: t(
+            'settings.learning_support.signals.collective.panel_description',
+            'Anonymous 30-day activity signals show whether the learning space is alive without exposing daily learner histories.',
+        ),
+        individual: t(
+            'settings.learning_support.signals.individual.panel_description',
+            'Use learner-specific evidence patterns as conversation starters for support. They are not rankings and should not be used to compare learners.',
+        ),
+        'peer-support': t(
+            'settings.learning_support.signals.peer_support.panel_description',
+            'Use private resolution signals to notice shared-task exchanges that may benefit from a gentle support conversation.',
+        ),
+    };
+}
 
 function SupportSignalsPanel({ onManualUnlockChanged, sectionItem: _sectionItem, settings }: { onManualUnlockChanged: () => Promise<void>; sectionItem: SettingsNavigationItem<string>; settings: SupportSignalsSettings }) {
+    const t = usePlatformTranslation();
     const [activeView, setActiveView] = useState<SupportSignalsView>(() => readSupportSignalsViewFromUrl());
     const [selectedLearnerId, setSelectedLearnerId] = useState<string | null>(() => settings.learners[0]?.id ?? null);
     const selectedLearner = useMemo(() => settings.learners.find((learner) => learner.id === selectedLearnerId) ?? settings.learners[0] ?? null, [selectedLearnerId, settings.learners]);
@@ -158,12 +207,14 @@ function SupportSignalsPanel({ onManualUnlockChanged, sectionItem: _sectionItem,
         if (selectedLearnerId !== null && settings.learners.some((learner) => learner.id === selectedLearnerId)) return;
         setSelectedLearnerId(settings.learners[0]?.id ?? null);
     }, [selectedLearnerId, settings.learners]);
-    const activeSection = supportSignalSections.find((section) => section.key === activeView) ?? supportSignalSections[0];
+    const sections = useMemo(() => supportSignalSections(t), [t]);
+    const descriptions = useMemo(() => supportSignalDescriptions(t), [t]);
+    const activeSection = sections.find((section) => section.key === activeView) ?? sections[0];
     function selectView(view: SupportSignalsView): void { setActiveView(view); writeSupportSignalsViewToUrl(view); }
     return (
-        <SettingsSectionWorkspace activeItem={activeSection} ariaLabel="Support signals sections" items={supportSignalSections} onChange={selectView}>
+        <SettingsSectionWorkspace activeItem={activeSection} ariaLabel={t('settings.learning_support.signals.navigation_label', 'Support signals sections')} items={sections} onChange={selectView}>
             <div className="grid gap-5" data-wl-id="support.signals.workspace">
-                <SettingsItemPanelHeader description={supportSignalDescriptions[activeView]} item={activeSection} title={activeSection.label} />
+                <SettingsItemPanelHeader description={descriptions[activeView]} item={activeSection} title={activeSection.label} />
                 {activeView === 'individual' ? <IndividualSupportView monthKey={settings.monthKey} onManualUnlockChanged={onManualUnlockChanged} onSelectLearner={setSelectedLearnerId} selectedLearner={selectedLearner} settings={settings} /> : null}
                 {activeView === 'collective' ? <CollectiveOverviewView settings={settings} /> : null}
                 {activeView === 'peer-support' ? <PeerSupportView items={settings.peerSupport} /> : null}
@@ -299,12 +350,12 @@ function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
 }
 
 function SupportSummary({ settings }: { settings: SupportSignalsSettings }) { return <SummaryItems items={[{ label: 'Scoped learners', value: settings.summary.learners }, { label: 'Learners with signals', value: settings.summary.learnersWithSignals }, { label: 'Monthly topic signals', value: settings.summary.topicsWithMonthlyActivity }]} />; }
-function CollectiveSummary({ settings }: { settings: SupportSignalsSettings }) { const activeDays = settings.activityOverview30Days.filter((bucket) => bucket.active_learners > 0).length; const activeLearners = Math.max(0, ...settings.activityOverview30Days.map((bucket) => bucket.active_learners)); const topicSignals = settings.activityOverview30Days.reduce((sum, bucket) => sum + bucket.evidence_events, 0); return <SummaryItems items={[{ label: 'Active days', value: activeDays }, { label: 'Learners per day max', value: activeLearners }, { label: 'Topic signals', value: topicSignals }]} />; }
+function CollectiveSummary({ settings }: { settings: SupportSignalsSettings }) { const t = usePlatformTranslation(); const activeDays = settings.activityOverview30Days.filter((bucket) => bucket.active_learners > 0).length; const activeLearners = Math.max(0, ...settings.activityOverview30Days.map((bucket) => bucket.active_learners)); const topicSignals = settings.activityOverview30Days.reduce((sum, bucket) => sum + bucket.evidence_events, 0); return <SummaryItems items={[{ label: t('settings.learning_support.collective.active_days', 'Active days'), value: activeDays }, { label: t('settings.learning_support.collective.max_learners', 'Learners per day max'), value: activeLearners }, { label: t('settings.learning_support.collective.topic_signals', 'Topic signals'), value: topicSignals }]} />; }
 function SummaryItems({ items }: { items: { label: string; value: number }[] }) { return <section className="grid max-w-4xl gap-5 border-b border-[var(--settings-border-color)] pb-4 sm:grid-cols-3">{items.map((item) => <div className="border-l border-[var(--settings-accent-color)] pl-4" key={item.label}><p className="text-2xl font-semibold text-[var(--settings-primary-text)]">{item.value}</p><p className="mt-1 text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">{item.label}</p></div>)}</section>; }
 
 function ActivityOverview({ buckets }: { buckets: Signals['activity_overview_30_days'] }) {
-    const maxActiveLearners = Math.max(1, ...buckets.map((bucket) => bucket.active_learners)); const chartWidth = 760; const chartHeight = 240; const chartMargin = { bottom: 44, left: 54, right: 18, top: 18 }; const drawableWidth = chartWidth - chartMargin.left - chartMargin.right; const drawableHeight = chartHeight - chartMargin.top - chartMargin.bottom; const xAxisY = chartHeight - chartMargin.bottom; const yTickValues = createUserAxisTicks(maxActiveLearners); const xTickIndexes = createDateAxisTickIndexes(buckets.length); const chartPoints = buckets.map((bucket, index) => { const x = buckets.length <= 1 ? chartMargin.left + drawableWidth / 2 : chartMargin.left + (index / (buckets.length - 1)) * drawableWidth; const y = chartMargin.top + (1 - bucket.active_learners / maxActiveLearners) * drawableHeight; return { bucket, x, y }; }); const linePath = chartPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' '); const areaPath = chartPoints.length > 0 ? `${linePath} L ${chartPoints[chartPoints.length - 1].x} ${xAxisY} L ${chartPoints[0].x} ${xAxisY} Z` : '';
-    return <section className="grid max-w-5xl gap-4 border-b border-[var(--settings-border-color)] pb-5"><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Anonymous activity overview</p><h3 className="mt-2 text-lg font-semibold text-[var(--settings-primary-text)]">Last 30 days</h3><p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">This anonymized diagram shows the total number of scoped learners with at least one competence signal per day. Names are intentionally not shown in this overview.</p></div><div className="grid gap-2"><svg aria-label="Anonymous active learners during the last 30 days" className="h-64 w-full max-w-5xl overflow-visible" role="img" viewBox={`0 0 ${chartWidth} ${chartHeight}`}><title>Anonymous active learners during the last 30 days</title>{yTickValues.map((value) => { const y = chartMargin.top + (1 - value / maxActiveLearners) * drawableHeight; return <g key={value}><line className="stroke-[var(--settings-border-color)]" strokeDasharray="4 8" strokeWidth="1" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={y} y2={y} /><text className="fill-[var(--settings-muted-text)] text-xs" dominantBaseline="middle" textAnchor="end" x={chartMargin.left - 10} y={y}>{value}</text></g>; })}<line className="stroke-[var(--settings-muted-text)]" strokeWidth="1.5" x1={chartMargin.left} x2={chartMargin.left} y1={chartMargin.top} y2={xAxisY} /><line className="stroke-[var(--settings-muted-text)]" strokeWidth="1.5" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={xAxisY} y2={xAxisY} />{areaPath ? <path className="fill-[var(--settings-accent)] opacity-10" d={areaPath} /> : null}{linePath ? <path className="fill-none stroke-[var(--settings-accent)]" d={linePath} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" /> : null}{xTickIndexes.map((index) => { const point = chartPoints[index]; if (!point) return null; return <g key={point.bucket.date}><line className="stroke-[var(--settings-muted-text)]" strokeWidth="1" x1={point.x} x2={point.x} y1={xAxisY} y2={xAxisY + 6} /><text className="fill-[var(--settings-muted-text)] text-xs" textAnchor="middle" x={point.x} y={xAxisY + 20}>{formatDate(point.bucket.date)}</text></g>; })}{chartPoints.map(({ bucket, x, y }) => <g key={bucket.date}><circle className={`fill-[var(--settings-accent)] ${bucket.active_learners > 0 ? 'opacity-90' : 'opacity-30'}`} cx={x} cy={y} r={bucket.active_learners > 0 ? 3.5 : 2.5} /><title>{`${formatDate(bucket.date)}: ${bucket.active_learners} active learners, ${bucket.evidence_events} evidence events`}</title></g>)}<text className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase" textAnchor="middle" transform={`rotate(-90 ${14} ${chartHeight / 2})`} x={14} y={chartHeight / 2}>Users per day</text><text className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase" textAnchor="middle" x={chartMargin.left + drawableWidth / 2} y={chartHeight - 6}>Time</text></svg></div></section>;
+    const t = usePlatformTranslation(); const maxActiveLearners = Math.max(1, ...buckets.map((bucket) => bucket.active_learners)); const chartWidth = 760; const chartHeight = 240; const chartMargin = { bottom: 44, left: 54, right: 18, top: 18 }; const drawableWidth = chartWidth - chartMargin.left - chartMargin.right; const drawableHeight = chartHeight - chartMargin.top - chartMargin.bottom; const xAxisY = chartHeight - chartMargin.bottom; const yTickValues = createUserAxisTicks(maxActiveLearners); const xTickIndexes = createDateAxisTickIndexes(buckets.length); const chartPoints = buckets.map((bucket, index) => { const x = buckets.length <= 1 ? chartMargin.left + drawableWidth / 2 : chartMargin.left + (index / (buckets.length - 1)) * drawableWidth; const y = chartMargin.top + (1 - bucket.active_learners / maxActiveLearners) * drawableHeight; return { bucket, x, y }; }); const linePath = chartPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' '); const areaPath = chartPoints.length > 0 ? `${linePath} L ${chartPoints[chartPoints.length - 1].x} ${xAxisY} L ${chartPoints[0].x} ${xAxisY} Z` : '';
+    return <section className="grid max-w-5xl gap-4 border-b border-[var(--settings-border-color)] pb-5"><div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">{t('settings.learning_support.collective.eyebrow', 'Anonymous activity overview')}</p><h3 className="mt-2 text-lg font-semibold text-[var(--settings-primary-text)]">{t('settings.learning_support.collective.title', 'Last 30 days')}</h3><p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">{t('settings.learning_support.collective.description', 'This anonymized diagram shows the total number of scoped learners with at least one competence signal per day. Names are intentionally not shown in this overview.')}</p></div><div className="grid gap-2"><svg aria-label={t('settings.learning_support.collective.chart_label', 'Anonymous active learners during the last 30 days')} className="h-64 w-full max-w-5xl overflow-visible" role="img" viewBox={`0 0 ${chartWidth} ${chartHeight}`}><title>{t('settings.learning_support.collective.chart_label', 'Anonymous active learners during the last 30 days')}</title>{yTickValues.map((value) => { const y = chartMargin.top + (1 - value / maxActiveLearners) * drawableHeight; return <g key={value}><line className="stroke-[var(--settings-border-color)]" strokeDasharray="4 8" strokeWidth="1" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={y} y2={y} /><text className="fill-[var(--settings-muted-text)] text-xs" dominantBaseline="middle" textAnchor="end" x={chartMargin.left - 10} y={y}>{value}</text></g>; })}<line className="stroke-[var(--settings-muted-text)]" strokeWidth="1.5" x1={chartMargin.left} x2={chartMargin.left} y1={chartMargin.top} y2={xAxisY} /><line className="stroke-[var(--settings-muted-text)]" strokeWidth="1.5" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={xAxisY} y2={xAxisY} />{areaPath ? <path className="fill-[var(--settings-accent)] opacity-10" d={areaPath} /> : null}{linePath ? <path className="fill-none stroke-[var(--settings-accent)]" d={linePath} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" /> : null}{xTickIndexes.map((index) => { const point = chartPoints[index]; if (!point) return null; return <g key={point.bucket.date}><line className="stroke-[var(--settings-muted-text)]" strokeWidth="1" x1={point.x} x2={point.x} y1={xAxisY} y2={xAxisY + 6} /><text className="fill-[var(--settings-muted-text)] text-xs" textAnchor="middle" x={point.x} y={xAxisY + 20}>{formatDate(point.bucket.date)}</text></g>; })}{chartPoints.map(({ bucket, x, y }) => <g key={bucket.date}><circle className={`fill-[var(--settings-accent)] ${bucket.active_learners > 0 ? 'opacity-90' : 'opacity-30'}`} cx={x} cy={y} r={bucket.active_learners > 0 ? 3.5 : 2.5} /><title>{t('settings.learning_support.collective.chart_tooltip', ':date: :learners active learners, :events evidence events', { date: formatDate(bucket.date), events: bucket.evidence_events, learners: bucket.active_learners })}</title></g>)}<text className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase" textAnchor="middle" transform={`rotate(-90 ${14} ${chartHeight / 2})`} x={14} y={chartHeight / 2}>{t('settings.learning_support.collective.users_per_day', 'Users per day')}</text><text className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase" textAnchor="middle" x={chartMargin.left + drawableWidth / 2} y={chartHeight - 6}>{t('settings.learning_support.collective.time', 'Time')}</text></svg></div></section>;
 }
 
 function LearnerList({ learners, onSelect, selectedLearnerId }: { learners: SupportLearner[]; onSelect: (id: string) => void; selectedLearnerId: string | null }) { return <aside className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] py-3 lg:border-r lg:border-b-0 lg:pr-3"><div className="grid gap-2">{learners.map((learner) => <button className={`relative grid gap-1 px-3 py-3 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${selectedLearnerId === learner.id ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]'}`} key={learner.id} onClick={() => onSelect(learner.id)} type="button"><span aria-hidden="true" className={`absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity ${selectedLearnerId === learner.id ? 'opacity-100' : 'opacity-0'}`} /><span className="font-medium text-[var(--settings-primary-text)]">{learner.name}</span><span className="text-xs leading-5">{learner.groups.length > 0 ? learner.groups.map((group) => group.name).join(', ') : 'No group assigned'}</span></button>)}</div></aside>; }
