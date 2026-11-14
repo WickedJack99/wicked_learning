@@ -87,7 +87,10 @@ export function OriginalLearningSupportModerationPage({
                 }
                 if (!response.ok || !data) {
                     setError(
-                        'Learning Support moderation is temporarily unavailable.',
+                        t(
+                            'settings.learner_messages.moderation_unavailable',
+                            'Learning Support moderation is temporarily unavailable.',
+                        ),
                     );
                     return;
                 }
@@ -97,7 +100,10 @@ export function OriginalLearningSupportModerationPage({
             .catch(() => {
                 if (active) {
                     setError(
-                        'Learning Support moderation is temporarily unavailable.',
+                        t(
+                            'settings.learner_messages.moderation_unavailable',
+                            'Learning Support moderation is temporarily unavailable.',
+                        ),
                     );
                 }
             })
@@ -110,7 +116,7 @@ export function OriginalLearningSupportModerationPage({
         return () => {
             active = false;
         };
-    }, []);
+    }, [t]);
 
     async function loadMessages(
         topicId: string,
@@ -137,7 +143,12 @@ export function OriginalLearningSupportModerationPage({
             setPage(data);
         } catch {
             setPage(null);
-            setError('The selected message topic could not be loaded.');
+            setError(
+                t(
+                    'settings.learner_messages.load_error',
+                    'The selected message topic could not be loaded.',
+                ),
+            );
         } finally {
             setLoadingRequests(false);
         }
@@ -195,14 +206,24 @@ export function OriginalLearningSupportModerationPage({
                       },
             );
         } catch {
-            setActionError('The message responses could not be loaded.');
+            setActionError(
+                t(
+                    'settings.learner_messages.responses_load_error',
+                    'The responses could not be loaded.',
+                ),
+            );
         }
     }
 
     async function saveReply(messageId: string): Promise<void> {
         const body = replyBody.trim();
         if (body.length < 2) {
-            setActionError('Write at least two characters.');
+            setActionError(
+                t(
+                    'settings.learner_messages.reply_too_short',
+                    'Write at least two characters.',
+                ),
+            );
             return;
         }
 
@@ -227,7 +248,12 @@ export function OriginalLearningSupportModerationPage({
             setReplyBody('');
             await refresh();
         } catch {
-            setActionError('The private reply could not be saved yet.');
+            setActionError(
+                t(
+                    'settings.learner_messages.reply_save_error',
+                    'The private reply could not be saved yet.',
+                ),
+            );
         } finally {
             setSubmittingReply(false);
         }
@@ -266,7 +292,7 @@ export function OriginalLearningSupportModerationPage({
     }
 
     async function deleteRequest(message: ModerationMessage): Promise<void> {
-        if (!window.confirm('Permanently delete this learner message?')) {
+        if (!window.confirm(t('settings.learner_messages.delete_confirm', 'Permanently delete this learner message?'))) {
             return;
         }
         await mutate(async (csrfToken) =>
@@ -280,7 +306,7 @@ export function OriginalLearningSupportModerationPage({
     }
 
     async function deleteReply(reply: SupportReply): Promise<void> {
-        if (!window.confirm('Permanently delete this learner response?')) {
+        if (!window.confirm(t('settings.learner_messages.delete_response_confirm', 'Permanently delete this learner response?'))) {
             return;
         }
         await mutate(async (csrfToken) =>
@@ -304,7 +330,12 @@ export function OriginalLearningSupportModerationPage({
             }
             await refresh();
         } catch {
-            setActionError('This moderation change could not be saved yet.');
+            setActionError(
+                t(
+                    'settings.learner_messages.moderation_save_error',
+                    'This moderation change could not be saved yet.',
+                ),
+            );
         }
     }
 
@@ -661,6 +692,8 @@ function RequestCard({
     setReplyBody: (body: string) => void;
     submittingReply: boolean;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <article className="border-b border-[var(--settings-border-color)] px-1 py-4 first:pt-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -675,12 +708,26 @@ function RequestCard({
                         className={`rounded-full border px-2 py-1 text-xs font-medium ${message.audience === 'support' ? 'border-amber-400/40 text-amber-700 dark:border-amber-300/30 dark:text-amber-200' : 'border-sky-400/40 text-sky-700 dark:border-sky-300/30 dark:text-sky-200'}`}
                     >
                         {message.audience === 'support'
-                            ? 'Support request'
-                            : 'Peer message'}
+                            ? t(
+                                  'settings.learner_messages.support_request',
+                                  'Support request',
+                              )
+                            : t(
+                                  'settings.learner_messages.peer_message',
+                                  'Peer message',
+                              )}
                     </span>
                     {message.audience === 'support' ? (
                         <ActionButton onClick={onReply}>
-                            {replying ? 'Close reply' : 'Reply privately'}
+                            {replying
+                                ? t(
+                                      'settings.learner_messages.close_reply',
+                                      'Close reply',
+                                  )
+                                : t(
+                                      'settings.learner_messages.reply_privately',
+                                      'Reply privately',
+                                  )}
                         </ActionButton>
                     ) : null}
                     <ActionButton
@@ -693,14 +740,16 @@ function RequestCard({
                         }
                         onClick={onSetVisibility}
                     >
-                        {message.hidden_at ? 'Show' : 'Hide'}
+                        {message.hidden_at
+                            ? t('settings.learner_messages.show', 'Show')
+                            : t('settings.learner_messages.hide', 'Hide')}
                     </ActionButton>
                     <ActionButton
                         danger
                         icon={<Trash2 className="size-4" />}
                         onClick={onDelete}
                     >
-                        Delete
+                        {t('settings.learner_messages.delete', 'Delete')}
                     </ActionButton>
                 </div>
             </div>
@@ -711,7 +760,10 @@ function RequestCard({
             </p>
             {message.hidden_at ? (
                 <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
-                    Hidden from learners
+                    {t(
+                        'settings.learner_messages.hidden_note',
+                        'Hidden from learners',
+                    )}
                 </p>
             ) : null}
             {replying && message.audience === 'support' ? (
@@ -726,7 +778,10 @@ function RequestCard({
                         className="text-xs font-semibold tracking-wide uppercase"
                         htmlFor={`support-reply-${message.id}`}
                     >
-                        Private reply to learner
+                        {t(
+                            'settings.learner_messages.reply_label',
+                            'Private reply to learner',
+                        )}
                     </label>
                     <textarea
                         className="min-h-24 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
@@ -736,7 +791,12 @@ function RequestCard({
                         value={replyBody}
                     />
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--settings-muted-text)]">
-                        <span>Only this learner can read the reply.</span>
+                        <span>
+                            {t(
+                                'settings.learner_messages.reply_visibility',
+                                'Only this learner can read the reply.',
+                            )}
+                        </span>
                         <span>{replyBody.length}/280</span>
                     </div>
                     <div>
@@ -746,8 +806,14 @@ function RequestCard({
                             type="submit"
                         >
                             {submittingReply
-                                ? 'Sending...'
-                                : 'Send private reply'}
+                                ? t(
+                                      'settings.learner_messages.reply_saving',
+                                      'Sending...',
+                                  )
+                                : t(
+                                      'settings.learner_messages.reply_submit',
+                                      'Send private reply',
+                                  )}
                         </ActionButton>
                     </div>
                 </form>
@@ -756,9 +822,15 @@ function RequestCard({
                 <div className="mt-4 grid gap-3 border-l-2 border-[var(--settings-border-color)] pl-4">
                     <p className="text-xs font-semibold tracking-wide text-[var(--settings-muted-text)] uppercase">
                         {message.responses.length}{' '}
-                        {message.responses.length === 1
-                            ? 'response'
-                            : 'responses'}
+                        {t(
+                            message.responses.length === 1
+                                ? 'settings.learner_messages.responses_count_one'
+                                : 'settings.learner_messages.responses_count_many',
+                            message.responses.length === 1
+                                ? ':count response'
+                                : ':count responses',
+                            { count: message.responses.length },
+                        )}
                     </p>
                     {message.responses.map((reply) => (
                         <div className="grid gap-2" key={reply.id}>
@@ -779,14 +851,19 @@ function RequestCard({
                                             onSetReplyVisibility(reply)
                                         }
                                     >
-                                        {reply.hidden_at ? 'Show' : 'Hide'}
+                                        {reply.hidden_at
+                                            ? t('settings.learner_messages.show', 'Show')
+                                            : t('settings.learner_messages.hide', 'Hide')}
                                     </ActionButton>
                                     <ActionButton
                                         danger
                                         icon={<Trash2 className="size-4" />}
                                         onClick={() => onDeleteReply(reply)}
                                     >
-                                        Delete
+                                        {t(
+                                            'settings.learner_messages.delete',
+                                            'Delete',
+                                        )}
                                     </ActionButton>
                                 </div>
                             </div>
@@ -797,17 +874,32 @@ function RequestCard({
                             </p>
                             {reply.response_type ? (
                                 <p className="text-xs font-medium tracking-wide text-[var(--settings-muted-text)] uppercase">
-                                    {reply.response_type}
+                                    {t(
+                                        `settings.learner_messages.response_kind_${reply.response_type}`,
+                                        reply.response_type === 'explanation'
+                                            ? 'Explained an idea'
+                                            : reply.response_type === 'example'
+                                              ? 'Shared an example'
+                                              : reply.response_type === 'counterexample'
+                                                ? 'Shared a counterexample'
+                                                : 'Asked a question',
+                                    )}
                                 </p>
                             ) : null}
                             {reply.is_helpful ? (
                                 <p className="text-xs font-medium text-teal-700 dark:text-teal-300">
-                                    Learner-confirmed helpful
+                                    {t(
+                                        'settings.learner_messages.helpful_signal',
+                                        'Marked helpful by learner',
+                                    )}
                                 </p>
                             ) : null}
                             {reply.hidden_at ? (
                                 <p className="text-xs text-amber-600 dark:text-amber-300">
-                                    Hidden from learners
+                                    {t(
+                                        'settings.learner_messages.hidden_note',
+                                        'Hidden from learners',
+                                    )}
                                 </p>
                             ) : null}
                         </div>
@@ -853,10 +945,15 @@ function Pagination({
     pagination: ModerationPage['pagination'];
     onPageChange: (page: number) => void;
 }) {
+    const t = usePlatformTranslation();
+
     if (pagination.last_page <= 1) return null;
     return (
         <nav
-            aria-label="Message pages"
+            aria-label={t(
+                'settings.learner_messages.pagination',
+                'Message pages',
+            )}
             className="mt-4 flex min-h-8 items-center justify-between gap-3 border-t border-[var(--settings-border-color)] pt-3"
         >
             <button
@@ -866,13 +963,20 @@ function Pagination({
                 type="button"
             >
                 <ChevronLeft className="size-4" />
-                Previous
+                {t('settings.learner_messages.previous_page', 'Previous')}
             </button>
             <span
                 aria-live="polite"
                 className="text-sm text-[var(--settings-muted-text)]"
             >
-                Page {pagination.current_page} of {pagination.last_page}
+                {t(
+                    'settings.learner_messages.page',
+                    'Page :current of :total',
+                    {
+                        current: pagination.current_page,
+                        total: pagination.last_page,
+                    },
+                )}
             </span>
             <button
                 className="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] disabled:pointer-events-none disabled:opacity-40"
@@ -880,7 +984,7 @@ function Pagination({
                 onClick={() => onPageChange(pagination.current_page + 1)}
                 type="button"
             >
-                Next
+                {t('settings.learner_messages.next_page', 'Next')}
                 <ChevronRight className="size-4" />
             </button>
         </nav>
