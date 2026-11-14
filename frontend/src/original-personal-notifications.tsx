@@ -1,13 +1,49 @@
-import { ArrowLeft } from 'lucide-react';
-import { type CSSProperties } from 'react';
-import { Link } from 'react-router';
+import { Bell } from 'lucide-react';
 
 import type { OriginalAppearance } from './original-appearance';
-import { OriginalPersonalSettingsNavigation } from './original-personal-settings-navigation';
+import { OriginalPersonalSettingsShell } from './original-personal-settings-shell';
+import { usePlatformTranslation } from './original-platform-translation';
 
 /** Source-adapted from PersonalSettingsContent's NotificationsPanel. */
-export function OriginalPersonalNotificationsPage({ appearance }: { appearance: OriginalAppearance }) {
-    return <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}><div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col"><header className="flex shrink-0 items-start justify-between gap-4 pb-5"><div><Link className="mb-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] transition hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]" to="/home"><ArrowLeft className="size-4" />Settings</Link><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Personal</p><h1 className="mt-2 text-3xl font-semibold tracking-normal">Notifications</h1></div></header><section className="grid min-h-0 flex-1 gap-4 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4 md:grid-cols-[16rem_minmax(0,1fr)]"><OriginalPersonalSettingsNavigation activeSection="notifications" /><div className="min-h-0 overflow-auto bg-[var(--settings-panel-background)] p-5 sm:p-7"><section className="grid gap-5"><header><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Notifications</p><h2 className="mt-2 text-xl font-semibold">Communication preferences</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">This area will hold optional reminders, quiet hours and communication preferences. It will remain opt-in and avoid pressure-based learning loops.</p></header></section></div></section></div></main>;
-}
+export function OriginalPersonalNotificationsPage({
+    appearance,
+}: {
+    appearance: OriginalAppearance;
+}) {
+    const t = usePlatformTranslation();
 
-function settingsStyle(appearance: OriginalAppearance): CSSProperties { const dark = appearance === 'dark'; return { '--settings-accent': dark ? '#2dd4bf' : '#0f766e', '--settings-active-background': dark ? 'rgba(45, 212, 191, 0.12)' : '#ccfbf1', '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0', '--settings-content-background': dark ? '#0b1117' : '#f1f5f9', '--settings-muted-text': dark ? '#94a3b8' : '#64748b', '--settings-nested-sidebar-background': dark ? '#111820' : '#ffffff', '--settings-panel-background': dark ? '#111820' : '#ffffff' } as CSSProperties; }
+    return (
+        <OriginalPersonalSettingsShell
+            activeSection="notifications"
+            appearance={appearance}
+        >
+            <section className="grid gap-5">
+                <header className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                        <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
+                            <Bell className="size-5" />
+                            <p className="text-xs font-medium tracking-[0.18em] uppercase">
+                                {t(
+                                    'settings.personal.sections.notifications',
+                                    'Notifications',
+                                )}
+                            </p>
+                        </div>
+                        <h1 className="text-2xl font-semibold tracking-normal text-[var(--settings-primary-text)]">
+                            {t(
+                                'settings.personal.notifications.title',
+                                'Communication preferences',
+                            )}
+                        </h1>
+                        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                            {t(
+                                'settings.personal.notifications.description',
+                                'This area will hold optional reminders, quiet hours and communication preferences. It will remain opt-in and avoid pressure-based learning loops.',
+                            )}
+                        </p>
+                    </div>
+                </header>
+            </section>
+        </OriginalPersonalSettingsShell>
+    );
+}

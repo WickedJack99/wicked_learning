@@ -1,0 +1,131 @@
+import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
+
+import { useCurrentUser } from './current-user';
+import { SettingsNestedWorkspace } from './extracted-settings-configuration-shell';
+import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
+import { settingsSections } from './extracted-settings-navigation';
+import {
+    SettingsSidebarNavigation,
+    SettingsTopBar,
+} from './extracted-settings-sidebar-navigation';
+import type { OriginalAppearance } from './original-appearance';
+import {
+    OriginalPersonalSettingsNavigation,
+    type PersonalSettingsSection,
+} from './original-personal-settings-navigation';
+import { usePlatformTranslation } from './original-platform-translation';
+
+/**
+ * The source Settings page keeps its global Settings chrome around the nested
+ * Personal workspace. Individual Personal panels supply only their source
+ * panel content; this shell preserves the shared top bar, Settings menu,
+ * quick navigation and responsive nested-section layout.
+ */
+export function OriginalPersonalSettingsShell({
+    activeSection,
+    appearance,
+    children,
+}: {
+    activeSection: PersonalSettingsSection;
+    appearance: OriginalAppearance;
+    children: ReactNode;
+}) {
+    const { currentUser, setCurrentUser } = useCurrentUser();
+    const t = usePlatformTranslation();
+    const [settingsMenuQuery, setSettingsMenuQuery] = useState('');
+    const settingsAccess =
+        currentUser.kind === 'loaded' ? currentUser.settingsAccess : {};
+    const accessCapabilities = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(settingsAccess).map(([key, read]) => [
+                    key,
+                    { delete: false, read, update: false },
+                ]),
+            ),
+        [settingsAccess],
+    );
+    const canAccessAdministration = Object.values(settingsAccess).some(
+        (read) => read,
+    );
+    const navigationSections = useMemo(
+        () =>
+            settingsSections(
+                t,
+                accessCapabilities,
+                canAccessAdministration,
+                settingsMenuQuery,
+            ),
+        [
+            accessCapabilities,
+            canAccessAdministration,
+            settingsMenuQuery,
+            t,
+        ],
+    );
+
+    return (
+        <main
+            className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100"
+            style={personalSettingsStyle(appearance)}
+        >
+            <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                <SettingsTopBar
+                    menuQuery={settingsMenuQuery}
+                    onSearchChange={setSettingsMenuQuery}
+                />
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+                    <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
+                        <SettingsSidebarNavigation
+                            activePanel="personal"
+                            sections={navigationSections}
+                        />
+                        <SettingsCornerNavigation
+                            onSignedOut={() =>
+                                setCurrentUser({ kind: 'anonymous' })
+                            }
+                        />
+                    </aside>
+                    <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
+                        <SettingsNestedWorkspace
+                            sidebar={
+                                <OriginalPersonalSettingsNavigation
+                                    activeSection={activeSection}
+                                    bare
+                                />
+                            }
+                        >
+                            {children}
+                        </SettingsNestedWorkspace>
+                    </div>
+                </div>
+            </div>
+        </main>
+    );
+}
+
+export function personalSettingsStyle(
+    appearance: OriginalAppearance,
+): CSSProperties {
+    const dark = appearance === 'dark';
+
+    return {
+        '--settings-accent': dark ? '#2dd4bf' : '#0f766e',
+        '--settings-accent-color': dark ? '#2dd4bf' : '#0f766e',
+        '--settings-active-background': dark
+            ? 'rgb(45 212 191 / 10%)'
+            : 'rgb(15 118 110 / 10%)',
+        '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0',
+        '--settings-content-background': dark ? '#0b1117' : '#f1f5f9',
+        '--settings-input-background': dark ? 'rgb(2 6 23 / 38%)' : '#ffffff',
+        '--settings-muted-text': dark ? '#94a3b8' : '#64748b',
+        '--settings-nested-sidebar-background': dark
+            ? 'rgb(5 8 22 / 96%)'
+            : 'rgb(248 250 252 / 96%)',
+        '--settings-panel-background': dark ? '#111820' : '#ffffff',
+        '--settings-primary-text': dark ? '#f8fafc' : '#0f172a',
+        '--settings-sidebar-background': dark
+            ? 'rgb(5 8 22 / 96%)'
+            : 'rgb(248 250 252 / 96%)',
+    } as CSSProperties;
+}

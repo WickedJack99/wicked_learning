@@ -12,6 +12,8 @@ import {
 import { useRef, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router';
 
+import { usePlatformTranslation } from './original-platform-translation';
+
 export type PersonalSettingsSection =
     | 'appearance'
     | 'delete-account'
@@ -34,57 +36,85 @@ type PersonalSettingsNavigationItem = {
 // resources/js/components/settings-configuration-shell.tsx. The Rust route
 // keeps URL-based selection in place of Inertia's in-page state, but retains
 // the source navigation's order, copy, tab semantics and keyboard controls.
-const items: PersonalSettingsNavigationItem[] = [
+function personalSettingsItems(
+    t: (key: string, fallback: string) => string,
+): PersonalSettingsNavigationItem[] {
+    return [
     {
-        description: 'Identity and account details.',
+        description: t(
+            'settings.personal.sections.profile.description',
+            'Identity and account details.',
+        ),
         icon: UserRound,
         key: 'profile',
-        label: 'Profile',
+        label: t('settings.personal.sections.profile', 'Profile'),
     },
     {
-        description: 'Light and dark appearance.',
+        description: t(
+            'settings.personal.sections.appearance.description',
+            'Light and dark appearance.',
+        ),
         icon: Brush,
         key: 'appearance',
-        label: 'Appearance',
+        label: t('settings.personal.sections.appearance', 'Appearance'),
     },
     {
-        description: 'Platform and learner copy.',
+        description: t(
+            'settings.personal.sections.language.description',
+            'Platform and learner copy.',
+        ),
         icon: Languages,
         key: 'language',
-        label: 'Language',
+        label: t('settings.personal.sections.language', 'Language'),
     },
     {
-        description: 'Future reminders and quiet hours.',
+        description: t(
+            'settings.personal.sections.notifications.description',
+            'Future reminders and quiet hours.',
+        ),
         icon: Bell,
         key: 'notifications',
-        label: 'Notifications',
+        label: t('settings.personal.sections.notifications', 'Notifications'),
     },
     {
-        description: 'Share thoughts about the platform and manage invitations.',
+        description: t(
+            'settings.personal.sections.feedback.description',
+            'Share thoughts about the platform and manage invitations.',
+        ),
         icon: MessageSquareText,
         key: 'feedback',
-        label: 'Feedback',
+        label: t('settings.personal.sections.feedback', 'Feedback'),
     },
     {
-        description: 'Sound effects and ambient audio.',
+        description: t(
+            'settings.personal.sections.sound.description',
+            'Sound effects and ambient audio.',
+        ),
         icon: Volume2,
         key: 'sound',
-        label: 'Sound',
+        label: t('settings.personal.sections.sound', 'Sound'),
     },
     {
-        description: 'Password, two-factor and passkeys.',
+        description: t(
+            'settings.personal.sections.security.description',
+            'Password, two-factor and passkeys.',
+        ),
         icon: KeyRound,
         key: 'security',
-        label: 'Security',
+        label: t('settings.personal.sections.security', 'Security'),
     },
     {
         danger: true,
-        description: 'Permanently remove your account.',
+        description: t(
+            'settings.personal.sections.delete_account.description',
+            'Permanently remove your account.',
+        ),
         icon: Trash2,
         key: 'delete-account',
-        label: 'Delete account',
+        label: t('settings.personal.sections.delete_account', 'Delete account'),
     },
-];
+    ];
+}
 
 function hrefFor(section: PersonalSettingsSection): string {
     return section === 'profile'
@@ -94,10 +124,14 @@ function hrefFor(section: PersonalSettingsSection): string {
 
 export function OriginalPersonalSettingsNavigation({
     activeSection,
+    bare = false,
 }: {
     activeSection: PersonalSettingsSection;
+    bare?: boolean;
 }) {
     const navigate = useNavigate();
+    const t = usePlatformTranslation();
+    const items = personalSettingsItems(t);
     const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
     function select(section: PersonalSettingsSection): void {
@@ -145,13 +179,15 @@ export function OriginalPersonalSettingsNavigation({
         }
     }
 
-    return (
-        <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 lg:border-r lg:border-b-0">
-            <div
-                aria-label="Personal settings sections"
-                className="grid auto-rows-max content-start gap-2"
-                role="tablist"
-            >
+    const navigation = (
+        <div
+            aria-label={t(
+                'settings.personal.sections.aria',
+                'Personal settings sections',
+            )}
+            className="grid auto-rows-max content-start gap-2"
+            role="tablist"
+        >
                 {items.map((item, index) => {
                     const Icon = item.icon;
                     const active = activeSection === item.key;
@@ -206,7 +242,16 @@ export function OriginalPersonalSettingsNavigation({
                         </button>
                     );
                 })}
-            </div>
+        </div>
+    );
+
+    if (bare) {
+        return navigation;
+    }
+
+    return (
+        <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 lg:border-r lg:border-b-0">
+            {navigation}
         </aside>
     );
 }

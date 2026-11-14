@@ -87,7 +87,7 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
             email: data.email,
             name: data.name ?? data.email,
             roles: data.roles,
-            settingsAccess: data.settings_access,
+            settingsAccess: data.settings_access ?? {},
             subjectId: data.subject_id,
             username: data.username ?? null,
         };

@@ -28,6 +28,13 @@ test('Personal settings restores the source section navigation', async ({ page }
 
     await page.goto('/settings');
 
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await expect(
+        page
+            .getByRole('navigation', { name: 'Settings navigation' })
+            .getByRole('button', { name: 'Personal' }),
+    ).toBeVisible();
+
     const navigation = page.getByRole('tablist', {
         name: 'Personal settings sections',
     });
@@ -46,6 +53,10 @@ test('Personal settings restores the source section navigation', async ({ page }
         'true',
     );
 
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByLabel('Settings area')).toBeVisible();
+    await page.setViewportSize({ width: 1280, height: 844 });
+
     await navigation.getByRole('tab', { name: /Profile/ }).press('End');
     await expect(page).toHaveURL(
         /\/settings\?panel=personal&personal=delete-account/,
@@ -55,4 +66,15 @@ test('Personal settings restores the source section navigation', async ({ page }
             .getByRole('tablist', { name: 'Personal settings sections' })
             .getByRole('tab', { name: /Delete account/ }),
     ).toHaveAttribute('aria-selected', 'true');
+
+    await page.goto('/settings?panel=personal&personal=notifications');
+    await expect(
+        page.getByRole('heading', { name: 'Communication preferences' }),
+    ).toBeVisible();
+    await expect(
+        page
+            .getByRole('navigation', { name: 'Settings navigation' })
+            .getByRole('button', { name: 'Personal' }),
+    ).toBeVisible();
+
 });
