@@ -46,10 +46,33 @@ test('Personal settings restores the source section navigation', async ({ page }
             body: JSON.stringify({ status: 'enabled' }),
         });
     });
+    let soundPreferences = {
+        ambience_volume: 50,
+        effects_volume: 50,
+        muted: false,
+    };
     await page.route('**/api/v1/learner/sound-preferences', async (route) => {
+        if (route.request().method() === 'PATCH') {
+            soundPreferences = route.request().postDataJSON() as typeof soundPreferences;
+        }
+
         await route.fulfill({
             contentType: 'application/json',
-            body: JSON.stringify({ ambience_volume: 50, effects_volume: 50, muted: false }),
+            body: JSON.stringify(soundPreferences),
+        });
+    });
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'en',
+                translations: {
+                    'settings.personal.sound.effects': 'Effects level',
+                    'settings.personal.sound.mute': 'Disable all sounds',
+                    'settings.personal.sound.save': 'Store audio choices',
+                    'settings.personal.sound.title': 'Audio choices',
+                },
+            }),
         });
     });
 
@@ -113,7 +136,6 @@ test('Personal settings restores the source section navigation', async ({ page }
         ['appearance', 'Visual mode'],
         ['language', 'Current language'],
         ['feedback', 'Platform feedback'],
-        ['sound', 'Audio preferences'],
         ['delete-account', 'Delete account'],
     ]) {
         await test.step(section, async () => {
@@ -128,5 +150,26 @@ test('Personal settings restores the source section navigation', async ({ page }
             ).toBeVisible();
         });
     }
+
+    await page.goto('/settings?panel=personal&personal=sound');
+    await expect(page.getByRole('heading', { name: 'Audio choices' })).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Disable all sounds' })
+        .click();
+    await expect(
+        page.getByRole('button', { name: 'Disable all sounds' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('slider', { name: 'Effects level' }).fill('36');
+    await page
+        .getByRole('button', { name: 'Store audio choices' })
+        .click();
+    await expect.poll(() => soundPreferences).toEqual({
+        ambience_volume: 50,
+        effects_volume: 36,
+        muted: true,
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByRole('heading', { name: 'Audio choices' })).toBeVisible();
 
 });
