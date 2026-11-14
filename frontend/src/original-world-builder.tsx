@@ -1424,6 +1424,7 @@ function MapDetailsHistoryDialog({
         restored: components['schemas']['RestoreAdminWorldMapDetailsVersionResponse'],
     ) => void;
 }) {
+    const t = usePlatformTranslation();
     const [history, setHistory] = useState<MapDetailsVersionPage | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -1467,7 +1468,10 @@ function MapDetailsHistoryDialog({
     ) => {
         if (
             !window.confirm(
-                'Restore this map detail version? The current details will be preserved in history.',
+                t(
+                    'settings.map_details_history.restore_confirm',
+                    'Restore this map detail version? The current details will be preserved in history.',
+                ),
             )
         ) {
             return;
@@ -1513,16 +1517,23 @@ function MapDetailsHistoryDialog({
                             className="text-xl font-semibold"
                             id="map-detail-history-title"
                         >
-                            Map detail history
+                            {t(
+                                'settings.map_details_history.title',
+                                'Map detail history',
+                            )}
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Review earlier map title, description, topic and
-                            asset-lock settings. Restoring preserves the current
-                            details as a new history entry.
+                            {t(
+                                'settings.map_details_history.description',
+                                'Review earlier map title, description, topic and asset-lock settings. Restoring preserves the current details as a new history entry.',
+                            )}
                         </p>
                     </div>
                     <button
-                        aria-label="Close map detail history"
+                        aria-label={t(
+                            'settings.map_details_history.close',
+                            'Close map detail history',
+                        )}
                         className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
                         disabled={restoringVersionId !== null}
                         onClick={onClose}
@@ -1533,14 +1544,20 @@ function MapDetailsHistoryDialog({
                 </div>
                 {loading ? (
                     <p aria-live="polite" className="mt-4" role="status">
-                        Loading map history…
+                        {t(
+                            'settings.map_details_history.loading',
+                            'Loading map history…',
+                        )}
                     </p>
                 ) : error ? (
                     <p
                         className="mt-4 text-sm text-red-700 dark:text-red-300"
                         role="status"
                     >
-                        Map history could not be loaded. Try again.
+                        {t(
+                            'settings.map_details_history.error',
+                            'Map history could not be loaded. Try again.',
+                        )}
                     </p>
                 ) : history && history.items.length > 0 ? (
                     <div className="mt-4 grid gap-2">
@@ -1560,7 +1577,11 @@ function MapDetailsHistoryDialog({
                                     </time>
                                 </div>
                                 <p className="line-clamp-1 text-xs text-slate-600 dark:text-slate-300">
-                                    {version.description || 'No description'}
+                                    {version.description ||
+                                        t(
+                                            'settings.map_details_history.no_description',
+                                            'No description',
+                                        )}
                                 </p>
                                 <button
                                     className="inline-flex justify-self-end rounded-md px-2 py-1 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:text-teal-200 dark:hover:bg-teal-400/10"
@@ -1570,16 +1591,24 @@ function MapDetailsHistoryDialog({
                                 >
                                     <RefreshCw className="mr-1 size-4" />
                                     {restoringVersionId === version.id
-                                        ? 'Restoring…'
-                                        : 'Restore this version'}
+                                        ? t(
+                                              'settings.map_details_history.restoring',
+                                              'Restoring…',
+                                          )
+                                        : t(
+                                              'settings.map_details_history.restore',
+                                              'Restore this version',
+                                          )}
                                 </button>
                             </div>
                         ))}
                     </div>
                 ) : (
                     <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
-                        No earlier map details yet. The first update will create
-                        one.
+                        {t(
+                            'settings.map_details_history.empty',
+                            'No earlier map details yet. The first update will create one.',
+                        )}
                     </p>
                 )}
                 {history && history.last_page > 1 ? (
@@ -1590,10 +1619,14 @@ function MapDetailsHistoryDialog({
                             onClick={() => void loadHistory(history.page - 1)}
                             type="button"
                         >
-                            Previous
+                            {t('settings.map_details_history.previous', 'Previous')}
                         </button>
                         <span className="text-xs text-slate-500 dark:text-slate-400">
-                            Page {history.page} of {history.last_page}
+                            {t(
+                                'settings.map_details_history.page',
+                                'Page :page of :last_page',
+                                { page: history.page, last_page: history.last_page },
+                            )}
                         </span>
                         <button
                             className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
@@ -1603,7 +1636,7 @@ function MapDetailsHistoryDialog({
                             onClick={() => void loadHistory(history.page + 1)}
                             type="button"
                         >
-                            Next
+                            {t('settings.map_details_history.next', 'Next')}
                         </button>
                     </div>
                 ) : null}
@@ -1614,7 +1647,7 @@ function MapDetailsHistoryDialog({
                         onClick={onClose}
                         type="button"
                     >
-                        Close
+                        {t('settings.map_details_history.close', 'Close map detail history')}
                     </button>
                 </div>
             </section>
@@ -6137,6 +6170,7 @@ function EditMapDetailsDialog({
     onSaved: () => void;
 }) {
     const { map } = document.editable_map;
+    const t = usePlatformTranslation();
     const [title, setTitle] = useState(map.title);
     const [description, setDescription] = useState(map.description);
     const [topicId, setTopicId] = useState(map.topic_id ?? '');
@@ -6282,7 +6316,10 @@ function EditMapDetailsDialog({
                         onClick={() => setHistoryOpen(true)}
                         type="button"
                     >
-                        Previous versions
+                        {t(
+                            'settings.map_details_history.open',
+                            'Previous versions',
+                        )}
                     </button>
                     <button
                         className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
