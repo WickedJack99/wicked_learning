@@ -1545,6 +1545,48 @@ test('the source competence review history retains its contract-backed guidance 
     ).toBeVisible();
 });
 
+test('the source competence evidence ledger retains its authorized learning context', async ({
+    page,
+}) => {
+    await mockCompetenceReader(page, {
+        'competence.evidence.sources': 'References',
+        'learning.calibration.after_guidance': 'After support:',
+        'learning.calibration.before_answer': 'Before answering:',
+        'learning.evidence.assistance_questions_only': 'Support: questions only',
+        'learning.reflection.independent_check_short': 'Independent evidence',
+        'learning.reflection.observed_cues_label': 'Observed: ',
+        'learning.review.outcome_clearer': 'A clearer route',
+        'learning.review.outcome_clearer_description': 'The route now feels clearer.',
+        'learning.review.outcome_signal': 'Review finding',
+    });
+
+    await page.goto('/competence');
+    await page.getByRole('button', { name: /Map orientation:/ }).click();
+    await page.getByText('Evidence ledger').click();
+
+    await expect(page.getByText('Independent evidence')).toBeVisible();
+    await expect(page.getByText('Review finding: A clearer route')).toBeVisible();
+    await expect(
+        page.locator('details').getByText('The route now feels clearer.'),
+    ).toBeVisible();
+    await expect(page.getByText('Purpose: Apply learning')).toBeVisible();
+    await expect(page.getByText('What to notice: Name the next route.')).toBeVisible();
+    await expect(page.getByText('Cues: Names a route')).toBeVisible();
+    await expect(page.getByText('Observed: Named a route')).toBeVisible();
+    await expect(
+        page.getByText('Before answering: I have a hunch · attempt 2'),
+    ).toBeVisible();
+    await expect(page.getByText('After support: settled')).toBeVisible();
+    await expect(
+        page.locator('details').getByText('Support: questions only'),
+    ).toBeVisible();
+    await expect(page.getByText('References:')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Map notes' })).toHaveAttribute(
+        'href',
+        'https://example.test/map-notes',
+    );
+});
+
 test('the competence map preserves its source topic and origin query context', async ({
     page,
 }) => {
@@ -1670,25 +1712,36 @@ async function mockCompetenceReader(
                                 {
                                     activity_slug: 'consider-a-direction',
                                     activity_title: 'Consider a direction',
-                                    assistance_level: null,
-                                    attempt_number: 1,
+                                    assistance_level: 'questions_only',
+                                    attempt_number: 2,
                                     concepts: ['orientation'],
                                     confidence: 'leaning',
-                                    confidence_after_feedback: null,
+                                    confidence_after_feedback: 'settled',
                                     evidence_claim: 'reflection',
-                                    evidence_criterion: null,
-                                    evidence_rubric: [],
+                                    evidence_criterion: 'Name the next route.',
+                                    evidence_rubric: ['Names a route'],
                                     evidence_type: 'reflect',
                                     id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
-                                    independent_check: false,
-                                    learning_purpose: null,
+                                    independent_check: true,
+                                    learning_purpose: 'Apply learning',
                                     node_slug: 'choose-a-direction',
                                     node_title: 'Choose a direction',
-                                    objective: null,
-                                    observed_cues: [],
+                                    objective: 'Orient on the map.',
+                                    observed_cues: ['Named a route'],
                                     outcome: 'clearer',
                                     recorded_at: '2026-11-05T12:00:00Z',
-                                    sources: [],
+                                    sources: [
+                                        {
+                                            anchor: null,
+                                            concepts: [],
+                                            excerpt: null,
+                                            published_at: null,
+                                            publisher: null,
+                                            rights: null,
+                                            title: 'Map notes',
+                                            url: 'https://example.test/map-notes',
+                                        },
+                                    ],
                                 },
                             ],
                             evidence_types: ['reflect'],
