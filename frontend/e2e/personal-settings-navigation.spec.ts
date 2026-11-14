@@ -66,6 +66,11 @@ test('Personal settings restores the source section navigation', async ({ page }
             .getByRole('tablist', { name: 'Personal settings sections' })
             .getByRole('tab', { name: /Delete account/ }),
     ).toHaveAttribute('aria-selected', 'true');
+    await expect(
+        page
+            .getByRole('navigation', { name: 'Settings navigation' })
+            .getByRole('button', { name: 'Personal' }),
+    ).toBeVisible();
 
     await page.goto('/settings?panel=personal&personal=notifications');
     await expect(
