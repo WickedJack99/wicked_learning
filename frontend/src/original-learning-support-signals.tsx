@@ -75,17 +75,20 @@ export function OriginalLearningSupportSignalsPage({
             setSignals(data);
             setError('');
         } catch {
-            setError('Support signals are temporarily unavailable.');
+            setError('settings.learning_support.signals.unavailable');
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => { void load(); }, [load]);
 
     const sectionItem: SettingsNavigationItem<string> = {
-        description: 'Review collective, individual and peer support signals.',
+        description: t(
+            'settings.learning_support.signals.description',
+            'Review collective, individual and peer support signals.',
+        ),
         icon: HeartHandshake,
         key: 'support-signals',
-        label: 'Support Signals',
+        label: t('settings.navigation.learning_support.support_signals', 'Support Signals'),
     };
     return (
         <main className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100" data-wl-id="settings.learning-support.signals" style={settingsStyle(appearance)}>
@@ -101,7 +104,7 @@ export function OriginalLearningSupportSignalsPage({
                             activeSection="support-signals"
                             settingsAccess={settingsAccess}
                         >
-                            {error ? <div className="p-5"><p className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p></div> : !signals ? <p className="p-5 text-sm text-[var(--settings-muted-text)]">Loading support signals…</p> : <SupportSignalsPanel onManualUnlockChanged={load} sectionItem={sectionItem} settings={toSourceSettings(signals)} />}
+                            {error ? <div className="p-5"><p className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{t(error, 'Support signals are temporarily unavailable.')}</p></div> : !signals ? <p className="p-5 text-sm text-[var(--settings-muted-text)]">{t('settings.learning_support.signals.loading', 'Loading support signals…')}</p> : <SupportSignalsPanel onManualUnlockChanged={load} sectionItem={sectionItem} settings={toSourceSettings(signals)} />}
                         </LearningSupportWorkspace>
                     </div>
                 </div>

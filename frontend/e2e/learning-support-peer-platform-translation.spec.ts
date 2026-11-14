@@ -1,5 +1,20 @@
 import { expect, test } from './authenticated';
 
+test('the Learning Support signal workspace localizes its unavailable state', async ({ page }) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ email: 'support@example.test', roles: ['learning_support'], settings_access: { learner_support_signals: true }, subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9a' }) });
+    });
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ locale: 'test', translations: { 'settings.learning_support.signals.unavailable': 'Localized unavailable signals' } }) });
+    });
+    await page.route('**/api/v1/admin/learning-support/signals', async (route) => {
+        await route.fulfill({ status: 503 });
+    });
+
+    await page.goto('/settings?panel=admin-learning-support&support=support-signals');
+    await expect(page.getByRole('alert')).toHaveText('Localized unavailable signals');
+});
+
 test('the Learning Support signal workspace consumes fixed catalog copy without translating the scoped signal data', async ({
     page,
 }) => {
