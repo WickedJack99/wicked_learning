@@ -13,26 +13,27 @@ import {
     ChevronLeft,
     ChevronRight,
     Link2,
-    MessageCircle,
     Pencil,
     Plus,
     Save,
     Trash2,
-    UserRound,
     X,
 } from 'lucide-react';
 import {
-    type CSSProperties,
     type ReactNode,
     useCallback,
     useEffect,
     useMemo,
     useState,
 } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import {
+    LearningCompanionSettingsShell,
+    type LearningCompanionSection,
+} from './extracted-learning-companion-navigation';
 import type { OriginalAppearance } from './original-appearance';
 
 type Settings = components['schemas']['AdminLearningCompanionSettings'];
@@ -44,7 +45,6 @@ type DialogueResponse = components['schemas']['AdminLearningCompanionDialogue'];
 type AssignmentTarget =
     components['schemas']['AdminLearningCompanionAssignmentTarget'];
 type Assignment = components['schemas']['AdminLearningCompanionAssignment'];
-type Section = 'dialogues' | 'identity';
 type NodeType = 'ai' | 'choice' | 'end' | 'message';
 
 type DialogueChoice = {
@@ -93,11 +93,14 @@ const input =
  * platform fields and authored graphs; scope authorization stays in Rust. */
 export function OriginalLearningCompanionSettingsPage({
     appearance,
+    onSignedOut,
+    settingsAccess,
 }: {
     appearance: OriginalAppearance;
+    onSignedOut: () => void;
+    settingsAccess: Record<string, boolean>;
 }) {
     const location = useLocation();
-    const navigate = useNavigate();
     const [settings, setSettings] = useState<Settings | null>(null);
     const [draft, setDraft] = useState<SettingsRequest | null>(null);
     const [error, setError] = useState('');
@@ -135,12 +138,6 @@ export function OriginalLearningCompanionSettingsPage({
         );
     }, [load]);
 
-    const changeSection = (next: Section) => {
-        const params = new URLSearchParams(location.search);
-        params.set('panel', 'admin-learning-companion');
-        params.set('companion', next);
-        navigate(`/settings?${params.toString()}`);
-    };
     const save = async () => {
         if (!draft) return;
         setSaving(true);
@@ -170,44 +167,17 @@ export function OriginalLearningCompanionSettingsPage({
     };
 
     if (forbidden) return <Navigate replace to="/home" />;
-    const style = settingsStyle(appearance);
     return (
-        <main
-            className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
-            style={style}
-            data-wl-id="admin.learning-companion.settings"
+        <LearningCompanionSettingsShell
+            activeSection={section as LearningCompanionSection}
+            appearance={appearance}
+            onSignedOut={onSignedOut}
+            settingsAccess={settingsAccess}
         >
-            <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
-                <header className="flex shrink-0 flex-wrap items-start justify-between gap-4 pb-5">
-                    <div>
-                        <Link
-                            className="inline-flex rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]"
-                            to="/settings?panel=admin-ai-integrations"
-                        >
-                            AI support
-                        </Link>
-                        <p className="mt-4 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                            Administration
-                        </p>
-                        <h1 className="mt-2 text-3xl font-semibold">
-                            Learning Companion
-                        </h1>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
-                            Configure the optional source guide, its bounded AI
-                            policy, and reusable authored dialogue graphs.
-                        </p>
-                    </div>
-                    {section === 'identity' ? (
-                        <button
-                            className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"
-                            disabled={!draft || saving}
-                            onClick={() => void save()}
-                            type="button"
-                        >
-                            <Save className="size-4" />
-                            {saving ? 'Saving…' : 'Save changes'}
-                        </button>
-                    ) : null}
+            <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-5" data-wl-id="admin.learning-companion.settings">
+                <header className="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-[var(--settings-border-color)] pb-5">
+                    <div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p><h1 className="mt-2 text-3xl font-semibold">Learning Companion</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">Configure the optional source guide, its bounded AI policy, and reusable authored dialogue graphs.</p></div>
+                    {section === 'identity' ? <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={!draft || saving} onClick={() => void save()} type="button"><Save className="size-4" />{saving ? 'Saving…' : 'Save changes'}</button> : null}
                 </header>
                 {error ? (
                     <p
@@ -218,44 +188,16 @@ export function OriginalLearningCompanionSettingsPage({
                     </p>
                 ) : null}
                 {!draft || !settings ? (
-                    <p className="p-6 text-sm text-[var(--settings-muted-text)]">
+                    <p className="py-6 text-sm text-[var(--settings-muted-text)]">
                         Loading Learning Companion settings…
                     </p>
                 ) : (
-                    <section className="min-h-0 flex-1 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]">
-                        <div className="grid h-full min-h-0 lg:grid-cols-[16rem_minmax(0,1fr)]">
-                            <aside className="border-b border-[var(--settings-border-color)] p-3 lg:border-r lg:border-b-0">
-                                <SectionButton
-                                    active={section === 'identity'}
-                                    description="Name, avatar, orientation and bounded AI policy."
-                                    icon={<UserRound className="size-4" />}
-                                    label="Identity and policy"
-                                    onClick={() => changeSection('identity')}
-                                />
-                                <SectionButton
-                                    active={section === 'dialogues'}
-                                    description="Reusable, assigned and safely bounded conversation graphs."
-                                    icon={<MessageCircle className="size-4" />}
-                                    label="Dialogues"
-                                    onClick={() => changeSection('dialogues')}
-                                />
-                            </aside>
-                            <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
-                                {section === 'identity' ? (
-                                    <IdentityEditor
-                                        draft={draft}
-                                        onChange={setDraft}
-                                        settings={settings}
-                                    />
-                                ) : (
-                                    <DialogueWorkspace />
-                                )}
-                            </div>
-                        </div>
-                    </section>
+                    <div className="pt-5">
+                        {section === 'identity' ? <IdentityEditor draft={draft} onChange={setDraft} settings={settings} /> : <DialogueWorkspace />}
+                    </div>
                 )}
             </div>
-        </main>
+        </LearningCompanionSettingsShell>
     );
 }
 
@@ -1769,35 +1711,6 @@ function Avatar({
         <Bot className="size-10 text-white" />
     );
 }
-function SectionButton({
-    active,
-    description,
-    icon,
-    label,
-    onClick,
-}: {
-    active: boolean;
-    description: string;
-    icon: ReactNode;
-    label: string;
-    onClick: () => void;
-}) {
-    return (
-        <button
-            className={`mb-2 flex w-full items-start gap-3 rounded-md p-3 text-left ${active ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]' : 'hover:bg-[var(--settings-active-background)]'}`}
-            onClick={onClick}
-            type="button"
-        >
-            <span className="mt-0.5">{icon}</span>
-            <span>
-                <span className="block text-sm font-semibold">{label}</span>
-                <span className="mt-1 block text-xs leading-5 text-[var(--settings-muted-text)]">
-                    {description}
-                </span>
-            </span>
-        </button>
-    );
-}
 function Field({ children, label }: { children: ReactNode; label: string }) {
     return (
         <label className="grid gap-1 text-sm font-medium">
@@ -1954,17 +1867,4 @@ function edge(source: string, target: string, kind: string): Edge {
         markerEnd: { type: MarkerType.ArrowClosed },
         style: { stroke: '#0f766e', strokeWidth: 2 },
     };
-}
-function settingsStyle(appearance: OriginalAppearance): CSSProperties {
-    const dark = appearance === 'dark';
-    return {
-        '--settings-accent': dark ? '#2dd4bf' : '#0f766e',
-        '--settings-active-background': dark
-            ? 'rgba(45, 212, 191, 0.12)'
-            : '#ccfbf1',
-        '--settings-border-color': dark ? 'rgb(255 255 255 / 10%)' : '#e2e8f0',
-        '--settings-content-background': dark ? '#0b1117' : '#f1f5f9',
-        '--settings-muted-text': dark ? '#94a3b8' : '#64748b',
-        '--settings-panel-background': dark ? '#111820' : '#ffffff',
-    } as CSSProperties;
 }

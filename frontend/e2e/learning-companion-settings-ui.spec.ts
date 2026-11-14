@@ -35,10 +35,15 @@ test('a local administrator can use the source-adapted Learning Companion settin
         await expect(
             page.getByRole('heading', { name: 'Learning Companion' }),
         ).toBeVisible();
+        await expect(
+            page
+                .getByRole('tablist', { name: 'Learning Companion sections' })
+                .getByRole('tab', { name: 'Identity' }),
+        ).toHaveAttribute('aria-selected', 'true');
         await page.setViewportSize({ width: 390, height: 844 });
         await expect(
-            page.getByRole('button', { name: /Identity and policy/ }),
-        ).toBeVisible();
+            page.getByLabel('Learning Companion section', { exact: true }),
+        ).toHaveValue('identity');
         await page.setViewportSize({ width: 1280, height: 900 });
         await page
             .getByLabel('Display name')
@@ -48,7 +53,7 @@ test('a local administrator can use the source-adapted Learning Companion settin
             page.getByRole('button', { name: 'Save changes' }),
         ).toBeEnabled();
 
-        await page.getByRole('button', { name: 'Dialogues' }).click();
+        await page.getByRole('tab', { name: 'Dialogues' }).click();
         await expect(
             page.getByRole('heading', { name: 'Dialogues' }),
         ).toBeVisible();

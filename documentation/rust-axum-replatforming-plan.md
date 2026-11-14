@@ -1707,7 +1707,8 @@ browser check opens the launcher during an active activity run.
 ### Learning Companion administration frontend slice — 12 November 2026
 
 The standalone React settings shell now lifts the source-shaped Learning
-Companion administration workspace. Companion-role authors can update the
+Companion administration workspace inside the shared source Settings and
+Learning Companion nested navigation on desktop and narrow layouts. Companion-role authors can update the
 bounded platform identity and AI policy, list, search, create, edit and delete
 reusable dialogue graphs, inspect their flow in the source-adapted graph
 canvas, and assign each graph only to the Rust-filtered authored targets. The
