@@ -906,7 +906,10 @@ function WorldBuilderContent({
                         type="button"
                     >
                         <FileJson className="mr-1 inline size-4" />
-                        Import map
+                        {t(
+                            'settings.world_builder.import.open',
+                            'Import map',
+                        )}
                     </button>
                     <button
                         className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
@@ -5507,6 +5510,7 @@ function MapImportDialog({
     onClose: () => void;
     onCreated: (mapId: string) => void;
 }) {
+    const t = usePlatformTranslation();
     const [file, setFile] = useState<File | null>(null);
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState('');
@@ -5517,7 +5521,12 @@ function MapImportDialog({
 
     const check = async () => {
         if (!file) {
-            setError('Choose a JSON export file first.');
+            setError(
+                t(
+                    'settings.world_builder.import.choose_file',
+                    'Choose a JSON export file first.',
+                ),
+            );
             return;
         }
         setChecking(true);
@@ -5538,14 +5547,22 @@ function MapImportDialog({
             );
             const payload = (await response.json()) as MapExportPreflight;
             if (!response.ok) {
-                throw new Error('The manifest could not be checked.');
+                throw new Error(
+                    t(
+                        'settings.world_builder.import.validation_failed',
+                        'The file could not be checked.',
+                    ),
+                );
             }
             setResult(payload);
         } catch (reason) {
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The manifest could not be checked.',
+                    : t(
+                          'settings.world_builder.import.validation_failed',
+                          'The file could not be checked.',
+                      ),
             );
         } finally {
             setChecking(false);
@@ -5555,11 +5572,21 @@ function MapImportDialog({
     const importMap = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!file || !result?.valid) {
-            setError('Check a valid map export before importing.');
+            setError(
+                t(
+                    'settings.world_builder.import.validation_required',
+                    'Check a valid export file before importing.',
+                ),
+            );
             return;
         }
         if (!title.trim()) {
-            setError('Add a title for the imported map.');
+            setError(
+                t(
+                    'settings.world_builder.import.title_required',
+                    'Add a title for the imported map.',
+                ),
+            );
             return;
         }
         setImporting(true);
@@ -5585,8 +5612,14 @@ function MapImportDialog({
             if (!response.ok || !payload.map_id) {
                 throw new Error(
                     response.status === 400
-                        ? 'This export cannot be imported into the current World. Check its workspace, portal targets, and managed media references.'
-                        : 'The map could not be imported. Refresh the World Builder and try again.',
+                        ? t(
+                              'settings.world_builder.import.invalid',
+                              'This export cannot be imported into the current World. Check its workspace, portal targets, and managed media references.',
+                          )
+                        : t(
+                              'settings.world_builder.import.error',
+                              'The map could not be imported. Refresh the World Builder and try again.',
+                          ),
                 );
             }
             onCreated(payload.map_id);
@@ -5594,7 +5627,10 @@ function MapImportDialog({
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The map could not be imported.',
+                    : t(
+                          'settings.world_builder.import.network_error',
+                          'The map could not be imported.',
+                      ),
             );
         } finally {
             setImporting(false);
@@ -5616,39 +5652,117 @@ function MapImportDialog({
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                            World Builder
+                            {t(
+                                'settings.world_builder.import.eyebrow',
+                                'World Builder',
+                            )}
                         </p>
                         <h2 className="mt-1 text-xl font-semibold" id="map-import-title">
-                            Import authored map
+                            {t(
+                                'settings.world_builder.import.title',
+                                'Import authored map',
+                            )}
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Create a new draft from a validated JSON map export. Learner records, access rules, review history and editor assignments stay outside the transfer.
+                            {t(
+                                'settings.world_builder.import.description',
+                                'Create a new draft from a validated JSON map export. Learner records, access rules, review history and editor assignments stay outside the transfer.',
+                            )}
                         </p>
                     </div>
-                    <button aria-label="Close map import" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button"><X className="size-5" /></button>
+                    <button
+                        aria-label={t(
+                            'settings.world_builder.import.close_aria',
+                            'Close map import',
+                        )}
+                        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                        disabled={checking || importing}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
                 </div>
                 <label className="mt-5 block text-sm font-medium">
-                    JSON export file
+                    {t(
+                        'settings.world_builder.import.file',
+                        'JSON export file',
+                    )}
                     <input accept=".json,application/json,text/plain" className="mt-2 block w-full text-sm" disabled={checking || importing} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(null); setResult(null); }} type="file" />
                 </label>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{file?.name ?? 'No file selected.'}</p>
-                <button className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10" disabled={!file || checking || importing} onClick={() => void check()} type="button"><CircleCheck className="size-4" />{checking ? 'Checking…' : 'Check export'}</button>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {file?.name ?? t(
+                        'settings.world_builder.import.no_file',
+                        'No file selected.',
+                    )}
+                </p>
+                <button className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10" disabled={!file || checking || importing} onClick={() => void check()} type="button">
+                    <CircleCheck className="size-4" />
+                    {checking
+                        ? t(
+                              'settings.world_builder.import.map_checking',
+                              'Checking…',
+                          )
+                        : t(
+                              'settings.world_builder.import.check',
+                              'Check export',
+                          )}
+                </button>
                 {result ? (
                     <section className="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10" role="status">
                         <p className="font-medium">{result.summary}</p>
-                        <p className="mt-2 text-slate-600 dark:text-slate-300">{result.counts.nodes} nodes · {result.counts.activities} activities · {result.counts.mapAssets} MapAssets · {result.counts.portalTargets} portals · {result.counts.mediaReferences} media references</p>
+                        <p className="mt-2 text-slate-600 dark:text-slate-300">
+                            {t(
+                                'settings.world_builder.export_validation.counts',
+                                ':nodes nodes · :activities activities · :map_assets MapAssets · :portals portals · :media_references media references',
+                                {
+                                    activities: result.counts.activities,
+                                    map_assets: result.counts.mapAssets,
+                                    media_references: result.counts.mediaReferences,
+                                    nodes: result.counts.nodes,
+                                    portals: result.counts.portalTargets,
+                                },
+                            )}
+                        </p>
                         {result.errors.map((message) => <p className="mt-2 text-red-700 dark:text-red-300" key={message}>{message}</p>)}
                         {result.warnings.map((message) => <p className="mt-2 text-amber-700 dark:text-amber-300" key={message}>{message}</p>)}
                     </section>
                 ) : null}
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                    <ActivityTextField label="Map title" onChange={setTitle} value={title} />
-                    <ActivityTextField label="Slug (optional)" onChange={setSlug} value={slug} />
+                    <ActivityTextField
+                        label={t(
+                            'settings.world_builder.import.name',
+                            'Map title',
+                        )}
+                        onChange={setTitle}
+                        value={title}
+                    />
+                    <ActivityTextField
+                        label={t(
+                            'settings.world_builder.import.slug',
+                            'Slug (optional)',
+                        )}
+                        onChange={setSlug}
+                        value={slug}
+                    />
                 </div>
                 {error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-                    <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">Cancel</button>
-                    <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || !title.trim() || checking || importing} type="submit"><FileJson className="size-4" />{importing ? 'Importing…' : 'Import map'}</button>
+                    <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">
+                        {t('settings.world_builder.import.cancel', 'Cancel')}
+                    </button>
+                    <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || !title.trim() || checking || importing} type="submit">
+                        <FileJson className="size-4" />
+                        {importing
+                            ? t(
+                                  'settings.world_builder.import.creating',
+                                  'Importing…',
+                              )
+                            : t(
+                                  'settings.world_builder.import.submit',
+                                  'Import map',
+                              )}
+                    </button>
                 </div>
             </form>
         </div>

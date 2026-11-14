@@ -1,0 +1,261 @@
+import { expect, test } from './authenticated';
+
+test('map import uses fixed platform catalog copy while preserving the preflight gate and import command', async ({
+    page,
+}) => {
+    const sourceMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d71';
+    const importedMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d72';
+    const importedTitle = 'Localized imported map';
+    let imported = false;
+    let csrfHeaders: string[] = [];
+
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                capabilities: [],
+                email: 'map-import-author@example.test',
+                roles: ['administrator'],
+                settings_access: {
+                    world_activities: true,
+                    world_maps: true,
+                    world_nodes: true,
+                },
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d73',
+            }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/platform-translations',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    locale: 'test',
+                    translations: {
+                        'settings.world_builder.import.open':
+                            'Open localized map import',
+                        'settings.world_builder.import.eyebrow':
+                            'Localized World Builder',
+                        'settings.world_builder.import.title':
+                            'Localized authored map import',
+                        'settings.world_builder.import.description':
+                            'Localized map-import guidance.',
+                        'settings.world_builder.import.close_aria':
+                            'Close localized map import',
+                        'settings.world_builder.import.file':
+                            'Localized map export file',
+                        'settings.world_builder.import.no_file':
+                            'No localized import file selected.',
+                        'settings.world_builder.import.map_checking':
+                            'Checking localized map import…',
+                        'settings.world_builder.import.check':
+                            'Check localized map export',
+                        'settings.world_builder.import.name':
+                            'Localized imported map title',
+                        'settings.world_builder.import.slug':
+                            'Localized imported map slug',
+                        'settings.world_builder.import.cancel':
+                            'Cancel localized map import',
+                        'settings.world_builder.import.creating':
+                            'Importing localized map…',
+                        'settings.world_builder.import.submit':
+                            'Import localized map',
+                    },
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/admin/world-builder', async (route) => {
+        const maps = [mapSummary(sourceMapId, 'Source map')];
+        if (imported) {
+            maps.push(mapSummary(importedMapId, importedTitle));
+        }
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                maps,
+                portal_candidates: [],
+                portal_links: [],
+                world: {
+                    description: 'A mocked authoring world.',
+                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d74',
+                    slug: 'mocked-world',
+                    title: 'Mocked World',
+                    updated_at: '2026-11-14T12:34:00Z',
+                },
+            }),
+        });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/maps/*',
+        async (route) => {
+            const mapId = route.request().url().split('/').at(-1);
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify(
+                    mapDocument(
+                        mapId === importedMapId ? importedMapId : sourceMapId,
+                        mapId === importedMapId ? importedTitle : 'Source map',
+                    ),
+                ),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/admin/world-builder/map-exports/preflight',
+        async (route) => {
+            csrfHeaders.push(route.request().headers()['x-csrf-token'] ?? '');
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify(preflightResult()),
+            });
+        },
+    );
+    await page.route(
+        '**/api/v1/admin/world-builder/map-exports/import',
+        async (route) => {
+            csrfHeaders.push(route.request().headers()['x-csrf-token'] ?? '');
+            imported = true;
+            await route.fulfill({
+                contentType: 'application/json',
+                status: 201,
+                body: JSON.stringify({ map_id: importedMapId }),
+            });
+        },
+    );
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+
+    await page.goto('/settings?panel=admin-world-builder');
+    await page
+        .getByRole('button', { name: 'Open localized map import' })
+        .click();
+
+    const dialog = page.locator(
+        '[data-wl-id="authoring.world-builder.map-import.dialog"]',
+    );
+    await expect(
+        dialog.getByRole('heading', { name: 'Localized authored map import' }),
+    ).toBeVisible();
+    await expect(dialog.getByText('Localized map-import guidance.')).toBeVisible();
+    await expect(
+        dialog.getByText('No localized import file selected.'),
+    ).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await dialog.getByLabel('Localized map export file').setInputFiles({
+        buffer: Buffer.from('{"format":"wicked-learning-map"}'),
+        mimeType: 'application/json',
+        name: 'localized-map-export.json',
+    });
+    const preflight = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().includes('/map-exports/preflight'),
+    );
+    await dialog
+        .getByRole('button', { name: 'Check localized map export' })
+        .click();
+    expect((await preflight).status()).toBe(200);
+    await expect(dialog.getByRole('status')).toContainText(
+        'The mocked export is structurally ready.',
+    );
+
+    await dialog
+        .getByLabel('Localized imported map title')
+        .fill(importedTitle);
+    const importedResponse = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().includes('/map-exports/import'),
+    );
+    await dialog
+        .getByRole('button', { name: 'Import localized map' })
+        .click();
+    expect((await importedResponse).status()).toBe(201);
+    expect(csrfHeaders).toEqual(['test-csrf-token', 'test-csrf-token']);
+    await expect(page.getByRole('heading', { name: importedTitle })).toBeVisible();
+});
+
+function mapSummary(id: string, title: string) {
+    return {
+        access_roles: ['public'],
+        description: 'A mocked authoring map.',
+        id,
+        node_count: 0,
+        nodes: [],
+        review_count: 0,
+        slug: title.toLowerCase().replaceAll(' ', '-'),
+        title,
+        updated_at: '2026-11-14T12:34:00Z',
+    };
+}
+
+function mapDocument(mapId: string, title: string) {
+    return {
+        access_groups: [],
+        can_delete_world_maps: false,
+        can_manage_map_access: false,
+        editable_map: {
+            map: {
+                access_roles: ['public'],
+                background_config: {},
+                description: 'A mocked authoring map.',
+                editing_group_ids: [],
+                grid_config: {},
+                id: mapId,
+                map_assets: [],
+                map_assets_locked: false,
+                node_count: 0,
+                nodes: [],
+                review_count: 0,
+                slug: title.toLowerCase().replaceAll(' ', '-'),
+                title,
+                topic_id: null,
+                updated_at: '2026-11-14T12:34:00Z',
+            },
+            world: {
+                description: 'A mocked authoring world.',
+                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d74',
+                slug: 'mocked-world',
+                title: 'Mocked World',
+                updated_at: '2026-11-14T12:34:00Z',
+            },
+        },
+        items: [],
+        learning_groups: [],
+        role_options: [],
+        sounds: [],
+        tools: [],
+        topic_options: [],
+    };
+}
+
+function preflightResult() {
+    return {
+        counts: {
+            activities: 0,
+            mapAssets: 0,
+            mediaReferences: 0,
+            nodes: 0,
+            portalTargets: 0,
+        },
+        errors: [],
+        summary: 'The mocked export is structurally ready.',
+        valid: true,
+        warnings: [],
+    };
+}
