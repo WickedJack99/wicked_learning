@@ -1859,6 +1859,7 @@ function QuestionActivity({
         confidenceAfterFeedback: 'exploring' | 'leaning' | 'settled' | null,
     ) => Promise<void>;
 }) {
+    const t = usePlatformTranslation();
     const config = activity.config as {
         allowMultiple?: unknown;
         options?: unknown;
@@ -1997,12 +1998,18 @@ function QuestionActivity({
                 <>
                     <div>
                         <p className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                            Optional starting sense
+                            {t(
+                                'learning.question.confidence_before_label',
+                                'Optional starting sense',
+                            )}
                         </p>
                         <div
                             className="mt-2 flex flex-wrap gap-2"
                             role="group"
-                            aria-label="How settled your answer feels"
+                            aria-label={t(
+                                'learning.question.confidence_before_aria',
+                                'How settled your answer feels',
+                            )}
                         >
                             {(['exploring', 'leaning', 'settled'] as const).map(
                                 (value) => (
@@ -2013,11 +2020,7 @@ function QuestionActivity({
                                         onClick={() => setConfidence(value)}
                                         type="button"
                                     >
-                                        {value === 'exploring'
-                                            ? 'Exploring'
-                                            : value === 'leaning'
-                                              ? 'I have a hunch'
-                                              : 'Settled'}
+                                        {confidenceLabel(value, t)}
                                     </button>
                                 ),
                             )}
@@ -2047,7 +2050,12 @@ function QuestionActivity({
                             onClick={() => void submit(selection)}
                             type="button"
                         >
-                            {submitting ? 'Checking…' : 'Check answers'}
+                            {submitting
+                                ? t('learning.question.checking', 'Checking…')
+                                : t(
+                                      'learning.question.check_answers',
+                                      'Check answers',
+                                  )}
                             <ArrowRight className="ml-2 inline size-4" />
                         </button>
                     ) : null}
@@ -2062,8 +2070,14 @@ function QuestionActivity({
                         )}
                         <span>
                             {answer.is_correct
-                                ? 'Useful clue found'
-                                : 'Adjust the hypothesis'}
+                                ? t(
+                                      'learning.review.outcome_correct',
+                                      'Useful clue found',
+                                  )
+                                : t(
+                                      'learning.review.outcome_incorrect',
+                                      'Adjust the hypothesis',
+                                  )}
                         </span>
                     </div>
                     {answer.feedback ? (
@@ -2079,22 +2093,32 @@ function QuestionActivity({
                     {answer.calibration ? (
                         <p className="mt-3 rounded-md border border-cyan-500/15 bg-cyan-50/60 p-3 text-xs leading-5 text-cyan-950 dark:border-teal-100/15 dark:bg-teal-100/6 dark:text-teal-50">
                             <span className="font-medium">
-                                Confidence reflection:
+                                {t(
+                                    'learning.question.confidence_reflection',
+                                    'Confidence reflection',
+                                )}
                             </span>{' '}
-                            {calibrationMessage(answer.calibration)}
+                            {calibrationMessage(answer.calibration, t)}
                         </p>
                     ) : null}
                     <fieldset className="mt-4 rounded-md border border-slate-200 p-3 dark:border-white/10">
                         <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                            After comparing, how settled does this feel now?
-                            <span className="normal-case"> (optional)</span>
+                            {t(
+                                'learning.question.confidence_after_feedback_prompt',
+                                'After comparing, how settled does this feel now? (optional)',
+                            )}
                         </legend>
                         <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                            This is a reflection on your understanding, not a
-                            grade.
+                            {t(
+                                'learning.question.confidence_after_feedback_helper',
+                                'This is a reflection on your understanding, not a grade.',
+                            )}
                         </p>
                         <div
-                            aria-label="After comparing, how settled does this feel now?"
+                            aria-label={t(
+                                'learning.question.confidence_after_feedback_prompt',
+                                'After comparing, how settled does this feel now? (optional)',
+                            )}
                             className="mt-2 flex flex-wrap gap-2"
                             role="group"
                         >
@@ -2111,7 +2135,7 @@ function QuestionActivity({
                                         }
                                         type="button"
                                     >
-                                        {confidenceLabel(value)}
+                                        {confidenceLabel(value, t)}
                                     </button>
                                 ),
                             )}
@@ -2119,7 +2143,11 @@ function QuestionActivity({
                     </fieldset>
                     {answer.recall ? (
                         <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                            Next recall in {answer.recall.interval_days} days.
+                            {t(
+                                'learning.question.recall_next',
+                                'Next recall in :days days.',
+                                { days: answer.recall.interval_days },
+                            )}
                         </p>
                     ) : null}
                     <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/10">
@@ -2134,13 +2162,25 @@ function QuestionActivity({
                                 className="mr-2 size-4"
                             />
                             {recallItemId
-                                ? 'Remove from recall queue'
-                                : 'Keep for later recall'}
+                                ? t(
+                                      'learning.question.recall_remove',
+                                      'Remove from recall queue',
+                                  )
+                                : t(
+                                      'learning.question.recall_keep',
+                                      'Keep for later recall',
+                                  )}
                         </button>
                         <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
                             {recallItemId
-                                ? 'This question is waiting on your Learning Desk until you remove it.'
-                                : 'Save this question when you want to return to it without changing your route.'}
+                                ? t(
+                                      'learning.question.recall_queued_helper',
+                                      'This question is waiting on your Learning Desk until you remove it.',
+                                  )
+                                : t(
+                                      'learning.question.recall_keep_helper',
+                                      'Save this question when you want to return to it without changing your route.',
+                                  )}
                         </p>
                         {recallError ? (
                             <p
@@ -2148,23 +2188,42 @@ function QuestionActivity({
                                 className="mt-2 text-xs text-red-600 dark:text-red-300"
                                 role="status"
                             >
-                                This recall choice could not be saved. Try
-                                again.
+                                {t(
+                                    'learning.question.recall_error',
+                                    'This recall choice could not be saved. Try again.',
+                                )}
                             </p>
                         ) : null}
                     </div>
                     {answer.confidence ? (
                         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                            Starting sense: {confidenceLabel(answer.confidence)}
+                            {t(
+                                'learning.question.starting_sense',
+                                'Starting sense: :confidence',
+                                {
+                                    confidence: confidenceLabel(
+                                        answer.confidence,
+                                        t,
+                                    ),
+                                },
+                            )}
                             {answer.attempt_number > 1
-                                ? ` · Attempt ${answer.attempt_number}`
+                                ? t(
+                                      'learning.question.attempt',
+                                      ' · Attempt :number',
+                                      { number: answer.attempt_number },
+                                  )
                                 : ''}
                         </p>
                     ) : null}
                     {answer.earlier_attempts.length ? (
                         <details className="mt-4 rounded-md border border-slate-200 px-3 py-2 dark:border-white/10">
                             <summary className="cursor-pointer text-xs font-medium text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:text-slate-300 dark:focus-visible:ring-teal-200">
-                                Earlier tries ({answer.earlier_attempts.length})
+                                {t(
+                                    'learning.question.earlier_tries',
+                                    'Earlier tries (:count)',
+                                    { count: answer.earlier_attempts.length },
+                                )}
                             </summary>
                             <div className="mt-2 grid gap-2">
                                 {answer.earlier_attempts.map((attempt) => (
@@ -2175,8 +2234,30 @@ function QuestionActivity({
                                         <div className="flex items-center justify-between gap-2 text-xs">
                                             <span className="font-medium text-slate-700 dark:text-slate-200">
                                                 {attempt.option_labels.length
-                                                    ? `Chose ${attempt.option_labels.join(', ')}`
-                                                    : 'Earlier answer'}
+                                                    ? t(
+                                                          attempt.option_labels.length >
+                                                              1
+                                                              ? 'learning.question.chose_options'
+                                                              : 'learning.question.chose_option',
+                                                          attempt.option_labels.length >
+                                                              1
+                                                              ? 'Chose :options'
+                                                              : 'Chose :option',
+                                                          attempt.option_labels.length >
+                                                              1
+                                                              ? {
+                                                                    options: attempt.option_labels.join(
+                                                                        ', ',
+                                                                    ),
+                                                                }
+                                                              : {
+                                                                    option: attempt.option_labels[0],
+                                                                },
+                                                      )
+                                                    : t(
+                                                          'learning.question.earlier_answer',
+                                                          'Earlier answer',
+                                                      )}
                                             </span>
                                             <span className="shrink-0 text-slate-500 dark:text-slate-400">
                                                 {new Date(
@@ -2186,10 +2267,26 @@ function QuestionActivity({
                                         </div>
                                         <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
                                             {attempt.is_correct
-                                                ? 'Useful clue found'
-                                                : 'Adjust the hypothesis'}
+                                                ? t(
+                                                      'learning.review.outcome_correct',
+                                                      'Useful clue found',
+                                                  )
+                                                : t(
+                                                      'learning.review.outcome_incorrect',
+                                                      'Adjust the hypothesis',
+                                                  )}
                                             {attempt.confidence
-                                                ? ` · Starting sense: ${confidenceLabel(attempt.confidence)}`
+                                                ? t(
+                                                      'learning.question.attempt_starting_sense',
+                                                      ' · Starting sense: :confidence',
+                                                      {
+                                                          confidence:
+                                                              confidenceLabel(
+                                                                  attempt.confidence,
+                                                                  t,
+                                                              ),
+                                                      },
+                                                  )
                                                 : ''}
                                         </p>
                                     </div>
@@ -2210,7 +2307,10 @@ function QuestionActivity({
                             disabled={completing}
                             type="button"
                         >
-                            Try again independently
+                            {t(
+                                'learning.question.try_again',
+                                'Try again independently',
+                            )}
                         </button>
                         <button
                             className="rounded-md bg-[var(--learner-action-accent)] px-4 py-2 text-sm font-medium text-slate-950"
@@ -2219,8 +2319,12 @@ function QuestionActivity({
                             type="button"
                         >
                             {completing
-                                ? 'Saving…'
-                                : answer.next_transition_label || 'Continue'}
+                                ? t(
+                                      'learning.question.saving_feedback',
+                                      'Saving…',
+                                  )
+                                : answer.next_transition_label ||
+                                  t('common.continue', 'Continue')}
                             <ArrowRight className="ml-2 inline size-4" />
                         </button>
                     </div>
@@ -2232,12 +2336,13 @@ function QuestionActivity({
 
 function confidenceLabel(
     confidence: 'exploring' | 'leaning' | 'settled',
+    t: Translate,
 ): string {
     return confidence === 'exploring'
-        ? 'Exploring'
+        ? t('learning.review.confidence_exploring', 'Exploring')
         : confidence === 'leaning'
-          ? 'I have a hunch'
-          : 'Settled';
+          ? t('learning.review.confidence_leaning', 'I have a hunch')
+          : t('learning.review.confidence_settled', 'Settled');
 }
 
 function calibrationMessage(
@@ -2246,14 +2351,27 @@ function calibrationMessage(
         | 'stronger_than_expected'
         | 'higher_than_result'
         | 'uncertainty_made_gap_visible',
+    t: Translate,
 ): string {
     return calibration === 'aligned'
-        ? 'Your confidence matched this result.'
+        ? t(
+              'learning.question.calibration.aligned',
+              'Your confidence matched this result.',
+          )
         : calibration === 'stronger_than_expected'
-          ? 'This result was stronger than your starting sense.'
+          ? t(
+                'learning.question.calibration.stronger_than_expected',
+                'This result was stronger than your starting sense.',
+            )
           : calibration === 'higher_than_result'
-            ? 'Your starting confidence was higher than this result. Compare the explanation with your reasoning.'
-            : 'Your uncertainty helped make this gap visible. Use the explanation to adjust your reasoning.';
+            ? t(
+                  'learning.question.calibration.higher_than_result',
+                  'Your starting confidence was higher than this result. Compare the explanation with your reasoning.',
+              )
+            : t(
+                  'learning.question.calibration.uncertainty_made_gap_visible',
+                  'Your uncertainty helped make this gap visible. Use the explanation to adjust your reasoning.',
+              );
 }
 
 /** Source-adapted from the original NodePlay learning-context aside. */
@@ -2262,15 +2380,16 @@ function PlaybackContext({
 }: {
     context: LearnerPlaybackDocument['context'];
 }) {
+    const t = usePlatformTranslation();
     const mapHref = `/world?map=${encodeURIComponent(context.map_slug)}&focused=${encodeURIComponent(context.node_slug)}`;
 
     return (
         <aside
-            aria-label="Learning context"
+            aria-label={t('learning.activity.context.aria_label', 'Learning context')}
             className="flex min-h-0 flex-col rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4"
         >
             <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
-                Learning context
+                {t('learning.activity.context.eyebrow', 'Learning context')}
             </p>
             <h1 className="mt-2 text-base font-semibold text-[var(--learner-heading-text)]">
                 {context.node_title}
@@ -2278,7 +2397,7 @@ function PlaybackContext({
             <dl className="mt-5 space-y-4 border-t border-[var(--learner-border-color)] pt-4">
                 <div>
                     <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
-                        Map
+                        {t('learning.activity.context.map', 'Map')}
                     </dt>
                     <dd className="mt-1 text-sm text-[var(--learner-body-text)]">
                         <Link
@@ -2292,7 +2411,7 @@ function PlaybackContext({
                 {context.route_label ? (
                     <div>
                         <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
-                            Route
+                            {t('learning.activity.context.route', 'Route')}
                         </dt>
                         <dd className="mt-1 text-sm text-[var(--learner-action-accent)]">
                             {context.route_label}
@@ -2317,6 +2436,7 @@ function PlaybackEvidenceContext({
 }: {
     checkIn: LearnerPlaybackDocument['activity']['check_in'];
 }) {
+    const t = usePlatformTranslation();
     const hasFocus = Boolean(checkIn.objective) || checkIn.concepts.length > 0;
 
     if (!hasFocus && checkIn.learning_areas.length === 0) {
@@ -2327,13 +2447,19 @@ function PlaybackEvidenceContext({
         <>
             {hasFocus ? (
                 <div
-                    aria-label="Learning focus"
+                    aria-label={t(
+                        'learning.activity.evidence_context.title',
+                        'Learning focus',
+                    )}
                     className="mt-3 grid gap-2 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_20%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_5%,transparent)] px-3 py-2"
                 >
                     {checkIn.objective ? (
                         <div>
                             <p className="text-xs font-medium text-[var(--learner-action-accent)]">
-                                What this activity invites
+                                {t(
+                                    'learning.activity.evidence_context.objective',
+                                    'What this activity invites',
+                                )}
                             </p>
                             <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
                                 {checkIn.objective}
@@ -2342,7 +2468,12 @@ function PlaybackEvidenceContext({
                     ) : null}
                     {checkIn.concepts.length > 0 ? (
                         <div className="flex flex-wrap items-center gap-1.5 text-xs leading-5 text-[var(--learner-muted-text)]">
-                            <span className="font-medium">Concepts</span>
+                            <span className="font-medium">
+                                {t(
+                                    'learning.activity.evidence_context.concepts',
+                                    'Concepts',
+                                )}
+                            </span>
                             {checkIn.concepts.map((concept) => (
                                 <span
                                     className="rounded-full border border-[var(--learner-border-color)] px-2 py-0.5 text-[var(--learner-body-text)]"
@@ -2357,7 +2488,12 @@ function PlaybackEvidenceContext({
             ) : null}
             {checkIn.learning_areas.length > 0 ? (
                 <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-[var(--learner-action-accent)]">
-                    <span className="font-medium">Related learning areas:</span>
+                    <span className="font-medium">
+                        {t(
+                            'learning.activity.related_areas',
+                            'Related learning areas:',
+                        )}
+                    </span>
                     {checkIn.learning_areas.map((area) => (
                         <Link
                             className="rounded-sm underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"

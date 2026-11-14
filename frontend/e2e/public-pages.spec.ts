@@ -3390,6 +3390,35 @@ test('the original question surface posts only selected option keys and waits fo
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77';
     let answerAttempt = 0;
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'common.continue': 'Continue locally',
+                    'learning.activity.context.eyebrow':
+                        'Localized activity context',
+                    'learning.activity.evidence_context.concepts':
+                        'Localized concepts',
+                    'learning.activity.evidence_context.objective':
+                        'Localized learning focus',
+                    'learning.question.confidence_after_feedback_prompt':
+                        'Localized after-feedback confidence',
+                    'learning.question.confidence_before_label':
+                        'Localized starting sense',
+                    'learning.question.confidence_reflection':
+                        'Localized confidence reflection',
+                    'learning.question.earlier_tries':
+                        'Localized earlier tries (:count)',
+                    'learning.question.try_again': 'Try locally again',
+                    'learning.review.confidence_leaning': 'Localized hunch',
+                    'learning.review.confidence_settled': 'Localized settled',
+                    'learning.review.outcome_correct': 'Localized useful clue',
+                },
+            }),
+        });
+    });
     await page.route(
         `**/api/v1/learner/play-runs/${playRunId}`,
         async (route) => {
@@ -3449,9 +3478,9 @@ test('the original question surface posts only selected option keys and waits fo
                         completion: { label: null, next_activity_slug: null },
                         check_in: {
                             choice_prompt: null,
-                            concepts: [],
+                            concepts: ['Learner choice'],
                             learning_areas: [],
-                            objective: null,
+                            objective: 'Keep learner choice visible.',
                         },
                         review_context: [],
                     },
@@ -3525,11 +3554,15 @@ test('the original question surface posts only selected option keys and waits fo
     await expect(
         page.getByText('Which choice keeps exploration learner-directed?'),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Settled' }).click();
+    await expect(page.getByText('Localized activity context')).toBeVisible();
+    await expect(page.getByText('Localized learning focus')).toBeVisible();
+    await expect(page.getByText('Localized concepts')).toBeVisible();
+    await expect(page.getByText('Localized starting sense')).toBeVisible();
+    await page.getByRole('button', { name: 'Localized settled' }).click();
     await page
         .getByRole('button', { name: /Keep useful choices visible/ })
         .click();
-    await expect(page.getByText('Useful clue found')).toBeVisible();
+    await expect(page.getByText('Localized useful clue')).toBeVisible();
     await expect(
         page.getByText('This keeps the learner in charge.'),
     ).toBeVisible();
@@ -3537,27 +3570,29 @@ test('the original question surface posts only selected option keys and waits fo
     await expect(
         page.getByText('This keeps the learner in charge.'),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Try again independently' }).click();
+    await page.getByRole('button', { name: 'Try locally again' }).click();
     await expect(
         page.getByText('Which choice keeps exploration learner-directed?'),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'I have a hunch' }).click();
+    await page.getByRole('button', { name: 'Localized hunch' }).click();
     await page
         .getByRole('button', { name: /Keep useful choices visible/ })
         .click();
     await expect(page.getByText('This keeps the learner in charge.')).toBeVisible();
-    await expect(page.getByText('Confidence reflection:')).toBeVisible();
+    await expect(
+        page.getByText('Localized confidence reflection'),
+    ).toBeVisible();
     await expect(
         page.getByText('Your confidence matched this result.'),
     ).toBeVisible();
-    await expect(page.getByText('Earlier tries (1)')).toBeVisible();
+    await expect(page.getByText('Localized earlier tries (1)')).toBeVisible();
     await page
         .getByRole('group', {
-            name: 'After comparing, how settled does this feel now?',
+            name: 'Localized after-feedback confidence',
         })
-        .getByRole('button', { name: 'Settled' })
+        .getByRole('button', { name: 'Localized settled' })
         .click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue locally' }).click();
     await expect(
         page.getByRole('heading', {
             name: 'A small pause after Keep choice visible',

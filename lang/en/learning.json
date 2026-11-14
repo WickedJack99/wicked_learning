@@ -232,6 +232,7 @@
     "learning.question.recall_keep": "Keep for later recall",
     "learning.question.recall_queued_helper": "This question is waiting on your Learning Desk until you remove it.",
     "learning.question.recall_keep_helper": "Save this question when you want to return to it without changing your route.",
+    "learning.question.recall_next": "Next recall in :days days.",
     "learning.question.recall_error": "This recall choice could not be saved. Try again.",
     "learning.question.starting_sense": "Starting sense: :confidence",
     "learning.question.attempt": " · Attempt :number",
