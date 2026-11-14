@@ -90,13 +90,13 @@ export function LearningCompanionSettingsShell({
                             contentClassName="p-0 sm:p-0"
                             sidebar={<>
                                 <label className="grid gap-2 px-1 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase lg:hidden">
-                                    <span>Learning Companion section</span>
-                                    <select aria-label="Learning Companion section" className="h-10 w-full border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 text-sm normal-case tracking-normal text-[var(--settings-primary-text)]" onChange={(event) => selectSection(event.currentTarget.value as LearningCompanionSection)} value={activeSection}>
-                                        {sections.map((section) => <option key={section.key} value={section.key}>{section.label}</option>)}
+                                    <span>{t('settings.learning_companion.navigation.selector_label', 'Learning Companion section')}</span>
+                                    <select aria-label={t('settings.learning_companion.navigation.selector_label', 'Learning Companion section')} className="h-10 w-full border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 text-sm normal-case tracking-normal text-[var(--settings-primary-text)]" onChange={(event) => selectSection(event.currentTarget.value as LearningCompanionSection)} value={activeSection}>
+                                        {sections.map((section) => <option key={section.key} value={section.key}>{t(`settings.learning_companion.navigation.${section.key}.label`, section.label)}</option>)}
                                     </select>
                                 </label>
                                 <div className="hidden lg:block">
-                                    <SettingsSectionNavigation activeSection={activeSection} ariaLabel="Learning Companion sections" items={sections} onChange={selectSection} />
+                                    <SettingsSectionNavigation activeSection={activeSection} ariaLabel={t('settings.learning_companion.navigation.sections_label', 'Learning Companion sections')} items={sections.map((section) => ({ ...section, description: t(`settings.learning_companion.navigation.${section.key}.description`, section.description), label: t(`settings.learning_companion.navigation.${section.key}.label`, section.label) }))} onChange={selectSection} />
                                 </div>
                             </>}
                         >
