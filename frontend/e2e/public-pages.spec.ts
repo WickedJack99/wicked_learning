@@ -878,6 +878,76 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
     ).toBeVisible();
 });
 
+test('the source feedback route uses translated fixed copy and its typed submission', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'feedback.heading': 'Tell us what you noticed',
+                    'feedback.message.label': 'Message for the platform',
+                    'feedback.submit': 'Send it',
+                    'feedback.success': 'Your note was shared.',
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                appearance: 'dark',
+                avatar_url: null,
+                capabilities: [],
+                email: 'learner@example.test',
+                name: 'Feedback learner',
+                roles: ['learner'],
+                settings_access: {},
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                username: null,
+            }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'feedback-csrf-token' }),
+        });
+    });
+    await page.route('**/api/v1/platform-feedback', async (route) => {
+        expect(route.request().method()).toBe('POST');
+        expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+            'feedback-csrf-token',
+        );
+        expect(route.request().postDataJSON()).toEqual({
+            category: 'idea',
+            message: 'The new route selection was easier to understand.',
+        });
+        await route.fulfill({ status: 204 });
+    });
+
+    await page.goto('/feedback');
+    await expect(
+        page.getByRole('heading', { name: 'Tell us what you noticed' }),
+    ).toBeVisible();
+    await page.getByLabel('What kind of feedback is this?').selectOption('idea');
+    const message = page.getByLabel('Message for the platform');
+    await message.fill('The new route selection was easier to understand.');
+    await page.getByRole('button', { name: 'Send it' }).click();
+    await expect(page.getByRole('status')).toHaveText('Your note was shared.');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const messageBounds = await message.boundingBox();
+    expect(messageBounds).not.toBeNull();
+    expect(messageBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(
+        (messageBounds?.x ?? 0) + (messageBounds?.width ?? Infinity),
+    ).toBeLessThanOrEqual(390);
+});
+
 test('the original journal overlay reads only its private paginated contract', async ({
     page,
 }) => {

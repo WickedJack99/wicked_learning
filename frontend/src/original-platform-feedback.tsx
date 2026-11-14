@@ -4,6 +4,7 @@ import { Link, Navigate } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import { OriginalLearnerHeader } from './original-learner-header';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type FeedbackCategory = 'general' | 'idea' | 'problem' | 'praise';
 
@@ -27,6 +28,7 @@ export function OriginalPlatformFeedbackPage({
     onSignedOut: () => void;
     userEmail: string;
 }) {
+    const t = usePlatformTranslation();
     const [category, setCategory] = useState<FeedbackCategory>('general');
     const [message, setMessage] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -104,15 +106,18 @@ export function OriginalPlatformFeedbackPage({
                         </span>
                         <div>
                             <p className="text-sm font-medium tracking-[0.16em] uppercase" style={{ color: 'var(--learner-accent)' }}>
-                                Platform feedback
+                                {t('feedback.eyebrow', 'Platform feedback')}
                             </p>
                             <h1 className="mt-2 text-3xl font-medium tracking-tight">
-                                Share what you notice
+                                {t('feedback.heading', 'Share what you notice')}
                             </h1>
                         </div>
                     </div>
                     <p className="mt-5 text-sm leading-6" style={{ color: 'var(--learner-muted-text)' }}>
-                        Tell the platform team what is helping, confusing or worth exploring next. This message is shared deliberately as platform feedback; it is separate from your journal, activity responses and competence evidence.
+                        {t(
+                            'feedback.description',
+                            'Tell the platform team what is helping, confusing or worth exploring next. This message is shared deliberately as platform feedback; it is separate from your journal, activity responses and competence evidence.',
+                        )}
                     </p>
 
                     {submitted ? (
@@ -126,13 +131,23 @@ export function OriginalPlatformFeedbackPage({
                             }}
                         >
                             <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
-                            <p>Thanks. Your feedback has been shared with the platform team.</p>
+                            <p>
+                                {t(
+                                    'feedback.success',
+                                    'Thanks. Your feedback has been shared with the platform team.',
+                                )}
+                            </p>
                         </div>
                     ) : null}
 
                     <form className="mt-8 grid gap-6" onSubmit={(event) => void submit(event)}>
                         <label className="grid gap-2 text-sm font-medium">
-                            <span>What kind of feedback is this?</span>
+                            <span>
+                                {t(
+                                    'feedback.category.label',
+                                    'What kind of feedback is this?',
+                                )}
+                            </span>
                             <select
                                 className="h-11 rounded-md border bg-transparent px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
                                 data-wl-id="learner.feedback.category"
@@ -140,14 +155,34 @@ export function OriginalPlatformFeedbackPage({
                                 style={{ borderColor: 'var(--learner-border-color)' }}
                                 value={category}
                             >
-                                <option value="general">General feedback</option>
-                                <option value="idea">Idea or suggestion</option>
-                                <option value="problem">Something is difficult or broken</option>
-                                <option value="praise">Something works well</option>
+                                <option value="general">
+                                    {t(
+                                        'feedback.category.general',
+                                        'General feedback',
+                                    )}
+                                </option>
+                                <option value="idea">
+                                    {t(
+                                        'feedback.category.idea',
+                                        'Idea or suggestion',
+                                    )}
+                                </option>
+                                <option value="problem">
+                                    {t(
+                                        'feedback.category.problem',
+                                        'Something is difficult or broken',
+                                    )}
+                                </option>
+                                <option value="praise">
+                                    {t(
+                                        'feedback.category.praise',
+                                        'Something works well',
+                                    )}
+                                </option>
                             </select>
                         </label>
                         <label className="grid gap-2 text-sm font-medium">
-                            <span>Your feedback</span>
+                            <span>{t('feedback.message.label', 'Your feedback')}</span>
                             <textarea
                                 aria-describedby="feedback-message-help"
                                 className="min-h-40 w-full resize-y rounded-md border bg-transparent p-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
@@ -155,13 +190,19 @@ export function OriginalPlatformFeedbackPage({
                                 maxLength={4000}
                                 minLength={10}
                                 onChange={(event) => setMessage(event.target.value)}
-                                placeholder="What happened, and what would make the experience more useful?"
+                                placeholder={t(
+                                    'feedback.message.placeholder',
+                                    'What happened, and what would make the experience more useful?',
+                                )}
                                 rows={8}
                                 style={{ borderColor: 'var(--learner-border-color)' }}
                                 value={message}
                             />
                             <span className="text-sm font-normal" id="feedback-message-help" style={{ color: 'var(--learner-muted-text)' }}>
-                                At least 10 characters. Please do not include passwords or private information about someone else.
+                                {t(
+                                    'feedback.message.helper',
+                                    'At least 10 characters. Please do not include passwords or private information about someone else.',
+                                )}
                             </span>
                         </label>
                         <div className="flex flex-wrap items-center gap-3">
@@ -171,10 +212,12 @@ export function OriginalPlatformFeedbackPage({
                                 type="submit"
                             >
                                 <MessageSquareText className="size-4" />
-                                {submitting ? 'Sharing...' : 'Share feedback'}
+                                {submitting
+                                    ? t('feedback.submitting', 'Sharing...')
+                                    : t('feedback.submit', 'Share feedback')}
                             </button>
                             <Link className="text-sm font-medium underline-offset-4 hover:underline" to="/home">
-                                Back to learning desk
+                                {t('feedback.back', 'Back to learning desk')}
                             </Link>
                         </div>
                         {error ? <p className="text-sm text-red-300" role="alert">{error}</p> : null}
