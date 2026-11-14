@@ -69,6 +69,8 @@ test('Personal settings restores the source section navigation', async ({ page }
                 translations: {
                     'common.appearance.dark': 'Night',
                     'common.appearance.light': 'Day',
+                    'settings.personal.language.current': 'Current locale',
+                    'settings.personal.language.save': 'Store locale',
                     'settings.personal.sound.effects': 'Effects level',
                     'settings.personal.sound.mute': 'Disable all sounds',
                     'settings.personal.sound.save': 'Store audio choices',
@@ -136,7 +138,7 @@ test('Personal settings restores the source section navigation', async ({ page }
 
     for (const [section, heading] of [
         ['appearance', 'Visual mode'],
-        ['language', 'Current language'],
+        ['language', 'Current locale'],
         ['feedback', 'Platform feedback'],
         ['delete-account', 'Delete account'],
     ]) {
@@ -154,6 +156,12 @@ test('Personal settings restores the source section navigation', async ({ page }
             if (section === 'appearance') {
                 await expect(page.getByRole('button', { name: 'Day' })).toBeVisible();
                 await expect(page.getByRole('button', { name: 'Night' })).toBeVisible();
+            }
+
+            if (section === 'language') {
+                await expect(
+                    page.getByRole('button', { name: 'Store locale' }),
+                ).toBeDisabled();
             }
         });
     }
