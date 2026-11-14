@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type LearnerTool = components['schemas']['LearnerTool'];
@@ -39,6 +40,7 @@ export function OriginalObstacleActivity({
     selectedTool: LearnerTool | null;
 }) {
     const config = activity.config as Record<string, unknown>;
+    const t = usePlatformTranslation();
     const [isPromptHidden, setIsPromptHidden] = useState(false);
     const [isSuccessHidden, setIsSuccessHidden] = useState(false);
     const [isRevisitHidden, setIsRevisitHidden] = useState(false);
@@ -91,15 +93,29 @@ export function OriginalObstacleActivity({
         : config.obstacleImageMirrored === true;
     const promptText =
         stringConfig(config.promptText) ??
-        'Something blocks the way. Equip a suitable tool, then use it here.';
+        t(
+            'learning.obstacle.prompt',
+            'Something blocks the way. Equip a suitable tool, then use it here.',
+        );
     const toolHint = selectedTool
-        ? `Selected tool: ${selectedTool.title}. Click the gate above.`
-        : 'Choose a tool with the hammer button, then click the gate above.';
+        ? t(
+              'learning.obstacle.selected_tool',
+              'Selected tool: :tool. Click the gate above.',
+              { tool: selectedTool.title },
+          )
+        : t(
+              'learning.obstacle.choose_tool',
+              'Choose a tool with the hammer button, then click the gate above.',
+          );
     const successText =
-        stringConfig(config.successText) ?? 'The obstacle gives way.';
+        stringConfig(config.successText) ??
+        t('learning.obstacle.success', 'The obstacle gives way.');
     const revisitText =
         stringConfig(config.revisitText) ??
-        'This obstacle has already been cleared.';
+        t(
+            'learning.obstacle.already_cleared',
+            'This obstacle has already been cleared.',
+        );
     const typingSpeed = numberConfig(config.typingSpeed, 24);
     const successAnimation = stringConfig(config.successAnimation) ?? 'zoom';
     const isToolAnimating = Boolean(toolAnimation);
@@ -121,7 +137,14 @@ export function OriginalObstacleActivity({
             target.closest('[data-obstacle-target="true"]'),
         );
         if (!selectedTool) {
-            if (clickedObstacle) setHint('Equip a tool from the tool belt first.');
+            if (clickedObstacle) {
+                setHint(
+                    t(
+                        'learning.obstacle.equip_tool_first',
+                        'Equip a tool from the tool belt first.',
+                    ),
+                );
+            }
             return;
         }
         if (isResolving || isResolved) return;
@@ -152,7 +175,12 @@ export function OriginalObstacleActivity({
             await wait(animation.durationMs);
             const { data, response } = await responsePromise;
             if (!response.ok || !data || !data.is_useful) {
-                setHint('That tool does not seem useful here.');
+                setHint(
+                    t(
+                        'learning.obstacle.tool_not_useful',
+                        'That tool does not seem useful here.',
+                    ),
+                );
                 return;
             }
 
@@ -200,6 +228,14 @@ export function OriginalObstacleActivity({
                     mirrored={obstacleMirrored}
                     style={obstaclePlacement}
                     successAnimation={successAnimation}
+                    targetAriaLabel={t(
+                        'learning.obstacle.use_tool',
+                        'Use an equipped tool on the gate',
+                    )}
+                    targetFallback={t(
+                        'learning.obstacle.target_fallback',
+                        'Equip a tool, then click the gate',
+                    )}
                 />
             )}
             {toolAnimation ? <ToolUseAnimation animation={toolAnimation} /> : null}
@@ -212,6 +248,8 @@ export function OriginalObstacleActivity({
                     <ObstacleSpeechBubble
                         config={config}
                         hint={toolHint}
+                        hideLabel={t('learning.obstacle.hide', 'Hide')}
+                        label={t('learning.obstacle.label', 'Obstacle')}
                         onHide={() => setIsPromptHidden(true)}
                         text={promptText}
                         typingSpeed={typingSpeed}
@@ -221,6 +259,8 @@ export function OriginalObstacleActivity({
                 {!isSuccessHidden && isResolved && !isClearedRevisit ? (
                     <ObstacleSpeechBubble
                         config={config}
+                        hideLabel={t('learning.obstacle.hide', 'Hide')}
+                        label={t('learning.obstacle.label', 'Obstacle')}
                         onHide={() => setIsSuccessHidden(true)}
                         text={successText}
                         typingSpeed={typingSpeed}
@@ -230,6 +270,8 @@ export function OriginalObstacleActivity({
                 {!isRevisitHidden && isClearedRevisit ? (
                     <ObstacleSpeechBubble
                         config={config}
+                        hideLabel={t('learning.obstacle.hide', 'Hide')}
+                        label={t('learning.obstacle.label', 'Obstacle')}
                         onHide={() => setIsRevisitHidden(true)}
                         text={revisitText}
                         typingSpeed={typingSpeed}
@@ -247,7 +289,8 @@ export function OriginalObstacleActivity({
                         onClick={() => void onComplete()}
                         type="button"
                     >
-                        {activity.completion.label?.trim() || 'Continue'}
+                        {activity.completion.label?.trim() ||
+                            t('common.continue', 'Continue')}
                         <ArrowRight className="ml-2 size-4" />
                     </button>
                 ) : null}
@@ -263,6 +306,8 @@ function ObstacleTargetVisual({
     mirrored,
     style,
     successAnimation,
+    targetAriaLabel,
+    targetFallback,
 }: {
     imageUrl: string | null;
     isResolved: boolean;
@@ -270,6 +315,8 @@ function ObstacleTargetVisual({
     mirrored: boolean;
     style: CSSProperties;
     successAnimation: string;
+    targetAriaLabel: string;
+    targetFallback: string;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
     if (isResolved && (!imageUrl || imageFailed)) return null;
@@ -280,7 +327,7 @@ function ObstacleTargetVisual({
             style={style}
         >
             <button
-                aria-label="Use an equipped tool on the gate"
+                aria-label={targetAriaLabel}
                 className={`cursor-inherit grid w-full place-items-center rounded-xl transition focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:focus-visible:ring-teal-200 ${canShowImage ? 'bg-transparent p-0' : 'min-h-40 min-w-52 border border-dashed border-cyan-500/40 bg-cyan-950/10 p-6 text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100'} ${isResolved ? successAnimationClass(successAnimation) : ''}`}
                 data-obstacle-target="true"
                 disabled={isResolving || isResolved}
@@ -298,7 +345,7 @@ function ObstacleTargetVisual({
                     />
                 ) : (
                     <span className="text-sm font-semibold">
-                        Equip a tool, then click the gate
+                        {targetFallback}
                     </span>
                 )}
             </button>
@@ -358,6 +405,8 @@ function ObstacleSpeechBubble({
     appearance,
     config,
     hint,
+    hideLabel,
+    label,
     onHide,
     text,
     typingSpeed,
@@ -365,6 +414,8 @@ function ObstacleSpeechBubble({
     appearance: OriginalAppearance;
     config: Record<string, unknown>;
     hint?: string;
+    hideLabel: string;
+    label: string;
     onHide: () => void;
     text: string;
     typingSpeed: number;
@@ -388,14 +439,14 @@ function ObstacleSpeechBubble({
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                     <MessageCircle className="size-4" />
-                    Obstacle
+                    {label}
                 </div>
                 <button
                     className="rounded-md px-2 py-1 text-sm hover:bg-black/10 dark:hover:bg-white/10"
                     onClick={onHide}
                     type="button"
                 >
-                    Hide
+                    {hideLabel}
                 </button>
             </div>
             <TypingText speed={typingSpeed} text={text} />

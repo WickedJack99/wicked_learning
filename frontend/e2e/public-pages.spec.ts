@@ -4233,6 +4233,20 @@ test('the original obstacle surface selects an owned tool and uses only the acti
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'learning.obstacle.hide': 'Silence',
+                    'learning.obstacle.label': 'Localized obstacle',
+                    'learning.obstacle.selected_tool': 'Using: :tool.',
+                    'learning.obstacle.use_tool': 'Use the localized tool',
+                },
+            }),
+        });
+    });
     await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -4339,13 +4353,24 @@ test('the original obstacle surface selects an owned tool and uses only the acti
         },
     );
 
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByText('Localized obstacle')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Silence' })).toBeVisible();
+    const desktopSceneBounds = await page
+        .locator('[data-wl-id="learner.activity.obstacle.scene"]')
+        .boundingBox();
+    expect(desktopSceneBounds?.width ?? 0).toBeGreaterThan(700);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await expect(page.getByText('Localized obstacle')).toBeVisible();
     await page.getByRole('button', { name: 'Open tools' }).click();
     await page.getByRole('button', { name: 'Hammer' }).click();
+    await expect(page.getByText('Using: Hammer.')).toBeVisible();
     await page
         .locator('[data-wl-id="learner.activity.obstacle.scene"]')
-        .getByRole('button', { name: 'Use an equipped tool on the gate' })
+        .getByRole('button', { name: 'Use the localized tool' })
         .click();
     await expect(
         page.getByRole('heading', {
