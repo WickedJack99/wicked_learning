@@ -19,6 +19,7 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'settings.world_builder.header.eyebrow': 'Localized world editing',
                     'settings.world_builder.source_catalog.concept_filter_label': 'Localized concept filter',
                     'settings.world_builder.source_catalog.description': 'Localized reusable citation guidance.',
                     'settings.world_builder.source_catalog.field_title': 'Localized citation title',
@@ -57,7 +58,8 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
     });
 
     await page.goto('/settings?panel=admin-world-builder');
-    await page.getByRole('button', { name: 'Source catalog' }).click();
+    await expect(page.getByText('Localized world editing')).toBeVisible();
+    await page.getByRole('button', { name: 'Localized source catalog' }).click();
 
     const catalog = page.locator('[data-wl-id="authoring.source-catalog"]');
     await expect(catalog.getByRole('heading', { name: 'Localized source catalog' })).toBeVisible();

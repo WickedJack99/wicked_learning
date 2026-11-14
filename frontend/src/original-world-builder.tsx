@@ -863,7 +863,10 @@ function WorldBuilderContent({
                         Settings
                     </Link>
                     <p className="mt-4 text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                        World editing
+                        {t(
+                            'settings.world_builder.header.eyebrow',
+                            'World editing',
+                        )}
                     </p>
                     <h1 className="mt-1 text-2xl font-semibold">
                         {worldGraph!.world.title}
@@ -879,7 +882,10 @@ function WorldBuilderContent({
                         onClick={() => setSourceCatalogOpen(true)}
                         type="button"
                     >
-                        Source catalog
+                        {t(
+                            'settings.world_builder.source_catalog.title',
+                            'Source catalog',
+                        )}
                     </button>
                     <button
                         className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
@@ -897,7 +903,16 @@ function WorldBuilderContent({
                         }}
                         type="button"
                     >
-                        Review queue{reviewCount > 0 ? ` (${reviewCount})` : ''}
+                        {reviewCount > 0
+                            ? t(
+                                  'settings.world_builder.header.review_queue_count',
+                                  'Review queue (:count)',
+                                  { count: reviewCount },
+                              )
+                            : t(
+                                  'settings.world_builder.header.review_queue',
+                                  'Review queue',
+                              )}
                     </button>
                     <button
                         className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:border-white/20 dark:hover:bg-white/10"
