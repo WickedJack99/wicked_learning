@@ -26,7 +26,7 @@ test('a learner saves private source-shaped sound preferences from the account m
     await page.getByRole('button', { name: 'Mute all sound' }).click();
     await page.getByRole('slider', { name: 'Effects volume' }).fill(String(expected.effects_volume));
     await page.getByRole('slider', { name: 'Ambience volume' }).fill(String(expected.ambience_volume));
-    await page.getByRole('button', { name: 'Save sound preferences' }).click();
+    await page.locator('footer').getByRole('button', { name: 'Save' }).click();
     await expect
         .poll(async () => {
             const saved = await request.get('/api/v1/learner/sound-preferences');

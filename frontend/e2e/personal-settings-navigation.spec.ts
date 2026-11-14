@@ -207,7 +207,7 @@ test('Personal settings restores the source section navigation', async ({ page }
 
             if (section === 'language') {
                 await expect(
-                    page.getByRole('button', { name: 'Store locale' }),
+                    page.locator('footer').getByRole('button', { name: 'Save' }),
                 ).toBeDisabled();
             }
         });
@@ -233,7 +233,8 @@ test('Personal settings restores the source section navigation', async ({ page }
     ).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('slider', { name: 'Effects level' }).fill('36');
     await page
-        .getByRole('button', { name: 'Store audio choices' })
+        .locator('footer')
+        .getByRole('button', { name: 'Save' })
         .click();
     await expect.poll(() => soundPreferences).toEqual({
         ambience_volume: 50,

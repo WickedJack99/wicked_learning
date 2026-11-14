@@ -138,13 +138,13 @@ test('Personal Security keeps the source per-field password controls', async ({
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'common.save': 'Store',
                     'settings.personal.security.confirm_password':
                         'Repeat fresh passphrase',
                     'settings.personal.security.current_password':
                         'Existing passphrase',
                     'settings.personal.security.new_password':
                         'Fresh passphrase',
-                    'settings.personal.security.save': 'Store passphrase',
                     'settings.personal.security.title': 'Renew password',
                 },
             }),
@@ -174,7 +174,7 @@ test('Personal Security keeps the source per-field password controls', async ({
         page.getByRole('button', { name: 'Show password' }),
     ).toHaveCount(3);
     await expect(
-        page.getByRole('button', { name: 'Store passphrase' }),
+        page.locator('footer').getByRole('button', { name: 'Store' }),
     ).toBeDisabled();
 
     await page.getByRole('button', { name: 'Show password' }).nth(1).click();

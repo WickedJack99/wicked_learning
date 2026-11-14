@@ -70,7 +70,25 @@ export function OriginalPersonalSoundPage({
 
     const changed = JSON.stringify(value) !== JSON.stringify(saved);
     return (
-        <OriginalPersonalSettingsShell activeSection="sound" appearance={appearance}>
+        <OriginalPersonalSettingsShell
+            activeSection="sound"
+            appearance={appearance}
+            footerAction={
+                <div className="w-full lg:max-w-[45%]">
+                    <button
+                        className="inline-flex w-full items-center justify-center rounded-md bg-[var(--settings-accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+                        disabled={saving || !changed}
+                        onClick={() => void save()}
+                        type="button"
+                    >
+                        <Save className="mr-2 size-4" />
+                        {saving
+                            ? t('settings.personal.sound.saving', 'Saving...')
+                            : t('common.save', 'Save')}
+                    </button>
+                </div>
+            }
+        >
             <section className="grid gap-5">
                 <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--settings-border-color)] pb-5">
                     <div>
@@ -189,20 +207,6 @@ export function OriginalPersonalSoundPage({
                             </button>
                         </div>
                     </div>
-                    <button
-                        className="inline-flex w-full items-center justify-center rounded-md bg-[var(--settings-accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
-                        disabled={saving || !changed}
-                        onClick={() => void save()}
-                        type="button"
-                    >
-                        <Save className="mr-2 size-4" />
-                        {saving
-                            ? t('settings.personal.sound.saving', 'Saving...')
-                            : t(
-                                  'settings.personal.sound.save',
-                                  'Save sound preferences',
-                              )}
-                    </button>
                     {error ? (
                         <p className="text-sm text-red-500" role="alert">
                             {error}

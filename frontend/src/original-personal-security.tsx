@@ -99,7 +99,26 @@ export function OriginalPersonalSecurityPage({
     }
 
     return (
-        <OriginalPersonalSettingsShell activeSection="security" appearance={appearance}>
+        <OriginalPersonalSettingsShell
+            activeSection="security"
+            appearance={appearance}
+            footerAction={
+                <div className="w-full lg:max-w-[45%]">
+                    <button
+                        className="inline-flex w-full items-center justify-center rounded-md bg-[var(--settings-accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+                        data-test="update-password-button"
+                        disabled={saving || !changed}
+                        form="personal-security-form"
+                        type="submit"
+                    >
+                        <Save className="mr-2 size-4" />
+                        {saving
+                            ? t('common.saving', 'Saving...')
+                            : t('common.save', 'Save')}
+                    </button>
+                </div>
+            }
+        >
             <div className="grid gap-5">
                 <section className="grid gap-5">
                     <header className="border-b border-[var(--settings-border-color)] pb-5">
@@ -124,6 +143,7 @@ export function OriginalPersonalSecurityPage({
                     </header>
                     <form
                         className="grid w-full min-w-0 gap-5 lg:max-w-[45%]"
+                        id="personal-security-form"
                         onSubmit={(event) => void submit(event)}
                     >
                         <PasswordField
@@ -156,18 +176,6 @@ export function OriginalPersonalSecurityPage({
                             onChange={setPasswordConfirmation}
                             value={passwordConfirmation}
                         />
-                        <button
-                            className="inline-flex w-fit items-center rounded-md bg-[var(--settings-accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
-                            data-test="update-password-button"
-                            disabled={saving || !changed}
-                            type="submit"
-                        >
-                            <Save className="mr-2 size-4" />
-                            {t(
-                                'settings.personal.security.save',
-                                'Save password',
-                            )}
-                        </button>
                     </form>
                     {message ? (
                         <p

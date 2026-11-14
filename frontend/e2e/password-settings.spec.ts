@@ -49,7 +49,7 @@ test('a disposable local identity updates its password in the source-derived sec
         await page.getByLabel('Current password').fill(currentPassword!);
         await page.getByLabel('New password').fill(replacementPassword!);
         await page.getByLabel('Confirm password').fill(replacementPassword!);
-        await page.getByRole('button', { name: 'Save password' }).click();
+        await page.locator('footer').getByRole('button', { name: 'Save' }).click();
         await expect(page.getByRole('status')).toHaveText('Password updated.');
         await expect(sessionCookieValue(page)).resolves.not.toBe(sessionBeforePasswordChange);
 

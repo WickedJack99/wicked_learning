@@ -74,7 +74,7 @@ test('a disposable local identity updates source-shaped profile details', async 
                     .endsWith('/api/v1/learner/language-preference') &&
                 response.request().method() === 'PATCH',
         );
-        await page.getByRole('button', { name: 'Save language' }).click();
+        await page.locator('footer').getByRole('button', { name: 'Save' }).click();
         expect((await languageSave).ok()).toBe(true);
         const savedLanguage = await page.request.get(
             '/api/v1/learner/language-preference',
