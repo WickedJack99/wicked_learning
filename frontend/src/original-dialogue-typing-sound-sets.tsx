@@ -8,6 +8,7 @@ import {
     AssetsWorldObjectsSettingsShell,
 } from './extracted-assets-world-objects-navigation';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type SoundSet = components['schemas']['AdminDialogueTypingSoundSet'];
 type Metadata = components['schemas']['AdminDialogueTypingSoundSetMetadataRequest'];
@@ -37,6 +38,7 @@ export function OriginalDialogueTypingSoundSetsPage({
     onSignedOut: () => void;
     settingsAccess: Record<string, boolean>;
 }) {
+    const t = usePlatformTranslation();
     const [sets, setSets] = useState<SoundSet[]>([]);
     const selectedFromUrl = useRef(readSelectedSetId()).current;
     const hasExplicitSelection = useRef(selectedFromUrl !== null);
@@ -65,9 +67,9 @@ export function OriginalDialogueTypingSoundSetsPage({
                 return data.sets[0]?.id ?? 'new';
             });
         } catch {
-            setError('The dialogue typing sound sets could not be loaded. Check your sound-library access and try again.');
+            setError(t('settings.dialogue_typing_sounds.load_error', 'The dialogue typing sound sets could not be loaded. Check your sound-library access and try again.'));
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => { void load(); }, [load]);
 
@@ -107,9 +109,9 @@ export function OriginalDialogueTypingSoundSetsPage({
             if (!response.ok || !data) throw new Error('save metadata');
             replaceSet(data.set);
             setForm(formFromSet(data.set));
-            setNotice('Sound-set details saved.');
+            setNotice(t('settings.dialogue_typing_sounds.details_saved', 'Sound-set details saved.'));
         } catch {
-            setError('The details could not be saved. The slug may already be in use.');
+            setError(t('settings.dialogue_typing_sounds.details_error', 'The details could not be saved. The slug may already be in use.'));
         } finally {
             setBusy(false);
         }
@@ -132,7 +134,7 @@ export function OriginalDialogueTypingSoundSetsPage({
                 });
                 if (!response.ok || !data) throw new Error('replace');
                 replaceSet(data.set);
-                setNotice('All 26 letter sounds were replaced.');
+                setNotice(t('settings.dialogue_typing_sounds.sounds_replaced', 'All 26 letter sounds were replaced.'));
             } else {
                 const { data, response } = await apiClient.POST('/admin/dialogue-typing-sound-sets', {
                     body: { ...metadata(form), sounds: assignments },
@@ -145,13 +147,13 @@ export function OriginalDialogueTypingSoundSetsPage({
                     return nextSets;
                 });
                 setSelectedId(data.set.id);
-                setNotice('Dialogue typing sound set created.');
+                setNotice(t('settings.dialogue_typing_sounds.created', 'Dialogue typing sound set created.'));
             }
             assetIds = [];
             setFiles([]);
         } catch {
             await discardUploads(assetIds);
-            setError('The set could not be saved. Choose exactly one WAV named a.wav through z.wav, with each file under 20 MiB.');
+            setError(t('settings.dialogue_typing_sounds.set_error', 'The set could not be saved. Choose exactly one WAV named a.wav through z.wav, with each file under 20 MiB.'));
         } finally {
             setBusy(false);
             if (input.current) input.current.value = '';
@@ -172,11 +174,11 @@ export function OriginalDialogueTypingSoundSetsPage({
             });
             if (!response.ok || !data) throw new Error('replace letter');
             replaceSet(data.set);
-            setNotice(`The ${letter.toUpperCase()} sound was replaced.`);
+            setNotice(t('settings.dialogue_typing_sounds.letter_replaced', 'The :letter sound was replaced.', { letter: letter.toUpperCase() }));
             assetId = null;
         } catch {
             if (assetId) await discardUploads([assetId]);
-            setError(`The ${letter.toUpperCase()} sound could not be replaced. Select that letter's WAV file under 20 MiB.`);
+            setError(t('settings.dialogue_typing_sounds.letter_error', "The :letter sound could not be replaced. Select that letter's WAV file under 20 MiB.", { letter: letter.toUpperCase() }));
         } finally {
             setBusy(false);
         }
