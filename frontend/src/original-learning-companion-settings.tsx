@@ -1515,7 +1515,7 @@ function NodeDialog({
                 {draft.type === 'choice' ? (
                     <section className="mt-5 border-t border-slate-200 pt-4 dark:border-white/10">
                         <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">Choices</h3>
+                            <h3 className="font-semibold">{t('settings.learning_companion.node_editor.choices', 'Choices')}</h3>
                             <button
                                 className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-sm dark:border-white/15"
                                 onClick={() =>
@@ -1523,14 +1523,14 @@ function NodeDialog({
                                         ...(draft.choices ?? []),
                                         {
                                             key: `choice-${(draft.choices?.length ?? 0) + 1}`,
-                                            label: 'New choice',
+                                            label: t('settings.learning_companion.node_editor.new_choice', 'New choice'),
                                         },
                                     ])
                                 }
                                 type="button"
                             >
                                 <Plus className="size-4" />
-                                Add choice
+                                {t('settings.learning_companion.node_editor.add_choice', 'Add choice')}
                             </button>
                         </div>
                         <div className="mt-3 grid gap-3">
@@ -1551,7 +1551,7 @@ function NodeDialog({
                                         value={choice.label}
                                     />
                                     <SelectField
-                                        label="Destination"
+                                        label={t('settings.learning_companion.node_editor.destination', 'Destination')}
                                         onChange={(value) =>
                                             updateChoice(index, {
                                                 ...choice,
@@ -1564,7 +1564,7 @@ function NodeDialog({
                                         options={[
                                             [
                                                 '',
-                                                'Server action / no destination',
+                                                t('settings.learning_companion.node_editor.no_destination', 'Server action / no destination'),
                                             ],
                                             ...targets,
                                         ]}
@@ -1587,7 +1587,7 @@ function NodeDialog({
                                         <Trash2 className="size-4" />
                                     </button>
                                     <SelectField
-                                        label="Server action"
+                                        label={t('settings.learning_companion.node_editor.server_action', 'Server action')}
                                         onChange={(value) =>
                                             updateChoice(index, {
                                                 ...choice,
@@ -1598,7 +1598,7 @@ function NodeDialog({
                                             })
                                         }
                                         options={[
-                                            ['', 'No server action'],
+                                            ['', t('settings.learning_companion.node_editor.no_server_action', 'No server action')],
                                             ...actions,
                                         ]}
                                         value={choice.action ?? ''}
@@ -1628,7 +1628,7 @@ function NodeDialog({
                         onClick={onClose}
                         type="button"
                     >
-                        Cancel
+                        {t('common.cancel', 'Cancel')}
                     </button>
                     <button
                         className="inline-flex min-h-11 items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-teal-300 dark:text-slate-950"
@@ -1637,7 +1637,7 @@ function NodeDialog({
                         type="button"
                     >
                         <Save className="size-4" />
-                        Save node
+                        {t('settings.learning_companion.node_editor.save', 'Save node')}
                     </button>
                 </footer>
             </div>

@@ -55,6 +55,8 @@ test('the Learning Companion settings surfaces consume their fixed platform cata
                         'Localized node id',
                     'settings.learning_companion.node_editor.message':
                         'Localized node message',
+                    'settings.learning_companion.node_editor.save':
+                        'Localized save node',
                     'settings.learning_companion.navigation.dialogues.description':
                         'Localized reusable dialogue graphs.',
                     'settings.learning_companion.navigation.dialogues.label':
@@ -218,6 +220,9 @@ test('the Learning Companion settings surfaces consume their fixed platform cata
     ).toBeVisible();
     await expect(page.getByLabel('Localized node id')).toBeVisible();
     await expect(page.getByLabel('Localized node message')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Localized save node' }),
+    ).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
     const selector = page.getByLabel('Localized Learning Companion selector');
