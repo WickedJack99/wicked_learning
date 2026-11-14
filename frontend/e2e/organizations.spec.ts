@@ -127,6 +127,101 @@ test('organization creation preserves the source submit-and-validate flow', asyn
     ).toBeVisible();
 });
 
+test('organization detail preserves source section and page query parameters', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                appearance: 'light',
+                avatar_url: null,
+                capabilities: [],
+                email: 'learner@example.test',
+                name: 'Learner',
+                roles: ['learner'],
+                settings_access: {},
+                subject_id: '00000000-0000-0000-0000-000000000001',
+                username: null,
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ locale: 'en', translations: {} }),
+        });
+    });
+    await page.route('**/api/v1/learner/feedback-prompt-preference', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ status: 'declined' }),
+        });
+    });
+    let requestedMembersPage = '';
+    await page.route('**/api/v1/organizations/source-organization*', async (route) => {
+        requestedMembersPage = new URL(route.request().url()).searchParams.get(
+            'members_page',
+        ) ?? '';
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                organization: {
+                    can_moderate_messages: false,
+                    can_send_messages: false,
+                    description: null,
+                    governance_type: 'monarchy',
+                    icon_url: null,
+                    id: '10000000-0000-0000-0000-000000000001',
+                    is_leader: false,
+                    leader_count: 1,
+                    leadership_rotated_at: null,
+                    member_count: 2,
+                    members: [
+                        {
+                            id: '20000000-0000-0000-0000-000000000001',
+                            joined_at: '2026-01-01T00:00:00Z',
+                            role: 'leader',
+                            user: {
+                                id: '30000000-0000-0000-0000-000000000001',
+                                name: 'Other learner',
+                            },
+                        },
+                    ],
+                    members_pagination: {
+                        current_page: 2,
+                        last_page: 2,
+                        per_page: 1,
+                        total: 2,
+                    },
+                    messages: [],
+                    messages_pagination: null,
+                    name: 'Source organization',
+                    pending_join_requests: [],
+                    pending_join_requests_pagination: null,
+                    slug: 'source-organization',
+                    slogan: null,
+                    viewer_join_request: null,
+                    viewer_membership: null,
+                },
+            }),
+        });
+    });
+
+    await page.goto('/organizations/source-organization?section=members&members_page=2');
+
+    await expect(
+        page.getByRole('heading', { name: 'Source organization' }),
+    ).toBeVisible();
+    await expect.poll(() => requestedMembersPage).toBe('2');
+    await expect(
+        page.getByRole('button', { name: 'Members (2)' }),
+    ).toHaveClass(/bg-\[/);
+    await expect(page.getByText('Other learner')).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText('Other learner')).toBeVisible();
+});
+
 test('organizations preserve the source membership, leadership and chat workflow', async ({
     page,
     playwright,

@@ -203,6 +203,7 @@ function OrganizationIndex({ isAuthenticationLoading, isAuthenticated, onSignedO
 
 function OrganizationShow({ isAuthenticationLoading, isAuthenticated, onSignedOut, slug, userEmail }: PageProps & { slug: string }) {
     const navigate = useNavigate();
+    const [params] = useSearchParams();
     const [organization, setOrganization] = useState<Detail | null>(null);
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
@@ -212,18 +213,22 @@ function OrganizationShow({ isAuthenticationLoading, isAuthenticated, onSignedOu
     const [chatBody, setChatBody] = useState('');
     const [reportReason, setReportReason] = useState('');
     const [editForm, setEditForm] = useState({ description: '', name: '', slogan: '' });
+    const membersPage = positive(params.get('members_page'));
+    const messagesPage = positive(params.get('messages_page'));
+    const joinRequestsPage = positive(params.get('join_requests_page'));
+    const requestedSection = params.get('section');
     useEffect(() => {
         if (!isAuthenticated) return;
         let active = true;
-        void apiClient.GET('/organizations/{slug}', { params: { path: { slug } } }).then(({ data, response }) => {
+        void apiClient.GET('/organizations/{slug}', { params: { path: { slug }, query: { ...(membersPage > 1 ? { members_page: membersPage } : {}), ...(messagesPage > 1 ? { messages_page: messagesPage } : {}), ...(joinRequestsPage > 1 ? { join_requests_page: joinRequestsPage } : {}) } } }).then(({ data, response }) => {
             if (!active) return;
             if (!response.ok || !data) { setError('This organization is not available.'); return; }
             setOrganization(data.organization);
             setEditForm({ description: data.organization.description ?? '', name: data.organization.name, slogan: data.organization.slogan ?? '' });
-            setSection(data.organization.is_leader ? 'leader-controls' : data.organization.can_send_messages ? 'chat' : 'membership');
+            setSection(sectionFromQuery(requestedSection, data.organization));
         }).catch(() => active && setError('This organization is temporarily unavailable.'));
         return () => { active = false; };
-    }, [isAuthenticated, slug]);
+    }, [isAuthenticated, joinRequestsPage, membersPage, messagesPage, requestedSection, slug]);
     if (isAuthenticationLoading) return <PageMessage message="Loading organization…" />;
     if (!isAuthenticated) return <Navigate replace to="/login" />;
     if (!organization) return <PageMessage message={error || 'Loading organization…'} />;
@@ -288,6 +293,25 @@ function Field({ children, label }: { children: ReactNode; label: string }) { re
 function Pagination({ onPageChange, pagination }: { onPageChange: (page: number) => void; pagination: components['schemas']['OrganizationPagination'] }) { if (pagination.last_page <= 1) return null; return <nav aria-label="Organizations" className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 dark:border-white/10"><button className={secondaryButton} disabled={pagination.current_page <= 1} onClick={() => onPageChange(pagination.current_page - 1)} type="button">Previous</button><span className="text-xs text-slate-500 dark:text-slate-400">Page {pagination.current_page} of {pagination.last_page}</span><button className={secondaryButton} disabled={pagination.current_page >= pagination.last_page} onClick={() => onPageChange(pagination.current_page + 1)} type="button">Next</button></nav>; }
 function PageMessage({ message }: { message: string }) { return <main className="grid min-h-svh place-items-center bg-[var(--learner-page-background)] p-6 text-sm text-[var(--learner-muted-text)]">{message}</main>; }
 function positive(value: string | null): number { const parsed = Number.parseInt(value ?? '1', 10); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1; }
+function sectionFromQuery(requested: string | null, organization: Detail): Section {
+    const canViewChat = Boolean(organization.viewer_membership) || organization.can_moderate_messages;
+    const defaultSection: Section = organization.is_leader
+        ? 'leader-controls'
+        : canViewChat
+          ? 'chat'
+          : 'membership';
+    const available = new Set<Section>([
+        'membership',
+        'members',
+        ...(organization.is_leader ? ['leader-controls', 'join-requests'] as Section[] : []),
+        ...(canViewChat ? ['chat'] as Section[] : []),
+        ...(organization.icon_url && !organization.is_leader ? ['report-icon'] as Section[] : []),
+    ]);
+
+    return requested !== null && available.has(requested as Section)
+        ? requested as Section
+        : defaultSection;
+}
 function governanceLabel(value: string): string { return value === 'anarchy' ? 'Anarchy' : value === 'random' ? 'Random monthly leader' : 'Monarchy'; }
 function formatDate(value: string): string { return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
 const governanceOptions = [{ description: 'Leaders stay in place until changed manually.', icon: Crown, label: 'Monarchy', value: 'monarchy' as const }, { description: 'Every accepted member is a leader.', icon: Users, label: 'Anarchy', value: 'anarchy' as const }, { description: 'One random member becomes leader each month.', icon: Shuffle, label: 'Random', value: 'random' as const }];
