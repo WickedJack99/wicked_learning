@@ -352,9 +352,9 @@ export function SettingsTopBar({
                         ) : (
                             <span
                                 aria-hidden="true"
-                                className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--settings-active-background)] text-xs font-medium text-[var(--settings-accent)]"
+                                className="grid size-8 shrink-0 place-items-center rounded-lg bg-neutral-200 text-xs font-medium text-black dark:bg-neutral-700 dark:text-white"
                             >
-                                {accountName?.slice(0, 1).toUpperCase()}
+                                {initials(accountName ?? '')}
                             </span>
                         )}
                         <span className="hidden max-w-48 truncate text-sm font-medium sm:block">
@@ -365,6 +365,15 @@ export function SettingsTopBar({
             </div>
         </header>
     );
+}
+
+function initials(value: string): string {
+    return value
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('');
 }
 
 function NotificationSummaryRow({

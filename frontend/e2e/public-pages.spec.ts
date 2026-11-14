@@ -581,6 +581,8 @@ test('the source Settings shell retains the authenticated account control', asyn
     const accountControl = page.getByLabel('Signed-in account');
     await expect(accountControl).toBeVisible();
     await expect(accountControl).toContainText('world_admin');
+    await expect(accountControl.locator('[aria-hidden="true"]')).toContainText('W');
+    await expect(accountControl.locator('[aria-hidden="true"]')).toHaveClass(/rounded-lg/);
     await expect
         .poll(() =>
             accountControl.evaluate(
