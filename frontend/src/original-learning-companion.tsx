@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Companion = components['schemas']['LearnerCompanion'];
 type CompanionNode = {
@@ -85,6 +86,7 @@ function Launcher({
     scope: OriginalLearningCompanionScope;
 }) {
     const [open, setOpen] = useState(false);
+    const t = usePlatformTranslation();
     const triggerRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +141,10 @@ function Launcher({
                             </h2>
                         </div>
                         <button
-                            aria-label="Close learning companion"
+                            aria-label={t(
+                                'learning.companion.close_label',
+                                'Close learning companion',
+                            )}
                             className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:hover:bg-white/10 dark:hover:text-white"
                             onClick={() => setOpen(false)}
                             type="button"
@@ -153,7 +158,9 @@ function Launcher({
             <button
                 aria-controls="learning-companion-panel"
                 aria-expanded={open}
-                aria-label={`Open ${companion.display_name}`}
+                aria-label={t('learning.companion.open', 'Open :name', {
+                    name: companion.display_name,
+                })}
                 className="grid size-12 place-items-center overflow-hidden rounded-full border-2 border-white shadow-xl transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-950 dark:focus-visible:ring-teal-200"
                 data-wl-id="learner.companion.launcher"
                 onClick={() => setOpen((value) => !value)}
@@ -197,13 +204,17 @@ function CompanionPanel({
     companion: Companion;
     scope: OriginalLearningCompanionScope;
 }) {
+    const t = usePlatformTranslation();
     const context = companion.context;
     const entries = [
-        ['Topic', context.topic?.title],
-        ['Map', context.map?.title],
-        ['Place', context.node?.title],
-        ['Activity', context.activity?.title],
-        ['Route', context.route?.title],
+        [t('learning.companion.context.topic', 'Topic'), context.topic?.title],
+        [t('learning.companion.context.map', 'Map'), context.map?.title],
+        [t('learning.companion.context.place', 'Place'), context.node?.title],
+        [
+            t('learning.companion.context.activity', 'Activity'),
+            context.activity?.title,
+        ],
+        [t('learning.companion.context.route', 'Route'), context.route?.title],
     ].filter((entry): entry is [string, string] => Boolean(entry[1]));
     return (
         <>
@@ -264,6 +275,7 @@ function Dialogue({
     companion: Companion;
     scope: OriginalLearningCompanionScope;
 }) {
+    const t = usePlatformTranslation();
     const graph = companion.dialogue as {
         nodes: CompanionNode[];
         start: string;
@@ -324,7 +336,10 @@ function Dialogue({
             );
             if (!request.ok || !data) {
                 throw new Error(
-                    'The companion could not answer this turn. You can continue exploring without it.',
+                    t(
+                        'learning.companion.dialogue.ai_error',
+                        'The companion could not answer this turn. You can continue exploring without it.',
+                    ),
                 );
             }
             setResponse((current) => ({ ...current, [node.id]: data.text }));
@@ -334,22 +349,55 @@ function Dialogue({
                 [node.id]:
                     reason instanceof Error
                         ? reason.message
-                        : 'The companion could not answer this turn. You can continue exploring without it.',
+                        : t(
+                              'learning.companion.dialogue.ai_error',
+                              'The companion could not answer this turn. You can continue exploring without it.',
+                          ),
             }));
         } finally {
             setBusy(false);
         }
     };
     const choices: Array<[AssistanceLevel, string, string]> = [
-        ['off', 'No AI', 'Continue without assistance.'],
-        ['question', 'Ask a question', 'Prompt your own thinking.'],
-        ['hint', 'Give me a hint', 'Offer one small clue.'],
+        [
+            'off',
+            t('learning.companion.dialogue.assistance_off', 'No AI'),
+            t(
+                'learning.companion.dialogue.assistance_off_description',
+                'Continue without assistance.',
+            ),
+        ],
+        [
+            'question',
+            t(
+                'learning.companion.dialogue.assistance_question',
+                'Ask a question',
+            ),
+            t(
+                'learning.companion.dialogue.assistance_question_description',
+                'Prompt your own thinking.',
+            ),
+        ],
+        [
+            'hint',
+            t('learning.companion.dialogue.assistance_hint', 'Give me a hint'),
+            t(
+                'learning.companion.dialogue.assistance_hint_description',
+                'Offer one small clue.',
+            ),
+        ],
         ...(companion.context.post_attempt_available
             ? [
                   [
                       'post-attempt',
-                      'After my attempt',
-                      'Compare with authored guidance without sharing your response.',
+                      t(
+                          'learning.companion.dialogue.assistance_post_attempt',
+                          'After my attempt',
+                      ),
+                      t(
+                          'learning.companion.dialogue.assistance_post_attempt_description',
+                          'Compare with authored guidance without sharing your response.',
+                      ),
                   ] as [AssistanceLevel, string, string],
               ]
             : []),
@@ -363,7 +411,7 @@ function Dialogue({
             <div className="flex items-center gap-2">
                 <MessageCircle className="size-4 text-cyan-700 dark:text-teal-200" />
                 <h3 className="text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase dark:text-slate-400">
-                    Conversation
+                    {t('learning.companion.dialogue.title', 'Conversation')}
                 </h3>
             </div>
             <div
@@ -379,13 +427,22 @@ function Dialogue({
                     {node.type === 'ai'
                         ? hasResponse
                             ? response[node.id] ||
-                              'AI assistance is off for this turn.'
+                              t(
+                                  'learning.companion.dialogue.ai_off',
+                                  'AI assistance is off for this turn.',
+                              )
                             : error[node.id] ||
                               (companion.configuration.ai_enabled
-                                  ? 'Choose how much support you want before asking the companion.'
+                                  ? t(
+                                        'learning.companion.dialogue.ai_choose',
+                                        'Choose how much support you want before asking the companion.',
+                                    )
                                   : (node.message ??
                                     node.prompt ??
-                                    'AI assistance is not available for this companion turn yet.'))
+                                    t(
+                                        'learning.companion.dialogue.ai_unavailable',
+                                        'AI assistance is not available for this companion turn yet.',
+                                    )))
                         : node.type === 'choice'
                           ? (node.prompt ?? '')
                           : (node.message ?? '')}
@@ -397,17 +454,31 @@ function Dialogue({
                     role="note"
                 >
                     <p className="font-semibold text-slate-900 dark:text-white">
-                        About this AI response
+                        {t(
+                            'learning.companion.dialogue.ai_disclosure_title',
+                            'About this AI response',
+                        )}
                     </p>
                     <p>
-                        It uses the authored guidance and displayed context
-                        only. It does not receive your private response and
-                        cannot navigate or change learning content.
+                        {t(
+                            'learning.companion.dialogue.ai_disclosure_basis',
+                            'It uses the authored guidance and displayed context only.',
+                        )}{' '}
+                        {t(
+                            'learning.companion.dialogue.ai_disclosure_limits',
+                            'It does not receive your private response and cannot navigate or change learning content.',
+                        )}
                     </p>
                     <p className="mt-2">
                         {assistance[node.id] === 'post-attempt'
-                            ? 'This post-attempt support is recorded separately from your earlier completion evidence.'
-                            : 'This support is recorded separately and is not independent learning evidence.'}
+                            ? t(
+                                  'learning.companion.dialogue.assistance_post_attempt_recorded',
+                                  'This post-attempt support is recorded separately from your earlier completion evidence.',
+                              )
+                            : t(
+                                  'learning.companion.dialogue.assistance_recorded',
+                                  'This support is recorded separately and is not independent learning evidence.',
+                              )}
                     </p>
                 </aside>
             ) : null}
@@ -417,7 +488,10 @@ function Dialogue({
                 <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/15">
                     <fieldset className="grid gap-2">
                         <legend className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            Choose AI assistance
+                            {t(
+                                'learning.companion.dialogue.assistance_label',
+                                'Choose AI assistance',
+                            )}
                         </legend>
                         <div className="grid gap-2">
                             {choices.map(([value, label, description]) => (
@@ -453,8 +527,10 @@ function Dialogue({
                         </div>
                     </fieldset>
                     <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        AI support is optional and transient. It is not
-                        independent learning evidence.
+                        {t(
+                            'learning.companion.dialogue.assistance_disclosure',
+                            'AI support is optional and transient. It is not independent learning evidence.',
+                        )}
                     </p>
                     <button
                         className="min-h-11 rounded-lg border border-cyan-700 px-3 py-2 text-sm font-semibold text-cyan-800 hover:bg-cyan-50 disabled:opacity-60 dark:border-teal-200 dark:text-teal-100 dark:hover:bg-teal-200/10"
@@ -463,8 +539,14 @@ function Dialogue({
                         type="button"
                     >
                         {busy
-                            ? 'The companion is considering this context…'
-                            : 'Use this level of support'}
+                            ? t(
+                                  'learning.companion.dialogue.ai_loading',
+                                  'The companion is considering this context…',
+                              )
+                            : t(
+                                  'learning.companion.dialogue.ai_request',
+                                  'Use this level of support',
+                              )}
                     </button>
                 </div>
             ) : null}
@@ -512,13 +594,16 @@ function Dialogue({
                     onClick={() => move(node.next)}
                     type="button"
                 >
-                    Continue
+                    {t('learning.companion.dialogue.continue', 'Continue')}
                     <ArrowRight className="size-4" />
                 </button>
             ) : null}
             {node.type === 'end' ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                    This conversation is complete.
+                    {t(
+                        'learning.companion.dialogue.complete',
+                        'This conversation is complete.',
+                    )}
                 </p>
             ) : null}
             {history.length || nodeId !== graph.start ? (
@@ -538,7 +623,7 @@ function Dialogue({
                             type="button"
                         >
                             <ArrowLeft className="size-4" />
-                            Back
+                            {t('learning.companion.dialogue.back', 'Back')}
                         </button>
                     ) : null}
                     {nodeId !== graph.start ? (
@@ -551,7 +636,10 @@ function Dialogue({
                             type="button"
                         >
                             <RotateCcw className="size-4" />
-                            Restart
+                            {t(
+                                'learning.companion.dialogue.restart',
+                                'Restart',
+                            )}
                         </button>
                     ) : null}
                 </div>

@@ -1775,7 +1775,10 @@ introduced. The panel repeats the bounded-context disclosure and distinguishes
 recorded assistance from independent evidence. The activity playback projection
 now includes its already-authorized activity UUID solely so this client can
 request the companion context for that same run. A disposable authenticated
-browser check opens the launcher during an active activity run.
+browser check opens the launcher during an active activity run. Fixed learner
+copy (including context labels, AI disclosures and assistance controls) reads
+from the scoped platform catalog; a mocked catalog acceptance check verifies
+replacement values and the launcher panel at a narrow viewport.
 
 ### Learning Companion administration frontend slice — 12 November 2026
 
