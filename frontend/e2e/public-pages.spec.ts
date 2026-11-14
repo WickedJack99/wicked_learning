@@ -856,6 +856,7 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
     });
 
     await page.goto('/bookmarks');
+    await expect(page).toHaveTitle('Bookmarked Places');
     const learnerNavigation = page.getByRole('navigation', {
         name: 'Learner navigation',
     });

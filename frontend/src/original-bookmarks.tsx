@@ -46,6 +46,10 @@ export function OriginalBookmarksPage({
     );
 
     useEffect(() => {
+        document.title = 'Bookmarked Places';
+    }, []);
+
+    useEffect(() => {
         if (!isAuthenticated) {
             return;
         }
