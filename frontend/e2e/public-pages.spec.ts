@@ -2401,6 +2401,7 @@ test('the source Recall Queue opens an opaque private recall run', async ({
                 locale: 'test',
                 translations: {
                     'activities.focus.participate': 'Take part',
+                    'home.learning_desk.recall.ready': 'Ready on your terms',
                 },
             }),
         });
@@ -2576,7 +2577,7 @@ test('the source Recall Queue opens an opaque private recall run', async ({
     await expect(
         page.getByText('Which choice keeps exploration learner-directed?'),
     ).toBeVisible();
-    await expect(page.getByText('Ready to recall')).toBeVisible();
+    await expect(page.getByText('Ready on your terms')).toBeVisible();
     await page.getByRole('button', { name: 'Recent traces' }).click();
     await expect(
         page.getByRole('heading', { name: 'Recent traces' }),

@@ -1399,6 +1399,8 @@ function SupportResponseRow({
 }: {
     response: LearnerDeskSupportResponse;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <article className="grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-start">
             <MessageCircle
@@ -1621,6 +1623,8 @@ function RevisitInvitationRow({
     ) => Promise<void>;
     updating: boolean;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div className="group grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center">
             <Clock3
@@ -1640,16 +1644,27 @@ function RevisitInvitationRow({
                     {invitation.node_title} · {invitation.map_title}
                 </span>
                 <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
-                    You chose to return on{' '}
+                    {t(
+                        'home.learning_desk.revisit.chosen',
+                        'You chose to return on',
+                    )}{' '}
                     {formatRevisitDate(invitation.available_since)}
                 </span>
                 <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
-                    Ready since {formatRevisitDate(invitation.available_at)}
+                    {t('home.learning_desk.revisit.ready', 'Ready since')}{' '}
+                    {formatRevisitDate(invitation.available_at)}
                 </span>
                 <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                     {invitation.revisit_reason === 'later'
-                        ? 'You chose to wait longer before returning.'
-                        : `Ready after ${invitation.available_after_days} days away.`}
+                        ? t(
+                              'home.learning_desk.revisit.snoozed',
+                              'You chose to wait longer before returning.',
+                          )
+                        : t(
+                              'home.learning_desk.revisit.due',
+                              'Ready after :days days away.',
+                              { days: invitation.available_after_days },
+                          )}
                 </span>
             </span>
             <span className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -1659,7 +1674,7 @@ function RevisitInvitationRow({
                     onClick={() => void onOpen(invitation)}
                     type="button"
                 >
-                    Open activity
+                    {t('home.learning_desk.revisit.action', 'Open activity')}
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </button>
                 <button
@@ -1668,7 +1683,7 @@ function RevisitInvitationRow({
                     onClick={() => void onUpdate(invitation, 'snooze')}
                     type="button"
                 >
-                    Later
+                    {t('home.learning_desk.revisit.later', 'Later')}
                 </button>
                 <button
                     className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--learner-muted-text)] underline-offset-2 transition hover:text-[var(--learner-heading-text)] hover:underline disabled:pointer-events-none disabled:opacity-50"
@@ -1676,7 +1691,7 @@ function RevisitInvitationRow({
                     onClick={() => void onUpdate(invitation, 'dismiss')}
                     type="button"
                 >
-                    Hide
+                    {t('home.learning_desk.revisit.hide', 'Hide')}
                 </button>
             </span>
         </div>
@@ -1700,11 +1715,12 @@ function RecallItemRow({
     postponing: boolean;
     removing: boolean;
 }) {
+    const t = usePlatformTranslation();
     const confidenceLabel = item.last_confidence
-        ? confidenceName(item.last_confidence)
+        ? confidenceName(item.last_confidence, t)
         : null;
     const confidenceAfterFeedbackLabel = item.last_confidence_after_feedback
-        ? confidenceName(item.last_confidence_after_feedback)
+        ? confidenceName(item.last_confidence_after_feedback, t)
         : null;
     const busy = opening || postponing || removing;
 
@@ -1725,27 +1741,51 @@ function RecallItemRow({
                 </span>
                 <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                     {item.is_due
-                        ? 'Ready to recall'
-                        : `Next recall: ${formatRecallDate(item.next_review_at)}`}
+                        ? t('home.learning_desk.recall.ready', 'Ready to recall')
+                        : t('home.learning_desk.recall.next', 'Next recall: :date', {
+                              date: formatRecallDate(item.next_review_at),
+                          })}
                     {item.review_count > 0
-                        ? ` · Recalled ${item.review_count} times`
+                        ? ` · ${t(
+                              'home.learning_desk.recall.review_count',
+                              'Recalled :count times',
+                              { count: item.review_count },
+                          )}`
                         : ''}
                 </span>
                 {item.last_outcome || confidenceLabel || confidenceAfterFeedbackLabel ? (
                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                         {item.last_outcome
-                            ? `Last result: ${item.last_outcome === 'correct' ? 'correct' : 'not correct'}`
+                            ? t(
+                                  item.last_outcome === 'correct'
+                                      ? 'home.learning_desk.recall.last_result_correct'
+                                      : 'home.learning_desk.recall.last_result_incorrect',
+                                  item.last_outcome === 'correct'
+                                      ? 'Last result: correct'
+                                      : 'Last result: not correct',
+                              )
                             : null}
                         {confidenceLabel
-                            ? ` · Confidence: ${confidenceLabel}`
+                            ? ` · ${t(
+                                  'home.learning_desk.recall.last_confidence',
+                                  'Confidence: :confidence',
+                                  { confidence: confidenceLabel },
+                              )}`
                             : null}
                         {confidenceAfterFeedbackLabel
-                            ? ` · After feedback: ${confidenceAfterFeedbackLabel}`
+                            ? ` · ${t(
+                                  'home.learning_desk.recall.last_confidence_after_feedback',
+                                  'After feedback: :confidence',
+                                  { confidence: confidenceAfterFeedbackLabel },
+                              )}`
                             : null}
                     </span>
                 ) : null}
                 <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
-                    Why here: you kept this question for another recall attempt.
+                    {t(
+                        'home.learning_desk.reason.saved_for_recall',
+                        'Why here: you kept this question for another recall attempt.',
+                    )}
                 </span>
             </span>
             <span className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -1755,7 +1795,7 @@ function RecallItemRow({
                     onClick={() => void onOpen(item)}
                     type="button"
                 >
-                    Open question
+                    {t('home.learning_desk.recall.open', 'Open question')}
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </button>
                 <button
@@ -1766,10 +1806,21 @@ function RecallItemRow({
                     type="button"
                 >
                     <Clock3 aria-hidden="true" className="size-4" />
-                    {postponing ? 'Deferring…' : 'Defer one day'}
+                    {postponing
+                        ? t(
+                              'home.learning_desk.recall.postpone_busy',
+                              'Deferring...',
+                          )
+                        : t(
+                              'home.learning_desk.recall.postpone',
+                              'Defer one day',
+                          )}
                 </button>
                 <button
-                    aria-label="Remove question from recall queue"
+                    aria-label={t(
+                        'home.learning_desk.recall.remove_label',
+                        'Remove question from recall queue',
+                    )}
                     className="inline-flex size-11 items-center justify-center rounded-md text-[var(--learner-muted-text)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-50"
                     disabled={busy}
                     onClick={() => void onRemove(item)}
@@ -1782,12 +1833,18 @@ function RecallItemRow({
     );
 }
 
-function confidenceName(value: LearnerRecallItem['last_confidence']): string {
+function confidenceName(
+    value: LearnerRecallItem['last_confidence'],
+    t: ReturnType<typeof usePlatformTranslation>,
+): string {
     return value === 'exploring'
-        ? 'Exploring'
+        ? t('home.learning_desk.recall.confidence_exploring', 'Exploring')
         : value === 'leaning'
-          ? 'I have a hunch'
-          : 'Settled';
+          ? t(
+                'home.learning_desk.recall.confidence_leaning',
+                'I have a hunch',
+            )
+          : t('home.learning_desk.recall.confidence_settled', 'Settled');
 }
 
 function checkInFeelingLabel(value: LearnerJournalCheckIn['feeling']): string {
