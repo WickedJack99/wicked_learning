@@ -567,7 +567,12 @@ export function OriginalRecallDeskPage({
                 `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
             );
         } catch {
-            setError('That recall question could not be opened. Try again.');
+            setError(
+                t(
+                    'home.learning_desk.recall.open_error',
+                    'That recall question could not be opened. Try again.',
+                ),
+            );
             setOpeningItemId(null);
         }
     }
@@ -592,7 +597,12 @@ export function OriginalRecallDeskPage({
                 `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
             );
         } catch {
-            setError('That route could not be continued. Try again.');
+            setError(
+                t(
+                    'home.learning_desk.continue.error',
+                    'That route could not be continued. Try again.',
+                ),
+            );
             setOpeningItemId(null);
         }
     }
@@ -671,7 +681,12 @@ export function OriginalRecallDeskPage({
                 `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
             );
         } catch {
-            setError('That return activity could not be opened. Try again.');
+            setError(
+                t(
+                    'home.learning_desk.revisit.open_error',
+                    'That return activity could not be opened. Try again.',
+                ),
+            );
             setUpdatingRevisitId(null);
         }
     }
@@ -701,7 +716,12 @@ export function OriginalRecallDeskPage({
                 `/learning/nodes/${encodeURIComponent(data.node_slug)}/play?run=${encodeURIComponent(data.play_run_id)}`,
             );
         } catch {
-            setError('That reflection activity could not be opened. Try again.');
+            setError(
+                t(
+                    'home.learning_desk.reflections.open_error',
+                    'That reflection activity could not be opened. Try again.',
+                ),
+            );
         } finally {
             setOpeningReflectionId(null);
         }

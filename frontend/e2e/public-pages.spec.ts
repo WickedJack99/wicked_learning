@@ -2687,6 +2687,7 @@ test('the source Recall Queue opens an opaque private recall run', async ({
 }) => {
     const recallItemId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88';
     const recallRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d89';
+    let recallOpenCount = 0;
 
     await page.route('**/api/v1/learner/platform-translations', async (route) => {
         await route.fulfill({
@@ -2696,6 +2697,8 @@ test('the source Recall Queue opens an opaque private recall run', async ({
                 translations: {
                     'activities.focus.participate': 'Take part',
                     'home.learning_desk.recall.ready': 'Ready on your terms',
+                    'home.learning_desk.recall.open_error':
+                        'Localized recall opening error',
                 },
             }),
         });
@@ -2847,14 +2850,20 @@ test('the source Recall Queue opens an opaque private recall run', async ({
             expect(route.request().headers()['x-csrf-token']).toBe(
                 'test-csrf-token',
             );
+            recallOpenCount += 1;
             await route.fulfill({
+                status: recallOpenCount === 1 ? 200 : 503,
                 contentType: 'application/json',
-                body: JSON.stringify({
-                    activity_slug: 'learner-choice',
-                    node_slug: 'private-place',
-                    play_run_id: recallRunId,
-                    status: 'in_progress',
-                }),
+                body: JSON.stringify(
+                    recallOpenCount === 1
+                        ? {
+                              activity_slug: 'learner-choice',
+                              node_slug: 'private-place',
+                              play_run_id: recallRunId,
+                              status: 'in_progress',
+                          }
+                        : { code: 'dependency_unavailable' },
+                ),
             });
         },
     );
@@ -2889,6 +2898,15 @@ test('the source Recall Queue opens an opaque private recall run', async ({
     await expect(page).toHaveURL(
         `/learning/nodes/private-place/play?run=${recallRunId}`,
     );
+
+    await page.goto('/home');
+    await page.getByRole('button', { name: 'Recall queue' }).click();
+    await page.getByRole('button', { name: 'Open question' }).click();
+    await expect(
+        page
+            .getByRole('region', { name: 'Recall queue' })
+            .getByRole('status'),
+    ).toHaveText('Localized recall opening error');
 });
 
 test('the source Learning Desk search uses its authenticated result contract', async ({
