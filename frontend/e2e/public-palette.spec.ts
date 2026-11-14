@@ -32,6 +32,19 @@ test('a local administrator updates the source public palette and anonymous page
     });
     await anonymous.close();
 
+    await page.getByRole('tab', { name: 'Settings UI' }).click();
+    await page.getByRole('textbox', { name: 'Accent', exact: true }).fill('#654321');
+    await page.getByRole('slider', { name: 'Accent opacity' }).fill('73');
+    const savedSettingsPalette = page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().endsWith('/api/v1/admin/public-presentation'));
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    expect((await savedSettingsPalette).ok()).toBeTruthy();
+
+    const settingsProjection = await page.request.get('/api/v1/public/presentation');
+    expect(settingsProjection.ok()).toBeTruthy();
+    await expect(settingsProjection.json()).resolves.toMatchObject({
+        settings_palette: { dark: { accent: '#654321', accent_opacity: 73 } },
+    });
+
     const csrf = await page.request.get('/api/v1/security/csrf');
     expect(csrf.ok()).toBeTruthy();
     const { token } = (await csrf.json()) as { token: string };
