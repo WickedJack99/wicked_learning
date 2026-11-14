@@ -1018,6 +1018,7 @@
     "settings.navigation.learning_support.admin_panel": "Feedback",
     "settings.world_builder.map.export": "Export map",
     "settings.world_builder.map.export_package": "Export map with media",
+    "settings.world_builder.map_asset.export": "Export MapAsset",
     "settings.world_builder.map_asset.export_package": "Export with media",
     "settings.world_builder.map_asset_import.open": "Import",
     "settings.world_builder.map_asset_import.eyebrow": "World Builder",
