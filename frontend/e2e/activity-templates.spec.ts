@@ -152,6 +152,38 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                     'settings.activity_ai_review.cancel': 'Localized cancel',
                     'settings.activity_ai_review.submit':
                         'Run localized activity review',
+                    'settings.activity_learning_design.review_draft':
+                        'Localized review draft',
+                    'settings.activity_learning_design.title':
+                        'Localized learning metadata',
+                    'settings.activity_learning_design.description':
+                        'Localized metadata-draft guidance.',
+                    'settings.activity_learning_design.close':
+                        'Close localized metadata draft',
+                    'settings.activity_learning_design.purpose_label':
+                        'Localized learning purpose',
+                    'settings.activity_learning_design.purpose_default':
+                        'Localized default purpose',
+                    'settings.activity_learning_design.intent_reflect':
+                        'Localized reflection',
+                    'settings.activity_learning_design.topics_title':
+                        'Localized competence topics',
+                    'settings.activity_learning_design.topics_description':
+                        'Localized competence guidance.',
+                    'settings.activity_learning_design.add_topic':
+                        'Add localized topic',
+                    'settings.activity_learning_design.topic_label':
+                        'Localized topic',
+                    'settings.activity_learning_design.contribution_label':
+                        'Localized contribution',
+                    'settings.activity_learning_design.remove_topic':
+                        'Remove localized :topic',
+                    'settings.activity_learning_design.cancel':
+                        'Cancel localized metadata',
+                    'settings.activity_learning_design.save':
+                        'Save localized metadata',
+                    'settings.activity_learning_design.conflict_error':
+                        'Localized metadata conflict.',
                     'settings.world_builder.activity_templates.copy_activity':
                         'Localized copy :activity',
                     'settings.world_builder.activity_templates.create_copy':
@@ -417,6 +449,16 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
         },
     );
     await page.route(
+        `**/api/v1/admin/world-builder/activities/${activityId}/learning-design`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                status: 409,
+                body: JSON.stringify({ code: 'conflict' }),
+            });
+        },
+    );
+    await page.route(
         `**/api/v1/admin/world-builder/activities/${activityId}/feedback-guidance`,
         async (route) => {
             await route.fulfill({
@@ -431,8 +473,34 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
         async (route) => {
             await route.fulfill({
                 contentType: 'application/json',
-                status: 422,
-                body: JSON.stringify({ code: 'ai_review_rejected' }),
+                body: JSON.stringify({
+                    activity_id: activityId,
+                    ai_review_status: 'reviewed',
+                    ai_reviewed_at: '2026-11-14T12:35:00Z',
+                    ai_review: {
+                        review: {
+                            summary: 'Localized review result source data.',
+                            strengths: ['A mocked strength.'],
+                            suggestions: ['A mocked suggestion.'],
+                            sdt: {
+                                autonomy: { signal: 'aligned', note: 'A mocked autonomy note.' },
+                                competence: { signal: 'aligned', note: 'A mocked competence note.' },
+                                relatedness: { signal: 'unclear', note: 'A mocked relatedness note.' },
+                            },
+                            learningDesign: {
+                                purpose: { signal: 'aligned', note: 'A mocked purpose note.' },
+                                topics: { signal: 'aligned', note: 'A mocked topic note.' },
+                                suggestedLearningIntent: 'reflect',
+                                suggestedCompetenceTopics: ['Systems Thinking'],
+                            },
+                            feedbackGuidance: {
+                                purpose: { signal: 'aligned', note: 'A mocked feedback-purpose note.' },
+                                evidence: { signal: 'aligned', note: 'A mocked feedback-evidence note.' },
+                                nextAction: { signal: 'aligned', note: 'A mocked feedback-action note.' },
+                            },
+                        },
+                    },
+                }),
             });
         },
     );
@@ -613,22 +681,62 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     await reviewDialog
         .getByRole('button', { name: 'Run localized activity review' })
         .click();
-    await expect(reviewDialog.getByRole('status')).toHaveText(
-        'Localized unsafe review feedback.',
+    await expect(reviewDialog.getByText('Localized review result source data.')).toBeVisible();
+    await reviewDialog
+        .getByRole('button', { name: 'Edit metadata draft' })
+        .click();
+    const learningDesignDialog = page.locator(
+        '[data-wl-id="authoring.activity-learning-design"]',
+    );
+    await expect(learningDesignDialog).toBeVisible();
+    await expect(
+        learningDesignDialog.getByText('Localized review draft', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        learningDesignDialog.getByRole('heading', {
+            name: 'Localized learning metadata',
+        }),
+    ).toBeVisible();
+    await expect(
+        learningDesignDialog.getByText('Localized metadata-draft guidance.', {
+            exact: true,
+        }),
+    ).toBeVisible();
+    await expect(
+        learningDesignDialog.getByLabel('Localized learning purpose'),
+    ).toHaveValue('reflect');
+    await expect(
+        learningDesignDialog.getByLabel('Localized topic'),
+    ).toHaveValue('Systems Thinking');
+    expect(
+        await learningDesignDialog.locator('form').evaluate((form) => ({
+            invalidControls: Array.from(form.querySelectorAll(':invalid')).map((control) => ({
+                message: (control as HTMLInputElement).validationMessage,
+                type: (control as HTMLInputElement).type,
+                value: (control as HTMLInputElement).value,
+            })),
+            valid: form.checkValidity(),
+        })),
+    ).toEqual({ invalidControls: [], valid: true });
+    await learningDesignDialog
+        .getByRole('button', { name: 'Save localized metadata' })
+        .click();
+    await expect(learningDesignDialog.getByRole('status')).toHaveText(
+        'Localized metadata conflict.',
     );
     await page.setViewportSize({ width: 390, height: 844 });
-    const reviewPanelBounds = await reviewDialog.locator('section').boundingBox();
-    expect(reviewPanelBounds).not.toBeNull();
-    expect(reviewPanelBounds!.x).toBeGreaterThanOrEqual(0);
+    const learningDesignPanelBounds = await learningDesignDialog.locator('form').boundingBox();
+    expect(learningDesignPanelBounds).not.toBeNull();
+    expect(learningDesignPanelBounds!.x).toBeGreaterThanOrEqual(0);
     expect(
-        reviewPanelBounds!.x + reviewPanelBounds!.width,
+        learningDesignPanelBounds!.x + learningDesignPanelBounds!.width,
     ).toBeLessThanOrEqual(390);
-    expect(reviewPanelBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(learningDesignPanelBounds!.y).toBeGreaterThanOrEqual(0);
     expect(
-        reviewPanelBounds!.y + reviewPanelBounds!.height,
+        learningDesignPanelBounds!.y + learningDesignPanelBounds!.height,
     ).toBeLessThanOrEqual(844);
-    await reviewDialog
-        .getByLabel('Close localized activity review')
+    await learningDesignDialog
+        .getByLabel('Close localized metadata draft')
         .click();
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(

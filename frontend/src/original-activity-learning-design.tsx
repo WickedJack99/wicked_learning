@@ -15,15 +15,15 @@ export type LearningDesignSuggestions = {
 type TopicDraft = { topic: string; weight: string };
 
 const intents = [
-    ['apply', 'Apply'],
-    ['explain', 'Explain'],
-    ['participate', 'Participate'],
-    ['reflect', 'Reflect'],
-    ['retrieve', 'Retrieve'],
-    ['review', 'Review / revisit'],
-    ['transfer', 'Transfer'],
+    'apply',
+    'explain',
+    'participate',
+    'reflect',
+    'retrieve',
+    'review',
+    'transfer',
 ] as const;
-type LearningIntent = (typeof intents)[number][0];
+type LearningIntent = (typeof intents)[number];
 
 /**
  * Source-adapted from the activity editor's competence section. A review can
@@ -48,6 +48,15 @@ export function OriginalActivityLearningDesignDialog({
     const [topics, setTopics] = useState(initial.topics);
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const intentLabels: Record<LearningIntent, string> = {
+        apply: t('settings.activity_learning_design.intent_apply', 'Apply'),
+        explain: t('settings.activity_learning_design.intent_explain', 'Explain'),
+        participate: t('settings.activity_learning_design.intent_participate', 'Participate'),
+        reflect: t('settings.activity_learning_design.intent_reflect', 'Reflect'),
+        retrieve: t('settings.activity_learning_design.intent_retrieve', 'Retrieve'),
+        review: t('settings.activity_learning_design.intent_review', 'Review / revisit'),
+        transfer: t('settings.activity_learning_design.intent_transfer', 'Transfer'),
+    };
 
     const save = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -106,25 +115,25 @@ export function OriginalActivityLearningDesignDialog({
             <form className="max-h-[min(46rem,calc(100svh-2rem))] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-950" onSubmit={(event) => void save(event)}>
                 <header className="flex items-start justify-between gap-4">
                     <div>
-                        <p className="inline-flex items-center gap-2 text-xs font-medium tracking-[0.18em] text-violet-700 uppercase dark:text-violet-300"><Sparkles className="size-4" />Review draft</p>
-                        <h2 className="mt-1 text-xl font-semibold" id="activity-learning-design-title">Edit learning-design metadata</h2>
-                        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">The review has only prepared this editable draft. Check it against the activity, adjust it as needed, and save explicitly. Saving marks the activity as needing a new review.</p>
+                        <p className="inline-flex items-center gap-2 text-xs font-medium tracking-[0.18em] text-violet-700 uppercase dark:text-violet-300"><Sparkles className="size-4" />{t('settings.activity_learning_design.review_draft', 'Review draft')}</p>
+                        <h2 className="mt-1 text-xl font-semibold" id="activity-learning-design-title">{t('settings.activity_learning_design.title', 'Edit learning-design metadata')}</h2>
+                        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">{t('settings.activity_learning_design.description', 'The review has only prepared this editable draft. Check it against the activity, adjust it as needed, and save explicitly. Saving marks the activity as needing a new review.')}</p>
                     </div>
-                    <button aria-label="Close learning-design draft" className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white" onClick={onClose} type="button"><X className="size-5" /></button>
+                    <button aria-label={t('settings.activity_learning_design.close', 'Close learning-design draft')} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white" onClick={onClose} type="button"><X className="size-5" /></button>
                 </header>
                 {error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="status">{error}</p> : null}
                 <div className="mt-6 grid gap-5">
-                    <label className="grid gap-2 text-sm font-medium">Learning purpose
+                    <label className="grid gap-2 text-sm font-medium">{t('settings.activity_learning_design.purpose_label', 'Learning purpose')}
                         <select className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" onChange={(event) => setLearningIntent(event.target.value as LearningIntent | '')} value={learningIntent}>
-                            <option value="">Use the activity type’s usual purpose</option>
-                            {intents.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                            <option value="">{t('settings.activity_learning_design.purpose_default', 'Use the activity type’s usual purpose')}</option>
+                            {intents.map((value) => <option key={value} value={value}>{intentLabels[value]}</option>)}
                         </select>
                     </label>
-                    <section><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold">Competence topics</h3><p className="mt-1 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">Reuse an available topic when it fits. The contribution is internal authoring metadata, not a learner score.</p></div><button className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10" disabled={topics.length >= 20} onClick={() => setTopics((current) => [...current, { topic: '', weight: '1' }])} type="button"><Plus className="size-3.5" />Add topic</button></div>
-                        <div className="mt-4 grid gap-3">{topics.map((topic, index) => <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_8rem_auto] md:items-end dark:border-white/10 dark:bg-white/5" key={index}><label className="grid gap-1 text-sm font-medium">Topic<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" list={`learning-design-topic-options-${index}`} onChange={(event) => setTopics((current) => current.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, topic: event.target.value } : candidate))} value={topic.topic} /><datalist id={`learning-design-topic-options-${index}`}>{competenceTopicOptions.map((option) => <option key={option} value={option} />)}</datalist></label><label className="grid gap-1 text-sm font-medium">Contribution<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" min="0.01" onChange={(event) => setTopics((current) => current.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, weight: event.target.value } : candidate))} step="0.1" type="number" value={topic.weight} /></label><button aria-label={`Remove ${topic.topic || 'topic'}`} className="rounded-md p-2 text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-300/10" onClick={() => setTopics((current) => current.filter((_, candidateIndex) => candidateIndex !== index))} type="button"><Trash2 className="size-4" /></button></div>)}</div>
+                    <section><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold">{t('settings.activity_learning_design.topics_title', 'Competence topics')}</h3><p className="mt-1 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">{t('settings.activity_learning_design.topics_description', 'Reuse an available topic when it fits. The contribution is internal authoring metadata, not a learner score.')}</p></div><button className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10" disabled={topics.length >= 20} onClick={() => setTopics((current) => [...current, { topic: '', weight: '1' }])} type="button"><Plus className="size-3.5" />{t('settings.activity_learning_design.add_topic', 'Add topic')}</button></div>
+                        <div className="mt-4 grid gap-3">{topics.map((topic, index) => <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_8rem_auto] md:items-end dark:border-white/10 dark:bg-white/5" key={index}><label className="grid gap-1 text-sm font-medium">{t('settings.activity_learning_design.topic_label', 'Topic')}<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" list={`learning-design-topic-options-${index}`} onChange={(event) => setTopics((current) => current.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, topic: event.target.value } : candidate))} value={topic.topic} /><datalist id={`learning-design-topic-options-${index}`}>{competenceTopicOptions.map((option) => <option key={option} value={option} />)}</datalist></label><label className="grid gap-1 text-sm font-medium">{t('settings.activity_learning_design.contribution_label', 'Contribution')}<input className="rounded-md border border-slate-300 bg-transparent px-3 py-2 dark:border-white/20" min="0.01" onChange={(event) => setTopics((current) => current.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, weight: event.target.value } : candidate))} step="any" type="number" value={topic.weight} /></label><button aria-label={t('settings.activity_learning_design.remove_topic', 'Remove :topic', { topic: topic.topic || t('settings.activity_learning_design.topic_fallback', 'topic') })} className="rounded-md p-2 text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-300/10" onClick={() => setTopics((current) => current.filter((_, candidateIndex) => candidateIndex !== index))} type="button"><Trash2 className="size-4" /></button></div>)}</div>
                     </section>
                 </div>
-                <footer className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10"><button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? 'Saving…' : 'Save reviewed metadata'}</button></footer>
+                <footer className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10"><button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={saving} onClick={onClose} type="button">{t('settings.activity_learning_design.cancel', 'Cancel')}</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={saving} type="submit">{saving ? t('settings.activity_learning_design.saving', 'Saving…') : t('settings.activity_learning_design.save', 'Save reviewed metadata')}</button></footer>
             </form>
         </div>
     );
@@ -141,11 +150,11 @@ function draftFrom(activity: Activity, suggestions: LearningDesignSuggestions): 
           })
         : [];
     const suggestedIntent = suggestions.suggestedLearningIntent;
-    const configuredIntent = typeof config.learningIntent === 'string' && intents.some(([value]) => value === config.learningIntent)
+    const configuredIntent = typeof config.learningIntent === 'string' && intents.some((value) => value === config.learningIntent)
         ? config.learningIntent as LearningIntent
         : '';
     return {
-        learningIntent: suggestedIntent && intents.some(([value]) => value === suggestedIntent)
+        learningIntent: suggestedIntent && intents.some((value) => value === suggestedIntent)
             ? suggestedIntent as LearningIntent
             : configuredIntent,
         topics: suggestions.suggestedCompetenceTopics.length ? suggestions.suggestedCompetenceTopics.map((topic) => ({ topic, weight: '1' })) : existingTopics,

@@ -36,6 +36,12 @@ export function OriginalActivityAiReviewDialog({
     const [review, setReview] = useState<ReviewResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [reviewing, setReviewing] = useState(false);
+    const close = () => {
+        onClose();
+        if (review) {
+            onReviewed();
+        }
+    };
 
     const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -77,7 +83,6 @@ export function OriginalActivityAiReviewDialog({
                 return;
             }
             setReview(data);
-            onReviewed();
         } catch {
             setError(
                 t(
@@ -120,7 +125,7 @@ export function OriginalActivityAiReviewDialog({
                             )}
                         </p>
                     </div>
-                    <button aria-label={t('settings.activity_ai_review.close', 'Close activity review')} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white" onClick={onClose} type="button"><X className="size-5" /></button>
+                    <button aria-label={t('settings.activity_ai_review.close', 'Close activity review')} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white" onClick={close} type="button"><X className="size-5" /></button>
                 </header>
 
                 {error ? <p aria-live="polite" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="status">{error}</p> : null}
@@ -148,7 +153,7 @@ export function OriginalActivityAiReviewDialog({
                             <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{t('settings.activity_ai_review.no_helper', 'No enabled activity review helper is configured. Add one in AI settings first.')}</p>
                         )}
                         <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-                            <button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={reviewing} onClick={onClose} type="button">{t('settings.activity_ai_review.cancel', 'Cancel')}</button>
+                            <button className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" disabled={reviewing} onClick={close} type="button">{t('settings.activity_ai_review.cancel', 'Cancel')}</button>
                             <button className="inline-flex items-center gap-2 rounded-md bg-violet-700 px-3 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-60 dark:bg-violet-400 dark:text-slate-950" disabled={reviewing || templates.length === 0} type="submit"><Bot className="size-4" />{reviewing ? t('settings.activity_ai_review.reviewing', 'Reviewing…') : t('settings.activity_ai_review.submit', 'Review activity')}</button>
                         </div>
                     </form>
