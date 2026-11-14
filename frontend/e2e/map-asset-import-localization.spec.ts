@@ -4,6 +4,7 @@ test('MapAsset import uses fixed platform catalog copy and accepts a scoped port
     page,
 }) => {
     const mapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d81';
+    let addCsrfHeader: string | undefined;
     let importCsrfHeader: string | undefined;
 
     await page.route('**/api/v1/me', async (route) => {
@@ -30,6 +31,24 @@ test('MapAsset import uses fixed platform catalog copy and accepts a scoped port
                 body: JSON.stringify({
                     locale: 'test',
                     translations: {
+                        'settings.world_builder.map_asset_surface.title':
+                            'Localized MapAsset surface',
+                        'settings.world_builder.map_asset_surface.description':
+                            'Localized MapAsset-surface guidance.',
+                        'settings.world_builder.map_asset_surface.add':
+                            'Add localized MapAsset',
+                        'settings.world_builder.map_asset_surface.adding':
+                            'Adding localized MapAsset…',
+                        'settings.world_builder.map_asset_surface.add_error':
+                            'Localized MapAsset-add failure.',
+                        'settings.world_builder.map_asset_surface.locked':
+                            'Localized MapAsset surface is locked.',
+                        'settings.world_builder.map_asset_surface.edit_aria':
+                            'Edit localized :asset',
+                        'settings.world_builder.map_asset_surface.empty_title':
+                            'No localized MapAssets yet',
+                        'settings.world_builder.map_asset_surface.empty_description':
+                            'Localized empty MapAsset-surface guidance.',
                         'settings.world_builder.map_asset_import.open':
                             'Open localized MapAsset import',
                         'settings.world_builder.map_asset_import.eyebrow':
@@ -100,6 +119,19 @@ test('MapAsset import uses fixed platform catalog copy and accepts a scoped port
         },
     );
     await page.route(
+        `**/api/v1/admin/world-builder/maps/${mapId}/assets`,
+        async (route) => {
+            addCsrfHeader = route.request().headers()['x-csrf-token'];
+            await route.fulfill({
+                contentType: 'application/json',
+                status: 201,
+                body: JSON.stringify({
+                    asset_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d85',
+                }),
+            });
+        },
+    );
+    await page.route(
         `**/api/v1/admin/world-builder/maps/${mapId}/asset-exports/preflight`,
         async (route) => {
             await route.fulfill({
@@ -129,6 +161,36 @@ test('MapAsset import uses fixed platform catalog copy and accepts a scoped port
     });
 
     await page.goto(`/settings?panel=admin-world-builder&map=${mapId}`);
+    const surface = page.locator('[data-wl-id="authoring.map-asset.surface"]');
+    await expect(surface.getByText('Localized MapAsset surface')).toBeVisible();
+    await expect(
+        surface.getByText('Localized MapAsset-surface guidance.'),
+    ).toBeVisible();
+    await expect(
+        surface.getByText('No localized MapAssets yet'),
+    ).toBeVisible();
+    await expect(
+        surface.getByText('Localized empty MapAsset-surface guidance.'),
+    ).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const addButton = surface.getByRole('button', {
+        name: 'Add localized MapAsset',
+    });
+    const addBounds = await addButton.boundingBox();
+    expect(addBounds).not.toBeNull();
+    expect(addBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(addBounds!.x + addBounds!.width).toBeLessThanOrEqual(390);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const created = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().includes(`/maps/${mapId}/assets`),
+    );
+    await addButton.click();
+    expect((await created).status()).toBe(201);
+    expect(addCsrfHeader).toBe('test-csrf-token');
     await page
         .getByRole('button', { name: 'Open localized MapAsset import' })
         .click();

@@ -2714,7 +2714,10 @@ function MapAssetSurface({
             onUpdated();
         } catch {
             setError(
-                'The MapAsset could not be added. Check its map access and try again.',
+                t(
+                    'settings.world_builder.map_asset_surface.add_error',
+                    'The MapAsset could not be added. Check its map access and try again.',
+                ),
             );
         } finally {
             setCreating(false);
@@ -2739,14 +2742,19 @@ function MapAssetSurface({
                     backgroundSize: '2rem 2rem',
                 }}
             />
-            <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 p-4">
+            <div className="absolute inset-x-0 top-0 z-20 flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div className="rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-white shadow-xl backdrop-blur-sm">
                     <p className="text-xs font-medium tracking-[.18em] text-teal-300 uppercase">
-                        MapAsset surface
+                        {t(
+                            'settings.world_builder.map_asset_surface.title',
+                            'MapAsset surface',
+                        )}
                     </p>
                     <p className="mt-1 text-sm text-white/75">
-                        Select an area to edit its learner-facing placement and
-                        behavior.
+                        {t(
+                            'settings.world_builder.map_asset_surface.description',
+                            'Select an area to edit its learner-facing placement and behavior.',
+                        )}
                     </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
@@ -2768,13 +2776,24 @@ function MapAssetSurface({
                         type="button"
                     >
                         <Plus className="size-4" />
-                        {creating ? 'Adding…' : 'Add MapAsset'}
+                        {creating
+                            ? t(
+                                  'settings.world_builder.map_asset_surface.adding',
+                                  'Adding…',
+                              )
+                            : t(
+                                  'settings.world_builder.map_asset_surface.add',
+                                  'Add MapAsset',
+                              )}
                     </button>
                 </div>
             </div>
             {map.map_assets_locked ? (
                 <p className="absolute top-16 right-4 z-20 rounded-md border border-amber-200/40 bg-amber-950/75 px-3 py-2 text-xs text-amber-100 shadow-lg">
-                    The map surface is locked in Map details.
+                    {t(
+                        'settings.world_builder.map_asset_surface.locked',
+                        'The map surface is locked in Map details.',
+                    )}
                 </p>
             ) : null}
             {error ? (
@@ -2785,7 +2804,11 @@ function MapAssetSurface({
             <div className="absolute inset-0">
                 {map.map_assets.map((asset) => (
                     <button
-                        aria-label={`Edit ${asset.text || 'MapAsset'}`}
+                        aria-label={t(
+                            'settings.world_builder.map_asset_surface.edit_aria',
+                            'Edit :asset',
+                            { asset: asset.text || 'MapAsset' },
+                        )}
                         className="absolute -translate-x-1/2 -translate-y-1/2 rounded-lg transition outline-none hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-teal-300"
                         data-wl-id={`authoring.map-asset.select.${asset.id}`}
                         key={asset.id}
@@ -2828,11 +2851,17 @@ function MapAssetSurface({
             {map.map_assets.length === 0 ? (
                 <div className="pointer-events-none absolute inset-0 grid place-items-center p-6 text-center">
                     <div className="max-w-sm rounded-xl border border-white/10 bg-slate-950/80 p-6 text-white shadow-2xl backdrop-blur-sm">
-                        <p className="font-semibold">No MapAssets yet</p>
+                        <p className="font-semibold">
+                            {t(
+                                'settings.world_builder.map_asset_surface.empty_title',
+                                'No MapAssets yet',
+                            )}
+                        </p>
                         <p className="mt-2 text-sm leading-6 text-white/70">
-                            Add the first visual area at the center of this map,
-                            then select it to configure its image, placement and
-                            learner interaction.
+                            {t(
+                                'settings.world_builder.map_asset_surface.empty_description',
+                                'Add the first visual area at the center of this map, then select it to configure its image, placement and learner interaction.',
+                            )}
                         </p>
                     </div>
                 </div>
