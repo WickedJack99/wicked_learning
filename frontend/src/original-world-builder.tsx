@@ -2006,8 +2006,14 @@ function WorldBuilderReviewQueueWorkspace({
                                 )}
                             </button>
                             <span>
-                                Page {page.pagination.current_page} of{' '}
-                                {page.pagination.last_page}
+                                {t(
+                                    'settings.world_builder.review_queue.page',
+                                    'Page :current of :total',
+                                    {
+                                        current: page.pagination.current_page,
+                                        total: page.pagination.last_page,
+                                    },
+                                )}
                             </span>
                             <button
                                 className="text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:opacity-50"

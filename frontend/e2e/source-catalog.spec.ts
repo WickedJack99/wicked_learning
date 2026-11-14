@@ -28,6 +28,7 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
                     'settings.world_builder.navigation.review.description': 'Localized review guidance.',
                     'settings.world_builder.navigation.structural.label': 'Localized structural',
                     'settings.world_builder.navigation.structural.description': 'Localized structural guidance.',
+                    'settings.world_builder.review_queue.page': 'Localized review page :current of :total',
                     'settings.world_builder.source_catalog.concept_filter_label': 'Localized concept filter',
                     'settings.world_builder.source_catalog.description': 'Localized reusable citation guidance.',
                     'settings.world_builder.source_catalog.field_title': 'Localized citation title',
@@ -68,8 +69,16 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
-                items: [],
-                pagination: { current_page: 1, last_page: 1, per_page: 4, total: 0 },
+                items: [
+                    {
+                        activity_type: 'open_practice',
+                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9e',
+                        map: { id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9f', title: 'Mocked review map' },
+                        node: { id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4da0', title: 'Mocked review node' },
+                        title: 'Mocked review activity',
+                    },
+                ],
+                pagination: { current_page: 1, last_page: 2, per_page: 4, total: 5 },
             }),
         });
     });
@@ -90,6 +99,7 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
     await expect(page).toHaveURL(
         /\/settings\?panel=admin-world-builder&worldSection=review$/,
     );
+    await expect(page.getByText('Localized review page 1 of 2')).toBeVisible();
     await sections.getByRole('tab', { name: 'Localized structural' }).click();
     await expect(page).toHaveURL(
         /\/settings\?panel=admin-world-builder&worldSection=structural$/,
