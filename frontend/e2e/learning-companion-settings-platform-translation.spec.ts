@@ -21,6 +21,14 @@ test('the Learning Companion navigator consumes its fixed platform catalog copy'
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'settings.learning_companion.identity.allowed_context':
+                        'Localized allowed context',
+                    'settings.learning_companion.identity.capabilities.current-context':
+                        'Localized current context',
+                    'settings.learning_companion.identity.display_name':
+                        'Localized display name',
+                    'settings.learning_companion.identity.title':
+                        'Localized identity policy',
                     'settings.learning_companion.navigation.dialogues.description':
                         'Localized reusable dialogue graphs.',
                     'settings.learning_companion.navigation.dialogues.label':
@@ -73,6 +81,14 @@ test('the Learning Companion navigator consumes its fixed platform catalog copy'
     await expect(
         navigation.getByRole('tab', { name: 'Localized dialogues' }),
     ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Localized identity policy' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Localized display name')).toHaveValue(
+        'Guide',
+    );
+    await expect(page.getByText('Localized allowed context')).toBeVisible();
+    await expect(page.getByText('Localized current context')).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
     const selector = page.getByLabel('Localized Learning Companion selector');

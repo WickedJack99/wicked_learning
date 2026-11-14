@@ -35,6 +35,7 @@ import {
     type LearningCompanionSection,
 } from './extracted-learning-companion-navigation';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Settings = components['schemas']['AdminLearningCompanionSettings'];
 type SettingsRequest =
@@ -101,6 +102,7 @@ export function OriginalLearningCompanionSettingsPage({
     settingsAccess: Record<string, boolean>;
 }) {
     const location = useLocation();
+    const t = usePlatformTranslation();
     const [settings, setSettings] = useState<Settings | null>(null);
     const [draft, setDraft] = useState<SettingsRequest | null>(null);
     const [error, setError] = useState('');
@@ -176,8 +178,8 @@ export function OriginalLearningCompanionSettingsPage({
         >
             <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-5" data-wl-id="admin.learning-companion.settings">
                 <header className="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-[var(--settings-border-color)] pb-5">
-                    <div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p><h1 className="mt-2 text-3xl font-semibold">Learning Companion</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">Configure the optional source guide, its bounded AI policy, and reusable authored dialogue graphs.</p></div>
-                    {section === 'identity' ? <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={!draft || saving} onClick={() => void save()} type="button"><Save className="size-4" />{saving ? 'Saving…' : 'Save changes'}</button> : null}
+                    <div><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">{t('settings.learning_companion.administration', 'Administration')}</p><h1 className="mt-2 text-3xl font-semibold">{t('settings.learning_companion.title', 'Learning Companion')}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">{t('settings.learning_companion.description', 'Configure the optional source guide, its bounded AI policy, and reusable authored dialogue graphs.')}</p></div>
+                    {section === 'identity' ? <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={!draft || saving} onClick={() => void save()} type="button"><Save className="size-4" />{saving ? t('settings.learning_companion.saving', 'Saving…') : t('settings.learning_companion.save_changes', 'Save changes')}</button> : null}
                 </header>
                 {error ? (
                     <p
@@ -189,7 +191,7 @@ export function OriginalLearningCompanionSettingsPage({
                 ) : null}
                 {!draft || !settings ? (
                     <p className="py-6 text-sm text-[var(--settings-muted-text)]">
-                        Loading Learning Companion settings…
+                        {t('settings.learning_companion.loading', 'Loading Learning Companion settings…')}
                     </p>
                 ) : (
                     <div className="pt-5">
@@ -210,6 +212,7 @@ function IdentityEditor({
     onChange: (draft: SettingsRequest) => void;
     settings: Settings;
 }) {
+    const t = usePlatformTranslation();
     const update = <K extends keyof SettingsRequest>(
         key: K,
         value: SettingsRequest[K],
@@ -221,14 +224,13 @@ function IdentityEditor({
         >
             <header>
                 <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                    Learner experience
+                    {t('settings.learning_companion.identity.eyebrow', 'Learner experience')}
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">
-                    Identity and policy
+                    {t('settings.learning_companion.identity.title', 'Identity and policy')}
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
-                    The companion is optional. It can offer authored context and
-                    safe destinations, but never acts for a learner.
+                    {t('settings.learning_companion.identity.description', 'The companion is optional. It can offer authored context and safe destinations, but never acts for a learner.')}
                 </p>
             </header>
             <fieldset className="grid gap-5 rounded-xl border border-[var(--settings-border-color)] p-5">
@@ -243,15 +245,14 @@ function IdentityEditor({
                     />
                     <span>
                         <span className="block text-sm font-semibold">
-                            Show the companion to learners
+                            {t('settings.learning_companion.identity.enabled_label', 'Show the companion to learners')}
                         </span>
                         <span className="mt-1 block text-sm text-[var(--settings-muted-text)]">
-                            Learners may open it while exploring or during an
-                            activity. It never blocks the current flow.
+                            {t('settings.learning_companion.identity.enabled_description', 'Learners may open it while exploring or during an activity. It never blocks the current flow.')}
                         </span>
                     </span>
                 </label>
-                <Field label="Display name">
+                <Field label={t('settings.learning_companion.identity.display_name', 'Display name')}>
                     <input
                         className={input}
                         maxLength={80}
@@ -263,7 +264,7 @@ function IdentityEditor({
                 </Field>
                 <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
                     <div className="grid gap-4">
-                        <Field label="Avatar image URL (optional)">
+                        <Field label={t('settings.learning_companion.identity.avatar_url', 'Avatar image URL (optional)')}>
                             <input
                                 className={input}
                                 onChange={(event) =>
@@ -272,14 +273,14 @@ function IdentityEditor({
                                         nullable(event.target.value),
                                     )
                                 }
-                                placeholder="https://… or a managed media URL"
+                                placeholder={t('settings.learning_companion.identity.avatar_url_placeholder', 'https://… or a managed media URL')}
                                 value={draft.avatar_url ?? ''}
                             />
                         </Field>
                         <div className="grid gap-4 sm:grid-cols-3">
                             <RangeField
                                 disabled={!draft.avatar_url}
-                                label="Horizontal position"
+                                label={t('settings.learning_companion.identity.avatar_position_x', 'Horizontal position')}
                                 max={100}
                                 min={0}
                                 onChange={(value) =>
@@ -289,7 +290,7 @@ function IdentityEditor({
                             />
                             <RangeField
                                 disabled={!draft.avatar_url}
-                                label="Vertical position"
+                                label={t('settings.learning_companion.identity.avatar_position_y', 'Vertical position')}
                                 max={100}
                                 min={0}
                                 onChange={(value) =>
@@ -299,7 +300,7 @@ function IdentityEditor({
                             />
                             <RangeField
                                 disabled={!draft.avatar_url}
-                                label="Image size"
+                                label={t('settings.learning_companion.identity.avatar_scale', 'Image size')}
                                 max={200}
                                 min={80}
                                 onChange={(value) =>
@@ -310,7 +311,7 @@ function IdentityEditor({
                         </div>
                     </div>
                     <div className="grid content-start gap-3 rounded-xl border border-[var(--settings-border-color)] p-4">
-                        <p className="text-sm font-semibold">Avatar preview</p>
+                        <p className="text-sm font-semibold">{t('settings.learning_companion.identity.avatar_preview', 'Avatar preview')}</p>
                         <div
                             className="grid size-28 place-items-center overflow-hidden rounded-full border-2"
                             style={{
@@ -320,10 +321,10 @@ function IdentityEditor({
                         >
                             <Avatar settings={draft} />
                         </div>
-                        <Field label="Avatar color">
+                        <Field label={t('settings.learning_companion.identity.avatar_color', 'Avatar color')}>
                             <div className="flex items-center gap-3">
                                 <input
-                                    aria-label="Avatar color"
+                                    aria-label={t('settings.learning_companion.identity.avatar_color', 'Avatar color')}
                                     className="size-10 rounded border border-[var(--settings-border-color)] bg-transparent p-1"
                                     onChange={(event) =>
                                         update(
@@ -341,7 +342,7 @@ function IdentityEditor({
                         </Field>
                     </div>
                 </div>
-                <Field label="Orientation message">
+                <Field label={t('settings.learning_companion.identity.orientation_message', 'Orientation message')}>
                     <textarea
                         className={`${input} min-h-32`}
                         maxLength={1200}
@@ -354,7 +355,7 @@ function IdentityEditor({
             </fieldset>
             <fieldset className="grid gap-4 rounded-xl border border-[var(--settings-border-color)] p-5">
                 <legend className="px-1 text-base font-semibold">
-                    AI companion turns
+                    {t('settings.learning_companion.identity.ai_turns', 'AI companion turns')}
                 </legend>
                 <label className="flex cursor-pointer items-start gap-3">
                     <input
@@ -367,40 +368,38 @@ function IdentityEditor({
                     />
                     <span>
                         <span className="block text-sm font-semibold">
-                            Allow authored AI nodes
+                            {t('settings.learning_companion.identity.ai_enabled_label', 'Allow authored AI nodes')}
                         </span>
                         <span className="mt-1 block text-sm text-[var(--settings-muted-text)]">
-                            Only authored instructions and the listed context
-                            are available. The provider cannot navigate or
-                            change learning content.
+                            {t('settings.learning_companion.identity.ai_enabled_description', 'Only authored instructions and the listed context are available. The provider cannot navigate or change learning content.')}
                         </span>
                     </span>
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <SelectField
-                        label="AI mode"
+                        label={t('settings.learning_companion.identity.ai_mode', 'AI mode')}
                         onChange={(value) =>
                             update('mode', value as SettingsRequest['mode'])
                         }
                         options={[
-                            ['scripted', 'Scripted only'],
-                            ['guided_ai', 'Guided AI'],
-                            ['open_ai', 'Open AI'],
+                            ['scripted', t('settings.learning_companion.identity.ai_modes.scripted', 'Scripted only')],
+                            ['guided_ai', t('settings.learning_companion.identity.ai_modes.guided', 'Guided AI')],
+                            ['open_ai', t('settings.learning_companion.identity.ai_modes.open', 'Open AI')],
                         ]}
                         value={draft.mode}
                     />
                     <SelectField
-                        label="Guarded template"
+                        label={t('settings.learning_companion.identity.ai_template', 'Guarded template')}
                         onChange={(value) =>
                             update('ai_template_id', nullable(value))
                         }
                         options={[
-                            ['', 'No template selected'],
+                            ['', t('settings.learning_companion.identity.ai_template_empty', 'No template selected')],
                             ...settings.ai_template_options.map(
                                 (template) =>
                                     [
                                         template.id,
-                                        `${template.name}${template.enabled ? '' : ' (disabled)'}`,
+                                        `${template.name}${template.enabled ? '' : t('settings.learning_companion.identity.ai_template_disabled', ' (disabled)')}`,
                                     ] as [string, string],
                             ),
                         ]}
@@ -408,10 +407,9 @@ function IdentityEditor({
                     />
                 </div>
                 <div>
-                    <p className="text-sm font-semibold">Allowed context</p>
+                    <p className="text-sm font-semibold">{t('settings.learning_companion.identity.allowed_context', 'Allowed context')}</p>
                     <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
-                        Choose at most three source-defined capabilities. The
-                        server intersects these with each authored AI node.
+                        {t('settings.learning_companion.identity.allowed_context_description', 'Choose at most three source-defined capabilities. The server intersects these with each authored AI node.')}
                     </p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         {capabilities.map(([value, label]) => (
@@ -443,7 +441,7 @@ function IdentityEditor({
                                     }
                                     type="checkbox"
                                 />
-                                {label}
+                                {t(`settings.learning_companion.identity.capabilities.${value}`, label)}
                             </label>
                         ))}
                     </div>
