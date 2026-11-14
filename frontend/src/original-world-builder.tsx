@@ -5354,14 +5354,20 @@ function MapDetails({
             );
             if (!response.ok) {
                 setDeleteError(
-                    'The map could not be deleted. Refresh the World Builder and try again.',
+                    t(
+                        'settings.world_builder.map_details.delete.error',
+                        'The map could not be deleted. Refresh the World Builder and try again.',
+                    ),
                 );
                 return;
             }
             onDeleted();
         } catch {
             setDeleteError(
-                'The map could not be deleted. Check your connection and try again.',
+                t(
+                    'settings.world_builder.map_details.delete.network_error',
+                    'The map could not be deleted. Check your connection and try again.',
+                ),
             );
         } finally {
             setDeleting(false);
@@ -5371,22 +5377,35 @@ function MapDetails({
     return (
         <div>
             <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                Map
+                {t('settings.world_builder.map_details.eyebrow', 'Map')}
             </p>
             <h2 className="mt-2 text-xl font-semibold">{map.title}</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {map.description || 'No description yet.'}
+                {map.description ||
+                    t(
+                        'settings.world_builder.map_details.no_description',
+                        'No description yet.',
+                    )}
             </p>
             <dl className="mt-5 grid gap-3 text-sm">
-                <Detail label="Slug" value={map.slug} />
-                <Detail label="Tiles" value={String(map.node_count)} />
+                <Detail
+                    label={t('settings.world_builder.map_details.slug', 'Slug')}
+                    value={map.slug}
+                />
+                <Detail
+                    label={t('settings.world_builder.map_details.tiles', 'Tiles')}
+                    value={String(map.node_count)}
+                />
             </dl>
             <button
                 className="mt-5 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
                 onClick={() => setEditOpen(true)}
                 type="button"
             >
-                Edit map details
+                {t(
+                    'settings.world_builder.map_details.edit',
+                    'Edit map details',
+                )}
             </button>
             <button
                 className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
@@ -5394,7 +5413,10 @@ function MapDetails({
                 onClick={() => setVisualsOpen(true)}
                 type="button"
             >
-                Configure map visuals
+                {t(
+                    'settings.world_builder.map_details.visuals',
+                    'Configure map visuals',
+                )}
             </button>
             <button
                 className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
@@ -5418,7 +5440,10 @@ function MapDetails({
                 type="button"
             >
                 <Plus className="mr-1 inline size-4" />
-                Add map tile
+                {t(
+                    'settings.world_builder.map_details.add_tile',
+                    'Add map tile',
+                )}
             </button>
             <button
                 className="mt-3 block rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-white/20 dark:hover:bg-white/10"
@@ -5472,12 +5497,17 @@ function MapDetails({
                 </button>
             ) : null}
             <section className="mt-6 border-t border-slate-200 pt-4 dark:border-white/10">
-                <h3 className="text-sm font-semibold">MapAssets</h3>
+                <h3 className="text-sm font-semibold">
+                    {t(
+                        'settings.world_builder.map_details.map_assets',
+                        'MapAssets',
+                    )}
+                </h3>
                 <div className="mt-3 grid gap-2">
                     {map.nodes.map((node) => (
                         <div className="rounded-lg border border-slate-200 dark:border-white/10" key={node.id}>
-                            <button className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => onSelectNode(node.id)} type="button"><span className="block font-medium">{node.title}</span><span className="text-xs text-slate-500 dark:text-slate-400">{node.activity_review_count} activities awaiting review</span></button>
-                            <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"><span className="text-slate-500 dark:text-slate-400">Hex ({node.position.q}, {node.position.r})</span><span className="flex items-center gap-3"><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-edit.${node.id}`} onClick={() => setNodeDialog(node)} type="button">Edit tile</button><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-position.${node.id}`} onClick={() => setPlacementNode(node)} type="button">Place tile</button></span></div>
+                            <button className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => onSelectNode(node.id)} type="button"><span className="block font-medium">{node.title}</span><span className="text-xs text-slate-500 dark:text-slate-400">{t(node.activity_review_count === 1 ? 'settings.world_builder.map_details.activity_review_one' : 'settings.world_builder.map_details.activity_review_many', node.activity_review_count === 1 ? ':count activity awaiting review' : ':count activities awaiting review', { count: node.activity_review_count })}</span></button>
+                            <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"><span className="text-slate-500 dark:text-slate-400">{t('settings.world_builder.map_details.position', 'Hex (:q, :r)', { q: node.position.q, r: node.position.r })}</span><span className="flex items-center gap-3"><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-edit.${node.id}`} onClick={() => setNodeDialog(node)} type="button">{t('settings.world_builder.map_details.edit_tile', 'Edit tile')}</button><button className="font-medium text-teal-700 hover:underline dark:text-teal-300" data-wl-id={`authoring.map-node-position.${node.id}`} onClick={() => setPlacementNode(node)} type="button">{t('settings.world_builder.map_details.place_tile', 'Place tile')}</button></span></div>
                             <MapNodeSwapControls node={node} nodes={map.nodes} onSwapped={onUpdated} />
                             <MapNodeInsertControls node={node} nodes={map.nodes} onInserted={onUpdated} />
                         </div>
@@ -5487,11 +5517,16 @@ function MapDetails({
             {document.can_delete_world_maps ? (
                 <section className="mt-6 border-t border-red-200 pt-4 dark:border-red-400/30">
                     <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
-                        Delete map
+                        {t(
+                            'settings.world_builder.map_details.delete.heading',
+                            'Delete map',
+                        )}
                     </h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Remove this map and all of its authored tiles and
-                        learning state.
+                        {t(
+                            'settings.world_builder.map_details.delete.description',
+                            'Remove this map and all of its authored tiles and learning state.',
+                        )}
                     </p>
                     <button
                         className="mt-3 inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50 dark:border-red-400/50 dark:text-red-200 dark:hover:bg-red-400/10"
@@ -5499,7 +5534,10 @@ function MapDetails({
                         type="button"
                     >
                         <Trash2 className="size-4" />
-                        Delete map
+                        {t(
+                            'settings.world_builder.map_details.delete.heading',
+                            'Delete map',
+                        )}
                     </button>
                 </section>
             ) : null}
@@ -5515,19 +5553,29 @@ function MapDetails({
                             className="text-xl font-semibold"
                             id="delete-map-title"
                         >
-                            Delete world map?
+                            {t(
+                                'settings.world_builder.map_details.delete.confirm_title',
+                                'Delete world map?',
+                            )}
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            This removes the map, its tiles, activities, portal
-                            links and learner progress for those tiles. This
-                            cannot be undone.
+                            {t(
+                                'settings.world_builder.map_details.delete.confirm_description',
+                                'This removes the map, its tiles, activities, portal links and learner progress for those tiles. This cannot be undone.',
+                            )}
                         </p>
                         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-950 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-100">
                             <span className="font-semibold">{map.title}</span>
                             <span className="mt-1 block text-red-800 dark:text-red-200/80">
-                                {map.node_count} tile
-                                {map.node_count === 1 ? '' : 's'} will be
-                                deleted with this map.
+                                {t(
+                                    map.node_count === 1
+                                        ? 'settings.world_builder.map_details.delete_count_one'
+                                        : 'settings.world_builder.map_details.delete_count_many',
+                                    map.node_count === 1
+                                        ? ':count tile will be deleted with this map.'
+                                        : ':count tiles will be deleted with this map.',
+                                    { count: map.node_count },
+                                )}
                             </span>
                         </div>
                         {deleteError ? (
@@ -5542,7 +5590,10 @@ function MapDetails({
                                 onClick={() => setDeleteOpen(false)}
                                 type="button"
                             >
-                                Cancel
+                                {t(
+                                    'settings.world_builder.map_details.cancel',
+                                    'Cancel',
+                                )}
                             </button>
                             <button
                                 className="inline-flex items-center gap-2 rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60 dark:bg-red-500 dark:text-slate-950 dark:hover:bg-red-400"
@@ -5551,7 +5602,15 @@ function MapDetails({
                                 type="button"
                             >
                                 <Trash2 className="size-4" />
-                                {deleting ? 'Deleting…' : 'Delete world map'}
+                                {deleting
+                                    ? t(
+                                          'settings.world_builder.map_details.delete.deleting',
+                                          'Deleting…',
+                                      )
+                                    : t(
+                                          'settings.world_builder.map_details.delete.confirm',
+                                          'Delete world map',
+                                      )}
                             </button>
                         </div>
                     </div>
