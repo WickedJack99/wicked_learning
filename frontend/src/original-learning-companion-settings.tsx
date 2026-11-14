@@ -1040,6 +1040,7 @@ function AssignmentDialog({
     onClose: () => void;
     onSaved: (count: number) => void;
 }) {
+    const t = usePlatformTranslation();
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
@@ -1133,20 +1134,19 @@ function AssignmentDialog({
         }
     };
     return (
-        <Modal label="Assign companion dialogue" onClose={onClose}>
+        <Modal label={t('settings.learning_companion.dialogue_assignment.modal_label', 'Assign companion dialogue')} onClose={onClose}>
             <div className="flex min-h-0 flex-1 flex-col">
                 <header className="flex items-start justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-semibold">
-                            Assign authored pages
+                            {t('settings.learning_companion.dialogue_assignment.title', 'Assign authored pages')}
                         </h2>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Choose only the worlds, maps, places or activities
-                            where this graph may be used.
+                            {t('settings.learning_companion.dialogue_assignment.description', 'Choose only the worlds, maps, places or activities where this graph may be used.')}
                         </p>
                     </div>
                     <button
-                        aria-label="Close assignments"
+                        aria-label={t('settings.learning_companion.dialogue_assignment.close', 'Close assignments')}
                         className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
                         onClick={onClose}
                         type="button"
@@ -1163,17 +1163,17 @@ function AssignmentDialog({
                     }}
                 >
                     <input
-                        aria-label="Search authored pages"
+                        aria-label={t('settings.learning_companion.dialogue_assignment.search_label', 'Search authored pages')}
                         className={input}
                         onChange={(event) => setSearchInput(event.target.value)}
-                        placeholder="Search worlds, maps, places or activities"
+                        placeholder={t('settings.learning_companion.dialogue_assignment.search_placeholder', 'Search worlds, maps, places or activities')}
                         value={searchInput}
                     />
                     <button
                         className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-white/15"
                         type="submit"
                     >
-                        Search
+                        {t('settings.learning_companion.dialogues.search', 'Search')}
                     </button>
                 </form>
                 {error ? (
@@ -1187,7 +1187,7 @@ function AssignmentDialog({
                 <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto">
                     {busy ? (
                         <p className="py-8 text-center text-sm text-slate-500">
-                            Loading assignment targets…
+                            {t('settings.learning_companion.dialogue_assignment.loading', 'Loading assignment targets…')}
                         </p>
                     ) : (
                         items.map((item) => {
@@ -1222,7 +1222,7 @@ function AssignmentDialog({
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-sm dark:border-white/10">
                     <button
-                        aria-label="Previous assignment page"
+                        aria-label={t('settings.learning_companion.dialogue_assignment.previous_page', 'Previous assignment page')}
                         className="rounded p-2 disabled:opacity-40"
                         disabled={page <= 1}
                         onClick={() => setPage((value) => value - 1)}
@@ -1231,10 +1231,10 @@ function AssignmentDialog({
                         <ChevronLeft className="size-4" />
                     </button>
                     <span>
-                        Page {page} of {lastPage}
+                        {t('settings.learning_companion.dialogue_assignment.page', 'Page :page of :lastPage', { lastPage, page })}
                     </span>
                     <button
-                        aria-label="Next assignment page"
+                        aria-label={t('settings.learning_companion.dialogue_assignment.next_page', 'Next assignment page')}
                         className="rounded p-2 disabled:opacity-40"
                         disabled={page >= lastPage}
                         onClick={() => setPage((value) => value + 1)}
@@ -1251,7 +1251,7 @@ function AssignmentDialog({
                         type="button"
                     >
                         <Save className="size-4" />
-                        {saving ? 'Saving…' : 'Save assignments'}
+                        {saving ? t('settings.learning_companion.saving', 'Saving…') : t('settings.learning_companion.dialogue_assignment.save', 'Save assignments')}
                     </button>
                 </footer>
             </div>
