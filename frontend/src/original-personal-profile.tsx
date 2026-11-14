@@ -178,37 +178,61 @@ export function OriginalPersonalProfilePage({
                         />
                         <Field
                             autoComplete="name"
-                            label="Name"
+                            id="name"
+                            label={t('settings.personal.profile.name', 'Name')}
                             onChange={(value) =>
                                 setProfile((current) => ({
                                     ...current,
                                     name: value,
                                 }))
                             }
+                            placeholder={t(
+                                'settings.personal.profile.name.placeholder',
+                                'Full name',
+                            )}
                             required
                             value={profile.name}
                         />
                         <Field
                             autoComplete="nickname"
-                            hint="Optional. Use letters, numbers, dashes and underscores. This is the name intended for public learning spaces."
-                            label="Public username"
+                            id="username"
+                            hint={t(
+                                'settings.personal.profile.username.hint',
+                                'Optional. Use letters, numbers, dashes and underscores. This is the name intended for public learning spaces.',
+                            )}
+                            label={t(
+                                'settings.personal.profile.username',
+                                'Public username',
+                            )}
                             onChange={(value) =>
                                 setProfile((current) => ({
                                     ...current,
                                     username: value,
                                 }))
                             }
+                            placeholder={t(
+                                'settings.personal.profile.username.placeholder',
+                                'Visible handle, for example LearnerName',
+                            )}
                             value={profile.username}
                         />
                         <Field
                             autoComplete="username"
-                            label="Email address"
+                            id="email"
+                            label={t(
+                                'settings.personal.profile.email',
+                                'Email address',
+                            )}
                             onChange={(value) =>
                                 setProfile((current) => ({
                                     ...current,
                                     email: value,
                                 }))
                             }
+                            placeholder={t(
+                                'settings.personal.profile.email.placeholder',
+                                'Email address',
+                            )}
                             required
                             type="email"
                             value={profile.email}
@@ -220,7 +244,7 @@ export function OriginalPersonalProfilePage({
                             type="submit"
                         >
                             <Save className="mr-2 size-4" />
-                            {saving ? 'Saving...' : 'Save profile'}
+                            {t('settings.personal.profile.save', 'Save profile')}
                         </button>
                     </form>
                 )}
@@ -270,6 +294,7 @@ function ProfileImageField({
     uploading: boolean;
     url: string | null;
 }) {
+    const t = usePlatformTranslation();
     const uploadId = 'profile-image-upload';
 
     return (
@@ -280,11 +305,13 @@ function ProfileImageField({
                 </span>
                 <div className="min-w-0">
                     <label className="text-sm font-medium" htmlFor={uploadId}>
-                        Profile image
+                        {t('settings.personal.profile.image', 'Profile image')}
                     </label>
                     <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
-                        Upload an image that can represent you in shared learning
-                        spaces. The image is saved only when you press Save profile.
+                        {t(
+                            'settings.personal.profile.image.hidden_description',
+                            'Upload an image that can represent you in shared learning spaces.',
+                        )}
                     </p>
                 </div>
             </div>
@@ -301,7 +328,9 @@ function ProfileImageField({
                     <div className="flex flex-wrap gap-2">
                         <label className="inline-flex cursor-pointer items-center rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium disabled:opacity-50" htmlFor={uploadId}>
                             <Upload className="mr-2 size-4" />
-                            {uploading ? 'Uploading...' : 'Upload'}
+                            {uploading
+                                ? t('common.uploading', 'Uploading...')
+                                : t('common.upload', 'Upload')}
                         </label>
                         <input accept=".gif,.jpg,.jpeg,.png,.svg,.webp,image/gif,image/jpeg,image/png,image/svg+xml,image/webp" className="sr-only" disabled={uploading} id={uploadId} onChange={(event) => {
                             const file = event.currentTarget.files?.[0];
@@ -310,10 +339,10 @@ function ProfileImageField({
                         }} type="file" />
                         <a className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium ${url ? '' : 'pointer-events-none opacity-50'}`} download href={url ?? '#'}>
                             <Download className="mr-2 size-4" />
-                            Download
+                            {t('common.download', 'Download')}
                         </a>
                         <button className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium disabled:opacity-50" disabled={!url || uploading} onClick={onChange} type="button">
-                            Clear
+                            {t('common.clear', 'Clear')}
                         </button>
                     </div>
                 </div>
@@ -325,26 +354,28 @@ function ProfileImageField({
 function Field({
     autoComplete,
     hint,
+    id,
     label,
     onChange,
+    placeholder,
     required,
     type = 'text',
     value,
 }: {
     autoComplete: string;
     hint?: string;
+    id: string;
     label: string;
     onChange: (value: string) => void;
+    placeholder: string;
     required?: boolean;
     type?: 'email' | 'text';
     value: string;
 }) {
-    const id = label.toLowerCase().replaceAll(' ', '_');
-
     return (
         <label className="grid gap-2" htmlFor={id}>
             <span className="text-sm font-medium">{label}</span>
-            <input autoComplete={autoComplete} className="block w-full rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 py-2 text-sm outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[var(--settings-active-background)]" id={id} onChange={(event) => onChange(event.target.value)} placeholder={label === 'Name' ? 'Full name' : label} required={required} type={type} value={value} />
+            <input autoComplete={autoComplete} className="block w-full rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 py-2 text-sm outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[var(--settings-active-background)]" id={id} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} type={type} value={value} />
             {hint ? <span className="text-xs leading-5 text-[var(--settings-muted-text)]">{hint}</span> : null}
         </label>
     );

@@ -77,6 +77,11 @@ test('Personal settings restores the source section navigation', async ({ page }
                 translations: {
                     'common.appearance.dark': 'Night',
                     'common.appearance.light': 'Day',
+                    'common.clear': 'Remove image',
+                    'common.download': 'Get image',
+                    'common.upload': 'Attach image',
+                    'settings.personal.profile.name': 'Learner name',
+                    'settings.personal.profile.name.placeholder': 'Your full learner name',
                     'settings.personal.language.current': 'Current locale',
                     'settings.personal.language.save': 'Store locale',
                     'settings.personal.feedback.reminders': 'Catalog feedback reminder',
@@ -114,6 +119,10 @@ test('Personal settings restores the source section navigation', async ({ page }
     await expect(navigation.getByRole('tab', { name: /Profile/ })).toHaveAttribute(
         'aria-selected',
         'true',
+    );
+    await expect(page.getByLabel('Learner name')).toHaveAttribute(
+        'placeholder',
+        'Your full learner name',
     );
 
     await page.setViewportSize({ width: 390, height: 844 });
