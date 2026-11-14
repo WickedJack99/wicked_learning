@@ -2679,6 +2679,7 @@ function MapAssetSurface({
     onOpenNode: (nodeId: string) => void;
     onUpdated: () => void;
 }) {
+    const t = usePlatformTranslation();
     const { map } = document.editable_map;
     const [selected, setSelected] = useState<EditableMapAsset | null>(null);
     const [editorOpen, setEditorOpen] = useState(false);
@@ -2751,7 +2752,7 @@ function MapAssetSurface({
                         type="button"
                     >
                         <FileJson className="size-4" />
-                        Import
+                        {t('settings.world_builder.map_asset_import.open', 'Import')}
                     </button>
                     <button
                         className="inline-flex items-center gap-2 rounded-md bg-teal-400 px-3 py-2 text-sm font-semibold text-slate-950 shadow-xl hover:bg-teal-300 disabled:opacity-60"
@@ -5778,6 +5779,7 @@ function MapAssetImportDialog({
     onClose: () => void;
     onImported: () => void;
 }) {
+    const t = usePlatformTranslation();
     const [file, setFile] = useState<File | null>(null);
     const [result, setResult] = useState<MapExportPreflight | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -5786,7 +5788,12 @@ function MapAssetImportDialog({
 
     const check = async () => {
         if (!file) {
-            setError('Choose a JSON MapAsset export first.');
+            setError(
+                t(
+                    'settings.world_builder.map_asset_import.choose_file',
+                    'Choose a JSON MapAsset export or portable package first.',
+                ),
+            );
             return;
         }
         setChecking(true);
@@ -5801,14 +5808,22 @@ function MapAssetImportDialog({
             );
             const payload = (await response.json()) as MapExportPreflight;
             if (!response.ok) {
-                throw new Error('The MapAsset export could not be checked.');
+                throw new Error(
+                    t(
+                        'settings.world_builder.map_asset_import.validation_failed',
+                        'The MapAsset export could not be checked.',
+                    ),
+                );
             }
             setResult(payload);
         } catch (reason) {
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The MapAsset export could not be checked.',
+                    : t(
+                          'settings.world_builder.map_asset_import.validation_failed',
+                          'The MapAsset export could not be checked.',
+                      ),
             );
         } finally {
             setChecking(false);
@@ -5818,7 +5833,12 @@ function MapAssetImportDialog({
     const importAsset = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!file || !result?.valid) {
-            setError('Check a valid MapAsset export before importing.');
+            setError(
+                t(
+                    'settings.world_builder.map_asset_import.validation_required',
+                    'Check a valid MapAsset export before importing.',
+                ),
+            );
             return;
         }
         setImporting(true);
@@ -5840,8 +5860,14 @@ function MapAssetImportDialog({
             if (!response.ok || !payload.asset_id) {
                 throw new Error(
                     response.status === 400
-                        ? 'This export cannot be imported into this map. Check its workspace and managed media references.'
-                        : 'The MapAsset could not be imported. Refresh the World Builder and try again.',
+                        ? t(
+                              'settings.world_builder.map_asset_import.invalid',
+                              'This export cannot be imported into this map. Check its workspace and managed media references.',
+                          )
+                        : t(
+                              'settings.world_builder.map_asset_import.error',
+                              'The MapAsset could not be imported. Refresh the World Builder and try again.',
+                          ),
                 );
             }
             onImported();
@@ -5849,7 +5875,10 @@ function MapAssetImportDialog({
             setError(
                 reason instanceof Error
                     ? reason.message
-                    : 'The MapAsset could not be imported.',
+                    : t(
+                          'settings.world_builder.map_asset_import.network_error',
+                          'The MapAsset could not be imported.',
+                      ),
             );
         } finally {
             setImporting(false);
@@ -5871,35 +5900,98 @@ function MapAssetImportDialog({
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                            World Builder
+                            {t(
+                                'settings.world_builder.map_asset_import.eyebrow',
+                                'World Builder',
+                            )}
                         </p>
                         <h2 className="mt-1 text-xl font-semibold" id="map-asset-import-title">
-                            Import authored MapAsset
+                            {t(
+                                'settings.world_builder.map_asset_import.title',
+                                'Import authored MapAsset',
+                            )}
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Add one fresh MapAsset and its optional activity graph to this map from a validated JSON export. Learner records, portals, permissions, history and media bytes are not transferred.
+                            {t(
+                                'settings.world_builder.map_asset_import.description',
+                                'Add one fresh MapAsset and its optional activity graph to this map from a validated JSON export or portable package. Learner records, portals, permissions and history are not transferred.',
+                            )}
                         </p>
                     </div>
-                    <button aria-label="Close MapAsset import" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button"><X className="size-5" /></button>
+                    <button
+                        aria-label={t(
+                            'settings.world_builder.map_asset_import.close_aria',
+                            'Close MapAsset import',
+                        )}
+                        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                        disabled={checking || importing}
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <X className="size-5" />
+                    </button>
                 </div>
                 <label className="mt-5 block text-sm font-medium">
-                    JSON MapAsset export
-                    <input accept=".json,application/json,text/plain" className="mt-2 block w-full text-sm" disabled={checking || importing} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(null); setResult(null); }} type="file" />
+                    {t(
+                        'settings.world_builder.map_asset_import.file',
+                        'JSON MapAsset export or portable package',
+                    )}
+                    <input accept=".json,.zip,application/json,application/zip,text/plain" className="mt-2 block w-full text-sm" disabled={checking || importing} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(null); setResult(null); }} type="file" />
                 </label>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{file?.name ?? 'No file selected.'}</p>
-                <button className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10" disabled={!file || checking || importing} onClick={() => void check()} type="button"><CircleCheck className="size-4" />{checking ? 'Checking…' : 'Check export'}</button>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {file?.name ?? t(
+                        'settings.world_builder.map_asset_import.no_file',
+                        'No file selected.',
+                    )}
+                </p>
+                <button className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10" disabled={!file || checking || importing} onClick={() => void check()} type="button">
+                    <CircleCheck className="size-4" />
+                    {checking
+                        ? t(
+                              'settings.world_builder.map_asset_import.checking',
+                              'Checking…',
+                          )
+                        : t(
+                              'settings.world_builder.map_asset_import.check',
+                              'Check export',
+                          )}
+                </button>
                 {result ? (
                     <section className="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10" role="status">
                         <p className="font-medium">{result.summary}</p>
-                        <p className="mt-2 text-slate-600 dark:text-slate-300">{result.counts.nodes} node{result.counts.nodes === 1 ? '' : 's'} · {result.counts.activities} activities · {result.counts.mapAssets} MapAsset · {result.counts.mediaReferences} media references</p>
+                        <p className="mt-2 text-slate-600 dark:text-slate-300">
+                            {t(
+                                'settings.world_builder.map_asset_import.counts',
+                                ':nodes nodes · :activities activities · :map_assets MapAsset · :media_references media references',
+                                {
+                                    activities: result.counts.activities,
+                                    map_assets: result.counts.mapAssets,
+                                    media_references: result.counts.mediaReferences,
+                                    nodes: result.counts.nodes,
+                                },
+                            )}
+                        </p>
                         {result.errors.map((message) => <p className="mt-2 text-red-700 dark:text-red-300" key={message}>{message}</p>)}
                         {result.warnings.map((message) => <p className="mt-2 text-amber-700 dark:text-amber-300" key={message}>{message}</p>)}
                     </section>
                 ) : null}
                 {error ? <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100" role="alert">{error}</p> : null}
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-                    <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">Cancel</button>
-                    <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || checking || importing} type="submit"><FileJson className="size-4" />{importing ? 'Importing…' : 'Import MapAsset'}</button>
+                    <button className="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10" disabled={checking || importing} onClick={onClose} type="button">
+                        {t('settings.world_builder.map_asset_import.cancel', 'Cancel')}
+                    </button>
+                    <button className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={!result?.valid || !file || checking || importing} type="submit">
+                        <FileJson className="size-4" />
+                        {importing
+                            ? t(
+                                  'settings.world_builder.map_asset_import.creating',
+                                  'Importing…',
+                              )
+                            : t(
+                                  'settings.world_builder.map_asset_import.submit',
+                                  'Import MapAsset',
+                              )}
+                    </button>
                 </div>
             </form>
         </div>
