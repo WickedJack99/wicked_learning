@@ -1605,6 +1605,14 @@ test('the source competence catalog localizes its desk, guide, pulse, and unseen
     page,
 }) => {
     await mockCompetenceReader(page, {
+        'competence.header.title': 'Localized constellation',
+        'competence.map.aria_label': 'Localized competence constellation',
+        'competence.guide.toggle': 'Read this localized map',
+        'competence.guide.description': 'Localized map guide.',
+        'competence.guide.glow.description':
+            'Localized activity during the last :days days.',
+        'competence.pulse.eyebrow': 'Localized learning pulse',
+        'competence.pulse.title': 'Localized moments',
         'competence.guide.evidence_intro': 'Translated recent moments.',
         'competence.navigation.back_to_desk': 'Return to study hub',
         'competence.pulse.description': 'Translated pulse notes.',
@@ -1612,10 +1620,22 @@ test('the source competence catalog localizes its desk, guide, pulse, and unseen
         'competence.reading.unseen.description': 'A translated pending trace.',
         'competence.reading.unseen.eyebrow': 'Awaiting a first trace',
         'competence.reading.unseen.open_topic': 'Visit this topic',
+        'competence.reading.eyebrow': 'Localized reading',
+        'competence.reading.recent_rhythm': 'Localized recent rhythm',
     });
 
     await page.goto('/competence');
 
+    await expect(
+        page.getByRole('heading', { name: 'Localized constellation' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('img', {
+            name: 'Localized competence constellation',
+        }),
+    ).toBeVisible();
+    await expect(page.getByText('Localized learning pulse')).toBeVisible();
+    await expect(page.getByText('Localized moments')).toBeVisible();
     await expect(
         page.getByRole('link', { name: 'Return to study hub' }),
     ).toHaveAttribute('href', '/home');
@@ -1623,10 +1643,19 @@ test('the source competence catalog localizes its desk, guide, pulse, and unseen
     await expect(
         page.getByRole('button', { name: 'Open this moment again' }),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'How to read this map' }).click();
+    await page.getByRole('button', { name: 'Read this localized map' }).click();
+    await expect(page.getByText('Localized map guide.')).toBeVisible();
+    await expect(
+        page.getByText('Localized activity during the last 30 days.'),
+    ).toBeVisible();
     await expect(
         page.getByText('Translated recent moments.'),
     ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Read this localized map' }).click();
+    await page.getByRole('button', { name: /Map orientation:/ }).click();
+    await expect(page.getByText('Localized reading')).toBeVisible();
+    await expect(page.getByText('Localized recent rhythm')).toBeVisible();
 
     await page.goto('/competence?topic=unseen-area&from=map-orientation');
 
