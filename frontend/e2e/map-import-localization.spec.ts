@@ -190,6 +190,148 @@ test('map import uses fixed platform catalog copy while preserving the preflight
     await expect(page.getByRole('heading', { name: importedTitle })).toBeVisible();
 });
 
+test('map creation uses fixed platform catalog copy and the scoped CSRF command', async ({
+    page,
+}) => {
+    const createdMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d75';
+    const createdTitle = 'Localized created map';
+    let created = false;
+    let csrfHeader: string | undefined;
+
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                capabilities: [],
+                email: 'map-create-author@example.test',
+                roles: ['administrator'],
+                settings_access: {
+                    world_activities: true,
+                    world_maps: true,
+                    world_nodes: true,
+                },
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d76',
+            }),
+        });
+    });
+    await page.route(
+        '**/api/v1/learner/platform-translations',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    locale: 'test',
+                    translations: {
+                        'settings.world_builder.create_map.open':
+                            'Open localized map creation',
+                        'settings.world_builder.create_map.title':
+                            'Localized world node creation',
+                        'settings.world_builder.create_map.description':
+                            'Localized map-creation guidance.',
+                        'settings.world_builder.create_map.title_label':
+                            'Localized map title',
+                        'settings.world_builder.create_map.slug_label':
+                            'Localized map slug',
+                        'settings.world_builder.create_map.description_label':
+                            'Localized map description',
+                        'settings.world_builder.create_map.title_required':
+                            'A localized map title is required.',
+                        'settings.world_builder.create_map.invalid':
+                            'Localized map creation is invalid.',
+                        'settings.world_builder.create_map.error':
+                            'Localized map creation failed.',
+                        'settings.world_builder.create_map.network_error':
+                            'Localized map connection failure.',
+                        'settings.world_builder.create_map.cancel':
+                            'Cancel localized map creation',
+                        'settings.world_builder.create_map.creating':
+                            'Creating localized map…',
+                        'settings.world_builder.create_map.submit':
+                            'Create localized map',
+                    },
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/admin/world-builder', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                maps: created ? [mapSummary(createdMapId, createdTitle)] : [],
+                portal_candidates: [],
+                portal_links: [],
+                world: {
+                    description: 'A mocked authoring world.',
+                    id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d77',
+                    slug: 'mocked-world',
+                    title: 'Mocked World',
+                    updated_at: '2026-11-14T12:34:00Z',
+                },
+            }),
+        });
+    });
+    await page.route(
+        `**/api/v1/admin/world-builder/maps/${createdMapId}`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify(mapDocument(createdMapId, createdTitle)),
+            });
+        },
+    );
+    await page.route('**/api/v1/admin/world-builder/maps', async (route) => {
+        csrfHeader = route.request().headers()['x-csrf-token'];
+        created = true;
+        await route.fulfill({
+            contentType: 'application/json',
+            status: 201,
+            body: JSON.stringify({ map_id: createdMapId }),
+        });
+    });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+
+    await page.goto('/settings?panel=admin-world-builder');
+    await page
+        .getByRole('button', { name: 'Open localized map creation' })
+        .click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(
+        dialog.getByRole('heading', { name: 'Localized world node creation' }),
+    ).toBeVisible();
+    await expect(dialog.getByText('Localized map-creation guidance.')).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await dialog.getByLabel('Localized map title').fill(createdTitle);
+    await dialog.getByLabel('Localized map slug').fill('localized-created-map');
+    await dialog
+        .getByLabel('Localized map description')
+        .fill('A localized map description.');
+    const createResponse = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith('/api/v1/admin/world-builder/maps'),
+    );
+    await dialog
+        .getByRole('button', { name: 'Create localized map' })
+        .click();
+    expect((await createResponse).status()).toBe(201);
+    expect(csrfHeader).toBe('test-csrf-token');
+    await expect(dialog).toBeHidden();
+});
+
 function mapSummary(id: string, title: string) {
     return {
         access_roles: ['public'],

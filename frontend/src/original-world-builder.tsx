@@ -946,11 +946,15 @@ function WorldBuilderContent({
                     </a>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                        data-wl-id="authoring.world-builder.map-create.open"
                         onClick={() => setCreateMapOpen(true)}
                         type="button"
                     >
                         <Plus className="mr-1 inline size-4" />
-                        Create map
+                        {t(
+                            'settings.world_builder.create_map.open',
+                            'Create map',
+                        )}
                     </button>
                 </div>
             </header>
@@ -2308,6 +2312,7 @@ function CreateMapDialog({
     onClose: () => void;
     onCreated: (mapId: string) => void;
 }) {
+    const t = usePlatformTranslation();
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState('');
     const [description, setDescription] = useState('');
@@ -2317,7 +2322,12 @@ function CreateMapDialog({
     const save = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!title.trim()) {
-            setError('Add a map title before creating it.');
+            setError(
+                t(
+                    'settings.world_builder.create_map.title_required',
+                    'Add a map title before creating it.',
+                ),
+            );
             return;
         }
         setError(null);
@@ -2338,15 +2348,24 @@ function CreateMapDialog({
             if (!response.ok || !data) {
                 setError(
                     response.status === 400
-                        ? 'Use a title, a lowercase slug, and a description within the shown limits.'
-                        : 'The map could not be created. Refresh the World Builder and try again.',
+                        ? t(
+                              'settings.world_builder.create_map.invalid',
+                              'Use a title, a lowercase slug, and a description within the shown limits.',
+                          )
+                        : t(
+                              'settings.world_builder.create_map.error',
+                              'The map could not be created. Refresh the World Builder and try again.',
+                          ),
                 );
                 return;
             }
             onCreated(data.map_id);
         } catch {
             setError(
-                'The map could not be created. Check your connection and try again.',
+                t(
+                    'settings.world_builder.create_map.network_error',
+                    'The map could not be created. Check your connection and try again.',
+                ),
             );
         } finally {
             setSaving(false);
@@ -2365,11 +2384,16 @@ function CreateMapDialog({
                 onSubmit={(event) => void save(event)}
             >
                 <h2 className="text-xl font-semibold" id="create-map-title">
-                    Create world node
+                    {t(
+                        'settings.world_builder.create_map.title',
+                        'Create world node',
+                    )}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Add a standalone map to this world graph. You can connect
-                    portal tiles later.
+                    {t(
+                        'settings.world_builder.create_map.description',
+                        'Add a standalone map to this world graph. You can connect portal tiles later.',
+                    )}
                 </p>
                 {error ? (
                     <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
@@ -2378,17 +2402,26 @@ function CreateMapDialog({
                 ) : null}
                 <div className="mt-5 grid gap-4">
                     <ActivityTextField
-                        label="Title"
+                        label={t(
+                            'settings.world_builder.create_map.title_label',
+                            'Title',
+                        )}
                         onChange={setTitle}
                         value={title}
                     />
                     <ActivityTextField
-                        label="Slug"
+                        label={t(
+                            'settings.world_builder.create_map.slug_label',
+                            'Slug',
+                        )}
                         onChange={setSlug}
                         value={slug}
                     />
                     <ActivityTextField
-                        label="Description"
+                        label={t(
+                            'settings.world_builder.create_map.description_label',
+                            'Description',
+                        )}
                         onChange={setDescription}
                         textarea
                         value={description}
@@ -2401,14 +2434,22 @@ function CreateMapDialog({
                         onClick={onClose}
                         type="button"
                     >
-                        Cancel
+                        {t('settings.world_builder.create_map.cancel', 'Cancel')}
                     </button>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950"
                         disabled={saving}
                         type="submit"
                     >
-                        {saving ? 'Creating…' : 'Create'}
+                        {saving
+                            ? t(
+                                  'settings.world_builder.create_map.creating',
+                                  'Creating…',
+                              )
+                            : t(
+                                  'settings.world_builder.create_map.submit',
+                                  'Create',
+                              )}
                     </button>
                 </div>
             </form>
