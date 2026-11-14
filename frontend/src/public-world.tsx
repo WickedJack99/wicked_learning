@@ -34,6 +34,7 @@ import { OriginalJournalOverlay } from './original-journal';
 import { OriginalGroupControl } from './original-group-control';
 import { OriginalToolBelt } from './original-tool-belt';
 import { OriginalLearningCompanionLauncher } from './original-learning-companion';
+import { usePlatformTranslation } from './original-platform-translation';
 import { resolveOriginalWorldTheme } from './original-world-theme';
 import { useLearnerSoundPreferences } from './learner-sound-preferences';
 
@@ -75,15 +76,6 @@ type SearchState =
     | { kind: 'loading' }
     | { kind: 'loaded'; results: components['schemas']['PublicSearchResult'][] }
     | { kind: 'unavailable' };
-
-const learnerNavigationItems = [
-    { href: '/home', label: 'Learning desk' },
-    { href: '/paths', label: 'Paths' },
-    { href: '/topics', label: 'Topics' },
-    { href: '/competence', label: 'Competence map' },
-    { href: '/bookmarks', label: 'Bookmarks' },
-    { href: '/world', label: 'Current map' },
-] as const;
 
 export function PublicWorldPage({
     appearance,
@@ -533,6 +525,36 @@ function WorldNavigation({
 }) {
     const location = useLocation();
     const { currentUser } = useCurrentUser();
+    const t = usePlatformTranslation();
+    const learnerNavigationItems = [
+        {
+            href: '/home',
+            label: t('navigation.primary.learning_desk', 'Learning desk'),
+        },
+        {
+            href: '/paths',
+            label: t('home.learning_desk.navigation.paths', 'Paths'),
+        },
+        {
+            href: '/topics',
+            label: t('home.learning_desk.navigation.topics', 'Topics'),
+        },
+        {
+            href: '/competence',
+            label: t(
+                'home.learning_desk.navigation.competence',
+                'Competence map',
+            ),
+        },
+        {
+            href: '/bookmarks',
+            label: t('navigation.primary.bookmarks', 'Bookmarks'),
+        },
+        {
+            href: '/world',
+            label: t('navigation.primary.current_map', 'Current map'),
+        },
+    ] as const;
     const accountName =
         currentUser.kind === 'loaded' ? currentUser.name : userEmail;
     const menuAccountName =
@@ -555,14 +577,24 @@ function WorldNavigation({
             });
 
             if (!response.ok) {
-                setSignOutError('Sign out is temporarily unavailable.');
+                setSignOutError(
+                    t(
+                        'navigation.sign_out.unavailable',
+                        'Sign out is temporarily unavailable.',
+                    ),
+                );
                 return;
             }
 
             setIsUserMenuOpen(false);
             onSignedOut();
         } catch {
-            setSignOutError('Sign out is temporarily unavailable.');
+            setSignOutError(
+                t(
+                    'navigation.sign_out.unavailable',
+                    'Sign out is temporarily unavailable.',
+                ),
+            );
         }
     }
 
@@ -576,7 +608,7 @@ function WorldNavigation({
                 className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-[80] focus:rounded-md focus:bg-[var(--learner-panel-background)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--learner-heading-text)] focus:ring-2 focus:ring-[var(--learner-action-accent)] focus:outline-none"
                 href="#learner-main-content"
             >
-                Skip to content
+                {t('navigation.skip_to_content', 'Skip to content')}
             </a>
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:px-6 lg:px-8 xl:flex-nowrap">
                 <div
@@ -595,7 +627,10 @@ function WorldNavigation({
                     </span>
                 </div>
                 <nav
-                    aria-label="Learner navigation"
+                    aria-label={t(
+                        'home.learning_desk.navigation.label',
+                        'Learner navigation',
+                    )}
                     className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full flex-wrap gap-0 border-t px-4 xl:order-none xl:mx-0 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:border-t-0 xl:px-0"
                     style={{ borderColor: 'var(--learner-border-color)' }}
                 >
@@ -621,7 +656,10 @@ function WorldNavigation({
                 {isAuthenticated && accountName ? (
                     <div className="relative ml-auto flex shrink-0 items-center gap-2">
                         <Link
-                            aria-label="Notifications"
+                            aria-label={t(
+                                'home.learning_desk.notifications',
+                                'Notifications',
+                            )}
                             className="grid size-10 place-items-center rounded-lg border bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)] hover:text-[var(--learner-heading-text)]"
                             style={{
                                 borderColor: 'var(--learner-border-color)',
@@ -633,7 +671,7 @@ function WorldNavigation({
                         <button
                             aria-controls="learning-journal-panel"
                             aria-expanded={isJournalOpen}
-                            aria-label="Journal"
+                            aria-label={t('navigation.primary.journal', 'Journal')}
                             className="grid size-10 place-items-center rounded-lg border bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)] hover:text-[var(--learner-heading-text)]"
                             onClick={() => setIsJournalOpen(true)}
                             style={{
@@ -646,7 +684,10 @@ function WorldNavigation({
                         <button
                             aria-expanded={isUserMenuOpen}
                             aria-haspopup="menu"
-                            aria-label="Open user menu"
+                            aria-label={t(
+                                'navigation.open_user_menu',
+                                'Open user menu',
+                            )}
                             className="flex h-10 items-center gap-2 rounded-lg border bg-[var(--learner-panel-background)] px-2.5 text-[var(--learner-heading-text)] shadow-none transition hover:bg-[var(--learner-panel-muted-background)]"
                             onClick={() => setIsUserMenuOpen((open) => !open)}
                             style={{
@@ -683,7 +724,7 @@ function WorldNavigation({
                                     to="/settings"
                                 >
                                     <Settings className="mr-2 size-4" />
-                                    Settings
+                                    {t('navigation.primary.settings', 'Settings')}
                                 </Link>
                                 <button
                                     className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm font-medium text-[var(--learner-heading-text)] transition hover:bg-[var(--learner-panel-muted-background)]"
@@ -692,7 +733,7 @@ function WorldNavigation({
                                     type="button"
                                 >
                                     <LogOut className="mr-2 size-4" />
-                                    Log out
+                                    {t('navigation.primary.log_out', 'Log out')}
                                 </button>
                                 {signOutError ? (
                                     <p

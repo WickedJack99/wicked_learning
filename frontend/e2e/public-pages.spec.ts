@@ -473,6 +473,17 @@ test('a transparent public map overlay hides only over its visible image pixels'
 test('the learner World exposes the original-style user menu for an authenticated session', async ({
     page,
 }) => {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'navigation.primary.current_map': 'My map',
+                },
+            }),
+        });
+    });
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -505,6 +516,10 @@ test('the learner World exposes the original-style user menu for an authenticate
         'href',
         '/settings?panel=personal&personal=notifications',
     );
+    await expect(
+        page.getByRole('navigation', { name: 'Learner navigation' })
+            .getByRole('link', { name: 'My map' }),
+    ).toHaveAttribute('aria-current', 'page');
     await page.setViewportSize({ width: 390, height: 844 });
     const notificationsBounds = await notificationsLink.boundingBox();
     expect(notificationsBounds).not.toBeNull();
