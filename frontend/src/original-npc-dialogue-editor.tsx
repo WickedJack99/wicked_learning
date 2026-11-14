@@ -206,6 +206,7 @@ export function OriginalNpcDialogueEditor({
 }
 
 function DialogueCanvas({ graph, onClose, onReload, tools }: { graph: DialogueGraph; onClose: () => void; onReload: () => void; tools: EditableTool[] }) {
+    const t = usePlatformTranslation();
     const [draft, setDraft] = useState<DialogueNode | null>(null);
     const [addOpen, setAddOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -230,9 +231,9 @@ function DialogueCanvas({ graph, onClose, onReload, tools }: { graph: DialogueGr
                 : await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}', { body, params: { header: { 'X-CSRF-Token': token }, path: { activity_id: graph.activity.id, dialogue_node_id: node.id } } });
             if (!result.response.ok) throw new Error('save node');
             setDraft(null); setAddOpen(false); onReload();
-        } catch { setError('The dialogue node could not be saved. Check its settings and try again.'); }
+        } catch { setError(t('settings.world_builder.npc_dialogue.save_node_error', 'The dialogue node could not be saved. Check its settings and try again.')); }
         finally { setSaving(false); }
-    }, [graph.activity.id, onReload]);
+    }, [graph.activity.id, onReload, t]);
 
     async function connect(connection: Connection): Promise<void> {
         if (!connection.source || !connection.target || connection.target === 'start') return;
@@ -244,15 +245,15 @@ function DialogueCanvas({ graph, onClose, onReload, tools }: { graph: DialogueGr
             });
             if (!response.ok) throw new Error('connect');
             onReload();
-        } catch { setError('That connector is unavailable. Each dialogue output can have only one connection.'); }
+        } catch { setError(t('settings.world_builder.npc_dialogue.connector_error', 'That connector is unavailable. Each dialogue output can have only one connection.')); }
     }
     async function deleteTransition(id: string): Promise<void> {
-        try { const token = await getCsrfToken(); const { response } = await apiClient.DELETE('/admin/world-builder/activities/{activity_id}/npc-dialogue/transitions/{transition_id}', { params: { header: { 'X-CSRF-Token': token }, path: { activity_id: graph.activity.id, transition_id: id } } }); if (!response.ok) throw new Error('delete'); onReload(); } catch { setError('The connection could not be removed.'); }
+        try { const token = await getCsrfToken(); const { response } = await apiClient.DELETE('/admin/world-builder/activities/{activity_id}/npc-dialogue/transitions/{transition_id}', { params: { header: { 'X-CSRF-Token': token }, path: { activity_id: graph.activity.id, transition_id: id } } }); if (!response.ok) throw new Error('delete'); onReload(); } catch { setError(t('settings.world_builder.npc_dialogue.delete_connection_error', 'The connection could not be removed.')); }
     }
     async function deleteNode(): Promise<void> {
         if (!pendingDelete) return;
         setSaving(true);
-        try { const token = await getCsrfToken(); const { response } = await apiClient.DELETE('/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}', { params: { header: { 'X-CSRF-Token': token }, path: { activity_id: graph.activity.id, dialogue_node_id: pendingDelete.id } } }); if (!response.ok) throw new Error('delete'); setPendingDelete(null); onReload(); } catch { setError('The dialogue node could not be deleted.'); } finally { setSaving(false); }
+        try { const token = await getCsrfToken(); const { response } = await apiClient.DELETE('/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}', { params: { header: { 'X-CSRF-Token': token }, path: { activity_id: graph.activity.id, dialogue_node_id: pendingDelete.id } } }); if (!response.ok) throw new Error('delete'); setPendingDelete(null); onReload(); } catch { setError(t('settings.world_builder.npc_dialogue.delete_node_error', 'The dialogue node could not be deleted.')); } finally { setSaving(false); }
     }
     async function savePosition(node: EditorNode): Promise<void> {
         try {
@@ -263,11 +264,11 @@ function DialogueCanvas({ graph, onClose, onReload, tools }: { graph: DialogueGr
                 const changed = { ...node.data.node, position: { x: Math.round(node.position.x), y: Math.round(node.position.y) } };
                 await apiClient.PATCH('/admin/world-builder/activities/{activity_id}/npc-dialogue/nodes/{dialogue_node_id}', { body: nodeRequest(changed), params: { header: { 'X-CSRF-Token': token }, path: { activity_id: graph.activity.id, dialogue_node_id: changed.id } } });
             }
-        } catch { setError('The graph position could not be saved.'); }
+        } catch { setError(t('settings.world_builder.npc_dialogue.position_error', 'The graph position could not be saved.')); }
     }
 
-    return <div className="h-[34rem]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-white/10"><button className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:underline dark:text-teal-300" onClick={onClose} type="button"><ArrowLeft className="size-4" />Activity graph</button><div><p className="text-xs font-medium tracking-[0.14em] text-teal-700 uppercase dark:text-teal-300">NPC dialogue</p><h2 className="text-sm font-semibold">{graph.activity.title}</h2></div><button className="inline-flex items-center gap-1 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white dark:bg-teal-500 dark:text-slate-950" onClick={() => { setDraft(emptyNode()); setAddOpen(true); }} type="button"><Plus className="size-4" />Add node</button></div>
+    return <div className="h-[34rem]" data-wl-id="authoring.npc-dialogue.canvas">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-white/10"><button className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:underline dark:text-teal-300" onClick={onClose} type="button"><ArrowLeft className="size-4" />{t('settings.world_builder.npc_dialogue.back_to_graph', 'Activity graph')}</button><div><p className="text-xs font-medium tracking-[0.14em] text-teal-700 uppercase dark:text-teal-300">{t('settings.world_builder.npc_dialogue.canvas_label', 'NPC dialogue')}</p><h2 className="text-sm font-semibold">{graph.activity.title}</h2></div><button className="inline-flex items-center gap-1 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white dark:bg-teal-500 dark:text-slate-950" onClick={() => { setDraft(emptyNode()); setAddOpen(true); }} type="button"><Plus className="size-4" />{t('settings.world_builder.npc_dialogue.add_node', 'Add node')}</button></div>
         {error ? <p className="border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">{error}</p> : null}
         <ReactFlow edges={edges} fitView minZoom={0.12} nodeTypes={nodeTypes} nodes={nodes} onConnect={(connection) => void connect(connection)} onEdgeClick={(_, edge) => void deleteTransition(edge.id)} onEdgesChange={onEdgesChange} onNodeClick={(_, node) => node.data.node && setDraft(node.data.node)} onNodeDragStop={(_, node) => void savePosition(node as EditorNode)} onNodesChange={onNodesChange} proOptions={{ hideAttribution: true }}><Background gap={20} /><Controls /></ReactFlow>
         {(addOpen || draft) ? <NodeDialog graph={graph} node={draft ?? emptyNode()} onClose={() => { setDraft(null); setAddOpen(false); }} onDelete={(node) => { setDraft(null); setAddOpen(false); setPendingDelete(node); }} onSave={(node) => void saveNode(node, addOpen)} saving={saving} tools={tools} /> : null}
@@ -276,13 +277,14 @@ function DialogueCanvas({ graph, onClose, onReload, tools }: { graph: DialogueGr
 }
 
 function DialogueCard({ data }: { data: { node?: DialogueNode } }) {
+    const t = usePlatformTranslation();
     const node = data.node;
     if (!node) return null;
-    const outputs = outputConnectors(node);
-    return <div className="w-72 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-lg dark:border-white/10 dark:bg-slate-950"><Handle className="!size-3 !bg-teal-700" id="in" position={Position.Left} type="target" />{outputs.map((output, index) => <Handle className="!size-3 !bg-teal-700" id={output.id} key={output.id} position={Position.Right} style={{ top: `${((index + 1) / (outputs.length + 1)) * 100}%` }} type="source" />)}<p className="text-xs font-medium tracking-[0.15em] text-teal-700 uppercase dark:text-teal-300">{labelFor(node.node_type)}</p><h3 className="mt-2 text-sm font-semibold">{node.title}</h3>{node.node_type === 'end' ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{stringConfig(node.config, 'connectorSymbol', 'A')} activity output</p> : <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{node.body || 'No dialogue text yet.'}</p>}{outputs.length > 1 ? <div className="mt-3 flex flex-wrap gap-1">{outputs.map((output) => <span className="rounded bg-teal-100 px-2 py-1 text-xs text-teal-800 dark:bg-teal-300/10 dark:text-teal-200" key={output.id}>{output.label}</span>)}</div> : null}</div>;
+    const outputs = outputConnectors(node, t);
+    return <div className="w-72 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-lg dark:border-white/10 dark:bg-slate-950"><Handle className="!size-3 !bg-teal-700" id="in" position={Position.Left} type="target" />{outputs.map((output, index) => <Handle className="!size-3 !bg-teal-700" id={output.id} key={output.id} position={Position.Right} style={{ top: `${((index + 1) / (outputs.length + 1)) * 100}%` }} type="source" />)}<p className="text-xs font-medium tracking-[0.15em] text-teal-700 uppercase dark:text-teal-300">{labelFor(node.node_type, t)}</p><h3 className="mt-2 text-sm font-semibold">{node.title}</h3>{node.node_type === 'end' ? <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t('settings.world_builder.npc_dialogue.end_activity_output', ':connector activity output', { connector: stringConfig(node.config, 'connectorSymbol', 'A') })}</p> : <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{node.body || t('settings.world_builder.npc_dialogue.no_dialogue_text', 'No dialogue text yet.')}</p>}{outputs.length > 1 ? <div className="mt-3 flex flex-wrap gap-1">{outputs.map((output) => <span className="rounded bg-teal-100 px-2 py-1 text-xs text-teal-800 dark:bg-teal-300/10 dark:text-teal-200" key={output.id}>{output.label}</span>)}</div> : null}</div>;
 }
 
-function StartCard() { return <div className="w-44 rounded-xl border border-slate-200 bg-white p-4 text-center shadow-lg dark:border-white/10 dark:bg-slate-950"><Handle className="!size-3 !bg-teal-700" id="start" position={Position.Right} type="source" /><p className="font-semibold">Start</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Connect to the first dialogue node.</p></div>; }
+function StartCard() { const t = usePlatformTranslation(); return <div className="w-44 rounded-xl border border-slate-200 bg-white p-4 text-center shadow-lg dark:border-white/10 dark:bg-slate-950"><Handle className="!size-3 !bg-teal-700" id="start" position={Position.Right} type="source" /><p className="font-semibold">{t('settings.world_builder.npc_dialogue.start', 'Start')}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('settings.world_builder.npc_dialogue.start_description', 'Connect to the first dialogue node.')}</p></div>; }
 
 function NodeDialog({ graph, node, onClose, onDelete, onSave, saving, tools }: { graph: DialogueGraph; node: DialogueNode; onClose: () => void; onDelete: (node: DialogueNode) => void; onSave: (node: DialogueNode) => void; saving: boolean; tools: EditableTool[] }) {
     const [draft, setDraft] = useState(node);
@@ -317,7 +319,7 @@ function AnswerEventsEditor({ config, onChange, worldNodes }: { config: Config; 
 
 function ConfirmDelete({ title, saving, onCancel, onConfirm }: { title: string; saving: boolean; onCancel: () => void; onConfirm: () => void }) { return <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/40 p-4"><section className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl dark:bg-slate-950"><h2 className="font-semibold">Delete {title}?</h2><p className="mt-2 text-sm text-slate-600 dark:text-slate-300">This removes its dialogue graph connections too.</p><div className="mt-5 flex justify-end gap-2"><button className="rounded-md px-3 py-2 text-sm" onClick={onCancel} type="button">Cancel</button><button className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-60" disabled={saving} onClick={onConfirm} type="button">Delete</button></div></section></div>; }
 
-function outputConnectors(node: DialogueNode): Array<{ id: string; label: string }> { if (node.node_type === 'end') return []; if (node.node_type === 'npc_question') return Array.from({ length: Math.max(1, Math.min(12, numberConfig(node.config as Config, 'questionOutputCount', 2))) }, (_, index) => ({ id: `answer-${index + 1}`, label: `Answer ${index + 1}` })); return [{ id: 'out', label: 'Out' }]; }
+function outputConnectors(node: DialogueNode, t: Translate): Array<{ id: string; label: string }> { if (node.node_type === 'end') return []; if (node.node_type === 'npc_question') return Array.from({ length: Math.max(1, Math.min(12, numberConfig(node.config as Config, 'questionOutputCount', 2))) }, (_, index) => ({ id: `answer-${index + 1}`, label: t('settings.world_builder.npc_dialogue.answer_output', 'Answer :number', { number: index + 1 }) })); return [{ id: 'out', label: t('settings.world_builder.npc_dialogue.out', 'Out') }]; }
 function emptyNode(): DialogueNode { return { id: '', node_type: 'npc_monologue', title: 'NPC monologue', body: '', config: defaultConfig(), position: { x: null, y: null } }; }
 function defaultConfig(): Config { return { backgroundDark: '', backgroundLight: '', backgroundMirrored: false, sceneAssets: [], npcImageDark: '', npcImageLight: '', npcImageMirrored: false, slideDirection: 'left', slideDurationSeconds: 0.6, fadeDurationSeconds: 0.4, npcX: 50, npcY: 50, toolId: null, questionOutputCount: 2, journalTopic: '', journalSubtopic: '', typingSpeed: 28, typingSoundEnabled: false, typingSoundSetId: null, bubbleColorDark: '#0f172a', bubbleBorderColorDark: '#2dd4bf', bubbleOpacityDark: 92, bubbleColorLight: '#ffffff', bubbleBorderColorLight: '#0891b2', bubbleOpacityLight: 94 }; }
 function sceneAssets(value: Config): SceneAsset[] { const raw = value.sceneAssets; if (!Array.isArray(raw)) return []; return raw.flatMap((asset, index) => { if (!asset || typeof asset !== 'object' || Array.isArray(asset)) return []; const record = asset as Config; const layer = stringConfig(record, 'layer', 'front'); if (!['behind_npc', 'front', 'bubble', 'overlay'].includes(layer)) return []; return [{ id: stringConfig(record, 'id', `asset-${index + 1}`), imageDark: stringConfig(record, 'imageDark', ''), imageLight: stringConfig(record, 'imageLight', ''), label: stringConfig(record, 'label', ''), layer: layer as SceneAsset['layer'], mirrored: booleanConfig(record, 'mirrored'), width: numberConfig(record, 'width', 24), x: numberConfig(record, 'x', 50), y: numberConfig(record, 'y', 50) }]; }); }
@@ -326,7 +328,8 @@ function applyImageSelection(key: string, url: string, onChange: (key: string, v
 function eventsConfig(value: unknown): { hideNodeIds: string[]; unlockNodeIds: string[] } { if (!value || typeof value !== 'object' || Array.isArray(value)) return { hideNodeIds: [], unlockNodeIds: [] }; const events = value as Config; const ids = (key: string) => Array.isArray(events[key]) ? events[key].filter((candidate): candidate is string => typeof candidate === 'string') : []; return { hideNodeIds: ids('hideNodeIds'), unlockNodeIds: ids('unlockNodeIds') }; }
 function nodeRequest(node: DialogueNode): components['schemas']['AdminNpcDialogueNodeRequest'] { return { node_type: node.node_type, title: node.title, body: node.body, config: node.config, position: node.position.x === null ? null : { x: node.position.x, y: node.position.y ?? 0 } }; }
 function graphPosition(value: Record<string, unknown>, x: number, y: number): { x: number; y: number } { const start = value.start; return start && typeof start === 'object' && !Array.isArray(start) && typeof (start as Config).x === 'number' && typeof (start as Config).y === 'number' ? { x: (start as Config).x as number, y: (start as Config).y as number } : { x, y }; }
-function labelFor(type: DialogueType): string { return ({ npc_monologue: 'NPC monologue', npc_question: 'Question', reflection: 'Reflection', answer: 'Answer', end: 'End node' })[type]; }
+type Translate = (key: string, fallback?: string, replacements?: Record<string, number | string>) => string;
+function labelFor(type: DialogueType, t: Translate): string { return ({ npc_monologue: t('settings.world_builder.npc_dialogue.node_type_monologue', 'NPC monologue'), npc_question: t('settings.world_builder.npc_dialogue.node_type_question', 'Question'), reflection: t('settings.world_builder.npc_dialogue.node_type_reflection', 'Reflection'), answer: t('settings.world_builder.npc_dialogue.node_type_answer', 'Answer'), end: t('settings.world_builder.npc_dialogue.node_type_end', 'End node') })[type]; }
 function stringConfig(config: Config, key: string, fallback: string): string { return typeof config[key] === 'string' ? config[key] as string : fallback; }
 function numberConfig(config: Config, key: string, fallback: number): number { return typeof config[key] === 'number' && Number.isFinite(config[key]) ? config[key] as number : fallback; }
 function booleanConfig(config: Config, key: string): boolean { return config[key] === true; }

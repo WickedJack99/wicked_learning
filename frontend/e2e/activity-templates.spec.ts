@@ -1,10 +1,11 @@
 import { expect, test } from './authenticated';
 
-test('the activity graph, NPC dialogue entry, and reusable template library consume fixed platform catalog copy', async ({
+test('the activity graph, NPC dialogue surfaces, and reusable template library consume fixed platform catalog copy', async ({
     page,
 }) => {
     const mapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01';
     const nodeId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d02';
+    const npcActivityId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d06';
 
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
@@ -106,6 +107,18 @@ test('the activity graph, NPC dialogue entry, and reusable template library cons
                         'Localized update template',
                     'settings.world_builder.npc_dialogue.back_to_graph':
                         'Localized activity graph',
+                    'settings.world_builder.npc_dialogue.add_node':
+                        'Localized add node',
+                    'settings.world_builder.npc_dialogue.canvas_label':
+                        'Localized NPC canvas',
+                    'settings.world_builder.npc_dialogue.end_activity_output':
+                        ':connector localized activity output',
+                    'settings.world_builder.npc_dialogue.node_type_end':
+                        'Localized end node',
+                    'settings.world_builder.npc_dialogue.start':
+                        'Localized start',
+                    'settings.world_builder.npc_dialogue.start_description':
+                        'Localized start guidance.',
                     'settings.world_builder.npc_dialogue.cancel':
                         'Localized cancel',
                     'settings.world_builder.npc_dialogue.create':
@@ -188,6 +201,23 @@ test('the activity graph, NPC dialogue entry, and reusable template library cons
                             title: 'Mocked activity',
                             updated_at: '2026-11-14T12:34:00Z',
                         },
+                        {
+                            activity_type: 'npc_dialogue',
+                            ai_review: null,
+                            ai_review_history: [],
+                            ai_review_status: 'needs_review',
+                            ai_reviewed_at: null,
+                            config: {},
+                            connectors: { inputs: [], outputs: [] },
+                            id: npcActivityId,
+                            introduction: null,
+                            portal_link: null,
+                            position: { x: 300, y: 0 },
+                            question: null,
+                            slug: 'mocked-npc-dialogue',
+                            title: 'Mocked NPC dialogue',
+                            updated_at: '2026-11-14T12:34:00Z',
+                        },
                     ],
                     activity_types: [],
                     ai_review_templates: [],
@@ -228,6 +258,36 @@ test('the activity graph, NPC dialogue entry, and reusable template library cons
             }),
         });
     });
+    await page.route(
+        `**/api/v1/admin/world-builder/activities/${npcActivityId}/npc-dialogue`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    activity: {
+                        graph_layout: {},
+                        id: npcActivityId,
+                        introduction: null,
+                        slug: 'mocked-npc-dialogue',
+                        title: 'Mocked NPC dialogue',
+                    },
+                    dialogue_nodes: [
+                        {
+                            body: null,
+                            config: { connectorSymbol: 'A' },
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d07',
+                            node_type: 'end',
+                            position: { x: 100, y: 40 },
+                            title: 'Mocked ending',
+                        },
+                    ],
+                    transitions: [],
+                    typing_sound_sets: [],
+                    world_nodes: [],
+                }),
+            });
+        },
+    );
     await page.route('**/api/v1/admin/activity-templates**', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -304,6 +364,45 @@ test('the activity graph, NPC dialogue entry, and reusable template library cons
             page.getByRole('button', { exact: true, name: label }),
         ).toBeVisible();
     }
+    await page
+        .locator(`[data-id="${npcActivityId}"]`)
+        .getByRole('heading', { name: 'Mocked NPC dialogue' })
+        .click();
+
+    const npcDialogueCanvas = page.locator(
+        '[data-wl-id="authoring.npc-dialogue.canvas"]',
+    );
+    await expect(
+        npcDialogueCanvas.getByText('Localized NPC canvas'),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCanvas.getByRole('button', { name: 'Localized add node' }),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCanvas.getByText('Localized start', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCanvas.getByText('Localized start guidance.'),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCanvas.getByText('Localized end node'),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCanvas.getByText('A localized activity output'),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const npcCanvasBounds = await npcDialogueCanvas.boundingBox();
+    expect(npcCanvasBounds).not.toBeNull();
+    expect(npcCanvasBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(npcCanvasBounds!.x + npcCanvasBounds!.width).toBeLessThanOrEqual(390);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await npcDialogueCanvas
+        .getByRole('button', { name: 'Localized activity graph' })
+        .click();
+    await expect(
+        page.getByRole('button', { name: 'Localized activity templates' }),
+    ).toBeVisible();
+
     await page
         .getByRole('button', { name: 'Localized NPC dialogue' })
         .click();
