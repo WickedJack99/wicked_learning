@@ -631,17 +631,27 @@ function WorldBuilderContent({
         const { data, response } = await apiClient.GET('/admin/world-builder');
         if (!response.ok || !data) {
             setWorldGraph(null);
-            setError('World Builder is unavailable for this account.');
+            setError(
+                t(
+                    'settings.world_builder.status.unavailable_account',
+                    'World Builder is unavailable for this account.',
+                ),
+            );
             return;
         }
         setWorldGraph(data);
-    }, [resolvedWorldBuilderSection]);
+    }, [resolvedWorldBuilderSection, t]);
 
     useEffect(() => {
         void loadWorld().catch(() =>
-            setError('World Builder is temporarily unavailable.'),
+            setError(
+                t(
+                    'settings.world_builder.status.temporarily_unavailable',
+                    'World Builder is temporarily unavailable.',
+                ),
+            ),
         );
-    }, [loadWorld, resolvedWorldBuilderSection]);
+    }, [loadWorld, resolvedWorldBuilderSection, t]);
 
     useEffect(() => {
         if (!selectedMapId) {
@@ -660,7 +670,10 @@ function WorldBuilderContent({
                 }
                 if (!response.ok || !data) {
                     setError(
-                        'The selected map is no longer available for editing.',
+                        t(
+                            'settings.world_builder.status.map_unavailable',
+                            'The selected map is no longer available for editing.',
+                        ),
                     );
                     return;
                 }
@@ -669,12 +682,17 @@ function WorldBuilderContent({
             .catch(
                 () =>
                     current &&
-                    setError('The selected map could not be loaded.'),
+                    setError(
+                        t(
+                            'settings.world_builder.status.map_load_failed',
+                            'The selected map could not be loaded.',
+                        ),
+                    ),
             );
         return () => {
             current = false;
         };
-    }, [mapReload, selectedMapId]);
+    }, [mapReload, selectedMapId, t]);
 
     useEffect(() => {
         if (!selectedNodeId) {
@@ -693,7 +711,10 @@ function WorldBuilderContent({
                 }
                 if (!response.ok || !data) {
                     setError(
-                        'The selected activity graph is no longer available for editing.',
+                        t(
+                            'settings.world_builder.status.activity_graph_unavailable',
+                            'The selected activity graph is no longer available for editing.',
+                        ),
                     );
                     return;
                 }
@@ -703,13 +724,16 @@ function WorldBuilderContent({
                 () =>
                     current &&
                     setError(
-                        'The selected activity graph could not be loaded.',
+                        t(
+                            'settings.world_builder.status.activity_graph_load_failed',
+                            'The selected activity graph could not be loaded.',
+                        ),
                     ),
             );
         return () => {
             current = false;
         };
-    }, [nodeReload, selectedNodeId]);
+    }, [nodeReload, selectedNodeId, t]);
 
     useEffect(() => {
         if (resolvedWorldBuilderSection !== 'review') {
@@ -727,20 +751,35 @@ function WorldBuilderContent({
                     return;
                 }
                 if (!response.ok || !data) {
-                    setReviewQueueError('The review queue could not be loaded.');
+                    setReviewQueueError(
+                        t(
+                            'settings.world_builder.status.review_queue_load_failed',
+                            'The review queue could not be loaded.',
+                        ),
+                    );
                     return;
                 }
                 setReviewQueue(data);
             })
             .catch(() => {
                 if (current) {
-                    setReviewQueueError('The review queue could not be loaded.');
+                    setReviewQueueError(
+                        t(
+                            'settings.world_builder.status.review_queue_load_failed',
+                            'The review queue could not be loaded.',
+                        ),
+                    );
                 }
             });
         return () => {
             current = false;
         };
-    }, [reviewQueuePage, reviewQueueRequestVersion, resolvedWorldBuilderSection]);
+    }, [
+        reviewQueuePage,
+        reviewQueueRequestVersion,
+        resolvedWorldBuilderSection,
+        t,
+    ]);
 
     const reviewCount =
         worldGraph?.maps.reduce(
@@ -752,7 +791,14 @@ function WorldBuilderContent({
         return <WorldBuilderStatus message={error} />;
     }
     if (resolvedWorldBuilderSection && !worldGraph && resolvedWorldBuilderSection !== 'review') {
-        return <WorldBuilderStatus message="Loading World Builder…" />;
+        return (
+            <WorldBuilderStatus
+                message={t(
+                    'settings.world_builder.status.loading',
+                    'Loading World Builder…',
+                )}
+            />
+        );
     }
 
     return (
@@ -2658,11 +2704,15 @@ function WorldBuilderStatus({ message }: { message: string }) {
 }
 
 function UnavailableWorldBuilder() {
+    const t = usePlatformTranslation();
+
     return (
         <section className="grid h-full place-items-center p-6 text-center">
             <p className="max-w-lg text-sm leading-6 text-[var(--settings-muted-text)]">
-                World builder settings are not available with the current
-                permissions.
+                {t(
+                    'settings.world_builder.status.unavailable_permissions',
+                    'World builder settings are not available with the current permissions.',
+                )}
             </p>
         </section>
     );
