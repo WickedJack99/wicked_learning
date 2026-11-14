@@ -1518,6 +1518,33 @@ test('the source competence catalog localizes its desk, guide, pulse, and unseen
     ).toHaveAttribute('href', '/topics/unseen-area');
 });
 
+test('the source competence review history retains its contract-backed guidance detail', async ({
+    page,
+}) => {
+    await mockCompetenceReader(page, {
+        'competence.pulse.review_after_guidance': 'After support: :confidence',
+        'competence.pulse.review_before_guidance': 'Before support: :confidence',
+        'competence.pulse.review_noticed_cues': 'Observed: :cues',
+        'competence.pulse.review_response_type': 'Mode: :type',
+        'competence.pulse.review_returned_later': 'Returned after waiting',
+        'learning.evidence.assistance_questions_only': 'Support: questions only',
+        'learning.review.outcome_clearer': 'A clearer route',
+        'learning.review.outcome_clearer_description': 'The route now feels clearer.',
+        'learning.review.response_type_explain': 'Explained it',
+    });
+
+    await page.goto('/competence');
+
+    await expect(page.getByText('A clearer route')).toBeVisible();
+    await expect(page.getByText('The route now feels clearer.')).toBeVisible();
+    await expect(page.getByText('Mode: Explained it')).toBeVisible();
+    await expect(
+        page.getByText(
+            'Before support: I have a hunch · After support: settled · Observed: named a route · Returned after waiting · Support: questions only · attempt 2',
+        ),
+    ).toBeVisible();
+});
+
 test('the competence map preserves its source topic and origin query context', async ({
     page,
 }) => {
@@ -1604,7 +1631,23 @@ async function mockCompetenceReader(
                 ],
                 month_key: '2026-11',
                 recent_window_days: 30,
-                review_attempts: [],
+                review_attempts: [
+                    {
+                        activity_slug: 'consider-a-direction',
+                        activity_title: 'Consider a direction',
+                        assistance_level: 'questions_only',
+                        attempted_at: '2026-11-04T12:00:00Z',
+                        attempt_number: 2,
+                        confidence: 'leaning',
+                        confidence_after_feedback: 'settled',
+                        node_slug: 'choose-a-direction',
+                        node_title: 'Choose a direction',
+                        observed_cues: ['named a route'],
+                        outcome: 'clearer',
+                        response_type: 'explain',
+                        revisit_reason: 'later',
+                    },
+                ],
                 topics: [
                     {
                         name: 'Map orientation',
