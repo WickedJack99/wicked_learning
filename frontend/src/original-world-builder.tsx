@@ -2054,6 +2054,7 @@ function WorldMapManagementWorkspace({
     selectedMapId: string | null;
     selectedNodeId: string | null;
 }) {
+    const t = usePlatformTranslation();
     const selectedMap =
         maps.find((map) => map.id === selectedMapId) ?? maps[0] ?? null;
     const showDetailContent =
@@ -2063,7 +2064,10 @@ function WorldMapManagementWorkspace({
         <section className="grid h-full min-h-0 gap-0 overflow-hidden lg:grid-cols-[18rem_18rem_minmax(0,1fr)]">
             <div className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
                 <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                    World maps
+                    {t(
+                        'settings.world_builder.map_management.title',
+                        'World maps',
+                    )}
                 </p>
                 <div className="mt-3 grid gap-2">
                     {maps.map((map) => {
@@ -2093,16 +2097,29 @@ function WorldMapManagementWorkspace({
                                     {map.title}
                                 </span>
                                 <span className="mt-1 block text-xs opacity-80">
-                                    {map.node_count} tile
-                                    {map.node_count === 1 ? '' : 's'}
+                                    {map.node_count === 1
+                                        ? t(
+                                              'settings.world_builder.graph.tile_count_one',
+                                              ':count tile',
+                                              { count: map.node_count },
+                                          )
+                                        : t(
+                                              'settings.world_builder.graph.tile_count_many',
+                                              ':count tiles',
+                                              { count: map.node_count },
+                                          )}
                                 </span>
                                 {map.review_count > 0 ? (
                                     <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200">
-                                        {map.review_count}{' '}
-                                        {map.review_count === 1
-                                            ? 'activity needs'
-                                            : 'activities need'}{' '}
-                                        review
+                                        {t(
+                                            map.review_count === 1
+                                                ? 'settings.world_builder.map_management.review_one'
+                                                : 'settings.world_builder.map_management.review_many',
+                                            map.review_count === 1
+                                                ? ':count activity needs review'
+                                                : ':count activities need review',
+                                            { count: map.review_count },
+                                        )}
                                     </span>
                                 ) : null}
                             </button>
@@ -2116,14 +2133,20 @@ function WorldMapManagementWorkspace({
                     <>
                         <div className="shrink-0 border-b border-[var(--settings-border-color)] px-4 py-4">
                             <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                                Selected map
+                                {t(
+                                    'settings.world_builder.map_management.selected_map',
+                                    'Selected map',
+                                )}
                             </p>
                             <h2 className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">
                                 {selectedMap.title}
                             </h2>
                             <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
                                 {selectedMap.description ||
-                                    'No map description yet.'}
+                                    t(
+                                        'settings.world_builder.map_management.no_description',
+                                        'No map description yet.',
+                                    )}
                             </p>
                         </div>
 
@@ -2157,16 +2180,25 @@ function WorldMapManagementWorkspace({
                                 <SlidersHorizontal className="mt-0.5 size-4 shrink-0" />
                                 <span className="min-w-0">
                                     <span className="block font-semibold">
-                                        Map configuration
+                                        {t(
+                                            'settings.world_builder.map_management.configuration',
+                                            'Map configuration',
+                                        )}
                                     </span>
                                     <span className="mt-1 block text-xs opacity-80">
-                                        Details, visuals and access.
+                                        {t(
+                                            'settings.world_builder.map_management.configuration_description',
+                                            'Details, visuals and access.',
+                                        )}
                                     </span>
                                 </span>
                             </button>
 
                             <p className="px-3 pt-3 pb-2 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                                MapAssets
+                                {t(
+                                    'settings.world_builder.map_management.map_assets',
+                                    'MapAssets',
+                                )}
                             </p>
                             <div className="grid gap-2">
                                 {selectedMap.nodes.map((node) => {
@@ -2213,14 +2245,19 @@ function WorldMapManagementWorkspace({
                                                 </span>
                                                 {node.activity_review_count > 0 ? (
                                                     <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200">
-                                                        {
-                                                            node.activity_review_count
-                                                        }{' '}
-                                                        {node.activity_review_count ===
-                                                        1
-                                                            ? 'activity needs'
-                                                            : 'activities need'}{' '}
-                                                        review
+                                                        {t(
+                                                            node.activity_review_count ===
+                                                            1
+                                                                ? 'settings.world_builder.map_management.review_one'
+                                                                : 'settings.world_builder.map_management.review_many',
+                                                            node.activity_review_count ===
+                                                            1
+                                                                ? ':count activity needs review'
+                                                                : ':count activities need review',
+                                                            {
+                                                                count: node.activity_review_count,
+                                                            },
+                                                        )}
                                                     </span>
                                                 ) : null}
                                             </span>
@@ -2229,7 +2266,10 @@ function WorldMapManagementWorkspace({
                                 })}
                                 {selectedMap.nodes.length === 0 ? (
                                     <p className="border border-dashed border-[var(--settings-border-color)] p-3 text-sm text-[var(--settings-muted-text)]">
-                                        No nodes yet.
+                                        {t(
+                                            'settings.world_builder.map_management.no_nodes',
+                                            'No nodes yet.',
+                                        )}
                                     </p>
                                 ) : null}
                             </div>
@@ -2237,7 +2277,10 @@ function WorldMapManagementWorkspace({
                     </>
                 ) : (
                     <p className="m-4 border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
-                        Create a map before configuring map or MapAsset access.
+                        {t(
+                            'settings.world_builder.map_management.no_map',
+                            'Create a map before configuring map or MapAsset access.',
+                        )}
                     </p>
                 )}
             </div>
@@ -2253,9 +2296,10 @@ function WorldMapManagementWorkspace({
                                 {selectedMap.title}
                             </h2>
                             <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
-                                Select a MapAsset to edit its activities, or
-                                open the map configuration for details, visuals
-                                and access.
+                                {t(
+                                    'settings.world_builder.map_management.selection_guidance',
+                                    'Select a MapAsset to edit its activities, or open the map configuration for details, visuals and access.',
+                                )}
                             </p>
                             <button
                                 className="mt-5 rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium text-[var(--settings-accent)] transition hover:bg-[var(--settings-active-background)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
@@ -2264,13 +2308,19 @@ function WorldMapManagementWorkspace({
                                 }
                                 type="button"
                             >
-                                Configure map
+                                {t(
+                                    'settings.world_builder.map_management.configure',
+                                    'Configure map',
+                                )}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <p className="m-4 border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)] sm:m-5">
-                        Create a map before configuring map or MapAsset access.
+                        {t(
+                            'settings.world_builder.map_management.no_map',
+                            'Create a map before configuring map or MapAsset access.',
+                        )}
                     </p>
                 )}
             </div>
