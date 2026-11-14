@@ -6857,7 +6857,11 @@ function ActivityGraphCard({
                     {activity.activity_type}
                 </p>
                 <button
-                    aria-label={`Delete ${activity.title}`}
+                    aria-label={t(
+                        'settings.world_builder.activity_graph.delete_activity',
+                        'Delete :activity',
+                        { activity: activity.title },
+                    )}
                     className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-300/10 dark:hover:text-red-300"
                     onClick={(event) => {
                         event.stopPropagation();
@@ -6885,8 +6889,14 @@ function ActivityGraphCard({
                     <CircleAlert className="size-3" />
                 )}
                 {activity.ai_review_status === 'reviewed'
-                    ? 'AI reviewed'
-                    : 'Needs AI review'}
+                    ? t(
+                          'settings.world_builder.activity_graph.reviewed',
+                          'AI reviewed',
+                      )
+                    : t(
+                          'settings.world_builder.activity_graph.needs_review',
+                          'Needs AI review',
+                      )}
             </p>
             {activity.connectors.outputs.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-1">
@@ -6909,12 +6919,67 @@ function ActivityGraphCard({
                 }}
                 type="button"
             >
-                Activity history
+                {t(
+                    'settings.world_builder.activity_graph.history',
+                    'Activity history',
+                )}
             </button>
-            <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-evidence-context.open" onClick={(event) => { event.stopPropagation(); data.onEvidenceContext(activity); }} type="button">Learner orientation</button>
-            <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-completion-choice.open" onClick={(event) => { event.stopPropagation(); data.onCompletionChoice(activity); }} type="button">Choice context</button>
-            <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-ambient-sound.open" onClick={(event) => { event.stopPropagation(); data.onAmbientSound(activity); }} type="button">Scene ambience</button>
-            <button className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10" data-wl-id="authoring.activity-feedback-guidance.open" onClick={(event) => { event.stopPropagation(); data.onFeedbackGuidance(activity); }} type="button">Feedback guidance</button>
+            <button
+                className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
+                data-wl-id="authoring.activity-evidence-context.open"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    data.onEvidenceContext(activity);
+                }}
+                type="button"
+            >
+                {t(
+                    'settings.world_builder.activity_graph.learner_orientation',
+                    'Learner orientation',
+                )}
+            </button>
+            <button
+                className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
+                data-wl-id="authoring.activity-completion-choice.open"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    data.onCompletionChoice(activity);
+                }}
+                type="button"
+            >
+                {t(
+                    'settings.world_builder.activity_graph.choice_context',
+                    'Choice context',
+                )}
+            </button>
+            <button
+                className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
+                data-wl-id="authoring.activity-ambient-sound.open"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    data.onAmbientSound(activity);
+                }}
+                type="button"
+            >
+                {t(
+                    'settings.world_builder.activity_graph.scene_ambience',
+                    'Scene ambience',
+                )}
+            </button>
+            <button
+                className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
+                data-wl-id="authoring.activity-feedback-guidance.open"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    data.onFeedbackGuidance(activity);
+                }}
+                type="button"
+            >
+                {t(
+                    'settings.world_builder.activity_graph.feedback_guidance',
+                    'Feedback guidance',
+                )}
+            </button>
             <button
                 className="mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-teal-300/10"
                 data-wl-id="authoring.activity-source-references.open"
@@ -6924,7 +6989,10 @@ function ActivityGraphCard({
                 }}
                 type="button"
             >
-                Sources
+                {t(
+                    'settings.world_builder.activity_graph.source_references',
+                    'Sources',
+                )}
             </button>
             {data.canReview && data.activity.ai_review_status === 'needs_review' ? (
                 <button
@@ -6936,13 +7004,20 @@ function ActivityGraphCard({
                     type="button"
                 >
                     <Sparkles className="size-3" />
-                    Review activity
+                    {t(
+                        'settings.world_builder.activity_graph.review_activity',
+                        'Review activity',
+                    )}
                 </button>
             ) : null}
             {activity.activity_type !== 'npc_dialogue' ? (
                 <div className="mt-1 flex flex-wrap gap-1">
                     <button
-                        aria-label={`Edit ${activity.title}`}
+                        aria-label={t(
+                            'settings.world_builder.activity_graph.edit_activity',
+                            'Edit :activity',
+                            { activity: activity.title },
+                        )}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
                         onClick={(event) => {
                             event.stopPropagation();
@@ -6951,7 +7026,10 @@ function ActivityGraphCard({
                         type="button"
                     >
                         <Pencil className="size-3" />
-                        Edit
+                        {t(
+                            'settings.world_builder.activity_graph.edit',
+                            'Edit',
+                        )}
                     </button>
                     <button
                         aria-label={t(

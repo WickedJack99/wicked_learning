@@ -1,6 +1,6 @@
 import { expect, test } from './authenticated';
 
-test('the reusable activity template library consumes fixed platform catalog copy', async ({
+test('the activity graph and reusable template library consume fixed platform catalog copy', async ({
     page,
 }) => {
     const mapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01';
@@ -28,6 +28,32 @@ test('the reusable activity template library consumes fixed platform catalog cop
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'settings.world_builder.activity_graph.choice_context':
+                        'Localized choice context',
+                    'settings.world_builder.activity_graph.delete_activity':
+                        'Localized delete :activity',
+                    'settings.world_builder.activity_graph.edit':
+                        'Localized edit',
+                    'settings.world_builder.activity_graph.edit_activity':
+                        'Localized edit :activity',
+                    'settings.world_builder.activity_graph.feedback_guidance':
+                        'Localized feedback guidance',
+                    'settings.world_builder.activity_graph.history':
+                        'Localized activity history',
+                    'settings.world_builder.activity_graph.learner_orientation':
+                        'Localized learner orientation',
+                    'settings.world_builder.activity_graph.review_activity':
+                        'Localized review activity',
+                    'settings.world_builder.activity_graph.needs_review':
+                        'Localized needs AI review',
+                    'settings.world_builder.activity_graph.source_references':
+                        'Localized sources',
+                    'settings.world_builder.activity_graph.scene_ambience':
+                        'Localized scene ambience',
+                    'settings.world_builder.activity_templates.copy_activity':
+                        'Localized copy :activity',
+                    'settings.world_builder.activity_templates.create_copy':
+                        'Localized editable copy',
                     'settings.world_builder.activity_templates.description':
                         'Localized reusable-template guidance.',
                     'settings.world_builder.activity_templates.empty':
@@ -36,8 +62,16 @@ test('the reusable activity template library consumes fixed platform catalog cop
                         'Localized activity templates',
                     'settings.world_builder.activity_templates.search_label':
                         'Localized reusable-template search',
+                    'settings.world_builder.activity_templates.save_activity_label':
+                        'Localized save :activity',
+                    'settings.world_builder.activity_templates.save_template':
+                        'Localized save template',
                     'settings.world_builder.activity_templates.title':
                         'Localized reusable-template library',
+                    'settings.world_builder.activity_templates.update_activity':
+                        'Localized update :activity',
+                    'settings.world_builder.activity_templates.update_template':
+                        'Localized update template',
                 },
             }),
         });
@@ -88,10 +122,28 @@ test('the reusable activity template library consumes fixed platform catalog cop
             contentType: 'application/json',
             body: JSON.stringify({
                 activity_graph: {
-                    activities: [],
+                    activities: [
+                        {
+                            activity_type: 'open_practice',
+                            ai_review: null,
+                            ai_review_history: [],
+                            ai_review_status: 'needs_review',
+                            ai_reviewed_at: null,
+                            config: {},
+                            connectors: { inputs: [], outputs: [] },
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d05',
+                            introduction: null,
+                            portal_link: null,
+                            position: { x: 0, y: 0 },
+                            question: null,
+                            slug: 'mocked-activity',
+                            title: 'Mocked activity',
+                            updated_at: '2026-11-14T12:34:00Z',
+                        },
+                    ],
                     activity_types: [],
                     ai_review_templates: [],
-                    can_manage_ai_review: false,
+                    can_manage_ai_review: true,
                     competence_topic_options: [],
                     evidence_concept_options: [],
                     map: { id: mapId, slug: 'mocked-map', title: 'Mocked map' },
@@ -142,6 +194,44 @@ test('the reusable activity template library consumes fixed platform catalog cop
     await page.goto(
         `/settings?panel=admin-world-builder&map=${mapId}&node=${nodeId}`,
     );
+    const card = page.locator('[data-id="018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d05"]');
+    await expect(card.getByText('Localized needs AI review')).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized activity history' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized learner orientation' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized choice context' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized scene ambience' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized feedback guidance' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized sources' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized review activity' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized edit Mocked activity' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized delete Mocked activity' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized copy Mocked activity' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized save Mocked activity' }),
+    ).toBeVisible();
+    await expect(
+        card.getByRole('button', { name: 'Localized update Mocked activity' }),
+    ).toBeVisible();
     await page
         .getByRole('button', { name: 'Localized activity templates' })
         .click();
