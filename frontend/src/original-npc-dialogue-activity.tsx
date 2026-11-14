@@ -6,6 +6,7 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
 import { useLearnerSoundPreferences } from './learner-sound-preferences';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type Dialogue = components['schemas']['LearnerNpcDialogue'];
@@ -44,6 +45,7 @@ export function OriginalNpcDialogueActivity({
     onRefresh: () => Promise<void>;
     playRunId: string;
 }) {
+    const t = usePlatformTranslation();
     const dialogue = activity.npc_dialogue;
     const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
     const [reflection, setReflection] = useState('');
@@ -69,7 +71,7 @@ export function OriginalNpcDialogueActivity({
     );
 
     if (!dialogue || !currentNode) {
-        return <p className="rounded-lg border border-dashed border-white/20 p-4 text-sm text-[var(--learner-muted-text)]">This dialogue is not available.</p>;
+        return <p className="rounded-lg border border-dashed border-white/20 p-4 text-sm text-[var(--learner-muted-text)]">{t('learning.npc_dialogue.no_start_path', 'This NPC dialogue has no start path yet.')}</p>;
     }
 
     const isQuestion = currentNode.node_type === 'npc_question';
@@ -213,15 +215,15 @@ export function OriginalNpcDialogueActivity({
                 <div className="rounded-2xl border p-4 backdrop-blur-md" style={bubbleStyle}>
                     <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><MessageCircle className="size-4" />{currentNode.title}</div>
                     <TypingText key={currentNode.id} soundSet={typingSoundEnabled ? typingSoundSet : undefined} speed={numberConfig(currentNode.config.typingSpeed, 28)} text={currentNode.body ?? ''} />
-                    {grantedToolName ? <p className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100">Added tool: {grantedToolName}</p> : null}
-                    {isQuestion ? <div className="mt-4 grid gap-2">
+                    {grantedToolName ? <p className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100">{t('learning.npc_dialogue.tool_added', 'Added tool: :tool', { tool: grantedToolName })}</p> : null}
+                    {isQuestion ? answers.length === 0 ? <p className="mt-4 rounded-lg border border-dashed border-white/20 p-3 text-sm opacity-80">{t('learning.npc_dialogue.no_answers', 'This question has no answers configured yet.')}</p> : <div className="mt-4 grid gap-2">
                         {answers.map((answer, index) => <button className={`rounded-lg border p-3 text-left text-sm leading-6 transition ${selectedAnswerId === answer.id ? 'border-cyan-600 bg-cyan-50 text-slate-900 dark:border-teal-200 dark:bg-teal-200/10 dark:text-slate-100' : 'border-white/20 bg-white/70 text-slate-800 hover:bg-white dark:bg-slate-950/50 dark:text-slate-100 dark:hover:bg-slate-950/70'}`} disabled={isSubmitting} key={answer.id} onClick={() => setSelectedAnswerId(answer.id)} type="button"><span className="mr-2 font-semibold">{answer.label ?? String.fromCharCode(65 + index)}</span>{answer.body}</button>)}
-                        <button className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={!selectedAnswerId || isSubmitting} onClick={() => void answer()} type="button">Confirm answer</button>
+                        <button className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={!selectedAnswerId || isSubmitting} onClick={() => void answer()} type="button">{t('learning.npc_dialogue.confirm_answer', 'Confirm answer')}</button>
                     </div> : null}
-                    {isReflection ? <div className="mt-4 grid gap-3"><textarea className="min-h-28 resize-none rounded-lg border border-white/20 bg-slate-950/30 p-3 text-sm leading-6 text-inherit outline-none focus:border-cyan-400 dark:focus:border-teal-200" onChange={(event) => setReflection(event.target.value)} placeholder="Write a reflection for your journal." value={reflection} /><button className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={!reflection.trim() || isSubmitting} onClick={() => void saveReflection()} type="button">Keep reflection</button></div> : null}
+                    {isReflection ? <div className="mt-4 grid gap-3"><textarea className="min-h-28 resize-none rounded-lg border border-white/20 bg-slate-950/30 p-3 text-sm leading-6 text-inherit outline-none focus:border-cyan-400 dark:focus:border-teal-200" onChange={(event) => setReflection(event.target.value)} placeholder={t('learning.npc_dialogue.reflection_placeholder', 'Write a reflection for your journal.')} value={reflection} /><button className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={!reflection.trim() || isSubmitting} onClick={() => void saveReflection()} type="button">{t('learning.npc_dialogue.keep_reflection', 'Keep reflection')}</button></div> : null}
                     {error ? <p className="mt-3 text-sm text-rose-700 dark:text-rose-200" role="alert">{error}</p> : null}
                 </div>
-                <div className="flex items-center justify-between gap-3"><button aria-label="Previous dialogue" className="rounded-md border border-[var(--learner-border-color)] p-2 disabled:opacity-50" disabled={!canGoBack || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back')} type="button"><ArrowLeft className="size-4" /></button><p className="text-xs text-[var(--learner-muted-text)]">{isReflection ? 'Save your reflection to continue.' : isQuestion ? 'Choose an answer, then confirm.' : isEnd ? 'Completing dialogue…' : 'Use Space or arrows to move.'}</p><button aria-label="Next dialogue" className="rounded-md bg-cyan-700 p-2 text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={isQuestion || isReflection || isEnd || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue')} type="button"><ArrowRight className="size-4" /></button></div>
+                <div className="flex items-center justify-between gap-3"><button aria-label={t('learning.npc_dialogue.previous', 'Previous dialogue')} className="rounded-md border border-[var(--learner-border-color)] p-2 disabled:opacity-50" disabled={!canGoBack || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back')} type="button"><ArrowLeft className="size-4" /></button><p className="text-xs text-[var(--learner-muted-text)]">{isReflection ? t('learning.npc_dialogue.reflection_continue', 'Save your reflection to continue.') : isQuestion ? t('learning.npc_dialogue.question_continue', 'Choose an answer, then confirm.') : isEnd ? 'Completing dialogue…' : t('learning.npc_dialogue.keyboard_hint', 'Use Space or arrows to move.')}</p><button aria-label={t('learning.npc_dialogue.next', 'Next dialogue')} className="rounded-md bg-cyan-700 p-2 text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={isQuestion || isReflection || isEnd || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue')} type="button"><ArrowRight className="size-4" /></button></div>
             </div>
             <DialogueSceneAssetLayers assets={sceneAssets} layer="overlay" />
         </div>

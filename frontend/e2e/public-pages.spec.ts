@@ -4126,6 +4126,81 @@ test('the original peer-message wall localizes its authorized empty reader', asy
     ).toBeVisible();
 });
 
+test('the original NPC dialogue localizes its server-owned empty answer state', async ({ page }) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d87';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'learning.npc_dialogue.no_answers': 'Localized empty answers',
+                    'learning.npc_dialogue.previous': 'Previous locally',
+                    'learning.npc_dialogue.next': 'Next locally',
+                    'learning.npc_dialogue.question_continue': 'Choose locally before confirming',
+                },
+            }),
+        });
+    });
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                play_run_id: playRunId,
+                run_kind: 'route',
+                context: {
+                    node_slug: 'private-place',
+                    node_title: 'Private place',
+                    map_slug: 'private-path',
+                    map_title: 'A private path',
+                    route_label: 'Dialogue route',
+                },
+                activity: {
+                    slug: 'npc-dialogue',
+                    title: 'NPC dialogue',
+                    description: 'A source-authored dialogue.',
+                    activity_type: 'npc_dialogue',
+                    config: {},
+                    completion: { label: null, next_activity_slug: null },
+                    check_in: {
+                        choice_prompt: null,
+                        concepts: [],
+                        learning_areas: [],
+                        objective: null,
+                    },
+                    npc_dialogue: {
+                        current_node_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01',
+                        history: [],
+                        nodes: [{
+                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01',
+                            node_type: 'npc_question',
+                            title: 'A question without choices',
+                            body: 'What do you notice?',
+                            config: {},
+                        }],
+                        transitions: [],
+                        typing_sound_sets: [],
+                    },
+                },
+            }),
+        });
+    });
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByText('Localized empty answers')).toBeVisible();
+    await expect(page.getByText('Choose locally before confirming')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Previous locally' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Next locally' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Confirm answer' })).toHaveCount(0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await expect(page.getByText('Localized empty answers')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Next locally' })).toBeDisabled();
+});
+
 test('the original item-grant surface rolls only the active configured items before completing', async ({
     page,
 }) => {

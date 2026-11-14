@@ -361,6 +361,10 @@ Peer-message wall reading, response/helpfulness controls, pagination and close
 copy likewise use the catalog; Rust remains the authority for visible messages,
 one-response eligibility, helpfulness and completion.
 
+NPC-dialogue's bounded source orientation, answer, reflection and navigation
+copy now resolves through the platform catalog; active node state, answer,
+reflection, configured tool grant, history and completion remain Rust-owned.
+
 The source World Builder's map Access permissions control is now lifted for
 principals with its distinct `world_map_access` update scope. Its typed Rust
 command replaces only the complete map viewer-group list after validating
