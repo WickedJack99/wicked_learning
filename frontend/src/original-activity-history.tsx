@@ -141,17 +141,17 @@ export function OriginalActivityHistoryDialog({
                     <div>
                         <p className="inline-flex items-center gap-2 text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
                             <History className="size-4" />
-                            Activity history
+                            {t('settings.activity_history.label', 'Activity history')}
                         </p>
                         <h2 className="mt-1 text-xl font-semibold" id="activity-history-title">
                             {details?.title ?? activityTitle}
                         </h2>
                         <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Review earlier activity details, type-specific settings and route connections. Restoring preserves the current state as a new history entry.
+                            {t('settings.activity_history.description', 'Review earlier activity details, type-specific settings and route connections. Restoring preserves the current state as a new history entry.')}
                         </p>
                     </div>
                     <button
-                        aria-label="Close activity history"
+                        aria-label={t('settings.activity_history.close', 'Close activity history')}
                         className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white"
                         onClick={onClose}
                         type="button"
@@ -169,7 +169,7 @@ export function OriginalActivityHistoryDialog({
                 <div className="mt-5" data-wl-id="authoring.activity-history.content">
                     {loading ? (
                         <p aria-live="polite" className="text-sm text-slate-600 dark:text-slate-300" role="status">
-                            Loading activity history…
+                            {t('settings.activity_history.loading', 'Loading activity history…')}
                         </p>
                     ) : details ? (
                         <HistoryDetails
@@ -187,14 +187,14 @@ export function OriginalActivityHistoryDialog({
                                 >
                                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                                         <h3 className="text-sm font-medium">
-                                            {version.title || 'Untitled activity'}
+                                            {version.title || t('settings.activity_history.untitled', 'Untitled activity')}
                                         </h3>
                                         <time className="text-xs text-slate-500 dark:text-slate-400">
                                             {formatVersionDate(version.created_at)}
                                         </time>
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        {version.activity_type || 'Unknown type'}
+                                        {version.activity_type || t('settings.activity_history.unknown_type', 'Unknown type')}
                                         {version.introduction
                                             ? ` · ${version.introduction}`
                                             : ''}
@@ -208,8 +208,8 @@ export function OriginalActivityHistoryDialog({
                                         >
                                             <Search className="size-4" />
                                             {inspectingId === version.id
-                                                ? 'Inspecting…'
-                                                : 'Inspect'}
+                                                ? t('settings.activity_history.inspecting', 'Inspecting…')
+                                                : t('settings.activity_history.inspect', 'Inspect')}
                                         </button>
                                         <button
                                             className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:text-teal-200 dark:hover:bg-teal-300/10"
@@ -219,8 +219,8 @@ export function OriginalActivityHistoryDialog({
                                         >
                                             <RotateCcw className="size-4" />
                                             {restoringId === version.id
-                                                ? 'Restoring…'
-                                                : 'Restore this version'}
+                                                ? t('settings.activity_history.restoring', 'Restoring…')
+                                                : t('settings.activity_history.restore', 'Restore this version')}
                                         </button>
                                     </div>
                                 </article>
@@ -228,15 +228,15 @@ export function OriginalActivityHistoryDialog({
                         </div>
                     ) : (
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            No earlier activity configuration yet. The first update will create one.
+                            {t('settings.activity_history.empty', 'No earlier activity configuration yet. The first update will create one.')}
                         </p>
                     )}
                 </div>
 
                 {history && !details ? (
-                    <nav aria-label="Activity history pagination" className="mt-5 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm dark:border-white/10">
+                    <nav aria-label={t('settings.activity_history.pagination', 'Activity history pagination')} className="mt-5 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm dark:border-white/10">
                         <span className="text-slate-500 dark:text-slate-400">
-                            Page {history.pagination.page} of {history.pagination.last_page}
+                            {t('settings.activity_history.page', 'Page :page of :total', { page: history.pagination.page, total: history.pagination.last_page })}
                         </span>
                         <div className="flex gap-2">
                             <button
@@ -247,7 +247,7 @@ export function OriginalActivityHistoryDialog({
                                 }
                                 type="button"
                             >
-                                Previous
+                                {t('settings.activity_history.previous', 'Previous')}
                             </button>
                             <button
                                 className="rounded-md border border-slate-200 px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -261,7 +261,7 @@ export function OriginalActivityHistoryDialog({
                                 }
                                 type="button"
                             >
-                                Next
+                                {t('settings.activity_history.next', 'Next')}
                             </button>
                         </div>
                     </nav>
