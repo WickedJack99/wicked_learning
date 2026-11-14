@@ -169,14 +169,28 @@ test('a local author can open the guarded source-derived activity review dialog'
     );
     expect(ambientSoundResponse.status()).toBe(200);
 
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'settings.world_builder.activity.source_references.close': 'Close localized source references',
+                    'settings.world_builder.activity.source_references.field_title': 'Localized citation title',
+                    'settings.world_builder.activity.source_references.title': 'Localized source references',
+                },
+            }),
+        });
+    });
     await page.reload();
     const card = page.locator('[data-id]').filter({ hasText: `Review target ${suffix}` });
     await expect(card).toBeVisible();
     await card.getByRole('button', { name: 'Sources' }).click();
     const sourcesDialog = page.locator('[data-wl-id="authoring.activity-source-references"]');
     await expect(sourcesDialog).toBeVisible();
-    await expect(sourcesDialog.getByLabel('Title')).toHaveValue('Source-reference test');
-    await sourcesDialog.getByRole('button', { name: 'Close source references' }).click();
+    await expect(sourcesDialog.getByRole('heading', { name: 'Localized source references' })).toBeVisible();
+    await expect(sourcesDialog.getByLabel('Localized citation title')).toHaveValue('Source-reference test');
+    await sourcesDialog.getByRole('button', { name: 'Close localized source references' }).click();
     await card.getByRole('button', { name: 'Learner orientation' }).click();
     const evidenceDialog = page.locator('[data-wl-id="authoring.activity-evidence-context"]');
     await expect(evidenceDialog).toBeVisible();
