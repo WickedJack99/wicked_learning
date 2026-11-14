@@ -109,12 +109,26 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Localized activity graph',
                     'settings.world_builder.npc_dialogue.add_node':
                         'Localized add node',
+                    'settings.world_builder.npc_dialogue.add_node_title':
+                        'Localized add dialogue node',
                     'settings.world_builder.npc_dialogue.canvas_label':
                         'Localized NPC canvas',
                     'settings.world_builder.npc_dialogue.end_activity_output':
                         ':connector localized activity output',
                     'settings.world_builder.npc_dialogue.node_type_end':
                         'Localized end node',
+                    'settings.world_builder.npc_dialogue.node_type_label':
+                        'Localized node type',
+                    'settings.world_builder.npc_dialogue.node_description':
+                        'Localized node configuration guidance.',
+                    'settings.world_builder.npc_dialogue.no_tool':
+                        'Localized no tool',
+                    'settings.world_builder.npc_dialogue.save_node':
+                        'Localized save node',
+                    'settings.world_builder.npc_dialogue.speech_bubble_text':
+                        'Localized speech bubble text',
+                    'settings.world_builder.npc_dialogue.tool_grant':
+                        'Localized tool grant',
                     'settings.world_builder.npc_dialogue.start':
                         'Localized start',
                     'settings.world_builder.npc_dialogue.start_description':
@@ -390,6 +404,24 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     await expect(
         npcDialogueCanvas.getByText('A localized activity output'),
     ).toBeVisible();
+    await npcDialogueCanvas
+        .getByRole('button', { name: 'Localized add node' })
+        .click();
+    await expect(
+        page.getByRole('heading', { name: 'Localized add dialogue node' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Localized node configuration guidance.'),
+    ).toBeVisible();
+    await expect(page.getByLabel('Localized node type')).toBeVisible();
+    await expect(
+        page.getByLabel('Localized speech bubble text'),
+    ).toBeVisible();
+    await expect(page.getByLabel('Localized tool grant')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Localized save node' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Localized cancel' }).click();
     await page.setViewportSize({ width: 390, height: 844 });
     const npcCanvasBounds = await npcDialogueCanvas.boundingBox();
     expect(npcCanvasBounds).not.toBeNull();
