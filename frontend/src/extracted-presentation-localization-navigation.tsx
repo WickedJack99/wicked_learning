@@ -1,5 +1,5 @@
 import { Languages, Palette, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -9,6 +9,9 @@ import { SettingsSidebarNavigation, SettingsTopBar } from './extracted-settings-
 import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
 import type { OriginalAppearance } from './original-appearance';
 import { usePlatformTranslation } from './original-platform-translation';
+import { apiClient } from './api/client';
+import type { components } from './api/schema';
+import { settingsPresentationStyle } from './public-presentation';
 
 /** Extracted from `features/settings/presentation-localization-panel.tsx`. */
 export type PresentationLocalizationSection = 'languages' | 'palette' | 'public';
@@ -24,13 +27,22 @@ export function PresentationLocalizationSettingsShell({ activeSection, appearanc
     const navigate = useNavigate();
     const t = usePlatformTranslation();
     const [settingsMenuQuery, setSettingsMenuQuery] = useState('');
+    const [presentation, setPresentation] = useState<components['schemas']['PublicPresentation'] | null>(null);
     const accessCapabilities = useMemo(() => Object.fromEntries(Object.entries(settingsAccess).map(([key, read]) => [key, { delete: false, read, update: false }])), [settingsAccess]);
     const navigationSections = useMemo(() => settingsSections(t, accessCapabilities, true, settingsMenuQuery), [accessCapabilities, settingsMenuQuery, t]);
     const selectSection = (section: PresentationLocalizationSection): void => {
         void navigate(`/settings?panel=admin-presentation-localization&presentation=${section}`);
     };
 
-    return <main className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100" style={presentationLocalizationStyle(appearance)}>
+    useEffect(() => {
+        let active = true;
+        void apiClient.GET('/public/presentation').then(({ data, response }) => {
+            if (active && response.ok && data) setPresentation(data);
+        }).catch(() => undefined);
+        return () => { active = false; };
+    }, []);
+
+    return <main className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100" style={presentation?.settings_palette ? settingsPresentationStyle(presentation, appearance) : presentationLocalizationStyle(appearance)}>
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <SettingsTopBar menuQuery={settingsMenuQuery} onSearchChange={setSettingsMenuQuery} />
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
