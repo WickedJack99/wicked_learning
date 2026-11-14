@@ -9170,7 +9170,7 @@ components:
     PublicPresentation:
       type: object
       additionalProperties: false
-      required: [branding, auth, cursors, welcome, information_pages, public_palette]
+      required: [branding, auth, cursors, welcome, information_pages, public_palette, settings_palette]
       properties:
         branding:
           $ref: '#/components/schemas/PublicBranding'
@@ -9189,6 +9189,8 @@ components:
             $ref: '#/components/schemas/PublicInformationPage'
         public_palette:
           $ref: '#/components/schemas/PublicPaletteModes'
+        settings_palette:
+          $ref: '#/components/schemas/SettingsPaletteModes'
     PublicBranding:
       type: object
       additionalProperties: false
@@ -9327,6 +9329,50 @@ components:
         muted_text_opacity: { type: integer, minimum: 0, maximum: 100 }
         welcome_overlay: { type: string, maxLength: 64 }
         welcome_overlay_opacity: { type: integer, minimum: 0, maximum: 100 }
+    SettingsPaletteModes:
+      type: object
+      additionalProperties: false
+      required: [dark, light]
+      properties:
+        dark: { $ref: '#/components/schemas/SettingsPalette' }
+        light: { $ref: '#/components/schemas/SettingsPalette' }
+    SettingsPalette:
+      type: object
+      additionalProperties: false
+      required: [accent, accent_opacity, accent_foreground, accent_foreground_opacity, active_background, active_background_opacity, appearance_switch_background, appearance_switch_background_opacity, appearance_switch_active_background, appearance_switch_active_background_opacity, appearance_switch_active_text, appearance_switch_active_text_opacity, appearance_switch_inactive_text, appearance_switch_inactive_text_opacity, sidebar_background, sidebar_background_opacity, content_background, content_background_opacity, input_background, input_background_opacity, input_border_color, input_border_color_opacity, panel_background, panel_background_opacity, border_color, border_color_opacity, muted_text, muted_text_opacity, nested_sidebar_background, nested_sidebar_background_opacity, scrollbar_thumb, scrollbar_thumb_opacity]
+      properties:
+        accent: { type: string, maxLength: 64 }
+        accent_opacity: { type: integer, minimum: 0, maximum: 100 }
+        accent_foreground: { type: string, maxLength: 64 }
+        accent_foreground_opacity: { type: integer, minimum: 0, maximum: 100 }
+        active_background: { type: string, maxLength: 64 }
+        active_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        appearance_switch_background: { type: string, maxLength: 64 }
+        appearance_switch_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        appearance_switch_active_background: { type: string, maxLength: 64 }
+        appearance_switch_active_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        appearance_switch_active_text: { type: string, maxLength: 64 }
+        appearance_switch_active_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        appearance_switch_inactive_text: { type: string, maxLength: 64 }
+        appearance_switch_inactive_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        sidebar_background: { type: string, maxLength: 64 }
+        sidebar_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        content_background: { type: string, maxLength: 64 }
+        content_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        input_background: { type: string, maxLength: 64 }
+        input_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        input_border_color: { type: string, maxLength: 64 }
+        input_border_color_opacity: { type: integer, minimum: 0, maximum: 100 }
+        panel_background: { type: string, maxLength: 64 }
+        panel_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        border_color: { type: string, maxLength: 64 }
+        border_color_opacity: { type: integer, minimum: 0, maximum: 100 }
+        muted_text: { type: string, maxLength: 64 }
+        muted_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        nested_sidebar_background: { type: string, maxLength: 64 }
+        nested_sidebar_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        scrollbar_thumb: { type: string, maxLength: 64 }
+        scrollbar_thumb_opacity: { type: integer, minimum: 0, maximum: 100 }
     PublicSourceLink:
       type: object
       additionalProperties: false

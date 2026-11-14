@@ -1,5 +1,13 @@
-import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
+import {
+    type CSSProperties,
+    type ReactNode,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
 
+import { apiClient } from './api/client';
+import type { components } from './api/schema';
 import { useCurrentUser } from './current-user';
 import { SettingsNestedWorkspace } from './extracted-settings-configuration-shell';
 import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
@@ -14,6 +22,7 @@ import {
     type PersonalSettingsSection,
 } from './original-personal-settings-navigation';
 import { usePlatformTranslation } from './original-platform-translation';
+import { settingsPresentationStyle } from './public-presentation';
 
 /**
  * The source Settings page keeps its global Settings chrome around the nested
@@ -35,6 +44,8 @@ export function OriginalPersonalSettingsShell({
     const { currentUser, setCurrentUser } = useCurrentUser();
     const t = usePlatformTranslation();
     const [settingsMenuQuery, setSettingsMenuQuery] = useState('');
+    const [presentation, setPresentation] =
+        useState<components['schemas']['PublicPresentation'] | null>(null);
     const settingsAccess =
         currentUser.kind === 'loaded' ? currentUser.settingsAccess : {};
     const accessCapabilities = useMemo(
@@ -66,10 +77,31 @@ export function OriginalPersonalSettingsShell({
         ],
     );
 
+    useEffect(() => {
+        let active = true;
+
+        void apiClient
+            .GET('/public/presentation')
+            .then(({ data, response }) => {
+                if (active && response.ok && data) {
+                    setPresentation(data);
+                }
+            })
+            .catch(() => undefined);
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
     return (
         <main
             className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100"
-            style={personalSettingsStyle(appearance)}
+            style={
+                presentation?.settings_palette
+                    ? settingsPresentationStyle(presentation, appearance)
+                    : personalSettingsStyle(appearance)
+            }
         >
             <div className="flex h-full min-h-0 flex-col overflow-hidden">
                 <SettingsTopBar

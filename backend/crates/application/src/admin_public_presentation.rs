@@ -5,6 +5,7 @@ use wicked_learning_domain::{
     platform_presentation::{
         PublicAppearanceImages, PublicAppearanceThemes, PublicAuthTheme, PublicCursor,
         PublicInformationPage, PublicPalette, PublicPresentation, PublicWelcomePage,
+        SettingsPalette,
     },
 };
 
@@ -99,6 +100,8 @@ pub fn valid_public_presentation(presentation: &PublicPresentation) -> bool {
             .all(valid_information_page)
         && valid_palette(&presentation.public_palette.dark)
         && valid_palette(&presentation.public_palette.light)
+        && valid_settings_palette(&presentation.settings_palette.dark)
+        && valid_settings_palette(&presentation.settings_palette.light)
 }
 
 fn valid_cursors(cursor: &PublicCursor) -> bool {
@@ -181,6 +184,49 @@ fn valid_palette(palette: &PublicPalette) -> bool {
             palette.heading_text_opacity,
             palette.muted_text_opacity,
             palette.welcome_overlay_opacity,
+        ]
+        .into_iter()
+        .all(|value| value <= 100)
+}
+
+fn valid_settings_palette(palette: &SettingsPalette) -> bool {
+    [
+        &palette.accent,
+        &palette.accent_foreground,
+        &palette.active_background,
+        &palette.appearance_switch_background,
+        &palette.appearance_switch_active_background,
+        &palette.appearance_switch_active_text,
+        &palette.appearance_switch_inactive_text,
+        &palette.sidebar_background,
+        &palette.content_background,
+        &palette.input_background,
+        &palette.input_border_color,
+        &palette.panel_background,
+        &palette.border_color,
+        &palette.muted_text,
+        &palette.nested_sidebar_background,
+        &palette.scrollbar_thumb,
+    ]
+    .into_iter()
+    .all(|value| bounded(value, 64))
+        && [
+            palette.accent_opacity,
+            palette.accent_foreground_opacity,
+            palette.active_background_opacity,
+            palette.appearance_switch_background_opacity,
+            palette.appearance_switch_active_background_opacity,
+            palette.appearance_switch_active_text_opacity,
+            palette.appearance_switch_inactive_text_opacity,
+            palette.sidebar_background_opacity,
+            palette.content_background_opacity,
+            palette.input_background_opacity,
+            palette.input_border_color_opacity,
+            palette.panel_background_opacity,
+            palette.border_color_opacity,
+            palette.muted_text_opacity,
+            palette.nested_sidebar_background_opacity,
+            palette.scrollbar_thumb_opacity,
         ]
         .into_iter()
         .all(|value| value <= 100)
@@ -290,6 +336,25 @@ mod tests {
             .as_mut()
             .expect("the source default action cursor exists")
             .size = Some(15);
+
+        assert!(
+            UpdateAdminPublicPresentation::new(&Repository)
+                .execute(&principal, invalid)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn public_presentation_rejects_an_unbounded_settings_palette_value_before_writing() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:presentation:ru:all".to_owned()],
+        };
+        let mut invalid = presentation();
+        invalid.settings_palette.dark.accent = "#".to_owned() + &"f".repeat(64);
 
         assert!(
             UpdateAdminPublicPresentation::new(&Repository)
@@ -414,6 +479,7 @@ mod tests {
                 dark: palette.clone(),
                 light: palette,
             },
+            settings_palette: Default::default(),
         }
     }
 }

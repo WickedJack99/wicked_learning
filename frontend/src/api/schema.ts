@@ -7091,6 +7091,7 @@ export interface components {
             /** @description Ordered source-configured public information pages. */
             information_pages: components["schemas"]["PublicInformationPage"][];
             public_palette: components["schemas"]["PublicPaletteModes"];
+            settings_palette: components["schemas"]["SettingsPaletteModes"];
         };
         PublicBranding: {
             /** @description Deployment-provided logo URL or same-origin asset path. */
@@ -7171,6 +7172,44 @@ export interface components {
             muted_text_opacity: number;
             welcome_overlay: string;
             welcome_overlay_opacity: number;
+        };
+        SettingsPaletteModes: {
+            dark: components["schemas"]["SettingsPalette"];
+            light: components["schemas"]["SettingsPalette"];
+        };
+        SettingsPalette: {
+            accent: string;
+            accent_opacity: number;
+            accent_foreground: string;
+            accent_foreground_opacity: number;
+            active_background: string;
+            active_background_opacity: number;
+            appearance_switch_background: string;
+            appearance_switch_background_opacity: number;
+            appearance_switch_active_background: string;
+            appearance_switch_active_background_opacity: number;
+            appearance_switch_active_text: string;
+            appearance_switch_active_text_opacity: number;
+            appearance_switch_inactive_text: string;
+            appearance_switch_inactive_text_opacity: number;
+            sidebar_background: string;
+            sidebar_background_opacity: number;
+            content_background: string;
+            content_background_opacity: number;
+            input_background: string;
+            input_background_opacity: number;
+            input_border_color: string;
+            input_border_color_opacity: number;
+            panel_background: string;
+            panel_background_opacity: number;
+            border_color: string;
+            border_color_opacity: number;
+            muted_text: string;
+            muted_text_opacity: number;
+            nested_sidebar_background: string;
+            nested_sidebar_background_opacity: number;
+            scrollbar_thumb: string;
+            scrollbar_thumb_opacity: number;
         };
         PublicSourceLink: {
             label: string;

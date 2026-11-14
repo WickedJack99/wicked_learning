@@ -272,6 +272,7 @@ mod tests {
                 dark: palette.clone(),
                 light: palette,
             },
+            settings_palette: Default::default(),
         }
     }
 }

@@ -1,6 +1,52 @@
 import { expect, test } from '@playwright/test';
 
 test('Personal settings restores the source section navigation', async ({ page }) => {
+    const settingsPalette = (accent: string) => ({
+        accent,
+        accent_foreground: '#ffffff',
+        accent_foreground_opacity: 100,
+        accent_opacity: 100,
+        active_background: accent,
+        active_background_opacity: 10,
+        appearance_switch_active_background: '#ffffff',
+        appearance_switch_active_background_opacity: 100,
+        appearance_switch_active_text: '#0f172a',
+        appearance_switch_active_text_opacity: 100,
+        appearance_switch_background: '#e2e8f0',
+        appearance_switch_background_opacity: 80,
+        appearance_switch_inactive_text: '#64748b',
+        appearance_switch_inactive_text_opacity: 100,
+        border_color: '#e2e8f0',
+        border_color_opacity: 100,
+        content_background: '#f1f5f9',
+        content_background_opacity: 100,
+        input_background: '#ffffff',
+        input_background_opacity: 100,
+        input_border_color: '#cbd5e1',
+        input_border_color_opacity: 100,
+        muted_text: '#64748b',
+        muted_text_opacity: 100,
+        nested_sidebar_background: '#f8fafc',
+        nested_sidebar_background_opacity: 96,
+        panel_background: '#ffffff',
+        panel_background_opacity: 100,
+        scrollbar_thumb: '#64748b',
+        scrollbar_thumb_opacity: 54,
+        sidebar_background: '#ffffff',
+        sidebar_background_opacity: 90,
+    });
+    await page.route('**/api/v1/public/presentation', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                cursors: {},
+                settings_palette: {
+                    dark: settingsPalette('#b45309'),
+                    light: settingsPalette('#9f1239'),
+                },
+            }),
+        });
+    });
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -142,6 +188,13 @@ test('Personal settings restores the source section navigation', async ({ page }
         'placeholder',
         'Your full learner name',
     );
+    await expect
+        .poll(() =>
+            page.locator('.settings-surface').evaluate((element) =>
+                element.style.getPropertyValue('--settings-accent'),
+            ),
+        )
+        .toBe('#9f1239');
     await expect(
         page.locator('footer').getByRole('button', { name: 'Save' }),
     ).toBeVisible();

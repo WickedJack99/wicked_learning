@@ -7,6 +7,7 @@ export type PublicAppearance = 'dark' | 'light';
 type PublicPage = 'login' | 'register' | 'welcome';
 type PublicPalette = components['schemas']['PublicPalette'];
 type PublicCursor = components['schemas']['PublicCursor'];
+type SettingsPalette = components['schemas']['SettingsPalette'];
 
 const defaultCursors = {
     action: { fallback: 'pointer', hotspot_x: 12, hotspot_y: 4, image: '/images/cursors/fantasy-pointer.png', size: 32 },
@@ -64,6 +65,75 @@ export function publicPresentationStyle(
         '--public-muted-text': paletteColor(palette, 'muted_text'),
         '--public-welcome-overlay': paletteColor(palette, 'welcome_overlay'),
         ...publicCursorStyle(presentation),
+    } as CSSProperties;
+}
+
+/** Resolves the source Settings palette separately from public-page colors. */
+export function settingsPresentationStyle(
+    presentation: PublicPresentation,
+    appearance: PublicAppearance,
+): CSSProperties {
+    const palette = presentation.settings_palette[appearance];
+
+    return {
+        '--settings-accent': settingsPaletteColor(palette, 'accent'),
+        '--settings-accent-foreground': settingsPaletteColor(
+            palette,
+            'accent_foreground',
+        ),
+        '--settings-active-background': settingsPaletteColor(
+            palette,
+            'active_background',
+        ),
+        '--settings-appearance-switch-active-background': settingsPaletteColor(
+            palette,
+            'appearance_switch_active_background',
+        ),
+        '--settings-appearance-switch-active-text': settingsPaletteColor(
+            palette,
+            'appearance_switch_active_text',
+        ),
+        '--settings-appearance-switch-background': settingsPaletteColor(
+            palette,
+            'appearance_switch_background',
+        ),
+        '--settings-appearance-switch-inactive-text': settingsPaletteColor(
+            palette,
+            'appearance_switch_inactive_text',
+        ),
+        '--settings-border-color': settingsPaletteColor(
+            palette,
+            'border_color',
+        ),
+        '--settings-content-background': settingsPaletteColor(
+            palette,
+            'content_background',
+        ),
+        '--settings-input-background': settingsPaletteColor(
+            palette,
+            'input_background',
+        ),
+        '--settings-input-border-color': settingsPaletteColor(
+            palette,
+            'input_border_color',
+        ),
+        '--settings-muted-text': settingsPaletteColor(palette, 'muted_text'),
+        '--settings-nested-sidebar-background': settingsPaletteColor(
+            palette,
+            'nested_sidebar_background',
+        ),
+        '--settings-panel-background': settingsPaletteColor(
+            palette,
+            'panel_background',
+        ),
+        '--settings-scrollbar-thumb': settingsPaletteColor(
+            palette,
+            'scrollbar_thumb',
+        ),
+        '--settings-sidebar-background': settingsPaletteColor(
+            palette,
+            'sidebar_background',
+        ),
     } as CSSProperties;
 }
 
@@ -165,6 +235,38 @@ function paletteColor(
     if (opacity >= 100) {
         return color;
     }
+    if (opacity <= 0) {
+        return 'rgba(0, 0, 0, 0)';
+    }
+
+    const hex = color.match(/^#([0-9a-fA-F]{6})$/);
+    if (!hex) {
+        return color;
+    }
+
+    const value = hex[1];
+    const red = Number.parseInt(value.slice(0, 2), 16);
+    const green = Number.parseInt(value.slice(2, 4), 16);
+    const blue = Number.parseInt(value.slice(4, 6), 16);
+
+    return `rgba(${red}, ${green}, ${blue}, ${opacity / 100})`;
+}
+
+function settingsPaletteColor(
+    palette: SettingsPalette,
+    field: Exclude<keyof SettingsPalette, `${string}_opacity`>,
+): string {
+    return colorWithOpacity(
+        palette[field] as string,
+        palette[`${field}_opacity` as keyof SettingsPalette] as number,
+    );
+}
+
+function colorWithOpacity(color: string, opacity: number): string {
+    if (opacity >= 100) {
+        return color;
+    }
+
     if (opacity <= 0) {
         return 'rgba(0, 0, 0, 0)';
     }
