@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Activity = components['schemas']['AdminEditableActivity'];
 
@@ -41,6 +42,7 @@ export function OriginalActivityLearningDesignDialog({
     onSaved: () => void;
     suggestions: LearningDesignSuggestions;
 }) {
+    const t = usePlatformTranslation();
     const initial = draftFrom(activity, suggestions);
     const [learningIntent, setLearningIntent] = useState(initial.learningIntent);
     const [topics, setTopics] = useState(initial.topics);
@@ -62,7 +64,7 @@ export function OriginalActivityLearningDesignDialog({
                     topic.weight > 1000,
             )
         ) {
-            setError('Give every retained competence topic a name and a contribution between 0.01 and 1000.');
+            setError(t('settings.activity_learning_design.validation_error', 'Give every retained competence topic a name and a contribution between 0.01 and 1000.'));
             return;
         }
         setError(null);
@@ -86,14 +88,14 @@ export function OriginalActivityLearningDesignDialog({
             if (!response.ok) {
                 setError(
                     response.status === 409
-                        ? 'This activity changed elsewhere. Close this draft, reload the graph, and review the newer version.'
-                        : 'The learning design could not be saved. Check the values and try again.',
+                        ? t('settings.activity_learning_design.conflict_error', 'This activity changed elsewhere. Close this draft, reload the graph, and review the newer version.')
+                        : t('settings.activity_learning_design.save_error', 'The learning design could not be saved. Check the values and try again.'),
                 );
                 return;
             }
             onSaved();
         } catch {
-            setError('The learning design could not be saved. Check your connection and try again.');
+            setError(t('settings.activity_learning_design.connection_error', 'The learning design could not be saved. Check your connection and try again.'));
         } finally {
             setSaving(false);
         }
