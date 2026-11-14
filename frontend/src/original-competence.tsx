@@ -21,6 +21,7 @@ import {
 } from './original-competence-layout';
 import { OriginalLearnerHeader } from './original-learner-header';
 import { OriginalPaginatedItems } from './original-paginated-items';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type CompetenceMap = components['schemas']['LearnerCompetenceMap'];
 type CompetenceTopic = components['schemas']['LearnerCompetenceTopic'];
@@ -486,6 +487,8 @@ function StarMapStyle() {
 }
 
 function EmptyMap() {
+    const t = usePlatformTranslation();
+
     return (
         <div className="grid h-full place-items-center p-6 text-center">
             <div>
@@ -496,7 +499,8 @@ function EmptyMap() {
                 </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm">
                     <Link className="inline-flex items-center gap-2 rounded-md border border-cyan-200/30 bg-cyan-200/10 px-3 py-2 font-medium text-cyan-100 transition hover:border-cyan-100/60 hover:bg-cyan-100/20" to="/topics">
-                        Browse topics <ArrowRight className="size-4" />
+                        {t('competence.empty.browse_topics', 'Browse topics')}
+                        <ArrowRight className="size-4" />
                     </Link>
                     <Link className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 font-medium text-slate-200 transition hover:border-white/35 hover:bg-white/10" to="/home">
                         Learning desk

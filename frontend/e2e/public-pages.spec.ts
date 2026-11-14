@@ -1437,6 +1437,51 @@ test('the source competence map remains usable on a narrow screen', async ({
     ).toBeVisible();
 });
 
+test('the source competence empty state keeps its translated topic action', async ({
+    page,
+}) => {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'competence.empty.browse_topics': 'Explore subjects',
+                },
+            }),
+        });
+    });
+    await page.route('**/api/v1/me', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                email: 'learner@example.test',
+                roles: ['learner'],
+                subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/competence', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                check_ins: [],
+                month_key: '2026-11',
+                recent_window_days: 30,
+                review_attempts: [],
+                topics: [],
+                transitions: [],
+            }),
+        });
+    });
+
+    await page.goto('/competence');
+
+    await expect(
+        page.getByRole('link', { name: 'Explore subjects' }),
+    ).toHaveAttribute('href', '/topics');
+});
+
 test('the competence map preserves its source topic and origin query context', async ({
     page,
 }) => {
