@@ -215,6 +215,7 @@ function ReusableSoundPicker({
     onSelect: (sound: EditableSound) => void;
     sounds: EditableSound[];
 }) {
+    const t = usePlatformTranslation();
     const [search, setSearch] = useState('');
     const audio = useRef<HTMLAudioElement | null>(null);
     const filteredSounds = useMemo(() => {
@@ -248,20 +249,20 @@ function ReusableSoundPicker({
 
     return (
         <div
-            aria-label="Select existing sound"
+            aria-label={t('settings.activity_ambient_sound.picker.dialog_label', 'Select existing sound')}
             className="fixed inset-0 z-[110] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm"
             role="dialog"
         >
             <section className="flex max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
                 <header className="flex items-start justify-between gap-4 border-b border-slate-200 p-4 dark:border-white/10">
                     <div>
-                        <h3 className="text-lg font-semibold">Select existing sound</h3>
+                        <h3 className="text-lg font-semibold">{t('settings.activity_ambient_sound.picker.title', 'Select existing sound')}</h3>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Reuse uploaded or bundled audio with its metadata.
+                            {t('settings.activity_ambient_sound.picker.description', 'Reuse uploaded or bundled audio with its metadata.')}
                         </p>
                     </div>
                     <button
-                        aria-label="Close sound picker"
+                        aria-label={t('settings.activity_ambient_sound.picker.close', 'Close sound picker')}
                         className="rounded-md p-2 hover:bg-slate-100 dark:hover:bg-white/10"
                         onClick={() => {
                             stop();
@@ -279,7 +280,7 @@ function ReusableSoundPicker({
                             autoFocus
                             className="w-full rounded-md border border-slate-300 bg-transparent py-2 pr-3 pl-9 text-sm dark:border-white/20"
                             onChange={(event) => setSearch(event.currentTarget.value)}
-                            placeholder="Search sounds"
+                            placeholder={t('settings.activity_ambient_sound.picker.search', 'Search sounds')}
                             value={search}
                         />
                     </label>
@@ -293,13 +294,13 @@ function ReusableSoundPicker({
                         }}
                         type="button"
                     >
-                        Clear
+                        {t('settings.activity_ambient_sound.picker.clear', 'Clear')}
                     </button>
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto p-4">
                     {filteredSounds.length === 0 ? (
                         <p className="rounded-lg border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                            No sounds match this search.
+                            {t('settings.activity_ambient_sound.picker.empty', 'No sounds match this search.')}
                         </p>
                     ) : (
                         <div className="grid gap-2">
@@ -322,13 +323,13 @@ function ReusableSoundPicker({
                                         </span>
                                         {currentSoundId === sound.id ? (
                                             <span className="mt-1 block text-xs font-medium text-teal-700 dark:text-teal-300">
-                                                Selected
+                                                {t('settings.activity_ambient_sound.picker.selected', 'Selected')}
                                             </span>
                                         ) : null}
                                     </button>
                                     <div className="flex gap-1">
                                         <button
-                                            aria-label={`Play ${sound.name}`}
+                                            aria-label={t('settings.activity_ambient_sound.picker.play', 'Play :sound', { sound: sound.name })}
                                             className="rounded-md border border-slate-300 p-2 hover:bg-white dark:border-white/20 dark:hover:bg-white/10"
                                             onClick={() => play(sound)}
                                             type="button"
@@ -336,7 +337,7 @@ function ReusableSoundPicker({
                                             <Play className="size-4" />
                                         </button>
                                         <button
-                                            aria-label={`Pause ${sound.name}`}
+                                            aria-label={t('settings.activity_ambient_sound.picker.pause', 'Pause :sound', { sound: sound.name })}
                                             className="rounded-md border border-slate-300 p-2 hover:bg-white dark:border-white/20 dark:hover:bg-white/10"
                                             onClick={() => audio.current?.pause()}
                                             type="button"
@@ -344,7 +345,7 @@ function ReusableSoundPicker({
                                             <Pause className="size-4" />
                                         </button>
                                         <button
-                                            aria-label={`Stop ${sound.name}`}
+                                            aria-label={t('settings.activity_ambient_sound.picker.stop', 'Stop :sound', { sound: sound.name })}
                                             className="rounded-md border border-slate-300 p-2 hover:bg-white dark:border-white/20 dark:hover:bg-white/10"
                                             onClick={stop}
                                             type="button"

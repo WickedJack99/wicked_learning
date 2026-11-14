@@ -211,6 +211,13 @@ test('a local author can open the guarded source-derived activity review dialog'
     await expect(ambienceDialog).toBeVisible();
     await expect(ambienceDialog.getByText(sound.name, { exact: true })).toBeVisible();
     await expect(ambienceDialog.getByLabel('Enable scene ambience')).toBeChecked();
+    await ambienceDialog.getByRole('button', { name: 'Select sound' }).click();
+    const soundPicker = page.getByRole('dialog', {
+        name: 'Select existing sound',
+    });
+    await expect(soundPicker).toBeVisible();
+    await expect(soundPicker.getByPlaceholder('Search sounds')).toBeVisible();
+    await soundPicker.getByRole('button', { name: 'Close sound picker' }).click();
     await ambienceDialog.getByRole('button', { name: 'Close scene ambience' }).click();
     await card.getByRole('button', { name: 'Review activity' }).click();
     const dialog = page.locator('[data-wl-id="authoring.activity-ai-review"]');
