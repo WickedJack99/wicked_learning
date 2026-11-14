@@ -1,6 +1,6 @@
 import { expect, test } from './authenticated';
 
-test('the Learning Companion navigator consumes its fixed platform catalog copy', async ({
+test('the Learning Companion settings surfaces consume their fixed platform catalog copy', async ({
     page,
 }) => {
     await page.route('**/api/v1/me', async (route) => {
@@ -29,6 +29,14 @@ test('the Learning Companion navigator consumes its fixed platform catalog copy'
                         'Localized display name',
                     'settings.learning_companion.identity.title':
                         'Localized identity policy',
+                    'settings.learning_companion.dialogues.description':
+                        'Localized graph workspace guidance.',
+                    'settings.learning_companion.dialogues.search_label':
+                        'Localized graph search',
+                    'settings.learning_companion.dialogues.search_placeholder':
+                        'Localized search graphs',
+                    'settings.learning_companion.dialogues.title':
+                        'Localized dialogues workspace',
                     'settings.learning_companion.navigation.dialogues.description':
                         'Localized reusable dialogue graphs.',
                     'settings.learning_companion.navigation.dialogues.label':
@@ -65,6 +73,23 @@ test('the Learning Companion navigator consumes its fixed platform catalog copy'
             }),
         });
     });
+    await page.route(
+        '**/api/v1/admin/learning-companion/dialogues**',
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    items: [],
+                    pagination: {
+                        current_page: 1,
+                        last_page: 1,
+                        per_page: 6,
+                        total: 0,
+                    },
+                }),
+            });
+        },
+    );
 
     await page.goto('/settings?panel=admin-learning-companion');
 
@@ -90,9 +115,21 @@ test('the Learning Companion navigator consumes its fixed platform catalog copy'
     await expect(page.getByText('Localized allowed context')).toBeVisible();
     await expect(page.getByText('Localized current context')).toBeVisible();
 
+    await navigation.getByRole('tab', { name: 'Localized dialogues' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Localized dialogues workspace' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Localized graph workspace guidance.'),
+    ).toBeVisible();
+    await expect(page.getByLabel('Localized graph search')).toHaveAttribute(
+        'placeholder',
+        'Localized search graphs',
+    );
+
     await page.setViewportSize({ width: 390, height: 844 });
     const selector = page.getByLabel('Localized Learning Companion selector');
-    await expect(selector).toHaveValue('identity');
+    await expect(selector).toHaveValue('dialogues');
     await expect(selector.locator('option')).toHaveText([
         'Localized identity',
         'Localized dialogues',

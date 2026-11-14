@@ -452,6 +452,7 @@ function IdentityEditor({
 }
 
 function DialogueWorkspace() {
+    const t = usePlatformTranslation();
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
@@ -575,12 +576,11 @@ function DialogueWorkspace() {
         >
             <header className="mb-5">
                 <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                    Learning Companion
+                    {t('settings.learning_companion.dialogues.eyebrow', 'Learning Companion')}
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">Dialogues</h2>
+                <h2 className="mt-2 text-2xl font-semibold">{t('settings.learning_companion.dialogues.title', 'Dialogues')}</h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
-                    Create bounded message, choice, AI and end nodes, then
-                    assign each graph only to content you may author.
+                    {t('settings.learning_companion.dialogues.description', 'Create bounded message, choice, AI and end nodes, then assign each graph only to content you may author.')}
                 </p>
             </header>
             {error ? (
@@ -596,17 +596,17 @@ function DialogueWorkspace() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <h3 className="font-semibold">
-                                {selected?.name ?? 'Selected graph'}
+                                {selected?.name ?? t('settings.learning_companion.dialogues.selected_graph', 'Selected graph')}
                             </h3>
                             <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
                                 {selected
-                                    ? `${graphOf(selected).nodes.length} nodes · ${selected.assignments_count} assignments`
-                                    : 'Select a graph or create one to begin.'}
+                                    ? t('settings.learning_companion.dialogues.selection_summary', ':nodes nodes · :assignments assignments', { assignments: selected.assignments_count, nodes: graphOf(selected).nodes.length })
+                                    : t('settings.learning_companion.dialogues.selection_empty', 'Select a graph or create one to begin.')}
                             </p>
                         </div>
                         {selected ? (
                             <button
-                                aria-label="Delete graph"
+                                aria-label={t('settings.learning_companion.dialogues.delete_graph', 'Delete graph')}
                                 className="rounded-md p-2 text-red-700 hover:bg-red-500/10 dark:text-red-300"
                                 disabled={saving}
                                 onClick={() => void remove()}
@@ -620,9 +620,7 @@ function DialogueWorkspace() {
                         <div className="mt-auto grid gap-3">
                             <div className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)]/40 p-4">
                                 <p className="text-sm leading-6 text-[var(--settings-muted-text)]">
-                                    The graph stays authored and transient:
-                                    navigation keys are resolved by Rust, and AI
-                                    runs use only their bounded server context.
+                                    {t('settings.learning_companion.dialogues.selection_description', 'The graph stays authored and transient: navigation keys are resolved by Rust, and AI runs use only their bounded server context.')}
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -632,7 +630,7 @@ function DialogueWorkspace() {
                                     type="button"
                                 >
                                     <Pencil className="size-4" />
-                                    Open graph editor
+                                    {t('settings.learning_companion.dialogues.open_editor', 'Open graph editor')}
                                 </button>
                                 <button
                                     className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm font-medium"
@@ -640,15 +638,15 @@ function DialogueWorkspace() {
                                     type="button"
                                 >
                                     <Link2 className="size-4" />
-                                    Assign pages
+                                    {t('settings.learning_companion.dialogues.assign_pages', 'Assign pages')}
                                 </button>
                             </div>
                         </div>
                     ) : (
                         <p className="m-auto text-center text-sm text-[var(--settings-muted-text)]">
                             {loading
-                                ? 'Loading dialogue graphs…'
-                                : 'Create a graph to give the companion an authored conversation.'}
+                                ? t('settings.learning_companion.dialogues.loading', 'Loading dialogue graphs…')
+                                : t('settings.learning_companion.dialogues.empty', 'Create a graph to give the companion an authored conversation.')}
                         </p>
                     )}
                 </section>
@@ -663,23 +661,23 @@ function DialogueWorkspace() {
                             }}
                         >
                             <input
-                                aria-label="Search dialogue graphs"
+                                aria-label={t('settings.learning_companion.dialogues.search_label', 'Search dialogue graphs')}
                                 className={input}
                                 onChange={(event) =>
                                     setSearchInput(event.target.value)
                                 }
-                                placeholder="Search graphs"
+                                placeholder={t('settings.learning_companion.dialogues.search_placeholder', 'Search graphs')}
                                 value={searchInput}
                             />
                             <button
                                 className="rounded-md border border-[var(--settings-border-color)] px-3 py-2 text-sm"
                                 type="submit"
                             >
-                                Search
+                                {t('settings.learning_companion.dialogues.search', 'Search')}
                             </button>
                         </form>
                         <button
-                            aria-label="New graph"
+                            aria-label={t('settings.learning_companion.dialogues.new_graph', 'New graph')}
                             className="rounded-md bg-[var(--settings-accent)] p-2 text-slate-950 disabled:opacity-50"
                             disabled={saving}
                             onClick={() => void create()}
@@ -700,7 +698,7 @@ function DialogueWorkspace() {
                                     {item.name}
                                 </span>
                                 <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
-                                    {item.assignments_count} assigned ·{' '}
+                                    {t('settings.learning_companion.dialogues.assignments_count', ':count assigned', { count: item.assignments_count })} ·{' '}
                                     {new Date(
                                         item.updated_at,
                                     ).toLocaleDateString()}
@@ -710,7 +708,7 @@ function DialogueWorkspace() {
                     </div>
                     <div className="mt-auto flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3 text-sm">
                         <button
-                            aria-label="Previous graph page"
+                            aria-label={t('settings.learning_companion.dialogues.previous_page', 'Previous graph page')}
                             className="rounded p-2 disabled:opacity-40"
                             disabled={page <= 1}
                             onClick={() => setPage((value) => value - 1)}
@@ -719,10 +717,10 @@ function DialogueWorkspace() {
                             <ChevronLeft className="size-4" />
                         </button>
                         <span>
-                            Page {page} of {lastPage}
+                            {t('settings.learning_companion.dialogues.page', 'Page :page of :lastPage', { lastPage, page })}
                         </span>
                         <button
-                            aria-label="Next graph page"
+                            aria-label={t('settings.learning_companion.dialogues.next_page', 'Next graph page')}
                             className="rounded p-2 disabled:opacity-40"
                             disabled={page >= lastPage}
                             onClick={() => setPage((value) => value + 1)}
