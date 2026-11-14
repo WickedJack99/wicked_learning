@@ -1348,6 +1348,8 @@
     "settings.activity_completion_choice.save_error": "Choice context could not be saved. Check your connection and try again.",
     "settings.activity_evidence_context.conflict_error": "This activity changed while you were editing learner orientation. Reload it and try again.",
     "settings.activity_evidence_context.save_error": "Learner orientation could not be saved. Check your connection and try again.",
+    "settings.activity_feedback_guidance.conflict_error": "This activity changed while you were editing guidance. Reload it and try again.",
+    "settings.activity_feedback_guidance.save_error": "Feedback guidance could not be saved. Check your connection and try again.",
     "settings.world_builder.npc_dialogue.tool_grant": "Tool grant",
     "settings.world_builder.npc_dialogue.question_text": "Question text",
     "settings.world_builder.npc_dialogue.reflection_question": "Reflection question",
