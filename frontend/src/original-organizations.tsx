@@ -395,7 +395,7 @@ function MembersPanel({
         {members.map((member) => <article className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10" key={member.id}>
             <div><p className="font-medium">{member.user.name}</p><p className="text-xs text-slate-500 dark:text-slate-400">{member.role === 'leader' ? 'Leader' : 'Member'}</p></div>
             {canRemove && member.id !== viewerMembershipId ? <div className="flex gap-2">
-                {canPromote && member.role !== 'leader' ? <button className={secondaryButton} disabled={saving} onClick={() => onPromote(member.id)} type="button">Promote</button> : null}
+                {canPromote && member.role !== 'leader' ? <button className={secondaryButton} disabled={saving} onClick={() => onPromote(member.id)} type="button"><UserPlus className="size-4" />Make leader</button> : null}
                 <button className={secondaryButton} disabled={saving} onClick={() => onRemove(member.id)} type="button">Remove</button>
             </div> : null}
         </article>)}

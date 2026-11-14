@@ -176,7 +176,7 @@ test('organization detail preserves source section and page query parameters', a
                     is_leader: true,
                     leader_count: 1,
                     leadership_rotated_at: null,
-                    member_count: 1,
+                    member_count: 2,
                     members: [
                         {
                             id: '20000000-0000-0000-0000-000000000001',
@@ -185,6 +185,15 @@ test('organization detail preserves source section and page query parameters', a
                             user: {
                                 id: '30000000-0000-0000-0000-000000000001',
                                 name: 'Other learner',
+                            },
+                        },
+                        {
+                            id: '20000000-0000-0000-0000-000000000002',
+                            joined_at: '2026-01-01T00:00:00Z',
+                            role: 'member',
+                            user: {
+                                id: '30000000-0000-0000-0000-000000000002',
+                                name: 'New member',
                             },
                         },
                     ],
@@ -239,9 +248,12 @@ test('organization detail preserves source section and page query parameters', a
     ).toBeVisible();
     await expect.poll(() => requestedMembersPage).toBe('2');
     await expect(
-        page.getByRole('button', { name: 'Members (1)' }),
+        page.getByRole('button', { name: 'Members (2)' }),
     ).toHaveClass(/bg-\[/);
     await expect(page.getByText('Other learner')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Make leader' }),
+    ).toBeVisible();
     await page
         .getByRole('navigation', { name: 'Organization members' })
         .getByRole('button', { name: 'Previous' })
