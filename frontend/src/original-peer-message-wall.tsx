@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type LearnerPeerMessageWall = components['schemas']['LearnerPeerMessageWall'];
@@ -29,6 +30,7 @@ export function OriginalPeerMessageWall({
     onComplete: () => Promise<void>;
     playRunId: string;
 }) {
+    const t = usePlatformTranslation();
     const config = activity.config as {
         messageAllowResponses?: unknown;
         messageResponsePrompt?: unknown;
@@ -129,7 +131,12 @@ export function OriginalPeerMessageWall({
 
     async function submitResponse(messageId: string): Promise<void> {
         if (responseBody.trim().length < 2) {
-            setResponseError('Write at least two characters.');
+            setResponseError(
+                t(
+                    'activities.messages.response_too_short',
+                    'Write at least two characters.',
+                ),
+            );
             return;
         }
         setResponding(true);
@@ -161,7 +168,12 @@ export function OriginalPeerMessageWall({
             setResponseBody('');
             setResponseType('explanation');
         } catch {
-            setResponseError('Your response could not be saved yet.');
+            setResponseError(
+                t(
+                    'activities.messages.response_save_error',
+                    'Your response could not be saved yet.',
+                ),
+            );
         } finally {
             setResponding(false);
         }
@@ -217,7 +229,12 @@ export function OriginalPeerMessageWall({
                       },
             );
         } catch {
-            setHelpfulError('The helpful response mark could not be saved yet.');
+            setHelpfulError(
+                t(
+                    'activities.messages.helpful_save_error',
+                    'The helpful response mark could not be saved yet.',
+                ),
+            );
             setHelpfulErrorMessageId(messageId);
         } finally {
             setMarkingHelpfulResponseId(null);
@@ -239,14 +256,21 @@ export function OriginalPeerMessageWall({
                     className="text-xs font-semibold tracking-[0.16em] uppercase"
                     style={{ color: theme.accent }}
                 >
-                    {state?.topic_title ?? 'Learner messages'}
+                    {state?.topic_title ??
+                        t('activities.messages.topic', 'Learner messages')}
                 </p>
                 <p className="mt-1 text-sm opacity-75">
-                    Thoughts shared by learners who explored this topic.
+                    {t(
+                        'activities.messages.wall_description',
+                        'Thoughts shared by learners who explored this topic.',
+                    )}
                 </p>
             </div>
             <button
-                aria-label="Close message wall"
+                aria-label={t(
+                    'activities.messages.close_wall',
+                    'Close message wall',
+                )}
                 className="absolute top-4 right-4 z-30 flex size-10 items-center justify-center rounded-lg border transition hover:scale-105 disabled:opacity-50"
                 disabled={closing}
                 onClick={() => void close()}
@@ -261,12 +285,17 @@ export function OriginalPeerMessageWall({
             </button>
             {loading ? (
                 <div className="grid h-full min-h-[28rem] place-items-center p-8 text-center">
-                    <p className="text-sm opacity-75">Loading messages...</p>
+                    <p className="text-sm opacity-75">
+                        {t('activities.messages.loading', 'Loading messages...')}
+                    </p>
                 </div>
             ) : messages.length === 0 ? (
                 <div className="grid h-full min-h-[28rem] place-items-center p-8 text-center">
                     <p className="max-w-sm text-sm leading-6 opacity-75">
-                        No learner messages are visible for this topic yet.
+                        {t(
+                            'activities.messages.empty_wall',
+                            'No learner messages are visible for this topic yet.',
+                        )}
                     </p>
                 </div>
             ) : (
@@ -350,7 +379,10 @@ export function OriginalPeerMessageWall({
                     </div>
                     {state && state.pagination.last_page > 1 ? (
                         <nav
-                            aria-label="Message pages"
+                            aria-label={t(
+                                'activities.messages.pagination',
+                                'Message pages',
+                            )}
                             className="absolute right-4 bottom-3 left-4 z-30 flex items-center justify-between rounded-lg px-2 py-1 text-xs"
                             style={{ backgroundColor: theme.card }}
                         >
@@ -361,7 +393,10 @@ export function OriginalPeerMessageWall({
                                 style={{ borderColor: theme.border }}
                                 type="button"
                             >
-                                Previous
+                                {t(
+                                    'activities.messages.previous_page',
+                                    'Previous message page',
+                                )}
                             </button>
                             <span>{`${state.pagination.current_page} / ${state.pagination.last_page}`}</span>
                             <button
@@ -374,7 +409,10 @@ export function OriginalPeerMessageWall({
                                 style={{ borderColor: theme.border }}
                                 type="button"
                             >
-                                Next
+                                {t(
+                                    'activities.messages.next_page',
+                                    'Next message page',
+                                )}
                             </button>
                         </nav>
                     ) : null}
@@ -421,6 +459,7 @@ function MessageCard({
     setResponseType: (value: ResponseType) => void;
     theme: MessageTheme;
 }) {
+    const t = usePlatformTranslation();
     const isResponding = activeMessageId === message.id;
     return (
         <article
@@ -441,14 +480,17 @@ function MessageCard({
                         <div className="grid gap-1" key={response.id}>
                             {response.response_type ? (
                                 <p className="mb-1 text-xs font-semibold tracking-wide uppercase opacity-70">
-                                    {responseKind(response.response_type)}
+                                    {responseKind(response.response_type, t)}
                                 </p>
                             ) : null}
                             <p>{response.body}</p>
                             {response.is_helpful ? (
                                 <p className="flex items-center gap-1 text-xs font-semibold opacity-80">
                                     <Check className="size-3.5" />
-                                    The learner marked this response helpful.
+                                    {t(
+                                        'activities.messages.marked_helpful',
+                                        'The learner marked this response helpful.',
+                                    )}
                                 </p>
                             ) : null}
                             {response.can_mark_helpful ? (
@@ -465,10 +507,19 @@ function MessageCard({
                                     type="button"
                                 >
                                     {markingHelpfulResponseId === response.id
-                                        ? 'Saving...'
+                                        ? t(
+                                              'activities.messages.saving_helpful',
+                                              'Saving...',
+                                          )
                                         : response.is_helpful
-                                          ? 'Clear helpful mark'
-                                          : 'This helped me'}
+                                          ? t(
+                                                'activities.messages.unmark_helpful',
+                                                'Clear helpful mark',
+                                            )
+                                          : t(
+                                                'activities.messages.mark_helpful',
+                                                'This helped me',
+                                            )}
                                 </button>
                             ) : null}
                         </div>
@@ -487,7 +538,10 @@ function MessageCard({
                 >
                     {message.has_responded ? (
                         <p className="text-xs opacity-75">
-                            You responded to this message.
+                            {t(
+                                'activities.messages.response_added',
+                                'You responded to this message.',
+                            )}
                         </p>
                     ) : (
                         <>
@@ -497,14 +551,23 @@ function MessageCard({
                                 style={{ borderColor: theme.border }}
                                 type="button"
                             >
-                                {isResponding ? 'Close response' : 'Respond'}
+                                {isResponding
+                                    ? t(
+                                          'activities.messages.close_response',
+                                          'Close response',
+                                      )
+                                    : t('activities.messages.respond', 'Respond')}
                             </button>
                             {isResponding ? (
                                 <div className="mt-3 grid gap-2">
                                     {responsePrompt ? (
                                         <p className="text-xs leading-5 opacity-80">
                                             <span className="font-semibold">
-                                                Response guidance:{' '}
+                                                {t(
+                                                    'activities.messages.response_guidance',
+                                                    'Response guidance',
+                                                )}
+                                                :{' '}
                                             </span>
                                             {responsePrompt}
                                         </p>
@@ -513,9 +576,15 @@ function MessageCard({
                                         className="grid gap-1 text-xs font-semibold"
                                         htmlFor={`response-type-${message.id}`}
                                     >
-                                        What kind of help would you like to offer?
+                                        {t(
+                                            'activities.messages.response_type_label',
+                                            'What kind of help would you like to offer?',
+                                        )}
                                         <span className="font-normal opacity-75">
-                                            Choose a shape for your response; it is not a grade.
+                                            {t(
+                                                'activities.messages.response_type_hint',
+                                                'Choose a shape for your response; it is not a grade.',
+                                            )}
                                         </span>
                                     </label>
                                     <select
@@ -529,21 +598,45 @@ function MessageCard({
                                         style={{ borderColor: theme.border }}
                                         value={responseType}
                                     >
-                                        <option value="explanation">Explain an idea</option>
-                                        <option value="example">Share an example</option>
-                                        <option value="question">Ask a question</option>
+                                        <option value="explanation">
+                                            {t(
+                                                'activities.messages.response_type_explanation',
+                                                'Explain an idea',
+                                            )}
+                                        </option>
+                                        <option value="example">
+                                            {t(
+                                                'activities.messages.response_type_example',
+                                                'Share an example',
+                                            )}
+                                        </option>
+                                        <option value="question">
+                                            {t(
+                                                'activities.messages.response_type_question',
+                                                'Ask a question',
+                                            )}
+                                        </option>
                                         <option value="counterexample">
-                                            Offer a counterexample
+                                            {t(
+                                                'activities.messages.response_type_counterexample',
+                                                'Offer a counterexample',
+                                            )}
                                         </option>
                                     </select>
                                     <textarea
-                                        aria-label="Your response"
+                                        aria-label={t(
+                                            'activities.messages.response_label',
+                                            'Your response',
+                                        )}
                                         className="min-h-20 w-full rounded-lg border bg-transparent p-2 text-sm outline-none focus:ring-2"
                                         maxLength={280}
                                         onChange={(event) =>
                                             setResponseBody(event.target.value)
                                         }
-                                        placeholder="Add a thoughtful response..."
+                                        placeholder={t(
+                                            'activities.messages.response_placeholder',
+                                            'Add a thoughtful response...',
+                                        )}
                                         style={{ borderColor: theme.border }}
                                         value={responseBody}
                                     />
@@ -563,7 +656,10 @@ function MessageCard({
                                             }}
                                             type="button"
                                         >
-                                            Send response
+                                            {t(
+                                                'activities.messages.send_response',
+                                                'Send response',
+                                            )}
                                         </button>
                                         <button
                                             className="rounded-md px-3 py-1.5 text-xs font-medium"
@@ -571,7 +667,7 @@ function MessageCard({
                                             onClick={() => onToggleResponse(message.id)}
                                             type="button"
                                         >
-                                            Not now
+                                            {t('activities.messages.not_now', 'Not now')}
                                         </button>
                                     </div>
                                 </div>
@@ -617,16 +713,31 @@ function useMessageTheme(value: unknown, appearance: OriginalAppearance): Messag
     }, [appearance, value]);
 }
 
-function responseKind(responseType: ResponseType): string {
+function responseKind(
+    responseType: ResponseType,
+    t: ReturnType<typeof usePlatformTranslation>,
+): string {
     switch (responseType) {
         case 'explanation':
-            return 'Explained an idea';
+            return t(
+                'activities.messages.response_kind_explanation',
+                'Explained an idea',
+            );
         case 'example':
-            return 'Shared an example';
+            return t(
+                'activities.messages.response_kind_example',
+                'Shared an example',
+            );
         case 'question':
-            return 'Asked a question';
+            return t(
+                'activities.messages.response_kind_question',
+                'Asked a question',
+            );
         case 'counterexample':
-            return 'Offered a counterexample';
+            return t(
+                'activities.messages.response_kind_counterexample',
+                'Offered a counterexample',
+            );
     }
 }
 

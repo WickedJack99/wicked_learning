@@ -4038,6 +4038,94 @@ test('the original peer-message prompt localizes its server-owned prompt flow', 
     ).toBeVisible();
 });
 
+test('the original peer-message wall localizes its authorized empty reader', async ({ page }) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d86';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'activities.messages.close_wall': 'Close locally',
+                    'activities.messages.empty_wall': 'Localized empty wall',
+                    'activities.messages.topic': 'Localized topic',
+                    'activities.messages.wall_description': 'Localized wall guidance',
+                },
+            }),
+        });
+    });
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                play_run_id: playRunId,
+                run_kind: 'route',
+                context: {
+                    node_slug: 'private-place',
+                    node_title: 'Private place',
+                    map_slug: 'private-path',
+                    map_title: 'A private path',
+                    route_label: 'Wall route',
+                },
+                activity: {
+                    slug: 'peer-wall',
+                    title: 'Peer wall',
+                    description: 'A source-authored peer-message wall.',
+                    activity_type: 'message_wall',
+                    config: { messageAllowResponses: false },
+                    completion: { label: null, next_activity_slug: null },
+                    check_in: {
+                        choice_prompt: null,
+                        concepts: [],
+                        learning_areas: [],
+                        objective: null,
+                    },
+                },
+            }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/peer-wall/peer-wall**`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    messages: [],
+                    pagination: {
+                        current_page: 1,
+                        last_page: 1,
+                        per_page: 10,
+                        total: 0,
+                    },
+                    topic_title: null,
+                }),
+            });
+        },
+    );
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/peer-wall/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({ play_run_id: playRunId, status: 'completed' }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByText('Localized topic')).toBeVisible();
+    await expect(page.getByText('Localized wall guidance')).toBeVisible();
+    await expect(page.getByText('Localized empty wall')).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await page.getByRole('button', { name: 'Close locally' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'A small pause after Peer wall' }),
+    ).toBeVisible();
+});
+
 test('the original item-grant surface rolls only the active configured items before completing', async ({
     page,
 }) => {
