@@ -25,6 +25,33 @@ test('Personal settings restores the source section navigation', async ({ page }
             }),
         });
     });
+    await page.route('**/api/v1/account/password/confirmation', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ confirmed: true }),
+        });
+    });
+    await page.route('**/api/v1/learner/language-preference', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                available_languages: [{ code: 'en', name: 'English', native_name: 'English' }],
+                locale: 'en',
+            }),
+        });
+    });
+    await page.route('**/api/v1/learner/feedback-prompt-preference', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ status: 'enabled' }),
+        });
+    });
+    await page.route('**/api/v1/learner/sound-preferences', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ ambience_volume: 50, effects_volume: 50, muted: false }),
+        });
+    });
 
     await page.goto('/settings');
 
@@ -81,5 +108,25 @@ test('Personal settings restores the source section navigation', async ({ page }
             .getByRole('navigation', { name: 'Settings navigation' })
             .getByRole('button', { name: 'Personal' }),
     ).toBeVisible();
+
+    for (const [section, heading] of [
+        ['appearance', 'Visual mode'],
+        ['language', 'Current language'],
+        ['feedback', 'Platform feedback'],
+        ['sound', 'Audio preferences'],
+        ['delete-account', 'Delete account'],
+    ]) {
+        await test.step(section, async () => {
+            await page.goto(`/settings?panel=personal&personal=${section}`);
+            await expect(
+                page.getByRole('heading', { name: heading }),
+            ).toBeVisible();
+            await expect(
+                page
+                    .getByRole('navigation', { name: 'Settings navigation' })
+                    .getByRole('button', { name: 'Personal' }),
+            ).toBeVisible();
+        });
+    }
 
 });
