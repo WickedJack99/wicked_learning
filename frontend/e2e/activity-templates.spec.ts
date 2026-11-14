@@ -28,6 +28,10 @@ test('the activity graph and reusable template library consume fixed platform ca
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'settings.world_builder.activity_graph.arrange':
+                        'Localized graph arrangement guidance',
+                    'settings.world_builder.activity_graph.back_to_map':
+                        'Localized back to map',
                     'settings.world_builder.activity_graph.choice_context':
                         'Localized choice context',
                     'settings.world_builder.activity_graph.delete_activity':
@@ -50,6 +54,34 @@ test('the activity graph and reusable template library consume fixed platform ca
                         'Localized sources',
                     'settings.world_builder.activity_graph.scene_ambience':
                         'Localized scene ambience',
+                    'settings.world_builder.activity_graph.item_grant':
+                        'Localized item grant',
+                    'settings.world_builder.activity_graph.item_obstacle':
+                        'Localized item obstacle',
+                    'settings.world_builder.activity_graph.markdown':
+                        'Localized markdown',
+                    'settings.world_builder.activity_graph.message_prompt':
+                        'Localized message prompt',
+                    'settings.world_builder.activity_graph.message_wall':
+                        'Localized message wall',
+                    'settings.world_builder.activity_graph.npc_dialogue':
+                        'Localized NPC dialogue',
+                    'settings.world_builder.activity_graph.obstacle':
+                        'Localized obstacle',
+                    'settings.world_builder.activity_graph.open_practice':
+                        'Localized open practice',
+                    'settings.world_builder.activity_graph.portal':
+                        'Localized portal',
+                    'settings.world_builder.activity_graph.question':
+                        'Localized question',
+                    'settings.world_builder.activity_graph.reflection':
+                        'Localized reflection',
+                    'settings.world_builder.activity_graph.review_revisit':
+                        'Localized review revisit',
+                    'settings.world_builder.activity_graph.shared_task':
+                        'Localized shared task',
+                    'settings.world_builder.activity_graph.tool_grant':
+                        'Localized tool grant',
                     'settings.world_builder.activity_templates.copy_activity':
                         'Localized copy :activity',
                     'settings.world_builder.activity_templates.create_copy':
@@ -195,6 +227,9 @@ test('the activity graph and reusable template library consume fixed platform ca
         `/settings?panel=admin-world-builder&map=${mapId}&node=${nodeId}`,
     );
     const card = page.locator('[data-id="018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d05"]');
+    await expect(
+        page.getByText('Localized graph arrangement guidance'),
+    ).toBeVisible();
     await expect(card.getByText('Localized needs AI review')).toBeVisible();
     await expect(
         card.getByRole('button', { name: 'Localized activity history' }),
@@ -232,6 +267,27 @@ test('the activity graph and reusable template library consume fixed platform ca
     await expect(
         card.getByRole('button', { name: 'Localized update Mocked activity' }),
     ).toBeVisible();
+    for (const label of [
+        'Localized back to map',
+        'Localized open practice',
+        'Localized reflection',
+        'Localized review revisit',
+        'Localized markdown',
+        'Localized portal',
+        'Localized NPC dialogue',
+        'Localized item grant',
+        'Localized tool grant',
+        'Localized item obstacle',
+        'Localized obstacle',
+        'Localized question',
+        'Localized shared task',
+        'Localized message prompt',
+        'Localized message wall',
+    ]) {
+        await expect(
+            page.getByRole('button', { exact: true, name: label }),
+        ).toBeVisible();
+    }
     await page
         .getByRole('button', { name: 'Localized activity templates' })
         .click();

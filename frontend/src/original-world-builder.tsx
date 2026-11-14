@@ -6499,13 +6499,22 @@ function ActivityGraph({
                         type="button"
                     >
                         <ArrowLeft className="size-4" />
-                        Back to map
+                        {t(
+                            'settings.world_builder.activity_graph.back_to_map',
+                            'Back to map',
+                        )}
                     </button>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                         <span className="hidden text-slate-500 lg:inline">
                             {savingActivityId
-                                ? 'Saving position…'
-                                : 'Drag activity cards to arrange this graph.'}
+                                ? t(
+                                      'settings.world_builder.activity_graph.saving_position',
+                                      'Saving position…',
+                                  )
+                                : t(
+                                      'settings.world_builder.activity_graph.arrange',
+                                      'Drag activity cards to arrange this graph.',
+                                  )}
                         </span>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6527,7 +6536,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Open practice
+                            {t(
+                                'settings.world_builder.activity_graph.open_practice',
+                                'Open practice',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6535,7 +6547,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Reflection
+                            {t(
+                                'settings.world_builder.activity_graph.reflection',
+                                'Reflection',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6543,7 +6558,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Review / revisit
+                            {t(
+                                'settings.world_builder.activity_graph.review_revisit',
+                                'Review / revisit',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6551,7 +6569,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Markdown
+                            {t(
+                                'settings.world_builder.activity_graph.markdown',
+                                'Markdown',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6559,7 +6580,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Portal
+                            {t(
+                                'settings.world_builder.activity_graph.portal',
+                                'Portal',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6567,7 +6591,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            NPC dialogue
+                            {t(
+                                'settings.world_builder.activity_graph.npc_dialogue',
+                                'NPC dialogue',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6575,7 +6602,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Item grant
+                            {t(
+                                'settings.world_builder.activity_graph.item_grant',
+                                'Item grant',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6583,7 +6613,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Tool grant
+                            {t(
+                                'settings.world_builder.activity_graph.tool_grant',
+                                'Tool grant',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6591,7 +6624,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Item obstacle
+                            {t(
+                                'settings.world_builder.activity_graph.item_obstacle',
+                                'Item obstacle',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6599,7 +6635,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Obstacle
+                            {t(
+                                'settings.world_builder.activity_graph.obstacle',
+                                'Obstacle',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6607,7 +6646,10 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Question
+                            {t(
+                                'settings.world_builder.activity_graph.question',
+                                'Question',
+                            )}
                         </button>
                         <button
                             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
@@ -6615,10 +6657,35 @@ function ActivityGraph({
                             type="button"
                         >
                             <Plus className="size-3.5" />
-                            Shared task
+                            {t(
+                                'settings.world_builder.activity_graph.shared_task',
+                                'Shared task',
+                            )}
                         </button>
-                        <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => setEditor({ type: 'message_prompt' })} type="button"><Plus className="size-3.5" />Message prompt</button>
-                        <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => setEditor({ type: 'message_wall' })} type="button"><Plus className="size-3.5" />Message wall</button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() =>
+                                setEditor({ type: 'message_prompt' })
+                            }
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            {t(
+                                'settings.world_builder.activity_graph.message_prompt',
+                                'Message prompt',
+                            )}
+                        </button>
+                        <button
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+                            onClick={() => setEditor({ type: 'message_wall' })}
+                            type="button"
+                        >
+                            <Plus className="size-3.5" />
+                            {t(
+                                'settings.world_builder.activity_graph.message_wall',
+                                'Message wall',
+                            )}
+                        </button>
                     </div>
                 </div>
                 {connectionError ? (
