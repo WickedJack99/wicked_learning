@@ -818,7 +818,7 @@ export function App() {
         ) {
             return (
                 <Suspense fallback={null}>
-                    <OriginalPublicPalettePage appearance={appearance} />
+                    <OriginalPublicPalettePage appearance={appearance} onSignedOut={() => setCurrentUser({ kind: 'anonymous' })} settingsAccess={currentUser.settingsAccess} />
                 </Suspense>
             );
         }
@@ -830,7 +830,7 @@ export function App() {
         ) {
             return (
                 <Suspense fallback={null}>
-                    <OriginalPublicPresentationPage appearance={appearance} />
+                    <OriginalPublicPresentationPage appearance={appearance} onSignedOut={() => setCurrentUser({ kind: 'anonymous' })} settingsAccess={currentUser.settingsAccess} />
                 </Suspense>
             );
         }
@@ -842,7 +842,7 @@ export function App() {
         ) {
             return (
                 <Suspense fallback={null}>
-                    <OriginalAdminLanguagesPage appearance={appearance} />
+                    <OriginalAdminLanguagesPage appearance={appearance} onSignedOut={() => setCurrentUser({ kind: 'anonymous' })} settingsAccess={currentUser.settingsAccess} />
                 </Suspense>
             );
         }

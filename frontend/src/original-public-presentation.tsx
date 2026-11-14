@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { PresentationLocalizationSettingsShell } from './extracted-presentation-localization-navigation';
 import type { OriginalAppearance } from './original-appearance';
 import { publicPresentationStyle } from './public-presentation';
 
@@ -28,7 +29,7 @@ const authPages: Array<{ key: AuthPage; label: string; description: string }> = 
 /** Source-adapted from `pages/settings/presentation.tsx`. This preserves the
  * Laravel editor's workspace structure, image controls and welcome-page
  * editing while swapping Inertia form glue for the typed Rust contract. */
-export function OriginalPublicPresentationPage({ appearance }: { appearance: OriginalAppearance }) {
+export function OriginalPublicPresentationPage({ appearance, onSignedOut, settingsAccess }: { appearance: OriginalAppearance; onSignedOut: () => void; settingsAccess: Record<string, boolean> }) {
     const [presentation, setPresentation] = useState<Presentation | null>(null);
     const [draft, setDraft] = useState<Presentation | null>(null);
     const [section, setSection] = useState<Section>('branding');
@@ -112,8 +113,8 @@ export function OriginalPublicPresentationPage({ appearance }: { appearance: Ori
     const saveCurrent = section === 'source-links' ? saveSourceLinks : save;
     const currentChanged = section === 'source-links' ? sourceLinksChanged : changed;
 
-    return <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}>
-        <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
+    return <PresentationLocalizationSettingsShell activeSection="public" appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}>
+        <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-5">
             <header className="flex shrink-0 flex-wrap items-start justify-between gap-4 pb-5">
                 <div><Link className="mb-4 inline-flex rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]" to="/settings">Settings</Link><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p><h1 className="mt-2 text-3xl font-semibold">Public presentation</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">Configure the source-adapted branding, public pages, welcome sequence and AGPL source links. <Link className="font-medium text-[var(--settings-accent)] hover:underline" to="/settings?panel=admin-color-palettes">Public color palette</Link> and cursor images are configured in their source settings workspaces.</p></div>
                 <button className="inline-flex items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={!currentChanged || busy || !draft} onClick={() => void saveCurrent()} type="button"><Save className="size-4" />{busy ? 'Saving…' : 'Save changes'}</button>
@@ -131,7 +132,7 @@ export function OriginalPublicPresentationPage({ appearance }: { appearance: Ori
                 </div>
             </div></section>}
         </div>
-    </main>;
+    </PresentationLocalizationSettingsShell>;
 }
 
 function SectionButton({ active, description, icon, label, onClick }: { active: boolean; description: string; icon: ReactNode; label: string; onClick: () => void }) {

@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { PresentationLocalizationSettingsShell } from './extracted-presentation-localization-navigation';
 import type { OriginalAppearance } from './original-appearance';
 import { publicPresentationStyle } from './public-presentation';
 
@@ -25,7 +26,7 @@ const fields: Array<{ field: PaletteField; label: string }> = [
 /** Source-adapted from the public portion of `color-palette.tsx`. The
  * separate Rust route is intentionally scoped to the only palette model that
  * currently has a complete Rust owner: public presentation. */
-export function OriginalPublicPalettePage({ appearance }: { appearance: OriginalAppearance }) {
+export function OriginalPublicPalettePage({ appearance, onSignedOut, settingsAccess }: { appearance: OriginalAppearance; onSignedOut: () => void; settingsAccess: Record<string, boolean> }) {
     const [saved, setSaved] = useState<Presentation | null>(null);
     const [draft, setDraft] = useState<Presentation | null>(null);
     const [mode, setMode] = useState<Mode>(appearance);
@@ -81,13 +82,13 @@ export function OriginalPublicPalettePage({ appearance }: { appearance: Original
         }
     }
 
-    return <main className="settings-surface min-h-svh bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100" style={settingsStyle(appearance)}>
-        <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-[92rem] flex-col">
+    return <PresentationLocalizationSettingsShell activeSection="palette" appearance={appearance} onSignedOut={onSignedOut} settingsAccess={settingsAccess}>
+        <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-5">
             <header className="flex shrink-0 flex-wrap items-start justify-between gap-4 pb-5"><div><Link className="mb-4 inline-flex rounded-md px-3 py-2 text-sm font-medium text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)]" to="/settings?panel=admin-public-pages">Public presentation</Link><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Administration</p><h1 className="mt-2 text-3xl font-semibold">Color palette</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">Edit the public color system used by welcome, authentication, source and information pages.</p></div><button className="inline-flex items-center gap-2 rounded-md bg-[var(--settings-accent)] px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-50" disabled={!changed || busy || !draft} onClick={() => void save()} type="button"><Save className="size-4" />{busy ? 'Saving…' : 'Save changes'}</button></header>
             {error ? <p className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200" role="alert">{error}</p> : null}
             {!draft || !palette ? <p className="p-6 text-sm text-[var(--settings-muted-text)]">Loading color palette settings…</p> : <section className="grid min-h-0 flex-1 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]"><div className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] xl:border-r xl:border-b-0"><div className="border-b border-[var(--settings-border-color)] p-5 text-sm leading-6 text-[var(--settings-muted-text)]">Public colors are used by the welcome page, auth pages, source page and public information pages.</div><div className="divide-y divide-[var(--settings-border-color)]">{fields.map(({ field, label }) => <PaletteFieldEditor field={field} key={field} label={label} onChange={update} palette={palette} storedPalette={storedPalette} />)}</div></div><div className="min-h-0 overflow-y-auto bg-[var(--settings-content-background)] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">Live preview</p><h2 className="mt-1 text-lg font-semibold">Public text colors</h2></div><div className="flex items-center gap-1"><ModeSwitch mode={mode} onChange={setMode} /><div aria-label="Public text colors preview" className="ml-3 flex items-center gap-1" role="tablist"><PreviewButton active={preview === 'public'} label="Public pages" onClick={() => setPreview('public')} /><PreviewButton active={preview === 'login'} label="Login" onClick={() => setPreview('login')} /></div></div></div>{preview === 'public' ? <PublicPreview mode={mode} presentation={draft} /> : <LoginPreview mode={mode} presentation={draft} />}</div></section>}
         </div>
-    </main>;
+    </PresentationLocalizationSettingsShell>;
 }
 
 function PaletteFieldEditor({ field, label, onChange, palette, storedPalette }: { field: PaletteField; label: string; onChange: (field: PaletteField, color: string, opacity: number) => void; palette: Palette; storedPalette?: Palette }) {
