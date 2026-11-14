@@ -241,12 +241,14 @@ export function OriginalDialogueTypingSoundSetsPage({
 }
 
 function LetterRow({ letter, onReplace, present }: { letter: string; onReplace: (letter: string, file: File | undefined) => Promise<void>; present: boolean }) {
+    const t = usePlatformTranslation();
     const inputId = `dialogue-typing-sound-${letter}`;
-    return <div className="flex h-9 min-w-0 items-center justify-between gap-2 rounded-md border border-slate-200 px-2.5 dark:border-white/10"><span className="flex items-center gap-1.5 text-xs font-semibold uppercase">{letter}{present ? <Check className="size-3.5 text-teal-700 dark:text-teal-300" /> : null}</span><input accept="audio/wav,.wav" className="sr-only" id={inputId} onChange={(event) => void onReplace(letter, event.currentTarget.files?.[0])} type="file" /><label className="cursor-pointer rounded px-1.5 py-1 text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10" htmlFor={inputId}>Replace</label></div>;
+    return <div className="flex h-9 min-w-0 items-center justify-between gap-2 rounded-md border border-slate-200 px-2.5 dark:border-white/10"><span className="flex items-center gap-1.5 text-xs font-semibold uppercase">{letter}{present ? <Check className="size-3.5 text-teal-700 dark:text-teal-300" /> : null}</span><input accept="audio/wav,.wav" className="sr-only" id={inputId} onChange={(event) => void onReplace(letter, event.currentTarget.files?.[0])} type="file" /><label className="cursor-pointer rounded px-1.5 py-1 text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10" htmlFor={inputId}>{t('settings.dialogue_typing_sounds.replace', 'Replace')}</label></div>;
 }
 
 function Pagination({ count, current, label, onChange }: { count: number; current: number; label: string; onChange: (page: number) => void }) {
-    return <nav aria-label={label} className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs dark:border-white/10"><button className="rounded px-2 py-1 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10" disabled={current === 0} onClick={() => onChange(current - 1)} type="button">Previous</button><span>{current + 1} / {count}</span><button className="rounded px-2 py-1 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10" disabled={current + 1 >= count} onClick={() => onChange(current + 1)} type="button">Next</button></nav>;
+    const t = usePlatformTranslation();
+    return <nav aria-label={label} className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs dark:border-white/10"><button className="rounded px-2 py-1 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10" disabled={current === 0} onClick={() => onChange(current - 1)} type="button">{t('settings.dialogue_typing_sounds.previous', 'Previous')}</button><span>{current + 1} / {count}</span><button className="rounded px-2 py-1 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10" disabled={current + 1 >= count} onClick={() => onChange(current + 1)} type="button">{t('settings.dialogue_typing_sounds.next', 'Next')}</button></nav>;
 }
 
 function Field({ children, label }: { children: React.ReactNode; label: string }) { return <label className="grid gap-1 text-sm font-medium">{label}{children}</label>; }
