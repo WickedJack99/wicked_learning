@@ -5198,10 +5198,14 @@ function MapDetails({
             {document.can_manage_map_access ? (
                 <button
                     className="mt-3 block rounded-md border border-teal-700 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-400/10"
+                    data-wl-id="authoring.world-builder.map-access.open"
                     onClick={() => setAccessOpen(true)}
                     type="button"
                 >
-                    Manage map access
+                    {t(
+                        'settings.world_builder.map_access.open',
+                        'Manage map access',
+                    )}
                 </button>
             ) : null}
             <section className="mt-6 border-t border-slate-200 pt-4 dark:border-white/10">
@@ -5854,6 +5858,7 @@ function EditMapAccessDialog({
     onClose: () => void;
     onUpdated: () => void;
 }) {
+    const t = usePlatformTranslation();
     const { map } = document.editable_map;
     const [accessRoles, setAccessRoles] = useState(map.access_roles);
     const [editingGroupIds, setEditingGroupIds] = useState(
@@ -5875,7 +5880,12 @@ function EditMapAccessDialog({
     const save = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (accessRoles.length === 0) {
-            setError('Choose at least one group that can visit this map.');
+            setError(
+                t(
+                    'settings.world_builder.map_access.access_required',
+                    'Choose at least one group that can visit this map.',
+                ),
+            );
             return;
         }
         setError(null);
@@ -5895,15 +5905,24 @@ function EditMapAccessDialog({
             if (!response.ok) {
                 setError(
                     response.status === 400
-                        ? 'Choose at least one current access group.'
-                        : 'Map access could not be saved. Refresh the World Builder and try again.',
+                        ? t(
+                              'settings.world_builder.map_access.access_invalid',
+                              'Choose at least one current access group.',
+                          )
+                        : t(
+                              'settings.world_builder.map_access.access_error',
+                              'Map access could not be saved. Refresh the World Builder and try again.',
+                          ),
                 );
                 return;
             }
             onUpdated();
         } catch {
             setError(
-                'Map access could not be saved. Check your connection and try again.',
+                t(
+                    'settings.world_builder.map_access.access_network_error',
+                    'Map access could not be saved. Check your connection and try again.',
+                ),
             );
         } finally {
             setSaving(false);
@@ -5928,15 +5947,24 @@ function EditMapAccessDialog({
             if (!response.ok) {
                 setError(
                     response.status === 400
-                        ? 'Choose only groups you can manage.'
-                        : 'Map editor groups could not be saved. Refresh the World Builder and try again.',
+                        ? t(
+                              'settings.world_builder.map_access.editors_invalid',
+                              'Choose only groups you can manage.',
+                          )
+                        : t(
+                              'settings.world_builder.map_access.editors_error',
+                              'Map editor groups could not be saved. Refresh the World Builder and try again.',
+                          ),
                 );
                 return;
             }
             onUpdated();
         } catch {
             setError(
-                'Map editor groups could not be saved. Check your connection and try again.',
+                t(
+                    'settings.world_builder.map_access.editors_network_error',
+                    'Map editor groups could not be saved. Check your connection and try again.',
+                ),
             );
         } finally {
             setSaving(false);
@@ -5948,6 +5976,7 @@ function EditMapAccessDialog({
             aria-labelledby="edit-map-access-title"
             aria-modal="true"
             className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4"
+            data-wl-id="authoring.world-builder.map-access.dialog"
             role="dialog"
         >
             <form
@@ -5958,11 +5987,16 @@ function EditMapAccessDialog({
                     className="text-xl font-semibold"
                     id="edit-map-access-title"
                 >
-                    Access permissions
+                    {t(
+                        'settings.world_builder.map_access.title',
+                        'Access permissions',
+                    )}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Choose which groups may visit this map and the tiles inside
-                    it. Configuration remains restricted to authorized admins.
+                    {t(
+                        'settings.world_builder.map_access.description',
+                        'Choose which groups may visit this map and the tiles inside it. Configuration remains restricted to authorized admins.',
+                    )}
                 </p>
                 {error ? (
                     <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
@@ -5970,7 +6004,12 @@ function EditMapAccessDialog({
                     </p>
                 ) : null}
                 <fieldset className="mt-5 grid gap-3">
-                    <legend className="sr-only">Map access groups</legend>
+                    <legend className="sr-only">
+                        {t(
+                            'settings.world_builder.map_access.groups',
+                            'Map access groups',
+                        )}
+                    </legend>
                     {document.access_groups.map((group) => (
                         <label
                             className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
@@ -5998,13 +6037,25 @@ function EditMapAccessDialog({
                     ))}
                 </fieldset>
                 <section className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
-                    <h3 className="text-sm font-semibold">Group editors</h3>
+                    <h3 className="text-sm font-semibold">
+                        {t(
+                            'settings.world_builder.map_access.editors_title',
+                            'Group editors',
+                        )}
+                    </h3>
                     <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Selected groups can configure this map and its tiles,
-                        but cannot delete the map.
+                        {t(
+                            'settings.world_builder.map_access.editors_description',
+                            'Selected groups can configure this map and its tiles, but cannot delete the map.',
+                        )}
                     </p>
                     <fieldset className="mt-4 grid gap-3">
-                        <legend className="sr-only">Map editor groups</legend>
+                        <legend className="sr-only">
+                            {t(
+                                'settings.world_builder.map_access.editors_groups',
+                                'Map editor groups',
+                            )}
+                        </legend>
                         {document.learning_groups.map((group) => (
                             <label
                                 className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
@@ -6040,8 +6091,10 @@ function EditMapAccessDialog({
                         ))}
                         {document.learning_groups.length === 0 ? (
                             <p className="rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-500 dark:border-white/20">
-                                Create or manage a group in Settings before
-                                assigning map editors.
+                                {t(
+                                    'settings.world_builder.map_access.editors_empty',
+                                    'Create or manage a group in Settings before assigning map editors.',
+                                )}
                             </p>
                         ) : null}
                     </fieldset>
@@ -6051,7 +6104,15 @@ function EditMapAccessDialog({
                         onClick={() => void saveEditingGroups()}
                         type="button"
                     >
-                        {saving ? 'Saving…' : 'Save editor groups'}
+                        {saving
+                            ? t(
+                                  'settings.world_builder.map_access.saving',
+                                  'Saving…',
+                              )
+                            : t(
+                                  'settings.world_builder.map_access.editors_save',
+                                  'Save editor groups',
+                              )}
                     </button>
                 </section>
                 <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
@@ -6061,14 +6122,22 @@ function EditMapAccessDialog({
                         onClick={onClose}
                         type="button"
                     >
-                        Cancel
+                        {t('settings.world_builder.map_access.cancel', 'Cancel')}
                     </button>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950"
                         disabled={saving}
                         type="submit"
                     >
-                        {saving ? 'Saving…' : 'Save access'}
+                        {saving
+                            ? t(
+                                  'settings.world_builder.map_access.saving',
+                                  'Saving…',
+                              )
+                            : t(
+                                  'settings.world_builder.map_access.save',
+                                  'Save access',
+                              )}
                     </button>
                 </div>
             </form>
