@@ -19,6 +19,7 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
+                    'settings.world_builder.header.back_to_settings': 'Localized settings return',
                     'settings.world_builder.header.eyebrow': 'Localized world editing',
                     'settings.world_builder.navigation.aria_label': 'Localized world builder sections',
                     'settings.world_builder.navigation.graph.label': 'Localized graph',
@@ -74,6 +75,9 @@ test('the source catalog consumes its fixed platform catalog copy', async ({ pag
     });
 
     await page.goto('/settings?panel=admin-world-builder');
+    await expect(
+        page.getByRole('link', { name: 'Localized settings return' }),
+    ).toHaveAttribute('href', '/settings');
     await expect(page.getByText('Localized world editing')).toBeVisible();
     const sections = page.getByRole('tablist', {
         name: 'Localized world builder sections',

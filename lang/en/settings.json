@@ -1030,6 +1030,7 @@
     "settings.world_builder.map_asset_surface.empty_title": "No MapAssets yet",
     "settings.world_builder.map_asset_surface.empty_description": "Add the first visual area at the center of this map, then select it to configure its image, placement and learner interaction.",
     "settings.world_builder.header.eyebrow": "World editing",
+    "settings.world_builder.header.back_to_settings": "Settings",
     "settings.world_builder.header.review_queue": "Review queue",
     "settings.world_builder.header.review_queue_count": "Review queue (:count)",
     "settings.world_builder.navigation.aria_label": "World builder sections",

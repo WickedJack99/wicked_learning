@@ -931,7 +931,10 @@ function WorldBuilderContent({
                         to="/settings"
                     >
                         <ArrowLeft className="size-4" />
-                        Settings
+                        {t(
+                            'settings.world_builder.header.back_to_settings',
+                            'Settings',
+                        )}
                     </Link>
                     <p className="mt-4 text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
                         {t(
