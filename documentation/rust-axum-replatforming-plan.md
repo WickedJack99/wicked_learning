@@ -353,6 +353,10 @@ Markdown playback's empty state, previous-page accessibility label and final
 continuation copy likewise use the catalog while its bounded page graph and
 completion remain server-owned.
 
+Peer-message prompt loading, validation, peer-visibility, contribution and
+completion copy now resolves through the catalog while Rust retains its topic
+binding, message write and activity-completion authority.
+
 The source World Builder's map Access permissions control is now lifted for
 principals with its distinct `world_map_access` update scope. Its typed Rust
 command replaces only the complete map viewer-group list after validating

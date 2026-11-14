@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type LearnerPeerMessagePromptState =
@@ -21,6 +22,7 @@ export function OriginalPeerMessagePrompt({
     onComplete: () => Promise<void>;
     playRunId: string;
 }) {
+    const t = usePlatformTranslation();
     const config = activity.config as {
         messageInputLabel?: unknown;
         messagePrompt?: unknown;
@@ -30,11 +32,14 @@ export function OriginalPeerMessagePrompt({
     const prompt =
         typeof config.messagePrompt === 'string'
             ? config.messagePrompt
-            : 'Leave a helpful note or an encouraging thought for the next learner.';
+            : t(
+                  'activities.messages.default_prompt',
+                  'Leave a helpful note or an encouraging thought for the next learner.',
+              );
     const inputLabel =
         typeof config.messageInputLabel === 'string'
             ? config.messageInputLabel
-            : 'Your message';
+            : t('activities.messages.input_label', 'Your message');
     const [state, setState] = useState<LearnerPeerMessagePromptState | null>(null);
     const [body, setBody] = useState('');
     const [loading, setLoading] = useState(true);
@@ -55,22 +60,40 @@ export function OriginalPeerMessagePrompt({
             .then(({ data, response }) => {
                 if (!active) return;
                 if (!response.ok || !data) {
-                    setError('The message topic could not be loaded.');
+                    setError(
+                        t(
+                            'activities.messages.load_error',
+                            'The message topic could not be loaded.',
+                        ),
+                    );
                     return;
                 }
                 setState(data);
             })
-            .catch(() => active && setError('The message topic could not be loaded.'))
+            .catch(() =>
+                active &&
+                setError(
+                    t(
+                        'activities.messages.load_error',
+                        'The message topic could not be loaded.',
+                    ),
+                ),
+            )
             .finally(() => active && setLoading(false));
         return () => {
             active = false;
         };
-    }, [activity.slug, playRunId]);
+    }, [activity.slug, playRunId, t]);
 
     async function submit(): Promise<void> {
         const message = body.trim();
         if (message.length < 2) {
-            setError('Write at least two characters.');
+            setError(
+                t(
+                    'activities.messages.too_short',
+                    'Write at least two characters.',
+                ),
+            );
             return;
         }
         setSubmitting(true);
@@ -96,7 +119,12 @@ export function OriginalPeerMessagePrompt({
             setState(result.data);
             await onComplete();
         } catch {
-            setError('Your message could not be saved yet.');
+            setError(
+                t(
+                    'activities.messages.save_error',
+                    'Your message could not be saved yet.',
+                ),
+            );
         } finally {
             setSubmitting(false);
         }
@@ -127,21 +155,30 @@ export function OriginalPeerMessagePrompt({
                             className="text-xs font-semibold tracking-[0.16em] uppercase"
                             style={{ color: theme.accent }}
                         >
-                            {state?.topic_title ?? 'Learner messages'}
+                            {state?.topic_title ??
+                                t('activities.messages.topic', 'Learner messages')}
                         </p>
                         <p className="mt-2 text-lg leading-7 font-semibold">{prompt}</p>
                         <p className="mt-2 text-sm leading-6 opacity-75">
-                            You can share this with the peer message wall, or continue without posting.
+                            {t(
+                                'activities.messages.peer_visibility',
+                                'You can share this with the peer message wall, or continue without posting.',
+                            )}
                         </p>
                     </div>
                 </div>
                 {loading ? (
-                    <p className="mt-6 text-sm opacity-70">Loading messages...</p>
+                    <p className="mt-6 text-sm opacity-70">
+                        {t('activities.messages.loading', 'Loading messages...')}
+                    </p>
                 ) : state?.has_contributed ? (
                     <div className="mt-6">
                         <p className="flex items-center gap-2 text-sm font-medium">
                             <Check className="size-4" style={{ color: theme.accent }} />
-                            You have already contributed to this topic.
+                            {t(
+                                'activities.messages.already_shared',
+                                'You have already contributed to this topic.',
+                            )}
                         </p>
                         <button
                             className="mt-5 rounded-md px-4 py-2 text-sm font-medium transition hover:brightness-110 disabled:opacity-50"
@@ -150,7 +187,7 @@ export function OriginalPeerMessagePrompt({
                             style={{ backgroundColor: theme.accent, color: theme.buttonText }}
                             type="button"
                         >
-                            Continue
+                            {t('activities.messages.continue', 'Continue')}
                         </button>
                     </div>
                 ) : (
@@ -162,14 +199,22 @@ export function OriginalPeerMessagePrompt({
                                 id="peer-message-body"
                                 maxLength={280}
                                 onChange={(event) => setBody(event.target.value)}
-                                placeholder="A small clue, observation or encouraging thought..."
+                                placeholder={t(
+                                    'activities.messages.placeholder',
+                                    'A small clue, observation or encouraging thought...',
+                                )}
                                 style={{ borderColor: theme.border }}
                                 value={body}
                             />
                         </label>
                         <div className="flex items-center justify-between text-xs opacity-70">
                             <span>{`${body.length}/280`}</span>
-                            <span>Messages can be hidden by learning support.</span>
+                            <span>
+                                {t(
+                                    'activities.messages.moderated',
+                                    'Messages can be hidden by learning support.',
+                                )}
+                            </span>
                         </div>
                         <div className="flex flex-wrap gap-3">
                             <button
@@ -180,7 +225,10 @@ export function OriginalPeerMessagePrompt({
                                 type="button"
                             >
                                 <Send className="size-4" />
-                                {submitting ? 'Sharing…' : 'Share and continue'}
+                                {t(
+                                    'activities.messages.share',
+                                    'Share and continue',
+                                )}
                             </button>
                             <button
                                 className="rounded-md px-4 py-2 text-sm font-medium"
@@ -188,7 +236,7 @@ export function OriginalPeerMessagePrompt({
                                 onClick={() => void onComplete()}
                                 type="button"
                             >
-                                Not now
+                                {t('activities.messages.not_now', 'Not now')}
                             </button>
                         </div>
                     </div>

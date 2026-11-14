@@ -3929,6 +3929,115 @@ test('the original tool-grant surface claims only its active configured tool bef
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
 });
 
+test('the original peer-message prompt localizes its server-owned prompt flow', async ({ page }) => {
+    const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d87';
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'activities.messages.default_prompt': 'Localized prompt',
+                    'activities.messages.input_label': 'Localized message',
+                    'activities.messages.peer_visibility': 'Localized visibility',
+                    'activities.messages.placeholder': 'Localized placeholder',
+                    'activities.messages.share': 'Share locally',
+                },
+            }),
+        });
+    });
+    await page.route(`**/api/v1/learner/play-runs/${playRunId}`, async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                start_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+                play_run_id: playRunId,
+                run_kind: 'route',
+                context: {
+                    node_slug: 'private-place',
+                    node_title: 'Private place',
+                    map_slug: 'private-path',
+                    map_title: 'A private path',
+                    route_label: 'Peer route',
+                },
+                activity: {
+                    slug: 'share-note',
+                    title: 'Share a note',
+                    description: 'A source-authored peer-message prompt.',
+                    activity_type: 'message_prompt',
+                    config: { messageAudience: 'peers' },
+                    completion: { label: null, next_activity_slug: null },
+                    check_in: {
+                        choice_prompt: null,
+                        concepts: [],
+                        learning_areas: [],
+                        objective: null,
+                    },
+                },
+            }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/share-note/peer-message`,
+        async (route) => {
+            if (route.request().method() === 'GET') {
+                await route.fulfill({
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        has_contributed: false,
+                        topic_title: 'Peer notes',
+                    }),
+                });
+                return;
+            }
+            expect(route.request().method()).toBe('POST');
+            expect(await route.request().headerValue('X-CSRF-Token')).toBe(
+                'test-csrf-token',
+            );
+            expect(route.request().postDataJSON()).toEqual({ body: 'A note.' });
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    has_contributed: true,
+                    topic_title: 'Peer notes',
+                }),
+            });
+        },
+    );
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/share-note/complete`,
+        async (route) => {
+            await route.fulfill({
+                contentType: 'application/json',
+                body: JSON.stringify({ play_run_id: playRunId, status: 'completed' }),
+            });
+        },
+    );
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await expect(page.getByText('Localized prompt')).toBeVisible();
+    await expect(page.getByText('Localized visibility')).toBeVisible();
+    await expect(page.getByLabel('Localized message')).toHaveAttribute(
+        'placeholder',
+        'Localized placeholder',
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await page.getByLabel('Localized message').fill('A note.');
+    await page.getByRole('button', { name: 'Share locally' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'A small pause after Share a note' }),
+    ).toBeVisible();
+});
+
 test('the original item-grant surface rolls only the active configured items before completing', async ({
     page,
 }) => {
