@@ -887,7 +887,7 @@ function WorldBuilderContent({
                         onClick={() => setWorldDetailsOpen(true)}
                         type="button"
                     >
-                        Edit world details
+                        {t('settings.world_details.open', 'Edit world details')}
                     </button>
                     <button
                         className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100 dark:hover:bg-amber-300/20"
@@ -1116,6 +1116,7 @@ function EditWorldDetailsDialog({
     onUpdated: () => void;
     world: WorldGraph['world'];
 }) {
+    const t = usePlatformTranslation();
     const [title, setTitle] = useState(world.title);
     const [description, setDescription] = useState(world.description);
     const [updatedAt, setUpdatedAt] = useState(world.updated_at);
@@ -1156,7 +1157,12 @@ function EditWorldDetailsDialog({
     const save = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!title.trim()) {
-            setError('Add a world title before saving.');
+            setError(
+                t(
+                    'settings.world_details.title_required',
+                    'Add a world title before saving.',
+                ),
+            );
             return;
         }
         setSaving(true);
@@ -1177,10 +1183,19 @@ function EditWorldDetailsDialog({
             if (!response.ok) {
                 setError(
                     response.status === 400
-                        ? 'Use a world title within the shown limits.'
+                        ? t(
+                              'settings.world_details.invalid',
+                              'Use a world title within the shown limits.',
+                          )
                         : response.status === 409
-                          ? 'These world details changed in another session. Close this dialog, reload the World Builder, then apply your changes again.'
-                          : 'The world details could not be saved. Refresh the World Builder and try again.',
+                          ? t(
+                                'settings.world_details.conflict',
+                                'These world details changed in another session. Close this dialog, reload the World Builder, then apply your changes again.',
+                            )
+                          : t(
+                                'settings.world_details.save_error',
+                                'The world details could not be saved. Refresh the World Builder and try again.',
+                            ),
                 );
                 return;
             }
@@ -1188,7 +1203,10 @@ function EditWorldDetailsDialog({
             onClose();
         } catch {
             setError(
-                'The world details could not be saved. Check your connection and try again.',
+                t(
+                    'settings.world_details.network_error',
+                    'The world details could not be saved. Check your connection and try again.',
+                ),
             );
         } finally {
             setSaving(false);
@@ -1200,7 +1218,10 @@ function EditWorldDetailsDialog({
     ) => {
         if (
             !window.confirm(
-                'Restore this world detail version? The current details will be preserved in history.',
+                t(
+                    'settings.world_details.restore_confirm',
+                    'Restore this world detail version? The current details will be preserved in history.',
+                ),
             )
         ) {
             return;
@@ -1248,21 +1269,29 @@ function EditWorldDetailsDialog({
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <p className="text-xs font-medium tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
-                            World Builder
+                            {t('settings.world_details.eyebrow', 'World Builder')}
                         </p>
                         <h2
                             className="mt-1 text-xl font-semibold"
                             id="edit-world-details-title"
                         >
-                            Edit world details
+                            {t(
+                                'settings.world_details.title',
+                                'Edit world details',
+                            )}
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Update the author-facing title and description. The
-                            canonical world slug stays unchanged.
+                            {t(
+                                'settings.world_details.description',
+                                'Update the author-facing title and description. The canonical world slug stays unchanged.',
+                            )}
                         </p>
                     </div>
                     <button
-                        aria-label="Close world details"
+                        aria-label={t(
+                            'settings.world_details.close',
+                            'Close world details',
+                        )}
                         className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
                         disabled={saving || restoringVersionId !== null}
                         onClick={onClose}
@@ -1281,7 +1310,7 @@ function EditWorldDetailsDialog({
                 ) : null}
                 <div className="mt-5 grid gap-4">
                     <label className="grid gap-1 text-sm font-medium">
-                        Title
+                        {t('settings.world_details.title_label', 'Title')}
                         <input
                             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/15 dark:bg-slate-900 dark:text-white"
                             maxLength={255}
@@ -1290,7 +1319,10 @@ function EditWorldDetailsDialog({
                         />
                     </label>
                     <label className="grid gap-1 text-sm font-medium">
-                        Description
+                        {t(
+                            'settings.world_details.description_label',
+                            'Description',
+                        )}
                         <textarea
                             className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 dark:border-white/15 dark:bg-slate-900 dark:text-white"
                             onChange={(event) =>
@@ -1303,23 +1335,34 @@ function EditWorldDetailsDialog({
                 <section className="mt-6 grid gap-3 border-t border-slate-200 pt-5 dark:border-white/10">
                     <div>
                         <h3 className="text-sm font-semibold">
-                            Previous versions
+                            {t(
+                                'settings.world_details.history_title',
+                                'Previous versions',
+                            )}
                         </h3>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Restoring creates a new version of the current
-                            details.
+                            {t(
+                                'settings.world_details.history_description',
+                                'Restoring creates a new version of the current details.',
+                            )}
                         </p>
                     </div>
                     {historyLoading ? (
                         <p aria-live="polite" role="status">
-                            Loading world history…
+                            {t(
+                                'settings.world_details.history_loading',
+                                'Loading world history…',
+                            )}
                         </p>
                     ) : historyError ? (
                         <p
                             className="text-sm text-red-700 dark:text-red-300"
                             role="status"
                         >
-                            World history could not be loaded. Try again.
+                            {t(
+                                'settings.world_details.history_error',
+                                'World history could not be loaded. Try again.',
+                            )}
                         </p>
                     ) : history && history.items.length > 0 ? (
                         <div className="grid gap-2">
@@ -1340,7 +1383,10 @@ function EditWorldDetailsDialog({
                                     </div>
                                     <p className="line-clamp-1 text-xs text-slate-600 dark:text-slate-300">
                                         {version.description ||
-                                            'No description'}
+                                            t(
+                                                'settings.world_details.no_description',
+                                                'No description',
+                                            )}
                                     </p>
                                     <button
                                         className="inline-flex justify-self-end rounded-md px-2 py-1 text-sm font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-60 dark:text-teal-200 dark:hover:bg-teal-400/10"
@@ -1352,16 +1398,24 @@ function EditWorldDetailsDialog({
                                     >
                                         <RefreshCw className="mr-1 size-4" />
                                         {restoringVersionId === version.id
-                                            ? 'Restoring…'
-                                            : 'Restore this version'}
+                                            ? t(
+                                                  'settings.world_details.restoring',
+                                                  'Restoring…',
+                                              )
+                                            : t(
+                                                  'settings.world_details.restore',
+                                                  'Restore this version',
+                                              )}
                                     </button>
                                 </div>
                             ))}
                         </div>
                     ) : (
                         <p className="text-sm text-slate-600 dark:text-slate-300">
-                            No earlier world details yet. The first update will
-                            create one.
+                            {t(
+                                'settings.world_details.history_empty',
+                                'No earlier world details yet. The first update will create one.',
+                            )}
                         </p>
                     )}
                     {history && history.last_page > 1 ? (
@@ -1372,10 +1426,20 @@ function EditWorldDetailsDialog({
                                 onClick={() => void loadHistory(history.page - 1)}
                                 type="button"
                             >
-                                Previous
+                                {t(
+                                    'settings.world_details.previous',
+                                    'Previous',
+                                )}
                             </button>
                             <span className="text-xs text-slate-500 dark:text-slate-400">
-                                Page {history.page} of {history.last_page}
+                                {t(
+                                    'settings.world_details.page',
+                                    'Page :page of :last_page',
+                                    {
+                                        page: history.page,
+                                        last_page: history.last_page,
+                                    },
+                                )}
                             </span>
                             <button
                                 className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
@@ -1386,7 +1450,7 @@ function EditWorldDetailsDialog({
                                 onClick={() => void loadHistory(history.page + 1)}
                                 type="button"
                             >
-                                Next
+                                {t('settings.world_details.next', 'Next')}
                             </button>
                         </div>
                     ) : null}
@@ -1398,14 +1462,16 @@ function EditWorldDetailsDialog({
                         onClick={onClose}
                         type="button"
                     >
-                        Cancel
+                        {t('settings.world_details.cancel', 'Cancel')}
                     </button>
                     <button
                         className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
                         disabled={saving || restoringVersionId !== null}
                         type="submit"
                     >
-                        {saving ? 'Saving…' : 'Save details'}
+                        {saving
+                            ? t('settings.world_details.saving', 'Saving…')
+                            : t('settings.world_details.save', 'Save details')}
                     </button>
                 </div>
             </form>
